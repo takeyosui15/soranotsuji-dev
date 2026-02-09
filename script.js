@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.11.6 - 2026-02-09: fix: 大気差補正計算の不具合修正
 Version 1.11.5 - 2026-02-08: fix: 月齢検索の不具合修正
 Version 1.11.4 - 2026-02-07: fix: 初期表示を現在日時に修正
 Version 1.11.3 - 2026-02-07: fix: 計算不具合等修正
@@ -35,7 +36,7 @@ const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzq94EkeZgbWlFb65cb1WQcRrRVi2Qpd_i60NvJWx6BB6Qxpb-30GD7TSzZptpRYxYL/exec"; 
 const SYNODIC_MONTH = 29.53058886; // 朔望月 (日数)
 const EARTH_RADIUS = 6378137;
-const REFRACTION_K = 0.0; // 大気差補正定数: 0.132
+const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
 
 const POLARIS_RA = 2.5303;
 const POLARIS_DEC = 89.2641; 
@@ -134,7 +135,19 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.11.5)");
+    console.log("宙の辻: 起動 (V1.11.6)");
+    
+    // Astronomy Engineが読み込まれているかチェック
+    if (typeof Astronomy === 'undefined') {
+        console.error("Astronomy Engine is not loaded.");
+        return;
+    }
+
+    // GeographicLibが読み込まれているかチェック
+    if (typeof geodesic === 'undefined') {
+        console.error("GeographicLib is not loaded.");
+        return;
+    }
 
     // 1. 古いデータを削除 (Clean up)
     cleanupOldStorage();
@@ -636,7 +649,7 @@ function updateCalculation() {
 function updateDPLines() {
     dpLayer.clearLayers();
     const baseDate = new Date(appState.currentDate);
-    baseDate.setHours(0, 0, 0, 0); 
+    baseDate.setHours(0, 0, 0, 0);
     
     const datePrev = new Date(baseDate.getTime() - 86400000);
     const dateNext = new Date(baseDate.getTime() + 86400000);
@@ -939,10 +952,9 @@ function calculateDPPathPoints(targetDate, body, observer) {
         }
         
         const hor = Astronomy.Horizon(time, observer, r, d, "normal");
-        
         if (hor.altitude > limit) {
             const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
-            if (dist > 0 && dist <= 350000) {
+            if (dist > 0 && dist < 350000) { // 350km以内のみ
                 path.push({ dist: dist, az: hor.azimuth, time: time });
             }
         }
@@ -959,7 +971,7 @@ function drawDPPath(points, color, dashArray, withMarkers) {
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
         const obsAz = (p.az + 180) % 360; 
-        const dest = getDestinationVincenty(targetPt.lat, targetPt.lng, obsAz, p.dist);
+        const dest = getDestinationGeodesic(targetPt.lat, targetPt.lng, obsAz, p.dist);
         const pt = [dest.lat, dest.lng];
         
         if (currentSegment.length > 0) {
@@ -1004,81 +1016,68 @@ function drawDPPath(points, color, dashArray, withMarkers) {
     });
 }
 
+// ------------------------------------------------------
+// 計算ヘルパー (高度角→距離変換)
+// ------------------------------------------------------
 /**
- * 2つの高度(観測者・ターゲット)と地球の丸みを考慮して、
- * 指定された見かけの高度角(alt)で見える「地上の水平距離」を逆算する
+ * 2つの高度(観測者・ターゲット)を地球を球体として、
+ * 指定された見かけの高度角(altObs)で見える「地上の水平距離」を逆算する
  * * 原理: 地球中心(C)-観測者(O)-ターゲット(T) の3点で三角形を作る
- * * 1. 既知の辺: r1(地球+観測者), r2(地球+ターゲット)
- * 2. 既知の角: θobs = 90° + 高度角(alt)
- * 3. 正弦定理 (r2 / sin(θobs) = r1 / sin(θtarget)) を使って、
- * ターゲット側の内角(θtarget)を導き出す
- * 4. 三角形の内角の和(180°)から、地球中心角(γ)を決定する: γ = 180° - θobs - θtarget
- * 5. 弧の長さ L = R * γ で地上の距離を算出する
- * * @param {number} celestialAltDeg 見かけの高度角 (度)
+ * 1. 既知の辺: r1(地球+観測者), r2(地球+ターゲット)
+ * 2. 既知の角: 観測点での見かけの高度角(altObs)
+ * 3. 正弦定理 (r1 / sin(PI/2 - altTarget) = r2 / sin(PI/2 + altObs) を使って、
+ * 目的点の高度角(altTarget)を導き出す
+ * 4. 三角形の内角の和(180°)から、地球中心角(c)を決定する: (PI/2 + altObs) + (PI/2 - altTarget) + c = PI → c = altTarget - altObs
+ * 5. 円弧の長さの定義より、地上の距離Lは、L = R * c
+ * @param {number} altObs 観測点での見かけの高度角 (度)
  * @param {number} hObs 観測者の標高 (m)
  * @param {number} hTarget ターゲットの標高 (m)
  */
-function calculateDistanceForAltitudes(celestialAltDeg, hObs, hTarget) {
+function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
     // 地球半径 (定数より取得)
     const R = EARTH_RADIUS;
     
-    // 気差係数 (設定値を考慮。通常0だが、厳密な測量計算用に残す)
-    // 厳密な光路計算において、気差は「地球の半径が少し大きく見える」としてモデル化されることが多いです
-    // R_eff = R / (1 - k)
+    // 気差係数kを考慮した地球半径 (以前の議論に基づき採用)
     const k = (appState.refractionK !== undefined) ? appState.refractionK : REFRACTION_K;
     const Reff = R / (1 - k);
 
-    // 地球中心からの距離
-    const r1 = Reff + hObs;
-    const r2 = Reff + hTarget;
+    const r1 = R + hObs;    // 観測者
+    const r2 = R + hTarget; // ターゲット
 
-    // 観測点での天頂角 (90度 - 高度角)
-    // 天体高度 celestailAltDeg は地平線からの角度。
-    // 三角形の計算では、鉛直方向(地球中心方向)からの角度を使うと計算しやすい。
-    // 観測点における「地球中心→観測点」のベクトルと「視線」のなす角は 90 + alt
-    const altRad = celestialAltDeg * Math.PI / 180;
-    const thetaObs = (Math.PI / 2) + altRad;
+    const altObsRad = altObs * Math.PI / 180;
 
-    // --- 正弦定理 (Law of Sines) ---
-    // r2 / sin(thetaObs) = r1 / sin(thetaTarget)
-    // sin(thetaTarget) = r1 * sin(thetaObs) / r2
-    
-    const sinThetaTarget = (r1 * Math.sin(thetaObs)) / r2;
+    const altTargetRad = Math.PI/2 - Math.asin(r1/r2 * Math.sin(Math.PI/2 + altObsRad));
+    const c = altTargetRad - altObsRad;
+    const L = Reff * c;
 
-    // sinが1を超える＝ターゲットが高すぎて/遠すぎて物理的にその角度では見えない（地平線の下など）
-    if (sinThetaTarget > 1 || sinThetaTarget < -1) {
-        return -1; 
-    }
-
-    // ターゲット地点での角度 (arcsin)
-    // ただし、鈍角・鋭角の判定が必要だが、視線が上向きか下向きかで幾何学的に定まる。
-    // ここでは単純化して、三角形の内角の和 (180度 = PI) から中心角 gamma を求めるアプローチをとる。
-    
-    const thetaTarget = Math.asin(sinThetaTarget);
-
-    // 三角形の内角の和は π
-    // 中心角 gamma = π - thetaObs - thetaTarget
-    // ※注意: asinは -PI/2 ~ PI/2 を返すが、三角形の内角としてはこれで整合する範囲
-    
-    let gamma = Math.PI - thetaObs - thetaTarget;
-
-    // gammaが負になるケース（計算上のエラーや、同一点に近い場合）を排除
-    if (gamma < 0) {
-        // 特別なケース: altが90度に近い、またはr1, r2の位置関係によるもの
-        // 厳密にはここに来る前にフィルタリングされるべきだが、安全策として
-        return -1;
-    }
-
-    // --- 距離の算出 ---
-    // ここで求めた gamma は「光の経路（または視線）」における中心角。
-    // 地図上にプロットするために必要なのは「実際の地球表面(標高0m)での移動距離」。
-    // したがって、元の地球半径 R を掛ける。（Reffではない）
-    
-    const surfaceDist = R * gamma;
-
-    return surfaceDist;
+    return L;
 }
 
+// ------------------------------------------------------
+// 計算・描画ヘルパー (GeographicLib)
+// ------------------------------------------------------
+/**
+ * 指定した地点から、方位(az)と距離(dist)進んだ先の座標を計算する
+ * (GeographicLib を使用して高精度に計算)
+ */
+function getDestinationGeodesic(lat1, lon1, az, dist) {
+    // WGS84楕円体を使用
+    const geod = geodesic.Geodesic.WGS84;
+    
+    // Direct(順解法): 始点(lat1, lon1), 方位(az), 距離(dist) -> 終点
+    // GeographicLibのDirectメソッドは { lat2, lon2, ... } を返します
+    const r = geod.Direct(lat1, lon1, az, dist);
+
+    return { lat: r.lat2, lng: r.lon2 };
+}
+
+// ------------------------------------------------------
+// 計算・描画ヘルパー (Vincenty順解法)
+// ------------------------------------------------------
+/**
+ * 指定した地点から、方位(az)と距離(dist)進んだ先の座標を計算する
+ * (Vincentyの順解法による実装)
+ */
 function getDestinationVincenty(lat1, lon1, az, dist) {
     const a = EARTH_RADIUS;
     const f = 1 / 298.257223563;
@@ -1166,6 +1165,32 @@ function getDestinationRhumb(lat1, lon1, brng, dist) {
     };
 }
 
+// (参考) calculateGreatCirclePoints も GeographicLib 化する場合
+function calculateGreatCirclePoints(start, end) {
+    const points = [];
+    
+    const geod = geodesic.Geodesic.WGS84;
+    
+    // Inverse(逆解法)で2点間の測地線を定義
+    // InverseLine は始点から終点への「ラインオブジェクト」を作ります
+    const l = geod.InverseLine(start.lat, start.lng, end.lat, end.lng);
+    
+    // 距離 (l.s13)
+    const dist = l.s13; 
+    
+    // 100分割 (または100kmごとなど) して点を取得
+    const numSteps = 100;
+    for (let i = 0; i <= numSteps; i++) {
+        // 距離 s を指定して座標を算出
+        const s = (dist * i) / numSteps;
+        const r = l.Position(s);
+        points.push([r.lat2, r.lon2]);
+    }
+    
+    return points;
+}
+
+/**
 // ★追加: 2点間の大圏コース(最短経路)上の座標配列を返す (1km間隔)
 function calculateGreatCirclePoints(start, end) {
     const points = [];
@@ -1218,7 +1243,13 @@ function calculateGreatCirclePoints(start, end) {
     
     return points;
 }
+*/
 
+// ------------------------------------------------------
+// 計算・描画ヘルパー (イベントハンドラ)
+// ------------------------------------------------------
+
+// 地図クリック時の処理 
 async function onMapClick(e) {
     const isStart = document.getElementById('radio-start').checked;
     const elev = await getElevation(e.latlng.lat, e.latlng.lng);
