@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.11.7 - 2026-02-11: fix: 大気差補正計算の不具合修正
 Version 1.11.6 - 2026-02-09: fix: 大気差補正計算の不具合修正
 Version 1.11.5 - 2026-02-08: fix: 月齢検索の不具合修正
 Version 1.11.4 - 2026-02-07: fix: 初期表示を現在日時に修正
@@ -135,7 +136,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.11.6)");
+    console.log("宙の辻: 起動 (V1.11.7)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -1046,7 +1047,10 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
 
     const altObsRad = altObs * Math.PI / 180;
 
-    const altTargetRad = Math.PI/2 - Math.asin(r1/r2 * Math.sin(Math.PI/2 + altObsRad));
+    let sinVal = r1/r2 * Math.sin(Math.PI/2 + altObsRad);
+    if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
+    if (sinVal < -1) sinVal = -1;
+    const altTargetRad = Math.PI/2 - Math.asin(sinVal);
     const c = altTargetRad - altObsRad;
     const L = Reff * c;
 
