@@ -335,9 +335,9 @@ GNU General Public License for more details.
                         <li><strong>Now:</strong> 現在日時にリセットします。</li>
                         <li><strong>◀◀/▶▶:</strong> 月単位で日付を移動します。</li>
                         <li><strong>◀/▶:</strong> 日単位で日付を移動します。</li>
-                        <li><strong>月/秒・日/秒・時/秒・分/秒:</strong> 選択した速度で時間を自動再生します（トグル）。</li>
-                        <li><strong>月齢:</strong> 数値を変更して任意の月齢の日へジャンプ。◀/▶で約1朔望月前後へ移動。</li>
+                        <li><strong>月/秒・日/秒・時/秒・分/秒:</strong> 選択した速度で時間を自動再生します（アニメーション）。</li>
                         <li><strong>日出/日没/月出/月没:</strong> 各時刻にワンタッチでジャンプします。</li>
+                        <li><strong>月齢:</strong> 数値を変更して任意の月齢の日へジャンプ。◀/▶で約1朔望月前後へ移動。</li>
                     </ul>
                 </section>
 
@@ -346,8 +346,8 @@ GNU General Public License for more details.
                     <p>「辻ライン」ボタンをオンにすると、目的点（山頂など）の背後に天体が重なって見える観測位置の軌跡を、地図上に曲線で表示します。</p>
                     <ul class="help-list">
                         <li><strong>破線（- - -）:</strong> 当日の辻ライン。5分刻みの●マーカーと時刻を表示。</li>
-                        <li><strong>点線（· · ·）:</strong> 前日・翌日の辻ライン。</li>
                         <li><strong>一点鎖線（-·-·-）:</strong> 天体の視半径（見かけの大きさ）を考慮したエッジライン。天体の縁が目的点に接する位置を示します。</li>
+                        <li><strong>点線（· · ·）:</strong> 前日・翌日の辻ライン。</li>
                     </ul>
                     <p>表示中のすべての天体について、それぞれの色で描画されます。</p>
                 </section>
@@ -358,7 +358,7 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>◎:</strong> 天体の中心がほぼ目的点に重なる日（誤差が視半径以内）</li>
                         <li><strong>○:</strong> 天体の縁が目的点に接する範囲の日（誤差が視直径以内）</li>
-                        <li><strong>△:</strong> 天体の直径3倍以内に収まる日</li>
+                        <li><strong>△:</strong> 目的点との誤差が天体の直径3倍以内に収まる日</li>
                     </ul>
                     <p>日付をタップすると、その日に日時をジャンプして辻ラインを確認できます。</p>
                 </section>
@@ -384,7 +384,7 @@ GNU General Public License for more details.
                     <p>これは、<strong>「地球は丸いのに、地図は平ら」</strong>であるために起こる現象です。</p>
                     <ul class="help-list">
                         <li><strong>方位線:</strong> 地球の丸みを考慮した方位になります。</li>
-                        <li><strong>黒い線:</strong> 平面上の単純な2点間の方位になります。</li>
+                        <li><strong>黒い線:</strong> 破線は、平面上の単純な2点間の方位になります。実線は、大圏航路を示します。</li>
                         <li><strong>辻ライン:</strong> 目的点上に天体が見える位置の時間の軌跡のため、方位を表してはいません。</li>
                     </ul>
                     <p>距離が遠くなるほど、メルカトル図法の性質上、方位線と黒い線はズレて表示されます。辻ラインは、そもそも、方位線と黒い線とは重なりません。</p>
