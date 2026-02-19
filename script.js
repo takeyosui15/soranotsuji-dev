@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.13.0 - 2026-02-19: feat: Movボタン4種、標高取得ロジック改善、視度半径ライン追加
 Version 1.12.0 - 2026-02-12: feat: 気象パラメータ連動で大気差補正Kを計算・表示する機能追加
 Version 1.11.7 - 2026-02-11: fix: 大気差補正計算の不具合修正
 Version 1.11.6 - 2026-02-09: fix: 大気差補正計算の不具合修正
@@ -167,7 +168,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.12.0)");
+    console.log("宙の辻: 起動 (V1.13.0)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -738,7 +739,7 @@ function updateDPLines() {
         // 視半径エッジライン (一点鎖線)
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
         if (angR >= 0.01) {
-            const dashDot = '15, 5, 3, 5';
+            const dashDot = '1, 13, 13, 13'; // 点-スペース-線-スペースのパターン
             drawDPPath(pCurr, body.color, dashDot, false, +angR);
             drawDPPath(pCurr, body.color, dashDot, false, -angR);
         }
