@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.14.0 - 2026-02-19: feat: 辻Day検索機能追加
 Version 1.13.0 - 2026-02-19: feat: Movボタン4種、標高取得ロジック改善、視度半径ライン追加
 Version 1.12.0 - 2026-02-12: feat: 気象パラメータ連動で大気差補正Kを計算・表示する機能追加
 Version 1.11.7 - 2026-02-11: fix: 大気差補正計算の不具合修正
