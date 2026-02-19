@@ -1526,8 +1526,8 @@ async function fetchAllElevations(points, onProgress) {
         const tileKeys = Object.keys(tileGroups);
         if (tileKeys.length === 0) break;
 
-        // 4タイルずつ並列ダウンロード
-        const BATCH = 4;
+        // 1タイルずつ並列ダウンロード
+        const BATCH = 1;
         for (let b = 0; b < tileKeys.length; b += BATCH) {
             if (generation !== _elevFetchGeneration) return;
 
