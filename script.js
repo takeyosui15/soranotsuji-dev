@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.14.1 - 2026-02-19: fix: 辻Day検索の不具合修正
 Version 1.14.0 - 2026-02-19: feat: 辻Day検索機能追加
 Version 1.13.0 - 2026-02-19: feat: Movボタン4種、標高取得ロジック改善、視度半径ライン追加
 Version 1.12.0 - 2026-02-12: feat: 気象パラメータ連動で大気差補正Kを計算・表示する機能追加
@@ -171,7 +172,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.13.0)");
+    console.log("宙の辻: 起動 (V1.14.1)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -1984,7 +1985,7 @@ async function startTsujiDaySearch() {
     const obsLat = appState.start.lat;
     const obsLng = appState.start.lng;
     const visibleBodies = appState.bodies.filter(b => b.visible);
-    const today = new Date();
+    const today = new Date(appState.currentDate);
     today.setHours(0, 0, 0, 0);
     const results = [];
 
