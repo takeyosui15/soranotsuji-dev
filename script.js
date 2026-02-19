@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.12.0 - 2026-02-12: feat: 気象パラメータ連動で大気差補正Kを計算・表示する機能追加
 Version 1.11.7 - 2026-02-11: fix: 大気差補正計算の不具合修正
 Version 1.11.6 - 2026-02-09: fix: 大気差補正計算の不具合修正
 Version 1.11.5 - 2026-02-08: fix: 月齢検索の不具合修正
@@ -21,11 +22,8 @@ Version 1.11.3 - 2026-02-07: fix: 計算不具合等修正
 Version 1.11.2 - 2026-02-06: style: 大気差補正Kの文言・表示修正
 Version 1.11.1 - 2026-02-05: fix: 設定セクションのUI修正
 Version 1.11.0 - 2026-02-05: feat: REFRACTION_K設定機能追加; 各種UI改善
-Version 1.10.1 - 2026-02-05: Minor fixes and REFRACTION_K adjustment
 Version 1.10.0 - 2026-02-05: Great-circle route line appended on map; Calculation optimization
-Version 1.9.1 - 2026-02-05: Style fixes and minor adjustments
 Version 1.9.0 - 2026-02-05: Minor feature and apparent altitude appended in popup
-Version 1.8.10 - 2026-02-05: Style fixes and timestamp interval adjustment
 Version 1.0.0 - 2026-01-29: Initial release
 */
 
@@ -38,6 +36,10 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzq94EkeZgbWlFb65cb
 const SYNODIC_MONTH = 29.53058886; // 朔望月 (日数)
 const EARTH_RADIUS = 6378137;
 const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
+// 標準大気モデルの定数
+const STD_P = 1013.25;  // 標準気圧 (hPa)
+const STD_T = 15.0;     // 標準気温 (°C)
+const STD_L = -0.0125;  // 標準気温減率 (K/m)　-0.0065K/m だが　-0.0125K/m もよく使われる
 
 const POLARIS_RA = 2.5303;
 const POLARIS_DEC = 89.2641; 
@@ -95,6 +97,9 @@ let appState = {
     // 大気差補正係数 (初期値は定数から)
     refractionK: REFRACTION_K,
 
+    //気象パラメータ (初期値は標準大気)
+    meteo: { p: STD_P, t: STD_T, l: STD_L },
+
     // 訪問履歴
     lastVisitDate: null,
 
@@ -136,7 +141,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.11.7)");
+    console.log("宙の辻: 起動 (V1.12.0)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -359,11 +364,44 @@ function setupUI() {
     document.getElementById('btn-mystar-reg').onclick = registerMyStar;
     document.getElementById('chk-mystar').addEventListener('change', (e) => toggleVisibility('MyStar', e.target.checked));
     
-    // 測量気差補正設定
+    // --- ★追加: 気象パラメータ連動 ---
+    const iK = document.getElementById('input-refraction-k');
+    const iP = document.getElementById('input-meteo-p');
+    const iT = document.getElementById('input-meteo-t');
+    const iL = document.getElementById('input-meteo-l');
+
+    // 気象条件が変わったら K を再計算して表示する関数
+    const updateK = () => {
+        const p = parseFloat(iP.value);
+        const t = parseFloat(iT.value);
+        const l = parseFloat(iL.value);
+        if(!isNaN(p) && !isNaN(t) && !isNaN(l)) {
+            const newK = calculateKFromMeteo(p, t, l);
+            // 小数点4桁で表示 (値はまだ保存しない)
+            iK.value = newK.toFixed(4);
+        }
+    };
+
+    iP.addEventListener('input', updateK);
+    iT.addEventListener('input', updateK);
+    iL.addEventListener('input', updateK);
+
+    // リセットボタン
+    document.getElementById('btn-reset-meteo').onclick = () => {
+        iP.value = STD_P;
+        iT.value = STD_T;
+        iL.value = STD_L;
+        updateK(); // 計算してKも更新
+    };
+    
+    // 設定登録ボタン
     document.getElementById('btn-reg-settings').onclick = registerSettings;
-    // 起動時の値を入力欄に表示 (設定されている場合)
-    if (appState.refractionK !== undefined) {
-        document.getElementById('input-refraction-k').value = appState.refractionK;
+
+    // 起動時の初期値を入力欄にセット
+    if(appState.meteo) {
+        iP.value = appState.meteo.p;
+        iT.value = appState.meteo.t;
+        iL.value = appState.meteo.l;
     }
 }
 
@@ -383,6 +421,7 @@ function saveAppState() {
         bodies: appState.bodies,
         myStar: appState.myStar,
         refractionK: appState.refractionK,
+        meteo: appState.meteo, //気象パラメータも保存
         isDPActive: appState.isDPActive,
         lastVisitDate: appState.lastVisitDate
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
@@ -403,6 +442,7 @@ function loadAppState() {
             if(saved.homeEnd) appState.homeEnd = saved.homeEnd;
             if(saved.myStar) appState.myStar = saved.myStar;
             if(saved.refractionK !== undefined) appState.refractionK = saved.refractionK;
+            if(saved.meteo) appState.meteo = saved.meteo;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             
@@ -1249,6 +1289,17 @@ function calculateGreatCirclePoints(start, end) {
 }
 */
 
+/**
+ * 気象条件から気差係数 K を計算する
+ * K = 503 * (P / T^2) * (0.034 + dT/dh)
+ */
+function calculateKFromMeteo(p, tCel, l) {
+    const tKelvin = tCel + 273.15; // ケルビンに変換
+    // 近似式
+    const k = 503 * (p / (tKelvin * tKelvin)) * (0.034 + l);
+    return k;
+}
+
 // ------------------------------------------------------
 // 計算・描画ヘルパー (イベントハンドラ)
 // ------------------------------------------------------
@@ -1590,6 +1641,11 @@ function registerSettings() {
             return alert('有効な数値を入力してください (0以上)');
         }
         appState.refractionK = k;
+        appState.meteo = {
+            p: parseFloat(document.getElementById('input-meteo-p').value),
+            t: parseFloat(document.getElementById('input-meteo-t').value),
+            l: parseFloat(document.getElementById('input-meteo-l').value)
+        };
         alert(`大気差補正係数を ${k} に設定しました`);
     }
     

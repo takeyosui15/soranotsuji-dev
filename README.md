@@ -22,6 +22,7 @@
 * **HTML5 / CSS3 / JavaScript (Vanilla)**
 * **[Leaflet](https://leafletjs.com/)**: 地図表示ライブラリ
 * **[Astronomy Engine](https://github.com/cosinekitty/astronomy)**: 天体位置計算エンジン
+* **[GeographicLib](https://geographiclib.sourceforge.io/)**: 測地線および DMS ルーチン
 * **国土地理院 API**: 標高データの取得
 * **OpenStreetMap (Nominatim)**: 地名検索と地図タイル
 
@@ -43,6 +44,7 @@
 本サイトの制作にあたり、以下のライブラリ・サービスを利用させていただきました。深く感謝いたします。
 
 * **Astronomy Engine Project** (Don Cross氏)
+* **GeographicLib** (Charles Karney氏)
 * **国土地理院** (地理院地図 / 標高API)
 * **OpenStreetMap Contributors**
 * **Google Gemini** (Development Partner)

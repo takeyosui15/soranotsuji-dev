@@ -54,6 +54,8 @@ GNU General Public License for more details.
       src="https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js">
     </script>
     
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 </head>
 <body>
@@ -222,12 +224,40 @@ GNU General Public License for more details.
 
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-settings')">
-                    <span>設定</span> <span id="icon-sec-settings">▼</span>
+                    <span>設定</span>
+                    <span id="icon-sec-settings">▼</span>
                 </div>
                 <div id="sec-settings" class="section-content closed">
+                    
                     <div class="control-row">
-                        <label class="input-label">測量気差係数 K:</label>
-                        <input type="number" id="input-refraction-k" placeholder="0 ≦ K ≦ 約1.5" step="0.001">
+                        <label class="input-label meteo-label">気差係数 K:</label>
+                        <input type="number" id="input-refraction-k" class="meteo-input" step="0.001" value="0.132" placeholder="標準値 0.132">
+                    </div>
+                    
+                    <div class="meteo-box">
+                        <div class="control-row">▼ 気象条件からKを算出</div>
+                        
+                        <div class="control-row">
+                            <label class="input-label meteo-label">気圧 P (hPa):</label>
+                            <input type="number" id="input-meteo-p" class="meteo-input" step="1" value="1013.25" placeholder="1013.25">
+                        </div>
+                        
+                        <div class="control-row">
+                            <label class="input-label meteo-label">気温 T (°C):</label>
+                            <input type="number" id="input-meteo-t" class="meteo-input" step="0.1" value="15.0" placeholder="15.0">
+                        </div>
+                        
+                        <div class="control-row">
+                            <label class="input-label meteo-label" title="高さ1mあたりの気温変化 (通常は -0.0065)">気温減率 dT/dh:</label>
+                            <input type="number" id="input-meteo-l" class="meteo-input" step="0.0001" value="-0.0065" placeholder="-0.0065 〜 -0.0125">
+                        </div>
+                        
+                        <div class="meteo-reset-area">
+                            <button id="btn-reset-meteo" class="nav-btn reset-btn">リセット</button>
+                        </div>
+                    </div>
+
+                    <div class="action-area">
                         <button id="btn-reg-settings" class="nav-btn small">登録</button>
                     </div>
                 </div>
@@ -245,7 +275,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="panel-footer">
-                &copy; 2026- Sora no Tsuji Project - V1.11.7
+                &copy; 2026- Sora no Tsuji Project - V1.12.0
             </div>
         </div>
     </div>
@@ -259,75 +289,195 @@ GNU General Public License for more details.
         </div>
     </div>
 
-    <div id="help-modal" class="hidden">
-        <div class="help-content">
+<div id="help-modal" class="hidden">
+        <div class="help-content formal-style">
             <div class="help-header">
                 <h2>宙の辻 - ヘルプ</h2>
                 <span class="close-help" onclick="toggleHelp()">×</span>
             </div>
             <div class="help-body">
-                <h3>概要</h3>
-                <p><strong>「時」と「場所」が交差する瞬間を、地図上で探す。</strong></p>
-                <p>「宙の辻 - Sora no Tsuji」は、天体シミュレーションと地図情報を組み合わせたWebアプリケーションです。特定の日時・場所における太陽、月、惑星、恒星の位置を計算し、ダイヤモンド富士やパール富士、ダイヤモンド槍ヶ岳に、特定の山の『推し山』ダイヤモンドが見られる時間と場所の「辻（交差点）」をマップ上に可視化します。</p>
+                <section class="help-section">
+                    <h3>概要</h3>
+                    <p class="lead-text">「時」と「場所」が交差する瞬間を、地図上で探す。</p>
+                    <p>「宙の辻 - Sora no Tsuji」は、天体シミュレーションと地図情報を組み合わせたWebアプリケーションです。特定の日時・場所における太陽、月、惑星、恒星の位置を計算し、ダイヤモンド富士やパール富士、ダイヤモンド槍ヶ岳に、特定の山の『推し山』ダイヤモンドが見られる時間と場所の「辻（交差点）」をマップ上に可視化します。</p>
+                </section>
                 
-                <h3>位置情報の設定</h3>
-                <ul>
-                    <li><strong>GPS:</strong> 現在地を観測点に設定します。</li>
-                    <li><strong>観測点/目的点:</strong> 地図をクリック、または、「東京タワー」「富士山」などの地名・およその住所、または、緯度,経度を入力してEnterキーを押すと検索・設定できます。ラジオボタンは、観測点/目的点のクリック時の入力切り替えです。初期値は、東京タワー(観測点)と富士山(目的点)です。</li>
-                    <li><strong>観測点高/目的点高:</strong> 観測点/目的点が入力されると自動で標高を取得します。手動で数値を修正してシミュレーションすることも可能です。</li>
-                    <li><strong>Hom:</strong> 観測点/観測点高の登録・呼出ボタンです。未登録時は現在の値を登録（黄色）し、登録済みの場合は保存された値を呼び出します。入力欄を空にして押すと登録を解除（リセット）します。</li>
-                    <li><strong>推山:</strong> 目的点/目的点高の登録・呼出ボタンです。未登録時は現在の値を登録（黄色）し、登録済みの場合は保存された値を呼び出します。入力欄を空にして押すと登録を解除（リセット）します。</li>
-                </ul>
+                <section class="help-section">
+                    <h3>位置情報の設定</h3>
+                    <ul class="help-list">
+                        <li><strong>GPS:</strong> 現在地を観測点に設定します。</li>
+                        <li><strong>観測点/目的点:</strong> 地図をクリック、または、「東京タワー」「富士山」などの地名・およその住所、または、緯度,経度を入力してEnterキーを押すと検索・設定できます。ラジオボタンは、観測点/目的点のクリック時の入力切り替えです。初期値は、東京タワー(観測点)と富士山(目的点)です。</li>
+                        <li><strong>観測点高/目的点高:</strong> 観測点/目的点が入力されると自動で標高を取得します。手動で数値を修正してシミュレーションすることも可能です。</li>
+                        <li><strong>Hom:</strong> 観測点/観測点高の登録・呼出ボタンです。未登録時は現在の値を登録（背景色変化）し、登録済みの場合は保存された値を呼び出します。入力欄を空にして押すと登録を解除（リセット）します。</li>
+                        <li><strong>推山:</strong> 目的点/目的点高の登録・呼出ボタンです。未登録時は現在の値を登録（背景色変化）し、登録済みの場合は保存された値を呼び出します。入力欄を空にして押すと登録を解除（リセット）します。</li>
+                    </ul>
+                </section>
 
-                <h3>日時情報の設定</h3>
-                <ul>
-                    <li><strong>Now:</strong> 現在日時にリセットします。</li>
-                    <li><strong>Mov:</strong> 1日1秒で時間を自動で進めます（アニメーション）。</li>
-                    <li><strong>月齢:</strong> 月齢の数値を変更して、満月(15)や新月(0,30)の日にジャンプできます。◀︎ ▶︎ボタンで、およそ同じ次の月齢の日時にジャンプできます。</li>
-                </ul>
+                <section class="help-section">
+                    <h3>日時情報の設定</h3>
+                    <ul class="help-list">
+                        <li><strong>Now:</strong> 現在日時にリセットします。</li>
+                        <li><strong>Mov:</strong> 1日1秒で時間を自動で進めます（アニメーション）。</li>
+                        <li><strong>月齢:</strong> 月齢の数値を変更して、満月(15)や新月(0,30)の日にジャンプできます。◀︎ ▶︎ボタンで、およそ同じ次の月齢の日時にジャンプできます。</li>
+                    </ul>
+                </section>
 
-                <h3>「辻ライン」機能 (ダイヤモンド・パールなど)</h3>
-                <p>「辻ライン」ボタンをオン（黄色）にすると、観測点と目的点（山頂など）を結ぶライン上で、天体が山頂と重なる位置(視高度)を計算し、その時間と場所の軌跡を地図上に曲線で表示します。</p>
-                <ul>
-                    <li><strong>破線（---）:</strong> 設定した日時のライン（10分刻みの「●」マーカーと時刻を表示）</li>
-                    <li><strong>点線（···）:</strong> 前日および翌日のライン（ラインのみ表示）</li>
-                </ul>
-                <p>太陽（赤🟥）、月（黄🟨）、および表示中の惑星やMy天体について計算されます。</p>
+                <section class="help-section">
+                    <h3>「辻ライン」機能 (ダイヤモンド・パールなど)</h3>
+                    <p>「辻ライン」ボタンをオン（背景色変化）にすると、観測点と目的点（山頂など）を結ぶライン上で、天体が山頂と重なる位置(視高度)を計算し、その時間と場所の軌跡を地図上に曲線で表示します。</p>
+                    <ul class="help-list">
+                        <li><strong>破線（---）:</strong> 設定した日時のライン（10分刻みの「●」マーカーと時刻を表示）</li>
+                        <li><strong>点線（···）:</strong> 前日および翌日のライン（ラインのみ表示）</li>
+                    </ul>
+                    <p>太陽（赤）、月（黄）、および表示中の惑星やMy天体について計算されます。</p>
+                </section>
 
-                <h3>標高グラフ</h3>
-                <p>観測点と目的点の間の断面標高をグラフに表示します。サーバー低負荷にするため100m3秒おきに算出します。ブラウザを表示したままで気長にお待ちいただくか、PCでの利用を推奨します。</p>
+                <section class="help-section">
+                    <h3>標高グラフ</h3>
+                    <p>観測点と目的点の間の断面標高をグラフに表示します。サーバー低負荷にするため100m3秒おきに算出します。ブラウザを表示したままで気長にお待ちいただくか、PCでの利用を推奨します。</p>
+                </section>
 
-                <h3>My天体</h3>
-                <p>お好みの恒星などの座標（赤経, 赤緯）を登録して表示できます。初期値はオリオン座のアルニラムです。入力欄を空にして押すと登録を解除（リセット）します。</p>
+                <section class="help-section">
+                    <h3>My天体</h3>
+                    <p>お好みの恒星などの座標（赤経, 赤緯）を登録して表示できます。初期値はオリオン座のアルニラムです。入力欄を空にして押すと登録を解除（リセット）します。</p>
+                </section>
 
-                <h3>表示天体</h3>
-                <p>太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星、北極星、すばる、のそれぞれを出没時刻、入没時刻、方位、高度がわかります。高度が負数(およそ地平線下)になると線が半透明になります。チェックボックスで表示・非表示にできます。また、カラーパレットで、色と線種を変更できます。リロードで元に戻ります。</p>
+                <section class="help-section">
+                    <h3>表示天体</h3>
+                    <p>太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星、北極星、すばる、のそれぞれを出没時刻、入没時刻、方位、高度がわかります。高度が負数(およそ地平線下)になると線が半透明になります。チェックボックスで表示・非表示にできます。また、カラーパレットで、色と線種を変更できます。リロードで元に戻ります。</p>
+                </section>
 
-                <h3>地図上の線のズレについて（豆知識）</h3>
-                <p>距離が遠い場合、<strong>地図上の「観測点からの色付きの方位線」と「観測点と目的点を結ぶ黒い線」と「辻ラインのマーカー(破線と点線の曲線)」</strong>がズレて見えることがあります。</p>
-                <p>これは、<strong>「地球は丸いのに、地図は平ら」</strong>であるために起こる現象です。</p>
-                <ul>
-                    <li><strong>方位線:</strong> 地球の丸みを考慮した方位になります。</li>
-                    <li><strong>黒い線:</strong> 平面上の単純な2点間の方位になります。</li>
-                    <li><strong>辻ライン:</strong> 目的点上に天体が見える位置の時間の軌跡のため、方位を表してはいません。</li>
-                </ul>
-                <p>距離が遠くなるほど、メルカトル図法の性質上、方位線と黒い線はズレて表示されます。辻ラインは、そもそも、方位線と黒い線とは重なりません。</p>
-                <p><strong>辻ライン上の位置と時刻に観測点を設定した時が、天文学的・地理学的に正しい位置と方位を示します。</strong></p>
+                <section class="help-section">
+                    <h3>地図上の線のズレについて（豆知識）</h3>
+                    <p>距離が遠い場合、<strong>地図上の「観測点からの色付きの方位線」と「観測点と目的点を結ぶ黒い線」と「辻ラインのマーカー(破線と点線の曲線)」</strong>がズレて見えることがあります。</p>
+                    <p>これは、<strong>「地球は丸いのに、地図は平ら」</strong>であるために起こる現象です。</p>
+                    <ul class="help-list">
+                        <li><strong>方位線:</strong> 地球の丸みを考慮した方位になります。</li>
+                        <li><strong>黒い線:</strong> 平面上の単純な2点間の方位になります。</li>
+                        <li><strong>辻ライン:</strong> 目的点上に天体が見える位置の時間の軌跡のため、方位を表してはいません。</li>
+                    </ul>
+                    <p>距離が遠くなるほど、メルカトル図法の性質上、方位線と黒い線はズレて表示されます。辻ラインは、そもそも、方位線と黒い線とは重なりません。</p>
+                    <p><strong>辻ライン上の位置と時刻に観測点を設定した時が、天文学的・地理学的に正しい位置と方位を示します。</strong></p>
+                </section>
 
-                <h3>注意事項・免責事項</h3>
-                <ul>
-                    <li>本サイトでの表示内容は、その情報の正確性を保証するものではありません。実際の観測には十分な余裕を持って行動してください。</li>
-                    <li>本サイトは、国土地理院などの無料サービスを利用して成り立っています。サーバーに高負荷をかける行為はご遠慮ください。</li>
-                    <li>本サイトを利用したことにより生じたいかなる損害についても責任を負いません。</li>
-                </ul>
+                <div class="k-knowledge-section-formal">
+                    <h3>気差係数（\( K \)）の豆知識</h3>
+                    <p>
+                        遠くの景色を見たとき、光は空気の層を通ることで少し曲がります（レンズ効果）。
+                        この「曲がり具合」を表すのが<b>気差係数 \( K \)</b>です。<br>
+                        天気や気温の変化によって \( K \) の値が変わると、山の見え方も変わります。
+                    </p>
 
-                <h3>謝辞</h3>
-                <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、並びに、AIのGeminiさんに、並々ならぬ感謝の意を表します。</p>
+                    <h4>\( K \) が決まる仕組み（計算式）</h4>
+                    <div class="formula-box-formal">
+                        <p>気差係数 \( K \) は、以下の要素で決まります。</p>
+                        <p class="formula-formal">
+                            \[ K \approx 503 \frac{P}{T^2} \left( 0.034 + \frac{dT}{dh} \right) \]
+                        </p>
+                        <ul class="formula-list">
+                            <li>\( P \) : 気圧 (hPa)</li>
+                            <li>\( T \) : 気温 (ケルビン)</li>
+                            <li>\( dT/dh \) : <strong>気温減率</strong> (1mごとの気温変化)</li>
+                        </ul>
+                        <p class="note-formal">※ 特に「気温減率（地面と上空の温度差）」が大きく影響します。</p>
+                    </div>
 
-                <h3>お知らせ</h3>
-                <ul>
-                    <li>本サイトに関するご意見・ご感想は、<a href="https://note.com/takeyosui" target="_blank" rel="noopener noreferrer">たけちゃん</a>まで、お知らせください。</li>
-                </ul>
+                    <h4>天気と見え方の変化</h4>
+                    <table class="k-table-formal">
+                        <thead>
+                            <tr>
+                                <th>天気・状況</th>
+                                <th>空気の状態</th>
+                                <th>\( K \) の値</th>
+                                <th>見え方</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <b>① 晴れた昼間</b><br>
+                                    <span class="sub-text">(地面が熱い)</span>
+                                </td>
+                                <td>
+                                    地面が焼けて、下層の空気が膨張。<br>
+                                    <b>下が熱く、上が涼しい。</b><br>
+                                    (\( dT/dh \): \(-0.01\) 〜)
+                                </td>
+                                <td>
+                                    <strong>小さい</strong><br>
+                                    \( 0.13 \) 〜 \( 0.1 \)
+                                </td>
+                                <td>
+                                    <b>あまり浮き上がらない</b><br>
+                                    陽炎や逃げ水（蜃気楼）が見えることも。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <b>② 曇り・風の日</b><br>
+                                    <span class="sub-text">(空気が混ざる)</span>
+                                </td>
+                                <td>
+                                    日差しがなく、風で空気が混ざる。<br>
+                                    <b>温度差が少ない。</b><br>
+                                    (\( dT/dh \): \(-0.0065\) 付近)
+                                </td>
+                                <td>
+                                    <strong>標準的</strong><br>
+                                    \( 0.15 \) 〜 \( 0.17 \)
+                                </td>
+                                <td>
+                                    <b>標準的な見え方</b><br>
+                                    理論上の標準状態。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <b>③ 冬の朝・夜</b><br>
+                                    <span class="sub-text">(放射冷却)</span>
+                                </td>
+                                <td>
+                                    地面が冷え切る。<br>
+                                    <b>地面より上空の方が暖かい！</b><br>
+                                    (\( dT/dh \): プラスになる)
+                                </td>
+                                <td>
+                                    <strong>大きい</strong><br>
+                                    \( 0.3 \) 〜 \( 0.5 \)
+                                </td>
+                                <td>
+                                    <b>すごく浮き上がる！</b><br>
+                                    遠くの島が浮く「浮島現象」や、水平線の下の景色が見える。
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="advice-formal">
+                        <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
+                        （日中なら気温減率を <b>\(-0.0125\)</b> 程度にすると、測量標準の \( K=0.132 \) に近づきます）
+                    </div>
+                </div>
+                
+                <section class="help-section">
+                    <h3>注意事項・免責事項</h3>
+                    <ul class="help-list">
+                        <li>本サイトでの表示内容は、その情報の正確性を保証するものではありません。実際の観測には十分な余裕を持って行動してください。</li>
+                        <li>本サイトは、国土地理院などの無料サービスを利用して成り立っています。サーバーに高負荷をかける行為はご遠慮ください。</li>
+                        <li>本サイトを利用したことにより生じたいかなる損害についても責任を負いません。</li>
+                    </ul>
+                </section>
+
+                <section class="help-section">
+                    <h3>謝辞</h3>
+                    <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、<a href="https://geographiclib.sourceforge.io/" target="_blank" rel="noopener noreferrer">GeographicLib</a>並びに、AIのGeminiさんに、並々ならぬ感謝の意を表します。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>お知らせ</h3>
+                    <ul class="help-list">
+                        <li>本サイトに関するご意見・ご感想は、<a href="https://note.com/takeyosui" target="_blank" rel="noopener noreferrer">たけちゃん</a>まで、お知らせください。</li>
+                    </ul>
+                </section>
             </div>
         </div>
     </div>

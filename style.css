@@ -109,7 +109,9 @@ body, html {
     transition: width 0.2s;
 }
 
-/* --- モーダル共通 (ヘルプ & グラフ) --- */
+/* =========================================
+   モーダル共通レイアウト (ヘルプ & グラフ)
+   ========================================= */
 #help-modal, #graph-modal {
     position: absolute;
     top: 0;
@@ -121,63 +123,204 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
+    
+    /* トランジション（フェードイン・アウト用） */
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: auto;
 }
 
+/* 非表示状態 */
 #help-modal.hidden, #graph-modal.hidden {
-    display: none;
+    opacity: 0;
+    pointer-events: none;
+    /* display: none; だとアニメーションしないためopacity制御推奨ですが、
+       既存の動作を変えないなら display: none; でもOKです */
+    display: none; 
 }
 
+/* モーダルの中身（枠） */
 .help-content {
     background: white;
     width: 90%;
-    max-width: 600px;
-    max-height: 80%;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    max-width: 700px; /* 少し幅を広げて読みやすく */
+    max-height: 85%;
+    border-radius: 4px; /* 角丸を少し鋭角にしてフォーマルに */
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
-    font-family: sans-serif;
+    
+    /* フォント設定: ゴシック体を優先 */
+    font-family: "Yu Gothic", "Hiragino Gothic ProN", "Yu Gothic", "MS PGothic", sans-serif,
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #333;
 }
 
+/* =========================================
+   ヘルプ & グラフ ヘッダー
+   ========================================= */
 .help-header {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
+    padding: 15px 20px;
+    border-bottom: 2px solid #555; /* 濃い青背景をやめてシンプルに */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #2c3e50;
-    color: white;
-    border-radius: 8px 8px 0 0;
+    background: #fff; /* 白背景 */
+    color: #333;
+    border-radius: 4px 4px 0 0;
 }
 
-.help-header h2 { margin: 0; font-size: 18px; }
+.help-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    font-weight: bold;
+}
 
 .close-help {
     cursor: pointer;
     font-size: 24px;
-    font-weight: bold;
+    color: #777;
+    transition: color 0.2s;
 }
 
+.close-help:hover {
+    color: #000;
+}
+
+/* =========================================
+   ヘルプ本文エリア (スクロール領域)
+   ========================================= */
 .help-body {
-    padding: 20px;
+    padding: 20px 30px;
     overflow-y: auto;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px; /* 少し大きく */
+    line-height: 1.7; /* 行間を広めに */
+}
+
+/* セクション区切り */
+.help-section {
+    margin-bottom: 30px;
+}
+
+/* 見出し (H3) */
+.help-section h3, .help-body h3 {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+    border-left: 5px solid #555; /* 左線アクセント */
+    border-bottom: none;         /* 下線は廃止 */
+    padding-left: 12px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+/* 本文テキスト */
+.help-section p, .help-body p {
+    margin-bottom: 12px;
+    text-align: justify; /* 両端揃えで美しく */
+}
+
+/* リスト */
+.help-list, .help-body ul {
+    margin-top: 5px;
+    margin-bottom: 15px;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.help-list li, .help-body li {
+    margin-bottom: 6px;
+}
+
+/* リード文 */
+.lead-text {
+    font-weight: bold;
+    color: #000;
+}
+
+/* =========================================
+   気差係数コラム (フォーマル版)
+   ========================================= */
+.k-knowledge-section-formal {
+    background-color: #fcfcfc;
+    border: 1px solid #ddd;
+    padding: 25px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.k-knowledge-section-formal h3 {
+    border-left: none; /* コラム内のH3は左線なし */
+    border-bottom: 1px solid #aaa;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+.k-knowledge-section-formal h4 {
+    font-size: 1.05em;
+    font-weight: bold;
+    margin-top: 25px;
+    margin-bottom: 10px;
+    color: #444;
+}
+
+/* 数式ボックス */
+.formula-box-formal {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.formula-formal {
+    text-align: center;
+    font-family: "Times New Roman", serif;
+    font-size: 1.1em;
+    margin: 10px 0;
+    overflow-x: auto;
+}
+
+.formula-list {
+    margin-top: 10px;
+    padding-left: 20px;
+    font-size: 0.95em;
+}
+
+.note-formal {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* テーブルスタイル */
+.k-table-formal {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+    margin-top: 15px;
+    border: 1px solid #ccc;
+}
+
+.k-table-formal th, .k-table-formal td {
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+    vertical-align: top;
+    text-align: left;
+}
+
+.k-table-formal th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    text-align: center;
     color: #333;
 }
 
-.help-body h3 {
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 5px;
-    margin-top: 20px;
-    font-size: 16px;
-    color: #2c3e50;
+.k-table-formal td:nth-child(1) {
+    background-color: #f9f9f9;
+    font-weight: bold;
+    width: 25%;
 }
-.help-body h3:first-child { margin-top: 0; }
-
-.help-body ul { padding-left: 20px; }
-.help-body li { margin-bottom: 5px; }
-
 
 /* --- コントロールパネル --- */
 .control-panel {
@@ -354,6 +497,14 @@ select,
 #btn-moon-prev, #btn-moon-next {
     width: 34px;
     min-width: 34px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+#reset-btn {
+    width: 68px;
+    min-width: 68px;
     padding: 0;
     justify-content: center;
     flex-shrink: 0;
@@ -598,10 +749,47 @@ input[type="range"] { width: 100%; margin: 10px 0; }
 .line-preview.dashed { background: transparent; border-top: 2px dashed black; }
 
 /* --- 設定セクション調整 --- */
-#sec-settings .input-label {
-    width: auto;        /* 固定幅(65px)を解除して文字数に合わせる */
+/* =========================================
+   設定セクション (気象パラメータ)
+   ========================================= */
+
+/* 気象計算ボックス (青い囲み) */
+.meteo-box {
+    background: #f0f8ff; /* 薄い青色 */
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #cce5ff;
 }
 
+/* 入力フォーム */
+.meteo-input {
+    width: 80px;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: right;
+    font-family: inherit; /* フォント継承 */
+}
+
+.meteo-label {
+    width: 120px;
+    margin-right: 8px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* リセットボタンエリア */
+.meteo-reset-area {
+    text-align: right;
+}
+
+/* 登録ボタンエリア */
+.action-area {
+    text-align: center;
+}
+
+/* --- フッター --- */
 .panel-footer {
     padding: 15px;
     text-align: center;
