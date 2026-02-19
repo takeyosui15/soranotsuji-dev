@@ -42,9 +42,17 @@ const STD_T = 15.0;     // 標準気温 (°C)
 const STD_L = -0.0125;  // 標準気温減率 (K/m)　-0.0065K/m だが　-0.0125K/m もよく使われる
 
 const POLARIS_RA = 2.5303;
-const POLARIS_DEC = 89.2641; 
+const POLARIS_DEC = 89.2641;
 const SUBARU_RA = 3.79;
 const SUBARU_DEC = 24.12;
+
+// 天体の赤道半径 (km) - 視半径の計算用
+const BODY_RADIUS_KM = {
+    Sun: 695700, Moon: 1737.4,
+    Mercury: 2439.7, Venus: 6051.8, Mars: 3396.2,
+    Jupiter: 71492, Saturn: 60268, Uranus: 25559, Neptune: 24764
+};
+const KM_PER_AU = 149597870.7;
 const ALNILAM_RA = 5.603;
 const ALNILAM_DEC = -1.202;
 
@@ -726,6 +734,14 @@ function updateDPLines() {
         drawDPPath(pPrev, body.color, '1, 13', false);
         drawDPPath(pNext, body.color, '1, 13', false);
         drawDPPath(pCurr, body.color, '13, 13', true);
+
+        // 視半径エッジライン (一点鎖線)
+        const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
+        if (angR >= 0.01) {
+            const dashDot = '15, 5, 3, 5';
+            drawDPPath(pCurr, body.color, dashDot, false, +angR);
+            drawDPPath(pCurr, body.color, dashDot, false, -angR);
+        }
     });
 }
 
@@ -1047,15 +1063,16 @@ function calculateDPPathPoints(targetDate, body, observer) {
     return path;
 }
 
-function drawDPPath(points, color, dashArray, withMarkers) {
+function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
     if (points.length === 0) return;
     const targetPt = appState.end;
     let segments = [];
     let currentSegment = [];
-    
+    const offset = azOffset || 0;
+
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const obsAz = (p.az + 180) % 360; 
+        const obsAz = (p.az + offset + 540) % 360; // +180 して逆方位 + offset
         const dest = getDestinationGeodesic(targetPt.lat, targetPt.lng, obsAz, p.dist);
         const pt = [dest.lat, dest.lng];
         
@@ -1099,6 +1116,17 @@ function drawDPPath(points, color, dashArray, withMarkers) {
             dashArray: dashArray
         }).addTo(dpLayer);
     });
+}
+
+// ------------------------------------------------------
+// 計算ヘルパー (天体の視半径)
+// ------------------------------------------------------
+function getBodyAngularRadius(bodyId, date, observer) {
+    const radiusKm = BODY_RADIUS_KM[bodyId];
+    if (!radiusKm) return 0;
+    const eq = Astronomy.Equator(bodyId, date, observer, true, true);
+    const distKm = eq.dist * KM_PER_AU;
+    return Math.atan(radiusKm / distKm) * 180 / Math.PI;
 }
 
 // ------------------------------------------------------
