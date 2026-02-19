@@ -151,10 +151,12 @@ let appState = {
     moveSpeed: null,  // 'month', 'day', 'hour', 'min'
     isDPActive: true,
     isElevationActive: false,
+    isTsujiDayActive: false,
 
     // 内部制御用 (保存不要)
     timers: { move: null, fetch: null },
     elevationData: { points: [], index: 0 },
+    tsujiDayGeneration: 0,
     riseSetCache: {}
 };
 
@@ -367,6 +369,7 @@ function setupUI() {
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
     document.getElementById('btn-dp').onclick = toggleDP;
+    document.getElementById('btn-tsujiday').onclick = toggleTsujiDay;
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -1899,10 +1902,156 @@ function toggleElevation() {
     } else {
         btn.classList.remove('active');
         pnl.classList.add('hidden');
-        // タイルベースのバッチ処理をキャンセル
         _elevFetchGeneration++;
         document.getElementById('progress-overlay').classList.add('hidden');
     }
+    syncBottomPanels();
+}
+
+// --- 辻Day ---
+function toggleTsujiDay() {
+    appState.isTsujiDayActive = !appState.isTsujiDayActive;
+    const btn = document.getElementById('btn-tsujiday');
+    const pnl = document.getElementById('tsujiday-panel');
+
+    if (appState.isTsujiDayActive) {
+        btn.classList.add('active');
+        pnl.classList.remove('hidden');
+        startTsujiDaySearch();
+    } else {
+        btn.classList.remove('active');
+        pnl.classList.add('hidden');
+        appState.tsujiDayGeneration++;
+    }
+    syncBottomPanels();
+}
+
+function syncBottomPanels() {
+    const tdPnl = document.getElementById('tsujiday-panel');
+    if (appState.isTsujiDayActive && appState.isElevationActive) {
+        tdPnl.classList.add('with-elevation');
+    } else {
+        tdPnl.classList.remove('with-elevation');
+    }
+}
+
+function angularDiff(a1, a2) {
+    let d = Math.abs(a1 - a2) % 360;
+    return d > 180 ? 360 - d : d;
+}
+
+async function startTsujiDaySearch() {
+    const generation = ++appState.tsujiDayGeneration;
+    const contentEl = document.getElementById('tsujiday-content');
+    const statusEl = document.getElementById('tsujiday-status');
+    contentEl.innerHTML = '';
+    statusEl.textContent = '(検索中…)';
+
+    const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const bearingToTarget = calculateBearing(appState.start.lat, appState.start.lng,
+                                             appState.end.lat, appState.end.lng);
+    const valElev = appState.start.elev;
+    const dip = getHorizonDip(valElev);
+    const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
+
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const results = [];
+
+    for (let bi = 0; bi < visibleBodies.length; bi++) {
+        const body = visibleBodies[bi];
+        const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
+        const effectiveR = Math.max(angR, 0.15); // 恒星用の最小閾値 0.15°
+
+        for (let d = 0; d < 365; d++) {
+            if (generation !== appState.tsujiDayGeneration) return;
+            const dayStart = new Date(today.getTime() + d * 86400000);
+
+            // 粗探索 (10分間隔)
+            let bestDiff = Infinity;
+            let bestMinute = -1;
+            for (let m = 0; m < 1440; m += 10) {
+                const time = new Date(dayStart.getTime() + m * 60000);
+                let r, dc;
+                if (body.id === 'Polaris') { r = POLARIS_RA; dc = POLARIS_DEC; }
+                else if (body.id === 'Subaru') { r = SUBARU_RA; dc = SUBARU_DEC; }
+                else if (body.id === 'MyStar') { r = appState.myStar.ra; dc = appState.myStar.dec; }
+                else {
+                    const eq = Astronomy.Equator(body.id, time, observer, true, true);
+                    r = eq.ra; dc = eq.dec;
+                }
+                const hor = Astronomy.Horizon(time, observer, r, dc, "normal");
+                if (hor.altitude <= limit) continue;
+                const diff = angularDiff(hor.azimuth, bearingToTarget);
+                if (diff < bestDiff) { bestDiff = diff; bestMinute = m; }
+            }
+
+            if (bestMinute < 0 || bestDiff > effectiveR * 3 + 1) continue;
+
+            // 精密探索 (1分間隔)
+            const fStart = Math.max(0, bestMinute - 15);
+            const fEnd = Math.min(1439, bestMinute + 15);
+            for (let m = fStart; m <= fEnd; m++) {
+                const time = new Date(dayStart.getTime() + m * 60000);
+                let r, dc;
+                if (body.id === 'Polaris') { r = POLARIS_RA; dc = POLARIS_DEC; }
+                else if (body.id === 'Subaru') { r = SUBARU_RA; dc = SUBARU_DEC; }
+                else if (body.id === 'MyStar') { r = appState.myStar.ra; dc = appState.myStar.dec; }
+                else {
+                    const eq = Astronomy.Equator(body.id, time, observer, true, true);
+                    r = eq.ra; dc = eq.dec;
+                }
+                const hor = Astronomy.Horizon(time, observer, r, dc, "normal");
+                if (hor.altitude <= limit) continue;
+                const diff = angularDiff(hor.azimuth, bearingToTarget);
+                if (diff < bestDiff) bestDiff = diff;
+            }
+
+            // 分類
+            let symbol = null;
+            if (bestDiff <= effectiveR * 0.5) symbol = '◎';
+            else if (bestDiff <= effectiveR) symbol = '○';
+            else if (bestDiff <= effectiveR * 3) symbol = '△';
+
+            if (symbol) {
+                const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth()+1).padStart(2,'0')}/${String(dayStart.getDate()).padStart(2,'0')}`;
+                results.push({ body, symbol, dateStr, dateObj: new Date(dayStart) });
+            }
+
+            // 30日ごとにUI解放
+            if (d % 30 === 29) {
+                statusEl.textContent = `(${body.name} ${d+1}/365日…)`;
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        statusEl.textContent = `(検索中… ${bi+1}/${visibleBodies.length} 天体完了)`;
+        await new Promise(r => setTimeout(r, 0));
+    }
+
+    if (generation !== appState.tsujiDayGeneration) return;
+
+    // 結果表示
+    statusEl.textContent = `(${results.length}件)`;
+    if (results.length === 0) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する日付はありません</div>';
+        return;
+    }
+
+    results.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'td-row';
+        row.style.color = r.body.color;
+        row.textContent = `${r.body.name}:${r.symbol}:${r.dateStr}`;
+        row.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dateObj);
+            appState.currentDate.setHours(12, 0, 0, 0);
+            syncUIFromState();
+            updateAll();
+        });
+        contentEl.appendChild(row);
+    });
 }
 
 async function startElevationFetch() {

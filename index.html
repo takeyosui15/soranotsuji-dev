@@ -62,6 +62,11 @@ GNU General Public License for more details.
 
     <div id="map"></div>
 
+    <div id="tsujiday-panel" class="hidden">
+        <div id="tsujiday-header">辻Day検索結果 <span id="tsujiday-status"></span></div>
+        <div id="tsujiday-content"></div>
+    </div>
+
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
         <div id="elevation-info">Start -> End (100m間隔)</div>
@@ -130,6 +135,7 @@ GNU General Public License for more details.
 
                     <div class="control-row main-buttons-row">
                         <button id="btn-dp" class="nav-btn main-btn" title="辻ライン表示">辻ライン</button>
+                        <button id="btn-tsujiday" class="nav-btn main-btn" title="辻Day検索">辻Day</button>
                         <button id="btn-elevation" class="nav-btn main-btn">標高グラフ</button>
                     </div>
                 </div>
