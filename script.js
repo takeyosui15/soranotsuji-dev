@@ -1935,9 +1935,41 @@ function syncBottomPanels() {
     }
 }
 
-function angularDiff(a1, a2) {
-    let d = Math.abs(a1 - a2) % 360;
-    return d > 180 ? 360 - d : d;
+// --- 辻Day 計算ヘルパー ---
+// drawDPPathと同じ計算で、辻ラインの座標配列を返す
+function computeDPCoords(points, azOffset) {
+    const tgt = appState.end;
+    const off = azOffset || 0;
+    const coords = [];
+    for (let i = 0; i < points.length; i++) {
+        const obsAz = (points[i].az + off + 540) % 360;
+        const dest = getDestinationGeodesic(tgt.lat, tgt.lng, obsAz, points[i].dist);
+        coords.push([dest.lat, dest.lng]);
+    }
+    return coords;
+}
+
+function _ptInTri(px, py, ax, ay, bx, by, cx, cy) {
+    const d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by);
+    const d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy);
+    const d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+}
+
+// 2本のオフセットラインで囲まれた帯の中に観測点があるか
+function isObserverInStrip(obsLat, obsLng, points, coordsA, coordsB) {
+    const cosLat = Math.cos(obsLat * Math.PI / 180);
+    const px = obsLng * cosLat, py = obsLat;
+    for (let i = 0; i < points.length - 1; i++) {
+        if (Math.abs(points[i + 1].az - points[i].az) > 5) continue;
+        const ax = coordsA[i][1] * cosLat, ay = coordsA[i][0];
+        const bx = coordsA[i + 1][1] * cosLat, by = coordsA[i + 1][0];
+        const cx = coordsB[i][1] * cosLat, cy = coordsB[i][0];
+        const dx = coordsB[i + 1][1] * cosLat, dy = coordsB[i + 1][0];
+        if (_ptInTri(px, py, ax, ay, bx, by, cx, cy)) return true;
+        if (_ptInTri(px, py, bx, by, dx, dy, cx, cy)) return true;
+    }
+    return false;
 }
 
 async function startTsujiDaySearch() {
@@ -1948,12 +1980,8 @@ async function startTsujiDaySearch() {
     statusEl.textContent = '(検索中…)';
 
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
-    const bearingToTarget = calculateBearing(appState.start.lat, appState.start.lng,
-                                             appState.end.lat, appState.end.lng);
-    const valElev = appState.start.elev;
-    const dip = getHorizonDip(valElev);
-    const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
-
+    const obsLat = appState.start.lat;
+    const obsLng = appState.start.lng;
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1962,71 +1990,52 @@ async function startTsujiDaySearch() {
     for (let bi = 0; bi < visibleBodies.length; bi++) {
         const body = visibleBodies[bi];
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
-        const effectiveR = Math.max(angR, 0.15); // 恒星用の最小閾値 0.15°
+        const effectiveR = Math.max(angR, 0.15);
 
         for (let d = 0; d < 365; d++) {
             if (generation !== appState.tsujiDayGeneration) return;
             const dayStart = new Date(today.getTime() + d * 86400000);
 
-            // 粗探索 (10分間隔)
-            let bestDiff = Infinity;
-            let bestMinute = -1;
-            for (let m = 0; m < 1440; m += 10) {
-                const time = new Date(dayStart.getTime() + m * 60000);
-                let r, dc;
-                if (body.id === 'Polaris') { r = POLARIS_RA; dc = POLARIS_DEC; }
-                else if (body.id === 'Subaru') { r = SUBARU_RA; dc = SUBARU_DEC; }
-                else if (body.id === 'MyStar') { r = appState.myStar.ra; dc = appState.myStar.dec; }
-                else {
-                    const eq = Astronomy.Equator(body.id, time, observer, true, true);
-                    r = eq.ra; dc = eq.dec;
+            // その日の辻ラインパスを計算
+            const pathPts = calculateDPPathPoints(dayStart, body, observer);
+            if (pathPts.length < 2) { continue; }
+
+            // 各オフセットの座標を計算 (drawDPPathと同じ計算)
+            const cP05 = computeDPCoords(pathPts, +effectiveR * 0.5);
+            const cM05 = computeDPCoords(pathPts, -effectiveR * 0.5);
+
+            // ◎判定: ±(視半径/2) の帯内
+            if (isObserverInStrip(obsLat, obsLng, pathPts, cP05, cM05)) {
+                const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
+                results.push({ body, symbol: '◎', dateStr, dateObj: new Date(dayStart) });
+            } else {
+                // ○判定: ±(視半径/2)~±(視半径) の帯内
+                const cP1 = computeDPCoords(pathPts, +effectiveR);
+                const cM1 = computeDPCoords(pathPts, -effectiveR);
+                if (isObserverInStrip(obsLat, obsLng, pathPts, cP05, cP1) ||
+                    isObserverInStrip(obsLat, obsLng, pathPts, cM05, cM1)) {
+                    const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
+                    results.push({ body, symbol: '○', dateStr, dateObj: new Date(dayStart) });
+                } else {
+                    // △判定: ±(視半径)~±(視半径×3) の帯内
+                    const cP3 = computeDPCoords(pathPts, +effectiveR * 3);
+                    const cM3 = computeDPCoords(pathPts, -effectiveR * 3);
+                    if (isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP3) ||
+                        isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM3)) {
+                        const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
+                        results.push({ body, symbol: '△', dateStr, dateObj: new Date(dayStart) });
+                    }
                 }
-                const hor = Astronomy.Horizon(time, observer, r, dc, "normal");
-                if (hor.altitude <= limit) continue;
-                const diff = angularDiff(hor.azimuth, bearingToTarget);
-                if (diff < bestDiff) { bestDiff = diff; bestMinute = m; }
             }
 
-            if (bestMinute < 0 || bestDiff > effectiveR * 3 + 1) continue;
-
-            // 精密探索 (1分間隔)
-            const fStart = Math.max(0, bestMinute - 15);
-            const fEnd = Math.min(1439, bestMinute + 15);
-            for (let m = fStart; m <= fEnd; m++) {
-                const time = new Date(dayStart.getTime() + m * 60000);
-                let r, dc;
-                if (body.id === 'Polaris') { r = POLARIS_RA; dc = POLARIS_DEC; }
-                else if (body.id === 'Subaru') { r = SUBARU_RA; dc = SUBARU_DEC; }
-                else if (body.id === 'MyStar') { r = appState.myStar.ra; dc = appState.myStar.dec; }
-                else {
-                    const eq = Astronomy.Equator(body.id, time, observer, true, true);
-                    r = eq.ra; dc = eq.dec;
-                }
-                const hor = Astronomy.Horizon(time, observer, r, dc, "normal");
-                if (hor.altitude <= limit) continue;
-                const diff = angularDiff(hor.azimuth, bearingToTarget);
-                if (diff < bestDiff) bestDiff = diff;
-            }
-
-            // 分類
-            let symbol = null;
-            if (bestDiff <= effectiveR * 0.5) symbol = '◎';
-            else if (bestDiff <= effectiveR) symbol = '○';
-            else if (bestDiff <= effectiveR * 3) symbol = '△';
-
-            if (symbol) {
-                const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth()+1).padStart(2,'0')}/${String(dayStart.getDate()).padStart(2,'0')}`;
-                results.push({ body, symbol, dateStr, dateObj: new Date(dayStart) });
-            }
-
-            // 30日ごとにUI解放
-            if (d % 30 === 29) {
-                statusEl.textContent = `(${body.name} ${d+1}/365日…)`;
+            // 7日ごとにUI解放
+            if (d % 7 === 6) {
+                statusEl.textContent = `(${body.name} ${d + 1}/365日…)`;
                 await new Promise(r => setTimeout(r, 0));
             }
         }
 
-        statusEl.textContent = `(検索中… ${bi+1}/${visibleBodies.length} 天体完了)`;
+        statusEl.textContent = `(検索中… ${bi + 1}/${visibleBodies.length} 天体完了)`;
         await new Promise(r => setTimeout(r, 0));
     }
 
