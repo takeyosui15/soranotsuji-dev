@@ -51,6 +51,23 @@ const ALNILAM_DEC = -1.202;
 const DEFAULT_START = { lat: 35.658449, lng: 139.745536, elev: 150.0 };
 const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9 };
 
+// 天体ごとの初期スタイル (リセット用)
+const DEFAULT_BODIES = [
+    { id: 'Sun',     color: '#FF0000', isDashed: false },
+    { id: 'Moon',    color: '#FFFF00', isDashed: false },
+    { id: 'Mercury', color: '#00BFFF', isDashed: false },
+    { id: 'Venus',   color: '#FFC0CB', isDashed: false },
+    { id: 'Mars',    color: '#FFA500', isDashed: false },
+    { id: 'Jupiter', color: '#A52A2A', isDashed: false },
+    { id: 'Saturn',  color: '#008000', isDashed: false },
+    { id: 'Uranus',  color: '#ADFF2F', isDashed: false },
+    { id: 'Neptune', color: '#4B0082', isDashed: false },
+    { id: 'Pluto',   color: '#800080', isDashed: false },
+    { id: 'Polaris', color: '#000000', isDashed: false },
+    { id: 'Subaru',  color: '#0000FF', isDashed: false },
+    { id: 'MyStar',  color: '#DDA0DD', isDashed: false }
+];
+
 const COLOR_MAP = [
     { name: '赤', code: '#FF0000' },
     { name: '桃', code: '#FFC0CB' },
@@ -1651,6 +1668,21 @@ function registerSettings() {
     
     saveAppState();
     updateAll(); // 再計算して描画更新
+}
+
+function resetBodyStyle() {
+    if (!editingBodyId) return;
+    const def = DEFAULT_BODIES.find(x => x.id === editingBodyId);
+    if (!def) return;
+    const body = appState.bodies.find(x => x.id === editingBodyId);
+    if (!body) return;
+    body.color = def.color;
+    body.isDashed = def.isDashed;
+    if (editingBodyId === 'MyStar') reflectMyStarUI();
+    closePalette();
+    saveAppState();
+    renderCelestialList();
+    updateAll();
 }
 
 function closePalette() {

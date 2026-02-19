@@ -748,6 +748,18 @@ input[type="range"] { width: 100%; margin: 10px 0; }
 .line-preview { width: 50px; height: 2px; background: black; display: inline-block; }
 .line-preview.dashed { background: transparent; border-top: 2px dashed black; }
 
+/* パレット内リセットボタン */
+.palette-reset-area {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+.palette-reset-btn {
+    padding: 0 12px;
+    font-size: 13px;
+}
+
 /* --- 設定セクション調整 --- */
 /* =========================================
    設定セクション (気象パラメータ)
