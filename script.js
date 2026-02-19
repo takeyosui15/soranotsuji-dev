@@ -1411,16 +1411,156 @@ async function searchLocation(query) {
     }
 }
 
-async function getElevation(lat, lng) {
+// --- GSI DEM PNGタイルによる標高取得 ---
+const GSI_DEM_SOURCES = [
+    { title: "DEM5A", url: "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/{z}/{x}/{y}.png", zoom: 15, fixed: 1 },
+    { title: "DEM5B", url: "https://cyberjapandata.gsi.go.jp/xyz/dem5b_png/{z}/{x}/{y}.png", zoom: 15, fixed: 1 },
+    { title: "DEM5C", url: "https://cyberjapandata.gsi.go.jp/xyz/dem5c_png/{z}/{x}/{y}.png", zoom: 15, fixed: 1 },
+    { title: "DEM10B", url: "https://cyberjapandata.gsi.go.jp/xyz/dem_png/{z}/{x}/{y}.png", zoom: 14, fixed: 0 },
+];
+
+const POW2_8 = Math.pow(2, 8);
+const POW2_16 = Math.pow(2, 16);
+const POW2_23 = Math.pow(2, 23);
+const POW2_24 = Math.pow(2, 24);
+
+function _getTileInfo(lat, lng, zoom) {
+    const lngRad = lng * Math.PI / 180;
+    const R = 128 / Math.PI;
+    const worldX = R * (lngRad + Math.PI);
+    const pixelX = worldX * Math.pow(2, zoom);
+    const tileX = Math.floor(pixelX / 256);
+
+    const latRad = lat * Math.PI / 180;
+    const worldY = -R / 2 * Math.log((1 + Math.sin(latRad)) / (1 - Math.sin(latRad))) + 128;
+    const pixelY = worldY * Math.pow(2, zoom);
+    const tileY = Math.floor(pixelY / 256);
+
+    return {
+        x: tileX, y: tileY,
+        pX: Math.floor(pixelX - tileX * 256),
+        pY: Math.floor(pixelY - tileY * 256)
+    };
+}
+
+function _loadTileImage(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Tile load failed"));
+        img.src = url;
+    });
+}
+
+function _elevFromRGB(r, g, b) {
+    if (r === 128 && g === 0 && b === 0) return null;
+    const d = r * POW2_16 + g * POW2_8 + b;
+    let h = (d < POW2_23) ? d : d - POW2_24;
+    if (h === -POW2_23) h = 0;
+    else h *= 0.01;
+    return h;
+}
+
+// タイル画像キャッシュ (同一セッション内でタイル再利用)
+const _tileCache = {};
+
+async function _getTileImageData(tileUrl) {
+    if (_tileCache[tileUrl]) return _tileCache[tileUrl];
     try {
-        const url = `https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${lng}&lat=${lat}&outtype=JSON`;
-        const res = await fetch(url);
-        const data = await res.json();
-        return (data && data.elevation !== "-----") ? data.elevation : 0;
-    } catch(e) {
-        console.error(e);
+        const img = await _loadTileImage(tileUrl);
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, 256, 256);
+        _tileCache[tileUrl] = imgData;
+        return imgData;
+    } catch (e) {
         return null;
     }
+}
+
+function _makeTileUrl(demSource, tileX, tileY) {
+    return demSource.url.replace('{z}', demSource.zoom).replace('{x}', tileX).replace('{y}', tileY);
+}
+
+// 1地点の標高取得 (DEM5A→5B→5C→10B の順にフォールバック)
+async function getElevation(lat, lng) {
+    for (const dem of GSI_DEM_SOURCES) {
+        const ti = _getTileInfo(lat, lng, dem.zoom);
+        const url = _makeTileUrl(dem, ti.x, ti.y);
+        const imgData = await _getTileImageData(url);
+        if (!imgData) continue;
+        const idx = (ti.pY * 256 + ti.pX) * 4;
+        const h = _elevFromRGB(imgData.data[idx], imgData.data[idx + 1], imgData.data[idx + 2]);
+        if (h !== null) return parseFloat(h.toFixed(dem.fixed));
+    }
+    return 0;
+}
+
+// バッチ標高取得 (標高グラフ用 - タイル単位でまとめて処理)
+let _elevFetchGeneration = 0;
+async function fetchAllElevations(points, onProgress) {
+    const generation = ++_elevFetchGeneration;
+
+    for (const dem of GSI_DEM_SOURCES) {
+        if (generation !== _elevFetchGeneration) return;
+
+        // 未取得ポイントをタイルごとにグループ化
+        const tileGroups = {};
+        for (let i = 0; i < points.length; i++) {
+            if (points[i].fetched) continue;
+            const ti = _getTileInfo(points[i].lat, points[i].lng, dem.zoom);
+            const key = `${ti.x}_${ti.y}`;
+            if (!tileGroups[key]) {
+                tileGroups[key] = {
+                    url: _makeTileUrl(dem, ti.x, ti.y),
+                    pts: []
+                };
+            }
+            tileGroups[key].pts.push({ idx: i, pX: ti.pX, pY: ti.pY });
+        }
+
+        const tileKeys = Object.keys(tileGroups);
+        if (tileKeys.length === 0) break;
+
+        // 4タイルずつ並列ダウンロード
+        const BATCH = 4;
+        for (let b = 0; b < tileKeys.length; b += BATCH) {
+            if (generation !== _elevFetchGeneration) return;
+
+            const batch = tileKeys.slice(b, b + BATCH);
+            const results = await Promise.all(batch.map(async key => {
+                const group = tileGroups[key];
+                const imgData = await _getTileImageData(group.url);
+                return { imgData, pts: group.pts };
+            }));
+
+            for (const { imgData, pts } of results) {
+                if (!imgData) continue;
+                for (const pt of pts) {
+                    if (points[pt.idx].fetched) continue;
+                    const pIdx = (pt.pY * 256 + pt.pX) * 4;
+                    const h = _elevFromRGB(imgData.data[pIdx], imgData.data[pIdx + 1], imgData.data[pIdx + 2]);
+                    if (h !== null) {
+                        points[pt.idx].elev = parseFloat(h.toFixed(dem.fixed));
+                        points[pt.idx].fetched = true;
+                    }
+                }
+            }
+
+            const fetchedCount = points.filter(p => p.fetched).length;
+            if (onProgress) onProgress(fetchedCount, points.length);
+        }
+    }
+
+    // フォールバック: どのDEMでも取得できなかったポイントは0
+    for (const pt of points) {
+        if (!pt.fetched) { pt.elev = 0; pt.fetched = true; }
+    }
+    if (onProgress) onProgress(points.length, points.length);
 }
 
 function createLocationPopup(title, pos, target) {
@@ -1722,7 +1862,7 @@ function toggleElevation() {
     const btn = document.getElementById('btn-elevation');
     const pnl = document.getElementById('elevation-panel');
     appState.isElevationActive = !appState.isElevationActive;
-    
+
     if (appState.isElevationActive) {
         btn.classList.add('active');
         pnl.classList.remove('hidden');
@@ -1730,18 +1870,19 @@ function toggleElevation() {
     } else {
         btn.classList.remove('active');
         pnl.classList.add('hidden');
-        if(appState.timers.fetch) clearTimeout(appState.timers.fetch);
+        // タイルベースのバッチ処理をキャンセル
+        _elevFetchGeneration++;
         document.getElementById('progress-overlay').classList.add('hidden');
     }
 }
 
-function startElevationFetch() {
+async function startElevationFetch() {
     appState.elevationData.points = [];
     const s = L.latLng(appState.start.lat, appState.start.lng);
     const e = L.latLng(appState.end.lat, appState.end.lng);
     const dist = s.distanceTo(e);
     const steps = Math.floor(dist / 100);
-    
+
     for(let i=0; i<=steps; i++) {
         const r = i/steps;
         appState.elevationData.points.push({
@@ -1755,34 +1896,21 @@ function startElevationFetch() {
     appState.elevationData.index = 0;
     document.getElementById('progress-overlay').classList.remove('hidden');
     updateProgress(0, 0, appState.elevationData.points.length);
-    processFetchQueue();
-}
 
-function processFetchQueue() {
-    if(!appState.isElevationActive || appState.elevationData.index >= appState.elevationData.points.length) {
-        return document.getElementById('progress-overlay').classList.add('hidden');
-    }
-    
-    const pt = appState.elevationData.points[appState.elevationData.index];
-    getElevation(pt.lat, pt.lng).then(ev => {
-        pt.elev = (ev !== null) ? ev : 0;
-        pt.fetched = true;
-        appState.elevationData.index++;
-        updateProgress(Math.floor((appState.elevationData.index/appState.elevationData.points.length)*100), appState.elevationData.index, appState.elevationData.points.length);
+    // タイルベースのバッチ処理で標高を取得
+    await fetchAllElevations(appState.elevationData.points, (fetched, total) => {
+        const pct = Math.floor((fetched / total) * 100);
+        updateProgress(pct, fetched, total);
         drawProfileGraph();
-        if(appState.isElevationActive) {
-            appState.timers.fetch = setTimeout(processFetchQueue, 3000);
-        }
     });
+
+    document.getElementById('progress-overlay').classList.add('hidden');
+    drawProfileGraph();
 }
 
 function updateProgress(pct, cur, tot) {
     document.getElementById('progress-bar').style.width = pct + "%";
-    const rem = (tot - cur) * 3;
-    const h = Math.floor(rem/3600);
-    const m = Math.floor((rem%3600)/60);
-    const s = rem%60;
-    document.getElementById('progress-text').innerText = `${pct}% (残 ${h>0?h+'h ':''}${m>0?m+'m ':''}${s}s)`;
+    document.getElementById('progress-text').innerText = `${pct}% (${cur}/${tot} タイル処理中...)`;
 }
 
 function drawProfileGraph() {
