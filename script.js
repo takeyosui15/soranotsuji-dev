@@ -139,6 +139,7 @@ let appState = {
 
     // 機能フラグ
     isMoving: false,
+    moveSpeed: null,  // 'month', 'day', 'hour', 'min'
     isDPActive: true,
     isElevationActive: false,
 
@@ -333,7 +334,10 @@ function setupUI() {
 
     // ボタン類
     document.getElementById('btn-now').onclick = setNow;
-    document.getElementById('btn-move').onclick = toggleMove;
+    document.getElementById('btn-speed-month').onclick = () => toggleSpeed('month');
+    document.getElementById('btn-speed-day').onclick = () => toggleSpeed('day');
+    document.getElementById('btn-speed-hour').onclick = () => toggleSpeed('hour');
+    document.getElementById('btn-speed-min').onclick = () => toggleSpeed('min');
     document.getElementById('btn-date-prev').onclick = () => addDay(-1);
     document.getElementById('btn-date-next').onclick = () => addDay(1);
     document.getElementById('btn-month-prev').onclick = () => addMonth(-1);
@@ -843,11 +847,18 @@ function addMonth(m) {
     updateAll(); 
 }
 
-function addMinute(m) { 
-    uncheckTimeShortcuts(); 
-    appState.currentDate.setMinutes(appState.currentDate.getMinutes() + m); 
-    syncUIFromState(); 
-    updateAll(); 
+function addMinute(m) {
+    uncheckTimeShortcuts();
+    appState.currentDate.setMinutes(appState.currentDate.getMinutes() + m);
+    syncUIFromState();
+    updateAll();
+}
+
+function addHour(h) {
+    uncheckTimeShortcuts();
+    appState.currentDate.setHours(appState.currentDate.getHours() + h);
+    syncUIFromState();
+    updateAll();
 }
 
 function addMoonMonth(dir) {
@@ -918,17 +929,33 @@ function uncheckTimeShortcuts() {
     document.querySelectorAll('input[name="time-jump"]').forEach(r => r.checked = false); 
 }
 
-function toggleMove() {
-    const btn = document.getElementById('btn-move');
-    appState.isMoving = !appState.isMoving;
-    
-    if (appState.isMoving) { 
-        btn.classList.add('active'); 
-        appState.timers.move = setInterval(() => addDay(1), 1000); 
-    } else { 
-        btn.classList.remove('active'); 
-        clearInterval(appState.timers.move); 
+function stopMove() {
+    appState.isMoving = false;
+    appState.moveSpeed = null;
+    clearInterval(appState.timers.move);
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+}
+
+function toggleSpeed(speed) {
+    if (appState.isMoving && appState.moveSpeed === speed) {
+        stopMove();
+        return;
     }
+
+    stopMove();
+    appState.isMoving = true;
+    appState.moveSpeed = speed;
+
+    const btnId = { month: 'btn-speed-month', day: 'btn-speed-day', hour: 'btn-speed-hour', min: 'btn-speed-min' };
+    document.getElementById(btnId[speed]).classList.add('active');
+
+    const actions = {
+        month: () => addMonth(1),
+        day:   () => addDay(1),
+        hour:  () => addHour(1),
+        min:   () => addMinute(1)
+    };
+    appState.timers.move = setInterval(actions[speed], 1000);
 }
 
 function toggleDP() {
