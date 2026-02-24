@@ -43,7 +43,7 @@ const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
 // 標準大気モデルの定数
 const STD_P = 1013.25;  // 標準気圧 (hPa)
 const STD_T = 15.0;     // 標準気温 (°C)
-const STD_L = 0.0125;   // 標準気温減率 Γ (K/m) 正値。0.0065が国際標準大気、0.0125が測量標準
+const STD_L = 0.0065;   // 標準気温減率 Γ (K/m) 正値。0.0065が国際標準大気、0.0125が測量標準
 
 const POLARIS_RA = 2.5303;
 const POLARIS_DEC = 89.2641;
