@@ -1977,10 +1977,10 @@ function isObserverInStrip(obsLat, obsLng, points, coordsA, coordsB) {
         const bx = coordsA[i + 1][1] * cosLat, by = coordsA[i + 1][0];
         const cx = coordsB[i][1] * cosLat, cy = coordsB[i][0];
         const dx = coordsB[i + 1][1] * cosLat, dy = coordsB[i + 1][0];
-        if (_ptInTri(px, py, ax, ay, bx, by, cx, cy)) return true;
-        if (_ptInTri(px, py, bx, by, dx, dy, cx, cy)) return true;
+        if (_ptInTri(px, py, ax, ay, bx, by, cx, cy)) return i;
+        if (_ptInTri(px, py, bx, by, dx, dy, cx, cy)) return i;
     }
-    return false;
+    return -1;
 }
 
 async function startTsujiDaySearch() {
@@ -2015,26 +2015,39 @@ async function startTsujiDaySearch() {
             const cP05 = computeDPCoords(pathPts, +effectiveR * 0.5);
             const cM05 = computeDPCoords(pathPts, -effectiveR * 0.5);
 
+            // 日時文字列を生成するヘルパー
+            const fmtDateTimeStr = (ds, mt) => {
+                const d_ = `${ds.getFullYear()}/${String(ds.getMonth() + 1).padStart(2, '0')}/${String(ds.getDate()).padStart(2, '0')}`;
+                const t_ = `-${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
+                return d_ + t_;
+            };
+
             // ◎判定: ±(視半径/2) の帯内
-            if (isObserverInStrip(obsLat, obsLng, pathPts, cP05, cM05)) {
-                const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
-                results.push({ body, symbol: '◎', dateStr, dateObj: new Date(dayStart) });
+            const idx1 = isObserverInStrip(obsLat, obsLng, pathPts, cP05, cM05);
+            if (idx1 >= 0) {
+                const matchTime = pathPts[idx1].time;
+                const dateStr = fmtDateTimeStr(dayStart, matchTime);
+                results.push({ body, symbol: '◎', dateStr, dateObj: new Date(matchTime) });
             } else {
                 // ○判定: ±(視半径/2)~±(視半径) の帯内
                 const cP1 = computeDPCoords(pathPts, +effectiveR);
                 const cM1 = computeDPCoords(pathPts, -effectiveR);
-                if (isObserverInStrip(obsLat, obsLng, pathPts, cP05, cP1) ||
-                    isObserverInStrip(obsLat, obsLng, pathPts, cM05, cM1)) {
-                    const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
-                    results.push({ body, symbol: '○', dateStr, dateObj: new Date(dayStart) });
+                let idx2 = isObserverInStrip(obsLat, obsLng, pathPts, cP05, cP1);
+                if (idx2 < 0) idx2 = isObserverInStrip(obsLat, obsLng, pathPts, cM05, cM1);
+                if (idx2 >= 0) {
+                    const matchTime = pathPts[idx2].time;
+                    const dateStr = fmtDateTimeStr(dayStart, matchTime);
+                    results.push({ body, symbol: '○', dateStr, dateObj: new Date(matchTime) });
                 } else {
                     // △判定: ±(視半径)~±(視半径×5) の帯内
                     const cP3 = computeDPCoords(pathPts, +effectiveR * 5);
                     const cM3 = computeDPCoords(pathPts, -effectiveR * 5);
-                    if (isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP3) ||
-                        isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM3)) {
-                        const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
-                        results.push({ body, symbol: '△', dateStr, dateObj: new Date(dayStart) });
+                    let idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP3);
+                    if (idx3 < 0) idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM3);
+                    if (idx3 >= 0) {
+                        const matchTime = pathPts[idx3].time;
+                        const dateStr = fmtDateTimeStr(dayStart, matchTime);
+                        results.push({ body, symbol: '△', dateStr, dateObj: new Date(matchTime) });
                     }
                 }
             }
@@ -2066,7 +2079,6 @@ async function startTsujiDaySearch() {
         row.textContent = `${r.body.name}:${r.symbol}:${r.dateStr}`;
         row.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
-            appState.currentDate.setHours(12, 0, 0, 0);
             syncUIFromState();
             updateAll();
         });
