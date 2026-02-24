@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.15.0 - 2026-02-25: feat: 辻Dayに時刻・月齢アイコン追加
 Version 1.14.2 - 2026-02-25: fix: 大気差補正Kの計算式修正、辻Dayの△判定の範囲拡大
 Version 1.14.1 - 2026-02-19: fix: 辻Day検索の不具合修正
 Version 1.14.0 - 2026-02-19: feat: 辻Day検索機能追加
@@ -173,7 +174,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.14.1)");
+    console.log("宙の辻: 起動 (V1.15.0)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
