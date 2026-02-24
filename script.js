@@ -122,8 +122,8 @@ let appState = {
     // My天体
     myStar: { ra: ALNILAM_RA, dec: ALNILAM_DEC },
 
-    // 大気差補正係数 (初期値は定数から)
-    refractionK: REFRACTION_K,
+    // 大気差補正係数 (meteoから計算)
+    refractionK: calculateKFromMeteo(STD_P, STD_T, STD_L),
 
     //気象パラメータ (初期値は標準大気)
     meteo: { p: STD_P, t: STD_T, l: STD_L },
@@ -455,8 +455,7 @@ function saveAppState() {
         homeEnd: appState.homeEnd,     // 登録場所
         bodies: appState.bodies,
         myStar: appState.myStar,
-        refractionK: appState.refractionK,
-        meteo: appState.meteo, //気象パラメータも保存
+        meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         isDPActive: appState.isDPActive,
         lastVisitDate: appState.lastVisitDate
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
@@ -476,8 +475,9 @@ function loadAppState() {
             if(saved.homeStart) appState.homeStart = saved.homeStart;
             if(saved.homeEnd) appState.homeEnd = saved.homeEnd;
             if(saved.myStar) appState.myStar = saved.myStar;
-            if(saved.refractionK !== undefined) appState.refractionK = saved.refractionK;
             if(saved.meteo) appState.meteo = saved.meteo;
+            // meteoからKを再計算 (refractionKは保存しない)
+            appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             
@@ -1156,8 +1156,8 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
     // 地球半径 (定数より取得)
     const R = EARTH_RADIUS;
     
-    // 気差係数kを考慮した地球半径 (以前の議論に基づき採用)
-    const k = (appState.refractionK !== undefined) ? appState.refractionK : REFRACTION_K;
+    // 気差係数kを気象パラメータから都度計算
+    const k = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
     const Reff = R / (1 - k);
 
     const r1 = R + hObs;    // 観測者
@@ -1619,7 +1619,7 @@ function createLocationPopup(title, pos, target) {
 function calculateApparentAltitude(dist, hObs, hTarget) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
     
-    const k = (appState.refractionK !== undefined) ? appState.refractionK : REFRACTION_K;
+    const k = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
 
     // 地球の曲率(と気差)を考慮した視高度計算式
     // tan(a) = (H_target - H_obs) / d - d / (2 * R) * (1 - k)
@@ -1845,28 +1845,34 @@ function applyLineStyle(type) {
 
 // 設定登録 (大気差係数など)
 function registerSettings() {
-    const input = document.getElementById('input-refraction-k');
-    const val = input.value.trim();
-    
-    // 空欄の場合はリセット
+    const iK = document.getElementById('input-refraction-k');
+    const iP = document.getElementById('input-meteo-p');
+    const iT = document.getElementById('input-meteo-t');
+    const iL = document.getElementById('input-meteo-l');
+    const val = iK.value.trim();
+
+    // 空欄の場合はmeteoを標準値にリセット
     if (val === '') {
-        appState.refractionK = REFRACTION_K; // 定数に戻す
-        input.value = REFRACTION_K;
-        alert(`大気差補正係数を初期値 (${REFRACTION_K}) にリセットしました`);
+        appState.meteo = { p: STD_P, t: STD_T, l: STD_L };
+        iP.value = STD_P;
+        iT.value = STD_T;
+        iL.value = STD_L;
     } else {
-        const k = parseFloat(val);
-        if (isNaN(k) || k < 0) {
-            return alert('有効な数値を入力してください (0以上)');
+        const p = parseFloat(iP.value);
+        const t = parseFloat(iT.value);
+        const l = parseFloat(iL.value);
+        if (isNaN(p) || isNaN(t) || isNaN(l)) {
+            return alert('気象パラメータに有効な数値を入力してください');
         }
-        appState.refractionK = k;
-        appState.meteo = {
-            p: parseFloat(document.getElementById('input-meteo-p').value),
-            t: parseFloat(document.getElementById('input-meteo-t').value),
-            l: parseFloat(document.getElementById('input-meteo-l').value)
-        };
-        alert(`大気差補正係数を ${k} に設定しました`);
+        appState.meteo = { p, t, l };
     }
-    
+
+    // 常にmeteoからKを再計算
+    const k = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
+    appState.refractionK = k;
+    iK.value = k.toFixed(4);
+    alert(`大気差補正係数を ${k.toFixed(4)} に設定しました`);
+
     saveAppState();
     updateAll(); // 再計算して描画更新
 }
