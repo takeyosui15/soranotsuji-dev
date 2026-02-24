@@ -43,7 +43,7 @@ const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
 // 標準大気モデルの定数
 const STD_P = 1013.25;  // 標準気圧 (hPa)
 const STD_T = 15.0;     // 標準気温 (°C)
-const STD_L = -0.0125;  // 標準気温減率 (K/m)　-0.0065K/m だが　-0.0125K/m もよく使われる
+const STD_L = 0.0125;   // 標準気温減率 Γ (K/m) 正値。0.0065が国際標準大気、0.0125が測量標準
 
 const POLARIS_RA = 2.5303;
 const POLARIS_DEC = 89.2641;
@@ -1371,12 +1371,13 @@ function calculateGreatCirclePoints(start, end) {
 
 /**
  * 気象条件から気差係数 K を計算する
- * K = 503 * (P / T^2) * (0.034 + dT/dh)
+ * K = 503 * (P / T^2) * (0.034 - Γ)
+ * Γ: 気温減率 (正値, K/m)
  */
 function calculateKFromMeteo(p, tCel, l) {
     const tKelvin = tCel + 273.15; // ケルビンに変換
-    // 近似式
-    const k = 503 * (p / (tKelvin * tKelvin)) * (0.034 + l);
+    // 近似式 (l = 気温減率Γ、正値)
+    const k = 503 * (p / (tKelvin * tKelvin)) * (0.034 - l);
     return k;
 }
 

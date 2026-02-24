@@ -261,8 +261,8 @@ GNU General Public License for more details.
                         </div>
                         
                         <div class="control-row">
-                            <label class="input-label meteo-label" title="高さ1mあたりの気温変化 (通常は -0.0065)">気温減率 dT/dh:</label>
-                            <input type="number" id="input-meteo-l" class="meteo-input" step="0.0001" placeholder="0 〜 -0.0125">
+                            <label class="input-label meteo-label" title="高さ1mあたりの気温低下量 (通常は 0.0065)">気温減率 Γ (K/m):</label>
+                            <input type="number" id="input-meteo-l" class="meteo-input" step="0.0001" placeholder="0 〜 0.0125">
                         </div>
                         
                         <div class="meteo-reset-area">
@@ -403,12 +403,12 @@ GNU General Public License for more details.
                     <div class="formula-box-formal">
                         <p>気差係数 \( K \) は、以下の要素で決まります。</p>
                         <p class="formula-formal">
-                            \[ K \approx 503 \frac{P}{T^2} \left( 0.034 + \frac{dT}{dh} \right) \]
+                            \[ K \approx 503 \frac{P}{T^2} \left( 0.034 - \Gamma \right) \]
                         </p>
                         <ul class="formula-list">
                             <li>\( P \) : 気圧 (hPa)</li>
                             <li>\( T \) : 気温 (ケルビン)</li>
-                            <li>\( dT/dh \) : <strong>気温減率</strong> (1mごとの気温変化)</li>
+                            <li>\( \Gamma \) : <strong>気温減率</strong> (1m上昇あたりの気温低下量、正値)</li>
                         </ul>
                         <p class="note-formal">※ 特に「気温減率（地面と上空の温度差）」が大きく影響します。</p>
                     </div>
@@ -432,7 +432,7 @@ GNU General Public License for more details.
                                 <td>
                                     地面が焼けて、下層の空気が膨張。<br>
                                     <b>下が熱く、上が涼しい。</b><br>
-                                    (\( dT/dh \): \(-0.01\) 〜)
+                                    (\( \Gamma \): \(0.01\) 〜)
                                 </td>
                                 <td>
                                     <strong>小さい</strong><br>
@@ -451,7 +451,7 @@ GNU General Public License for more details.
                                 <td>
                                     日差しがなく、風で空気が混ざる。<br>
                                     <b>温度差が少ない。</b><br>
-                                    (\( dT/dh \): \(-0.0065\) 付近)
+                                    (\( \Gamma \): \(0.0065\) 付近)
                                 </td>
                                 <td>
                                     <strong>標準的</strong><br>
@@ -470,7 +470,7 @@ GNU General Public License for more details.
                                 <td>
                                     地面が冷え切る。<br>
                                     <b>地面より上空の方が暖かい！</b><br>
-                                    (\( dT/dh \): プラスになる)
+                                    (\( \Gamma \): マイナスになる)
                                 </td>
                                 <td>
                                     <strong>大きい</strong><br>
@@ -485,7 +485,7 @@ GNU General Public License for more details.
                     </table>
                     <div class="advice-formal">
                         <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
-                        （日中なら気温減率を <b>\(-0.0125\)</b> 程度にすると、測量標準の \( K=0.132 \) に近づきます）
+                        （日中なら気温減率を <b>\(0.0125\)</b> 程度にすると、測量標準の \( K=0.132 \) に近づきます）
                     </div>
                 </div>
                 
