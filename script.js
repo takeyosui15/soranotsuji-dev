@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.14.2 - 2026-02-25: fix: 大気差補正Kの計算式修正、辻Dayの△判定の範囲拡大
 Version 1.14.1 - 2026-02-19: fix: 辻Day検索の不具合修正
 Version 1.14.0 - 2026-02-19: feat: 辻Day検索機能追加
 Version 1.13.0 - 2026-02-19: feat: Movボタン4種、標高取得ロジック改善、視度半径ライン追加
@@ -404,7 +405,7 @@ function setupUI() {
     const iP = document.getElementById('input-meteo-p');
     const iT = document.getElementById('input-meteo-t');
     const iL = document.getElementById('input-meteo-l');
-
+    
     // 気象条件が変わったら K を再計算して表示する関数
     const updateK = () => {
         const p = parseFloat(iP.value);
@@ -437,6 +438,7 @@ function setupUI() {
         iP.value = appState.meteo.p;
         iT.value = appState.meteo.t;
         iL.value = appState.meteo.l;
+        iK.value = appState.refractionK.toFixed(4);
     }
 }
 
@@ -2025,9 +2027,9 @@ async function startTsujiDaySearch() {
                     const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
                     results.push({ body, symbol: '○', dateStr, dateObj: new Date(dayStart) });
                 } else {
-                    // △判定: ±(視半径)~±(視半径×3) の帯内
-                    const cP3 = computeDPCoords(pathPts, +effectiveR * 3);
-                    const cM3 = computeDPCoords(pathPts, -effectiveR * 3);
+                    // △判定: ±(視半径)~±(視半径×5) の帯内
+                    const cP3 = computeDPCoords(pathPts, +effectiveR * 5);
+                    const cM3 = computeDPCoords(pathPts, -effectiveR * 5);
                     if (isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP3) ||
                         isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM3)) {
                         const dateStr = `${dayStart.getFullYear()}/${String(dayStart.getMonth() + 1).padStart(2, '0')}/${String(dayStart.getDate()).padStart(2, '0')}`;
