@@ -2018,7 +2018,7 @@ async function startTsujiDaySearch() {
             // 日時文字列を生成するヘルパー
             const fmtDateTimeStr = (ds, mt) => {
                 const d_ = `${ds.getFullYear()}/${String(ds.getMonth() + 1).padStart(2, '0')}/${String(ds.getDate()).padStart(2, '0')}`;
-                const t_ = `-${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
+                const t_ = `、${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
                 return d_ + t_;
             };
 
@@ -2040,10 +2040,10 @@ async function startTsujiDaySearch() {
                     results.push({ body, symbol: '○', dateStr, dateObj: new Date(matchTime) });
                 } else {
                     // △判定: ±(視半径)~±(視半径×5) の帯内
-                    const cP3 = computeDPCoords(pathPts, +effectiveR * 5);
-                    const cM3 = computeDPCoords(pathPts, -effectiveR * 5);
-                    let idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP3);
-                    if (idx3 < 0) idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM3);
+                    const cP5 = computeDPCoords(pathPts, +effectiveR * 5);
+                    const cM5 = computeDPCoords(pathPts, -effectiveR * 5);
+                    let idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP5);
+                    if (idx3 < 0) idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM5);
                     if (idx3 >= 0) {
                         const matchTime = pathPts[idx3].time;
                         const dateStr = fmtDateTimeStr(dayStart, matchTime);
