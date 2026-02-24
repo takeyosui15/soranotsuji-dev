@@ -2076,7 +2076,15 @@ async function startTsujiDaySearch() {
         const row = document.createElement('div');
         row.className = 'td-row';
         row.style.color = r.body.color;
-        row.textContent = `${r.body.name}:${r.symbol}:${r.dateStr}`;
+        let label = `${r.body.name}:${r.symbol}:${r.dateStr}`;
+        if (r.body.id === 'Moon') {
+            const phase = Astronomy.MoonPhase(r.dateObj);
+            const age = (phase / 360) * SYNODIC_MONTH;
+            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+            const icon = icons[Math.round(phase / 45) % 8];
+            label += `、月齢: ${age.toFixed(1)} ${icon}`;
+        }
+        row.textContent = label;
         row.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
