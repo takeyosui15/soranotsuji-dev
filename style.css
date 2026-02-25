@@ -594,6 +594,10 @@ select,
     margin-right: 5px;
 }
 
+.tsujisearch-label {
+    width: 140px;
+}
+
 .nav-btn.active {
     background-color: #ffd700;
     color: #000;
