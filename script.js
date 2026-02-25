@@ -2107,7 +2107,8 @@ async function startTsujiDaySearch() {
 
             // 日時文字列を生成するヘルパー
             const fmtDateTimeStr = (ds, mt) => {
-                const d_ = `${ds.getFullYear()}/${String(ds.getMonth() + 1).padStart(2, '0')}/${String(ds.getDate()).padStart(2, '0')}`;
+                const dow = ['日','月','火','水','木','金','土'][ds.getDay()];
+                const d_ = `${ds.getFullYear()}/${String(ds.getMonth() + 1).padStart(2, '0')}/${String(ds.getDate()).padStart(2, '0')}(${dow})`;
                 const t_ = `、${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
                 return d_ + t_;
             };
@@ -2308,7 +2309,8 @@ async function startTsujiSearch() {
             row.style.color = body.color;
 
             const dt = r.time;
-            const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}`;
+            const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+            const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 
             let label = `${body.name}: ${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(1)}°`;
