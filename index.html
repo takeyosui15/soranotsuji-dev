@@ -323,7 +323,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="panel-footer">
-                &copy; 2026- Sora no Tsuji Project - V1.16.2
+                &copy; 2026- Sora no Tsuji Project - V1.16.3
             </div>
         </div>
     </div>
@@ -393,7 +393,7 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>◎:</strong> 天体の中心がほぼ目的点に重なる日（誤差が視半径以内:±視半径/2）</li>
                         <li><strong>○:</strong> 天体の縁が目的点に接する範囲の日（誤差が視直径以内:±視半径）</li>
-                        <li><strong>△:</strong> 目的点との誤差が天体の直径5倍以内(±視半径×5)に収まる日</li>
+                        <li><strong>△:</strong> 目的点との誤差が天体の直径4倍以内(±視半径×4)に収まる日</li>
                     </ul>
                     <p>日付をタップすると、その日に日時をジャンプして辻ラインを確認できます。</p>
                 </section>
@@ -533,8 +533,10 @@ GNU General Public License for more details.
                         </tbody>
                     </table>
                     <div class="advice-formal">
-                        <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
+                        <strong>ヒント1:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
                         （日中なら気温減率を <b>\(0.0125\)</b> 程度にすると、測量標準の \( K=0.132 \) に近づきます）
+                        <strong>ヒント2:</strong> 観測点と目的点が非常に近い場合、測量における大気差係数\( K \) の効果がありません。(例えば、竜ヶ岳からダイヤモンド富士を観測する時。)
+                        その為、近距離(20km以内)では、\( K \) の値を0にする為に、テクニックとして、気圧\( P \) (hPa)に0を設定してみてください。
                     </div>
                 </div>
                 

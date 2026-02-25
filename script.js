@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.16.3 - 2026-02-25: fix: 辻検索の△判定の範囲修正（視半径×4に変更）、ヘルプトピックの修正
 Version 1.16.2 - 2026-02-25: fix: 辻検索の許容範囲ラベル修正、オフセット（ズレ）機能の追加、日付に曜日表示追加
 Version 1.16.1 - 2026-02-25: fix: 辻検索にオフセット（ズレ）機能追加、許容範囲ラベル修正
 Version 1.16.0 - 2026-02-25: feat: 辻検索機能追加（方位角・視高度範囲指定による天体検索）
@@ -185,7 +186,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.16.2)");
+    console.log("宙の辻: 起動 (V1.16.3)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -2131,11 +2132,11 @@ async function startTsujiDaySearch() {
                     const dateStr = fmtDateTimeStr(dayStart, matchTime);
                     results.push({ body, symbol: '○', dateStr, dateObj: new Date(matchTime) });
                 } else {
-                    // △判定: ±(視半径)~±(視半径×5) の帯内
-                    const cP5 = computeDPCoords(pathPts, +effectiveR * 5);
-                    const cM5 = computeDPCoords(pathPts, -effectiveR * 5);
-                    let idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP5);
-                    if (idx3 < 0) idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM5);
+                    // △判定: ±(視半径)~±(視半径×4) の帯内
+                    const cP4 = computeDPCoords(pathPts, +effectiveR * 4);
+                    const cM4 = computeDPCoords(pathPts, -effectiveR * 4);
+                    let idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cP1, cP4);
+                    if (idx3 < 0) idx3 = isObserverInStrip(obsLat, obsLng, pathPts, cM1, cM4);
                     if (idx3 >= 0) {
                         const matchTime = pathPts[idx3].time;
                         const dateStr = fmtDateTimeStr(dayStart, matchTime);
