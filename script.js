@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.17.0 - 2026-02-25: feat: 辻検索にオフセット（ズレ）機能追加、許容範囲ラベル修正
 Version 1.16.0 - 2026-02-25: feat: 辻検索機能追加（方位角・視高度範囲指定による天体検索）
 Version 1.15.0 - 2026-02-25: feat: 辻Dayに時刻・月齢アイコン追加
 Version 1.14.2 - 2026-02-25: fix: 大気差補正Kの計算式修正、辻Dayの△判定の範囲拡大
@@ -159,11 +160,11 @@ let appState = {
     isTsujiDayActive: false,
     isTsujiSearchActive: false,
 
-    // 辻検索パラメータ (②④⑤⑥はlocalStorage保存)
-    tsujiSearchOffsetAz: 15,
-    tsujiSearchOffsetAlt: 2.5,
-    tsujiSearchDays: 365,
-    tsujiSearchInterval: 1,
+    // 辻検索パラメータ (②③⑤⑥はlocalStorage保存)
+    tsujiSearchOffsetAz: 0,
+    tsujiSearchToleranceAz: 15,
+    tsujiSearchOffsetAlt: 0,
+    tsujiSearchToleranceAlt: 2.5,
 
     // 内部制御用 (保存不要)
     timers: { move: null, fetch: null },
@@ -229,11 +230,11 @@ window.onload = function() {
     document.getElementById('input-mystar-radec').value = `${appState.myStar.ra},${appState.myStar.dec}`;
     reflectMyStarUI();
 
-    // 辻検索: ②④⑤⑥のlocalStorage復元値をセット
+    // 辻検索: ②③⑤⑥のlocalStorage復元値をセット
     document.getElementById('input-tsuji-az-offset').value = appState.tsujiSearchOffsetAz;
+    document.getElementById('input-tsuji-az-tolerance').value = appState.tsujiSearchToleranceAz;
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
-    document.getElementById('input-tsuji-days').value = appState.tsujiSearchDays;
-    document.getElementById('input-tsuji-interval').value = appState.tsujiSearchInterval;
+    document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
 
     // リストを生成
     renderCelestialList();
@@ -391,21 +392,21 @@ function setupUI() {
     document.getElementById('btn-tsujiday').onclick = toggleTsujiDay;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
-    // 辻検索: ②④⑤⑥の変更をlocalStorage保存
+    // 辻検索: ②③⑤⑥の変更をlocalStorage保存
     document.getElementById('input-tsuji-az-offset').addEventListener('change', (e) => {
-        appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 15;
+        appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 0;
+        saveAppState();
+    });
+    document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
+        appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
         saveAppState();
     });
     document.getElementById('input-tsuji-alt-offset').addEventListener('change', (e) => {
-        appState.tsujiSearchOffsetAlt = parseFloat(e.target.value) || 2.5;
+        appState.tsujiSearchOffsetAlt = parseFloat(e.target.value) || 0;
         saveAppState();
     });
-    document.getElementById('input-tsuji-days').addEventListener('change', (e) => {
-        appState.tsujiSearchDays = parseInt(e.target.value) || 365;
-        saveAppState();
-    });
-    document.getElementById('input-tsuji-interval').addEventListener('change', (e) => {
-        appState.tsujiSearchInterval = parseInt(e.target.value) || 1;
+    document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
+        appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 2.5;
         saveAppState();
     });
 
@@ -495,11 +496,11 @@ function saveAppState() {
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         isDPActive: appState.isDPActive,
         lastVisitDate: appState.lastVisitDate,
-        // 辻検索パラメータ (②④⑤⑥)
+        // 辻検索パラメータ (②③⑤⑥)
         tsujiSearchOffsetAz: appState.tsujiSearchOffsetAz,
+        tsujiSearchToleranceAz: appState.tsujiSearchToleranceAz,
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
-        tsujiSearchDays: appState.tsujiSearchDays,
-        tsujiSearchInterval: appState.tsujiSearchInterval
+        tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -524,9 +525,9 @@ function loadAppState() {
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             // 辻検索パラメータ復元
             if(saved.tsujiSearchOffsetAz !== undefined) appState.tsujiSearchOffsetAz = saved.tsujiSearchOffsetAz;
+            if(saved.tsujiSearchToleranceAz !== undefined) appState.tsujiSearchToleranceAz = saved.tsujiSearchToleranceAz;
             if(saved.tsujiSearchOffsetAlt !== undefined) appState.tsujiSearchOffsetAlt = saved.tsujiSearchOffsetAlt;
-            if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
-            if(saved.tsujiSearchInterval !== undefined) appState.tsujiSearchInterval = saved.tsujiSearchInterval;
+            if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             
             if(saved.bodies) {
                 saved.bodies.forEach(sb => {
@@ -2184,10 +2185,10 @@ async function startTsujiDaySearch() {
 }
 
 // --- 辻検索 ヘルパー ---
-function isAzimuthInRange(az, targetAz, offset) {
+function isAzimuthInRange(az, targetAz, tolerance) {
     let diff = az - targetAz;
     diff = ((diff + 540) % 360) - 180;
-    return Math.abs(diff) <= offset;
+    return Math.abs(diff) <= tolerance;
 }
 
 // --- 辻検索 コア検索ロジック ---
@@ -2199,17 +2200,23 @@ async function startTsujiSearch() {
     statusEl.textContent = '(検索中…)';
 
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
-    const targetAz = parseFloat(document.getElementById('input-tsuji-az').value);
-    const offsetAz = parseFloat(document.getElementById('input-tsuji-az-offset').value);
-    const targetAlt = parseFloat(document.getElementById('input-tsuji-alt').value);
-    const offsetAlt = parseFloat(document.getElementById('input-tsuji-alt-offset').value);
-    const searchDays = parseInt(document.getElementById('input-tsuji-days').value) || 365;
-    const searchInterval = Math.max(1, parseInt(document.getElementById('input-tsuji-interval').value) || 1);
-    const stepsPerDay = Math.floor(1440 / searchInterval);
+    const baseAz = parseFloat(document.getElementById('input-tsuji-az').value);
+    const offsetAz = parseFloat(document.getElementById('input-tsuji-az-offset').value) || 0;
+    const toleranceAz = parseFloat(document.getElementById('input-tsuji-az-tolerance').value);
+    const baseAlt = parseFloat(document.getElementById('input-tsuji-alt').value);
+    const offsetAlt = parseFloat(document.getElementById('input-tsuji-alt-offset').value) || 0;
+    const toleranceAlt = parseFloat(document.getElementById('input-tsuji-alt-tolerance').value);
+    const searchDays = 365;
+    const searchInterval = 1;
+    const stepsPerDay = 1440;
 
-    if (isNaN(targetAz) || isNaN(offsetAz) || isNaN(targetAlt) || isNaN(offsetAlt)) {
+    // オフセットを加算した検索中心
+    const targetAz = (baseAz + offsetAz + 360) % 360;
+    const targetAlt = baseAlt + offsetAlt;
+
+    if (isNaN(baseAz) || isNaN(toleranceAz) || isNaN(baseAlt) || isNaN(toleranceAlt)) {
         statusEl.textContent = '(入力値エラー)';
-        contentEl.innerHTML = '<div style="padding:8px;color:#f99;">方位角・視高度・オフセットを正しく入力してください</div>';
+        contentEl.innerHTML = '<div style="padding:8px;color:#f99;">方位角・視高度・許容範囲を正しく入力してください</div>';
         return;
     }
 
@@ -2249,8 +2256,8 @@ async function startTsujiSearch() {
 
                 const hor = Astronomy.Horizon(time, observer, ra, dec, "normal");
 
-                if (isAzimuthInRange(hor.azimuth, targetAz, offsetAz) &&
-                    Math.abs(hor.altitude - targetAlt) <= offsetAlt) {
+                if (isAzimuthInRange(hor.azimuth, targetAz, toleranceAz) &&
+                    Math.abs(hor.altitude - targetAlt) <= toleranceAlt) {
                     // 中心からの角距離を計算
                     let azDiff = hor.azimuth - targetAz;
                     azDiff = ((azDiff + 540) % 360) - 180;

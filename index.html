@@ -151,24 +151,24 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-az" placeholder="北から時計回り（単位:°）" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">オフセット方位角: ±</label>
-                        <input type="number" id="input-tsuji-az-offset" placeholder="単位:°" step="0.1">
+                        <label class="input-label tsujisearch-label">オフセット方位角:</label>
+                        <input type="number" id="input-tsuji-az-offset" placeholder="北から時計回り（単位:°）" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">許容範囲(方位角): ±</label>
+                        <input type="number" id="input-tsuji-az-tolerance" placeholder="単位:°" step="0.1">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">視高度:</label>
                         <input type="number" id="input-tsuji-alt" placeholder="水平から上向き（単位:°）" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">オフセット視高度: ±</label>
-                        <input type="number" id="input-tsuji-alt-offset" placeholder="単位:°" step="0.1">
+                        <label class="input-label tsujisearch-label">オフセット視高度:</label>
+                        <input type="number" id="input-tsuji-alt-offset" placeholder="水平から上向き（単位:°）" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">検索終了期間(日):</label>
-                        <input type="number" id="input-tsuji-days" placeholder="単位:日" step="1" min="1">
-                    </div>
-                    <div class="control-row">
-                        <label class="input-label tsujisearch-label">検索間隔(分):</label>
-                        <input type="number" id="input-tsuji-interval" placeholder="単位:分" step="1" min="1">
+                        <label class="input-label tsujisearch-label">許容範囲(視高度): ±</label>
+                        <input type="number" id="input-tsuji-alt-tolerance" placeholder="単位:°" step="0.1">
                     </div>
                     <div class="control-row" style="justify-content: center;">
                         <button id="btn-tsuji-search" class="nav-btn main-btn" title="辻検索">辻検索</button>
@@ -323,7 +323,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="panel-footer">
-                &copy; 2026- Sora no Tsuji Project - V1.16.0
+                &copy; 2026- Sora no Tsuji Project - V1.17.0
             </div>
         </div>
     </div>
@@ -400,14 +400,16 @@ GNU General Public License for more details.
 
                 <section class="help-section">
                     <h3>「辻検索」機能</h3>
-                    <p>「辻検索」ボタンをオンにすると、指定した方位角・視高度の範囲内に天体が現れる日時を検索します。</p>
+                    <p>「辻検索」ボタンをオンにすると、指定した方位角・視高度の範囲内に天体が現れる日時を検索します。例えば、富士山の山頂の右斜め上に満月が見える日時を探すことができます。</p>
                     <ul class="help-list">
-                        <li><strong>方位角 / オフセット方位角:</strong> 検索する方位角の中心値と±範囲。初期値は観測点→目的点の方位角。</li>
-                        <li><strong>視高度 / オフセット視高度:</strong> 検索する視高度の中心値と±範囲。初期値は観測点→目的点の視高度。</li>
-                        <li><strong>検索終了期間:</strong> 現在日時から何日先まで検索するか（初期値: 365日）。</li>
-                        <li><strong>検索間隔:</strong> 何分刻みで検索するか（初期値: 1分）。</li>
+                        <li><strong>方位角:</strong> 検索する方位角の基準値。初期値は観測点→目的点の方位角。</li>
+                        <li><strong>オフセット方位角:</strong> 基準方位角からのズレ（度）。正の値で時計回り方向にずらします（初期値: 0°）。</li>
+                        <li><strong>許容範囲(方位角): ±</strong> 検索中心（方位角＋オフセット方位角）からの許容範囲（初期値: 15°）。</li>
+                        <li><strong>視高度:</strong> 検索する視高度の基準値。初期値は観測点→目的点の視高度。</li>
+                        <li><strong>オフセット視高度:</strong> 基準視高度からのズレ（度）。正の値で上方向にずらします（初期値: 0°）。</li>
+                        <li><strong>許容範囲(視高度): ±</strong> 検索中心（視高度＋オフセット視高度）からの許容範囲（初期値: 2.5°）。</li>
                     </ul>
-                    <p>結果をタップすると、その日時にジャンプして確認できます。各天体の結果は最大365件です。</p>
+                    <p>検索は設定日時から365日間、1分間隔で行われます。結果をタップすると、その日時にジャンプして確認できます。各天体の結果は最大365件です。</p>
                 </section>
 
                 <section class="help-section">
