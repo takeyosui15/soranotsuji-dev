@@ -737,7 +737,7 @@ function updateCalculation() {
             dec = eq.dec;
         }
 
-        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, "normal");
+        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, null);
 
         let riseStr = "--:--";
         let setStr = "--:--";
@@ -1745,7 +1745,7 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
     for (let m = 0; m <= 1440; m += 1) { 
         const time = new Date(start + m * 60000);
         
-        const hor = Astronomy.Horizon(time, observer, ra, dec, "normal"); 
+        const hor = Astronomy.Horizon(time, observer, ra, dec, null); 
         const alt = hor.altitude;
         
         if (prevAlt !== null) {
@@ -2258,7 +2258,7 @@ async function startTsujiSearch() {
                     ra = eq.ra; dec = eq.dec;
                 }
 
-                const hor = Astronomy.Horizon(time, observer, ra, dec, "normal");
+                const hor = Astronomy.Horizon(time, observer, ra, dec, null);
 
                 if (isAzimuthInRange(hor.azimuth, targetAz, toleranceAz) &&
                     Math.abs(hor.altitude - targetAlt) <= toleranceAlt) {
