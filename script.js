@@ -2125,7 +2125,7 @@ async function startTsujiDaySearch() {
             const fmtDateTimeStr = (ds, mt) => {
                 const dow = ['日','月','火','水','木','金','土'][ds.getDay()];
                 const d_ = `${ds.getFullYear()}/${String(ds.getMonth() + 1).padStart(2, '0')}/${String(ds.getDate()).padStart(2, '0')}(${dow})`;
-                const t_ = `、${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
+                const t_ = `${String(mt.getHours()).padStart(2, '0')}:${String(mt.getMinutes()).padStart(2, '0')}`;
                 return d_ + t_;
             };
 
@@ -2188,7 +2188,7 @@ async function startTsujiDaySearch() {
             const age = (phase / 360) * SYNODIC_MONTH;
             const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
             const icon = icons[Math.round(phase / 45) % 8];
-            detail = `月齢:${age.toFixed(1)} ${icon}`;
+            detail = `月齢: ${age.toFixed(1)} ${icon}`;
         }
         return { ...r, detail };
     });
@@ -2404,7 +2404,7 @@ async function startTsujiSearch() {
                 const age = (phase / 360) * SYNODIC_MONTH;
                 const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
                 const icon = icons[Math.round(phase / 45) % 8];
-                detail += ` 月齢:${age.toFixed(1)} ${icon}`;
+                detail += ` 月齢: ${age.toFixed(1)} ${icon}`;
             }
 
             rowData.push({ body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt, detail });
