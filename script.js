@@ -2179,26 +2179,38 @@ async function startTsujiDaySearch() {
         return;
     }
 
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
     results.forEach(r => {
-        const row = document.createElement('div');
-        row.className = 'td-row';
-        row.style.color = r.body.color;
-        let label = `${r.body.name}:${r.symbol}:${r.dateStr}`;
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.body.color;
+
+        let dateTimeStr = r.dateStr;
         if (r.body.id === 'Moon') {
             const phase = Astronomy.MoonPhase(r.dateObj);
             const age = (phase / 360) * SYNODIC_MONTH;
             const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
             const icon = icons[Math.round(phase / 45) % 8];
-            label += `、月齢: ${age.toFixed(1)} ${icon}`;
+            dateTimeStr += ` 月齢:${age.toFixed(1)} ${icon}`;
         }
-        row.textContent = label;
-        row.addEventListener('click', () => {
+
+        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${dateTimeStr}</td>`;
+        tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
             updateAll();
         });
-        contentEl.appendChild(row);
+        tbody.appendChild(tr);
     });
+
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
 }
 
 // --- 辻検索 ヘルパー ---
@@ -2318,6 +2330,13 @@ async function startTsujiSearch() {
         return;
     }
 
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
     totalResults.forEach(({ body, results, limitReached }) => {
         // この天体の視半径を計算（代表として最初の結果の日時を使用）
         let effectiveR = 0.15;
@@ -2327,10 +2346,6 @@ async function startTsujiSearch() {
         }
 
         results.forEach(r => {
-            const row = document.createElement('div');
-            row.className = 'td-row';
-            row.style.color = body.color;
-
             // ◎○△判定: 目標点からの角距離 vs 視半径
             let symbol;
             if (r.dist <= effectiveR * 0.5) {
@@ -2348,34 +2363,37 @@ async function startTsujiSearch() {
             const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 
-            let label = `${body.name}:${symbol}:${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(2)}°`;
-
+            let detail = `方位角: ${r.azimuth.toFixed(1)}° 視高度: ${r.altitude.toFixed(2)}°`;
             if (body.id === 'Moon') {
                 const phase = Astronomy.MoonPhase(dt);
                 const age = (phase / 360) * SYNODIC_MONTH;
                 const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
                 const icon = icons[Math.round(phase / 45) % 8];
-                label += `、月齢: ${age.toFixed(1)} ${icon}`;
+                detail += ` 月齢:${age.toFixed(1)} ${icon}`;
             }
 
-            row.textContent = label;
-            row.addEventListener('click', () => {
+            const tr = document.createElement('tr');
+            tr.className = 'td-data-row';
+            tr.style.color = body.color;
+            tr.innerHTML = `<td>${body.name}</td><td>${symbol}</td><td>${dateStr} ${timeStr}</td><td>${detail}</td>`;
+            tr.addEventListener('click', () => {
                 appState.currentDate = new Date(dt);
                 syncUIFromState();
                 updateAll();
             });
-            contentEl.appendChild(row);
+            tbody.appendChild(tr);
         });
 
         if (limitReached) {
-            const moreRow = document.createElement('div');
-            moreRow.className = 'td-row';
-            moreRow.style.color = body.color;
-            moreRow.style.cursor = 'default';
-            moreRow.textContent = `${body.name}: and more…`;
-            contentEl.appendChild(moreRow);
+            const tr = document.createElement('tr');
+            tr.style.color = body.color;
+            tr.innerHTML = `<td colspan="4">${body.name}: and more…</td>`;
+            tbody.appendChild(tr);
         }
     });
+
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
 }
 
 async function startElevationFetch() {

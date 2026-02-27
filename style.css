@@ -72,6 +72,33 @@ body, html {
 #tsujiday-content .td-row:hover {
     background: rgba(255,255,255,0.12);
 }
+#tsujiday-content .td-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+#tsujiday-content .td-table th,
+#tsujiday-content .td-table td {
+    padding: 3px 6px;
+    text-align: left;
+    white-space: nowrap;
+}
+#tsujiday-content .td-table th {
+    color: #aaa;
+    font-weight: normal;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    position: sticky;
+    top: 0;
+    background: #1a1a2e;
+    z-index: 1;
+}
+#tsujiday-content .td-table tr.td-data-row {
+    cursor: pointer;
+    border-radius: 3px;
+}
+#tsujiday-content .td-table tr.td-data-row:hover {
+    background: rgba(255,255,255,0.12);
+}
 
 /* --- 標高グラフ パネル --- */
 #elevation-panel {
