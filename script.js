@@ -2182,7 +2182,7 @@ async function startTsujiDaySearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th></tr>';
+    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
 
@@ -2191,16 +2191,16 @@ async function startTsujiDaySearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
 
-        let dateTimeStr = r.dateStr;
+        let detail = '';
         if (r.body.id === 'Moon') {
             const phase = Astronomy.MoonPhase(r.dateObj);
             const age = (phase / 360) * SYNODIC_MONTH;
             const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
             const icon = icons[Math.round(phase / 45) % 8];
-            dateTimeStr += ` 月齢:${age.toFixed(1)} ${icon}`;
+            detail = `月齢:${age.toFixed(1)} ${icon}`;
         }
 
-        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${dateTimeStr}</td>`;
+        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dateStr}</td><td>${detail}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
