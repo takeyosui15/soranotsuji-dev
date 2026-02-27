@@ -91,6 +91,10 @@ body, html {
     top: 0;
     background: #1a1a2e;
     z-index: 1;
+    cursor: pointer;
+}
+#tsujiday-content .td-table th:hover {
+    color: #fff;
 }
 #tsujiday-content .td-table tr.td-data-row {
     cursor: pointer;

@@ -2179,18 +2179,9 @@ async function startTsujiDaySearch() {
         return;
     }
 
-    const table = document.createElement('table');
-    table.className = 'td-table';
-    const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
-    table.appendChild(thead);
-    const tbody = document.createElement('tbody');
-
-    results.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.className = 'td-data-row';
-        tr.style.color = r.body.color;
-
+    // ソート用データを事前計算
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '—': 3 };
+    const rowData = results.map(r => {
         let detail = '';
         if (r.body.id === 'Moon') {
             const phase = Astronomy.MoonPhase(r.dateObj);
@@ -2199,18 +2190,71 @@ async function startTsujiDaySearch() {
             const icon = icons[Math.round(phase / 45) % 8];
             detail = `月齢:${age.toFixed(1)} ${icon}`;
         }
+        return { ...r, detail };
+    });
 
-        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dateStr}</td><td>${detail}</td>`;
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.body.color;
+        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dateStr}</td><td>${r.detail}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
             updateAll();
         });
-        tbody.appendChild(tr);
-    });
+        return tr;
+    };
 
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rowData.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
     contentEl.appendChild(table);
+
+    setupTableSort(table, rowData, [
+        { label: '天体', compare: (a, b) => {
+            const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
+            const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
+            return ia - ib;
+        }},
+        { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '日時', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '詳細', compare: (a, b) => a.detail.localeCompare(b.detail) },
+    ], renderRow);
+}
+
+// --- テーブルソート ヘルパー ---
+function setupTableSort(table, rowData, columns, renderRowFn, extraRows) {
+    const ths = Array.from(table.querySelectorAll('thead th'));
+    const tbody = table.querySelector('tbody');
+    let sortColIdx = -1;
+    let sortAsc = true;
+
+    ths.forEach((th, idx) => {
+        th.addEventListener('click', () => {
+            if (sortColIdx === idx) {
+                sortAsc = !sortAsc;
+            } else {
+                sortColIdx = idx;
+                sortAsc = true;
+            }
+            ths.forEach((h, i) => {
+                h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
+            });
+            rowData.sort((a, b) => {
+                const cmp = columns[idx].compare(a, b);
+                return sortAsc ? cmp : -cmp;
+            });
+            tbody.innerHTML = '';
+            rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
+            if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+        });
+    });
 }
 
 // --- 辻検索 ヘルパー ---
@@ -2330,15 +2374,12 @@ async function startTsujiSearch() {
         return;
     }
 
-    const table = document.createElement('table');
-    table.className = 'td-table';
-    const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
-    table.appendChild(thead);
-    const tbody = document.createElement('tbody');
+    // ソート用データをフラットに事前計算
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '—': 3 };
+    const rowData = [];
+    const extraRows = [];
 
     totalResults.forEach(({ body, results, limitReached }) => {
-        // この天体の視半径を計算（代表として最初の結果の日時を使用）
         let effectiveR = 0.15;
         if (results.length > 0) {
             const angR = getBodyAngularRadius(body.id, results[0].time, observer);
@@ -2346,17 +2387,11 @@ async function startTsujiSearch() {
         }
 
         results.forEach(r => {
-            // ◎○△判定: 目標点からの角距離 vs 視半径
             let symbol;
-            if (r.dist <= effectiveR * 0.5) {
-                symbol = '◎';
-            } else if (r.dist <= effectiveR) {
-                symbol = '○';
-            } else if (r.dist <= effectiveR * 4) {
-                symbol = '△';
-            } else {
-                symbol = '—';
-            }
+            if (r.dist <= effectiveR * 0.5) symbol = '◎';
+            else if (r.dist <= effectiveR) symbol = '○';
+            else if (r.dist <= effectiveR * 4) symbol = '△';
+            else symbol = '—';
 
             const dt = r.time;
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
@@ -2372,28 +2407,51 @@ async function startTsujiSearch() {
                 detail += ` 月齢:${age.toFixed(1)} ${icon}`;
             }
 
-            const tr = document.createElement('tr');
-            tr.className = 'td-data-row';
-            tr.style.color = body.color;
-            tr.innerHTML = `<td>${body.name}</td><td>${symbol}</td><td>${dateStr} ${timeStr}</td><td>${detail}</td>`;
-            tr.addEventListener('click', () => {
-                appState.currentDate = new Date(dt);
-                syncUIFromState();
-                updateAll();
-            });
-            tbody.appendChild(tr);
+            rowData.push({ body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt, detail });
         });
 
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
             tr.innerHTML = `<td colspan="4">${body.name}: and more…</td>`;
-            tbody.appendChild(tr);
+            extraRows.push(tr);
         }
     });
 
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.body.color;
+        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dateStr}</td><td>${r.detail}</td>`;
+        tr.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dateObj);
+            syncUIFromState();
+            updateAll();
+        });
+        return tr;
+    };
+
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rowData.forEach(r => tbody.appendChild(renderRow(r)));
+    extraRows.forEach(r => tbody.appendChild(r));
     table.appendChild(tbody);
     contentEl.appendChild(table);
+
+    setupTableSort(table, rowData, [
+        { label: '天体', compare: (a, b) => {
+            const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
+            const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
+            return ia - ib;
+        }},
+        { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '日時', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '詳細', compare: (a, b) => a.detail.localeCompare(b.detail) },
+    ], renderRow, extraRows);
 }
 
 async function startElevationFetch() {
