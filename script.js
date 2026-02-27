@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.16.5 - 2026-02-28: fix: 観測点高度が目的点高度より高い場合の処理を追加
 Version 1.16.4 - 2026-02-26: fix: Astronomy.Horizonの気差補正オプションを解除（"normal" → null）
 Version 1.16.3 - 2026-02-25: fix: 辻検索の△判定の範囲修正（視半径×4に変更）、ヘルプトピックの修正
 Version 1.16.2 - 2026-02-25: fix: 辻検索の許容範囲ラベル修正、オフセット（ズレ）機能の追加、日付に曜日表示追加
@@ -187,7 +188,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.16.4)");
+    console.log("宙の辻: 起動 (V1.16.5)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -1217,11 +1218,23 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
 
     const altObsRad = altObs * Math.PI / 180;
 
-    let sinVal = r1/r2 * Math.sin(Math.PI/2 + altObsRad);
-    if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
-    if (sinVal < -1) sinVal = -1;
-    const altTargetRad = Math.PI/2 - Math.asin(sinVal);
-    const c = altTargetRad - altObsRad;
+    let sinVal = 0;
+    let altTargetRad = 0;
+    let c = 0;
+
+    if (hObs <= hTarget) {
+        sinVal = r1/r2 * Math.sin(Math.PI/2 + altObsRad);
+        if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
+        if (sinVal < -1) sinVal = -1;
+        altTargetRad = Math.PI/2 - Math.asin(sinVal);
+        c = altTargetRad - altObsRad; // 観測点が低い場合は、地球中心角cは両者の差になる
+    } else {
+        sinVal = r1/r2 * Math.sin(Math.PI/2 - altObsRad);
+        if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
+        if (sinVal < -1) sinVal = -1;
+        altTargetRad = Math.asin(sinVal) - Math.PI/2;
+        c = -altObsRad - altTargetRad; // 観測点が高い場合は、地球中心角cは両者の和になる
+    }
     const L = Reff * c;
 
     return L;
@@ -2316,7 +2329,7 @@ async function startTsujiSearch() {
             const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 
-            let label = `${body.name}: ${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(1)}°`;
+            let label = `${body.name}: ${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(2)}°`;
 
             if (body.id === 'Moon') {
                 const phase = Astronomy.MoonPhase(dt);
