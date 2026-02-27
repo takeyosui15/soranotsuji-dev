@@ -2282,7 +2282,7 @@ async function startTsujiSearch() {
                     const dist = Math.sqrt(azDiff * azDiff + altDiff * altDiff);
                     if (dist < bestDist) {
                         bestDist = dist;
-                        bestMatch = { time: new Date(time), azimuth: hor.azimuth, altitude: hor.altitude };
+                        bestMatch = { time: new Date(time), azimuth: hor.azimuth, altitude: hor.altitude, dist };
                     }
                 }
             }
@@ -2319,17 +2319,36 @@ async function startTsujiSearch() {
     }
 
     totalResults.forEach(({ body, results, limitReached }) => {
+        // この天体の視半径を計算（代表として最初の結果の日時を使用）
+        let effectiveR = 0.15;
+        if (results.length > 0) {
+            const angR = getBodyAngularRadius(body.id, results[0].time, observer);
+            effectiveR = Math.max(angR, 0.15);
+        }
+
         results.forEach(r => {
             const row = document.createElement('div');
             row.className = 'td-row';
             row.style.color = body.color;
+
+            // ◎○△判定: 目標点からの角距離 vs 視半径
+            let symbol;
+            if (r.dist <= effectiveR * 0.5) {
+                symbol = '◎';
+            } else if (r.dist <= effectiveR) {
+                symbol = '○';
+            } else if (r.dist <= effectiveR * 4) {
+                symbol = '△';
+            } else {
+                symbol = '—';
+            }
 
             const dt = r.time;
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
             const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 
-            let label = `${body.name}: ${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(2)}°`;
+            let label = `${body.name}:${symbol}:${dateStr}、${timeStr}、方位角: ${r.azimuth.toFixed(1)}°、視高度: ${r.altitude.toFixed(2)}°`;
 
             if (body.id === 'Moon') {
                 const phase = Astronomy.MoonPhase(dt);
