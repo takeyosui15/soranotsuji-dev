@@ -327,7 +327,15 @@ GNU General Public License for more details.
             </div>
         </div>
     </div>
-    
+
+    <div id="location-picker" class="location-picker hidden">
+        <div class="picker-header">
+            <span id="picker-title">地名検索結果</span>
+            <span class="close-picker" onclick="closeLocationPicker()">×</span>
+        </div>
+        <div id="picker-list" class="picker-list"></div>
+    </div>
+
     <div id="style-palette" class="style-palette hidden">
         <div class="palette-header">スタイル設定 <span class="close-palette" onclick="closePalette()">×</span></div>
         <div class="palette-colors" id="palette-colors"></div>
@@ -578,6 +586,8 @@ GNU General Public License for more details.
         </div>
     </div>
 
+    <script>var GSI = GSI || {};</script>
+    <script src="muni.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

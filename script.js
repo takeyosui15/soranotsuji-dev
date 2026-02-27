@@ -811,37 +811,71 @@ function updateDPLines() {
 
 async function handleLocationInput(val, isStart) {
     if(!val) return;
-    
-    let coords = parseInput(val); 
-    if (!coords) {
-        const results = await searchLocation(val); 
-        if(results && results.length > 0) {
-            coords = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
-        } else {
-            console.log("Location not found:", val); 
-            return; 
-        }
+
+    let coords = parseInput(val);
+    if (coords) {
+        await applyLocationCoords(coords, isStart);
+        return;
     }
 
-    if(coords) {
-        const elev = await getElevation(coords.lat, coords.lng);
-        const validElev = (elev !== null) ? elev : 0;
-        
-        if(isStart) {
-            appState.start = { ...coords, elev: validElev };
-            document.getElementById('radio-start').checked = true;
-        } else {
-            appState.end = { ...coords, elev: validElev };
-            document.getElementById('radio-end').checked = true;
-        }
-        
-        const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
-        document.getElementById(inputId).blur(); 
-        
-        map.setView(coords, 10);
-        saveAppState(); 
-        updateAll();
+    // 半角→全角変換
+    const fullVal = toFullWidth(val.trim());
+    const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
+    document.getElementById(inputId).value = fullVal;
+
+    const results = await searchLocation(fullVal);
+    if (!results || results.length === 0) {
+        alert('該当する地名が見つかりませんでした');
+        return;
     }
+
+    showLocationPicker(results, isStart);
+}
+
+async function applyLocationCoords(coords, isStart) {
+    const elev = await getElevation(coords.lat, coords.lng);
+    const validElev = (elev !== null) ? elev : 0;
+
+    if(isStart) {
+        appState.start = { ...coords, elev: validElev };
+        document.getElementById('radio-start').checked = true;
+    } else {
+        appState.end = { ...coords, elev: validElev };
+        document.getElementById('radio-end').checked = true;
+    }
+
+    const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
+    document.getElementById(inputId).blur();
+
+    map.setView(coords, 10);
+    saveAppState();
+    updateAll();
+}
+
+function showLocationPicker(results, isStart) {
+    const picker = document.getElementById('location-picker');
+    const list = document.getElementById('picker-list');
+    const title = document.getElementById('picker-title');
+    title.textContent = `地名検索結果（${results.length}件）`;
+    list.innerHTML = '';
+
+    results.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'picker-item';
+        item.innerHTML = `<div class="picker-name">${r.title}</div><div class="picker-address">${r.address}</div>`;
+        item.addEventListener('click', async () => {
+            closeLocationPicker();
+            const coords = { lat: r.lat, lng: r.lon };
+            await applyLocationCoords(coords, isStart);
+        });
+        list.appendChild(item);
+    });
+
+    picker.classList.remove('hidden');
+}
+
+function closeLocationPicker() {
+    document.getElementById('location-picker').classList.add('hidden');
 }
 
 
@@ -1476,35 +1510,45 @@ function parseInput(val) {
     return null;
 }
 
+// --- 半角→全角変換 ---
+function toFullWidth(str) {
+    return str.normalize('NFKC')
+        .replace(/[\x21-\x7e]/g, ch =>
+            String.fromCharCode(ch.charCodeAt(0) + 0xFEE0)
+        ).replace(/ /g, '\u3000');
+}
+
+// --- 国土地理院 地名検索 ---
 async function searchLocation(query) {
     if (!query) return null;
-
-    // 前後の空白を削除
     const q = query.trim();
-
-    // ★修正: 数値のみ（緯度だけ入力など）の場合は検索しない
-    // これにより、郵便番号やルート番号として解釈されて海外に飛ぶのを防ぐ
-    // 正規表現: 先頭から末尾まで「数字」と「ドット(.)」と「マイナス(-)」だけで構成されているか
-    if (/^[\d\.\-\s]+$/.test(q)) {
+    if (/^[\d\.\-\s\uff10-\uff19\uff0e\uff0d]+$/.test(q)) {
         console.warn("数値のみの入力のため、地名検索をスキップしました:", q);
-        return null; // 何もせず終了
+        return null;
     }
     try {
-        const urlOsm = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
-        const resOsm = await fetch(urlOsm);
-        const dataOsm = await resOsm.json();
-        if (dataOsm && dataOsm.length > 0) return dataOsm;
+        const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data || data.length === 0) return [];
 
-        const urlGsi = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(query)}`;
-        const resGsi = await fetch(urlGsi);
-        const dataGsi = await resGsi.json();
-        if (!dataGsi || dataGsi.length === 0) return [];
-
-        return dataGsi.map(item => ({
-            lat: item.geometry.coordinates[1],
-            lon: item.geometry.coordinates[0],
-            display_name: item.properties.title
-        }));
+        return data
+            .filter(item => item.properties.title.includes(q))
+            .filter(item => item.properties.addressCode && item.properties.addressCode !== '')
+            .map(item => {
+                const code = item.properties.addressCode;
+                const muniStr = (GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
+                const parts = muniStr.split(',');
+                const pref = parts[1] || '';
+                const city = parts[3] || '';
+                const address = pref && city ? `${pref}　${city}` : item.properties.title;
+                return {
+                    lat: item.geometry.coordinates[1],
+                    lon: item.geometry.coordinates[0],
+                    title: item.properties.title,
+                    address: address
+                };
+            });
     } catch(e) {
         console.error(e);
         return null;
