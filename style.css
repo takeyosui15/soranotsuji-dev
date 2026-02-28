@@ -918,6 +918,16 @@ input[type="range"] { width: 100%; margin: 10px 0; }
     flex-shrink: 0;
 }
 
+.refraction-row {
+    justify-content: flex-start;
+}
+.refraction-row .meteo-label {
+    width: 90px;
+}
+.refraction-row .meteo-input {
+    flex: 1;
+}
+
 /* リセットボタンエリア */
 .meteo-reset-area {
     text-align: right;
