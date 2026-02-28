@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.16.7 - 2026-02-28: fix: OSMフォールバックの追加、地図タイルのURL修正
 Version 1.16.6 - 2026-02-28: fix: 辻Day/辻検索結果を表ソート化、地名検索複数件化
 Version 1.16.5 - 2026-02-28: fix: 観測点高度が目的点高度より高い場合の処理を追加
 Version 1.16.4 - 2026-02-26: fix: Astronomy.Horizonの気差補正オプションを解除（"normal" → null）
@@ -189,7 +190,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.16.6)");
+    console.log("宙の辻: 起動 (V1.16.7)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -302,7 +303,7 @@ function initMap() {
         layers: [gsiStd], 
         zoomControl: false
     });
-    map.attributionControl.addAttribution('標高/地名/住所:<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>');
+    map.attributionControl.addAttribution('標高/地名:<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,地名:<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>');
 
     L.control.layers({
         "標準(地理院)": gsiStd,
