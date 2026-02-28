@@ -21,6 +21,10 @@ body, html {
     overflow: hidden;
 }
 
+*, *::before, *::after {
+    font-family: sans-serif;
+}
+
 #map {
     height: 100%;
     width: 100%;
