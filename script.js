@@ -302,7 +302,7 @@ function initMap() {
         layers: [gsiStd], 
         zoomControl: false
     });
-    map.attributionControl.addAttribution('標高・住所:<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,地名:<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>');
+    map.attributionControl.addAttribution('標高/地名/住所:<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>');
 
     L.control.layers({
         "標準(地理院)": gsiStd,
