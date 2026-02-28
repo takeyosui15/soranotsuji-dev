@@ -1534,14 +1534,13 @@ async function searchLocation(query) {
 
         return data
             .filter(item => item.properties.title.includes(q))
-            .filter(item => item.properties.addressCode && item.properties.addressCode !== '')
             .map(item => {
-                const code = item.properties.addressCode;
-                const muniStr = (GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
+                const code = item.properties.addressCode || '';
+                const muniStr = (code && GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
                 const parts = muniStr.split(',');
                 const pref = parts[1] || '';
                 const city = parts[3] || '';
-                const address = pref && city ? `${pref}　${city}` : item.properties.title;
+                const address = pref && city ? `${pref}　${city}` : '';
                 return {
                     lat: item.geometry.coordinates[1],
                     lon: item.geometry.coordinates[0],
