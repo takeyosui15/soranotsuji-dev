@@ -395,7 +395,6 @@ function setupUI() {
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
     document.getElementById('btn-dp').onclick = toggleDP;
-    document.getElementById('btn-tsujiday').onclick = toggleTsujiDay;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
     // 辻検索: ②③⑤⑥の変更をlocalStorage保存
