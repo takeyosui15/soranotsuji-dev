@@ -1519,7 +1519,7 @@ function toFullWidth(str) {
         ).replace(/ /g, '\u3000');
 }
 
-// --- 国土地理院 地名検索 ---
+// --- 国土地理院 地名検索（GSI優先、OSMフォールバック） ---
 async function searchLocation(query) {
     if (!query) return null;
     const q = query.trim();
@@ -1528,27 +1528,43 @@ async function searchLocation(query) {
         return null;
     }
     try {
+        // 1. 国土地理院 検索
         const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`;
         const res = await fetch(url);
         const data = await res.json();
-        if (!data || data.length === 0) return [];
 
-        return data
-            .filter(item => item.properties.title.includes(q))
-            .map(item => {
-                const code = item.properties.addressCode || '';
-                const muniStr = (code && GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
-                const parts = muniStr.split(',');
-                const pref = parts[1] || '';
-                const city = parts[3] || '';
-                const address = pref && city ? `${pref}　${city}` : '';
-                return {
-                    lat: item.geometry.coordinates[1],
-                    lon: item.geometry.coordinates[0],
-                    title: item.properties.title,
-                    address: address
-                };
-            });
+        if (data && data.length > 0) {
+            const gsiResults = data
+                .filter(item => item.properties.title.includes(q))
+                .map(item => {
+                    const code = item.properties.addressCode || '';
+                    const muniStr = (code && GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
+                    const parts = muniStr.split(',');
+                    const pref = parts[1] || '';
+                    const city = parts[3] || '';
+                    const address = pref && city ? `${pref}　${city}` : '';
+                    return {
+                        lat: item.geometry.coordinates[1],
+                        lon: item.geometry.coordinates[0],
+                        title: item.properties.title,
+                        address: address
+                    };
+                });
+            if (gsiResults.length > 0) return gsiResults;
+        }
+
+        // 2. GSI結果0件 → OSMフォールバック
+        const urlOsm = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
+        const resOsm = await fetch(urlOsm);
+        const dataOsm = await resOsm.json();
+        if (!dataOsm || dataOsm.length === 0) return [];
+
+        return dataOsm.map(item => ({
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon),
+            title: item.display_name.split(',')[0].trim(),
+            address: item.display_name
+        }));
     } catch(e) {
         console.error(e);
         return null;
