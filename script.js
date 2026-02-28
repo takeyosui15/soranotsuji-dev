@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.16.6 - 2026-02-28: fix: 辻Day/辻検索結果を表ソート化、地名検索複数件化
 Version 1.16.5 - 2026-02-28: fix: 観測点高度が目的点高度より高い場合の処理を追加
 Version 1.16.4 - 2026-02-26: fix: Astronomy.Horizonの気差補正オプションを解除（"normal" → null）
 Version 1.16.3 - 2026-02-25: fix: 辻検索の△判定の範囲修正（視半径×4に変更）、ヘルプトピックの修正
@@ -67,7 +68,7 @@ const KM_PER_AU = 149597870.7;
 const ALNILAM_RA = 5.603;
 const ALNILAM_DEC = -1.202;
 
-const DEFAULT_START = { lat: 35.658449, lng: 139.745536, elev: 150.0 };
+const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 150.0 };
 const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9 };
 
 // 天体ごとの初期スタイル (リセット用)
@@ -188,7 +189,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.16.5)");
+    console.log("宙の辻: 起動 (V1.16.6)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
