@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.16.8 - 2026-02-28: fix: 辻Dayボタンの削除
 Version 1.16.7 - 2026-02-28: fix: OSMフォールバックの追加、地図タイルのURL修正
 Version 1.16.6 - 2026-02-28: fix: 辻Day/辻検索結果を表ソート化、地名検索複数件化
 Version 1.16.5 - 2026-02-28: fix: 観測点高度が目的点高度より高い場合の処理を追加
@@ -190,7 +191,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.16.7)");
+    console.log("宙の辻: 起動 (V1.16.8)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
