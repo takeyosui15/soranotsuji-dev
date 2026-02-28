@@ -982,3 +982,48 @@ input[type="range"] { width: 100%; margin: 10px 0; }
     width: 100%;
     background: #fff;
 }
+
+/* My観測点 データ行 */
+.myloc-rows-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+.myloc-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+}
+.myloc-row input[type="radio"] {
+    width: 20px; height: 20px;
+    margin: 0; cursor: pointer; flex-shrink: 0;
+}
+.myloc-row label {
+    font-size: 13px; width: 28px;
+    cursor: pointer; flex-shrink: 0; text-align: right;
+}
+.myloc-row input[type="text"] {
+    flex: 1; min-width: 0;
+    font-size: 13px; padding: 4px 6px;
+    border: 1px solid #ccc; border-radius: 4px;
+}
+
+/* 確認ダイアログ */
+.confirm-dialog {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1a2e; color: #eee;
+    padding: 15px; border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.7);
+    z-index: 2000; width: 250px;
+    border: 1px solid #444; text-align: center;
+}
+.confirm-dialog.hidden { display: none; }
+.confirm-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px; font-weight: bold;
+}
+.close-confirm { cursor: pointer; font-size: 20px; }
+.confirm-message { margin: 15px 0; }
+.confirm-buttons { display: flex; justify-content: center; gap: 20px; }
