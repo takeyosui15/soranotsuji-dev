@@ -133,6 +133,9 @@ let appState = {
     // My天体
     myStar: { ra: ALNILAM_RA, dec: ALNILAM_DEC },
 
+    // 大気差補正の有効/無効
+    refractionEnabled: false,
+
     // 大気差補正係数 (meteoから計算)
     refractionK: calculateKFromMeteo(STD_P, STD_T, STD_L),
 
@@ -447,7 +450,32 @@ function setupUI() {
     const iP = document.getElementById('input-meteo-p');
     const iT = document.getElementById('input-meteo-t');
     const iL = document.getElementById('input-meteo-l');
-    
+    const chkRefraction = document.getElementById('chk-refraction');
+    const btnResetMeteo = document.getElementById('btn-reset-meteo');
+    const btnRegSettings = document.getElementById('btn-reg-settings');
+
+    // 気差フォームの有効/無効を切り替える関数
+    const setRefractionFormEnabled = (enabled) => {
+        iK.readOnly = !enabled;
+        iK.disabled = !enabled;
+        iP.readOnly = !enabled;
+        iP.disabled = !enabled;
+        iT.readOnly = !enabled;
+        iT.disabled = !enabled;
+        iL.readOnly = !enabled;
+        iL.disabled = !enabled;
+        btnResetMeteo.disabled = !enabled;
+        btnRegSettings.disabled = !enabled;
+    };
+
+    // チェックボックスの変更イベント
+    chkRefraction.addEventListener('change', (e) => {
+        appState.refractionEnabled = e.target.checked;
+        setRefractionFormEnabled(e.target.checked);
+        saveAppState();
+        updateAll();
+    });
+
     // 気象条件が変わったら K を再計算して表示する関数
     const updateK = () => {
         const p = parseFloat(iP.value);
@@ -465,15 +493,15 @@ function setupUI() {
     iL.addEventListener('input', updateK);
 
     // リセットボタン
-    document.getElementById('btn-reset-meteo').onclick = () => {
+    btnResetMeteo.onclick = () => {
         iP.value = STD_P;
         iT.value = STD_T;
         iL.value = STD_L;
         updateK(); // 計算してKも更新
     };
-    
+
     // 設定登録ボタン
-    document.getElementById('btn-reg-settings').onclick = registerSettings;
+    btnRegSettings.onclick = registerSettings;
 
     // 起動時の初期値を入力欄にセット
     if(appState.meteo) {
@@ -482,6 +510,9 @@ function setupUI() {
         iL.value = appState.meteo.l;
         iK.value = appState.refractionK.toFixed(4);
     }
+    // 起動時のチェックボックス状態を反映
+    chkRefraction.checked = appState.refractionEnabled;
+    setRefractionFormEnabled(appState.refractionEnabled);
 }
 
 
@@ -500,6 +531,7 @@ function saveAppState() {
         bodies: appState.bodies,
         myStar: appState.myStar,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
+        refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
         lastVisitDate: appState.lastVisitDate,
         // 辻検索パラメータ (②③⑤⑥)
@@ -527,6 +559,7 @@ function loadAppState() {
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
+            if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             // 辻検索パラメータ復元
@@ -740,7 +773,7 @@ function updateCalculation() {
             dec = eq.dec;
         }
 
-        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, null);
+        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
 
         let riseStr = "--:--";
         let setStr = "--:--";
@@ -1147,7 +1180,7 @@ function calculateDPPathPoints(targetDate, body, observer) {
             d = eq.dec;
         }
         
-        const hor = Astronomy.Horizon(time, observer, r, d, null);
+        const hor = Astronomy.Horizon(time, observer, r, d, appState.refractionEnabled ? "normal" : null);
         if (hor.altitude > limit) {
             const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
             if (dist > 0 && dist < 350000) { // 350km以内のみ
@@ -1245,8 +1278,8 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
     // 地球半径 (定数より取得)
     const R = EARTH_RADIUS;
     
-    // 気差係数kを気象パラメータから都度計算
-    const k = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
+    // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
     const Reff = R / (1 - k);
 
     const r1 = R + hObs;    // 観測者
@@ -1745,8 +1778,9 @@ function createLocationPopup(title, pos, target) {
 // ★追加: 2点間の距離と標高差から視高度(角度)を計算する関数
 function calculateApparentAltitude(dist, hObs, hTarget) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
-    
-    const k = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
+
+    // 気差係数k (気差OFF時は0)
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
 
     // 地球の曲率(と気差)を考慮した視高度計算式
     // tan(a) = (H_target - H_obs) / d - d / (2 * R) * (1 - k)
@@ -1819,7 +1853,7 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
     for (let m = 0; m <= 1440; m += 1) { 
         const time = new Date(start + m * 60000);
         
-        const hor = Astronomy.Horizon(time, observer, ra, dec, null); 
+        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null); 
         const alt = hor.altitude;
         
         if (prevAlt !== null) {
@@ -2388,7 +2422,7 @@ async function startTsujiSearch() {
                     ra = eq.ra; dec = eq.dec;
                 }
 
-                const hor = Astronomy.Horizon(time, observer, ra, dec, null);
+                const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
 
                 if (isAzimuthInRange(hor.azimuth, targetAz, toleranceAz) &&
                     Math.abs(hor.altitude - targetAlt) <= toleranceAlt) {
