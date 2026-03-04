@@ -2886,30 +2886,3 @@ function toggleHelp() {
     const modal = document.getElementById('help-modal');
     if(modal) modal.classList.toggle('hidden');
 }
-
-// カスタムツールチップ
-(function() {
-    let tip = null;
-    document.addEventListener('mouseenter', function(e) {
-        const el = e.target.closest('[data-tooltip]');
-        if (!el) return;
-        tip = document.createElement('div');
-        tip.className = 'custom-tooltip';
-        tip.textContent = el.getAttribute('data-tooltip');
-        document.body.appendChild(tip);
-        const rect = el.getBoundingClientRect();
-        let left = rect.left;
-        const top = rect.bottom + 6;
-        if (left + tip.offsetWidth > window.innerWidth - 8) {
-            left = window.innerWidth - tip.offsetWidth - 8;
-        }
-        if (left < 8) left = 8;
-        tip.style.left = left + 'px';
-        tip.style.top = top + 'px';
-        requestAnimationFrame(function() { tip && tip.classList.add('show'); });
-    }, true);
-    document.addEventListener('mouseleave', function(e) {
-        if (!e.target.closest('[data-tooltip]')) return;
-        if (tip) { tip.remove(); tip = null; }
-    }, true);
-})();
