@@ -2209,7 +2209,7 @@ async function startTsujiSearch() {
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
-    const MAX_RESULTS_PER_BODY = 365;
+    const MAX_RESULTS_PER_BODY = 366;
     const totalResults = [];
 
     for (let bi = 0; bi < visibleBodies.length; bi++) {
@@ -2307,26 +2307,26 @@ async function startTsujiSearch() {
 
             const angR = getBodyAngularRadius(body.id, dt, observer);
 
-            let moonInfo = '';
+            let moonAge = -1;
+            let moonIcon = '';
             if (body.id === 'Moon') {
                 const phase = Astronomy.MoonPhase(dt);
-                const age = (phase / 360) * SYNODIC_MONTH;
+                moonAge = (phase / 360) * SYNODIC_MONTH;
                 const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
-                const icon = icons[Math.round(phase / 45) % 8];
-                moonInfo = `${age.toFixed(1)} ${icon}`;
+                moonIcon = icons[Math.round(phase / 45) % 8];
             }
 
             rowData.push({
                 body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
-                angularRadius: angR, moonInfo
+                angularRadius: angR, moonAge, moonIcon
             });
         });
 
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="9">${body.name}: and more…</td>`;
+            tr.innerHTML = `<td colspan="10">${body.name}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -2335,7 +2335,7 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonInfo}</td>`;
+        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -2347,7 +2347,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>距離</th><th>日時</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th></tr>';
+    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>角距離</th><th>日時</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -2363,12 +2363,13 @@ async function startTsujiSearch() {
             return ia - ib;
         }},
         { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
-        { label: '距離', compare: (a, b) => a.dist - b.dist },
+        { label: '角距離', compare: (a, b) => a.dist - b.dist },
         { label: '日時', compare: (a, b) => a.dateObj - b.dateObj },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
-        { label: '月齢', compare: (a, b) => a.moonInfo.localeCompare(b.moonInfo) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '🌙', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
     ], renderRow, extraRows);
 }
 
