@@ -311,7 +311,7 @@ function initMap() {
         layers: [gsiStd], 
         zoomControl: false
     });
-    map.attributionControl.addAttribution('<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://Open-Meteo.com" target="_blank">Open-Meteo</a>');
+    map.attributionControl.addAttribution('<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>');
 
     L.control.layers({
         "標準(地理院)": gsiStd,
