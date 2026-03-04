@@ -1031,3 +1031,22 @@ input[type="range"] { width: 100%; margin: 10px 0; }
 .close-confirm { cursor: pointer; font-size: 20px; }
 .confirm-message { margin: 15px 0; }
 .confirm-buttons { display: flex; justify-content: center; gap: 20px; }
+
+/* カスタムツールチップ */
+.custom-tooltip {
+    position: fixed;
+    padding: 6px 10px;
+    background: rgba(30, 30, 50, 0.95);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.4;
+    max-width: 250px;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 9999;
+}
+.custom-tooltip.show {
+    opacity: 1;
+}
