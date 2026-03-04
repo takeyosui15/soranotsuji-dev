@@ -1823,6 +1823,12 @@ function calculateBearing(lat1, lng1, lat2, lng2) {
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
+function getRiseSetAlt(bodyId, date, observer, refr) {
+    const eq = Astronomy.Equator(bodyId, date, observer, true, true);
+    const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
+    return hor.altitude.toFixed(2);
+}
+
 function updateShortcutsData(startOfDay, observer) {
     try {
         const sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
@@ -1834,6 +1840,12 @@ function updateShortcutsData(startOfDay, observer) {
         document.getElementById('time-sunset').innerText = ss ? formatTime(ss.date) : "--:--";
         document.getElementById('time-moonrise').innerText = mr ? formatTime(mr.date, startOfDay) : "--:--";
         document.getElementById('time-moonset').innerText = ms ? formatTime(ms.date, startOfDay) : "--:--";
+
+        const refr = appState.refractionEnabled ? "normal" : null;
+        document.getElementById('alt-sunrise').innerText = sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--";
+        document.getElementById('alt-sunset').innerText = ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--";
+        document.getElementById('alt-moonrise').innerText = mr ? getRiseSetAlt('Moon', mr.date, observer, refr) : "--";
+        document.getElementById('alt-moonset').innerText = ms ? getRiseSetAlt('Moon', ms.date, observer, refr) : "--";
 
         currentRiseSetData = {
             sunrise: sr?.date,
