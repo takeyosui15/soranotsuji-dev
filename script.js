@@ -68,8 +68,8 @@ const BODY_RADIUS_KM = {
     Jupiter: 71492, Saturn: 60268, Uranus: 25559, Neptune: 24764
 };
 const KM_PER_AU = 149597870.7;
-const ALNILAM_RA = 5.603;
-const ALNILAM_DEC = -1.202;
+const MINTAKA_RA = 5.534;
+const MINTAKA_DEC = -0.299;
 
 const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 150.0 };
 const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9 };
@@ -132,7 +132,7 @@ let appState = {
     currentDate: new Date(),
     
     // My天体
-    myStar: { ra: ALNILAM_RA, dec: ALNILAM_DEC },
+    myStar: { ra: MINTAKA_RA, dec: MINTAKA_DEC },
 
     // My観測点リスト
     myLocations: [{ label: '', latlng: '' }],
@@ -1298,7 +1298,7 @@ function calculateDPPathPoints(targetDate, body, observer) {
         const hor = Astronomy.Horizon(time, observer, r, d, appState.refractionEnabled ? "normal" : null);
         if (hor.altitude > limit) {
             const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
-            if (dist > 0 && dist < 350000) { // 350km以内のみ
+            if (dist > 0 && dist < 500000) { // 500km以内のみ
                 path.push({ dist: dist, az: hor.azimuth, time: time });
             }
         }
@@ -1795,7 +1795,20 @@ function _makeTileUrl(demSource, tileX, tileY) {
     return demSource.url.replace('{z}', demSource.zoom).replace('{x}', tileX).replace('{y}', tileY);
 }
 
-// 1地点の標高取得 (DEM5A→5B→5C→10B の順にフォールバック)
+// Open-Meteo Elevation API で標高を取得 (GSIフォールバック用)
+async function _getElevationFromOpenMeteo(lat, lng) {
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data.elevation && data.elevation.length > 0 && data.elevation[0] !== null) {
+            return parseFloat(data.elevation[0].toFixed(1));
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+// 1地点の標高取得 (DEM5A→5B→5C→10B の順にフォールバック、全て失敗時はOpen-Meteo)
 async function getElevation(lat, lng) {
     for (const dem of GSI_DEM_SOURCES) {
         const ti = _getTileInfo(lat, lng, dem.zoom);
@@ -1806,6 +1819,9 @@ async function getElevation(lat, lng) {
         const h = _elevFromRGB(imgData.data[idx], imgData.data[idx + 1], imgData.data[idx + 2]);
         if (h !== null) return parseFloat(h.toFixed(dem.fixed));
     }
+    // GSI DEMで取得できなかった場合、Open-Meteo APIにフォールバック
+    const omElev = await _getElevationFromOpenMeteo(lat, lng);
+    if (omElev !== null) return omElev;
     return 0;
 }
 
@@ -1865,7 +1881,35 @@ async function fetchAllElevations(points, onProgress) {
         }
     }
 
-    // フォールバック: どのDEMでも取得できなかったポイントは0
+    // フォールバック: どのDEMでも取得できなかったポイントはOpen-Meteo APIで取得
+    const unfetched = points.filter(p => !p.fetched);
+    if (unfetched.length > 0) {
+        // Open-Meteo APIはカンマ区切りで複数地点を一括取得可能
+        const BATCH_OM = 100;
+        for (let b = 0; b < unfetched.length; b += BATCH_OM) {
+            if (generation !== _elevFetchGeneration) return;
+            const batch = unfetched.slice(b, b + BATCH_OM);
+            const lats = batch.map(p => p.lat).join(',');
+            const lngs = batch.map(p => p.lng).join(',');
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.elevation) {
+                        for (let i = 0; i < batch.length; i++) {
+                            if (data.elevation[i] !== null && data.elevation[i] !== undefined) {
+                                batch[i].elev = parseFloat(data.elevation[i].toFixed(1));
+                                batch[i].fetched = true;
+                            }
+                        }
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            const fetchedCount = points.filter(p => p.fetched).length;
+            if (onProgress) onProgress(fetchedCount, points.length);
+        }
+    }
+    // 最終フォールバック: それでも取得できなかったポイントは0
     for (const pt of points) {
         if (!pt.fetched) { pt.elev = 0; pt.fetched = true; }
     }
@@ -2026,7 +2070,7 @@ function getHorizonDip(h) {
 function registerMyStar() {
     const val = document.getElementById('input-mystar-radec').value.trim();
     if(!val) { 
-        appState.myStar = { ra: ALNILAM_RA, dec: ALNILAM_DEC }; 
+        appState.myStar = { ra: MINTAKA_RA, dec: MINTAKA_DEC }; 
     } else {
         const parts = val.split(',');
         if(parts.length === 2) { 
