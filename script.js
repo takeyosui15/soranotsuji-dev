@@ -2293,17 +2293,11 @@ async function startTsujiSearch() {
     const extraRows = [];
 
     totalResults.forEach(({ body, results, limitReached }) => {
-        let effectiveR = 0.15;
-        if (results.length > 0) {
-            const angR = getBodyAngularRadius(body.id, results[0].time, observer);
-            effectiveR = Math.max(angR, 0.15);
-        }
-
         results.forEach(r => {
             let symbol;
-            if (r.dist <= effectiveR * 0.5) symbol = '◎';
-            else if (r.dist <= effectiveR) symbol = '○';
-            else if (r.dist <= effectiveR * 4) symbol = '△';
+            if (r.dist <= 0.125) symbol = '◎';       // ±0.125° (誤差範囲0.25°、視半径以内)
+            else if (r.dist <= 0.25) symbol = '○';   // ±0.25° (誤差範囲0.5°、視直径以内)
+            else if (r.dist <= 1.0) symbol = '△';    // ±1° (誤差範囲2°、視直径×4以内)
             else symbol = '-';
 
             const dt = r.time;
@@ -2311,22 +2305,28 @@ async function startTsujiSearch() {
             const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
 
-            let detail = `方位角: ${r.azimuth.toFixed(1)}° 視高度: ${r.altitude.toFixed(2)}°`;
+            const angR = getBodyAngularRadius(body.id, dt, observer);
+
+            let moonInfo = '';
             if (body.id === 'Moon') {
                 const phase = Astronomy.MoonPhase(dt);
                 const age = (phase / 360) * SYNODIC_MONTH;
                 const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
                 const icon = icons[Math.round(phase / 45) % 8];
-                detail += ` 月齢: ${age.toFixed(1)} ${icon}`;
+                moonInfo = `${age.toFixed(1)} ${icon}`;
             }
 
-            rowData.push({ body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt, detail });
+            rowData.push({
+                body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt,
+                dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
+                angularRadius: angR, moonInfo
+            });
         });
 
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="4">${body.name}: and more…</td>`;
+            tr.innerHTML = `<td colspan="9">${body.name}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -2335,7 +2335,7 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dateStr}</td><td>${r.detail}</td>`;
+        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonInfo}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -2347,7 +2347,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体</th><th>精度</th><th>日時</th><th>詳細</th></tr>';
+    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>距離</th><th>日時</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -2356,14 +2356,19 @@ async function startTsujiSearch() {
     contentEl.appendChild(table);
 
     setupTableSort(table, rowData, [
+        { label: 'ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
         { label: '天体', compare: (a, b) => {
             const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
             const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
             return ia - ib;
         }},
         { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '距離', compare: (a, b) => a.dist - b.dist },
         { label: '日時', compare: (a, b) => a.dateObj - b.dateObj },
-        { label: '詳細', compare: (a, b) => a.detail.localeCompare(b.detail) },
+        { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
+        { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
+        { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '月齢', compare: (a, b) => a.moonInfo.localeCompare(b.moonInfo) },
     ], renderRow, extraRows);
 }
 
