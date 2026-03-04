@@ -86,7 +86,7 @@ GNU General Public License for more details.
                 宙の辻<span class="header-subtitle"> - Sora no Tsuji</span>
             </span>
             <div class="header-controls">
-                <span id="btn-help" title="ヘルプ">?</span>
+                <span id="btn-help" data-tooltip="ヘルプ">?</span>
                 <span id="toggle-icon">▼</span>
             </div>
         </div>
@@ -101,7 +101,7 @@ GNU General Public License for more details.
                     
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-gps" class="nav-btn small" title="現在地を取得">GPS</button>
+                            <button id="btn-gps" class="nav-btn small" data-tooltip="現在地を取得">GPS</button>
                             <input type="radio" name="loc-mode" id="radio-start" value="start" checked>
                         </div>
                         <label class="input-label">観測点:</label>
@@ -110,7 +110,7 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
+                            <button id="btn-reg-start" class="nav-btn small" data-tooltip="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点高:</label>
                         <input type="number" id="input-start-elev" placeholder="標高 m" step="1">
@@ -118,7 +118,7 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-reg-end" class="nav-btn small" title="現在の目的点を初期値として登録">推山</button>
+                            <button id="btn-reg-end" class="nav-btn small" data-tooltip="現在の目的点を初期値として登録">推山</button>
                             <input type="radio" name="loc-mode" id="radio-end" value="end">
                         </div>
                         <label class="input-label">目的点:</label>
@@ -134,8 +134,8 @@ GNU General Public License for more details.
                     </div>
 
                     <div class="control-row main-buttons-row">
-                        <button id="btn-dp" class="nav-btn main-btn" title="辻ライン表示">辻ライン</button>
-                        <button id="btn-tsuji-search" class="nav-btn main-btn" title="辻検索">辻検索</button>
+                        <button id="btn-dp" class="nav-btn main-btn" data-tooltip="辻ライン表示">辻ライン</button>
+                        <button id="btn-tsuji-search" class="nav-btn main-btn" data-tooltip="辻検索">辻検索</button>
                         <button id="btn-elevation" class="nav-btn main-btn">標高グラフ</button>
                     </div>
                 </div>
@@ -312,7 +312,7 @@ GNU General Public License for more details.
                         </div>
                         
                         <div class="control-row">
-                            <label class="input-label meteo-label" title="高さ1mあたりの気温低下量 (通常は 0.0065)">気温減率 Γ (°C/m):</label>
+                            <label class="input-label meteo-label" data-tooltip="高さ1mあたりの気温低下量 (通常は 0.0065)">気温減率 Γ (°C/m):</label>
                             <input type="number" id="input-meteo-l" class="meteo-input" step="0.0001" placeholder="0 〜 0.0125">
                         </div>
                         
