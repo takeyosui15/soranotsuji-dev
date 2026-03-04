@@ -621,7 +621,7 @@ function registerLocation(type) {
         map.setView([target.lat, target.lng], 10);
 
         btn.classList.remove('active');
-        btn.title = `${type==='start'?'観測点':'目的点'}の初期値を登録`;
+        btn.title = `現在の${type==='start'?'観測点':'目的点'}を初期値として登録`;
         
         alert('初期値をリセットし、デフォルトに戻しました');
         return;
