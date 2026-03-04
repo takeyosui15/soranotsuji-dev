@@ -2454,14 +2454,13 @@ function drawProfileGraph() {
 }
 
 function initVisitorCounter() {
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
     // lastVisitDateはappStateで管理
     if (appState.lastVisitDate !== todayStr) {
-        appState.lastVisitDate = todayStr;
-        saveAppState();
-        
         fetch(`${GAS_API_URL}?action=visit`).then(r=>r.json()).then(d => {
             if(!d.error) {
+                appState.lastVisitDate = todayStr;
+                saveAppState();
                 visitorData = d;
                 document.getElementById('cnt-today').innerText = d.today;
                 document.getElementById('cnt-yesterday').innerText = d.yesterday;
