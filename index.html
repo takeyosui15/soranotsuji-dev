@@ -261,6 +261,128 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-twilight')">
+                    <span>薄明</span>
+                    <span id="icon-sec-twilight">▼</span>
+                </div>
+                <div id="sec-twilight" class="section-content closed">
+                    <!-- 夜明グループ -->
+                    <div class="twilight-group">
+                        <div class="twilight-group-title">夜明</div>
+                        <div class="twilight-grid">
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-astro-dawn" value="astro_dawn">
+                                <label for="jump-astro-dawn">
+                                    <span class="shortcut-name">天文薄明[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-astro-dawn">--:--</span>
+                                        <span class="shortcut-alt">(-18°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-naut-dawn" value="naut_dawn">
+                                <label for="jump-naut-dawn">
+                                    <span class="shortcut-name">航海薄明[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-naut-dawn">--:--</span>
+                                        <span class="shortcut-alt">(-12°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-yoake" value="yoake">
+                                <label for="jump-yoake">
+                                    <span class="shortcut-name">夜明</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-yoake">--:--</span>
+                                        <span class="shortcut-alt">(-7°21′40″)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-civil-dawn" value="civil_dawn">
+                                <label for="jump-civil-dawn">
+                                    <span class="shortcut-name">常用薄明[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-civil-dawn">--:--</span>
+                                        <span class="shortcut-alt">(-6°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-tw-sunrise" value="tw_sunrise">
+                                <label for="jump-tw-sunrise">
+                                    <span class="shortcut-name">日の出</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-tw-sunrise">--:--</span>
+                                        <span class="shortcut-alt">(<span id="alt-tw-sunrise">--</span>°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 日暮グループ -->
+                    <div class="twilight-group">
+                        <div class="twilight-group-title">日暮</div>
+                        <div class="twilight-grid">
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-tw-sunset" value="tw_sunset">
+                                <label for="jump-tw-sunset">
+                                    <span class="shortcut-name">日の入</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-tw-sunset">--:--</span>
+                                        <span class="shortcut-alt">(<span id="alt-tw-sunset">--</span>°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item twilight-spacer"></div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-civil-dusk" value="civil_dusk">
+                                <label for="jump-civil-dusk">
+                                    <span class="shortcut-name">常用薄明[終]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-civil-dusk">--:--</span>
+                                        <span class="shortcut-alt">(-6°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-higure" value="higure">
+                                <label for="jump-higure">
+                                    <span class="shortcut-name">日暮</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-higure">--:--</span>
+                                        <span class="shortcut-alt">(-7°21′40″)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-naut-dusk" value="naut_dusk">
+                                <label for="jump-naut-dusk">
+                                    <span class="shortcut-name">航海薄明[終]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-naut-dusk">--:--</span>
+                                        <span class="shortcut-alt">(-12°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-astro-dusk" value="astro_dusk">
+                                <label for="jump-astro-dusk">
+                                    <span class="shortcut-name">天文薄明[終]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-astro-dusk">--:--</span>
+                                        <span class="shortcut-alt">(-18°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-mylocations')">
                     <span>My観測点</span>
                     <span id="icon-sec-mylocations">▼</span>

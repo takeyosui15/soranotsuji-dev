@@ -746,6 +746,27 @@ input[type="range"] { width: 100%; margin: 10px 0; }
     color: #666;
 }
 
+.twilight-group {
+    background: rgba(100, 149, 237, 0.08);
+    border-radius: 4px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+.twilight-group-title {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 4px;
+    padding-left: 2px;
+}
+.twilight-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}
+.twilight-spacer {
+    visibility: hidden;
+}
+
 .celestial-list { list-style: none; padding: 0; margin: 0; }
 .celestial-list li {
     display: flex;

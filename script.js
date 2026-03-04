@@ -818,6 +818,7 @@ function updateCalculation() {
     });
 
     updateShortcutsData(startOfDay, observer);
+    updateTwilightData(startOfDay, observer);
     updateMoonInfo(obsDate);
 }
 
@@ -1853,6 +1854,54 @@ function updateShortcutsData(startOfDay, observer) {
             moonrise: mr?.date,
             moonset: ms?.date
         };
+    } catch(e) {}
+}
+
+function updateTwilightData(startOfDay, observer) {
+    try {
+        const refr = appState.refractionEnabled ? "normal" : null;
+        // 夜明側 (ascending)
+        const astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
+        const nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
+        const yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
+        const civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+        const sr        = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+
+        // 日暮側 (descending)
+        const ss        = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+        const civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
+        const higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
+        const nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
+        const astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
+
+        // 時刻DOM更新
+        document.getElementById('time-astro-dawn').innerText = astroDawn ? formatTime(astroDawn.date) : "--:--";
+        document.getElementById('time-naut-dawn').innerText  = nautDawn ? formatTime(nautDawn.date) : "--:--";
+        document.getElementById('time-yoake').innerText      = yoake ? formatTime(yoake.date) : "--:--";
+        document.getElementById('time-civil-dawn').innerText = civilDawn ? formatTime(civilDawn.date) : "--:--";
+        document.getElementById('time-tw-sunrise').innerText = sr ? formatTime(sr.date) : "--:--";
+
+        document.getElementById('time-tw-sunset').innerText  = ss ? formatTime(ss.date) : "--:--";
+        document.getElementById('time-civil-dusk').innerText = civilDusk ? formatTime(civilDusk.date) : "--:--";
+        document.getElementById('time-higure').innerText     = higure ? formatTime(higure.date) : "--:--";
+        document.getElementById('time-naut-dusk').innerText  = nautDusk ? formatTime(nautDusk.date) : "--:--";
+        document.getElementById('time-astro-dusk').innerText = astroDusk ? formatTime(astroDusk.date) : "--:--";
+
+        // 日の出/入の視高度表示
+        document.getElementById('alt-tw-sunrise').innerText = sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--";
+        document.getElementById('alt-tw-sunset').innerText  = ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--";
+
+        // currentRiseSetDataに薄明データを追加
+        currentRiseSetData.astro_dawn = astroDawn?.date;
+        currentRiseSetData.naut_dawn  = nautDawn?.date;
+        currentRiseSetData.yoake      = yoake?.date;
+        currentRiseSetData.civil_dawn = civilDawn?.date;
+        currentRiseSetData.tw_sunrise = sr?.date;
+        currentRiseSetData.tw_sunset  = ss?.date;
+        currentRiseSetData.civil_dusk = civilDusk?.date;
+        currentRiseSetData.higure     = higure?.date;
+        currentRiseSetData.naut_dusk  = nautDusk?.date;
+        currentRiseSetData.astro_dusk = astroDusk?.date;
     } catch(e) {}
 }
 
