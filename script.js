@@ -2434,7 +2434,7 @@ async function startTsujiDaySearch() {
     }
 
     // ソート用データを事前計算
-    const symbolRank = { '◎': 0, '○': 1, '△': 2, '—': 3 };
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     const rowData = results.map(r => {
         let detail = '';
         if (r.body.id === 'Moon') {
@@ -2629,7 +2629,7 @@ async function startTsujiSearch() {
     }
 
     // ソート用データをフラットに事前計算
-    const symbolRank = { '◎': 0, '○': 1, '△': 2, '—': 3 };
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     const rowData = [];
     const extraRows = [];
 
@@ -2645,7 +2645,7 @@ async function startTsujiSearch() {
             if (r.dist <= effectiveR * 0.5) symbol = '◎';
             else if (r.dist <= effectiveR) symbol = '○';
             else if (r.dist <= effectiveR * 4) symbol = '△';
-            else symbol = '—';
+            else symbol = '-';
 
             const dt = r.time;
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
