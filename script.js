@@ -170,6 +170,7 @@ let appState = {
     isMoving: false,
     moveSpeed: null,  // 'month', 'day', 'hour', 'min'
     isDPActive: true,
+    locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
     isElevationActive: false,
     isTsujiSearchActive: false,
 
@@ -244,6 +245,9 @@ window.onload = function() {
 
     document.getElementById('input-mystar-radec').value = `${appState.myStar.ra},${appState.myStar.dec}`;
     reflectMyStarUI();
+
+    // 位置情報: 観測点/目的点モードのlocalStorage復元値をセット
+    document.getElementById(appState.locMode === 'end' ? 'radio-end' : 'radio-start').checked = true;
 
     // 辻検索: ①〜⑥+検索期間のlocalStorage復元値をセット
     document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
@@ -409,6 +413,14 @@ function setupUI() {
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
+    // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
+    document.querySelectorAll('input[name="loc-mode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            appState.locMode = e.target.value;
+            saveAppState();
+        });
+    });
+
     // 辻検索: ①〜⑥+検索期間の変更をlocalStorage保存
     document.getElementById('input-tsuji-az').addEventListener('change', (e) => {
         appState.tsujiSearchBaseAz = parseFloat(e.target.value) || 0;
@@ -561,6 +573,7 @@ function saveAppState() {
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
+        locMode: appState.locMode,
         lastVisitDate: appState.lastVisitDate,
         // 辻検索パラメータ (①〜⑥+検索期間)
         tsujiSearchBaseAz: appState.tsujiSearchBaseAz,
@@ -593,6 +606,7 @@ function loadAppState() {
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
+            if(saved.locMode) appState.locMode = saved.locMode;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             // 辻検索パラメータ復元 (①〜⑥+検索期間)
             if(saved.tsujiSearchBaseAz !== undefined) appState.tsujiSearchBaseAz = saved.tsujiSearchBaseAz;
@@ -657,9 +671,11 @@ function registerLocation(type) {
         // 登録データを現在地に適用
         if(type === 'start') {
             appState.start = { ...appState.homeStart };
+            appState.locMode = 'start';
             document.getElementById('radio-start').checked = true;
         } else {
             appState.end = { ...appState.homeEnd };
+            appState.locMode = 'end';
             document.getElementById('radio-end').checked = true;
         }
         
@@ -910,9 +926,11 @@ async function applyLocationCoords(coords, isStart) {
 
     if(isStart) {
         appState.start = { ...coords, elev: validElev };
+        appState.locMode = 'start';
         document.getElementById('radio-start').checked = true;
     } else {
         appState.end = { ...coords, elev: validElev };
+        appState.locMode = 'end';
         document.getElementById('radio-end').checked = true;
     }
 
@@ -1000,6 +1018,13 @@ function renderMyLocations() {
             `<input type="text" class="myloc-label" data-idx="${i}" value="${escapeHtml(loc.label)}" placeholder="ラベル名">` +
             `<input type="text" class="myloc-latlng" data-idx="${i}" value="${escapeHtml(loc.latlng)}" placeholder="緯度,経度">`;
         list.appendChild(row);
+    });
+    // changeリスナーを追加: ラベル/座標の編集を即座にappState+localStorageに反映
+    list.querySelectorAll('.myloc-label, .myloc-latlng').forEach(el => {
+        el.addEventListener('change', () => {
+            syncMyLocRowsToState();
+            saveAppState();
+        });
     });
     updateMyLocButtons();
 }
@@ -1525,7 +1550,7 @@ function calculateKFromMeteo(p, tCel, l) {
 
 // 地図クリック時の処理 
 async function onMapClick(e) {
-    const isStart = document.getElementById('radio-start').checked;
+    const isStart = appState.locMode === 'start';
     const elev = await getElevation(e.latlng.lat, e.latlng.lng);
     const val = (elev !== null) ? elev : 0;
     
