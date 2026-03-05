@@ -178,6 +178,7 @@ let appState = {
     tsujiSearchToleranceAz: 15,
     tsujiSearchOffsetAlt: 0,
     tsujiSearchToleranceAlt: 2.5,
+    tsujiSearchDays: 365,
 
     // 内部制御用 (保存不要)
     timers: { move: null, fetch: null },
@@ -247,6 +248,7 @@ window.onload = function() {
     document.getElementById('input-tsuji-az-tolerance').value = appState.tsujiSearchToleranceAz;
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
     document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
+    document.getElementById('input-tsuji-search-days').value = appState.tsujiSearchDays;
 
     // リストを生成
     renderCelestialList();
@@ -420,6 +422,11 @@ function setupUI() {
         appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 2.5;
         saveAppState();
     });
+    document.getElementById('input-tsuji-search-days').addEventListener('change', (e) => {
+        appState.tsujiSearchDays = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 1461);
+        e.target.value = appState.tsujiSearchDays;
+        saveAppState();
+    });
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -548,6 +555,7 @@ function saveAppState() {
         tsujiSearchToleranceAz: appState.tsujiSearchToleranceAz,
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
+        tsujiSearchDays: appState.tsujiSearchDays,
         myLocations: appState.myLocations
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
@@ -577,6 +585,7 @@ function loadAppState() {
             if(saved.tsujiSearchToleranceAz !== undefined) appState.tsujiSearchToleranceAz = saved.tsujiSearchToleranceAz;
             if(saved.tsujiSearchOffsetAlt !== undefined) appState.tsujiSearchOffsetAlt = saved.tsujiSearchOffsetAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
+            if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
             if(saved.myLocations && Array.isArray(saved.myLocations) && saved.myLocations.length > 0) appState.myLocations = saved.myLocations;
 
             if(saved.bodies) {
@@ -2253,7 +2262,7 @@ async function startTsujiSearch() {
     const baseAlt = parseFloat(document.getElementById('input-tsuji-alt').value);
     const offsetAlt = parseFloat(document.getElementById('input-tsuji-alt-offset').value) || 0;
     const toleranceAlt = parseFloat(document.getElementById('input-tsuji-alt-tolerance').value);
-    const searchDays = 365;
+    const searchDays = Math.min(Math.max(parseInt(document.getElementById('input-tsuji-search-days').value) || 365, 1), 1461);
     const searchInterval = 1;
     const stepsPerDay = 1440;
 
@@ -2270,7 +2279,7 @@ async function startTsujiSearch() {
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
-    const MAX_RESULTS_PER_BODY = 366;
+    const MAX_RESULTS_PER_BODY = 1461;
     const totalResults = [];
 
     for (let bi = 0; bi < visibleBodies.length; bi++) {
@@ -2378,7 +2387,7 @@ async function startTsujiSearch() {
             }
 
             rowData.push({
-                body, symbol, dateStr: `${dateStr} ${timeStr}`, dateObj: dt,
+                body, symbol, dateStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
                 angularRadius: angR, moonAge, moonIcon
             });
@@ -2387,7 +2396,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="10">${body.name}: and more…</td>`;
+            tr.innerHTML = `<td colspan="11">${body.name}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -2396,7 +2405,7 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
+        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -2408,7 +2417,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>角距離</th><th>日時</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
+    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>角距離</th><th>日付</th><th>時刻</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -2425,7 +2434,8 @@ async function startTsujiSearch() {
         }},
         { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
         { label: '角距離', compare: (a, b) => a.dist - b.dist },
-        { label: '日時', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
