@@ -386,23 +386,6 @@ GNU General Public License for more details.
                 </div>
             </div>
 
-            <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-mylocations')">
-                    <span>My観測点</span>
-                    <span id="icon-sec-mylocations">▼</span>
-                </div>
-                <div id="sec-mylocations" class="section-content closed">
-                    <div class="control-row main-buttons-row">
-                        <button id="btn-myloc-load" class="nav-btn main-btn">呼び出し</button>
-                        <button id="btn-myloc-saveall" class="nav-btn main-btn">全て登録</button>
-                    </div>
-                    <div id="myloc-list" class="myloc-rows-container"></div>
-                    <div class="control-row main-buttons-row">
-                        <button id="btn-myloc-add" class="nav-btn main-btn">行追加</button>
-                        <button id="btn-myloc-del" class="nav-btn main-btn">行削除</button>
-                    </div>
-                </div>
-            </div>
 
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-mystar')">
@@ -502,17 +485,6 @@ GNU General Public License for more details.
         <div id="picker-list" class="picker-list"></div>
     </div>
 
-    <div id="confirm-dialog" class="confirm-dialog hidden">
-        <div class="confirm-header">
-            <span>確認</span>
-            <span class="close-confirm" onclick="closeConfirmDialog()">×</span>
-        </div>
-        <p class="confirm-message">本当に実行しますか</p>
-        <div class="confirm-buttons">
-            <button id="btn-confirm-yes" class="nav-btn small">はい</button>
-            <button id="btn-confirm-no" class="nav-btn small" onclick="closeConfirmDialog()">いいえ</button>
-        </div>
-    </div>
 
     <div id="style-palette" class="style-palette hidden">
         <div class="palette-header">スタイル設定 <span class="close-palette" onclick="closePalette()">×</span></div>

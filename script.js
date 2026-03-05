@@ -134,8 +134,6 @@ let appState = {
     // My天体
     myStar: { ra: MINTAKA_RA, dec: MINTAKA_DEC },
 
-    // My観測点リスト
-    myLocations: [{ label: '', latlng: '' }],
 
     // 大気差補正の有効/無効
     refractionEnabled: false,
@@ -561,12 +559,6 @@ function setupUI() {
     chkRefraction.checked = appState.refractionEnabled;
     setRefractionFormEnabled(appState.refractionEnabled);
 
-    // My観測点ボタン
-    document.getElementById('btn-myloc-load').onclick = loadMyLocation;
-    document.getElementById('btn-myloc-saveall').onclick = saveAllMyLocations;
-    document.getElementById('btn-myloc-add').onclick = addMyLocationRow;
-    document.getElementById('btn-myloc-del').onclick = deleteMyLocationRow;
-    renderMyLocations();
 }
 
 
@@ -596,8 +588,7 @@ function saveAppState() {
         tsujiSearchBaseAlt: appState.tsujiSearchBaseAlt,
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
-        tsujiSearchDays: appState.tsujiSearchDays,
-        myLocations: appState.myLocations
+        tsujiSearchDays: appState.tsujiSearchDays
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -630,7 +621,6 @@ function loadAppState() {
             if(saved.tsujiSearchBaseAlt !== undefined) appState.tsujiSearchBaseAlt = saved.tsujiSearchBaseAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
-            if(saved.myLocations && Array.isArray(saved.myLocations) && saved.myLocations.length > 0) appState.myLocations = saved.myLocations;
 
             if(saved.bodies) {
                 saved.bodies.forEach(sb => {
@@ -1010,111 +1000,13 @@ function setupTooltips() {
 
 
 // ============================================================
-// 9. My観測点 (My Observation Points)
+// 9. ユーティリティ
 // ============================================================
 
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
               .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-}
-
-function renderMyLocations() {
-    const list = document.getElementById('myloc-list');
-    list.innerHTML = '';
-    appState.myLocations.forEach((loc, i) => {
-        const idx = String(i + 1).padStart(2, '0');
-        const row = document.createElement('div');
-        row.className = 'myloc-row';
-        row.innerHTML =
-            `<input type="radio" name="myloc-radio" id="myloc-r${i}" value="${i}" ${i === 0 ? 'checked' : ''}>` +
-            `<label for="myloc-r${i}">${idx}:</label>` +
-            `<input type="text" class="myloc-label" data-idx="${i}" value="${escapeHtml(loc.label)}" placeholder="ラベル名">` +
-            `<input type="text" class="myloc-latlng" data-idx="${i}" value="${escapeHtml(loc.latlng)}" placeholder="緯度,経度">`;
-        list.appendChild(row);
-    });
-    // changeリスナーを追加: ラベル/座標の編集を即座にappState+localStorageに反映
-    list.querySelectorAll('.myloc-label, .myloc-latlng').forEach(el => {
-        el.addEventListener('change', () => {
-            syncMyLocRowsToState();
-            saveAppState();
-        });
-    });
-    updateMyLocButtons();
-}
-
-function updateMyLocButtons() {
-    document.getElementById('btn-myloc-add').disabled = appState.myLocations.length >= 99;
-    document.getElementById('btn-myloc-del').disabled = appState.myLocations.length <= 1;
-}
-
-function getSelectedMyLocIndex() {
-    const checked = document.querySelector('input[name="myloc-radio"]:checked');
-    return checked ? parseInt(checked.value, 10) : 0;
-}
-
-function syncMyLocRowsToState() {
-    const labels = document.querySelectorAll('.myloc-label');
-    const latlngs = document.querySelectorAll('.myloc-latlng');
-    appState.myLocations = [];
-    labels.forEach((el, i) => {
-        appState.myLocations.push({ label: el.value, latlng: latlngs[i].value });
-    });
-}
-
-async function loadMyLocation() {
-    syncMyLocRowsToState();
-    const idx = getSelectedMyLocIndex();
-    const latlng = appState.myLocations[idx]?.latlng;
-    if (!latlng) { alert('緯度経度が入力されていません'); return; }
-    document.getElementById('input-start-latlng').value = latlng;
-    await handleLocationInput(latlng, true);
-}
-
-function saveAllMyLocations() {
-    syncMyLocRowsToState();
-    saveAppState();
-    alert('My観測点を登録しました');
-}
-
-function showConfirmDialog(onYes) {
-    const dialog = document.getElementById('confirm-dialog');
-    dialog.classList.remove('hidden');
-    document.getElementById('btn-confirm-yes').onclick = () => {
-        closeConfirmDialog();
-        onYes();
-    };
-}
-
-function closeConfirmDialog() {
-    document.getElementById('confirm-dialog').classList.add('hidden');
-}
-
-function addMyLocationRow() {
-    if (appState.myLocations.length >= 99) return;
-    showConfirmDialog(() => {
-        syncMyLocRowsToState();
-        const idx = getSelectedMyLocIndex();
-        appState.myLocations.splice(idx + 1, 0, { label: '', latlng: '' });
-        saveAppState();
-        renderMyLocations();
-        const radio = document.getElementById(`myloc-r${idx + 1}`);
-        if (radio) radio.checked = true;
-    });
-}
-
-function deleteMyLocationRow() {
-    if (appState.myLocations.length <= 1) return;
-    showConfirmDialog(() => {
-        syncMyLocRowsToState();
-        const idx = getSelectedMyLocIndex();
-        appState.myLocations.splice(idx, 1);
-        saveAppState();
-        renderMyLocations();
-        const newIdx = Math.min(idx, appState.myLocations.length - 1);
-        const radio = document.getElementById(`myloc-r${newIdx}`);
-        if (radio) radio.checked = true;
-    });
 }
 
 
