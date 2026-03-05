@@ -2492,76 +2492,106 @@ function drawProfileGraph() {
 
 function initVisitorCounter() {
     const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
-    // lastVisitDateはappStateで管理
-    if (appState.lastVisitDate !== todayStr) {
-        fetch(`${GAS_API_URL}?action=visit`).then(r=>r.json()).then(d => {
-            if(!d.error) {
-                appState.lastVisitDate = todayStr;
-                saveAppState();
-                visitorData = d;
-                document.getElementById('cnt-today').innerText = d.today;
-                document.getElementById('cnt-yesterday').innerText = d.yesterday;
-                document.getElementById('cnt-year').innerText = d.yearTotal;
-                document.getElementById('cnt-last').innerText = d.lastYearTotal;
-            }
-        });
-    } else {
-        fetch(`${GAS_API_URL}?action=get`).then(r=>r.json()).then(d => {
-            if(!d.error) {
-                visitorData = d;
-                document.getElementById('cnt-today').innerText = d.today;
-                document.getElementById('cnt-yesterday').innerText = d.yesterday;
-                document.getElementById('cnt-year').innerText = d.yearTotal;
-                document.getElementById('cnt-last').innerText = d.lastYearTotal;
-            }
-        });
-    }
+    // 計算中表示
+    setCounterDisplay('-', '-', '-', '-');
+
+    const action = (appState.lastVisitDate !== todayStr) ? 'visit' : 'get';
+    fetchVisitorData(action, todayStr);
+}
+
+function fetchVisitorData(action, todayStr) {
+    fetch(`${GAS_API_URL}?action=${action}`).then(r=>r.json()).then(d => {
+        if (d.error === 'lock_busy') {
+            // ロック解除待ち表示 → 3秒後リトライ
+            setCounterDisplay('- -', '- -', '- -', '- -');
+            setTimeout(() => fetchVisitorData(action, todayStr), 3000);
+            return;
+        }
+        if (d.error === 'no_sheet') {
+            // シート無し表示
+            setCounterDisplay('- - -', '- - -', '- - -', '- - -');
+            return;
+        }
+        if (d.error) return;
+
+        if (action === 'visit') {
+            appState.lastVisitDate = todayStr;
+            saveAppState();
+        }
+        visitorData = d;
+        setCounterDisplay(d.today, d.yesterday, d.yearTotal, d.lastYearTotal);
+    }).catch(() => {
+        setCounterDisplay('- - -', '- - -', '- - -', '- - -');
+    });
+}
+
+function setCounterDisplay(today, yesterday, year, last) {
+    document.getElementById('cnt-today').innerText = today;
+    document.getElementById('cnt-yesterday').innerText = yesterday;
+    document.getElementById('cnt-year').innerText = year;
+    document.getElementById('cnt-last').innerText = last;
 }
 
 function showGraph(type) {
     if(!visitorData) return;
     document.getElementById('graph-modal').classList.remove('hidden');
+    document.getElementById('graph-title').innerText = (type==='current') ? "今年の推移" : "昨年の推移";
+
+    // dailyLogが未取得ならaction=detailでfetchしてから描画
+    if (!visitorData.dailyLog) {
+        fetch(`${GAS_API_URL}?action=detail`).then(r=>r.json()).then(d => {
+            if (!d.error) {
+                visitorData.dailyLog = d.dailyLog;
+                visitorData.lastYearLog = d.lastYearLog;
+            }
+            drawGraph(type);
+        }).catch(() => drawGraph(type));
+    } else {
+        drawGraph(type);
+    }
+}
+
+function drawGraph(type) {
     const cvs = document.getElementById('visitor-canvas');
     const ctx = cvs.getContext('2d');
     const w = cvs.width = cvs.clientWidth;
     const h = cvs.height = 300;
-    
+
     const data = (type==='current') ? visitorData.dailyLog : visitorData.lastYearLog;
-    document.getElementById('graph-title').innerText = (type==='current') ? "今年の推移" : "昨年の推移";
     if(!data || data.length===0) {
-        ctx.fillStyle = '#333'; // 文字色も指定しておくと丁寧です
+        ctx.fillStyle = '#333';
         ctx.font = "20px sans-serif";
-        ctx.textAlign = "center"; // 中央揃え
+        ctx.textAlign = "center";
         ctx.fillText("No Data", w/2, h/2);
         return;
     }
-    
+
     const maxVal = Math.max(10, ...data.map(d=>d.count));
     const pad = 40;
     const gw = w - pad*2;
     const gh = h - pad*2;
-    
+
     ctx.strokeStyle='#ccc';
     ctx.strokeRect(pad, pad, gw, gh);
-    
+
     ctx.beginPath();
     ctx.strokeStyle='#007bff';
     ctx.lineWidth=2;
-    
+
     data.forEach((d, i) => {
         const x = pad + (i/(data.length-1||1))*gw;
         const y = (pad+gh) - (d.count/maxVal)*gh;
         if(i===0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
-        
-        ctx.fillStyle = '#007bff'; 
+
+        ctx.fillStyle = '#007bff';
         ctx.fillRect(x-2, y-2, 4, 4);
     });
     ctx.stroke();
-    
+
     ctx.fillStyle='#333';
-    ctx.textAlign = "right"; // 右揃え
-    ctx.fillText(maxVal, pad-10, pad+10); // 位置調整
+    ctx.textAlign = "right";
+    ctx.fillText(maxVal, pad-10, pad+10);
     ctx.fillText(0, pad-10, h-pad);
 }
 
