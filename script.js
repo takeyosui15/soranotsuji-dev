@@ -173,9 +173,11 @@ let appState = {
     isElevationActive: false,
     isTsujiSearchActive: false,
 
-    // 辻検索パラメータ (②③⑤⑥はlocalStorage保存)
+    // 辻検索パラメータ (全てlocalStorage保存)
+    tsujiSearchBaseAz: 0,
     tsujiSearchOffsetAz: 0,
     tsujiSearchToleranceAz: 15,
+    tsujiSearchBaseAlt: 0,
     tsujiSearchOffsetAlt: 0,
     tsujiSearchToleranceAlt: 2.5,
     tsujiSearchDays: 365,
@@ -243,9 +245,11 @@ window.onload = function() {
     document.getElementById('input-mystar-radec').value = `${appState.myStar.ra},${appState.myStar.dec}`;
     reflectMyStarUI();
 
-    // 辻検索: ②③⑤⑥のlocalStorage復元値をセット
+    // 辻検索: ①〜⑥+検索期間のlocalStorage復元値をセット
+    document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
     document.getElementById('input-tsuji-az-offset').value = appState.tsujiSearchOffsetAz;
     document.getElementById('input-tsuji-az-tolerance').value = appState.tsujiSearchToleranceAz;
+    document.getElementById('input-tsuji-alt').value = appState.tsujiSearchBaseAlt;
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
     document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
     document.getElementById('input-tsuji-search-days').value = appState.tsujiSearchDays;
@@ -405,13 +409,21 @@ function setupUI() {
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
-    // 辻検索: ②③⑤⑥の変更をlocalStorage保存
+    // 辻検索: ①〜⑥+検索期間の変更をlocalStorage保存
+    document.getElementById('input-tsuji-az').addEventListener('change', (e) => {
+        appState.tsujiSearchBaseAz = parseFloat(e.target.value) || 0;
+        saveAppState();
+    });
     document.getElementById('input-tsuji-az-offset').addEventListener('change', (e) => {
         appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 0;
         saveAppState();
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
+        saveAppState();
+    });
+    document.getElementById('input-tsuji-alt').addEventListener('change', (e) => {
+        appState.tsujiSearchBaseAlt = parseFloat(e.target.value) || 0;
         saveAppState();
     });
     document.getElementById('input-tsuji-alt-offset').addEventListener('change', (e) => {
@@ -550,9 +562,11 @@ function saveAppState() {
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
         lastVisitDate: appState.lastVisitDate,
-        // 辻検索パラメータ (②③⑤⑥)
+        // 辻検索パラメータ (①〜⑥+検索期間)
+        tsujiSearchBaseAz: appState.tsujiSearchBaseAz,
         tsujiSearchOffsetAz: appState.tsujiSearchOffsetAz,
         tsujiSearchToleranceAz: appState.tsujiSearchToleranceAz,
+        tsujiSearchBaseAlt: appState.tsujiSearchBaseAlt,
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
         tsujiSearchDays: appState.tsujiSearchDays,
@@ -580,10 +594,12 @@ function loadAppState() {
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
-            // 辻検索パラメータ復元
+            // 辻検索パラメータ復元 (①〜⑥+検索期間)
+            if(saved.tsujiSearchBaseAz !== undefined) appState.tsujiSearchBaseAz = saved.tsujiSearchBaseAz;
             if(saved.tsujiSearchOffsetAz !== undefined) appState.tsujiSearchOffsetAz = saved.tsujiSearchOffsetAz;
             if(saved.tsujiSearchToleranceAz !== undefined) appState.tsujiSearchToleranceAz = saved.tsujiSearchToleranceAz;
             if(saved.tsujiSearchOffsetAlt !== undefined) appState.tsujiSearchOffsetAlt = saved.tsujiSearchOffsetAlt;
+            if(saved.tsujiSearchBaseAlt !== undefined) appState.tsujiSearchBaseAlt = saved.tsujiSearchBaseAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
             if(saved.myLocations && Array.isArray(saved.myLocations) && saved.myLocations.length > 0) appState.myLocations = saved.myLocations;
@@ -2178,8 +2194,11 @@ function updateTsujiSearchInputs() {
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev);
-    document.getElementById('input-tsuji-az').value = az.toFixed(1);
-    document.getElementById('input-tsuji-alt').value = alt.toFixed(2);
+    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(1));
+    appState.tsujiSearchBaseAlt = parseFloat(alt.toFixed(2));
+    document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
+    document.getElementById('input-tsuji-alt').value = appState.tsujiSearchBaseAlt;
+    saveAppState();
 }
 
 // --- 辻検索 ---
@@ -2256,13 +2275,13 @@ async function startTsujiSearch() {
     statusEl.textContent = '(検索中…)';
 
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
-    const baseAz = parseFloat(document.getElementById('input-tsuji-az').value);
-    const offsetAz = parseFloat(document.getElementById('input-tsuji-az-offset').value) || 0;
-    const toleranceAz = parseFloat(document.getElementById('input-tsuji-az-tolerance').value);
-    const baseAlt = parseFloat(document.getElementById('input-tsuji-alt').value);
-    const offsetAlt = parseFloat(document.getElementById('input-tsuji-alt-offset').value) || 0;
-    const toleranceAlt = parseFloat(document.getElementById('input-tsuji-alt-tolerance').value);
-    const searchDays = Math.min(Math.max(parseInt(document.getElementById('input-tsuji-search-days').value) || 365, 1), 1461);
+    const baseAz = appState.tsujiSearchBaseAz;
+    const offsetAz = appState.tsujiSearchOffsetAz;
+    const toleranceAz = appState.tsujiSearchToleranceAz;
+    const baseAlt = appState.tsujiSearchBaseAlt;
+    const offsetAlt = appState.tsujiSearchOffsetAlt;
+    const toleranceAlt = appState.tsujiSearchToleranceAlt;
+    const searchDays = appState.tsujiSearchDays;
     const searchInterval = 1;
     const stepsPerDay = 1440;
 
