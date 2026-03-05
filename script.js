@@ -424,26 +424,32 @@ function setupUI() {
     // 辻検索: ①〜⑥+検索期間の変更をlocalStorage保存
     document.getElementById('input-tsuji-az').addEventListener('change', (e) => {
         appState.tsujiSearchBaseAz = parseFloat(e.target.value) || 0;
+        e.target.value = appState.tsujiSearchBaseAz;
         saveAppState();
     });
     document.getElementById('input-tsuji-az-offset').addEventListener('change', (e) => {
         appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 0;
+        e.target.value = appState.tsujiSearchOffsetAz;
         saveAppState();
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
+        e.target.value = appState.tsujiSearchToleranceAz;
         saveAppState();
     });
     document.getElementById('input-tsuji-alt').addEventListener('change', (e) => {
         appState.tsujiSearchBaseAlt = parseFloat(e.target.value) || 0;
+        e.target.value = appState.tsujiSearchBaseAlt;
         saveAppState();
     });
     document.getElementById('input-tsuji-alt-offset').addEventListener('change', (e) => {
         appState.tsujiSearchOffsetAlt = parseFloat(e.target.value) || 0;
+        e.target.value = appState.tsujiSearchOffsetAlt;
         saveAppState();
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 2.5;
+        e.target.value = appState.tsujiSearchToleranceAlt;
         saveAppState();
     });
     document.getElementById('input-tsuji-search-days').addEventListener('change', (e) => {
