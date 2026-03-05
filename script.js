@@ -183,6 +183,9 @@ let appState = {
     tsujiSearchToleranceAlt: 2.5,
     tsujiSearchDays: 365,
 
+    // 月齢 (計算値、appStateで管理)
+    moonAge: 0,
+
     // 内部制御用 (保存不要)
     timers: { move: null, fetch: null },
     elevationData: { points: [], index: 0 },
@@ -379,9 +382,12 @@ function setupUI() {
 
     // 月齢入力
     document.getElementById('moon-age-input').addEventListener('change', (e) => {
-        let targetAge = parseFloat(e.target.value);
-        if (isNaN(targetAge)) return;
-        
+        const targetAge = parseFloat(e.target.value);
+        if (isNaN(targetAge)) {
+            // 空欄時は計算値を復元
+            e.target.value = appState.moonAge;
+            return;
+        }
         searchMoonAge(targetAge);
     });
 
@@ -423,7 +429,8 @@ function setupUI() {
 
     // 辻検索: ①〜⑥+検索期間の変更をlocalStorage保存
     document.getElementById('input-tsuji-az').addEventListener('change', (e) => {
-        appState.tsujiSearchBaseAz = parseFloat(e.target.value) || 0;
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiSearchBaseAz = val;
         e.target.value = appState.tsujiSearchBaseAz;
         saveAppState();
     });
@@ -438,7 +445,8 @@ function setupUI() {
         saveAppState();
     });
     document.getElementById('input-tsuji-alt').addEventListener('change', (e) => {
-        appState.tsujiSearchBaseAlt = parseFloat(e.target.value) || 0;
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiSearchBaseAlt = val;
         e.target.value = appState.tsujiSearchBaseAlt;
         saveAppState();
     });
@@ -1964,7 +1972,8 @@ function updateTwilightData(startOfDay, observer) {
 function updateMoonInfo(date) {
     const phase = Astronomy.MoonPhase(date);
     const age = (phase / 360) * SYNODIC_MONTH;
-    document.getElementById('moon-age-input').value = age.toFixed(1);
+    appState.moonAge = parseFloat(age.toFixed(1));
+    document.getElementById('moon-age-input').value = appState.moonAge;
     const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
     document.getElementById('moon-icon').innerText = icons[Math.round(phase / 45) % 8];
 }
@@ -2219,7 +2228,12 @@ function toggleElevation() {
 }
 
 // --- 辻検索 入力連動 ---
+// 位置が変わった場合のみ再計算（ユーザーの手動入力値を保護）
 function updateTsujiSearchInputs() {
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    if (posKey === appState._lastTsujiPosKey) return;
+    appState._lastTsujiPosKey = posKey;
+
     const dist = L.latLng(appState.start.lat, appState.start.lng)
                   .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
     const az = calculateBearing(appState.start.lat, appState.start.lng,
