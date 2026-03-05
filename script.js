@@ -966,7 +966,7 @@ function showLocationPicker(results, isStart) {
     results.forEach(r => {
         const item = document.createElement('div');
         item.className = 'picker-item';
-        item.innerHTML = `<div class="picker-name">${r.title}</div><div class="picker-address">${r.address}</div>`;
+        item.innerHTML = `<div class="picker-name">${escapeHtml(r.title)}</div><div class="picker-address">${escapeHtml(r.address)}</div>`;
         item.addEventListener('click', async () => {
             closeLocationPicker();
             const coords = { lat: r.lat, lng: r.lon };
@@ -2095,14 +2095,18 @@ function renderCelestialList() {
         const li = document.createElement('li');
         const dashClass = body.isDashed ? 'dashed' : 'solid';
         li.innerHTML = `
-            <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''} 
-                   onchange="toggleVisibility('${body.id}', this.checked)">
-            <div class="style-indicator ${dashClass}" style="color: ${body.color};"
-                 onclick="openPalette('${body.id}')"></div>
+            <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''}>
+            <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
-                <div class="body-header"><span class="body-name">${body.name}</span></div>
-                <span id="data-${body.id}" class="body-detail-text">--:--</span>
+                <div class="body-header"><span class="body-name">${escapeHtml(body.name)}</span></div>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">--:--</span>
             </div>`;
+        li.querySelector('.body-checkbox').addEventListener('change', function() {
+            toggleVisibility(body.id, this.checked);
+        });
+        li.querySelector('.style-indicator').addEventListener('click', function() {
+            openPalette(body.id);
+        });
         list.appendChild(li);
     });
 }
@@ -2460,7 +2464,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="11">${body.name}: and more…</td>`;
+            tr.innerHTML = `<td colspan="11">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -2469,7 +2473,7 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${r.body.id}</td><td>${r.body.name}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
