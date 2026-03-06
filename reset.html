@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データリセット - 宙の辻</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        th {
+            background-color: #f2f2f2;
+            width: 30%;
+        }
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .empty-message {
+            color: #27ae60;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .alert-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #3498db;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>保存データの管理・リセット</h1>
+    
+    <div class="box">
+        <p>現在、お使いのブラウザ（このドメイン）に保存されているデータは以下の通りです。</p>
+        <div id="dataDisplay">
+            </div>
+    </div>
+
+    <button id="clearBtn">すべてのデータを消去する</button>
+    <p id="statusMessage" class="alert-message"></p>
+
+    <a href="index.html" class="back-link">トップページへ戻る</a>
+
+    <script>
+        // HTMLエスケープ処理（安全に表示するため）
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, function(tag) {
+                const charsToReplace = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                };
+                return charsToReplace[tag] || tag;
+            });
+        }
+
+        // ローカルストレージの中身を取得して画面に表示する関数
+        function renderStorageData() {
+            const displayArea = document.getElementById('dataDisplay');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            // データが空の場合
+            if (localStorage.length === 0) {
+                displayArea.innerHTML = '<p class="empty-message">✓ 現在、保存されているデータはありません。</p>';
+                clearBtn.disabled = true; // ボタンを押せなくする
+                return;
+            }
+
+            // データがある場合はテーブルを作成
+            let tableHTML = '<table><tr><th>キー (変数名)</th><th>値 (データ内容)</th></tr>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                tableHTML += `<tr><td>${escapeHTML(key)}</td><td>${escapeHTML(value)}</td></tr>`;
+            }
+            tableHTML += '</table>';
+            
+            displayArea.innerHTML = tableHTML;
+            clearBtn.disabled = false;
+        }
+
+        // ページ読み込み時に実行
+        window.addEventListener('DOMContentLoaded', renderStorageData);
+
+        // クリアボタンが押された時の処理
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            // ユーザーに最終確認
+            if (confirm('本当にすべてのデータを消去してもよろしいですか？\nこの操作は元に戻せません。')) {
+                // ローカルストレージを全クリア
+                localStorage.clear();
+                
+                // 画面を更新して空になったことを示す
+                renderStorageData();
+                
+                // 完了メッセージを表示
+                const statusMsg = document.getElementById('statusMessage');
+                statusMsg.textContent = 'データをすべて消去しました。';
+                statusMsg.style.color = '#27ae60'; // 緑色に変更
+            }
+        });
+    </script>
+</body>
+</html>
