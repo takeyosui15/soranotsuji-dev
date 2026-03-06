@@ -476,12 +476,16 @@ function setupUI() {
 
     // 標高入力
     document.getElementById('input-start-elev').addEventListener('change', (e) => {
-        appState.start.elev = parseFloat(e.target.value) || 0;
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.start.elev = val;
+        e.target.value = appState.start.elev;
         saveAppState();
-        updateAll(); 
+        updateAll();
     });
     document.getElementById('input-end-elev').addEventListener('change', (e) => {
-        appState.end.elev = parseFloat(e.target.value) || 0;
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.end.elev = val;
+        e.target.value = appState.end.elev;
         saveAppState();
         updateAll();
     });
