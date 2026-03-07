@@ -854,12 +854,41 @@ function updateCalculation() {
         
         if (riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
             riseStr = "00:00";
-            setStr = "00:00"; 
+            setStr = "00:00";
         }
 
+        // 南中時刻の計算
+        let transitStr = "--:--";
+        if (['Polaris', 'Subaru', 'MyStar'].includes(body.id)) {
+            transitStr = searchStarTransit(ra, dec, observer, startOfDay);
+        } else {
+            try {
+                const transit = Astronomy.SearchHourAngle(body.id, observer, 0, startOfDay);
+                if (transit && transit.time) {
+                    transitStr = formatTime(transit.time.date, startOfDay);
+                }
+            } catch(e) {}
+        }
+
+        // 視半径の計算
+        const angR = getBodyAngularRadius(body.id, obsDate, observer);
+
+        // 赤経・赤緯
+        const radecEl = document.getElementById(`radec-${body.id}`);
+        if (radecEl) {
+            radecEl.innerText = `RA ${ra.toFixed(4)}h / Dec ${dec.toFixed(4)}°`;
+        }
+
+        // 出・南中・入時刻
+        const risesetEl = document.getElementById(`riseset-${body.id}`);
+        if (risesetEl) {
+            risesetEl.innerText = `出 ${riseStr} / 南 ${transitStr} / 入 ${setStr}`;
+        }
+
+        // 方位角・視高度・視半径
         const dataEl = document.getElementById(`data-${body.id}`);
         if (dataEl) {
-            dataEl.innerText = `出 ${riseStr} / 入 ${setStr} / 方位 ${hor.azimuth.toFixed(0)}° / 高度 ${hor.altitude.toFixed(0)}°`;
+            dataEl.innerText = `方位 ${hor.azimuth.toFixed(1)}° / 高度 ${hor.altitude.toFixed(1)}° / 視半径 ${angR.toFixed(3)}°`;
         }
 
         if (body.visible) {
@@ -1918,6 +1947,21 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
     };
 }
 
+function searchStarTransit(ra, dec, observer, startOfDay) {
+    let maxAlt = -Infinity;
+    let transitTime = null;
+    const start = startOfDay.getTime();
+    for (let m = 0; m <= 1440; m += 1) {
+        const time = new Date(start + m * 60000);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
+        if (hor.altitude > maxAlt) {
+            maxAlt = hor.altitude;
+            transitTime = time;
+        }
+    }
+    return transitTime ? formatTime(transitTime, startOfDay) : "--:--";
+}
+
 /**
  * 線形補間により、高度が0(地平線)になる正確な時刻を計算する
  * 原理: 2点間を直線で結び、その線が0と交差するポイント(比率)を求める
@@ -1995,8 +2039,10 @@ function renderCelestialList() {
             <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''}>
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
-                <div class="body-header"><span class="body-name">${escapeHtml(body.name)}</span></div>
-                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">--:--</span>
+                <span class="body-name">${escapeHtml(body.name)}</span>
+                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">RA --h / Dec --°</span>
+                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出 --:-- / 南 --:-- / 入 --:--</span>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位 --° / 高度 --° / 視半径 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
             toggleVisibility(body.id, this.checked);
