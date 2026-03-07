@@ -38,8 +38,8 @@ html {
 }
 
 /* --- 断面標高図パネル --- */
-/* --- 辻Day パネル --- */
-#tsujiday-panel {
+/* --- 辻検索パネル --- */
+#tsujisearch-panel {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -55,15 +55,15 @@ html {
     color: #eee;
 }
 
-#tsujiday-panel.hidden {
+#tsujisearch-panel.hidden {
     display: none;
 }
 
-#tsujiday-panel.with-elevation {
+#tsujisearch-panel.with-elevation {
     bottom: 25%;
 }
 
-#tsujiday-header {
+#tsujisearch-header {
     padding: 4px 10px;
     font-size: 13px;
     color: #aaa;
@@ -71,37 +71,37 @@ html {
     flex-shrink: 0;
 }
 
-#tsujiday-content {
+#tsujisearch-content {
     flex: 1;
     overflow-y: auto;
     padding: 4px 10px;
     font-size: 14px;
 }
 
-#tsujiday-content .td-row {
+#tsujisearch-content .td-row {
     padding: 3px 4px;
     cursor: pointer;
     border-radius: 3px;
     white-space: nowrap;
 }
 
-#tsujiday-content .td-row:hover {
+#tsujisearch-content .td-row:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 
-#tsujiday-content .td-table {
+#tsujisearch-content .td-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-#tsujiday-content .td-table th,
-#tsujiday-content .td-table td {
+#tsujisearch-content .td-table th,
+#tsujisearch-content .td-table td {
     padding: 3px 6px;
     text-align: left;
     white-space: nowrap;
 }
 
-#tsujiday-content .td-table th {
+#tsujisearch-content .td-table th {
     color: #aaa;
     font-weight: normal;
     font-size: 12px;
@@ -113,16 +113,16 @@ html {
     cursor: pointer;
 }
 
-#tsujiday-content .td-table th:hover {
+#tsujisearch-content .td-table th:hover {
     color: #fff;
 }
 
-#tsujiday-content .td-table tr.td-data-row {
+#tsujisearch-content .td-table tr.td-data-row {
     cursor: pointer;
     border-radius: 3px;
 }
 
-#tsujiday-content .td-table tr.td-data-row:hover {
+#tsujisearch-content .td-table tr.td-data-row:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 

@@ -2151,12 +2151,12 @@ function updateTsujiSearchInputs() {
 function toggleTsujiSearch() {
     appState.isTsujiSearchActive = !appState.isTsujiSearchActive;
     const btn = document.getElementById('btn-tsuji-search');
-    const pnl = document.getElementById('tsujiday-panel');
+    const pnl = document.getElementById('tsujisearch-panel');
 
     if (appState.isTsujiSearchActive) {
         btn.classList.add('active');
         pnl.classList.remove('hidden');
-        document.getElementById('tsujiday-header').innerHTML = '辻検索結果 <span id="tsujiday-status"></span>';
+        document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
         startTsujiSearch();
     } else {
         btn.classList.remove('active');
@@ -2167,7 +2167,7 @@ function toggleTsujiSearch() {
 }
 
 function syncBottomPanels() {
-    const tdPnl = document.getElementById('tsujiday-panel');
+    const tdPnl = document.getElementById('tsujisearch-panel');
     if (appState.isTsujiSearchActive && appState.isElevationActive) {
         tdPnl.classList.add('with-elevation');
     } else {
@@ -2215,8 +2215,8 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
     const generation = ++appState.tsujiSearchGeneration;
-    const contentEl = document.getElementById('tsujiday-content');
-    const statusEl = document.getElementById('tsujiday-status');
+    const contentEl = document.getElementById('tsujisearch-content');
+    const statusEl = document.getElementById('tsujisearch-status');
     contentEl.innerHTML = '';
     statusEl.textContent = '(検索中…)';
 
