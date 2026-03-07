@@ -26,7 +26,7 @@
 ## アーキテクチャ
 - **状態管理**: `appState` オブジェクトで全状態を一元管理
 - **永続化**: LocalStorage（キー: `soranotsuji_app`）に設定・位置情報を保存
-- **外部API**: 国土地理院（標高DEM・地図タイル）、OpenStreetMap（ジオコーディング）
+- **外部API**: 国土地理院（標高DEM・地図タイル）、OpenStreetMap（ジオコーディング）、Open-Meteo（標高データ）
 
 ## script.js の主要セクション
 1. 定数定義（天体データ、デフォルト座標、色設定）
