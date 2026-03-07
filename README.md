@@ -29,6 +29,7 @@
 * **[GeographicLib](https://geographiclib.sourceforge.io/)**: 測地線および DMS ルーチン
 * **国土地理院 API**: 標高/地名データの取得と地図タイル
 * **OpenStreetMap (Nominatim)**: 地名データの取得と地図タイル
+* **Open-Meteo**: 標高データの取得
 
 ## 使い方
 
