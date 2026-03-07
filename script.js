@@ -876,19 +876,19 @@ function updateCalculation() {
         // 赤経・赤緯
         const radecEl = document.getElementById(`radec-${body.id}`);
         if (radecEl) {
-            radecEl.innerText = `RA ${ra.toFixed(4)}h / Dec ${dec.toFixed(4)}°`;
+            radecEl.innerText = `赤経RA ${ra.toFixed(4)}h / 赤緯Dec ${dec.toFixed(4)}°`;
         }
 
         // 出・南中・入時刻
         const risesetEl = document.getElementById(`riseset-${body.id}`);
         if (risesetEl) {
-            risesetEl.innerText = `出 ${riseStr} / 南 ${transitStr} / 入 ${setStr}`;
+            risesetEl.innerText = `出時刻 ${riseStr} / 南中 ${transitStr} / 入時刻 ${setStr}`;
         }
 
         // 方位角・視高度・視半径
         const dataEl = document.getElementById(`data-${body.id}`);
         if (dataEl) {
-            dataEl.innerText = `方位 ${hor.azimuth.toFixed(1)}° / 高度 ${hor.altitude.toFixed(1)}° / 視半径 ${angR.toFixed(3)}°`;
+            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(1)}° / 視高度 ${hor.altitude.toFixed(1)}° / 視半径 ${angR.toFixed(3)}°`;
         }
 
         if (body.visible) {
