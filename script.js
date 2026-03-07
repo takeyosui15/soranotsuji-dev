@@ -2382,7 +2382,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>角距離</th><th>日付</th><th>時刻</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
+    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>精度角距離</th><th>日付</th><th>時刻</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
