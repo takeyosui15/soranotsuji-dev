@@ -42,6 +42,7 @@
 - UIテキスト・コメントは**日本語**で記述
 - コミットメッセージも日本語（`feat:` / `fix:` / `style:` プレフィクス使用）
 - XSS対策として `escapeHtml()` を使用（ユーザー入力をDOMに挿入する際は必須）
+- **構造とスタイルの分離**: インラインスタイル（`style="..."`）は使用せず、CSSクラスで定義する。HTML/JSには構造のみ、`style.css`にスタイルを記述する
 - 恒星（Polaris, Merak, Mintaka, Subaru, MyStar）は固定RA/Decで計算、惑星・太陽・月はAstronomy Engine APIで動的計算
 
 ## バージョン管理

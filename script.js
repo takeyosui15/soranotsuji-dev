@@ -2057,7 +2057,7 @@ function renderCelestialList() {
             <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''}>
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
-                <span class="body-name"><b style="font-size:15px">${escapeHtml(body.name)}</b> <span style="color:gray;font-size:15px">(ID: ${escapeHtml(body.id)})</span></span>
+                <span class="body-name"><span class="body-name-label">${escapeHtml(body.name)}</span> <span class="body-name-id">(ID: ${escapeHtml(body.id)})</span></span>
                 <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
                 <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
                 <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>

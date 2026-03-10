@@ -909,9 +909,18 @@ input[type="range"] {
 }
 
 .body-name {
-    font-weight: bold;
     font-size: 15px;
     display: block;
+}
+
+.body-name-label {
+    font-weight: bold;
+}
+
+.body-name-id {
+    font-weight: normal;
+    color: gray;
+    font-size: 10px;
 }
 
 .body-detail-text {
