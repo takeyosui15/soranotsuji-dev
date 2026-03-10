@@ -908,19 +908,17 @@ input[type="range"] {
     flex-direction: column;
 }
 
-.body-name {
+.body-name-label {
+    font-weight: bold;
     font-size: 15px;
     display: block;
 }
 
-.body-name-label {
-    font-weight: bold;
-}
-
 .body-name-id {
-    font-weight: normal;
-    color: gray;
     font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+    display: block;
 }
 
 .body-detail-text {
