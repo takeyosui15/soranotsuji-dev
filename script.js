@@ -876,13 +876,13 @@ function updateCalculation() {
         // 赤経・赤緯
         const radecEl = document.getElementById(`radec-${body.id}`);
         if (radecEl) {
-            radecEl.innerText = `赤経RA ${ra.toFixed(4)}h / 赤緯Dec ${dec.toFixed(4)}°`;
+            radecEl.innerText = `赤経 ${ra.toFixed(4)}h / 赤緯 ${dec.toFixed(4)}°`;
         }
 
         // 出・南中・入時刻
         const risesetEl = document.getElementById(`riseset-${body.id}`);
         if (risesetEl) {
-            risesetEl.innerText = `出時刻 ${riseStr} / 南中 ${transitStr} / 入時刻 ${setStr}`;
+            risesetEl.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
         }
 
         // 方位角・視高度・視半径
@@ -2040,7 +2040,7 @@ function renderCelestialList() {
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
                 <span class="body-name">${escapeHtml(body.name)}</span>
-                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">RA --h / Dec --°</span>
+                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
                 <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出 --:-- / 南 --:-- / 入 --:--</span>
                 <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位 --° / 高度 --° / 視半径 --°</span>
             </div>`;
