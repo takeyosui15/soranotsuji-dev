@@ -73,8 +73,6 @@ const BODY_RADIUS_KM = {
     Jupiter: 71492, Saturn: 60268, Uranus: 25559, Neptune: 24764
 };
 const KM_PER_AU = 149597870.7;
-const MINTAKA_RA = 5.534;
-const MINTAKA_DEC = -0.299;
 
 const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 150.0 };
 const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9 };
