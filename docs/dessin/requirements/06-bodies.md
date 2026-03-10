@@ -11,7 +11,7 @@
 
 ## 対象天体
 
-全13天体を扱う（My天体は別セクションで登録）。
+全15天体を扱う（My天体は別セクションで登録）。
 
 | # | ID | 名称 | 種別 | 初期表示 | 計算方法 |
 |---|---|---|---|---|---|
@@ -26,8 +26,10 @@
 | 9 | Neptune | 海王星 | 惑星 | OFF | Astronomy Engine動的計算 |
 | 10 | Pluto | 冥王星 | 矮小惑星 | OFF | Astronomy Engine動的計算 |
 | 11 | Polaris | 北極星 | 恒星 | OFF | 固定RA/Dec |
-| 12 | Subaru | すばる | 星団 | OFF | 固定RA/Dec |
-| 13 | MyStar | My天体 | ユーザー定義 | OFF | 固定RA/Dec（ユーザー入力） |
+| 12 | Merak | 北斗七星メラク | 恒星 | OFF | 固定RA/Dec |
+| 13 | Mintaka | オリオン座ミンタカ | 恒星 | OFF | 固定RA/Dec |
+| 14 | Subaru | すばる | 星団 | OFF | 固定RA/Dec |
+| 15 | MyStar | My天体 | ユーザー定義 | OFF | 固定RA/Dec（ユーザー入力） |
 
 ---
 

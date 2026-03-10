@@ -48,7 +48,9 @@ renderCelestialList()
     li要素を生成:
       ├── checkbox → toggleVisibility(id, checked)
       ├── style-indicator → openPalette(id)（色と線種の表示+クリックイベント）
-      └── body-info（id属性付きspan 3つ）
+      └── body-info
+          ├── body-name: **天体名**(太字) + (ID: xxx)(グレー色)
+          └── id属性付きspan 3つ（赤経赤緯・出入南中・方位角高度）
 ```
 
 ### 天体計算 (`updateCalculation`)
@@ -60,6 +62,8 @@ updateCalculation()
   for each body:
     1. 赤経/赤緯の取得:
        Polaris  → 固定値 (RA=2.5303, Dec=89.2641)
+       Merak    → 固定値 (RA=11.0307, Dec=56.3824)
+       Mintaka  → 固定値 (RA=5.534, Dec=-0.299)
        Subaru   → 固定値 (RA=3.79, Dec=24.12)
        MyStar   → appState.myStar
        その他   → Astronomy.Equator(body.id, date, observer, true, true)
