@@ -12,8 +12,8 @@ sec-bodies
         ├── style-indicator   色・線種インジケーター（クリックでパレット）
         └── body-info
             ├── body-name     天体名
-            ├── radec-{id}    赤経RA / 赤緯Dec
-            ├── riseset-{id}  出 / 南中 / 入
+            ├── radec-{id}    赤経 / 赤緯
+            ├── riseset-{id}  出時刻 / 南中時 / 入時刻
             └── data-{id}     方位角 / 視高度 / 視半径
 
 style-palette（オーバーレイ）
@@ -76,8 +76,8 @@ updateCalculation()
        = arctan(赤道半径km / 距離km) × 180/π
 
     5. DOM更新:
-       radec-{id}   ← RA / Dec
-       riseset-{id} ← 出時刻 / 南中 / 入時刻
+       radec-{id}   ← 赤経 / 赤緯
+       riseset-{id} ← 出時刻 / 南中時 / 入時刻
        data-{id}    ← 方位角 / 視高度 / 視半径
 
     6. 方位線描画（visible時のみ）:

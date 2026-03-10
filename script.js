@@ -2041,8 +2041,8 @@ function renderCelestialList() {
             <div class="body-info">
                 <span class="body-name">${escapeHtml(body.name)}</span>
                 <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
-                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出 --:-- / 南 --:-- / 入 --:--</span>
-                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位 --° / 高度 --° / 視半径 --°</span>
+                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
             toggleVisibility(body.id, this.checked);

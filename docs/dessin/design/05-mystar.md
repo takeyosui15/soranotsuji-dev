@@ -11,8 +11,8 @@ sec-mystar
 ├── chk-mystar              表示ON/OFFチェックボックス
 ├── style-MyStar            スタイルインジケーター
 ├── radec-MyStar            赤経・赤緯表示
-├── riseset-MyStar          出・南中・入時刻表示
-└── data-MyStar             方位角・高度・視半径表示
+├── riseset-MyStar          出時刻・南中時・入時刻表示
+└── data-MyStar             方位角・視高度・視半径表示
 ```
 
 ---
