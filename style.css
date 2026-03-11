@@ -548,6 +548,12 @@ html {
     background: #eaeaea;
 }
 
+.section-header-btn {
+    padding: 2px 12px;
+    font-size: 12px;
+    margin: 0 8px;
+}
+
 .section-content {
     padding: 10px;
     display: block;
