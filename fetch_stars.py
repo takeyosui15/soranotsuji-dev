@@ -89,11 +89,15 @@ def load_messier_names_ja():
 
 def query_simbad_tap(adql_query, max_retries=3):
     """SIMBAD TAP同期クエリをHTTPで実行し、JSON結果を返す"""
+    # クエリ文字列を正規化(余分な空白・改行を除去)
+    normalized_query = " ".join(adql_query.split())
+
     params = {
         "REQUEST": "doQuery",
         "LANG": "ADQL",
         "FORMAT": "json",
-        "QUERY": adql_query,
+        "MAXREC": "50000",
+        "QUERY": normalized_query,
     }
     data = urllib.parse.urlencode(params).encode("utf-8")
 
@@ -105,10 +109,15 @@ def query_simbad_tap(adql_query, max_retries=3):
                 result = json.loads(resp.read().decode("utf-8"))
                 return result
         except urllib.error.HTTPError as e:
-            print(f"  HTTPエラー {e.code}: {e.reason} (リトライ {attempt + 1}/{max_retries})")
+            error_body = e.read().decode("utf-8", errors="replace")
+            print(f"  HTTPエラー {e.code}: {e.reason}")
+            print(f"  サーバー応答: {error_body[:500]}")
+            # 400系エラーはクエリ自体の問題なのでリトライしない
+            if 400 <= e.code < 500:
+                raise
             if attempt < max_retries - 1:
                 wait = 2 ** (attempt + 1)
-                print(f"  {wait}秒待機中...")
+                print(f"  {wait}秒待機中... (リトライ {attempt + 1}/{max_retries})")
                 time.sleep(wait)
             else:
                 raise
