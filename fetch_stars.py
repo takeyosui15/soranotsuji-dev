@@ -34,11 +34,6 @@ DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 # レート制限対策: クエリ間の待機秒数
 QUERY_INTERVAL = 3
 
-# V等級データが異常な天体(除外対象)
-BLACKLIST_MAIN_IDS = {
-    "NAME CMa Dwarf Galaxy",  # 肉眼不可。V等級データ異常
-}
-
 # SIMBAD天体type略称 → 日本語名
 OTYPE_JA = {
     "GlC": "球状星団", "OpC": "散開星団", "Cl*": "星団", "As*": "星群",
@@ -391,8 +386,6 @@ def build_json(stars, messier, all_identifiers,
         oid = row["oid"]
         main_id = row["main_id"]
         if oid in seen_oids:
-            continue
-        if main_id in BLACKLIST_MAIN_IDS:
             continue
         seen_oids.add(oid)
         identifiers = ident_map.get(oid, [])
