@@ -57,14 +57,14 @@ const STD_P = 1013.25;  // 標準気圧 (hPa)
 const STD_T = 15.0;     // 標準気温 (°C)
 const STD_L = 0.0065;   // 標準気温減率 Γ (K/m) 正値。0.0065が国際標準大気、0.0125が測量標準
 
-const POLARIS_RA = 2.5303;
-const POLARIS_DEC = 89.2641;
-const MERAK_RA = 11.0307;
-const MERAK_DEC = 56.3824;
-const MINTAKA_RA = 5.534;
-const MINTAKA_DEC = -0.299;
-const SUBARU_RA = 3.79;
-const SUBARU_DEC = 24.12;
+const POLARIS_RA = 2.530304;
+const POLARIS_DEC = 89.264109;
+const MERAK_RA = 11.030689;
+const MERAK_DEC = 56.382434;
+const MINTAKA_RA = 5.533444;
+const MINTAKA_DEC = -0.299095;
+const SUBARU_RA = 3.777222;
+const SUBARU_DEC = 24.178056;
 
 // 天体の赤道半径 (km) - 視半径の計算用
 const BODY_RADIUS_KM = {
