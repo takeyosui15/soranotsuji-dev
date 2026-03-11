@@ -314,3 +314,42 @@ ModuleNotFoundError: No module named '_lzma'
 何が原因でしょうか。
 ライブラリが見つからないために、実現が難しい場合は、そう回答をお願いいたします。
 一緒に、大替案を考えましょう。
+
+### 回答 (2026-03-11)
+
+#### エラー原因
+pyenv で Python 3.11.13 をビルドした際に、`xz` ライブラリ(liblzma)がシステムになかったため、
+`_lzma` C拡張モジュールがビルドされませんでした。
+astropy 7.2.0 が FITS圧縮処理で `import lzma` するため、`from astroquery.simbad import Simbad` の時点でエラーになります。
+
+#### 解決策: HTTP直接方式に変更
+astroquery/astropy に依存せず、**Python標準ライブラリのみ**(urllib, json, csv)で
+SIMBAD TAP APIに直接HTTPリクエストを送る方式に変更しました。
+
+**メリット:**
+- `pip install` 不要 — Python 3標準ライブラリのみで動作
+- ライブラリのバージョン依存問題を完全回避
+- スクリプトの永続性が高い
+
+**作成したファイル:**
+
+| ファイル | 内容 |
+|---|---|
+| `data/constellation_ja.csv` | 88星座の日本語名マッピング(88件) |
+| `data/greek_letters.csv` | ギリシャ文字マッピング(24件) |
+| `data/star_names_ja.csv` | 主要恒星の日本語固有名(84件) |
+| `data/messier_names_ja.csv` | メシエ天体110件の日本語名 |
+| `fetch_stars.py` | メインスクリプト(HTTP直接方式) |
+| `fetch_stars_test.py` | 動作確認テスト(HTTP直接方式に更新) |
+
+**動作確認手順:**
+```bash
+# 1. まずテストスクリプトで接続確認
+python3 fetch_stars_test.py
+
+# 2. 問題なければメインスクリプト実行
+python3 fetch_stars.py
+
+# 3. 出力ファイル確認
+python3 -c "import json; d=json.load(open('celestial_db.json')); print(f'{len(d)}件')"
+```
