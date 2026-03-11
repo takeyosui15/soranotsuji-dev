@@ -455,3 +455,72 @@ python3 fetch_stars.py
 ```
 - 成功した場合: `celestial_db.json` が出力されます
 - 400エラーが再発した場合: **「サーバー応答:」** にSIMBADの実際のエラーメッセージが表示されます。その内容を共有していただければ、原因を特定して追加修正いたします
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 6555404
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-11)
+ありがとうございます。
+内容を確認しました。
+
+コマンドを実行しました。
+エラーとなりました。
+問題解決をお願いいたします。
+
+```bash
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 fetch_stars.py
+============================================================
+SIMBAD天体データ取得スクリプト (HTTP直接方式)
+依存: Python標準ライブラリのみ (pip install不要)
+============================================================
+
+CSVマッピングファイルを読み込み中...
+  星座: 88 件
+  ギリシャ文字: 24 件
+  恒星固有名: 84 件
+  メシエ天体名: 110 件
+
+V等級 ≤ 6.0 の恒星を取得中...
+  HTTPエラー 400: 400
+  サーバー応答: <?xml version="1.0" encoding="utf-8"?>
+<VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/votable-1.3.xsd">
+<RESOURCE type="results">
+<INFO name="QUERY_STATUS" value="ERROR">Incorrect ADQL query:  Encountered ".". Was expecting one of: &lt;EOF&gt; "," ";" "ASC" "DESC" </INFO>
+<INFO name="PROVIDER" value="CDS">SIMBAD TAP Service</INFO>
+<IN
+Traceback (most recent call last):
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 437, in <module>
+    main()
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 400, in main
+    stars = fetch_bright_stars()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 170, in fetch_bright_stars
+    result = query_simbad_tap(query)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 108, in query_simbad_tap
+    with urllib.request.urlopen(req, timeout=120) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: 400
+```
