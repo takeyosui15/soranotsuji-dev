@@ -524,3 +524,31 @@ Traceback (most recent call last):
     raise HTTPError(req.full_url, code, msg, hdrs, fp)
 urllib.error.HTTPError: HTTP Error 400: 400
 ```
+
+### 回答 (2026-03-11)
+
+#### 原因特定
+SIMBADサーバーのエラーメッセージ:
+```
+Incorrect ADQL query: Encountered ".". Was expecting one of: <EOF> "," ";" "ASC" "DESC"
+```
+
+**原因:** SIMBADのADQLパーサーが `a.V`（テーブルエイリアス.カラム名）を正しく解析できませんでした。
+allfluxesテーブルは「唯一の大文字依存テーブル」であり、エイリアス経由のカラム参照に制約があります。
+
+SIMBAD公式ADQLチートシートの例では、allfluxesのカラムはエイリアスなしで直接参照されています:
+```sql
+-- 公式例
+SELECT B, V, R, I, J FROM allfluxes JOIN ident USING(oidref) WHERE id = 'M13'
+```
+
+#### 修正内容
+`fetch_bright_stars()` と `fetch_messier_objects()` のADQLクエリを修正:
+- allfluxesテーブルのエイリアス(`AS a`)を除去
+- `V` カラムをテーブル修飾なしで直接参照(`a.V` → `V`)
+- basicテーブルはエイリアスなしでフルネーム参照(`b.main_id` → `basic.main_id`)
+
+#### 動作確認手順
+```bash
+python3 fetch_stars.py
+```

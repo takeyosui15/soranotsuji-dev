@@ -156,15 +156,15 @@ def fetch_bright_stars():
     print("V等級 ≤ 6.0 の恒星を取得中...")
 
     query = f"""
-    SELECT b.main_id, b.oid, b.ra, b.dec, a.V AS mag,
-           b.otype, b.otype_txt, b.sp_type
-    FROM basic AS b
-    JOIN allfluxes AS a ON b.oid = a.oidref
-    WHERE a.V <= {V_MAG_LIMIT}
-      AND a.V IS NOT NULL
-      AND b.ra IS NOT NULL
-      AND b.dec IS NOT NULL
-    ORDER BY a.V ASC
+    SELECT basic.main_id, basic.oid, basic.ra, basic.dec, V AS mag,
+           basic.otype, basic.otype_txt, basic.sp_type
+    FROM basic
+    JOIN allfluxes ON basic.oid = allfluxes.oidref
+    WHERE V <= {V_MAG_LIMIT}
+      AND V IS NOT NULL
+      AND basic.ra IS NOT NULL
+      AND basic.dec IS NOT NULL
+    ORDER BY V ASC
     """
 
     result = query_simbad_tap(query)
@@ -184,13 +184,13 @@ def fetch_messier_objects():
                             else f"'M {i}'" for i in range(1, 111)])
 
     query = f"""
-    SELECT i.id AS messier_id, b.main_id, b.oid, b.ra, b.dec,
-           a.V AS mag, b.otype, b.otype_txt
-    FROM ident AS i
-    JOIN basic AS b ON i.oidref = b.oid
-    LEFT JOIN allfluxes AS a ON b.oid = a.oidref
-    WHERE i.id IN ({messier_ids})
-      AND b.ra IS NOT NULL AND b.dec IS NOT NULL
+    SELECT ident.id AS messier_id, basic.main_id, basic.oid,
+           basic.ra, basic.dec, V AS mag, basic.otype, basic.otype_txt
+    FROM ident
+    JOIN basic ON ident.oidref = basic.oid
+    LEFT JOIN allfluxes ON basic.oid = allfluxes.oidref
+    WHERE ident.id IN ({messier_ids})
+      AND basic.ra IS NOT NULL AND basic.dec IS NOT NULL
     """
 
     result = query_simbad_tap(query)
