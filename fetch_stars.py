@@ -34,6 +34,25 @@ DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 # レート制限対策: クエリ間の待機秒数
 QUERY_INTERVAL = 3
 
+# V等級データが異常な天体(除外対象)
+BLACKLIST_MAIN_IDS = {
+    "NAME CMa Dwarf Galaxy",  # 肉眼不可。V等級データ異常
+}
+
+# SIMBAD天体type略称 → 日本語名
+OTYPE_JA = {
+    "GlC": "球状星団", "OpC": "散開星団", "Cl*": "星団", "As*": "星群",
+    "SNR": "超新星残骸", "PN": "惑星状星雲",
+    "HII": "HII領域", "RNe": "反射星雲", "SFR": "星形成領域",
+    "G": "銀河", "SBG": "棒渦巻銀河", "H2G": "渦巻銀河",
+    "AGN": "活動銀河核", "Sy2": "セイファート銀河",
+    "LIN": "LINER銀河", "SyG": "セイファート銀河",
+    "GiC": "銀河群", "GiG": "銀河群", "GiP": "銀河ペア",
+    "err": "誤認天体", "?": "未分類",
+    "*": "恒星", "**": "連星", "SB*": "分光連星", "Em*": "輝線星",
+    "V*": "変光星", "Psr": "パルサー", "WD*": "白色矮星",
+}
+
 
 # ============================================================
 # CSVマッピング読み込み
@@ -239,13 +258,18 @@ def ra_deg_to_hours(ra_deg):
 
 def parse_bayer_designation(main_id):
     """
-    SIMBADのmain_idからバイエル符号を解析
-    例: "* alf CMa" → ("alf", "CMa")
+    SIMBADのmain_idからバイエル符号/フラムスティード番号を解析
+    例: "* alf CMa" → ("alf", "CMa", None)
+        "* alf Cen A" → ("alf", "Cen", "A")
+        "* mu.01 Sco" → ("mu.01", "Sco", None)
+        "* bet01 Cyg A" → ("bet01", "Cyg", "A")
+        "*  12 Sco A" → ("12", "Sco", "A")
+    戻り値: (greek_or_num, constellation, suffix) or (None, None, None)
     """
-    match = re.match(r'^\*\s+(\w+\.?)\s+(\w+)$', main_id)
+    match = re.match(r'^\*\s+(\w+\.?\d*)\s+(\w+)(?:\s+([A-Z]))?$', main_id)
     if match:
-        return match.group(1), match.group(2)
-    return None, None
+        return match.group(1), match.group(2), match.group(3)
+    return None, None, None
 
 
 def generate_name_ja(main_id, identifiers, star_names_ja,
@@ -255,51 +279,90 @@ def generate_name_ja(main_id, identifiers, star_names_ja,
     if main_id in star_names_ja:
         return star_names_ja[main_id]
 
-    # 2. バイエル符号から日本語名を自動生成
-    greek_key, const_abbr = parse_bayer_designation(main_id)
+    # 2. バイエル符号/フラムスティード番号から日本語名を自動生成
+    greek_key, const_abbr, suffix = parse_bayer_designation(main_id)
     if greek_key and const_abbr:
-        greek_letter = greek_letters.get(greek_key, greek_key)
         const_ja = constellation_ja.get(const_abbr, const_abbr)
-        return f"{const_ja} {greek_letter}星"
+        # ギリシャ文字変換(番号付き対応: mu.01→μ01, bet01→β01)
+        base_key = re.match(r'^([a-z]+\.?)', greek_key)
+        if base_key:
+            base = base_key.group(1)
+            num_part = greek_key[len(base):]
+            greek_letter = greek_letters.get(base, greek_key)
+            if num_part:
+                greek_letter = f"{greek_letter}{num_part}"
+        else:
+            greek_letter = greek_key
+        suffix_str = suffix if suffix else ""
+        return f"{const_ja} {greek_letter}星{suffix_str}"
 
-    # 3. HD番号があればそれを使用
+    # 3. 変光星(V* ...)からの星座名抽出
+    v_match = re.match(r'^V\*\s+\S+\s+(\w+)$', main_id)
+    if v_match:
+        const_abbr = v_match.group(1)
+        const_ja = constellation_ja.get(const_abbr)
+        if const_ja:
+            var_name = main_id.replace("V* ", "")
+            return f"{const_ja} {var_name}"
+
+    # 4. NAME天体
+    if main_id.startswith("NAME "):
+        return main_id.replace("NAME ", "")
+
+    # 5. HD番号があればそれを使用
     for ident in identifiers:
         if ident.startswith("HD "):
             return ident
-    # 4. HIP番号にフォールバック
+    # 6. HIP番号にフォールバック
     for ident in identifiers:
         if ident.startswith("HIP "):
             return ident
 
-    # 5. main_idをそのまま使用
+    # 7. main_idをそのまま使用
     return main_id
 
 
-def generate_keys_ja(main_id, identifiers, otype_txt,
-                     constellation_ja, greek_letters):
-    """日本語検索キーワードを生成"""
+def generate_keys(name_ja, main_id, identifiers, otype_txt,
+                  constellation_ja, greek_letters):
+    """検索キーワードを生成(日本語・英語統合)"""
     keys = []
-    greek_key, const_abbr = parse_bayer_designation(main_id)
+
+    # 天体名(日本語名)を最優先で追加
+    if name_ja:
+        keys.append(name_ja)
+
+    # 星座日本語名
+    greek_key, const_abbr, suffix = parse_bayer_designation(main_id)
     if const_abbr:
         const_ja = constellation_ja.get(const_abbr, "")
-        if const_ja:
+        if const_ja and const_ja not in name_ja:
             keys.append(const_ja)
-    if greek_key and const_abbr:
-        greek_letter = greek_letters.get(greek_key, greek_key)
-        keys.append(f"{greek_letter} {const_abbr}")
-    if otype_txt:
-        keys.append(otype_txt)
-    return ", ".join(keys)
 
+    # 天体type日本語名
+    otype_ja = OTYPE_JA.get(otype_txt, "")
+    if otype_ja:
+        keys.append(otype_ja)
 
-def generate_keys_en(main_id, identifiers):
-    """英語検索キーワードを生成"""
-    keys = [main_id]
+    # main_id(英語)
+    keys.append(main_id)
+
+    # 主要識別名(英語)
     for ident in identifiers:
         if any(ident.startswith(prefix) for prefix in
                ["HD ", "HIP ", "HR ", "NGC ", "IC ", "NAME "]):
             keys.append(ident)
-    return ", ".join(keys[:5])
+            if len(keys) >= 8:
+                break
+
+    # 重複除去(順序保持)
+    seen = set()
+    unique_keys = []
+    for k in keys:
+        if k not in seen:
+            seen.add(k)
+            unique_keys.append(k)
+
+    return ", ".join(unique_keys)
 
 
 # ============================================================
@@ -326,24 +389,26 @@ def build_json(stars, messier, all_identifiers,
     # 恒星データ
     for row in stars:
         oid = row["oid"]
+        main_id = row["main_id"]
         if oid in seen_oids:
+            continue
+        if main_id in BLACKLIST_MAIN_IDS:
             continue
         seen_oids.add(oid)
         identifiers = ident_map.get(oid, [])
         name_ja = generate_name_ja(
-            row["main_id"], identifiers,
+            main_id, identifiers,
             star_names_ja, constellation_ja, greek_letters)
+        otype_txt = row.get("otype_txt", "") or ""
         entry = {
             "name": name_ja,
             "ra": ra_deg_to_hours(float(row["ra"])),
             "dec": round(float(row["dec"]), DECIMAL_PLACES),
             "mag": round(float(row["mag"]), 2),
-            "type": "恒星",
-            "keysJa": generate_keys_ja(
-                row["main_id"], identifiers,
-                row.get("otype_txt", ""),
+            "type": OTYPE_JA.get(otype_txt, "恒星"),
+            "keys": generate_keys(
+                name_ja, main_id, identifiers, otype_txt,
                 constellation_ja, greek_letters),
-            "keysEn": generate_keys_en(row["main_id"], identifiers),
         }
         output.append(entry)
 
@@ -358,14 +423,15 @@ def build_json(stars, messier, all_identifiers,
         messier_num = row["messier_id"].replace(" ", "")
         name_ja = messier_names_ja.get(messier_num, messier_num)
         mag_value = float(row["mag"]) if row["mag"] is not None else None
+        otype_txt = row.get("otype_txt", "") or ""
+        otype_ja = OTYPE_JA.get(otype_txt, "深宇宙天体")
         entry = {
             "name": name_ja,
             "ra": ra_deg_to_hours(float(row["ra"])),
             "dec": round(float(row["dec"]), DECIMAL_PLACES),
             "mag": round(mag_value, 2) if mag_value is not None else None,
-            "type": row.get("otype_txt", "深宇宙天体") or "深宇宙天体",
-            "keysJa": f"{name_ja}, メシエ天体",
-            "keysEn": generate_keys_en(row["main_id"], identifiers),
+            "type": otype_ja,
+            "keys": f"{name_ja}, メシエ天体, {messier_num}, {row['main_id']}",
         }
         output.append(entry)
 

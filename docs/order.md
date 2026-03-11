@@ -605,5 +605,30 @@ JSONデータを構築中...
   アークトゥルス: RA=14.26102h, Dec=19.182409°, Mag=-0.05, Type=恒星
 (simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 -c "import json; d=json.load(open('celestial_db.json')); print(f'{len(d)}件')"
 5238件
-(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % 
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env %
+```
+
+### 回答 (2026-03-11)
+
+JSONデータの分析結果を踏まえて、以下の改善を実施しました。
+
+#### 改善1: 検索キーの統合
+`keysJa` + `keysEn` → `keys` に統合。天体名(name)も検索キーに含めるよう変更。
+
+#### 改善2: 日本語名の未解決350件の修正
+`parse_bayer_designation()` の正規表現を拡張し、連星サフィックス(A/B)、
+番号付きバイエル(mu.01, bet01)、フラムスティード番号、変光星(V*)に対応。
+
+#### 改善3: 天体typeの日本語化
+SIMBAD天体type略称→日本語のマッピング辞書(OTYPE_JA)を追加。
+メシエ天体と恒星の両方に適用。
+
+#### 改善4: 非恒星天体の取り扱い
+- LMC → 残す(大マゼラン雲)
+- SMC → 残す(小マゼラン雲)
+- CMa Dwarf Galaxy → 除外(V等級データ異常)
+
+#### 動作確認手順
+```bash
+python3 fetch_stars.py
 ```
