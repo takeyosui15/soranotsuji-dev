@@ -353,3 +353,85 @@ python3 fetch_stars.py
 # 3. 出力ファイル確認
 python3 -c "import json; d=json.load(open('celestial_db.json')); print(f'{len(d)}件')"
 ```
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show c48a1b4
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-11)
+ありがとうございます。
+内容を確認しました。
+
+コマンドを実行しました。
+手順2.でエラーとなりました。
+
+```bash
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 fetch_stars_test.py
+SIMBAD TAP APIにクエリ送信中...
+
+カラム: ['main_id', 'ra', 'dec']
+取得件数: 5
+
+  BD-04  5156                     RA=307.572104°  Dec=-4.178345°
+  2MASS J17270135-3208055         RA=261.755647°  Dec=-32.134878°
+  WiggleZ R01J005703834+05084250  RA=14.266011°  Dec=5.145112°
+  WiggleZ S15J150040246+06091645  RA=225.167693°  Dec=6.154570°
+  COSMOS2015 222800               RA=150.386667°  Dec=1.618944°
+
+動作確認OK
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 fetch_stars.py
+============================================================
+SIMBAD天体データ取得スクリプト (HTTP直接方式)
+依存: Python標準ライブラリのみ (pip install不要)
+============================================================
+
+CSVマッピングファイルを読み込み中...
+  星座: 88 件
+  ギリシャ文字: 24 件
+  恒星固有名: 84 件
+  メシエ天体名: 110 件
+
+V等級 ≤ 6.0 の恒星を取得中...
+  HTTPエラー 400: 400 (リトライ 1/3)
+  2秒待機中...
+  HTTPエラー 400: 400 (リトライ 2/3)
+  4秒待機中...
+  HTTPエラー 400: 400 (リトライ 3/3)
+Traceback (most recent call last):
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 428, in <module>
+    main()
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 391, in main
+    stars = fetch_bright_stars()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 161, in fetch_bright_stars
+    result = query_simbad_tap(query)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars.py", line 104, in query_simbad_tap
+    with urllib.request.urlopen(req, timeout=120) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/urllib/request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: 400
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % 
+```
+どのように対応したら良いでしょうか。
+ご回答をお願いいたします。
