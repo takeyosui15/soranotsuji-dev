@@ -39,6 +39,13 @@
 8. ユーティリティ関数
 
 ## コーディング規約
+- 命名規則
+  - グローバル定数:UPPER_SNAKE_CASE
+  - グローバル変数:PascalCase
+  - 定数:UPPER_SNAKE_CASE
+  - 変数:camelCase
+  - 関数名:camelCase
+  - CSS:kebab-case
 - UIテキスト・コメントは**日本語**で記述
 - コミットメッセージも日本語（`feat:` / `fix:` / `style:` プレフィクス使用）
 - XSS対策として `escapeHtml()` を使用（ユーザー入力をDOMに挿入する際は必須）
