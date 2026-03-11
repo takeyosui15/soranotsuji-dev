@@ -684,3 +684,10 @@ JSONデータを構築中...
 5238件
 (simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % 
 ```
+
+Claudeさん、引き続き開発を行います。
+- [ ] すばる、ミンタカ、メラク、北極星の赤経赤緯の精度を高く修正
+以前、Claudeさんの方から、制度が揃っていないと指摘があったところです。
+直しましょう。
+今作成したcelestial_db.jsonを検索すれば、単位は違うかもしれませんが、赤経赤緯が分かります。
+修正してしまいましょう。
