@@ -552,3 +552,58 @@ SELECT B, V, R, I, J FROM allfluxes JOIN ident USING(oidref) WHERE id = 'M13'
 ```bash
 python3 fetch_stars.py
 ```
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 7446006
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-11)
+ありがとうございます。
+内容を確認しました。
+
+コマンドを実行しました。
+成功です👍
+やりましたね！
+
+```bash
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 fetch_stars.py
+============================================================
+SIMBAD天体データ取得スクリプト (HTTP直接方式)
+依存: Python標準ライブラリのみ (pip install不要)
+============================================================
+
+CSVマッピングファイルを読み込み中...
+  星座: 88 件
+  ギリシャ文字: 24 件
+  恒星固有名: 84 件
+  メシエ天体名: 110 件
+
+V等級 ≤ 6.0 の恒星を取得中...
+  取得件数: 5138
+メシエ天体を取得中...
+  取得件数: 110
+
+全天体数(重複除去後): 5238
+識別名を取得中...
+  バッチ 1: 50000 件
+  バッチ 2: 7585 件
+  識別名合計: 57585 件
+
+JSONデータを構築中...
+
+完了: celestial_db.json に 5238 件出力しました
+
+--- サンプル(上位5件) ---
+  シリウス: RA=6.752477h, Dec=-16.716116°, Mag=-1.46, Type=恒星
+  カノープス: RA=6.399197h, Dec=-52.695661°, Mag=-0.74, Type=恒星
+  ケンタウルス座 α星: RA=14.660139h, Dec=-60.833972°, Mag=-0.1, Type=恒星
+  NAME CMa Dwarf Galaxy: RA=7.21h, Dec=-27.666667°, Mag=-0.1, Type=恒星
+  アークトゥルス: RA=14.26102h, Dec=19.182409°, Mag=-0.05, Type=恒星
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 -c "import json; d=json.load(open('celestial_db.json')); print(f'{len(d)}件')"
+5238件
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % 
+```
