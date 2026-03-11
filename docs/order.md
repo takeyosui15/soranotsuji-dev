@@ -243,3 +243,74 @@ git show 19c6fa1
 - **座標変換:** SIMBADのRA(度) ÷ 15 → Astronomy Engine互換の時(hours)
 - **日本語名:** 88星座テーブル、ギリシャ文字マッピング、1等星固有名を実装済み
 - **次のステップ:** Macでスクリプトを実行 → 出力JSON確認 → 日本語名テーブル拡充
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show b43b8f7
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-11)
+ありがとうございます。
+助かります。
+内容を確認しました。
+
+コマンドを実行して、ライブラリのバージョンを確認しました。
+
+```bash
+# バージョン確認
+python3 -c "import astroquery; print(astroquery.__version__)"
+->0.4.11
+# → 0.4.11 以上であること
+python3 -c "import astropy; print(astropy.__version__)"
+->7.2.0
+```
+
+利用バージョンは、上記です。
+動作確認用にfetch_stars_test.pyを作成しました。
+
+```python
+# fetch_stars_test.py
+from astroquery.simbad import Simbad
+result = Simbad.query_tap("SELECT TOP 5 main_id, ra, dec FROM basic WHERE ra IS NOT NULL")
+print(result)
+```
+
+- コンソール結果:エラー
+```bash
+(simbad_env) watanabetakeyoshi@watanabetakeyoshinoMac-mini simbad_env % python3 fetch_stars_test.py
+Traceback (most recent call last):
+  File "/Users/watanabetakeyoshi/simbad_env/fetch_stars_test.py", line 1, in <module>
+    from astroquery.simbad import Simbad
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astroquery/simbad/__init__.py", line 43, in <module>
+    from .core import Simbad, SimbadClass
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astroquery/simbad/core.py", line 13, in <module>
+    import astropy.coordinates as coord
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/coordinates/__init__.py", line 11, in <module>
+    from .baseframe import *
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/coordinates/baseframe.py", line 25, in <module>
+    from astropy.table import QTable
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/table/__init__.py", line 119, in <module>
+    import astropy.io.fits.connect
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/__init__.py", line 74, in <module>
+    from . import card, column, convenience, hdu
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/convenience.py", line 66, in <module>
+    from .diff import FITSDiff, HDUDiff
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/diff.py", line 29, in <module>
+    from .hdu.hdulist import HDUList, fitsopen  # pylint: disable=W0611
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/hdu/__init__.py", line 3, in <module>
+    from .base import BITPIX2DTYPE, DELAYED, DTYPE2BITPIX, register_hdu, unregister_hdu
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/hdu/base.py", line 15, in <module>
+    from astropy.io.fits.file import _File
+  File "/Users/watanabetakeyoshi/simbad_env/lib/python3.11/site-packages/astropy/io/fits/file.py", line 48, in <module>
+    import lzma
+  File "/Users/watanabetakeyoshi/.pyenv/versions/3.11.13/lib/python3.11/lzma.py", line 27, in <module>
+    from _lzma import *
+ModuleNotFoundError: No module named '_lzma'
+```
+何が原因でしょうか。
+ライブラリが見つからないために、実現が難しい場合は、そう回答をお願いいたします。
+一緒に、大替案を考えましょう。
