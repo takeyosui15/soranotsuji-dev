@@ -578,3 +578,28 @@ Claudeさん、ありがとうございます。
 `.gitignore` の復旧作業は完了です。今後は `.DS_Store`、`node_modules/`、`playwright-report/` が自動的に無視されます。
 
 テスト環境構築の手順書のStep 6まで完了した状態ですね。`npx playwright show-report` の動作確認がまだでしたら、テストを再実行して確認してみてください。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 8df6418
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-21)
+Claudeさん、ありがとうございます。
+Step6の途中まででした。
+実行したらインストールしてしまいましたが、大丈夫でしょうか。
+このまま手順を進めても大丈夫でしょうか。
+
+---
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % npx playwright show-report
+Need to install the following packages:
+playwright@1.58.2
+Ok to proceed? (y) 
+
+  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
+^C
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % 
+---

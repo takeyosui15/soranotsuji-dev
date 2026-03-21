@@ -238,7 +238,7 @@ cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev
 npx playwright test
 ```
 
-- [ ] テスト結果を確認
+- [x] テスト結果を確認
 
 ```bash
 # HTMLレポートを表示（テスト結果の詳細を確認）
