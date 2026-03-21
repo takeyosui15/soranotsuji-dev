@@ -246,5 +246,45 @@ Running 3 tests using 1 worker
   1 passed (15.6s)
 watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % npx playwright show-report
 No report found at "/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/playwright-report"
-watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %          
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %
 ---
+
+### 回答 (2026-03-21)
+
+**エラーの原因: GitHub Pages でサイトが表示されていない**
+
+エラーメッセージのポイント:
+```
+Expected pattern: /宙の辻/
+Received string:  "Site not found · GitHub Pages"
+```
+
+テストが `https://takeyosui15.github.io/soranotsuji-dev/` にアクセスした際、アプリではなく **GitHub Pages の「Site not found」ページ** が返されています。テストコード自体には問題ありません。
+
+**テスト結果の解説:**
+
+| テスト | 結果 | 理由 |
+|---|---|---|
+| ページが正常に読み込まれる | ✘ | タイトルが「宙の辻」ではなく「Site not found · GitHub Pages」 |
+| 地図が表示される | ✘ | `#map` 要素が存在しない（サイトが表示されていないため） |
+| コンソールにエラーがない | ✓ | 「Site not found」ページはJSエラーを出さないので通過 |
+
+**原因の可能性:**
+
+1. **GitHub Pages の設定がリセットされた可能性** — リポジトリ移行時にGitHub Pagesのソースブランチ設定が外れた可能性があります
+2. **CNAME削除の影響** — コミット `6a64427` でCNAMEファイルが削除されていますが、これが影響している可能性
+
+**確認・対処手順:**
+
+1. GitHub で `soranotsuji-dev` リポジトリを開く
+2. **Settings → Pages** を確認
+3. 以下の設定になっているか確認:
+   - **Source**: Deploy from a branch
+   - **Branch**: `develop` / `/ (root)`
+4. 設定が正しければ、数分待ってから `https://takeyosui15.github.io/soranotsuji-dev/` にブラウザでアクセスしてみてください
+
+GitHub Pages が正常に表示されるようになれば、同じテストコマンド `npx playwright test` を再実行すれば3件とも通るはずです。
+
+**レポートが表示されない件について:**
+
+`npx playwright show-report` で「No report found」となっていますが、これは `playwright.config.js` にHTMLレポーターの設定がないためです。必要であれば設定を追加できますが、テスト結果はコンソール出力で十分確認できるので、優先度は低いです。
