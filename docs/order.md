@@ -406,3 +406,39 @@ watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %
 `npx playwright test` を再実行して、3件とも通るか確認してください。
 
 なお、`tests/debug.spec.js` はデバッグ用なので、不要であれば削除して構いません。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 1e4af58
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-21)
+Claudeさん、ありがとうございます。
+うまくいきました。
+
+念の為、コンソール出力を以下に示します。
+
+---
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % npx playwright test
+
+Running 4 tests using 2 workers
+
+  ✓  1 [chromium] › tests/basic.spec.js:5:1 › ページが正常に読み込まれる (1.1s)
+  ✓  2 [chromium] › tests/debug.spec.js:4:1 › URL直接指定でアクセス (1.1s)
+Status: 200
+URL: https://takeyosui15.github.io/soranotsuji-dev/
+Title: 宙の辻 - Sora no Tsuji
+  ✓  3 [chromium] › tests/basic.spec.js:11:1 › 地図が表示される (372ms)
+  ✓  4 [chromium] › tests/basic.spec.js:18:1 › コンソールにエラーがない (395ms)
+
+  4 passed (3.1s)
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % npx playwright show-report
+No report found at "/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/playwright-report"
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % 
+---
+
+ついでなのですが、 `npx playwright show-report` も実施できるように修正をお願いいたします。

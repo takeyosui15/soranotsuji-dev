@@ -197,7 +197,7 @@ module.exports = defineConfig({
 mkdir -p tests
 ```
 
-- [ ] サンプルテストを作成（`tests/basic.spec.js`）
+- [x] サンプルテストを作成（`tests/basic.spec.js`）
 
 ```javascript
 // tests/basic.spec.js
@@ -230,7 +230,7 @@ test('コンソールにエラーがない', async ({ page }) => {
 
 ### Step 6: テストの実行確認
 
-- [ ] テストを実行
+- [x] テストを実行
 
 ```bash
 cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
