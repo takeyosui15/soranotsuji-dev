@@ -601,5 +601,41 @@ Ok to proceed? (y)
 
   Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
 ^C
-watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % 
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %
 ---
+
+### 回答 (2026-03-21)
+
+**大丈夫です、問題ありません。** このまま手順を進めてOKです。
+
+**何が起きたか:**
+
+`npx playwright show-report` を実行した際、`playwright` パッケージ（`@playwright/test` とは別のパッケージ）がグローバルにインストールされました。これは `npx` が `show-report` コマンドを実行するために必要なパッケージを自動でダウンロードしたものです。
+
+プロジェクトの `node_modules/` やソースコードには影響ありません。レポートも `http://localhost:9323` で正常に表示されていたので、HTMLレポーター機能は正しく動作しています。
+
+**Step 6 の残りチェック:**
+
+- [x] テストを実行 (`npx playwright test`)
+- [x] テスト結果を確認 (`npx playwright show-report`)
+
+Step 6 は完了です。次の **Step 7: Git にテスト関連ファイルをコミット** に進んでください。
+
+ただし、Step 7 の手順書にはいくつか既に完了済みの作業が含まれています。現在の状況を踏まえると、以下を実行すれば十分です:
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+
+# debug.spec.js を削除（不要であれば）
+rm tests/debug.spec.js
+
+# test-results/ も .gitignore に追加
+echo "test-results/" >> .gitignore
+
+# コミット
+git add .gitignore
+git commit -m "fix: test-results/を.gitignoreに追加、debug.spec.jsを削除"
+git push origin work
+```
+
+`test-results/` もテスト実行時のローカル生成物なので、`.gitignore` に追加しておくと良いです。
