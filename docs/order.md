@@ -352,3 +352,35 @@ npx playwright test tests/debug.spec.js --headed
 もしリダイレクトされている場合、`playwright.config.js` の `baseURL` をリダイレクト先のURLに変更する必要があります。
 
 デバッグ結果を教えていただければ、原因を特定して対処します。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 12983e0
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-21)
+Claudeさん、ありがとうございます。
+
+デバッグ1の結果で、ブラウザのURLが `https://takeyosui15.github.io/` になっていました。
+原因は、これですね。
+
+デバッグ2の結果は、以下です。
+
+---
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % npx playwright test tests/debug.spec.js --headed
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › tests/debug.spec.js:4:1 › URL直接指定でアクセス (2.8s)
+Status: 200
+URL: https://takeyosui15.github.io/soranotsuji-dev/
+Title: 宙の辻 - Sora no Tsuji
+
+  1 passed (4.2s)
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % 
+---
+
+原因は、つまり、 `/` でなくて `/soranotsuji-dev/` と書くですかね。
