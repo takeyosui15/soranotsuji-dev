@@ -303,3 +303,52 @@ Claudeさん、ありがとうございます。
 **確認・対処手順:**の4.まで実施しましたが、問題はありませんでした。
 ブラウザできちんとアクセスできます。
 テストコマンド `npx playwright test` を再実行しましたが、やはり、同じエラーです。
+
+### 回答 (2026-03-21)
+
+ブラウザでは正常にアクセスできるのに、Playwrightでは「Site not found」になるとのこと。承知しました。
+
+**考えられる原因:**
+
+1. **Playwrightのヘッドレスブラウザ固有の問題** — ヘッドレスChromiumがGitHub Pagesのリダイレクトやサーバー応答を正しく処理できていない可能性
+2. **GitHub Pagesがbot的なアクセスを異なる扱いにしている可能性**
+
+**デバッグのため、以下を順に試してください:**
+
+#### デバッグ1: ブラウザを表示しながらテスト実行
+
+```bash
+npx playwright test --headed
+```
+
+これでブラウザが目視できます。「Site not found」が画面に表示されるか確認してください。
+
+#### デバッグ2: URLを直接指定してテスト
+
+`tests/debug.spec.js` を以下の内容で作成して実行してください:
+
+```javascript
+// tests/debug.spec.js
+const { test, expect } = require('@playwright/test');
+
+test('URL直接指定でアクセス', async ({ page }) => {
+  const response = await page.goto('https://takeyosui15.github.io/soranotsuji-dev/');
+  console.log('Status:', response.status());
+  console.log('URL:', page.url());
+  console.log('Title:', await page.title());
+});
+```
+
+```bash
+npx playwright test tests/debug.spec.js --headed
+```
+
+コンソール出力で、実際のステータスコード・最終URL・タイトルが分かります。
+
+#### デバッグ3: GitHub Pagesのリダイレクト確認
+
+ブラウザでアクセスしている際、アドレスバーのURLが `https://takeyosui15.github.io/soranotsuji-dev/` のままか、別のURL（例: `https://soranotsuji.net/` など）にリダイレクトされていないか確認してください。
+
+もしリダイレクトされている場合、`playwright.config.js` の `baseURL` をリダイレクト先のURLに変更する必要があります。
+
+デバッグ結果を教えていただければ、原因を特定して対処します。
