@@ -1,4 +1,4 @@
-# [宙の辻 - Sora no Tsuji](https://soranotsuji.design10100.net/)
+# [宙の辻 - Sora no Tsuji](https://soranotsuji.net/)
 
 **「時」と「場所」が交差する瞬間を、地図上で探す。**
 
@@ -29,6 +29,7 @@
 * **[GeographicLib](https://geographiclib.sourceforge.io/)**: 測地線および DMS ルーチン
 * **国土地理院 API**: 標高/地名データの取得と地図タイル
 * **OpenStreetMap (Nominatim)**: 地名データの取得と地図タイル
+* **Open-Meteo**: 標高データの取得
 
 ## 使い方
 

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.17.1 - 2026-03-21: feat: 観測点/目的点標高、オフセット方位距離/視高距離、表示天体詳細表記
 Version 1.17.0 - 2026-03-06: feat: 薄明ジャンプ機能追加、日出/日入/月出/月入ジャンプに視高度を表示
 Version 1.16.9 - 2026-02-28: fix: 気差係数チェックボックスでフォームの有効/無効切り替え機能追加
 Version 1.16.8 - 2026-02-28: fix: 辻Dayボタンの削除
@@ -57,10 +58,14 @@ const STD_P = 1013.25;  // 標準気圧 (hPa)
 const STD_T = 15.0;     // 標準気温 (°C)
 const STD_L = 0.0065;   // 標準気温減率 Γ (K/m) 正値。0.0065が国際標準大気、0.0125が測量標準
 
-const POLARIS_RA = 2.5303;
-const POLARIS_DEC = 89.2641;
-const SUBARU_RA = 3.79;
-const SUBARU_DEC = 24.12;
+const POLARIS_RA = 2.530304;
+const POLARIS_DEC = 89.264109;
+const MERAK_RA = 11.030689;
+const MERAK_DEC = 56.382434;
+const MINTAKA_RA = 5.533444;
+const MINTAKA_DEC = -0.299095;
+const SUBARU_RA = 3.777222;
+const SUBARU_DEC = 24.178056;
 
 // 天体の赤道半径 (km) - 視半径の計算用
 const BODY_RADIUS_KM = {
@@ -69,11 +74,9 @@ const BODY_RADIUS_KM = {
     Jupiter: 71492, Saturn: 60268, Uranus: 25559, Neptune: 24764
 };
 const KM_PER_AU = 149597870.7;
-const MINTAKA_RA = 5.534;
-const MINTAKA_DEC = -0.299;
 
-const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 150.0 };
-const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9 };
+const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 18.5, height: 150.0 };
+const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9, height: 0 };
 
 // 天体ごとの初期スタイル (リセット用)
 const DEFAULT_BODIES = [
@@ -88,6 +91,8 @@ const DEFAULT_BODIES = [
     { id: 'Neptune', color: '#4B0082', isDashed: false },
     { id: 'Pluto',   color: '#800080', isDashed: false },
     { id: 'Polaris', color: '#000000', isDashed: false },
+    { id: 'Merak',   color: '#654321', isDashed: false },
+    { id: 'Mintaka', color: '#FFFFFF', isDashed: false },
     { id: 'Subaru',  color: '#0000FF', isDashed: false },
     { id: 'MyStar',  color: '#DDA0DD', isDashed: false }
 ];
@@ -121,10 +126,18 @@ let dpLayer;
 
 // ★ 全てを管理する状態オブジェクト
 let appState = {
-    // 現在表示中の場所
-    start: { ...DEFAULT_START },
-    end:   { ...DEFAULT_END },
-    
+    // 現在表示中の場所（elevはapiElev + heightの合算値）
+    start: { lat: DEFAULT_START.lat, lng: DEFAULT_START.lng, elev: DEFAULT_START.elev + DEFAULT_START.height },
+    end:   { lat: DEFAULT_END.lat,   lng: DEFAULT_END.lng,   elev: DEFAULT_END.elev + DEFAULT_END.height },
+
+    // API取得の生の標高値（読み取り専用表示用）
+    startApiElev: DEFAULT_START.elev,
+    endApiElev: DEFAULT_END.elev,
+
+    // ユーザー入力の追加高さ（編集可能）
+    startHeight: DEFAULT_START.height,
+    endHeight: DEFAULT_END.height,
+
     // 登録された場所 (Homeボタンで呼び出す場所)
     homeStart: null,
     homeEnd:   null,
@@ -161,6 +174,8 @@ let appState = {
         { id: 'Neptune', name: '海王星', color: '#4B0082', isDashed: false, visible: false },
         { id: 'Pluto',   name: '冥王星', color: '#800080', isDashed: false, visible: false },
         { id: 'Polaris', name: '北極星', color: '#000000', isDashed: false, visible: false },
+        { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
+        { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
         { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
         { id: 'MyStar',  name: 'My天体', color: '#DDA0DD', isDashed: false, visible: false, isCustom: true }
     ],
@@ -192,9 +207,18 @@ let appState = {
     riseSetCache: {}
 };
 
-let visitorData = null; 
+/** API標高とユーザー高さから内部計算用elevを再計算 */
+function recalcElev(type) {
+    if (type === 'start') {
+        appState.start.elev = appState.startApiElev + appState.startHeight;
+    } else {
+        appState.end.elev = appState.endApiElev + appState.endHeight;
+    }
+}
+
+let visitorData = null;
 let editingBodyId = null;
-let currentRiseSetData = {}; 
+let currentRiseSetData = {};
 
 
 // ============================================================
@@ -202,7 +226,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (V1.17.0)");
+    console.log("宙の辻: 起動 (v1.17.1)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -259,6 +283,7 @@ window.onload = function() {
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
     document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
     document.getElementById('input-tsuji-search-days').value = appState.tsujiSearchDays;
+    updateOffsetDistances();
 
     // リストを生成
     renderCelestialList();
@@ -437,6 +462,7 @@ function setupUI() {
         appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 0;
         e.target.value = appState.tsujiSearchOffsetAz;
         saveAppState();
+        updateOffsetDistances();
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
@@ -453,6 +479,7 @@ function setupUI() {
         appState.tsujiSearchOffsetAlt = parseFloat(e.target.value) || 0;
         e.target.value = appState.tsujiSearchOffsetAlt;
         saveAppState();
+        updateOffsetDistances();
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 2.5;
@@ -475,18 +502,20 @@ function setupUI() {
     iStart.addEventListener('change', () => handleLocationInput(iStart.value, true));
     iEnd.addEventListener('change', () => handleLocationInput(iEnd.value, false));
 
-    // 標高入力
+    // 高さ入力（ユーザー入力の追加高さ）
     document.getElementById('input-start-elev').addEventListener('change', (e) => {
         const val = parseFloat(e.target.value);
-        if (!isNaN(val)) appState.start.elev = val;
-        e.target.value = appState.start.elev;
+        if (!isNaN(val)) appState.startHeight = val;
+        e.target.value = appState.startHeight;
+        recalcElev('start');
         saveAppState();
         updateAll();
     });
     document.getElementById('input-end-elev').addEventListener('change', (e) => {
         const val = parseFloat(e.target.value);
-        if (!isNaN(val)) appState.end.elev = val;
-        e.target.value = appState.end.elev;
+        if (!isNaN(val)) appState.endHeight = val;
+        e.target.value = appState.endHeight;
+        recalcElev('end');
         saveAppState();
         updateAll();
     });
@@ -593,7 +622,12 @@ function saveAppState() {
         tsujiSearchBaseAlt: appState.tsujiSearchBaseAlt,
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
-        tsujiSearchDays: appState.tsujiSearchDays
+        tsujiSearchDays: appState.tsujiSearchDays,
+        // 標高関連（API標高とユーザー入力高）
+        startApiElev: appState.startApiElev,
+        endApiElev: appState.endApiElev,
+        startHeight: appState.startHeight,
+        endHeight: appState.endHeight
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
@@ -626,6 +660,14 @@ function loadAppState() {
             if(saved.tsujiSearchBaseAlt !== undefined) appState.tsujiSearchBaseAlt = saved.tsujiSearchBaseAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
+            // 標高関連（API標高とユーザー入力高）
+            if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
+            if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
+            if(saved.startHeight !== undefined) appState.startHeight = saved.startHeight;
+            if(saved.endHeight !== undefined) appState.endHeight = saved.endHeight;
+            // API標高とユーザー高さから内部計算用elevを再計算
+            recalcElev('start');
+            recalcElev('end');
 
             if(saved.bodies) {
                 saved.bodies.forEach(sb => {
@@ -656,9 +698,13 @@ function registerLocation(type) {
 
         // ★追加: 現在の場所をシステム初期値に戻す
         if (type === 'start') {
-            appState.start = { ...DEFAULT_START };
+            appState.start = { lat: DEFAULT_START.lat, lng: DEFAULT_START.lng, elev: DEFAULT_START.elev + DEFAULT_START.height };
+            appState.startApiElev = DEFAULT_START.elev;
+            appState.startHeight = DEFAULT_START.height;
         } else {
-            appState.end = { ...DEFAULT_END };
+            appState.end = { lat: DEFAULT_END.lat, lng: DEFAULT_END.lng, elev: DEFAULT_END.elev + DEFAULT_END.height };
+            appState.endApiElev = DEFAULT_END.elev;
+            appState.endHeight = DEFAULT_END.height;
         }
         
         saveAppState(); // 変更を保存
@@ -679,11 +725,17 @@ function registerLocation(type) {
     if (hasRegistered) {
         // 登録データを現在地に適用
         if(type === 'start') {
-            appState.start = { ...appState.homeStart };
+            appState.start = { lat: appState.homeStart.lat, lng: appState.homeStart.lng, elev: appState.homeStart.elev };
+            appState.startApiElev = appState.homeStart.apiElev !== undefined ? appState.homeStart.apiElev : appState.homeStart.elev;
+            appState.startHeight = appState.homeStart.height || 0;
+            recalcElev('start');
             appState.locMode = 'start';
             document.getElementById('radio-start').checked = true;
         } else {
-            appState.end = { ...appState.homeEnd };
+            appState.end = { lat: appState.homeEnd.lat, lng: appState.homeEnd.lng, elev: appState.homeEnd.elev };
+            appState.endApiElev = appState.homeEnd.apiElev !== undefined ? appState.homeEnd.apiElev : appState.homeEnd.elev;
+            appState.endHeight = appState.homeEnd.height || 0;
+            recalcElev('end');
             appState.locMode = 'end';
             document.getElementById('radio-end').checked = true;
         }
@@ -701,11 +753,11 @@ function registerLocation(type) {
 
     // 3. 登録 (登録データがない場合)
     else {
-        // 現在地を登録データとして保存
+        // 現在地を登録データとして保存（apiElevとheightも含める）
         if(type === 'start') {
-            appState.homeStart = { ...appState.start };
+            appState.homeStart = { ...appState.start, apiElev: appState.startApiElev, height: appState.startHeight };
         } else {
-            appState.homeEnd = { ...appState.end };
+            appState.homeEnd = { ...appState.end, apiElev: appState.endApiElev, height: appState.endHeight };
         }
         
         saveAppState();
@@ -775,8 +827,12 @@ function updateLocationDisplay() {
         document.getElementById('input-end-latlng').value = fmt(appState.end);
     }
     
-    document.getElementById('input-start-elev').value = appState.start.elev;
-    document.getElementById('input-end-elev').value = appState.end.elev;
+    // 読み取り専用のAPI標高
+    document.getElementById('input-start-api-elev').value = appState.startApiElev;
+    document.getElementById('input-end-api-elev').value = appState.endApiElev;
+    // 編集可能なユーザー高さ
+    document.getElementById('input-start-elev').value = appState.startHeight;
+    document.getElementById('input-end-elev').value = appState.endHeight;
 
     const sPt = L.latLng(appState.start.lat, appState.start.lng);
     const ePt = L.latLng(appState.end.lat, appState.end.lng);
@@ -822,6 +878,12 @@ function updateCalculation() {
         if (body.id === 'Polaris') {
             ra = POLARIS_RA;
             dec = POLARIS_DEC;
+        } else if (body.id === 'Merak') {
+            ra = MERAK_RA;
+            dec = MERAK_DEC;
+        } else if (body.id === 'Mintaka') {
+            ra = MINTAKA_RA;
+            dec = MINTAKA_DEC;
         } else if (body.id === 'Subaru') {
             ra = SUBARU_RA;
             dec = SUBARU_DEC;
@@ -839,7 +901,7 @@ function updateCalculation() {
         let riseStr = "--:--";
         let setStr = "--:--";
         
-        if (['Polaris', 'Subaru', 'MyStar'].includes(body.id)) {
+        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
             const times = searchStarRiseSet(ra, dec, observer, startOfDay);
             riseStr = times.rise;
             setStr = times.set;
@@ -854,12 +916,41 @@ function updateCalculation() {
         
         if (riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
             riseStr = "00:00";
-            setStr = "00:00"; 
+            setStr = "00:00";
         }
 
+        // 南中時刻の計算
+        let transitStr = "--:--";
+        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
+            transitStr = searchStarTransit(ra, dec, observer, startOfDay);
+        } else {
+            try {
+                const transit = Astronomy.SearchHourAngle(body.id, observer, 0, startOfDay);
+                if (transit && transit.time) {
+                    transitStr = formatTime(transit.time.date, startOfDay);
+                }
+            } catch(e) {}
+        }
+
+        // 視半径の計算
+        const angR = getBodyAngularRadius(body.id, obsDate, observer);
+
+        // 赤経・赤緯
+        const radecEl = document.getElementById(`radec-${body.id}`);
+        if (radecEl) {
+            radecEl.innerText = `赤経 ${ra.toFixed(4)}h / 赤緯 ${dec.toFixed(4)}°`;
+        }
+
+        // 出・南中・入時刻
+        const risesetEl = document.getElementById(`riseset-${body.id}`);
+        if (risesetEl) {
+            risesetEl.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
+        }
+
+        // 方位角・視高度・視半径
         const dataEl = document.getElementById(`data-${body.id}`);
         if (dataEl) {
-            dataEl.innerText = `出 ${riseStr} / 入 ${setStr} / 方位 ${hor.azimuth.toFixed(0)}° / 高度 ${hor.altitude.toFixed(0)}°`;
+            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(2)}° / 視高度 ${hor.altitude.toFixed(2)}° / 視半径 ${angR.toFixed(3)}°`;
         }
 
         if (body.visible) {
@@ -935,10 +1026,14 @@ async function applyLocationCoords(coords, isStart) {
 
     if(isStart) {
         appState.start = { ...coords, elev: validElev };
+        appState.startApiElev = validElev;
+        appState.startHeight = 0;
         appState.locMode = 'start';
         document.getElementById('radio-start').checked = true;
     } else {
         appState.end = { ...coords, elev: validElev };
+        appState.endApiElev = validElev;
+        appState.endHeight = 0;
         appState.locMode = 'end';
         document.getElementById('radio-end').checked = true;
     }
@@ -1178,8 +1273,12 @@ function useGPS() {
         appState.start.lng = pos.coords.longitude;
         map.setView([appState.start.lat, appState.start.lng], 10);
         getElevation(appState.start.lat, appState.start.lng).then(elev => {
-            if(elev !== null) appState.start.elev = elev;
-            saveAppState(); 
+            if(elev !== null) {
+                appState.start.elev = elev;
+                appState.startApiElev = elev;
+                appState.startHeight = 0;
+            }
+            saveAppState();
             updateAll();
         });
     }, () => alert('位置情報を取得できませんでした'));
@@ -1219,10 +1318,16 @@ function calculateDPPathPoints(targetDate, body, observer) {
         let r;
         let d;
         
-        if (['Polaris', 'Subaru', 'MyStar'].includes(body.id)) {
+        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
             if(body.id === 'Polaris') {
                 r = POLARIS_RA;
                 d = POLARIS_DEC;
+            } else if(body.id === 'Merak') {
+                r = MERAK_RA;
+                d = MERAK_DEC;
+            } else if(body.id === 'Mintaka') {
+                r = MINTAKA_RA;
+                d = MINTAKA_DEC;
             } else if(body.id === 'Subaru') {
                 r = SUBARU_RA;
                 d = SUBARU_DEC;
@@ -1235,7 +1340,7 @@ function calculateDPPathPoints(targetDate, body, observer) {
             r = eq.ra;
             d = eq.dec;
         }
-        
+
         const hor = Astronomy.Horizon(time, observer, r, d, appState.refractionEnabled ? "normal" : null);
         if (hor.altitude > limit) {
             const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
@@ -1467,8 +1572,12 @@ async function onMapClick(e) {
     
     if (isStart) {
         appState.start = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.startApiElev = val;
+        appState.startHeight = 0;
     } else {
         appState.end = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.endApiElev = val;
+        appState.endHeight = 0;
     }
     saveAppState();
     updateAll();
@@ -1918,6 +2027,21 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
     };
 }
 
+function searchStarTransit(ra, dec, observer, startOfDay) {
+    let maxAlt = -Infinity;
+    let transitTime = null;
+    const start = startOfDay.getTime();
+    for (let m = 0; m <= 1440; m += 1) {
+        const time = new Date(start + m * 60000);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
+        if (hor.altitude > maxAlt) {
+            maxAlt = hor.altitude;
+            transitTime = time;
+        }
+    }
+    return transitTime ? formatTime(transitTime, startOfDay) : "--:--";
+}
+
 /**
  * 線形補間により、高度が0(地平線)になる正確な時刻を計算する
  * 原理: 2点間を直線で結び、その線が0と交差するポイント(比率)を求める
@@ -1995,8 +2119,11 @@ function renderCelestialList() {
             <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''}>
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
-                <div class="body-header"><span class="body-name">${escapeHtml(body.name)}</span></div>
-                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">--:--</span>
+                <span class="body-name-label">${escapeHtml(body.name)}</span>
+                <span class="body-name-id">ID: ${escapeHtml(body.id)}</span>
+                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
+                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
             toggleVisibility(body.id, this.checked);
@@ -2140,23 +2267,34 @@ function updateTsujiSearchInputs() {
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev);
-    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(1));
+    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(2));
     appState.tsujiSearchBaseAlt = parseFloat(alt.toFixed(2));
     document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
     document.getElementById('input-tsuji-alt').value = appState.tsujiSearchBaseAlt;
     saveAppState();
+    updateOffsetDistances();
+}
+
+/** オフセット方位距離・視高距離を再計算してUIに反映 */
+function updateOffsetDistances() {
+    const dist = L.latLng(appState.start.lat, appState.start.lng)
+                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const azDist = dist * Math.tan(appState.tsujiSearchOffsetAz * Math.PI / 180);
+    const altDist = dist * Math.tan(appState.tsujiSearchOffsetAlt * Math.PI / 180);
+    document.getElementById('input-tsuji-az-offset-dist').value = parseFloat(azDist.toFixed(1));
+    document.getElementById('input-tsuji-alt-offset-dist').value = parseFloat(altDist.toFixed(1));
 }
 
 // --- 辻検索 ---
 function toggleTsujiSearch() {
     appState.isTsujiSearchActive = !appState.isTsujiSearchActive;
     const btn = document.getElementById('btn-tsuji-search');
-    const pnl = document.getElementById('tsujiday-panel');
+    const pnl = document.getElementById('tsujisearch-panel');
 
     if (appState.isTsujiSearchActive) {
         btn.classList.add('active');
         pnl.classList.remove('hidden');
-        document.getElementById('tsujiday-header').innerHTML = '辻検索結果 <span id="tsujiday-status"></span>';
+        document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
         startTsujiSearch();
     } else {
         btn.classList.remove('active');
@@ -2167,7 +2305,7 @@ function toggleTsujiSearch() {
 }
 
 function syncBottomPanels() {
-    const tdPnl = document.getElementById('tsujiday-panel');
+    const tdPnl = document.getElementById('tsujisearch-panel');
     if (appState.isTsujiSearchActive && appState.isElevationActive) {
         tdPnl.classList.add('with-elevation');
     } else {
@@ -2215,8 +2353,8 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
     const generation = ++appState.tsujiSearchGeneration;
-    const contentEl = document.getElementById('tsujiday-content');
-    const statusEl = document.getElementById('tsujiday-status');
+    const contentEl = document.getElementById('tsujisearch-content');
+    const statusEl = document.getElementById('tsujisearch-status');
     contentEl.innerHTML = '';
     statusEl.textContent = '(検索中…)';
 
@@ -2266,6 +2404,10 @@ async function startTsujiSearch() {
                 let ra, dec;
                 if (body.id === 'Polaris') {
                     ra = POLARIS_RA; dec = POLARIS_DEC;
+                } else if (body.id === 'Merak') {
+                    ra = MERAK_RA; dec = MERAK_DEC;
+                } else if (body.id === 'Mintaka') {
+                    ra = MINTAKA_RA; dec = MINTAKA_DEC;
                 } else if (body.id === 'Subaru') {
                     ra = SUBARU_RA; dec = SUBARU_DEC;
                 } else if (body.id === 'MyStar') {
@@ -2370,7 +2512,7 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(1)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -2382,7 +2524,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度</th><th>角距離</th><th>日付</th><th>時刻</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
+    thead.innerHTML = '<tr><th>ID</th><th>天体</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>時刻</th><th>方位角</th><th>視高度</th><th>視半径</th><th>月齢</th><th>🌙</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
