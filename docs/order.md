@@ -384,3 +384,25 @@ watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %
 ---
 
 原因は、つまり、 `/` でなくて `/soranotsuji-dev/` と書くですかね。
+
+### 回答 (2026-03-21)
+
+**原因特定できました。おっしゃる通りです。**
+
+`page.goto('/')` が問題でした。URLの解決の仕組みは以下の通りです:
+
+| 記述 | baseURL との結合結果 | 結果 |
+|---|---|---|
+| `page.goto('/')` | `https://takeyosui15.github.io/` | ✘ ドメインルートに飛んでしまう |
+| `page.goto('./')` | `https://takeyosui15.github.io/soranotsuji-dev/` | ✓ 正しいパス |
+
+`/` は絶対パスなので、baseURLのパス部分(`/soranotsuji-dev/`)を上書きしてドメインルートになります。`./` は相対パスなので、baseURLのパスを維持します。
+
+**修正内容:**
+
+1. `tests/basic.spec.js` — 全3テストの `page.goto('/')` → `page.goto('./')` に修正
+2. `docs/operation/test-env-setup.md` — 手順書のサンプルコードも同様に修正
+
+`npx playwright test` を再実行して、3件とも通るか確認してください。
+
+なお、`tests/debug.spec.js` はデバッグ用なので、不要であれば削除して構いません。
