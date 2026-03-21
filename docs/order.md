@@ -481,3 +481,39 @@ node_modules/
 ```
 になっていました💦
 復旧したいです！
+
+### 回答 (2026-03-21)
+
+**状況を確認しました。** `.gitignore` は既に修正されていますが、無視されていなかった間にコミットされたファイルがGitの追跡対象に残っています。
+
+**追跡されてしまっているファイル:**
+- `.DS_Store` — 3件（ルート、docs/、node_modules/）
+- `node_modules/` — 560件
+
+`.gitignore` に追記しても、既にコミット済みのファイルは自動的には除外されません。Gitのキャッシュから削除する必要があります。
+
+**復旧手順:**
+
+以下のコマンドをローカル環境で実行してください:
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+
+# 1. Gitの追跡対象から除外（ファイル自体は削除しない）
+git rm -r --cached node_modules/
+git rm --cached .DS_Store docs/.DS_Store node_modules/.DS_Store
+
+# 2. .gitignoreにplaywright-report/も追加済みか確認
+cat .gitignore
+
+# 3. コミット
+git add .gitignore
+git commit -m "fix: .gitignore修正 - node_modules/と.DS_Storeを追跡対象から除外"
+
+# 4. push
+git push origin work
+```
+
+`git rm --cached` は**Gitの追跡対象から外すだけ**で、ローカルのファイルは削除されません。`node_modules/` のファイルはそのまま残り、npm は引き続き正常に動作します。
+
+コミットハッシュを教えていただければ、こちらでも確認します。
