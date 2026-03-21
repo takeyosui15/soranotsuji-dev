@@ -531,3 +531,25 @@ Claudeさん、ありがとうございます。
 ローカルでコマンドを実行しました。
 ご確認をお願いいたします。
 コミットハッシュ:4bb6702
+
+### 回答 (2026-03-21)
+
+確認しました。`node_modules/` は完全に追跡対象から除外されています（0件）。
+
+**ただし、`.DS_Store` が2件まだ残っています:**
+- `.DS_Store`（ルート）
+- `docs/.DS_Store`
+
+`git rm --cached .DS_Store docs/.DS_Store` が実行されなかったか、エラーになった可能性があります。
+
+**追加の復旧コマンド:**
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+
+git rm --cached .DS_Store docs/.DS_Store
+git commit -m "fix: .DS_Storeを追跡対象から除外"
+git push origin work
+```
+
+これで完全にクリーンになります。
