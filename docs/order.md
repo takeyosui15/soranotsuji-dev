@@ -75,3 +75,49 @@ pre-migration-tag-guide.md を修正しました。
 4. バージョン日付を `2026-03-19` → `2026-03-21` に更新
 
 ご確認ください。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show a62d6be
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-03-21)
+Claudeさん、ありがとうございます。
+確認しました。
+ありがとうございます！
+
+移行前マージ作業をしました。
+
+タグ付与日時: 2026-03-21 10:19
+バージョン: v1.17.1
+開発環境(soranotsuji-dev): タグ v1.17.1 付与済み
+本番環境(soranotsuji): タグ v1.17.1 付与済み、デプロイ済み
+確認結果: OK
+
+- [x] 旧開発環境soranotsuji-dev/mainにマージしてタグv1.17.1とする
+- [x] 旧本番環境soranotsuji/mainにマージしてタグv1.17.1とする
+
+リポジトリの本番環境・開発環境・試行環境への移行を行います。
+
+- [ ] リポジトリの本番環境・開発環境・試行環境への移行
+
+## 移行後の確認チェックリスト
+
+- [x] https://soranotsuji.net にアクセスしてサイトが正常に表示される
+- [x] https://takeyosui15.github.io/soranotsuji-dev/ にアクセスして動作確認用サイトが表示される
+- [x] https://github.com/takeyosui15/soranotsuji が存在する(本番)
+- [x] https://github.com/takeyosui15/soranotsuji-dev が存在する(開発)
+- [x] https://github.com/takeyosui15/soranotsuji-sandbox が存在する(試行)
+- [x] ローカルの `$DOCS/soranotsuji-dev-local` でgit pull/pushができる
+- [x] ローカルの `$DOCS/soranotsuji-sandbox-local` でgit pull/pushができる
+- [x] ローカルの各リポジトリに `prod` リモートが残っていないこと
+- [x] soranotsuji-devにdevelopブランチが存在すること
+- [x] soranotsuji-devにworkブランチが存在すること
+- [x] soranotsuji-devのGitHub Pagesが**developブランチ**で動作すること
+
+完了です。
+
+- [x] リポジトリの本番環境・開発環境・試行環境への移行
