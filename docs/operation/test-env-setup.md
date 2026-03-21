@@ -55,28 +55,28 @@ Node.jsとPlaywrightは各マシンにインストールするが、バージョ
 
 **両方のマシンで同じ手順を実行する。**
 
-- [ ] nvm をインストール
+- [x] nvm をインストール
 
 ```bash
 # nvm のインストール
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 ```
 
-- [ ] ターミナルを再起動（またはシェル設定を再読込）
+- [x] ターミナルを再起動（またはシェル設定を再読込）
 
 ```bash
 # zsh の場合（Mac のデフォルト）
 source ~/.zshrc
 ```
 
-- [ ] nvm がインストールされたことを確認
+- [x] nvm がインストールされたことを確認
 
 ```bash
 nvm --version
 # 0.40.1 などのバージョンが表示されること
 ```
 
-- [ ] Node.js LTS をインストール
+- [x] Node.js LTS をインストール
 
 ```bash
 # LTS（長期サポート版）をインストール
@@ -85,12 +85,14 @@ nvm install --lts
 # インストールされたバージョンを確認
 node --version
 # v22.x.x などが表示されること
+# v24.14.0
 
 npm --version
 # 10.x.x などが表示されること
+# 11.9.0
 ```
 
-- [ ] デフォルトバージョンを設定
+- [x] デフォルトバージョンを設定
 
 ```bash
 nvm alias default lts/*
@@ -100,7 +102,7 @@ nvm alias default lts/*
 
 ### Step 2: プロジェクトの Node.js バージョンを固定
 
-- [ ] プロジェクトルートに `.nvmrc` ファイルを作成
+- [x] プロジェクトルートに `.nvmrc` ファイルを作成
 
 ```bash
 cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
@@ -121,20 +123,20 @@ nvm use
 
 ### Step 3: Playwright のセットアップ
 
-- [ ] package.json を初期化（まだ存在しない場合）
+- [x] package.json を初期化（まだ存在しない場合）
 
 ```bash
 cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
 npm init -y
 ```
 
-- [ ] Playwright をインストール
+- [x] Playwright をインストール
 
 ```bash
 npm install --save-dev @playwright/test
 ```
 
-- [ ] Playwright のブラウザをインストール
+- [x] Playwright のブラウザをインストール
 
 ```bash
 npx playwright install
@@ -143,7 +145,7 @@ npx playwright install
 これにより、Chromium / Firefox / WebKit のテスト用ブラウザがダウンロードされる。
 （ダウンロード先: `~/Library/Caches/ms-playwright/` — iCloud外のローカル領域）
 
-- [ ] .gitignore に node_modules を追加
+- [x] .gitignore に node_modules を追加
 
 ```bash
 # .gitignore に以下を追加（まだ記載がなければ）
@@ -154,7 +156,7 @@ echo "node_modules/" >> .gitignore
 
 ### Step 4: Playwright 設定ファイルの作成
 
-- [ ] `playwright.config.js` を作成
+- [x] `playwright.config.js` を作成
 
 ```bash
 cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
@@ -189,7 +191,7 @@ module.exports = defineConfig({
 
 ### Step 5: テストコードフォルダの作成
 
-- [ ] tests フォルダを作成
+- [x] tests フォルダを作成
 
 ```bash
 mkdir -p tests
