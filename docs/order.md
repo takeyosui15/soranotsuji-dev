@@ -442,3 +442,18 @@ watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local %
 ---
 
 ついでなのですが、 `npx playwright show-report` も実施できるように修正をお願いいたします。
+
+### 回答 (2026-03-21)
+
+4件全パス、おめでとうございます！
+
+HTMLレポーターの設定を追加しました。
+
+**修正内容:**
+
+1. `playwright.config.js` — `reporter: 'html'` を追加
+2. `docs/operation/test-env-setup.md` — 手順書のサンプルコードも同様に追加
+
+これで `npx playwright test` 実行後に `playwright-report/` フォルダが生成され、`npx playwright show-report` でブラウザにHTMLレポートが表示されるようになります。
+
+なお、`playwright-report/` は `.gitignore` に追加した方がよいかもしれません。テスト結果のレポートはローカル生成物なので、Git管理は不要です。追加しますか？

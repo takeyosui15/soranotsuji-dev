@@ -5,6 +5,7 @@ const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 30000,
+  reporter: 'html',
   use: {
     // テスト対象URL（GitHub Pages の develop ブランチ）
     baseURL: 'https://takeyosui15.github.io/soranotsuji-dev/',
