@@ -56,12 +56,14 @@ Node.jsとPlaywrightは各マシンにインストールするが、バージョ
 **両方のマシンで同じ手順を実行する。**
 
 - [x] nvm をインストール
+- [x] nvm をインストール
 
 ```bash
 # nvm のインストール
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 ```
 
+- [x] ターミナルを再起動（またはシェル設定を再読込）
 - [x] ターミナルを再起動（またはシェル設定を再読込）
 
 ```bash
@@ -70,12 +72,15 @@ source ~/.zshrc
 ```
 
 - [x] nvm がインストールされたことを確認
+- [x] nvm がインストールされたことを確認
 
 ```bash
 nvm --version
 # 0.40.1 などのバージョンが表示されること
+# 0.40.1
 ```
 
+- [x] Node.js LTS をインストール
 - [x] Node.js LTS をインストール
 
 ```bash
@@ -92,6 +97,7 @@ npm --version
 # 11.9.0
 ```
 
+- [x] デフォルトバージョンを設定
 - [x] デフォルトバージョンを設定
 
 ```bash
@@ -279,15 +285,15 @@ nvm と Node.js のインストールは各マシンで1回だけ必要。
 
 ### 2台目での手順
 
-- [ ] プロジェクトを最新に更新
+- [x] プロジェクトを最新に更新
 
 ```bash
 cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
-git checkout develop
-git pull origin develop
+git checkout work
+git pull origin work
 ```
 
-- [ ] Node.js バージョンを合わせる
+- [x] Node.js バージョンを合わせる
 
 ```bash
 nvm use
@@ -295,13 +301,13 @@ nvm use
 # まだインストールしていない場合は nvm install を実行
 ```
 
-- [ ] npm パッケージをインストール
+- [x] npm パッケージをインストール
 
 ```bash
 npm install
 ```
 
-- [ ] Playwright ブラウザをインストール
+- [x] Playwright ブラウザをインストール
 
 ```bash
 npx playwright install
