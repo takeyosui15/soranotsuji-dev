@@ -728,3 +728,33 @@ VSCodeのエクスプローラーの画面で `node_modules` の右横に`丸印
 あと、`test-results` フォルダが白色で、灰色でないです。
 `.gitignore` には、`test-results/` が追加されています。
 しかし、GitHubの画面にも、`test-results` フォルダが存在します。
+
+### 回答 (2026-03-22)
+
+重複ファイルの削除、確認しました。
+
+**2つの疑問に回答します。**
+
+#### 1. `node_modules` の右横の「丸印」について
+
+VSCodeのエクスプローラーで表示される丸印は、**Gitの追跡状態を示すマーク**です。`node_modules/` は `.gitignore` に追加済みで、Gitの追跡対象からも除外済み（0件）なので、問題ありません。
+
+丸印は `npm install` 実行後に `node_modules/` フォルダが再作成された際、VSCodeが「新しいファイルがある」と認識しているだけです。`.gitignore` で無視されているため、コミットされることはありません。VSCodeを再起動するか、しばらくすると表示が正常化する場合があります。
+
+#### 2. `test-results` フォルダがGitHubに残っている件
+
+**`test-results/.last-run.json` がまだGitの追跡対象に残っています。**
+
+`.gitignore` に `test-results/` を追加しましたが、`.DS_Store` と同じ問題で、既にコミット済みのファイルは `.gitignore` だけでは除外されません。
+
+**対処コマンド:**
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+
+git rm -r --cached test-results/
+git commit -m "fix: test-results/を追跡対象から除外"
+git push origin work
+```
+
+これで `test-results/` もGitHubから消え、VSCodeでも灰色表示（.gitignore対象）になります。
