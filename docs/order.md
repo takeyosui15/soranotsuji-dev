@@ -656,3 +656,60 @@ Step7まで完了です。
 疑問なのですが、`node_modules/` フォルダがMacのFinderから見ても、無いようなのですが、大丈夫でしょうか。
 おまけに、`playwright.config 2.js`、`package-lock 2.json`、`basic.spec 2.js`など、ファイル名に`2`がつくファイルが勝手にできるようになりました。
 大丈夫でしょうか。
+
+### 回答 (2026-03-22)
+
+**2つの問題について回答します。**
+
+#### 1. `node_modules/` フォルダがない件
+
+**`npm install` を再実行すれば復旧します。**
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+npm install
+```
+
+`git rm -r --cached node_modules/` を実行した際、`--cached` オプションでGitの追跡対象から外すだけのはずですが、iCloudの同期やFinderの表示の影響で実体が消えてしまった可能性があります。`package.json` と `package-lock.json` がありますので、`npm install` で同じ内容が再現されます。
+
+#### 2. ファイル名に `2` がつくファイルが生成される件
+
+**これはiCloud Driveの同期の競合によるものです。**
+
+iCloud は複数のMac間でファイルを同期しますが、同じファイルが両方で変更された場合、競合を解消するために `ファイル名 2.拡張子` という重複ファイルを自動生成します。
+
+- `playwright.config 2.js` ← `playwright.config.js` の競合コピー
+- `package-lock 2.json` ← `package-lock.json` の競合コピー
+- `basic.spec 2.js` ← `basic.spec.js` の競合コピー
+
+**対処:**
+
+1. 重複ファイルを削除してください（`2` がつくファイルは不要です）:
+
+```bash
+cd "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local"
+
+# 重複ファイルを確認
+find . -name "* 2.*" -not -path "./node_modules/*"
+
+# 確認後、削除
+find . -name "* 2.*" -not -path "./node_modules/*" -delete
+```
+
+2. Gitに既にコミットされている `tests/basic.spec 2.js` も削除が必要です:
+
+```bash
+git rm "tests/basic.spec 2.js"
+git commit -m "fix: iCloud同期の競合で生成された重複ファイルを削除"
+git push origin work
+```
+
+**今後の予防策について:**
+
+iCloudフォルダ内でGitリポジトリを運用すると、この競合問題が繰り返し発生する可能性があります。特に `node_modules/` のような大量のファイルがあると悪化します。
+
+気になる場合は、今後の対策として以下を検討できます:
+- `.gitignore` に加えて、iCloud同期除外の設定（`.nosync` 拡張子やシンボリックリンク）を活用する
+- `node_modules/` フォルダにiCloud同期除外を設定する
+
+ただし、現時点ではまず重複ファイルの削除と `npm install` の再実行で十分です。
