@@ -249,7 +249,7 @@ npx playwright show-report
 
 ### Step 7: Git にテスト関連ファイルをコミット
 
-- [ ] 以下のファイルをコミット
+- [x] 以下のファイルをコミット
 
 ```bash
 git add .nvmrc package.json package-lock.json playwright.config.js tests/ .gitignore
