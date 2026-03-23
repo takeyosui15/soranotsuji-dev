@@ -1041,7 +1041,7 @@ async function applyLocationCoords(coords, isStart) {
     const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
     document.getElementById(inputId).blur();
 
-    map.setView(coords, 10);
+    map.setView(coords);
     saveAppState();
     updateAll();
 }
