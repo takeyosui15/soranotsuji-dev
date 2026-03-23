@@ -313,7 +313,7 @@ npm install
 npx playwright install
 ```
 
-- [ ] テストを実行して確認
+- [x] テストを実行して確認
 
 ```bash
 npx playwright test
