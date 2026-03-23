@@ -859,3 +859,20 @@ git show a718dd8
 Claudeさん、ありがとうございます。
 承知しました。
 アプローチAでお願いいたします。
+
+### 回答 (2026-03-23)
+
+`script.js` の `initVisitorCounter()` を修正しました。
+
+**変更内容:**
+- `location.hostname === 'soranotsuji.net'` を判定する1行を追加
+- 本番サイト以外からのアクセスでは `action='get'`（取得のみ）を送信
+
+**動作:**
+| アクセス元 | カウントアップ | カウンター表示 |
+|---|---|---|
+| `soranotsuji.net` | する | 表示する |
+| `takeyosui15.github.io/soranotsuji-dev/` | しない | 表示する |
+| `localhost` | しない | 表示する |
+
+開発環境・テスト環境でもカウンター値は見えますが、カウントアップはされません。

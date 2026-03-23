@@ -2642,7 +2642,9 @@ function initVisitorCounter() {
     // 計算中表示
     setCounterDisplay('-', '-', '-', '-');
 
-    const action = (appState.lastVisitDate !== todayStr) ? 'visit' : 'get';
+    // soranotsuji.net からのアクセスのみカウントアップ
+    const isProductionSite = (location.hostname === 'soranotsuji.net');
+    const action = (isProductionSite && appState.lastVisitDate !== todayStr) ? 'visit' : 'get';
     fetchVisitorData(action, todayStr);
 }
 
