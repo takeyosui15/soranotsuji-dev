@@ -813,3 +813,36 @@ Claudeさん、ありがとうございます。
 ローカルホストからアクセスしたときに、テストのために多数の訪問カウンターがカウントされてしまう問題です。
 基本、soranotsuji.netからアクセスしたときだけ、訪問者カウンターをカウントアップしたいです。
 そのようには、できないでしょうか。
+
+### 回答 (2026-03-23)
+
+2台目のテスト環境構築完了、お疲れ様でした！
+
+**訪問カウンターの問題、対応可能です。** 2つのアプローチがあります。
+
+#### アプローチA: クライアント側（script.js）で制御（推奨）
+
+`initVisitorCounter()` でアクセス元のホスト名を判定し、`soranotsuji.net` 以外からのアクセスでは `action='visit'`（カウントアップ）を送らず、`action='get'`（取得のみ）にします。
+
+**修正箇所:** `script.js` の `initVisitorCounter()` 関数
+
+```javascript
+function initVisitorCounter() {
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+    setCounterDisplay('-', '-', '-', '-');
+
+    // soranotsuji.net からのアクセスのみカウントアップ
+    const isProductionSite = (location.hostname === 'soranotsuji.net');
+    const action = (isProductionSite && appState.lastVisitDate !== todayStr) ? 'visit' : 'get';
+    fetchVisitorData(action, todayStr);
+}
+```
+
+**メリット:** GAS側の変更不要、デプロイし直す必要なし
+**注意:** 開発環境・テスト環境でもカウンター表示は見える（値の取得はする）が、カウントアップはしない
+
+#### アプローチB: サーバー側（GAS）で制御
+
+GASの `doGet()` でリファラーを確認し、`soranotsuji.net` 以外からの `visit` リクエストを拒否する方法もありますが、GASではリファラー取得が不確実なため、アプローチAを推奨します。
+
+**アプローチAで進めてよろしいでしょうか？** ご了承いただければ、script.js を修正します。
