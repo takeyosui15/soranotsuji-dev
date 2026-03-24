@@ -76,7 +76,7 @@ const BODY_RADIUS_KM = {
 const KM_PER_AU = 149597870.7;
 
 const DEFAULT_START = { lat: 35.658582, lng: 139.745471, elev: 18.5, height: 150.0 };
-const DEFAULT_END = { lat: 35.360776, lng: 138.727299, elev: 3774.9, height: 0 };
+const DEFAULT_END = { lat: 35.362799, lng: 138.730781, elev: 3774.9, height: 0 };
 
 // 天体ごとの初期スタイル (リセット用)
 const DEFAULT_BODIES = [
