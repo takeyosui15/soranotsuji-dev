@@ -936,19 +936,6 @@ function updateCalculation() {
             setStr = "00:00";
         }
 
-        // 南中時刻の計算
-        let transitStr = "--:--";
-        if (FIXED_STAR_IDS.includes(body.id)) {
-            transitStr = searchStarTransit(ra, dec, observer, startOfDay);
-        } else {
-            try {
-                const transit = Astronomy.SearchHourAngle(body.id, observer, 0, startOfDay);
-                if (transit && transit.time) {
-                    transitStr = formatTime(transit.time.date, startOfDay);
-                }
-            } catch(e) {}
-        }
-
         // 視半径の計算
         const angR = getBodyAngularRadius(body.id, obsDate, observer);
 
@@ -958,10 +945,32 @@ function updateCalculation() {
             radecEl.innerText = `赤経 ${ra.toFixed(4)}h / 赤緯 ${dec.toFixed(4)}°`;
         }
 
-        // 出・南中・入時刻
+        // 出・南中・入時刻（南中時は非同期で計算）
         const risesetEl = document.getElementById(`riseset-${body.id}`);
         if (risesetEl) {
-            risesetEl.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
+            risesetEl.innerText = `出時刻 ${riseStr} / 南中時 --:-- / 入時刻 ${setStr}`;
+
+            // 南中時刻を非同期で計算してUIをブロックしない
+            const bodyId = body.id;
+            const capturedRa = ra;
+            const capturedDec = dec;
+            setTimeout(() => {
+                let transitStr = "--:--";
+                if (FIXED_STAR_IDS.includes(bodyId)) {
+                    transitStr = searchStarTransit(capturedRa, capturedDec, observer, startOfDay);
+                } else {
+                    try {
+                        const transit = Astronomy.SearchHourAngle(bodyId, observer, 0, startOfDay);
+                        if (transit && transit.time) {
+                            transitStr = formatTime(transit.time.date, startOfDay);
+                        }
+                    } catch(e) {}
+                }
+                const el = document.getElementById(`riseset-${bodyId}`);
+                if (el) {
+                    el.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
+                }
+            }, 0);
         }
 
         // 方位角・視高度・視半径
