@@ -119,7 +119,6 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <div class="btn-group-left">
                             <button id="btn-reg-end" class="nav-btn small" title="現在の目的点を初期値として登録">推山</button>
-                            <button id="btn-url-location" class="nav-btn small" title="現在の状態で宙の辻を開くURLをクリップボードにコピー">URL</button>
                         </div>
                         <label class="input-label">観測点高(m):</label>
                         <input type="number" id="input-start-elev" placeholder="追加高さ m" value="0" step="0.1">
@@ -127,7 +126,7 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <div class="spacer-btn"></div>
+                            <button id="btn-url-location" class="nav-btn small" title="現在の状態で宙の辻を開くURLをクリップボードにコピー">URL</button>
                             <input type="radio" name="loc-mode" id="radio-end" value="end">
                         </div>
                         <label class="input-label">目的点(°):</label>
@@ -201,7 +200,7 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-alt-tolerance" placeholder="検索中心から上向き(単位:°)" step="0.01" min="0" max="360">
                     </div>
                     <div class="control-row">
-                        <button id="btn-url-tsuji" class="nav-btn small" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
+                        <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
                 </div>
             </div>
