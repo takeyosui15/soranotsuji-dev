@@ -272,6 +272,9 @@ window.onload = function() {
     // 2. 設定読み込み
     loadAppState();
 
+    // 2.5. URLパラメータからの復元（LocalStorageより優先）
+    restoreFromUrl();
+
     // 3. 地図初期化
     initMap();
 
@@ -521,6 +524,10 @@ function setupUI() {
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
     document.getElementById('btn-reg-end').onclick = () => registerLocation('end');
+
+    // URL取得ボタン
+    document.getElementById('btn-url-location').onclick = copyLocationUrl;
+    document.getElementById('btn-url-tsuji').onclick = copyTsujiSearchUrl;
 
     // 座標入力 (changeイベント)
     const iStart = document.getElementById('input-start-latlng');
@@ -2787,4 +2794,135 @@ function toggleSection(id) {
 function toggleHelp() {
     const modal = document.getElementById('help-modal');
     if(modal) modal.classList.toggle('hidden');
+}
+
+// ============================================================
+// URL取得・復元
+// ============================================================
+
+function buildBaseUrl() {
+    return window.location.origin + window.location.pathname;
+}
+
+function copyLocationUrl() {
+    const d = appState.currentDate;
+    const dateStr = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+    const params = new URLSearchParams();
+    params.set('slat', appState.start.lat.toFixed(6));
+    params.set('slng', appState.start.lng.toFixed(6));
+    params.set('sh', String(appState.startHeight));
+    params.set('elat', appState.end.lat.toFixed(6));
+    params.set('elng', appState.end.lng.toFixed(6));
+    params.set('eh', String(appState.endHeight));
+    params.set('date', dateStr);
+    params.set('time', timeStr);
+
+    const visibleBodies = appState.bodies.filter(b => b.visible).map(b => b.id);
+    if (visibleBodies.length > 0) {
+        params.set('bodies', visibleBodies.join(','));
+    }
+
+    const url = buildBaseUrl() + '?' + params.toString();
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
+    });
+}
+
+function copyTsujiSearchUrl() {
+    const d = appState.currentDate;
+    const dateStr = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+    const params = new URLSearchParams();
+    params.set('slat', appState.start.lat.toFixed(6));
+    params.set('slng', appState.start.lng.toFixed(6));
+    params.set('sh', String(appState.startHeight));
+    params.set('elat', appState.end.lat.toFixed(6));
+    params.set('elng', appState.end.lng.toFixed(6));
+    params.set('eh', String(appState.endHeight));
+    params.set('date', dateStr);
+    params.set('time', timeStr);
+
+    params.set('tdays', String(appState.tsujiSearchDays));
+    params.set('tazoff', String(appState.tsujiSearchOffsetAz));
+    params.set('taltoff', String(appState.tsujiSearchOffsetAlt));
+    params.set('taztol', String(appState.tsujiSearchToleranceAz));
+    params.set('talttol', String(appState.tsujiSearchToleranceAlt));
+
+    const visibleBodies = appState.bodies.filter(b => b.visible).map(b => b.id);
+    if (visibleBodies.length > 0) {
+        params.set('bodies', visibleBodies.join(','));
+    }
+
+    const url = buildBaseUrl() + '?' + params.toString();
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
+    });
+}
+
+function restoreFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.size === 0) return;
+
+    // 位置情報
+    if (params.has('slat') && params.has('slng')) {
+        const lat = parseFloat(params.get('slat'));
+        const lng = parseFloat(params.get('slng'));
+        if (!isNaN(lat) && !isNaN(lng)) {
+            appState.start.lat = lat;
+            appState.start.lng = lng;
+        }
+    }
+    if (params.has('sh')) {
+        const h = parseFloat(params.get('sh'));
+        if (!isNaN(h)) appState.startHeight = h;
+    }
+    if (params.has('elat') && params.has('elng')) {
+        const lat = parseFloat(params.get('elat'));
+        const lng = parseFloat(params.get('elng'));
+        if (!isNaN(lat) && !isNaN(lng)) {
+            appState.end.lat = lat;
+            appState.end.lng = lng;
+        }
+    }
+    if (params.has('eh')) {
+        const h = parseFloat(params.get('eh'));
+        if (!isNaN(h)) appState.endHeight = h;
+    }
+
+    // 日時
+    if (params.has('date')) {
+        const parts = params.get('date').split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
+            appState.currentDate.setFullYear(y, m, d);
+        }
+    }
+    if (params.has('time')) {
+        const tp = params.get('time').split(':');
+        if (tp.length === 2) {
+            appState.currentDate.setHours(parseInt(tp[0]), parseInt(tp[1]), 0, 0);
+        }
+    }
+
+    // 辻検索パラメータ
+    if (params.has('tdays')) { const v = parseInt(params.get('tdays')); if (!isNaN(v)) appState.tsujiSearchDays = v; }
+    if (params.has('tazoff')) { const v = parseFloat(params.get('tazoff')); if (!isNaN(v)) appState.tsujiSearchOffsetAz = v; }
+    if (params.has('taltoff')) { const v = parseFloat(params.get('taltoff')); if (!isNaN(v)) appState.tsujiSearchOffsetAlt = v; }
+    if (params.has('taztol')) { const v = parseFloat(params.get('taztol')); if (!isNaN(v)) appState.tsujiSearchToleranceAz = v; }
+    if (params.has('talttol')) { const v = parseFloat(params.get('talttol')); if (!isNaN(v)) appState.tsujiSearchToleranceAlt = v; }
+
+    // 表示天体
+    if (params.has('bodies')) {
+        const visibleIds = params.get('bodies').split(',');
+        appState.bodies.forEach(b => {
+            b.visible = visibleIds.includes(b.id);
+        });
+    }
+
+    // 標高(elev)を再計算: elev = apiElev + height
+    appState.start.elev = appState.startApiElev + appState.startHeight;
+    appState.end.elev = appState.endApiElev + appState.endHeight;
 }
