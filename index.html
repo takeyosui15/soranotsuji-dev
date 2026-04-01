@@ -105,7 +105,7 @@ GNU General Public License for more details.
                             <input type="radio" name="loc-mode" id="radio-start" value="start" checked>
                         </div>
                         <label class="input-label">観測点(°):</label>
-                        <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度">
+                        <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
                     </div>
 
                     <div class="control-row">
@@ -130,7 +130,7 @@ GNU General Public License for more details.
                             <input type="radio" name="loc-mode" id="radio-end" value="end">
                         </div>
                         <label class="input-label">目的点(°):</label>
-                        <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度">
+                        <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
                     </div>
 
                     <div class="control-row">
@@ -419,7 +419,7 @@ GNU General Public License for more details.
                 <div id="sec-mystar" class="section-content">
                     <div class="control-row">
                         <button id="btn-mystar-reg" class="nav-btn small">登録</button>
-                        <input type="text" id="input-mystar-radec" placeholder="赤経,赤緯">
+                        <input type="text" id="input-mystar-radec" placeholder="赤経,赤緯" maxlength="150">
                     </div>
                     <div class="celestial-list" style="margin-top: 5px; border-bottom: none;">
                         <li style="border-bottom: none; padding-bottom: 0;">
@@ -589,6 +589,8 @@ GNU General Public License for more details.
                         <li><strong>基準視高度:</strong> 検索する視高度の基準値。初期値は観測点→目的点の視高度。</li>
                         <li><strong>オフセット方位角:</strong> 基準方位角からのズレ(度)。正の値で時計回り方向にずらします(初期値: 0°)。</li>
                         <li><strong>オフセット視高度:</strong> 基準視高度からのズレ(度)。正の値で上方向にずらします(初期値: 0°)。</li>
+                        <li><strong>オフセット方位距離:</strong> 観測点でのオフセット方位角を目的点での水平距離(m)に換算した値です(読み取り専用)。目的点でどのくらい横にずれるかの目安になります。</li>
+                        <li><strong>オフセット視高距離:</strong> 観測点でのオフセット視高度を目的点での垂直距離(m)に換算した値です(読み取り専用)。目的点でどのくらい上下にずれるかの目安になります。</li>
                         <li><strong>許容範囲方位角: ±</strong> 検索中心(基準方位角+オフセット方位角)からの許容範囲(初期値: 15°)。</li>
                         <li><strong>許容範囲視高度: ±</strong> 検索中心(基準視高度+オフセット視高度)からの許容範囲(初期値: 2.5°)。</li>
                         <li><strong>◎:</strong> 天体の中心がほぼ目的点に重なる日(誤差±0.125°[誤差範囲0.25°、およそ視半径以内])</li>

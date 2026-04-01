@@ -839,9 +839,11 @@ function updateLocationDisplay() {
     const sPt = L.latLng(appState.start.lat, appState.start.lng);
     const ePt = L.latLng(appState.end.lat, appState.end.lng);
     
-    // マーカーの設置
-    L.marker(sPt).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end));
-    L.marker(ePt).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start));
+    // マーカーの設置（観測点:青、目的点:赤）
+    const observerIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-observer"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
+    const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
+    L.marker(sPt, { icon: observerIcon }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    L.marker(ePt, { icon: targetIcon }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
     L.polyline([sPt, ePt], {
@@ -952,7 +954,8 @@ function updateCalculation() {
         // 方位角・視高度・視半径
         const dataEl = document.getElementById(`data-${body.id}`);
         if (dataEl) {
-            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(2)}° / 視高度 ${hor.altitude.toFixed(2)}° / 視半径 ${angR.toFixed(3)}°`;
+            const angRStr = BODY_RADIUS_KM[body.id] ? angR.toFixed(3) + '°' : '-.---°';
+            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(2)}° / 視高度 ${hor.altitude.toFixed(2)}° / 視半径 ${angRStr}`;
         }
 
         if (body.visible) {
@@ -1854,10 +1857,10 @@ async function fetchAllElevations(points, onProgress) {
     if (onProgress) onProgress(points.length, points.length);
 }
 
-function createLocationPopup(title, pos, target) {
+function createLocationPopup(title, pos, target, apiElev, height) {
     const az = calculateBearing(pos.lat, pos.lng, target.lat, target.lng);
     const dist = L.latLng(pos.lat, pos.lng).distanceTo(L.latLng(target.lat, target.lng));
-    
+
     // ★追加: 視高度を計算
     const alt = calculateApparentAltitude(dist, pos.elev, target.elev);
 
@@ -1865,7 +1868,8 @@ function createLocationPopup(title, pos, target) {
         <b>${title}</b><br>
         緯度: ${pos.lat.toFixed(5)}°<br>
         経度: ${pos.lng.toFixed(5)}°<br>
-        標高: ${pos.elev} m<br>
+        標高: ${apiElev != null ? apiElev : pos.elev} m<br>
+        高さ: ${height != null ? height : 0} m<br>
         相手距離: ${(dist/1000).toFixed(2)} km<br>
         相手方位: ${az.toFixed(1)}°<br>
         相手高度: ${alt.toFixed(2)}°
@@ -2514,7 +2518,8 @@ async function startTsujiSearch() {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${r.angularRadius.toFixed(3)}°</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
+        const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${angRDisplay}</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
