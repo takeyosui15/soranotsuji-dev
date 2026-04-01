@@ -68,6 +68,23 @@ const MINTAKA_RA = 5.533444;
 const MINTAKA_DEC = -0.299095;
 const SUBARU_RA = 3.777222;
 const SUBARU_DEC = 24.178056;
+const M42_RA = 5.588007;
+const M42_DEC = -5.3876;
+const VEGA_RA = 18.615649;
+const VEGA_DEC = 38.783689;
+const ALTAIR_RA = 19.846388;
+const ALTAIR_DEC = 8.868321;
+const DENEB_RA = 20.690532;
+const DENEB_DEC = 45.280339;
+const BETELGEUSE_RA = 5.919529;
+const BETELGEUSE_DEC = 7.407064;
+const SIRIUS_RA = 6.752477;
+const SIRIUS_DEC = -16.716116;
+const PROCYON_RA = 7.655033;
+const PROCYON_DEC = 5.224988;
+
+// 固定RA/Decの恒星IDリスト
+const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon', 'MyStar'];
 
 // 天体の赤道半径 (km) - 視半径の計算用
 const BODY_RADIUS_KM = {
@@ -179,6 +196,13 @@ let appState = {
         { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
         { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
         { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
+        { id: 'M42',     name: 'オリオン大星雲M42', color: '#DDA0DD', isDashed: false, visible: false },
+        { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
+        { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
+        { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
+        { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
+        { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
+        { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false },
         { id: 'MyStar',  name: 'My天体', color: '#DDA0DD', isDashed: false, visible: false, isCustom: true }
     ],
 
@@ -879,21 +903,10 @@ function updateCalculation() {
         let ra;
         let dec;
         
-        if (body.id === 'Polaris') {
-            ra = POLARIS_RA;
-            dec = POLARIS_DEC;
-        } else if (body.id === 'Merak') {
-            ra = MERAK_RA;
-            dec = MERAK_DEC;
-        } else if (body.id === 'Mintaka') {
-            ra = MINTAKA_RA;
-            dec = MINTAKA_DEC;
-        } else if (body.id === 'Subaru') {
-            ra = SUBARU_RA;
-            dec = SUBARU_DEC;
-        } else if (body.id === 'MyStar') {
-            ra = appState.myStar.ra;
-            dec = appState.myStar.dec;
+        if (FIXED_STAR_IDS.includes(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            ra = rd.ra;
+            dec = rd.dec;
         } else {
             const eq = Astronomy.Equator(body.id, obsDate, observer, true, true);
             ra = eq.ra;
@@ -905,7 +918,7 @@ function updateCalculation() {
         let riseStr = "--:--";
         let setStr = "--:--";
         
-        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
+        if (FIXED_STAR_IDS.includes(body.id)) {
             const times = searchStarRiseSet(ra, dec, observer, startOfDay);
             riseStr = times.rise;
             setStr = times.set;
@@ -925,7 +938,7 @@ function updateCalculation() {
 
         // 南中時刻の計算
         let transitStr = "--:--";
-        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
+        if (FIXED_STAR_IDS.includes(body.id)) {
             transitStr = searchStarTransit(ra, dec, observer, startOfDay);
         } else {
             try {
@@ -1323,23 +1336,10 @@ function calculateDPPathPoints(targetDate, body, observer) {
         let r;
         let d;
         
-        if (['Polaris', 'Merak', 'Mintaka', 'Subaru', 'MyStar'].includes(body.id)) {
-            if(body.id === 'Polaris') {
-                r = POLARIS_RA;
-                d = POLARIS_DEC;
-            } else if(body.id === 'Merak') {
-                r = MERAK_RA;
-                d = MERAK_DEC;
-            } else if(body.id === 'Mintaka') {
-                r = MINTAKA_RA;
-                d = MINTAKA_DEC;
-            } else if(body.id === 'Subaru') {
-                r = SUBARU_RA;
-                d = SUBARU_DEC;
-            } else {
-                r = appState.myStar.ra;
-                d = appState.myStar.dec;
-            }
+        if (FIXED_STAR_IDS.includes(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            r = rd.ra;
+            d = rd.dec;
         } else {
             const eq = Astronomy.Equator(body.id, time, observer, true, true);
             r = eq.ra;
@@ -1421,6 +1421,25 @@ function getBodyAngularRadius(bodyId, date, observer) {
     const eq = Astronomy.Equator(bodyId, date, observer, true, true);
     const distKm = eq.dist * KM_PER_AU;
     return Math.atan(radiusKm / distKm) * 180 / Math.PI;
+}
+
+// 固定RA/Decの恒星のRA/Decを返すヘルパー
+function getFixedStarRaDec(bodyId) {
+    switch (bodyId) {
+        case 'Polaris':    return { ra: POLARIS_RA, dec: POLARIS_DEC };
+        case 'Merak':      return { ra: MERAK_RA, dec: MERAK_DEC };
+        case 'Mintaka':    return { ra: MINTAKA_RA, dec: MINTAKA_DEC };
+        case 'Subaru':     return { ra: SUBARU_RA, dec: SUBARU_DEC };
+        case 'M42':        return { ra: M42_RA, dec: M42_DEC };
+        case 'Vega':       return { ra: VEGA_RA, dec: VEGA_DEC };
+        case 'Altair':     return { ra: ALTAIR_RA, dec: ALTAIR_DEC };
+        case 'Deneb':      return { ra: DENEB_RA, dec: DENEB_DEC };
+        case 'Betelgeuse': return { ra: BETELGEUSE_RA, dec: BETELGEUSE_DEC };
+        case 'Sirius':     return { ra: SIRIUS_RA, dec: SIRIUS_DEC };
+        case 'Procyon':    return { ra: PROCYON_RA, dec: PROCYON_DEC };
+        case 'MyStar':     return { ra: appState.myStar.ra, dec: appState.myStar.dec };
+        default:           return { ra: 0, dec: 0 };
+    }
 }
 
 // ------------------------------------------------------
@@ -2408,16 +2427,9 @@ async function startTsujiSearch() {
                 const time = new Date(dayStart.getTime() + m * 60000);
 
                 let ra, dec;
-                if (body.id === 'Polaris') {
-                    ra = POLARIS_RA; dec = POLARIS_DEC;
-                } else if (body.id === 'Merak') {
-                    ra = MERAK_RA; dec = MERAK_DEC;
-                } else if (body.id === 'Mintaka') {
-                    ra = MINTAKA_RA; dec = MINTAKA_DEC;
-                } else if (body.id === 'Subaru') {
-                    ra = SUBARU_RA; dec = SUBARU_DEC;
-                } else if (body.id === 'MyStar') {
-                    ra = appState.myStar.ra; dec = appState.myStar.dec;
+                if (FIXED_STAR_IDS.includes(body.id)) {
+                    const rd = getFixedStarRaDec(body.id);
+                    ra = rd.ra; dec = rd.dec;
                 } else {
                     const eq = Astronomy.Equator(body.id, time, observer, true, true);
                     ra = eq.ra; dec = eq.dec;
