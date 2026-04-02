@@ -53,6 +53,15 @@ Version 1.0.0 - 2026-01-29: Initial release
 const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzq94EkeZgbWlFb65cb1WQcRrRVi2Qpd_i60NvJWx6BB6Qxpb-30GD7TSzZptpRYxYL/exec"; 
 const SYNODIC_MONTH = 29.53058886; // 朔望月 (日数)
+
+// 市区町村データ (遅延読み込み)
+let muniData = null;
+async function loadMuniData() {
+    if (muniData) return muniData;
+    const resp = await fetch('muni.json');
+    muniData = await resp.json();
+    return muniData;
+}
 const EARTH_RADIUS = 6378137;
 const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
 // 標準大気モデルの定数
@@ -331,6 +340,16 @@ window.onload = function() {
     });
 
     setTimeout(initVisitorCounter, 1000);
+
+    // URLパラメータで辻検索が指定されていた場合、自動実行
+    if (appState._pendingTsujiSearch) {
+        delete appState._pendingTsujiSearch;
+        setTimeout(() => {
+            appState.isTsujiSearchActive = true;
+            document.getElementById('btn-tsuji-search').classList.add('active');
+            startTsujiSearch();
+        }, 500);
+    }
 };
 
 // 古いキーの削除関数
@@ -924,11 +943,9 @@ function updateCalculation() {
 
         let riseStr = "--:--";
         let setStr = "--:--";
-        
+
         if (FIXED_STAR_IDS.includes(body.id)) {
-            const times = searchStarRiseSet(ra, dec, observer, startOfDay);
-            riseStr = times.rise;
-            setStr = times.set;
+            // 恒星: 出入り時刻は非同期で計算（下のsetTimeoutでまとめて処理）
         } else {
             try {
                 const rise = Astronomy.SearchRiseSet(body.id, observer, +1, startOfDay, 2);
@@ -937,8 +954,8 @@ function updateCalculation() {
                 setStr = set ? formatTime(set.date, startOfDay) : "--:--";
             } catch(e){}
         }
-        
-        if (riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
+
+        if (!FIXED_STAR_IDS.includes(body.id) && riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
             riseStr = "00:00";
             setStr = "00:00";
         }
@@ -952,32 +969,43 @@ function updateCalculation() {
             radecEl.innerText = `赤経 ${ra.toFixed(4)}h / 赤緯 ${dec.toFixed(4)}°`;
         }
 
-        // 出・南中・入時刻（南中時は非同期で計算）
+        // 出・南中・入時刻
         const risesetEl = document.getElementById(`riseset-${body.id}`);
         if (risesetEl) {
-            risesetEl.innerText = `出時刻 ${riseStr} / 南中時 --:-- / 入時刻 ${setStr}`;
-
-            // 南中時刻を非同期で計算してUIをブロックしない
-            const bodyId = body.id;
-            const capturedRa = ra;
-            const capturedDec = dec;
-            setTimeout(() => {
-                let transitStr = "--:--";
-                if (FIXED_STAR_IDS.includes(bodyId)) {
-                    transitStr = searchStarTransit(capturedRa, capturedDec, observer, startOfDay);
-                } else {
+            if (FIXED_STAR_IDS.includes(body.id)) {
+                // 恒星: 出入り時刻・南中時を全て非同期で一括計算
+                risesetEl.innerText = `出時刻 --:-- / 南中時 --:-- / 入時刻 --:--`;
+                const bodyId = body.id;
+                const capturedRa = ra;
+                const capturedDec = dec;
+                setTimeout(() => {
+                    const times = searchStarRiseSet(capturedRa, capturedDec, observer, startOfDay);
+                    let rs = times.rise;
+                    let ss = times.set;
+                    if (rs === "--:--" && ss === "--:--") {
+                        const h = Astronomy.Horizon(obsDate, observer, capturedRa, capturedDec, appState.refractionEnabled ? "normal" : null);
+                        if (h.altitude > 0) { rs = "00:00"; ss = "00:00"; }
+                    }
+                    const transitStr = searchStarTransit(capturedRa, capturedDec, observer, startOfDay);
+                    const el = document.getElementById(`riseset-${bodyId}`);
+                    if (el) el.innerText = `出時刻 ${rs} / 南中時 ${transitStr} / 入時刻 ${ss}`;
+                }, 0);
+            } else {
+                // 太陽系天体: 出入り時刻は同期、南中時のみ非同期
+                risesetEl.innerText = `出時刻 ${riseStr} / 南中時 --:-- / 入時刻 ${setStr}`;
+                const bodyId = body.id;
+                setTimeout(() => {
+                    let transitStr = "--:--";
                     try {
                         const transit = Astronomy.SearchHourAngle(bodyId, observer, 0, startOfDay);
                         if (transit && transit.time) {
                             transitStr = formatTime(transit.time.date, startOfDay);
                         }
                     } catch(e) {}
-                }
-                const el = document.getElementById(`riseset-${bodyId}`);
-                if (el) {
-                    el.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
-                }
-            }, 0);
+                    const el = document.getElementById(`riseset-${bodyId}`);
+                    if (el) el.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
+                }, 0);
+            }
         }
 
         // 方位角・視高度・視半径
@@ -1659,11 +1687,12 @@ async function searchLocation(query) {
         const data = await res.json();
 
         if (data && data.length > 0) {
+            const muni = await loadMuniData();
             const gsiResults = data
                 .filter(item => item.properties.title.includes(q))
                 .map(item => {
                     const code = item.properties.addressCode || '';
-                    const muniStr = (code && GSI.MUNI_ARRAY && GSI.MUNI_ARRAY[code]) || '';
+                    const muniStr = (code && muni && muni[code]) || '';
                     const parts = muniStr.split(',');
                     const pref = parts[1] || '';
                     const city = parts[3] || '';
@@ -2804,25 +2833,43 @@ function buildBaseUrl() {
     return window.location.origin + window.location.pathname;
 }
 
-function copyLocationUrl() {
+// 日時をdessin仕様フォーマットに変換するヘルパー
+function formatDateForUrl(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}${m}${day}`;
+}
+function formatTimeForUrl(d) {
+    return `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+// 共通のURLパラメータを構築するヘルパー
+function buildCommonUrlParams() {
     const d = appState.currentDate;
-    const dateStr = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
-    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-
     const params = new URLSearchParams();
-    params.set('slat', appState.start.lat.toFixed(6));
-    params.set('slng', appState.start.lng.toFixed(6));
-    params.set('sh', String(appState.startHeight));
-    params.set('elat', appState.end.lat.toFixed(6));
-    params.set('elng', appState.end.lng.toFixed(6));
-    params.set('eh', String(appState.endHeight));
-    params.set('date', dateStr);
-    params.set('time', timeStr);
+    params.set('date', formatDateForUrl(d));
+    params.set('time', formatTimeForUrl(d));
+    params.set('timeZone', '+0900');
+    params.set('startLat', appState.start.lat.toFixed(6));
+    params.set('startLng', appState.start.lng.toFixed(6));
+    params.set('startApiElv', String(appState.startApiElev));
+    params.set('startElv', String(appState.startHeight));
+    params.set('endLat', appState.end.lat.toFixed(6));
+    params.set('endLng', appState.end.lng.toFixed(6));
+    params.set('endApiElv', String(appState.endApiElev));
+    params.set('endElv', String(appState.endHeight));
 
-    const visibleBodies = appState.bodies.filter(b => b.visible).map(b => b.id);
-    if (visibleBodies.length > 0) {
-        params.set('bodies', visibleBodies.join(','));
-    }
+    // 表示天体: starIdを複数指定
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    visibleBodies.forEach(b => params.append('starId', b.id));
+
+    return params;
+}
+
+function copyLocationUrl() {
+    const params = buildCommonUrlParams();
+    params.set('mode', 'preview');
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -2831,30 +2878,16 @@ function copyLocationUrl() {
 }
 
 function copyTsujiSearchUrl() {
-    const d = appState.currentDate;
-    const dateStr = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
-    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const params = buildCommonUrlParams();
+    params.set('mode', 'tsujisearch');
 
-    const params = new URLSearchParams();
-    params.set('slat', appState.start.lat.toFixed(6));
-    params.set('slng', appState.start.lng.toFixed(6));
-    params.set('sh', String(appState.startHeight));
-    params.set('elat', appState.end.lat.toFixed(6));
-    params.set('elng', appState.end.lng.toFixed(6));
-    params.set('eh', String(appState.endHeight));
-    params.set('date', dateStr);
-    params.set('time', timeStr);
-
-    params.set('tdays', String(appState.tsujiSearchDays));
-    params.set('tazoff', String(appState.tsujiSearchOffsetAz));
-    params.set('taltoff', String(appState.tsujiSearchOffsetAlt));
-    params.set('taztol', String(appState.tsujiSearchToleranceAz));
-    params.set('talttol', String(appState.tsujiSearchToleranceAlt));
-
-    const visibleBodies = appState.bodies.filter(b => b.visible).map(b => b.id);
-    if (visibleBodies.length > 0) {
-        params.set('bodies', visibleBodies.join(','));
-    }
+    params.set('tsujiSearchDays', String(appState.tsujiSearchDays));
+    params.set('tsujiAz', String(appState.tsujiSearchBaseAz));
+    params.set('tsujiAlt', String(appState.tsujiSearchBaseAlt));
+    params.set('tsujiAzOffset', String(appState.tsujiSearchOffsetAz));
+    params.set('tsujiAltOffset', String(appState.tsujiSearchOffsetAlt));
+    params.set('tsujiAzTolerance', String(appState.tsujiSearchToleranceAz));
+    params.set('tsujiAltTolerance', String(appState.tsujiSearchToleranceAlt));
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -2864,65 +2897,62 @@ function copyTsujiSearchUrl() {
 
 function restoreFromUrl() {
     const params = new URLSearchParams(window.location.search);
-    if (params.size === 0) return;
+    if (!params.has('mode')) return;
+
+    const mode = params.get('mode');
 
     // 位置情報
-    if (params.has('slat') && params.has('slng')) {
-        const lat = parseFloat(params.get('slat'));
-        const lng = parseFloat(params.get('slng'));
-        if (!isNaN(lat) && !isNaN(lng)) {
-            appState.start.lat = lat;
-            appState.start.lng = lng;
-        }
-    }
-    if (params.has('sh')) {
-        const h = parseFloat(params.get('sh'));
-        if (!isNaN(h)) appState.startHeight = h;
-    }
-    if (params.has('elat') && params.has('elng')) {
-        const lat = parseFloat(params.get('elat'));
-        const lng = parseFloat(params.get('elng'));
-        if (!isNaN(lat) && !isNaN(lng)) {
-            appState.end.lat = lat;
-            appState.end.lng = lng;
-        }
-    }
-    if (params.has('eh')) {
-        const h = parseFloat(params.get('eh'));
-        if (!isNaN(h)) appState.endHeight = h;
-    }
+    if (params.has('startLat')) { const v = parseFloat(params.get('startLat')); if (!isNaN(v)) appState.start.lat = v; }
+    if (params.has('startLng')) { const v = parseFloat(params.get('startLng')); if (!isNaN(v)) appState.start.lng = v; }
+    if (params.has('startApiElv')) { const v = parseFloat(params.get('startApiElv')); if (!isNaN(v)) appState.startApiElev = v; }
+    if (params.has('startElv')) { const v = parseFloat(params.get('startElv')); if (!isNaN(v)) appState.startHeight = v; }
+    if (params.has('endLat')) { const v = parseFloat(params.get('endLat')); if (!isNaN(v)) appState.end.lat = v; }
+    if (params.has('endLng')) { const v = parseFloat(params.get('endLng')); if (!isNaN(v)) appState.end.lng = v; }
+    if (params.has('endApiElv')) { const v = parseFloat(params.get('endApiElv')); if (!isNaN(v)) appState.endApiElev = v; }
+    if (params.has('endElv')) { const v = parseFloat(params.get('endElv')); if (!isNaN(v)) appState.endHeight = v; }
 
-    // 日時
+    // 日時 (YYYYMMDD, hhmmss)
     if (params.has('date')) {
-        const parts = params.get('date').split('-');
-        if (parts.length === 3) {
-            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
+        const s = params.get('date');
+        if (s.length === 8) {
+            const y = parseInt(s.substring(0, 4)), m = parseInt(s.substring(4, 6)) - 1, d = parseInt(s.substring(6, 8));
             appState.currentDate.setFullYear(y, m, d);
         }
     }
     if (params.has('time')) {
-        const tp = params.get('time').split(':');
-        if (tp.length === 2) {
-            appState.currentDate.setHours(parseInt(tp[0]), parseInt(tp[1]), 0, 0);
+        const s = params.get('time');
+        if (s.length >= 4) {
+            const h = parseInt(s.substring(0, 2)), m = parseInt(s.substring(2, 4));
+            const sec = s.length >= 6 ? parseInt(s.substring(4, 6)) : 0;
+            appState.currentDate.setHours(h, m, sec, 0);
         }
     }
 
-    // 辻検索パラメータ
-    if (params.has('tdays')) { const v = parseInt(params.get('tdays')); if (!isNaN(v)) appState.tsujiSearchDays = v; }
-    if (params.has('tazoff')) { const v = parseFloat(params.get('tazoff')); if (!isNaN(v)) appState.tsujiSearchOffsetAz = v; }
-    if (params.has('taltoff')) { const v = parseFloat(params.get('taltoff')); if (!isNaN(v)) appState.tsujiSearchOffsetAlt = v; }
-    if (params.has('taztol')) { const v = parseFloat(params.get('taztol')); if (!isNaN(v)) appState.tsujiSearchToleranceAz = v; }
-    if (params.has('talttol')) { const v = parseFloat(params.get('talttol')); if (!isNaN(v)) appState.tsujiSearchToleranceAlt = v; }
-
-    // 表示天体
-    if (params.has('bodies')) {
-        const visibleIds = params.get('bodies').split(',');
+    // 表示天体 (starId複数指定対応)
+    const starIds = params.getAll('starId');
+    if (starIds.length > 0) {
         appState.bodies.forEach(b => {
-            b.visible = visibleIds.includes(b.id);
+            b.visible = starIds.includes(b.id);
         });
+    }
+
+    // 辻検索パラメータ (mode=tsujisearchの時のみ)
+    if (mode === 'tsujisearch') {
+        if (params.has('tsujiSearchDays')) { const v = parseInt(params.get('tsujiSearchDays')); if (!isNaN(v)) appState.tsujiSearchDays = v; }
+        if (params.has('tsujiAz')) { const v = parseFloat(params.get('tsujiAz')); if (!isNaN(v)) appState.tsujiSearchBaseAz = v; }
+        if (params.has('tsujiAlt')) { const v = parseFloat(params.get('tsujiAlt')); if (!isNaN(v)) appState.tsujiSearchBaseAlt = v; }
+        if (params.has('tsujiAzOffset')) { const v = parseFloat(params.get('tsujiAzOffset')); if (!isNaN(v)) appState.tsujiSearchOffsetAz = v; }
+        if (params.has('tsujiAltOffset')) { const v = parseFloat(params.get('tsujiAltOffset')); if (!isNaN(v)) appState.tsujiSearchOffsetAlt = v; }
+        if (params.has('tsujiAzTolerance')) { const v = parseFloat(params.get('tsujiAzTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAz = v; }
+        if (params.has('tsujiAltTolerance')) { const v = parseFloat(params.get('tsujiAltTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAlt = v; }
     }
 
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
     appState.end.elev = appState.endApiElev + appState.endHeight;
+
+    // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に）
+    if (mode === 'tsujisearch') {
+        appState._pendingTsujiSearch = true;
+    }
 }
