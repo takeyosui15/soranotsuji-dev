@@ -2856,13 +2856,31 @@ function formatTimeForUrl(d) {
     return `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
+// ブラウザのタイムゾーンオフセットを+0900形式で返す
+function getLocalTimezoneOffsetString() {
+    const offset = new Date().getTimezoneOffset(); // JSTなら-540
+    const sign = offset <= 0 ? '+' : '-';
+    const abs = Math.abs(offset);
+    const h = String(Math.floor(abs / 60)).padStart(2, '0');
+    const m = String(abs % 60).padStart(2, '0');
+    return `${sign}${h}${m}`;
+}
+
+// +0900形式をパースして分単位(JSTなら+540)で返す
+function parseTimezoneOffsetMinutes(tzString) {
+    const match = tzString.match(/^([+-])(\d{2})(\d{2})$/);
+    if (!match) return 540; // デフォルトJST
+    const sign = match[1] === '+' ? 1 : -1;
+    return sign * (parseInt(match[2]) * 60 + parseInt(match[3]));
+}
+
 // 共通のURLパラメータを構築するヘルパー
 function buildCommonUrlParams() {
     const d = appState.currentDate;
     const params = new URLSearchParams();
     params.set('date', formatDateForUrl(d));
     params.set('time', formatTimeForUrl(d));
-    params.set('timeZone', '+0900');
+    params.set('timeZone', getLocalTimezoneOffsetString());
     params.set('startLat', appState.start.lat.toFixed(6));
     params.set('startLng', appState.start.lng.toFixed(6));
     params.set('startApiElv', String(appState.startApiElev));
@@ -2938,6 +2956,17 @@ function restoreFromUrl() {
             const h = parseInt(s.substring(0, 2)), m = parseInt(s.substring(2, 4));
             const sec = s.length >= 6 ? parseInt(s.substring(4, 6)) : 0;
             appState.currentDate.setHours(h, m, sec, 0);
+        }
+    }
+
+    // タイムゾーン補正: URL作成者と閲覧者のオフセット差を補正
+    if (params.has('date') || params.has('time')) {
+        const urlTzString = params.has('timeZone') ? params.get('timeZone') : '+0900';
+        const urlOffsetMin = parseTimezoneOffsetMinutes(urlTzString);
+        const localOffsetMin = -new Date().getTimezoneOffset();
+        const diffMin = urlOffsetMin - localOffsetMin;
+        if (diffMin !== 0) {
+            appState.currentDate.setMinutes(appState.currentDate.getMinutes() - diffMin);
         }
     }
 
