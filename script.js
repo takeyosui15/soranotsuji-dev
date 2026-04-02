@@ -329,8 +329,14 @@ window.onload = function() {
     // ツールチップ設定
     setupTooltips();
 
-    // 起動時は「現在日時」にセット
-    setNow();
+    // 起動時は「現在日時」にセット（URLパラメータからの復元がない場合のみ）
+    if (appState._restoredFromUrl) {
+        delete appState._restoredFromUrl;
+        syncUIFromState();
+        updateAll();
+    } else {
+        setNow();
+    }
 
     // リサイズ対応
     window.addEventListener('resize', () => {
@@ -345,8 +351,14 @@ window.onload = function() {
     if (appState._pendingTsujiSearch) {
         delete appState._pendingTsujiSearch;
         setTimeout(() => {
+            // toggleTsujiSearchと同じ処理を実行
             appState.isTsujiSearchActive = true;
-            document.getElementById('btn-tsuji-search').classList.add('active');
+            const btn = document.getElementById('btn-tsuji-search');
+            const pnl = document.getElementById('tsujisearch-panel');
+            btn.classList.add('active');
+            pnl.classList.remove('hidden');
+            document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
+            syncBottomPanels();
             startTsujiSearch();
         }, 500);
     }
@@ -2899,6 +2911,7 @@ function restoreFromUrl() {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('mode')) return;
 
+    appState._restoredFromUrl = true;
     const mode = params.get('mode');
 
     // 位置情報
