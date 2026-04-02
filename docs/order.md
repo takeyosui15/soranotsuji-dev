@@ -271,3 +271,35 @@ JSON化を後回しにしましたが、実装をお願いいたします。
 
 何かわからないことがあれば遠慮なく聞いてください。
 よろしくお願いいたします。
+
+### 回答 (2026-04-02)
+
+3項目の追加修正が完了しました。
+
+**実装内容:**
+
+| # | 内容 | 状態 |
+|---|---|---|
+| 1 | 恒星の出時刻・入時刻・南中時を全て非同期処理化 | 完了 |
+| 2 | URL取得・復元をdessin仕様のパラメータ名に変更 | 完了 |
+| 3 | muni.jsをJSON化して遅延読み込み | 完了 |
+
+**修正1: 恒星の出入り時刻・南中時を全て非同期化**
+- 恒星（FIXED_STAR_IDS: Polaris, Merak, Mintaka, Subaru, M42, Vega, Altair, Deneb, Betelgeuse, Sirius, Procyon, MyStar）の出時刻・入時刻・南中時を1つのsetTimeout(0)で一括非同期計算
+- 初期表示は全て `--:--` 、計算完了後に値を更新
+- 太陽系天体は出入り時刻は同期（高速なAPI使用）、南中時のみ非同期
+
+**修正2: URL取得・復元をdessin仕様に準拠**
+- パラメータ名を全て変更: `startLat`, `startLng`, `startApiElv`, `startElv`, `endLat`, `endLng`, `endApiElv`, `endElv`, `starId`(複数指定対応、getAll()), `tsujiSearchDays`, `tsujiAz`, `tsujiAlt`, `tsujiAzOffset`, `tsujiAltOffset`, `tsujiAzTolerance`, `tsujiAltTolerance`
+- `mode=preview` / `mode=tsujisearch` を追加
+- 日時フォーマット: `YYYYMMDD`, `hhmmss`
+- `timeZone=+0900` を追加
+- `mode=tsujisearch` のURL復元時に辻検索を自動実行
+
+**修正3: muni.jsをJSON化して遅延読み込み**
+- `muni.json`（1919件）を新規作成
+- `index.html` からmuni.jsの`<script>`タグ2行を削除
+- `script.js` に`loadMuniData()`関数を追加し、`fetch()`で必要時に読み込み
+- `muni.js` はリポジトリに残してあります（必要なければ削除できます）
+
+ご確認をお願いします。
