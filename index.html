@@ -132,6 +132,16 @@ GNU General Public License for more details.
                         <label class="input-label">目的点(°):</label>
                         <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
                     </div>
+                    <div id="url-panel-location" class="control-row url-panel hidden">
+                        <div class="url-panel-row">
+                            <span class="url-panel-label" id="url-label-location-fixed"></span>
+                            <button class="nav-btn small" id="btn-url-location-fixed">コピー</button>
+                        </div>
+                        <div class="url-panel-row">
+                            <span class="url-panel-label">アクセス日時</span>
+                            <button class="nav-btn small" id="btn-url-location-access">コピー</button>
+                        </div>
+                    </div>
 
                     <div class="control-row">
                         <div class="btn-group-left">
@@ -201,6 +211,16 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                    <div id="url-panel-tsuji" class="control-row url-panel hidden">
+                        <div class="url-panel-row">
+                            <span class="url-panel-label" id="url-label-tsuji-fixed"></span>
+                            <button class="nav-btn small" id="btn-url-tsuji-fixed">コピー</button>
+                        </div>
+                        <div class="url-panel-row">
+                            <span class="url-panel-label">アクセス日時</span>
+                            <button class="nav-btn small" id="btn-url-tsuji-access">コピー</button>
+                        </div>
                     </div>
                 </div>
             </div>

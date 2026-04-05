@@ -557,9 +557,14 @@ function setupUI() {
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
     document.getElementById('btn-reg-end').onclick = () => registerLocation('end');
 
-    // URL取得ボタン
-    document.getElementById('btn-url-location').onclick = copyLocationUrl;
-    document.getElementById('btn-url-tsuji').onclick = copyTsujiSearchUrl;
+    // URL取得ボタン: パネル表示切替
+    document.getElementById('btn-url-location').onclick = () => toggleUrlPanel('location');
+    document.getElementById('btn-url-tsuji').onclick = () => toggleUrlPanel('tsuji');
+    // URL取得パネル: コピーボタン
+    document.getElementById('btn-url-location-fixed').onclick = () => copyLocationUrl(true);
+    document.getElementById('btn-url-location-access').onclick = () => copyLocationUrl(false);
+    document.getElementById('btn-url-tsuji-fixed').onclick = () => copyTsujiSearchUrl(true);
+    document.getElementById('btn-url-tsuji-access').onclick = () => copyTsujiSearchUrl(false);
 
     // 座標入力 (changeイベント)
     const iStart = document.getElementById('input-start-latlng');
@@ -2876,12 +2881,14 @@ function parseTimezoneOffsetMinutes(tzString) {
 }
 
 // 共通のURLパラメータを構築するヘルパー
-function buildCommonUrlParams() {
+function buildCommonUrlParams(includeDateTime = true) {
     const d = appState.currentDate;
     const params = new URLSearchParams();
-    params.set('date', formatDateForUrl(d));
-    params.set('time', formatTimeForUrl(d));
-    params.set('timeZone', getLocalTimezoneOffsetString());
+    if (includeDateTime) {
+        params.set('date', formatDateForUrl(d));
+        params.set('time', formatTimeForUrl(d));
+        params.set('timeZone', getLocalTimezoneOffsetString());
+    }
     params.set('startLat', appState.start.lat.toFixed(6));
     params.set('startLng', appState.start.lng.toFixed(6));
     params.set('startApiElv', String(appState.startApiElev));
@@ -2898,8 +2905,24 @@ function buildCommonUrlParams() {
     return params;
 }
 
-function copyLocationUrl() {
-    const params = buildCommonUrlParams();
+// URLパネルの表示切替
+function toggleUrlPanel(type) {
+    const panel = document.getElementById(`url-panel-${type}`);
+    const isHidden = panel.classList.contains('hidden');
+    // 全パネルを閉じる
+    document.getElementById('url-panel-location').classList.add('hidden');
+    document.getElementById('url-panel-tsuji').classList.add('hidden');
+    if (isHidden) {
+        // 日時固定ラベルに現在の日時を表示
+        const d = appState.currentDate;
+        const label = `日時固定(${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')})`;
+        document.getElementById(`url-label-${type}-fixed`).textContent = label;
+        panel.classList.remove('hidden');
+    }
+}
+
+function copyLocationUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
 
     const url = buildBaseUrl() + '?' + params.toString();
@@ -2908,8 +2931,8 @@ function copyLocationUrl() {
     });
 }
 
-function copyTsujiSearchUrl() {
-    const params = buildCommonUrlParams();
+function copyTsujiSearchUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'tsujisearch');
 
     params.set('tsujiSearchDays', String(appState.tsujiSearchDays));
@@ -2930,7 +2953,6 @@ function restoreFromUrl() {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('mode')) return;
 
-    appState._restoredFromUrl = true;
     const mode = params.get('mode');
 
     // 位置情報
@@ -2943,8 +2965,9 @@ function restoreFromUrl() {
     if (params.has('endApiElv')) { const v = parseFloat(params.get('endApiElv')); if (!isNaN(v)) appState.endApiElev = v; }
     if (params.has('endElv')) { const v = parseFloat(params.get('endElv')); if (!isNaN(v)) appState.endHeight = v; }
 
-    // 日時 (YYYYMMDD, hhmmss)
+    // 日時 (YYYYMMDD, hhmmss) — date/timeが存在する場合のみ日時を復元しsetNow()をスキップ
     if (params.has('date')) {
+        appState._restoredFromUrl = true;
         const s = params.get('date');
         if (s.length === 8) {
             const y = parseInt(s.substring(0, 4)), m = parseInt(s.substring(4, 6)) - 1, d = parseInt(s.substring(6, 8));
@@ -2952,6 +2975,7 @@ function restoreFromUrl() {
         }
     }
     if (params.has('time')) {
+        appState._restoredFromUrl = true;
         const s = params.get('time');
         if (s.length >= 4) {
             const h = parseInt(s.substring(0, 2)), m = parseInt(s.substring(2, 4));

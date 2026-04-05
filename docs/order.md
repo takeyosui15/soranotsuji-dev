@@ -36,3 +36,27 @@ Claudeさん、ありがとうございます。
 詳細のデッサンは、`/docs/dessin/dessin/01-location.md`と`/docs/dessin/dessin/02-tsujisearch.md`をご参照ください。
 
 何か質問があれば、お気軽にご質問ください。
+
+### 回答 (2026-04-05)
+
+URL取得ボタンの「日時固定/アクセス日時」選択機能を実装しました。
+
+**変更内容:**
+
+| # | 内容 | ファイル |
+|---|---|---|
+| 1 | URLボタン押下でドロップダウンパネル表示 | index.html |
+| 2 | パネルに「日時固定(YYYY年MM月DD日hh:mm)」と「アクセス日時」の2行+コピーボタン | index.html |
+| 3 | url-panelのCSSスタイル追加 | style.css |
+| 4 | toggleUrlPanel()関数追加、copyLocationUrl/copyTsujiSearchUrlにincludeDateTime引数追加 | script.js |
+| 5 | buildCommonUrlParamsにincludeDateTime引数追加（falseでdate/time/timeZone省略） | script.js |
+| 6 | restoreFromUrlの_restoredFromUrlをdate/time存在時のみ設定（アクセス日時URL対応） | script.js |
+
+**動作:**
+- URLボタンを押す → パネルが開き「日時固定(2026年04月05日21:00)」と「アクセス日時」が表示
+- もう一度押す → パネルが閉じる
+- 「日時固定」コピー → date/time/timeZoneを含むURL → 固定日時で開く
+- 「アクセス日時」コピー → date/time/timeZoneを省略したURL → アクセス時の現在日時で開く
+- 辻検索でも同様に動作（辻検索パラメータは両方に含まれる）
+
+ご確認をお願いします。
