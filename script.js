@@ -562,14 +562,16 @@ function setupUI() {
     document.getElementById('btn-url-tsuji').onclick = () => toggleUrlPanel('tsuji');
     // URL取得ダイアログ: 項目クリック
     document.getElementById('url-picker-fixed').addEventListener('click', () => {
+        const mode = urlPickerMode;
         closeUrlPicker();
-        if (urlPickerMode === 'location') copyLocationUrl(true);
-        else if (urlPickerMode === 'tsuji') copyTsujiSearchUrl(true);
+        if (mode === 'location') copyLocationUrl(true);
+        else if (mode === 'tsuji') copyTsujiSearchUrl(true);
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
+        const mode = urlPickerMode;
         closeUrlPicker();
-        if (urlPickerMode === 'location') copyLocationUrl(false);
-        else if (urlPickerMode === 'tsuji') copyTsujiSearchUrl(false);
+        if (mode === 'location') copyLocationUrl(false);
+        else if (mode === 'tsuji') copyTsujiSearchUrl(false);
     });
 
     // 座標入力 (changeイベント)
