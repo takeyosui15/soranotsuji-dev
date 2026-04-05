@@ -564,8 +564,14 @@ function setupUI() {
     document.getElementById('url-picker-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
         closeUrlPicker();
-        if (mode === 'location') copyLocationUrl(true);
-        else if (mode === 'tsuji') copyTsujiSearchUrl(true);
+        if (mode === 'location') copyLocationUrl('fixed');
+        else if (mode === 'tsuji') copyTsujiSearchUrl('fixed');
+    });
+    document.getElementById('url-picker-semi-fixed').addEventListener('click', () => {
+        const mode = urlPickerMode;
+        closeUrlPicker();
+        if (mode === 'location') copyLocationUrl('semi-fixed');
+        else if (mode === 'tsuji') copyTsujiSearchUrl('semi-fixed');
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -2889,11 +2895,18 @@ function parseTimezoneOffsetMinutes(tzString) {
 }
 
 // 共通のURLパラメータを構築するヘルパー
-function buildCommonUrlParams(includeDateTime = true) {
+function buildCommonUrlParams(dateTimeMode = 'fixed') {
     const d = appState.currentDate;
     const params = new URLSearchParams();
-    if (includeDateTime) {
+    if (dateTimeMode === 'fixed' || dateTimeMode === true) {
         params.set('date', formatDateForUrl(d));
+        params.set('time', formatTimeForUrl(d));
+        params.set('timeZone', getLocalTimezoneOffsetString());
+    } else if (dateTimeMode === 'semi-fixed') {
+        // 年を0000にして月日時は固定
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        params.set('date', `0000${mm}${dd}`);
         params.set('time', formatTimeForUrl(d));
         params.set('timeZone', getLocalTimezoneOffsetString());
     }
@@ -2919,11 +2932,16 @@ let urlPickerMode = null; // 'location' or 'tsuji'
 function toggleUrlPanel(type) {
     const picker = document.getElementById('url-picker');
     const fixedLabel = document.getElementById('url-picker-fixed-label');
+    const semiFixedLabel = document.getElementById('url-picker-semi-fixed-label');
 
-    // 日時固定ラベルに現在の日時を表示
     const d = appState.currentDate;
-    const dtStr = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    fixedLabel.textContent = `日時固定(${dtStr})`;
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mi = String(d.getMinutes()).padStart(2,'0');
+
+    fixedLabel.textContent = `日時固定(${d.getFullYear()}年${mm}月${dd}日${hh}:${mi})`;
+    semiFixedLabel.textContent = `日時半固定(アクセス年の${mm}月${dd}日${hh}:${mi})`;
     urlPickerMode = type;
     picker.classList.remove('hidden');
 }
@@ -2982,7 +3000,9 @@ function restoreFromUrl() {
         appState._restoredFromUrl = true;
         const s = params.get('date');
         if (s.length === 8) {
-            const y = parseInt(s.substring(0, 4)), m = parseInt(s.substring(4, 6)) - 1, d = parseInt(s.substring(6, 8));
+            let y = parseInt(s.substring(0, 4));
+            const m = parseInt(s.substring(4, 6)) - 1, d = parseInt(s.substring(6, 8));
+            if (y === 0) y = new Date().getFullYear(); // 日時半固定: アクセス年に置換
             appState.currentDate.setFullYear(y, m, d);
         }
     }
