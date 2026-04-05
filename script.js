@@ -1968,7 +1968,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
         標高: ${apiElev != null ? apiElev : pos.elev} m<br>
         高さ: ${height != null ? height : 0} m<br>
         相手距離: ${(dist/1000).toFixed(2)} km<br>
-        相手方位: ${az.toFixed(1)}°<br>
+        相手方位: ${az.toFixed(2)}°<br>
         相手高度: ${alt.toFixed(2)}°
     `;
 }
