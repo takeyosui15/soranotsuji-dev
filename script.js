@@ -557,14 +557,20 @@ function setupUI() {
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
     document.getElementById('btn-reg-end').onclick = () => registerLocation('end');
 
-    // URL取得ボタン: パネル表示切替
+    // URL取得ボタン: ポップアップダイアログ表示
     document.getElementById('btn-url-location').onclick = () => toggleUrlPanel('location');
     document.getElementById('btn-url-tsuji').onclick = () => toggleUrlPanel('tsuji');
-    // URL取得パネル: コピーボタン
-    document.getElementById('btn-url-location-fixed').onclick = () => copyLocationUrl(true);
-    document.getElementById('btn-url-location-access').onclick = () => copyLocationUrl(false);
-    document.getElementById('btn-url-tsuji-fixed').onclick = () => copyTsujiSearchUrl(true);
-    document.getElementById('btn-url-tsuji-access').onclick = () => copyTsujiSearchUrl(false);
+    // URL取得ダイアログ: 項目クリック
+    document.getElementById('url-picker-fixed').addEventListener('click', () => {
+        closeUrlPicker();
+        if (urlPickerMode === 'location') copyLocationUrl(true);
+        else if (urlPickerMode === 'tsuji') copyTsujiSearchUrl(true);
+    });
+    document.getElementById('url-picker-access').addEventListener('click', () => {
+        closeUrlPicker();
+        if (urlPickerMode === 'location') copyLocationUrl(false);
+        else if (urlPickerMode === 'tsuji') copyTsujiSearchUrl(false);
+    });
 
     // 座標入力 (changeイベント)
     const iStart = document.getElementById('input-start-latlng');
@@ -2905,20 +2911,24 @@ function buildCommonUrlParams(includeDateTime = true) {
     return params;
 }
 
-// URLパネルの表示切替
+// URL取得ポップアップダイアログ
+let urlPickerMode = null; // 'location' or 'tsuji'
+
 function toggleUrlPanel(type) {
-    const panel = document.getElementById(`url-panel-${type}`);
-    const isHidden = panel.classList.contains('hidden');
-    // 全パネルを閉じる
-    document.getElementById('url-panel-location').classList.add('hidden');
-    document.getElementById('url-panel-tsuji').classList.add('hidden');
-    if (isHidden) {
-        // 日時固定ラベルに現在の日時を表示
-        const d = appState.currentDate;
-        const label = `日時固定(${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')})`;
-        document.getElementById(`url-label-${type}-fixed`).textContent = label;
-        panel.classList.remove('hidden');
-    }
+    const picker = document.getElementById('url-picker');
+    const fixedLabel = document.getElementById('url-picker-fixed-label');
+
+    // 日時固定ラベルに現在の日時を表示
+    const d = appState.currentDate;
+    const dtStr = `${d.getFullYear()}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    fixedLabel.textContent = `日時固定(${dtStr})`;
+    urlPickerMode = type;
+    picker.classList.remove('hidden');
+}
+
+function closeUrlPicker() {
+    document.getElementById('url-picker').classList.add('hidden');
+    urlPickerMode = null;
 }
 
 function copyLocationUrl(includeDateTime) {
