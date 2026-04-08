@@ -706,13 +706,16 @@ select,
 
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
-input[type="number"].elev-readonly {
+input[type="number"].elev-readonly,
+input[type="number"].elev-input {
     flex-grow: 1;
     padding: 0 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
     text-align: right;
     min-width: 0;
+}
+input[type="number"].elev-readonly {
     background-color: #f0f0f0;
     color: #666;
 }

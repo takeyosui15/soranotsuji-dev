@@ -232,3 +232,38 @@ Claudeさん、お待たせしました。
 
 いかがでしょうか。
 何か疑問点や質問があれば、どうぞよろしくお願いいたします。
+
+### 回答 (2026-04-08)
+
+2つの作業を実装しました。
+
+#### 依頼1: 設定メニューの気差係数を常に読み取り専用に
+
+**修正内容:**
+- `index.html` L462: `input-refraction-k` に `readonly` 属性を追加
+- `script.js` `setRefractionFormEnabled()`: `iK.readOnly` / `iK.disabled` の行を削除し、気差係数は常に読み取り専用にしました
+
+**補足:** 元々 `input-refraction-k` には changeイベントリスナが無く、手入力しても `appState` には反映されない仕組みでした。今回の変更で、気差係数は気圧/気温/気温減率から自動計算される表示専用フィールドであることが明確になります。有効/無効チェックボックスは引き続き機能します（気圧/気温/気温減率の編集可否と、計算への反映を制御）。
+
+#### 依頼2: 位置情報の標高を入力可能に
+
+**確認結果（読み取り専用を外すだけでは不十分だった点）:**
+- HTMLの `readonly` を外すだけでは反映されません。`input-start-api-elev` / `input-end-api-elev` には changeイベントリスナが無く、`updateAll()` 時に `appState.startApiElev` で DOM 値が上書きされて手入力が消えてしまいます。
+- そのため changeイベントリスナの追加が必要でした。
+
+**修正内容:**
+- `index.html` L116, L141:
+  - `readonly` 属性を削除
+  - クラスを `elev-readonly` → `elev-input` に変更
+  - `placeholder="標高 m"` を追加
+- `style.css`:
+  - `input[type="number"].elev-input` を新規追加（レイアウトのみ、背景色・文字色なし）
+  - `elev-readonly` は辻検索の「オフセット方位距離」「オフセット視高距離」で引き続き使用するため残しました（灰色背景・グレー文字付き）
+- `script.js`: `input-start-api-elev` / `input-end-api-elev` に changeイベントリスナを追加。`input-start-elev` / `input-end-elev` と同じパターンで `appState.startApiElev` / `appState.endApiElev` に反映し、`recalcElev()` → `saveAppState()` → `updateAll()` を呼びます
+
+**動作仕様:**
+- 手入力した標高は即座に `appState` に反映され、辻ライン・天体計算・URL取得(`startApiElv`)・Hom/推山登録・ローカルストレージ全てに反映されます
+- 地図クリック / 座標入力 / 地名検索では従来通りAPI取得値で上書きされます。手動調整したい場合はその後で再度手入力してください
+- デッサン `01-location.md` では引き続き「読み取り専用」「背景:灰色」と記載されたままなので、必要に応じてご更新ください
+
+ご確認をお願いします。

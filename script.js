@@ -587,6 +587,24 @@ function setupUI() {
     iStart.addEventListener('change', () => handleLocationInput(iStart.value, true));
     iEnd.addEventListener('change', () => handleLocationInput(iEnd.value, false));
 
+    // 標高入力（ユーザーが手動で上書き可能。地図クリック等でAPI取得値に上書きされる）
+    document.getElementById('input-start-api-elev').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.startApiElev = val;
+        e.target.value = appState.startApiElev;
+        recalcElev('start');
+        saveAppState();
+        updateAll();
+    });
+    document.getElementById('input-end-api-elev').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.endApiElev = val;
+        e.target.value = appState.endApiElev;
+        recalcElev('end');
+        saveAppState();
+        updateAll();
+    });
+
     // 高さ入力（ユーザー入力の追加高さ）
     document.getElementById('input-start-elev').addEventListener('change', (e) => {
         const val = parseFloat(e.target.value);
@@ -619,9 +637,8 @@ function setupUI() {
     const btnRegSettings = document.getElementById('btn-reg-settings');
 
     // 気差フォームの有効/無効を切り替える関数
+    // 気差係数(iK)はデッサン仕様により常に読み取り専用
     const setRefractionFormEnabled = (enabled) => {
-        iK.readOnly = !enabled;
-        iK.disabled = !enabled;
         iP.readOnly = !enabled;
         iP.disabled = !enabled;
         iT.readOnly = !enabled;

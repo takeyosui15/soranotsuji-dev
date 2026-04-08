@@ -113,7 +113,7 @@ GNU General Public License for more details.
                             <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点標高(m):</label>
-                        <input type="number" id="input-start-api-elev" class="elev-readonly" readonly value="0" step="0.1">
+                        <input type="number" id="input-start-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m">
                     </div>
 
                     <div class="control-row">
@@ -138,7 +138,7 @@ GNU General Public License for more details.
                             <div class="spacer-btn"></div>
                         </div>
                         <label class="input-label">目的点標高(m):</label>
-                        <input type="number" id="input-end-api-elev" class="elev-readonly" readonly value="0" step="0.1">
+                        <input type="number" id="input-end-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m">
                     </div>
 
                     <div class="control-row">
@@ -459,7 +459,7 @@ GNU General Public License for more details.
                     <div class="control-row refraction-row">
                         <input type="checkbox" id="chk-refraction" class="body-checkbox">
                         <label class="input-label meteo-label" for="chk-refraction">気差係数 K:</label>
-                        <input type="number" id="input-refraction-k" class="meteo-input" step="0.001"  placeholder="標準値 0.132">
+                        <input type="number" id="input-refraction-k" class="meteo-input" step="0.001"  placeholder="標準値 0.132" readonly>
                     </div>
                     
                     <div class="meteo-box">
