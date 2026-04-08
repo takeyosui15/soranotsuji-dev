@@ -314,3 +314,79 @@ Claudeさん、ありがとうございます。
 検索期間は、大体365日が多いので、並行処理ができたらかなり処理時間が短縮されると思うのです。
 ご検討いただけないでしょうか。
 よろしくお願いいたします。
+
+### 回答 (2026-04-08)
+
+3つの作業を実装しました。
+
+#### 依頼1: 日時情報メニューの時刻を時分秒に
+
+**修正内容:**
+- `index.html` L226: `<input type="time" id="time-input" value="12:00:00" step="1">` — `step="1"` で秒入力欄を有効化
+- `script.js` `syncStateFromUI()`: `tStr` を `:` で分割して `h/m/s` をパース。`hh:mm` 形式（旧URLや古いlocalStorage）と `hh:mm:ss` 形式の両方を許容
+- `script.js` `syncUIFromState()`: `${h}:${m}:${s}` 形式で出力
+- `script.js` `tInput` リスナ: 秒対応のパース
+- `script.js` `tSlider` リスナ: スライダーは分単位のままなので、ドラッグ時は秒を `00` にリセット
+
+**仕様:**
+- time-input に直接入力すれば秒まで保持される
+- スライダー操作時は秒が0にリセットされる
+- URL/localStorage は元々秒まで対応済み（`formatTimeForUrl` が `hhmmss` を出力、`restoreFromUrl` が秒まで読む）。今回のUI修正でこれらが活きるようになりました
+- localStorage の `currentDate` も Date 型なので秒精度で復元されます
+
+#### 依頼2: 辻検索の辻時刻を秒単位に（秒リファイン実装）
+
+**修正内容:**
+- `tsuji-search-worker.js` (新規) 内で実装。各日のベスト1分を求めた後、その前後60秒を1秒単位でスキャンし、より精度の高いベスト時刻を秒単位で求める
+- `script.js` 結果表示の `timeStr` を `hh:mm:ss` 形式に変更
+- `script.js` ソートラベルの「時刻」を「辻時刻」に変更（テーブルヘッダは既に「辻時刻」）
+
+**確認結果:** デッサン `02-tsujisearch.md` L109 の「最高精度のベストの1分単位の時刻から前後60秒を1秒単位で算出して、さらにベストの時刻を秒単位で求める」をそのまま実装しました。1天体・1日あたり 1440 (1分単位) + 121 (1秒単位リファイン) = 1561 サンプルになります（追加コスト約8%）。
+
+#### 依頼3: 辻検索の並行処理化（Web Worker）
+
+**実装内容:**
+
+新規ファイル `tsuji-search-worker.js` を作成し、辻検索のコア計算ロジックを Web Worker 化しました。
+
+- `importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js')` で astronomy-engine を Worker 内に読み込み
+- メインスレッドから `body` (固定恒星はra/dec解決済み)、`observerData`、`refractionEnabled`、検索パラメータ、日範囲 (`dayStart`/`dayEnd`) を受け取る
+- 1天体・1チャンクの計算（1分スキャン → 秒リファイン）を Worker 内で完結し、結果を `postMessage` で返す
+
+**並行化戦略:**
+- `TSUJI_NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 8)` で Worker 数を決定
+- 1天体ずつ順番に処理（天体間は逐次）
+- その天体の365日を `TSUJI_NUM_WORKERS` 個のチャンクに分割し、各 Worker に並行ディスパッチ
+- `Promise.all` で待ち合わせ → チャンク結果を `dayStart` 順にマージ → `MAX_RESULTS_PER_BODY` で打ち切り
+- 各天体終了時に Worker を `terminate()`
+
+**キャンセル対応:**
+- `appState.tsujiSearchGeneration` を併用し、検索中に新しい検索が開始されたら `tsujiActiveWorkers.forEach(w => w.terminate())` で全ワーカーを即座に停止
+- エラー時は console にログを出し、空結果として扱うので、ユーザーに「検索止まったまま」状態は発生しません
+
+**期待される高速化:** コア4で2-3倍、コア8で4-5倍程度。Worker起動コスト(~10ms × N × 天体数)はあるものの、365日 × 1440分 の計算量に比べて十分小さいです。
+
+**重要な注意点 (検証必須):**
+- astronomy-engine の `astronomy.browser.min.js` は UMD パターンで `self.Astronomy` (もしくは `window.Astronomy`) に登録される想定で実装しました
+- Worker内で `Astronomy` が見つからない場合は `self.postMessage({ error: ... })` でメインスレッドに通知し、エラーを console に表示します
+- もし「辻検索を実行しても結果が0件で、コンソールに `Astronomy engine failed to load in worker` が出る」場合、ローカルにダウンロードした astronomy-engine を使うフォールバックが必要です（その時はお知らせください）
+
+#### 修正ファイル一覧
+
+| # | ファイル | 内容 |
+|---|---|---|
+| 1 | `index.html` | time-input に `step="1"` 追加 |
+| 2 | `script.js` | 時分秒化、startTsujiSearch を Worker駆動に書き換え、結果表示の秒対応 |
+| 3 | `tsuji-search-worker.js` (新規) | 辻検索コアロジックの Worker 版 |
+| 4 | `docs/todo.md` | 完了マーク |
+| 5 | `docs/order.md` | 本回答 |
+
+#### 検証のお願い
+
+ブラウザで動作確認をお願いします:
+1. 日時情報メニューの時刻ボックスに「12:34:56」と入力 → 秒まで反映されること
+2. 辻検索を実行 → 結果リストの「辻時刻」が `hh:mm:ss` 形式（秒単位）で表示されること
+3. 辻検索の所要時間が、365日でも以前より大幅に短縮されていること
+4. ブラウザの DevTools (F12) → Console タブにエラーが出ていないこと（特に Worker 周り）
+
+ご確認をお願いします。

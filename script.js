@@ -450,7 +450,8 @@ function setupUI() {
         const val = parseInt(tSlider.value);
         const h = Math.floor(val / 60);
         const m = val % 60;
-        tInput.value = `${('00' + h).slice(-2)}:${('00' + m).slice(-2)}`;
+        // スライダーで時刻を選んだ場合は秒を0にする（スライダーは分単位）
+        tInput.value = `${('00' + h).slice(-2)}:${('00' + m).slice(-2)}:00`;
         syncStateFromUI();
         updateAll();
     });
@@ -458,9 +459,10 @@ function setupUI() {
     tInput.addEventListener('input', () => {
         uncheckTimeShortcuts();
         if (!tInput.value) return;
-        const [h, m] = tInput.value.split(':').map(Number);
+        const parts = tInput.value.split(':').map(Number);
+        const h = parts[0], m = parts[1];
         if (!isNaN(h) && !isNaN(m)) {
-            tSlider.value = h * 60 + m;
+            tSlider.value = h * 60 + m;  // スライダーは分単位（秒は反映しない）
             syncStateFromUI();
             updateAll();
         }
@@ -879,7 +881,14 @@ function syncStateFromUI() {
     const dStr = document.getElementById('date-input').value;
     const tStr = document.getElementById('time-input').value;
     if(dStr && tStr) {
-        appState.currentDate = new Date(`${dStr}T${tStr}:00`);
+        // tStr は "HH:MM" または "HH:MM:SS" のどちらの形式もあり得る
+        const parts = tStr.split(':');
+        const h = parseInt(parts[0]) || 0;
+        const m = parseInt(parts[1]) || 0;
+        const s = parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0;
+        const base = new Date(`${dStr}T00:00:00`);
+        base.setHours(h, m, s, 0);
+        appState.currentDate = base;
     }
 }
 
@@ -890,9 +899,11 @@ function syncUIFromState() {
     const dd = ('00'+d.getDate()).slice(-2);
     const h = ('00'+d.getHours()).slice(-2);
     const m = ('00'+d.getMinutes()).slice(-2);
-    
+    const s = ('00'+d.getSeconds()).slice(-2);
+
     document.getElementById('date-input').value = `${yyyy}-${mm}-${dd}`;
-    document.getElementById('time-input').value = `${h}:${m}`;
+    document.getElementById('time-input').value = `${h}:${m}:${s}`;
+    // スライダーは分単位のまま（秒は無視）
     document.getElementById('time-slider').value = d.getHours() * 60 + d.getMinutes();
 }
 
@@ -2470,6 +2481,10 @@ function isAzimuthInRange(az, targetAz, tolerance) {
     return Math.abs(diff) <= tolerance;
 }
 
+// --- 辻検索 Web Worker 並行化 ---
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+let tsujiActiveWorkers = []; // キャンセル時に terminate するための参照保持
+
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
     const generation = ++appState.tsujiSearchGeneration;
@@ -2478,7 +2493,7 @@ async function startTsujiSearch() {
     contentEl.innerHTML = '';
     statusEl.textContent = '(検索中…)';
 
-    const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const observerData = { lat: appState.start.lat, lng: appState.start.lng, elev: appState.start.elev };
     const baseAz = appState.tsujiSearchBaseAz;
     const offsetAz = appState.tsujiSearchOffsetAz;
     const toleranceAz = appState.tsujiSearchToleranceAz;
@@ -2486,8 +2501,6 @@ async function startTsujiSearch() {
     const offsetAlt = appState.tsujiSearchOffsetAlt;
     const toleranceAlt = appState.tsujiSearchToleranceAlt;
     const searchDays = appState.tsujiSearchDays;
-    const searchInterval = 1;
-    const stepsPerDay = 1440;
 
     // オフセットを加算した検索中心
     const targetAz = (baseAz + offsetAz + 360) % 360;
@@ -2499,74 +2512,119 @@ async function startTsujiSearch() {
         return;
     }
 
+    const refractionEnabled = appState.refractionEnabled;
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
+    const searchStartMs = searchStart.getTime();
     const MAX_RESULTS_PER_BODY = 1461;
     const totalResults = [];
 
+    // 既存ワーカーをクリーンアップ（前回の検索が残っていれば中断）
+    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+    tsujiActiveWorkers = [];
+
     for (let bi = 0; bi < visibleBodies.length; bi++) {
+        if (generation !== appState.tsujiSearchGeneration) {
+            tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+            tsujiActiveWorkers = [];
+            return;
+        }
+
         const body = visibleBodies[bi];
+
+        // body を Worker に渡す形に変換（fixed star は ra/dec を抽出）
+        let bodyMsg;
+        if (FIXED_STAR_IDS.includes(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        } else {
+            bodyMsg = { id: body.id, fixed: false };
+        }
+
+        // 日数を NUM_WORKERS 個のチャンクに分割
+        const chunkSize = Math.ceil(searchDays / TSUJI_NUM_WORKERS);
+        const chunkPromises = [];
+        const chunkWorkers = [];
+        for (let w = 0; w < TSUJI_NUM_WORKERS; w++) {
+            const dayStart = w * chunkSize;
+            if (dayStart >= searchDays) break;
+            const dayEnd = Math.min(dayStart + chunkSize, searchDays);
+
+            const worker = new Worker('tsuji-search-worker.js');
+            chunkWorkers.push(worker);
+            tsujiActiveWorkers.push(worker);
+
+            const p = new Promise((resolve) => {
+                worker.onmessage = (e) => {
+                    if (e.data && e.data.error) {
+                        console.error('tsuji worker error:', e.data.error);
+                        resolve({ results: [], dayStart, dayEnd });
+                    } else {
+                        resolve(e.data);
+                    }
+                };
+                worker.onerror = (err) => {
+                    console.error('tsuji worker onerror:', err.message || err);
+                    resolve({ results: [], dayStart, dayEnd });
+                };
+                worker.postMessage({
+                    body: bodyMsg,
+                    observerData,
+                    refractionEnabled,
+                    targetAz, targetAlt,
+                    toleranceAz, toleranceAlt,
+                    searchStartMs,
+                    dayStart,
+                    dayEnd,
+                    maxResults: MAX_RESULTS_PER_BODY,
+                });
+            });
+            chunkPromises.push(p);
+        }
+
+        statusEl.textContent = `(検索中… ${body.name} ${bi + 1}/${visibleBodies.length})`;
+        const chunkResults = await Promise.all(chunkPromises);
+
+        // この天体のワーカーは役目終了
+        chunkWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+        tsujiActiveWorkers = tsujiActiveWorkers.filter(w => !chunkWorkers.includes(w));
+
+        if (generation !== appState.tsujiSearchGeneration) {
+            tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+            tsujiActiveWorkers = [];
+            return;
+        }
+
+        // チャンク結果を dayStart 順にマージし、MAX_RESULTS_PER_BODY で打ち切る
+        chunkResults.sort((a, b) => a.dayStart - b.dayStart);
         const bodyResults = [];
         let bodyLimitReached = false;
-
-        for (let d = 0; d < searchDays; d++) {
-            if (generation !== appState.tsujiSearchGeneration) return;
-
-            const dayStart = new Date(searchStart.getTime() + d * 86400000);
-            let bestMatch = null;
-            let bestDist = Infinity;
-
-            for (let s = 0; s < stepsPerDay; s++) {
-                const m = s * searchInterval;
-                const time = new Date(dayStart.getTime() + m * 60000);
-
-                let ra, dec;
-                if (FIXED_STAR_IDS.includes(body.id)) {
-                    const rd = getFixedStarRaDec(body.id);
-                    ra = rd.ra; dec = rd.dec;
-                } else {
-                    const eq = Astronomy.Equator(body.id, time, observer, true, true);
-                    ra = eq.ra; dec = eq.dec;
-                }
-
-                const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
-
-                if (isAzimuthInRange(hor.azimuth, targetAz, toleranceAz) &&
-                    Math.abs(hor.altitude - targetAlt) <= toleranceAlt) {
-                    // 中心からの角距離を計算
-                    let azDiff = hor.azimuth - targetAz;
-                    azDiff = ((azDiff + 540) % 360) - 180;
-                    const altDiff = hor.altitude - targetAlt;
-                    const dist = Math.sqrt(azDiff * azDiff + altDiff * altDiff);
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        bestMatch = { time: new Date(time), azimuth: hor.azimuth, altitude: hor.altitude, dist };
-                    }
-                }
-            }
-
-            if (bestMatch) {
-                bodyResults.push(bestMatch);
+        for (const ch of chunkResults) {
+            for (const r of ch.results) {
+                bodyResults.push({
+                    time: new Date(r.timeMs),
+                    azimuth: r.azimuth,
+                    altitude: r.altitude,
+                    dist: r.dist,
+                });
                 if (bodyResults.length >= MAX_RESULTS_PER_BODY) {
                     bodyLimitReached = true;
                     break;
                 }
             }
-
-            // 7日ごとにUI解放
-            if (d % 7 === 6) {
-                statusEl.textContent = `(${body.name} ${d + 1}/${searchDays}日…)`;
-                await new Promise(r => setTimeout(r, 0));
-            }
+            if (bodyLimitReached) break;
         }
 
         totalResults.push({ body, results: bodyResults, limitReached: bodyLimitReached });
         statusEl.textContent = `(検索中… ${bi + 1}/${visibleBodies.length} 天体完了)`;
-        await new Promise(r => setTimeout(r, 0));
     }
 
+    tsujiActiveWorkers = [];
     if (generation !== appState.tsujiSearchGeneration) return;
+
+    // 結果表示用の observer を再構築（後段の getBodyAngularRadius 等で利用）
+    const observer = new Astronomy.Observer(observerData.lat, observerData.lng, observerData.elev);
 
     // 結果表示
     const totalCount = totalResults.reduce((sum, t) => sum + t.results.length, 0);
@@ -2593,7 +2651,7 @@ async function startTsujiSearch() {
             const dt = r.time;
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
             const dateStr = `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}(${dow})`;
-            const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+            const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
 
             const angR = getBodyAngularRadius(body.id, dt, observer);
 
@@ -2656,7 +2714,7 @@ async function startTsujiSearch() {
         { label: '精度', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
         { label: '角距離', compare: (a, b) => a.dist - b.dist },
         { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
-        { label: '時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
