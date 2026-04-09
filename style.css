@@ -1359,12 +1359,13 @@ input[type="range"] {
 .mypoint-row-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 0;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    gap: 5px;
 }
 
 .mypoint-id {
-    font-size: 12px;
+    font-size: 14px;
     color: #666;
     white-space: pre;
 }
@@ -1376,7 +1377,6 @@ input[type="range"] {
 }
 
 .mypoint-label {
-    font-size: 12px;
     white-space: nowrap;
     margin-right: 2px;
 }
