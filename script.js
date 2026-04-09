@@ -1035,7 +1035,7 @@ function updateCalculation() {
         // 赤経・赤緯
         const radecEl = document.getElementById(`radec-${body.id}`);
         if (radecEl) {
-            radecEl.innerText = `赤経 ${ra.toFixed(4)}h / 赤緯 ${dec.toFixed(4)}°`;
+            radecEl.innerText = `赤経 ${ra.toFixed(6)}h / 赤緯 ${dec.toFixed(6)}°`;
         }
 
         // 出・南中・入時刻
@@ -2293,7 +2293,7 @@ function renderMyStarsList() {
             <div class="body-info">
                 <span class="body-name-label">${escapeHtml(star.name)}</span>
                 <span class="body-name-id">ID: ${star.id}</span>
-                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(4)}°</span>
+                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
                 <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
                 <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 -.---°</span>
             </div>`;
