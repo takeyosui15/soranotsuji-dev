@@ -1345,3 +1345,71 @@ input[type="range"] {
     flex-shrink: 0;
 }
 
+/* --- My観測点 / My目的点 --- */
+.mypoint-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.mypoint-row {
+    border-bottom: 1px solid #ddd;
+    padding: 6px 0;
+}
+
+.mypoint-row-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.mypoint-id {
+    font-size: 12px;
+    color: #666;
+    white-space: pre;
+}
+
+.mypoint-name,
+.mypoint-latlng {
+    flex: 1;
+    min-width: 0;
+}
+
+.mypoint-label {
+    font-size: 12px;
+    white-space: nowrap;
+    margin-right: 2px;
+}
+
+.mypoint-elev,
+.mypoint-height {
+    width: 70px;
+    flex-shrink: 0;
+}
+
+.mypoint-error {
+    min-height: 0;
+}
+
+.mypoint-error-text {
+    color: red;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+/* 「全て登録」ボタンの dirty 状態 */
+.nav-btn.dirty {
+    color: red;
+    font-weight: bold;
+}
+
+/* My観測点マーカー (緑) */
+.location-marker-myobs {
+    background-color: #4CAF50;
+}
+
+/* My目的点マーカー (橙) */
+.location-marker-mytgt {
+    background-color: #FF9800;
+}
+

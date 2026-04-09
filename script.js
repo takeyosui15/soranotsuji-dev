@@ -180,7 +180,11 @@ let appState = {
     currentDate: new Date(),
     
     // My天体 (複数天体)
-    myStars: [],  // { id: number, name: string, ra: number, dec: number, visible: boolean, color: string, isDashed: boolean }
+    myStars: [],
+
+    // My観測点 / My目的点
+    myObservations: [],  // { id, name, lat, lng, elev, height }
+    myTargets: [],       // { id, name, lat, lng, elev, height }
 
     // 大気差補正の有効/無効
     refractionEnabled: false,
@@ -328,7 +332,12 @@ window.onload = function() {
     syncMyStarsToBodies();
     renderCelestialList();
     renderMyStarsList();
-    
+    renderMyPointsList('obs');
+    renderMyPointsList('tgt');
+
+    // My観測点/My目的点マーカーを表示
+    setTimeout(() => updateMyPointMarkers(), 500);
+
     // ツールチップ設定
     setupTooltips();
 
@@ -633,6 +642,30 @@ function setupUI() {
     document.getElementById('btn-mystars-csv-import').onclick = importMyStarsCsv;
     document.getElementById('btn-mystars-csv-export').onclick = exportMyStarsCsv;
 
+    // My観測点ボタン
+    document.getElementById('btn-myobs-apply').onclick = () => applyMyPoint('obs');
+    document.getElementById('btn-myobs-get').onclick = () => getMyPointFromLocation('obs');
+    document.getElementById('btn-myobs-regall').onclick = () => registerAllMyPoints('obs');
+    document.getElementById('btn-myobs-up').onclick = () => moveMyPointUp('obs');
+    document.getElementById('btn-myobs-down').onclick = () => moveMyPointDown('obs');
+    document.getElementById('btn-myobs-addrow').onclick = () => addMyPointRow('obs');
+    document.getElementById('btn-myobs-delrow').onclick = () => deleteMyPointRow('obs');
+    document.getElementById('btn-myobs-csv-import').onclick = () => importMyPointsCsv('obs');
+    document.getElementById('btn-myobs-csv-export').onclick = () => exportMyPointsCsv('obs');
+    document.getElementById('btn-myobs-url').onclick = () => getMyPointUrl('obs');
+
+    // My目的点ボタン
+    document.getElementById('btn-mytgt-apply').onclick = () => applyMyPoint('tgt');
+    document.getElementById('btn-mytgt-get').onclick = () => getMyPointFromLocation('tgt');
+    document.getElementById('btn-mytgt-regall').onclick = () => registerAllMyPoints('tgt');
+    document.getElementById('btn-mytgt-up').onclick = () => moveMyPointUp('tgt');
+    document.getElementById('btn-mytgt-down').onclick = () => moveMyPointDown('tgt');
+    document.getElementById('btn-mytgt-addrow').onclick = () => addMyPointRow('tgt');
+    document.getElementById('btn-mytgt-delrow').onclick = () => deleteMyPointRow('tgt');
+    document.getElementById('btn-mytgt-csv-import').onclick = () => importMyPointsCsv('tgt');
+    document.getElementById('btn-mytgt-csv-export').onclick = () => exportMyPointsCsv('tgt');
+    document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
+
     // 天体検索ボタン
     document.getElementById('btn-starsearch').onclick = searchStars;
     document.getElementById('btn-starsearch-reg').onclick = registerSearchStar;
@@ -722,6 +755,8 @@ function saveAppState() {
         homeEnd: appState.homeEnd,     // 登録場所
         bodies: appState.bodies.filter(b => !b.isCustom),
         myStars: appState.myStars,
+        myObservations: appState.myObservations,
+        myTargets: appState.myTargets,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -757,6 +792,8 @@ function loadAppState() {
             if(saved.homeStart) appState.homeStart = saved.homeStart;
             if(saved.homeEnd) appState.homeEnd = saved.homeEnd;
             if(saved.myStars) appState.myStars = saved.myStars;
+            if(saved.myObservations) appState.myObservations = saved.myObservations;
+            if(saved.myTargets) appState.myTargets = saved.myTargets;
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -2538,6 +2575,444 @@ function registerSearchStar() {
         document.getElementById('input-starsearch-radec').value = '';
         selectedSearchStar = null;
     }
+}
+
+// ============================================================
+// My観測点 / My目的点 — 共通関数
+// ============================================================
+
+let myObsDirty = false;
+let myTgtDirty = false;
+let myPointMarkerLayer = null; // マーカー用レイヤー
+
+/** 型情報を返す */
+function myPointConfig(type) {
+    if (type === 'obs') return {
+        list: () => appState.myObservations,
+        setList: (v) => { appState.myObservations = v; },
+        prefix: 'myobs', label: '観測点', labelFull: 'My観測点',
+        markerColor: '#4CAF50', locKey: 'start',
+        getDirty: () => myObsDirty, setDirty: (v) => { myObsDirty = v; }
+    };
+    return {
+        list: () => appState.myTargets,
+        setList: (v) => { appState.myTargets = v; },
+        prefix: 'mytgt', label: '目的点', labelFull: 'My目的点',
+        markerColor: '#FF9800', locKey: 'end',
+        getDirty: () => myTgtDirty, setDirty: (v) => { myTgtDirty = v; }
+    };
+}
+
+/** ID自動採番 (1〜1000の空き最小値) */
+function getNextMyPointId(type) {
+    const cfg = myPointConfig(type);
+    const usedIds = new Set(cfg.list().map(p => p.id));
+    for (let i = 1; i <= 1000; i++) { if (!usedIds.has(i)) return i; }
+    return null;
+}
+
+/** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
+function setMyPointDirty(type, val) {
+    const cfg = myPointConfig(type);
+    cfg.setDirty(val);
+    const btn = document.getElementById(`btn-${cfg.prefix}-regall`);
+    if (btn) {
+        if (val) { btn.classList.add('dirty'); }
+        else { btn.classList.remove('dirty'); }
+    }
+}
+
+/** リスト描画 */
+function renderMyPointsList(type) {
+    const cfg = myPointConfig(type);
+    const container = document.getElementById(`${cfg.prefix}-list`);
+    if (!container) return;
+    container.innerHTML = '';
+    const points = cfg.list();
+    if (points.length === 0) {
+        container.innerHTML = `<div class="mystars-empty">${cfg.labelFull}は登録されていません</div>`;
+        return;
+    }
+    points.forEach((pt, idx) => {
+        const row = document.createElement('div');
+        row.className = 'mypoint-row';
+        row.innerHTML = `
+            <div class="mypoint-row-header">
+                <input type="radio" name="${cfg.prefix}-select" value="${pt.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
+            </div>
+            <div class="control-row">
+                <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}">
+            </div>
+            <div class="control-row">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">標高:</label>
+                <input type="number" class="mypoint-elev" value="${pt.elev !== null && pt.elev !== undefined ? pt.elev : ''}" placeholder="標高" step="0.1" data-id="${pt.id}">
+                <label class="mypoint-label">高さ:</label>
+                <input type="number" class="mypoint-height" value="${pt.height !== null && pt.height !== undefined ? pt.height : ''}" placeholder="高さ" step="0.1" data-id="${pt.id}">
+            </div>`;
+        // イベント: 名前変更
+        row.querySelector('.mypoint-name').addEventListener('input', () => setMyPointDirty(type, true));
+        row.querySelector('.mypoint-name').addEventListener('change', (e) => {
+            pt.name = e.target.value.trim();
+            setMyPointDirty(type, true);
+        });
+        // イベント: 緯度経度変更 (Enter で地名検索 or 数値入力)
+        const latlngInput = row.querySelector('.mypoint-latlng');
+        latlngInput.addEventListener('keydown', async (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const val = latlngInput.value.trim();
+            if (!val) return;
+            // 緯度,経度 形式か判定
+            const parts = val.split(',').map(s => s.trim());
+            if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+                pt.lat = parseFloat(parts[0]);
+                pt.lng = parseFloat(parts[1]);
+                latlngInput.value = `${pt.lat}, ${pt.lng}`;
+                // 標高取得
+                const elev = await getElevation(pt.lat, pt.lng);
+                pt.elev = elev !== null ? elev : 0;
+                row.querySelector('.mypoint-elev').value = pt.elev;
+                setMyPointDirty(type, true);
+            } else {
+                // 地名検索
+                const results = await searchLocation(val);
+                if (results && results.length > 0) {
+                    showLocationPicker(results, async (selected) => {
+                        pt.lat = selected.lat;
+                        pt.lng = selected.lon;
+                        latlngInput.value = `${pt.lat}, ${pt.lng}`;
+                        const elev = await getElevation(pt.lat, pt.lng);
+                        pt.elev = elev !== null ? elev : 0;
+                        row.querySelector('.mypoint-elev').value = pt.elev;
+                        setMyPointDirty(type, true);
+                    });
+                } else {
+                    alert('該当する場所が見つかりませんでした');
+                }
+            }
+        });
+        latlngInput.addEventListener('input', () => setMyPointDirty(type, true));
+        // イベント: 標高/高さ変更
+        row.querySelector('.mypoint-elev').addEventListener('change', (e) => {
+            pt.elev = parseFloat(e.target.value) || 0;
+            setMyPointDirty(type, true);
+        });
+        row.querySelector('.mypoint-height').addEventListener('change', (e) => {
+            pt.height = parseFloat(e.target.value) || 0;
+            setMyPointDirty(type, true);
+        });
+        container.appendChild(row);
+    });
+}
+
+/** 位置反映 */
+function applyMyPoint(type) {
+    const cfg = myPointConfig(type);
+    const id = getSelectedMyPointId(type);
+    if (id === null) return alert(`${cfg.label}を選択してください`);
+    const pt = cfg.list().find(p => p.id === id);
+    if (!pt || pt.lat === null || pt.lat === undefined) return alert('緯度経度が設定されていません');
+    if (!confirm(`${cfg.label}（ID:${id}、${pt.name}）を位置情報メニューと地図に反映しますか？`)) return;
+    const locKey = cfg.locKey;
+    const totalElev = (pt.elev || 0) + (pt.height || 0);
+    appState[locKey] = { lat: pt.lat, lng: pt.lng, elev: totalElev };
+    if (locKey === 'start') {
+        appState.startApiElev = pt.elev || 0;
+        appState.startHeight = pt.height || 0;
+    } else {
+        appState.endApiElev = pt.elev || 0;
+        appState.endHeight = pt.height || 0;
+    }
+    saveAppState();
+    updateAll();
+    // 地図の中心を移動
+    if (typeof map !== 'undefined') map.setView([pt.lat, pt.lng], map.getZoom());
+}
+
+/** 観測点取得 / 目的点取得 */
+function getMyPointFromLocation(type) {
+    const cfg = myPointConfig(type);
+    if (!confirm(`現在の位置情報（緯度経度・標高・高さ）を${cfg.labelFull}リストに追加しますか？`)) return;
+    const id = getNextMyPointId(type);
+    if (id === null) return alert(`${cfg.labelFull}の登録上限(1000件)に達しています`);
+    const locKey = cfg.locKey;
+    const loc = appState[locKey];
+    const apiElev = locKey === 'start' ? appState.startApiElev : appState.endApiElev;
+    const height = locKey === 'start' ? appState.startHeight : appState.endHeight;
+    cfg.list().push({
+        id, name: `新規${cfg.label}名`,
+        lat: loc.lat, lng: loc.lng,
+        elev: apiElev, height: height
+    });
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+}
+
+/** 全て登録 */
+function registerAllMyPoints(type) {
+    const cfg = myPointConfig(type);
+    const points = cfg.list();
+    // 未入力チェック
+    for (const pt of points) {
+        if (!pt.name || pt.lat === null || pt.lat === undefined || pt.lng === null || pt.lng === undefined) {
+            document.getElementById(`${cfg.prefix}-error`).innerHTML =
+                `<span class="mypoint-error-text">${cfg.label}ID:${pt.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            return;
+        }
+    }
+    document.getElementById(`${cfg.prefix}-error`).innerHTML = '';
+    if (!confirm(`現在の${cfg.labelFull}リストをローカルストレージに登録しますか？`)) return;
+    // 全角→半角変換（名前以外）
+    points.forEach(pt => {
+        if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
+        if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
+    });
+    saveAppState();
+    setMyPointDirty(type, false);
+    updateMyPointMarkers();
+    alert(`${cfg.labelFull}を登録しました`);
+}
+
+/** 行追加 */
+function addMyPointRow(type) {
+    const cfg = myPointConfig(type);
+    if (cfg.list().length >= 1000) return alert(`${cfg.labelFull}の登録上限(1000件)に達しています`);
+    if (!confirm(`${cfg.labelFull}リストの末尾に${cfg.label}の行を追加しますか？`)) return;
+    const id = getNextMyPointId(type);
+    if (id === null) return;
+    // 選択中の行の次に挿入
+    const selId = getSelectedMyPointId(type);
+    const idx = selId !== null ? cfg.list().findIndex(p => p.id === selId) : -1;
+    const newPt = { id, name: '', lat: null, lng: null, elev: null, height: 0 };
+    if (idx >= 0) {
+        cfg.list().splice(idx + 1, 0, newPt);
+    } else {
+        cfg.list().push(newPt);
+    }
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+    // 新しい行を選択
+    const radio = document.querySelector(`input[name="${cfg.prefix}-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 行削除 */
+function deleteMyPointRow(type) {
+    const cfg = myPointConfig(type);
+    const id = getSelectedMyPointId(type);
+    if (id === null) return alert(`削除する${cfg.label}を選択してください`);
+    const pt = cfg.list().find(p => p.id === id);
+    if (!pt) return;
+    if (!confirm(`${cfg.labelFull}リストの${cfg.label}（ID:${id}、${pt.name || ''}）を削除しますか？`)) return;
+    cfg.setList(cfg.list().filter(p => p.id !== id));
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+}
+
+/** 上に移動 */
+function moveMyPointUp(type) {
+    const cfg = myPointConfig(type);
+    const id = getSelectedMyPointId(type);
+    if (id === null) return;
+    const idx = cfg.list().findIndex(p => p.id === id);
+    if (idx <= 0) return;
+    const list = cfg.list();
+    [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+    const radio = document.querySelector(`input[name="${cfg.prefix}-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 下に移動 */
+function moveMyPointDown(type) {
+    const cfg = myPointConfig(type);
+    const id = getSelectedMyPointId(type);
+    if (id === null) return;
+    const list = cfg.list();
+    const idx = list.findIndex(p => p.id === id);
+    if (idx < 0 || idx >= list.length - 1) return;
+    [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+    const radio = document.querySelector(`input[name="${cfg.prefix}-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 選択中のID取得 */
+function getSelectedMyPointId(type) {
+    const cfg = myPointConfig(type);
+    const radio = document.querySelector(`input[name="${cfg.prefix}-select"]:checked`);
+    return radio ? parseInt(radio.value) : null;
+}
+
+/** CSV入力 */
+function importMyPointsCsv(type) {
+    const cfg = myPointConfig(type);
+    if (!confirm(`${cfg.labelFull}リストにCSVファイルから全て上書き入力・登録しますか？`)) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+                if (lines.length > 1001) return alert('CSVの上限は1000件です');
+                const newPoints = [];
+                const usedIds = new Set();
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
+                    const id = parseInt(toHalfWidth(cols[0].trim()));
+                    const name = cols[1].trim();
+                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
+                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
+                    let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
+                    const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+                    if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
+                    if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+                    usedIds.add(id);
+                    // 標高が空の場合は後で取得
+                    newPoints.push({ id, name, lat, lng, elev, height });
+                }
+                // 標高が未設定の場合は取得
+                for (const pt of newPoints) {
+                    if (pt.elev === null || isNaN(pt.elev)) {
+                        const el = await getElevation(pt.lat, pt.lng);
+                        pt.elev = el !== null ? el : 0;
+                    }
+                }
+                cfg.setList(newPoints);
+                saveAppState();
+                setMyPointDirty(type, false);
+                renderMyPointsList(type);
+                updateMyPointMarkers();
+                alert(`${newPoints.length}件の${cfg.labelFull}を登録しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** CSV出力 */
+function exportMyPointsCsv(type) {
+    const cfg = myPointConfig(type);
+    if (cfg.list().length === 0) return alert(`${cfg.labelFull}が登録されていません`);
+    if (!confirm(`${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
+    const bom = '\uFEFF';
+    let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ\r\n`;
+    cfg.list().forEach(pt => {
+        csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height}\r\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `my${cfg.label}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/** URL取得 */
+function getMyPointUrl(type) {
+    const cfg = myPointConfig(type);
+    const id = getSelectedMyPointId(type);
+    if (id === null) return alert(`${cfg.label}を選択してください`);
+    const pt = cfg.list().find(p => p.id === id);
+    if (!pt || pt.lat === null) return alert('緯度経度が設定されていません');
+    const baseUrl = buildBaseUrl();
+    const params = new URLSearchParams();
+    params.set('mode', 'preview');
+    if (cfg.locKey === 'start') {
+        params.set('startLat', pt.lat.toFixed(6));
+        params.set('startLng', pt.lng.toFixed(6));
+        params.set('startApiElv', String(pt.elev || 0));
+        params.set('startElv', String(pt.height || 0));
+    } else {
+        params.set('endLat', pt.lat.toFixed(6));
+        params.set('endLng', pt.lng.toFixed(6));
+        params.set('endApiElv', String(pt.elev || 0));
+        params.set('endElv', String(pt.height || 0));
+    }
+    const url = `${baseUrl}?${params.toString()}`;
+    navigator.clipboard.writeText(url).then(() => {
+        alert(`${cfg.labelFull}リストの${cfg.label}（ID:${id}、${pt.name}）を開くURLをクリップボードにコピーしました。`);
+    }).catch(() => {
+        alert('クリップボードへのコピーに失敗しました');
+    });
+}
+
+/** マーカー更新 (My観測点 + My目的点) */
+function updateMyPointMarkers() {
+    if (!myPointMarkerLayer) {
+        myPointMarkerLayer = L.layerGroup().addTo(map);
+    }
+    myPointMarkerLayer.clearLayers();
+    // My観測点マーカー (緑)
+    appState.myObservations.forEach(pt => {
+        if (pt.lat === null || pt.lat === undefined) return;
+        const icon = L.divIcon({
+            className: '',
+            html: '<div class="location-marker location-marker-myobs"></div>',
+            iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24]
+        });
+        const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(myPointMarkerLayer);
+        marker.bindPopup(`
+            <b>My観測点</b><br>
+            ${escapeHtml(pt.name)}<br>
+            ID: ${pt.id}<br>
+            緯度: ${pt.lat.toFixed(6)}°<br>
+            経度: ${pt.lng.toFixed(6)}°<br>
+            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
+            高さ: ${pt.height || 0} m
+        `);
+        marker.on('click', () => {
+            appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
+            appState.startApiElev = pt.elev || 0;
+            appState.startHeight = pt.height || 0;
+            saveAppState();
+            updateAll();
+        });
+    });
+    // My目的点マーカー (橙)
+    appState.myTargets.forEach(pt => {
+        if (pt.lat === null || pt.lat === undefined) return;
+        const icon = L.divIcon({
+            className: '',
+            html: '<div class="location-marker location-marker-mytgt"></div>',
+            iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24]
+        });
+        const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(myPointMarkerLayer);
+        marker.bindPopup(`
+            <b>My目的点</b><br>
+            ${escapeHtml(pt.name)}<br>
+            ID: ${pt.id}<br>
+            緯度: ${pt.lat.toFixed(6)}°<br>
+            経度: ${pt.lng.toFixed(6)}°<br>
+            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
+            高さ: ${pt.height || 0} m
+        `);
+        marker.on('click', () => {
+            appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
+            appState.endApiElev = pt.elev || 0;
+            appState.endHeight = pt.height || 0;
+            saveAppState();
+            updateAll();
+        });
+    });
 }
 
 // リスト・パレット
