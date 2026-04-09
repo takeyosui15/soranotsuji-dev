@@ -424,18 +424,18 @@ GNU General Public License for more details.
                         <input type="text" id="input-starsearch" placeholder="シリウス、M78星雲など" maxlength="150">
                     </div>
                     <div class="control-row starsearch-options">
-                        <span class="input-label">検索OP:</span>
+                        <span>検索OP:</span>
                         <input type="checkbox" id="chk-search-mag3" checked><label for="chk-search-mag3">〜3等級</label>
                         <input type="checkbox" id="chk-search-mag6" checked><label for="chk-search-mag6">〜6等級</label>
                         <input type="checkbox" id="chk-search-other" checked><label for="chk-search-other">その他</label>
                     </div>
                     <div class="control-row">
-                        <button id="btn-starsearch" class="nav-btn small">検索</button>
-                        <button id="btn-starsearch-reg" class="nav-btn small">登録</button>
+                        <button id="btn-starsearch" class="nav-btn main-btn">検索</button>
+                        <button id="btn-starsearch-reg" class="nav-btn main-btn">登録</button>
                     </div>
                     <div class="control-row starsearch-result">
-                        <label class="input-label">天体名:</label>
-                        <input type="text" id="input-starsearch-name" maxlength="150">
+                        <label>天体名:</label>
+                        <input type="text" id="input-starsearch-name" placeholder="天体名を変更可能" maxlength="150">
                     </div>
                     <div class="control-row starsearch-result">
                         <input type="text" id="input-starsearch-radec" readonly placeholder="赤経, 赤緯">
@@ -458,14 +458,16 @@ GNU General Public License for more details.
                 </div>
                 <div id="sec-mystars" class="section-content">
                     <ul id="mystars-list" class="celestial-list"></ul>
-                    <div class="control-row mystars-controls">
-                        <button id="btn-mystars-up" class="nav-btn small">▲上へ</button>
-                        <button id="btn-mystars-down" class="nav-btn small">▼下へ</button>
+                    <div class="control-row">
+                        <button id="btn-mystars-up" class="nav-btn main-btn">▲上へ</button>
+                        <button id="btn-mystars-down" class="nav-btn main-btn">▼下へ</button>
                     </div>
-                    <div class="control-row mystars-controls">
-                        <button id="btn-mystars-delete" class="nav-btn small">削除</button>
-                        <button id="btn-mystars-csv-import" class="nav-btn small">CSV入力</button>
-                        <button id="btn-mystars-csv-export" class="nav-btn small">CSV出力</button>
+                    <div class="control-row">
+                        <button id="btn-mystars-delete" class="nav-btn main-btn">削除</button>
+                    </div>
+                   <div class="control-row">
+                        <button id="btn-mystars-csv-import" class="nav-btn main-btn">CSV入力</button>
+                        <button id="btn-mystars-csv-export" class="nav-btn main-btn">CSV出力</button>
                     </div>
                 </div>
             </div>
