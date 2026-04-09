@@ -39,3 +39,46 @@ Claudeさん、ありがとうございます。
 まず、/dessin/dessin/00-overview.mdからドキュメントを辿って、デッサンを理解し、分からないこと、疑問点、提案などがありましたら、ご質問ください。
 その後で、現状を調査し、疑問点があれば、再び質問してください。
 そして、問題点や疑問点がなくなってから、実装をよろしくお願いいたします。
+
+### 回答 (2026-04-09) — Phase 1 実施
+
+デッサン文書(00-overview, 11-starsearch, 13-mystars, 12-bodies, 09-myobservation, 10-mytarget, 08-mytsujisearch, 15-backupimport, 05-mystar)を読み込み、現状コードを調査しました。
+
+依頼者との確認の上、以下の方針を確定しました:
+- 宙の山/宙の峯/宙の窓のプレースホルダー: **入れない** (v2.0.0で追加)
+- 旧MyStar localStorageデータ: **破棄** (マイグレーションしない)
+- 実装順序: **段階的** (Phase 1〜5)
+- 表示天体メニュー修正: **Phase 2で対応** (リセットボタンは既存で小規模修正)
+
+#### Phase 1 実施内容
+
+1. **旧My天体メニュー(単一天体)の完全削除**
+   - index.html: sec-mystar セクション削除、ヘルプ削除
+   - script.js: FIXED_STAR_IDS, DEFAULT_BODIES, appState.myStar, appState.bodies, registerMyStar(), reflectMyStarUI(), パレット連携、localStorage保存/復元 — 全12箇所削除
+   - style.css: #btn-mystar-reg 削除
+   - tsuji-search-worker.js: コメント更新
+
+2. **天体検索メニュー新規作成** (11-starsearch.md準拠)
+   - 検索テキストボックス + 等級フィルタ(〜3等級/〜6等級/その他)
+   - celestial_db.json をオンデマンドfetch + キャッシュ
+   - 検索結果ポップアップ (モーダル、スクロール対応)
+   - 選択 → 天体名/赤経赤緯フィールドに反映 → My天体に登録
+
+3. **新My天体メニュー新規作成** (13-mystars.md準拠)
+   - 複数天体管理 (`appState.myStars[]`)
+   - ラジオボタン選択 + 上下移動 + 削除
+   - CSV入力(全上書き、全角→半角変換、ID重複チェック、上限1000件)
+   - CSV出力(BOM付きUTF-8、CRLF)
+   - カラーパレット再利用(既存openPalette)
+   - bodies配列との自動同期 (`syncMyStarsToBodies()`)
+   - `isFixedStar()` ヘルパー関数で既定恒星+My天体を統一判定
+
+4. **メニュー順序**: 位置情報 → 辻検索 → 日時情報 → 薄明情報 → 天体検索(新) → 表示天体 → My天体(新) → 設定
+
+5. **URL共有対応**: My天体を含むURLの生成・復元に対応
+
+#### 残りのPhase
+- Phase 2: 表示天体メニュー修正
+- Phase 3: My観測点 + My目的点メニュー
+- Phase 4: My辻検索メニュー
+- Phase 5: バックアップ/インポートメニュー

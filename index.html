@@ -416,36 +416,57 @@ GNU General Public License for more details.
 
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-mystar')">
-                    <span>My天体</span> <span id="icon-sec-mystar">▲</span>
+                <div class="section-header" onclick="toggleSection('sec-starsearch')">
+                    <span>天体検索</span> <span id="icon-sec-starsearch">▼</span>
                 </div>
-                <div id="sec-mystar" class="section-content">
+                <div id="sec-starsearch" class="section-content closed">
                     <div class="control-row">
-                        <button id="btn-mystar-reg" class="nav-btn small">登録</button>
-                        <input type="text" id="input-mystar-radec" placeholder="赤経,赤緯" maxlength="150">
+                        <input type="text" id="input-starsearch" placeholder="シリウス、M78星雲など" maxlength="150">
                     </div>
-                    <div class="celestial-list" style="margin-top: 5px; border-bottom: none;">
-                        <li style="border-bottom: none; padding-bottom: 0;">
-                            <input type="checkbox" id="chk-mystar" class="body-checkbox">
-                            <div id="style-MyStar" class="style-indicator solid" style="color: #DDA0DD;" onclick="openPalette('MyStar')"></div>
-                            <div class="body-info">
-                                <span class="body-name-label">My天体</span>
-                                <span class="body-name-id">ID: MyStar</span>
-                                <span id="radec-MyStar" class="body-detail-text">赤経 --h / 赤緯 --°</span>
-                                <span id="riseset-MyStar" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
-                                <span id="data-MyStar" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>
-                            </div>
-                        </li>
+                    <div class="control-row starsearch-options">
+                        <span class="input-label">検索OP:</span>
+                        <input type="checkbox" id="chk-search-mag3" checked><label for="chk-search-mag3">〜3等級</label>
+                        <input type="checkbox" id="chk-search-mag6" checked><label for="chk-search-mag6">〜6等級</label>
+                        <input type="checkbox" id="chk-search-other" checked><label for="chk-search-other">その他</label>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-starsearch" class="nav-btn small">検索</button>
+                        <button id="btn-starsearch-reg" class="nav-btn small">登録</button>
+                    </div>
+                    <div class="control-row starsearch-result">
+                        <label class="input-label">天体名:</label>
+                        <input type="text" id="input-starsearch-name" maxlength="150">
+                    </div>
+                    <div class="control-row starsearch-result">
+                        <input type="text" id="input-starsearch-radec" readonly placeholder="赤経, 赤緯">
                     </div>
                 </div>
             </div>
-            
+
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-bodies')">
                     <span>表示天体</span> <span id="icon-sec-bodies">▲</span>
                 </div>
                 <div id="sec-bodies" class="section-content">
                     <ul id="celestial-list" class="celestial-list"></ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-mystars')">
+                    <span>My天体</span> <span id="icon-sec-mystars">▲</span>
+                </div>
+                <div id="sec-mystars" class="section-content">
+                    <ul id="mystars-list" class="celestial-list"></ul>
+                    <div class="control-row mystars-controls">
+                        <button id="btn-mystars-up" class="nav-btn small">▲上へ</button>
+                        <button id="btn-mystars-down" class="nav-btn small">▼下へ</button>
+                    </div>
+                    <div class="control-row mystars-controls">
+                        <button id="btn-mystars-delete" class="nav-btn small">削除</button>
+                        <button id="btn-mystars-csv-import" class="nav-btn small">CSV入力</button>
+                        <button id="btn-mystars-csv-export" class="nav-btn small">CSV出力</button>
+                    </div>
                 </div>
             </div>
 
@@ -552,6 +573,14 @@ GNU General Public License for more details.
         </div>
     </div>
 
+    <div id="starsearch-popup" class="starsearch-popup hidden">
+        <div class="starsearch-popup-header">
+            <span id="starsearch-popup-title">天体名検索結果</span>
+            <span class="close-starsearch-popup" onclick="closeStarSearchPopup()">×</span>
+        </div>
+        <div id="starsearch-popup-content" class="starsearch-popup-content"></div>
+    </div>
+
 <div id="help-modal" class="hidden">
         <div class="help-content formal-style">
             <div class="help-header">
@@ -630,13 +659,18 @@ GNU General Public License for more details.
                 </section>
 
                 <section class="help-section">
-                    <h3>My天体</h3>
-                    <p>お好みの恒星などの座標(赤経, 赤緯)を登録して表示できます。初期値はオリオン座のミンタカです。入力欄を空にして押すと登録を解除(リセット)します。</p>
+                    <h3>天体検索</h3>
+                    <p>celestial_db.jsonから天体を検索し、My天体に登録できます。検索オプションで等級を絞り込めます。検索結果から天体を選択し、天体名を編集して登録できます。</p>
                 </section>
 
                 <section class="help-section">
                     <h3>表示天体</h3>
                     <p>太陽、月、水星、金星、火星、木星、土星、天王星、海王星、冥王星、北極星、北斗七星メラク、オリオン座ミンタカ、すばる、オリオン大星雲M42、こと座ベガ、わし座アルタイル、はくちょう座デネブ、オリオン座ベテルギウス、おおいぬ座シリウス、こいぬ座プロキオンのそれぞれを出没時刻、南中時刻、入没時刻、方位角、視高度、視半径がわかります。高度が負数(およそ地平線下)になると線が半透明になります。チェックボックスで表示・非表示にできます。また、カラーパレットで、色と線種を変更できます。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>My天体</h3>
+                    <p>天体検索で登録した天体の一覧です。ラジオボタンで選択し、上下移動や削除ができます。チェックボックスで辻ラインの表示/非表示、カラーパレットで色と線種を変更できます。CSV入出力にも対応しています。</p>
                 </section>
 
                 <section class="help-section">

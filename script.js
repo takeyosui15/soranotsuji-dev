@@ -95,7 +95,12 @@ const PROCYON_RA = 7.655033;
 const PROCYON_DEC = 5.224988;
 
 // 固定RA/Decの恒星IDリスト
-const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon', 'MyStar'];
+const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon'];
+
+/** 固定恒星判定 (既定恒星 + My天体) */
+function isFixedStar(bodyId) {
+    return FIXED_STAR_IDS.includes(bodyId) || appState.myStars.some(s => String(s.id) === bodyId);
+}
 
 // 天体の赤道半径 (km) - 視半径の計算用
 const BODY_RADIUS_KM = {
@@ -123,8 +128,7 @@ const DEFAULT_BODIES = [
     { id: 'Polaris', color: '#000000', isDashed: false },
     { id: 'Merak',   color: '#654321', isDashed: false },
     { id: 'Mintaka', color: '#FFFFFF', isDashed: false },
-    { id: 'Subaru',  color: '#0000FF', isDashed: false },
-    { id: 'MyStar',  color: '#DDA0DD', isDashed: false }
+    { id: 'Subaru',  color: '#0000FF', isDashed: false }
 ];
 
 const COLOR_MAP = [
@@ -175,9 +179,8 @@ let appState = {
     // 日時
     currentDate: new Date(),
     
-    // My天体
-    myStar: { ra: MINTAKA_RA, dec: MINTAKA_DEC },
-
+    // My天体 (複数天体)
+    myStars: [],  // { id: number, name: string, ra: number, dec: number, visible: boolean, color: string, isDashed: boolean }
 
     // 大気差補正の有効/無効
     refractionEnabled: false,
@@ -213,8 +216,7 @@ let appState = {
         { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
         { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
         { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
-        { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false },
-        { id: 'MyStar',  name: 'My天体', color: '#DDA0DD', isDashed: false, visible: false, isCustom: true }
+        { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false }
     ],
 
     // 機能フラグ
@@ -309,9 +311,6 @@ window.onload = function() {
         btn.title = "登録済みの目的点を呼び出し";
     }
 
-    document.getElementById('input-mystar-radec').value = `${appState.myStar.ra},${appState.myStar.dec}`;
-    reflectMyStarUI();
-
     // 位置情報: 観測点/目的点モードのlocalStorage復元値をセット
     document.getElementById(appState.locMode === 'end' ? 'radio-end' : 'radio-start').checked = true;
 
@@ -326,7 +325,9 @@ window.onload = function() {
     updateOffsetDistances();
 
     // リストを生成
+    syncMyStarsToBodies();
     renderCelestialList();
+    renderMyStarsList();
     
     // ツールチップ設定
     setupTooltips();
@@ -625,10 +626,17 @@ function setupUI() {
         updateAll();
     });
 
-    // My天体登録
-    document.getElementById('btn-mystar-reg').onclick = registerMyStar;
-    document.getElementById('chk-mystar').addEventListener('change', (e) => toggleVisibility('MyStar', e.target.checked));
-    
+    // My天体操作ボタン
+    document.getElementById('btn-mystars-up').onclick = moveMyStarUp;
+    document.getElementById('btn-mystars-down').onclick = moveMyStarDown;
+    document.getElementById('btn-mystars-delete').onclick = deleteMyStar;
+    document.getElementById('btn-mystars-csv-import').onclick = importMyStarsCsv;
+    document.getElementById('btn-mystars-csv-export').onclick = exportMyStarsCsv;
+
+    // 天体検索ボタン
+    document.getElementById('btn-starsearch').onclick = searchStars;
+    document.getElementById('btn-starsearch-reg').onclick = registerSearchStar;
+
     // --- ★追加: 気象パラメータ連動 ---
     const iK = document.getElementById('input-refraction-k');
     const iP = document.getElementById('input-meteo-p');
@@ -712,8 +720,8 @@ function saveAppState() {
         end: appState.end,
         homeStart: appState.homeStart, // 登録場所
         homeEnd: appState.homeEnd,     // 登録場所
-        bodies: appState.bodies,
-        myStar: appState.myStar,
+        bodies: appState.bodies.filter(b => !b.isCustom),
+        myStars: appState.myStars,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -748,7 +756,7 @@ function loadAppState() {
             if(saved.end) appState.end = saved.end;
             if(saved.homeStart) appState.homeStart = saved.homeStart;
             if(saved.homeEnd) appState.homeEnd = saved.homeEnd;
-            if(saved.myStar) appState.myStar = saved.myStar;
+            if(saved.myStars) appState.myStars = saved.myStars;
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -990,7 +998,7 @@ function updateCalculation() {
         let ra;
         let dec;
         
-        if (FIXED_STAR_IDS.includes(body.id)) {
+        if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
             ra = rd.ra;
             dec = rd.dec;
@@ -1005,7 +1013,7 @@ function updateCalculation() {
         let riseStr = "--:--";
         let setStr = "--:--";
 
-        if (FIXED_STAR_IDS.includes(body.id)) {
+        if (isFixedStar(body.id)) {
             // 恒星: 出入り時刻は非同期で計算（下のsetTimeoutでまとめて処理）
         } else {
             try {
@@ -1016,7 +1024,7 @@ function updateCalculation() {
             } catch(e){}
         }
 
-        if (!FIXED_STAR_IDS.includes(body.id) && riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
+        if (!isFixedStar(body.id) && riseStr === "--:--" && setStr === "--:--" && hor.altitude > 0) {
             riseStr = "00:00";
             setStr = "00:00";
         }
@@ -1033,7 +1041,7 @@ function updateCalculation() {
         // 出・南中・入時刻
         const risesetEl = document.getElementById(`riseset-${body.id}`);
         if (risesetEl) {
-            if (FIXED_STAR_IDS.includes(body.id)) {
+            if (isFixedStar(body.id)) {
                 // 恒星: 出入り時刻・南中時を全て非同期で一括計算
                 risesetEl.innerText = `出時刻 --:-- / 南中時 --:-- / 入時刻 --:--`;
                 const bodyId = body.id;
@@ -1441,7 +1449,7 @@ function calculateDPPathPoints(targetDate, body, observer) {
         let r;
         let d;
         
-        if (FIXED_STAR_IDS.includes(body.id)) {
+        if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
             r = rd.ra;
             d = rd.dec;
@@ -1542,8 +1550,12 @@ function getFixedStarRaDec(bodyId) {
         case 'Betelgeuse': return { ra: BETELGEUSE_RA, dec: BETELGEUSE_DEC };
         case 'Sirius':     return { ra: SIRIUS_RA, dec: SIRIUS_DEC };
         case 'Procyon':    return { ra: PROCYON_RA, dec: PROCYON_DEC };
-        case 'MyStar':     return { ra: appState.myStar.ra, dec: appState.myStar.dec };
-        default:           return { ra: 0, dec: 0 };
+        default: {
+            // My天体から検索
+            const myStar = appState.myStars.find(s => String(s.id) === bodyId);
+            if (myStar) return { ra: myStar.ra, dec: myStar.dec };
+            return { ra: 0, dec: 0 };
+        }
     }
 }
 
@@ -2209,30 +2221,323 @@ function getHorizonDip(h) {
     return 1.776 * Math.sqrt(h) / 60;
 }
 
-// MyStar
-function registerMyStar() {
-    const val = document.getElementById('input-mystar-radec').value.trim();
-    if(!val) { 
-        appState.myStar = { ra: MINTAKA_RA, dec: MINTAKA_DEC }; 
-    } else {
-        const parts = val.split(',');
-        if(parts.length === 2) { 
-            appState.myStar = { ra: parseFloat(parts[0]), dec: parseFloat(parts[1]) }; 
-        } else {
-            return alert('形式エラー');
-        }
+// ============================================================
+// My天体管理
+// ============================================================
+
+/** My天体 → bodies 配列に同期 */
+function syncMyStarsToBodies() {
+    // bodies から isCustom のものを除去
+    appState.bodies = appState.bodies.filter(b => !b.isCustom);
+    // myStars を bodies に追加
+    appState.myStars.forEach(star => {
+        appState.bodies.push({
+            id: String(star.id),
+            name: star.name,
+            color: star.color,
+            isDashed: star.isDashed,
+            visible: star.visible,
+            isCustom: true
+        });
+    });
+}
+
+/** 空きID番号の最小値を返す (1〜1000) */
+function getNextMyStarId() {
+    const usedIds = new Set(appState.myStars.map(s => s.id));
+    for (let i = 1; i <= 1000; i++) {
+        if (!usedIds.has(i)) return i;
     }
+    return null;
+}
+
+/** My天体を追加 */
+function addMyStar(name, ra, dec) {
+    const id = getNextMyStarId();
+    if (id === null) {
+        alert('My天体の登録上限(1000件)に達しています');
+        return false;
+    }
+    appState.myStars.push({
+        id, name, ra, dec,
+        visible: false,
+        color: '#DDA0DD',
+        isDashed: true
+    });
+    syncMyStarsToBodies();
     saveAppState();
+    renderMyStarsList();
+    updateAll();
+    return true;
+}
+
+/** My天体リスト描画 */
+function renderMyStarsList() {
+    const list = document.getElementById('mystars-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (appState.myStars.length === 0) {
+        list.innerHTML = '<li class="mystars-empty">My天体は登録されていません</li>';
+        return;
+    }
+
+    appState.myStars.forEach(star => {
+        const bodyInBodies = appState.bodies.find(b => b.id === String(star.id));
+        const dashClass = star.isDashed ? 'dashed' : 'solid';
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <input type="radio" name="mystars-select" value="${star.id}" class="mystars-radio">
+            <input type="checkbox" class="body-checkbox" ${star.visible ? 'checked' : ''}>
+            <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(star.color)};"></div>
+            <div class="body-info">
+                <span class="body-name-label">${escapeHtml(star.name)}</span>
+                <span class="body-name-id">ID: ${star.id}</span>
+                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(4)}°</span>
+                <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
+                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 -.---°</span>
+            </div>`;
+        // チェックボックス: 表示/非表示
+        li.querySelector('.body-checkbox').addEventListener('change', function() {
+            star.visible = this.checked;
+            if (bodyInBodies) bodyInBodies.visible = this.checked;
+            saveAppState();
+            updateAll();
+        });
+        // カラーパレット
+        li.querySelector('.style-indicator').addEventListener('click', function() {
+            openPalette(String(star.id));
+        });
+        list.appendChild(li);
+    });
+}
+
+/** ラジオボタンで選択中のMy天体IDを取得 */
+function getSelectedMyStarId() {
+    const radio = document.querySelector('input[name="mystars-select"]:checked');
+    return radio ? parseInt(radio.value) : null;
+}
+
+/** My天体を削除 */
+function deleteMyStar() {
+    const id = getSelectedMyStarId();
+    if (id === null) return alert('削除するMy天体を選択してください');
+    const star = appState.myStars.find(s => s.id === id);
+    if (!star) return;
+    if (!confirm(`My天体リストの天体(ID:${id}, ${star.name})を削除しますか？`)) return;
+    appState.myStars = appState.myStars.filter(s => s.id !== id);
+    syncMyStarsToBodies();
+    saveAppState();
+    renderMyStarsList();
     updateAll();
 }
 
-function reflectMyStarUI() {
-    const myBody = appState.bodies.find(b => b.id === 'MyStar');
-    if(myBody) {
-        const ind = document.getElementById('style-MyStar');
-        ind.style.color = myBody.color;
-        ind.className = `style-indicator ${myBody.isDashed ? 'dashed' : 'solid'}`;
-        document.getElementById('chk-mystar').checked = myBody.visible;
+/** My天体を上に移動 */
+function moveMyStarUp() {
+    const id = getSelectedMyStarId();
+    if (id === null) return;
+    const idx = appState.myStars.findIndex(s => s.id === id);
+    if (idx <= 0) return;
+    [appState.myStars[idx - 1], appState.myStars[idx]] = [appState.myStars[idx], appState.myStars[idx - 1]];
+    syncMyStarsToBodies();
+    saveAppState();
+    renderMyStarsList();
+    // 選択状態を復元
+    const radio = document.querySelector(`input[name="mystars-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** My天体を下に移動 */
+function moveMyStarDown() {
+    const id = getSelectedMyStarId();
+    if (id === null) return;
+    const idx = appState.myStars.findIndex(s => s.id === id);
+    if (idx < 0 || idx >= appState.myStars.length - 1) return;
+    [appState.myStars[idx], appState.myStars[idx + 1]] = [appState.myStars[idx + 1], appState.myStars[idx]];
+    syncMyStarsToBodies();
+    saveAppState();
+    renderMyStarsList();
+    const radio = document.querySelector(`input[name="mystars-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 全角→半角変換 (名前以外の値用) */
+function toHalfWidth(str) {
+    return str.replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+              .replace(/　/g, ' ');
+}
+
+/** CSV入力 (My天体) */
+function importMyStarsCsv() {
+    if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+                if (lines.length > 1001) return alert('CSVの上限は1000件(見出し行+1000行)です');
+
+                const newStars = [];
+                const usedIds = new Set();
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
+                    const id = parseInt(toHalfWidth(cols[0].trim()));
+                    const name = cols[1].trim();
+                    const ra = parseFloat(toHalfWidth(cols[2].trim()));
+                    const dec = parseFloat(toHalfWidth(cols[3].trim()));
+                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+                    if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
+                    if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
+                    if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
+                    usedIds.add(id);
+                    newStars.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
+                }
+                // ID昇順ソート
+                newStars.sort((a, b) => a.id - b.id);
+                appState.myStars = newStars;
+                syncMyStarsToBodies();
+                saveAppState();
+                renderMyStarsList();
+                updateAll();
+                alert(`${newStars.length}件のMy天体を登録しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** CSV出力 (My天体) */
+function exportMyStarsCsv() {
+    if (appState.myStars.length === 0) return alert('My天体が登録されていません');
+    if (!confirm('My天体リストの登録内容をCSVファイルに出力しますか？')) return;
+    const bom = '\uFEFF';
+    let csv = bom + '天体ID,天体名,赤経,赤緯\r\n';
+    appState.myStars.forEach(s => {
+        csv += `${s.id},${s.name},${s.ra},${s.dec}\r\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mystars.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// 天体検索
+// ============================================================
+
+let CelestialDb = null; // celestial_db.json キャッシュ
+let selectedSearchStar = null; // 検索で選択された天体
+
+/** celestial_db.json をロード (キャッシュ) */
+function loadCelestialDb() {
+    if (CelestialDb) return Promise.resolve(CelestialDb);
+    return fetch('celestial_db.json')
+        .then(res => {
+            if (!res.ok) throw new Error('celestial_db.json の読み込みに失敗しました');
+            return res.json();
+        })
+        .then(data => {
+            CelestialDb = data;
+            return data;
+        });
+}
+
+/** 天体検索を実行 */
+function searchStars() {
+    const keyword = document.getElementById('input-starsearch').value.trim();
+    if (!keyword) return alert('検索キーワードを入力してください');
+
+    const chkMag3 = document.getElementById('chk-search-mag3').checked;
+    const chkMag6 = document.getElementById('chk-search-mag6').checked;
+    const chkOther = document.getElementById('chk-search-other').checked;
+
+    loadCelestialDb().then(db => {
+        const results = db.filter(star => {
+            // キーワードマッチ (name, keys)
+            const text = `${star.name} ${star.keys || ''}`;
+            if (!text.includes(keyword)) return false;
+            // 等級フィルタ
+            if (star.mag === null || star.mag === undefined) return chkOther;
+            if (star.mag <= 3) return chkMag3;
+            if (star.mag <= 6) return chkMag6;
+            return chkOther;
+        });
+        showStarSearchPopup(results);
+    }).catch(err => {
+        alert('天体データの読み込みに失敗しました: ' + err.message);
+    });
+}
+
+/** 検索ポップアップを表示 */
+function showStarSearchPopup(results) {
+    const popup = document.getElementById('starsearch-popup');
+    const title = document.getElementById('starsearch-popup-title');
+    const content = document.getElementById('starsearch-popup-content');
+
+    title.textContent = `天体名検索結果（${results.length}件）`;
+    content.innerHTML = '';
+
+    if (results.length === 0) {
+        content.innerHTML = '<div class="starsearch-no-result">該当する天体が見つかりませんでした</div>';
+    } else {
+        results.forEach(star => {
+            const item = document.createElement('div');
+            item.className = 'starsearch-result-item';
+            item.innerHTML = `
+                <div class="starsearch-result-name">${escapeHtml(star.name)}</div>
+                <div class="starsearch-result-detail">${star.ra}, ${star.dec}</div>
+                <div class="starsearch-result-detail">${star.mag !== null && star.mag !== undefined ? star.mag : '--'}, ${escapeHtml(star.type || '--')}</div>
+                <div class="starsearch-result-keys">${escapeHtml(star.keys || '')}</div>`;
+            item.addEventListener('click', () => selectSearchResult(star));
+            content.appendChild(item);
+        });
+    }
+    popup.classList.remove('hidden');
+}
+
+/** 検索結果を選択 */
+function selectSearchResult(star) {
+    selectedSearchStar = star;
+    document.getElementById('input-starsearch-name').value = star.name;
+    document.getElementById('input-starsearch-radec').value = `${star.ra}, ${star.dec}`;
+    closeStarSearchPopup();
+}
+
+/** 検索ポップアップを閉じる */
+function closeStarSearchPopup() {
+    document.getElementById('starsearch-popup').classList.add('hidden');
+}
+
+/** 検索結果をMy天体に登録 */
+function registerSearchStar() {
+    const name = document.getElementById('input-starsearch-name').value.trim();
+    const radecStr = document.getElementById('input-starsearch-radec').value.trim();
+    if (!name || !radecStr) return alert('天体名と赤経赤緯を入力してください');
+    const parts = radecStr.split(',').map(s => s.trim());
+    if (parts.length !== 2) return alert('赤経赤緯の形式が不正です');
+    const ra = parseFloat(parts[0]);
+    const dec = parseFloat(parts[1]);
+    if (isNaN(ra) || isNaN(dec)) return alert('赤経赤緯の値が不正です');
+    if (!confirm(`検索天体をMy天体に登録しますか？(天体名は書き換えられます。)`)) return;
+    if (addMyStar(name, ra, dec)) {
+        // 入力フィールドをクリア
+        document.getElementById('input-starsearch-name').value = '';
+        document.getElementById('input-starsearch-radec').value = '';
+        selectedSearchStar = null;
     }
 }
 
@@ -2295,10 +2600,13 @@ function applyColor(code) {
     const b = appState.bodies.find(x => x.id === editingBodyId);
     if(b) {
         b.color = code;
-        if(editingBodyId === 'MyStar') reflectMyStarUI();
+        // My天体側にも同期
+        const myStar = appState.myStars.find(s => String(s.id) === editingBodyId);
+        if (myStar) myStar.color = code;
         closePalette();
         saveAppState();
         renderCelestialList();
+        renderMyStarsList();
         updateAll();
     }
 }
@@ -2306,10 +2614,13 @@ function applyColor(code) {
 function applyLineStyle(type) {
     const b = appState.bodies.find(x => x.id === editingBodyId);
     b.isDashed = (type === 'dashed');
-    if(editingBodyId === 'MyStar') reflectMyStarUI();
+    // My天体側にも同期
+    const myStar = appState.myStars.find(s => String(s.id) === editingBodyId);
+    if (myStar) myStar.isDashed = (type === 'dashed');
     closePalette();
     saveAppState();
     renderCelestialList();
+    renderMyStarsList();
     updateAll();
 }
 
@@ -2350,15 +2661,23 @@ function registerSettings() {
 function resetBodyStyle() {
     if (!editingBodyId) return;
     const def = DEFAULT_BODIES.find(x => x.id === editingBodyId);
-    if (!def) return;
     const body = appState.bodies.find(x => x.id === editingBodyId);
     if (!body) return;
-    body.color = def.color;
-    body.isDashed = def.isDashed;
-    if (editingBodyId === 'MyStar') reflectMyStarUI();
+    if (def) {
+        body.color = def.color;
+        body.isDashed = def.isDashed;
+    } else {
+        // My天体のデフォルト: 薄紫、破線
+        body.color = '#DDA0DD';
+        body.isDashed = true;
+    }
+    // My天体側にも同期
+    const myStar = appState.myStars.find(s => String(s.id) === editingBodyId);
+    if (myStar) { myStar.color = body.color; myStar.isDashed = body.isDashed; }
     closePalette();
     saveAppState();
     renderCelestialList();
+    renderMyStarsList();
     updateAll();
 }
 
@@ -2535,7 +2854,7 @@ async function startTsujiSearch() {
 
         // body を Worker に渡す形に変換（fixed star は ra/dec を抽出）
         let bodyMsg;
-        if (FIXED_STAR_IDS.includes(body.id)) {
+        if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
             bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
         } else {
@@ -2997,7 +3316,20 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
 
     // 表示天体: starIdを複数指定
     const visibleBodies = appState.bodies.filter(b => b.visible);
-    visibleBodies.forEach(b => params.append('starId', b.id));
+    visibleBodies.forEach(b => {
+        params.append('starId', b.id);
+        // My天体の場合は追加情報を付与
+        if (b.isCustom) {
+            const myStar = appState.myStars.find(s => String(s.id) === b.id);
+            if (myStar) {
+                params.append('starName', myStar.name);
+                params.append('starRa', String(myStar.ra));
+                params.append('starDec', String(myStar.dec));
+                params.append('starColor', myStar.color);
+                params.append('starIsDashed', myStar.isDashed ? '1' : '0');
+            }
+        }
+    });
 
     return params;
 }
@@ -3105,10 +3437,42 @@ function restoreFromUrl() {
 
     // 表示天体 (starId複数指定対応)
     const starIds = params.getAll('starId');
+    const starNames = params.getAll('starName');
+    const starRas = params.getAll('starRa');
+    const starDecs = params.getAll('starDec');
+    const starColors = params.getAll('starColor');
+    const starIsDasheds = params.getAll('starIsDashed');
     if (starIds.length > 0) {
-        appState.bodies.forEach(b => {
-            b.visible = starIds.includes(b.id);
+        // URLに含まれるMy天体を復元
+        let customIdx = 0;
+        starIds.forEach(sid => {
+            // 既定天体かどうかチェック
+            const existing = appState.bodies.find(b => b.id === sid && !b.isCustom);
+            if (existing) {
+                existing.visible = true;
+            } else if (customIdx < starNames.length) {
+                // My天体としてURLから復元
+                const ra = parseFloat(starRas[customIdx]);
+                const dec = parseFloat(starDecs[customIdx]);
+                const name = starNames[customIdx];
+                const color = starColors[customIdx] || '#DDA0DD';
+                const isDashed = starIsDasheds[customIdx] === '1';
+                if (!isNaN(ra) && !isNaN(dec) && name) {
+                    const id = parseInt(sid);
+                    if (!isNaN(id) && !appState.myStars.some(s => s.id === id)) {
+                        appState.myStars.push({ id, name, ra, dec, visible: true, color, isDashed });
+                    }
+                }
+                customIdx++;
+            }
         });
+        // 既定天体のvisible状態を設定
+        appState.bodies.forEach(b => {
+            if (!b.isCustom) {
+                b.visible = starIds.includes(b.id);
+            }
+        });
+        syncMyStarsToBodies();
     }
 
     // 辻検索パラメータ (mode=tsujisearchの時のみ)

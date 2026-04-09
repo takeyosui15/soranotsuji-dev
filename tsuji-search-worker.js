@@ -33,7 +33,7 @@ function angularDistance(az1, alt1, az2, alt2) {
 function calcAzAlt(body, time, observer, refractionEnabled) {
     let ra, dec;
     if (body.fixed) {
-        // 固定座標 (固定恒星 / MyStar): メインスレッドから ra/dec が渡される
+        // 固定座標 (固定恒星 / My天体): メインスレッドから ra/dec が渡される
         ra = body.ra;
         dec = body.dec;
     } else {
