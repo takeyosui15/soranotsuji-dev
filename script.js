@@ -2400,8 +2400,7 @@ function importMyStarsCsv() {
                     usedIds.add(id);
                     newStars.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
                 }
-                // ID昇順ソート
-                newStars.sort((a, b) => a.id - b.id);
+                // CSVの読み込み順で登録（ID昇順ソートはしない）
                 appState.myStars = newStars;
                 syncMyStarsToBodies();
                 saveAppState();
@@ -3458,9 +3457,20 @@ function restoreFromUrl() {
                 const color = starColors[customIdx] || '#DDA0DD';
                 const isDashed = starIsDasheds[customIdx] === '1';
                 if (!isNaN(ra) && !isNaN(dec) && name) {
-                    const id = parseInt(sid);
-                    if (!isNaN(id) && !appState.myStars.some(s => s.id === id)) {
-                        appState.myStars.push({ id, name, ra, dec, visible: true, color, isDashed });
+                    // 同じ赤経赤緯の既存My天体があるか検索
+                    const sameRaDec = appState.myStars.find(s => s.ra === ra && s.dec === dec);
+                    if (sameRaDec) {
+                        // 既存の同一座標天体を表示ONにする
+                        sameRaDec.visible = true;
+                    } else {
+                        // 新規追加: IDの衝突があれば新しいIDを採番
+                        let id = parseInt(sid);
+                        if (isNaN(id) || appState.myStars.some(s => s.id === id)) {
+                            id = getNextMyStarId();
+                        }
+                        if (id !== null) {
+                            appState.myStars.push({ id, name, ra, dec, visible: true, color, isDashed });
+                        }
                     }
                 }
                 customIdx++;
