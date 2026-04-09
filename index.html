@@ -102,7 +102,7 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <div class="btn-group-left">
                             <button id="btn-gps" class="nav-btn small" title="現在地を取得">GPS</button>
-                            <input type="radio" name="loc-mode" id="radio-start" value="start" checked>
+                            <input type="radio" name="loc-mode" id="radio-start" class="mystars-radio" value="start" checked>
                         </div>
                         <label class="input-label">観測点(°):</label>
                         <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
@@ -127,7 +127,7 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <div class="btn-group-left">
                             <button id="btn-url-location" class="nav-btn small" title="現在の状態で宙の辻を開くURLをクリップボードにコピー">URL</button>
-                            <input type="radio" name="loc-mode" id="radio-end" value="end">
+                            <input type="radio" name="loc-mode" id="radio-end" class="mystars-radio" value="end">
                         </div>
                         <label class="input-label">目的点(°):</label>
                         <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
@@ -239,7 +239,7 @@ GNU General Public License for more details.
                     
                     <div class="shortcuts">
                         <div class="shortcut-item">
-                            <input type="radio" name="time-jump" id="jump-sunrise" value="sunrise">
+                            <input type="radio" name="time-jump" id="jump-sunrise" class="mystars-radio" value="sunrise">
                             <label for="jump-sunrise">
                                 <span class="shortcut-name">🌞日の出</span>
                                 <span class="shortcut-detail">
@@ -249,7 +249,7 @@ GNU General Public License for more details.
                             </label>
                         </div>
                         <div class="shortcut-item">
-                            <input type="radio" name="time-jump" id="jump-sunset" value="sunset">
+                            <input type="radio" name="time-jump" id="jump-sunset" class="mystars-radio" value="sunset">
                             <label for="jump-sunset">
                                 <span class="shortcut-name">🌞日の入</span>
                                 <span class="shortcut-detail">
@@ -259,7 +259,7 @@ GNU General Public License for more details.
                             </label>
                         </div>
                         <div class="shortcut-item">
-                            <input type="radio" name="time-jump" id="jump-moonrise" value="moonrise">
+                            <input type="radio" name="time-jump" id="jump-moonrise" class="mystars-radio" value="moonrise">
                             <label for="jump-moonrise">
                                 <span class="shortcut-name">🌛月の出</span>
                                 <span class="shortcut-detail">
@@ -269,7 +269,7 @@ GNU General Public License for more details.
                             </label>
                         </div>
                         <div class="shortcut-item">
-                            <input type="radio" name="time-jump" id="jump-moonset" value="moonset">
+                            <input type="radio" name="time-jump" id="jump-moonset" class="mystars-radio" value="moonset">
                             <label for="jump-moonset">
                                 <span class="shortcut-name">🌛月の入</span>
                                 <span class="shortcut-detail">
@@ -303,7 +303,7 @@ GNU General Public License for more details.
                         <div class="twilight-group-title">夜明</div>
                         <div class="twilight-grid">
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-astro-dawn" value="astro_dawn">
+                                <input type="radio" name="time-jump" id="jump-astro-dawn" class="mystars-radio" value="astro_dawn">
                                 <label for="jump-astro-dawn">
                                     <span class="shortcut-name">天文薄明[始]</span>
                                     <span class="shortcut-detail">
@@ -313,7 +313,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-naut-dawn" value="naut_dawn">
+                                <input type="radio" name="time-jump" id="jump-naut-dawn" class="mystars-radio" value="naut_dawn">
                                 <label for="jump-naut-dawn">
                                     <span class="shortcut-name">航海薄明[始]</span>
                                     <span class="shortcut-detail">
@@ -323,7 +323,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-yoake" value="yoake">
+                                <input type="radio" name="time-jump" id="jump-yoake" class="mystars-radio" value="yoake">
                                 <label for="jump-yoake">
                                     <span class="shortcut-name">夜明</span>
                                     <span class="shortcut-detail">
@@ -333,7 +333,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-civil-dawn" value="civil_dawn">
+                                <input type="radio" name="time-jump" id="jump-civil-dawn" class="mystars-radio" value="civil_dawn">
                                 <label for="jump-civil-dawn">
                                     <span class="shortcut-name">常用薄明[始]</span>
                                     <span class="shortcut-detail">
@@ -343,7 +343,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-tw-sunrise" value="tw_sunrise">
+                                <input type="radio" name="time-jump" id="jump-tw-sunrise" class="mystars-radio" value="tw_sunrise">
                                 <label for="jump-tw-sunrise">
                                     <span class="shortcut-name">日の出</span>
                                     <span class="shortcut-detail">
@@ -359,7 +359,7 @@ GNU General Public License for more details.
                         <div class="twilight-group-title">日暮</div>
                         <div class="twilight-grid">
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-tw-sunset" value="tw_sunset">
+                                <input type="radio" name="time-jump" id="jump-tw-sunset" class="mystars-radio" value="tw_sunset">
                                 <label for="jump-tw-sunset">
                                     <span class="shortcut-name">日の入</span>
                                     <span class="shortcut-detail">
@@ -370,7 +370,7 @@ GNU General Public License for more details.
                             </div>
                             <div class="shortcut-item twilight-spacer"></div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-civil-dusk" value="civil_dusk">
+                                <input type="radio" name="time-jump" id="jump-civil-dusk" class="mystars-radio" value="civil_dusk">
                                 <label for="jump-civil-dusk">
                                     <span class="shortcut-name">常用薄明[終]</span>
                                     <span class="shortcut-detail">
@@ -380,7 +380,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-higure" value="higure">
+                                <input type="radio" name="time-jump" id="jump-higure" class="mystars-radio" value="higure">
                                 <label for="jump-higure">
                                     <span class="shortcut-name">日暮</span>
                                     <span class="shortcut-detail">
@@ -390,7 +390,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-naut-dusk" value="naut_dusk">
+                                <input type="radio" name="time-jump" id="jump-naut-dusk" class="mystars-radio" value="naut_dusk">
                                 <label for="jump-naut-dusk">
                                     <span class="shortcut-name">航海薄明[終]</span>
                                     <span class="shortcut-detail">
@@ -400,7 +400,7 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                             <div class="shortcut-item">
-                                <input type="radio" name="time-jump" id="jump-astro-dusk" value="astro_dusk">
+                                <input type="radio" name="time-jump" id="jump-astro-dusk" class="mystars-radio" value="astro_dusk">
                                 <label for="jump-astro-dusk">
                                     <span class="shortcut-name">天文薄明[終]</span>
                                     <span class="shortcut-detail">
@@ -425,9 +425,9 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row starsearch-options">
                         <span>検索OP:</span>
-                        <input type="checkbox" id="chk-search-mag3" checked><label for="chk-search-mag3">〜3等級</label>
-                        <input type="checkbox" id="chk-search-mag6" checked><label for="chk-search-mag6">〜6等級</label>
-                        <input type="checkbox" id="chk-search-other" checked><label for="chk-search-other">その他</label>
+                        <input type="checkbox" id="chk-search-mag3" class="body-checkbox" checked><label for="chk-search-mag3">〜3等級</label>
+                        <input type="checkbox" id="chk-search-mag6" class="body-checkbox" checked><label for="chk-search-mag6">〜6等級</label>
+                        <input type="checkbox" id="chk-search-other" class="body-checkbox" checked><label for="chk-search-other">その他</label>
                     </div>
                     <div class="control-row">
                         <button id="btn-starsearch" class="nav-btn main-btn">検索</button>

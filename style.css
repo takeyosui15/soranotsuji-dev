@@ -613,6 +613,7 @@ select,
 #btn-gps,
 #btn-reg-start,
 #btn-reg-end,
+#btn-url-location,
 #btn-reg-settings {
     width: 46px;
     min-width: 46px;
