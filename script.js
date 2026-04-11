@@ -976,7 +976,7 @@ function updateAll() {
 function updateLocationDisplay() {
     locationLayer.clearLayers();
 
-    const fmt = (pos) => `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+    const fmt = (pos) => `${pos.lat}, ${pos.lng}`;
     
     if(document.activeElement.id !== 'input-start-latlng') {
         document.getElementById('input-start-latlng').value = fmt(appState.start);
