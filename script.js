@@ -995,11 +995,11 @@ function updateLocationDisplay() {
     const sPt = L.latLng(appState.start.lat, appState.start.lng);
     const ePt = L.latLng(appState.end.lat, appState.end.lng);
     
-    // マーカーの設置（観測点:青、目的点:赤）
+    // マーカーの設置（観測点:青、目的点:赤）— My観測点/My目的点マーカーより常に上に表示するためzIndexOffsetを高く設定
     const observerIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-observer"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
     const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-    L.marker(sPt, { icon: observerIcon }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
-    L.marker(ePt, { icon: targetIcon }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
+    L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
     L.polyline([sPt, ePt], {

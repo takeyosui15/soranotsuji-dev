@@ -485,3 +485,24 @@ Claudeさん、ありがとうございます。
 My観測点のCSV入力後、My観測点ではなくて、観測点のマーカー表示が消えてしまうことです。
 観測点のマーカーも、その時の位置情報の位置を表示して欲しいです。
 よろしくお願いいたします。
+
+### 回答 (2026-04-11) — バグ修正
+
+#### 原因
+**Leaflet のマーカー z-order の問題** でした。
+
+Leaflet では、すべてのマーカーは `markerPane` という同一のペインに配置されます。同一ペイン内の z-order は緯度（南にあるほど前面）と `zIndexOffset` によって決まります。
+
+CSV入力で多数の My観測点 マーカー(緑)が追加されると、それらが主の 観測点(青) マーカーと同じか近い位置にある場合、後から追加された My観測点 マーカーが視覚的に主の 観測点 マーカーを覆い隠してしまっていました。
+
+技術的には `locationLayer` 自体は触られていないので 観測点 マーカーは存在していますが、ユーザーには「消えた」ように見えていました。
+
+#### 修正内容
+`updateLocationDisplay()` の主の 観測点/目的点 マーカーに `zIndexOffset: 1000` を追加し、My観測点/My目的点マーカーよりも常に上に表示されるようにしました:
+
+```js
+L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(...);
+L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(...);
+```
+
+これにより、CSV入力後でも主の 観測点(青)・目的点(赤) マーカーが常に最前面に表示されるようになります。
