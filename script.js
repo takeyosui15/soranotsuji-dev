@@ -2046,8 +2046,8 @@ function createLocationPopup(title, pos, target, apiElev, height) {
 
     return `
         <b>${title}</b><br>
-        緯度: ${pos.lat.toFixed(6)}°<br>
-        経度: ${pos.lng.toFixed(6)}°<br>
+        緯度: ${pos.lat}°<br>
+        経度: ${pos.lng}°<br>
         標高: ${apiElev != null ? apiElev : pos.elev} m<br>
         高さ: ${height != null ? height : 0} m<br>
         相手距離: ${(dist/1000).toFixed(2)} km<br>
