@@ -2960,13 +2960,13 @@ function getMyPointUrl(type) {
     const params = new URLSearchParams();
     params.set('mode', 'preview');
     if (cfg.locKey === 'start') {
-        params.set('startLat', pt.lat.toFixed(6));
-        params.set('startLng', pt.lng.toFixed(6));
+        params.set('startLat', String(pt.lat));
+        params.set('startLng', String(pt.lng));
         params.set('startApiElv', String(pt.elev || 0));
         params.set('startElv', String(pt.height || 0));
     } else {
-        params.set('endLat', pt.lat.toFixed(6));
-        params.set('endLng', pt.lng.toFixed(6));
+        params.set('endLat', String(pt.lat));
+        params.set('endLng', String(pt.lng));
         params.set('endApiElv', String(pt.elev || 0));
         params.set('endElv', String(pt.height || 0));
     }
@@ -3802,12 +3802,12 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         params.set('time', formatTimeForUrl(d));
         params.set('timeZone', getLocalTimezoneOffsetString());
     }
-    params.set('startLat', appState.start.lat.toFixed(6));
-    params.set('startLng', appState.start.lng.toFixed(6));
+    params.set('startLat', String(appState.start.lat));
+    params.set('startLng', String(appState.start.lng));
     params.set('startApiElv', String(appState.startApiElev));
     params.set('startElv', String(appState.startHeight));
-    params.set('endLat', appState.end.lat.toFixed(6));
-    params.set('endLng', appState.end.lng.toFixed(6));
+    params.set('endLat', String(appState.end.lat));
+    params.set('endLng', String(appState.end.lng));
     params.set('endApiElv', String(appState.endApiElev));
     params.set('endElv', String(appState.endHeight));
 
