@@ -2702,6 +2702,23 @@ function renderMyPointsList(type) {
             }
         });
         latlngInput.addEventListener('input', () => setMyPointDirty(type, true));
+        // blur時に直接編集された数値を反映 (Enter押下を経由しない編集対応)
+        latlngInput.addEventListener('change', () => {
+            const val = latlngInput.value.trim();
+            if (!val) {
+                pt.lat = null;
+                pt.lng = null;
+                setMyPointDirty(type, true);
+                return;
+            }
+            const parts = val.split(',').map(s => s.trim());
+            if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+                pt.lat = parseFloat(parts[0]);
+                pt.lng = parseFloat(parts[1]);
+                setMyPointDirty(type, true);
+            }
+            // 非数値(地名)の場合はpt.lat/lngを更新しない(Enterで地名検索してもらう)
+        });
         // イベント: 標高/高さ変更
         row.querySelector('.mypoint-elev').addEventListener('change', (e) => {
             pt.elev = parseFloat(e.target.value) || 0;

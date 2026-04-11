@@ -390,3 +390,46 @@ Claudeさん、ありがとうございます。
 My観測点で、緯度経度情報を更新して、全て登録ボタンを押下したのですが、マーカーの位置が更新されません。ポップアップの内容も更新されていないようです。
 ブラウザが再読み込みすると、元に戻っているような感じかします。
 ご確認いただけないでしょうか。
+
+### 回答 (2026-04-11) — バグ修正
+
+#### 原因
+My観測点/My目的点の緯度経度テキストボックスには `keydown (Enter)` と `input` のイベントハンドラはありましたが、**`change` イベントハンドラが抜けていました**。
+
+そのため、ユーザーが直接テキストボックスを編集してEnterキーを押さずに「全て登録」ボタンを押すと:
+1. `pt.lat`/`pt.lng` は古い値のまま（keydown Enter が発火しない）
+2. `saveAppState()` で古い値がlocalStorageに保存される
+3. `updateMyPointMarkers()` で古い値のマーカーが作成される
+4. 再読み込みしても古い値が復元される
+
+名前・標高・高さのテキストボックスには `change` ハンドラがあり、blur時(フォーカスが外れた時)に値が反映されていましたが、緯度経度のテキストボックスだけ抜けていたのが原因です。
+
+#### 修正内容
+`renderMyPointsList()` の緯度経度テキストボックスに `change` イベントハンドラを追加しました:
+
+```js
+latlngInput.addEventListener('change', () => {
+    const val = latlngInput.value.trim();
+    if (!val) {
+        pt.lat = null;
+        pt.lng = null;
+        setMyPointDirty(type, true);
+        return;
+    }
+    const parts = val.split(',').map(s => s.trim());
+    if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+        pt.lat = parseFloat(parts[0]);
+        pt.lng = parseFloat(parts[1]);
+        setMyPointDirty(type, true);
+    }
+    // 非数値(地名)の場合はpt.lat/lngを更新しない(Enterで地名検索してもらう)
+});
+```
+
+これで、ユーザーがテキストボックスを直接編集して blur (タブ移動や他のボタンクリック等) した時点で `pt.lat`/`pt.lng` が更新され、「全て登録」ボタン押下時には最新の値が保存・マーカー更新されます。
+
+#### 動作確認手順
+1. My観測点で既存の緯度経度を編集（例: `35.658` → `36.0`）
+2. Enter キーは押さずに「全て登録」ボタンをクリック
+3. **期待**: 地図のマーカー位置が更新され、ポップアップも新しい緯度経度が表示される
+4. ブラウザを再読み込みしても新しい値が保持される
