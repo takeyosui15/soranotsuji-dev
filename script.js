@@ -2651,7 +2651,7 @@ function renderMyPointsList(type) {
                 <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat.toFixed(6) + ', ' + pt.lng.toFixed(6) : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
@@ -2675,10 +2675,9 @@ function renderMyPointsList(type) {
             // 緯度,経度 形式か判定
             const parts = val.split(',').map(s => s.trim());
             if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
-                // 小数点以下6桁に丸める
-                pt.lat = parseFloat(parseFloat(parts[0]).toFixed(6));
-                pt.lng = parseFloat(parseFloat(parts[1]).toFixed(6));
-                latlngInput.value = `${pt.lat.toFixed(6)}, ${pt.lng.toFixed(6)}`;
+                pt.lat = parseFloat(parts[0]);
+                pt.lng = parseFloat(parts[1]);
+                latlngInput.value = `${pt.lat}, ${pt.lng}`;
                 // 標高取得
                 const elev = await getElevation(pt.lat, pt.lng);
                 pt.elev = elev !== null ? elev : 0;
@@ -2689,10 +2688,9 @@ function renderMyPointsList(type) {
                 const results = await searchLocation(val);
                 if (results && results.length > 0) {
                     showLocationPicker(results, async (selected) => {
-                        // 小数点以下6桁に丸める
-                        pt.lat = parseFloat(selected.lat.toFixed(6));
-                        pt.lng = parseFloat(selected.lon.toFixed(6));
-                        latlngInput.value = `${pt.lat.toFixed(6)}, ${pt.lng.toFixed(6)}`;
+                        pt.lat = selected.lat;
+                        pt.lng = selected.lon;
+                        latlngInput.value = `${pt.lat}, ${pt.lng}`;
                         const elev = await getElevation(pt.lat, pt.lng);
                         pt.elev = elev !== null ? elev : 0;
                         row.querySelector('.mypoint-elev').value = pt.elev;
@@ -2753,8 +2751,7 @@ function getMyPointFromLocation(type) {
     const height = locKey === 'start' ? appState.startHeight : appState.endHeight;
     cfg.list().push({
         id, name: `新規${cfg.label}名`,
-        lat: parseFloat(loc.lat.toFixed(6)),
-        lng: parseFloat(loc.lng.toFixed(6)),
+        lat: loc.lat, lng: loc.lng,
         elev: apiElev, height: height
     });
     setMyPointDirty(type, true);
@@ -2883,8 +2880,8 @@ function importMyPointsCsv(type) {
                     if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
                     const id = parseInt(toHalfWidth(cols[0].trim()));
                     const name = cols[1].trim();
-                    const lat = parseFloat(parseFloat(toHalfWidth(cols[2].trim())).toFixed(6));
-                    const lng = parseFloat(parseFloat(toHalfWidth(cols[3].trim())).toFixed(6));
+                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
+                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
                     let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
                     const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
                     if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
@@ -2983,8 +2980,8 @@ function updateMyPointMarkers() {
             <b>My観測点</b><br>
             ${escapeHtml(pt.name)}<br>
             ID: ${pt.id}<br>
-            緯度: ${pt.lat.toFixed(6)}°<br>
-            経度: ${pt.lng.toFixed(6)}°<br>
+            緯度: ${pt.lat}°<br>
+            経度: ${pt.lng}°<br>
             標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
             高さ: ${pt.height || 0} m
         `);
@@ -3009,8 +3006,8 @@ function updateMyPointMarkers() {
             <b>My目的点</b><br>
             ${escapeHtml(pt.name)}<br>
             ID: ${pt.id}<br>
-            緯度: ${pt.lat.toFixed(6)}°<br>
-            経度: ${pt.lng.toFixed(6)}°<br>
+            緯度: ${pt.lat}°<br>
+            経度: ${pt.lng}°<br>
             標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
             高さ: ${pt.height || 0} m
         `);
