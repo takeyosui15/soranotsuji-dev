@@ -745,7 +745,7 @@ select {
 }
 
 input[type="date"],
-input[type="text"] {
+input[type="time"] {
     text-align: center;
 }
 
@@ -1347,7 +1347,7 @@ input[type="range"] {
 
 /* --- My観測点 / My目的点 --- */
 .mypoint-list {
-    max-height: 400px;
+    max-height: 600px;
     overflow-y: auto;
 }
 
@@ -1365,7 +1365,7 @@ input[type="range"] {
 }
 
 .mypoint-id {
-    font-size: 14px;
+    font-size: 16px;
     color: #666;
     white-space: pre;
 }
