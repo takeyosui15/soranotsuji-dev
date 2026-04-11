@@ -227,3 +227,37 @@ Claudeさん、ありがとうございます。
 
 です。
 デバッグをお願いいたします。
+
+### 回答 (2026-04-11) — バグ修正
+
+#### 原因
+`showLocationPicker(results, isStart)` 関数 (`script.js:1217`) は、既存の位置情報メニュー用に第2引数を **boolean** として設計されていました。
+
+Phase 3 の My観測点/My目的点実装では第2引数に **コールバック関数** を渡していましたが、JavaScript は関数を truthy 値として評価するため:
+- `isStart = (関数)` → truthy として扱われる
+- `applyLocationCoords(coords, true)` が呼ばれる → `appState.start` (位置情報メニューの観測点) が更新される
+- 渡したコールバックは完全に無視される → My観測点の行には反映されない
+
+これが「位置情報メニューに反映されるだけで、追加したMy観測点の緯度経度に反映されない」症状の原因でした。
+
+#### 修正内容
+`showLocationPicker` を後方互換性を保ちつつ拡張し、第2引数が関数の場合はコールバックとして呼び出すように変更しました (`script.js:1217-1243`):
+
+```js
+if (typeof isStartOrCallback === 'function') {
+    // カスタムコールバック (My観測点/My目的点用)
+    await isStartOrCallback(r);
+} else {
+    // 既存の位置情報メニュー用 (boolean)
+    const coords = { lat: r.lat, lng: r.lon };
+    await applyLocationCoords(coords, isStartOrCallback);
+}
+```
+
+#### 動作確認手順
+1. My観測点メニューを開く
+2. 「行追加」ボタンで新規行を追加
+3. 緯度経度テキストボックスに「東京駅」と入力 → Enter
+4. 地名検索ポップアップから結果を選択
+5. **期待**: My観測点の行の緯度経度に反映され、標高も自動取得される。位置情報メニューの観測点（青マーカー）は動かない。「全て登録」ボタンが赤太字に変わる。
+6. My目的点でも同様に動作することを確認してください。

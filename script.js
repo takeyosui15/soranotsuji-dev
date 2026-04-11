@@ -1214,7 +1214,7 @@ async function applyLocationCoords(coords, isStart) {
     updateAll();
 }
 
-function showLocationPicker(results, isStart) {
+function showLocationPicker(results, isStartOrCallback) {
     const picker = document.getElementById('location-picker');
     const list = document.getElementById('picker-list');
     const title = document.getElementById('picker-title');
@@ -1227,8 +1227,14 @@ function showLocationPicker(results, isStart) {
         item.innerHTML = `<div class="picker-name">${escapeHtml(r.title)}</div><div class="picker-address">${escapeHtml(r.address)}</div>`;
         item.addEventListener('click', async () => {
             closeLocationPicker();
-            const coords = { lat: r.lat, lng: r.lon };
-            await applyLocationCoords(coords, isStart);
+            if (typeof isStartOrCallback === 'function') {
+                // カスタムコールバック (My観測点/My目的点用)
+                await isStartOrCallback(r);
+            } else {
+                // 既存の位置情報メニュー用 (boolean)
+                const coords = { lat: r.lat, lng: r.lon };
+                await applyLocationCoords(coords, isStartOrCallback);
+            }
         });
         list.appendChild(item);
     });
