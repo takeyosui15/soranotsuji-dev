@@ -1753,6 +1753,11 @@ function calculateKFromMeteo(p, tCel, l) {
 
 // 地図クリック時の処理 
 async function onMapClick(e) {
+    // アニメーション中は地図クリック/タップで停止
+    if (appState.isMoving) {
+        stopMove();
+        return;
+    }
     const isStart = appState.locMode === 'start';
     const elev = await getElevation(e.latlng.lat, e.latlng.lng);
     const val = (elev !== null) ? elev : 0;
@@ -3804,6 +3809,16 @@ function drawProfileGraph() {
         ctx.lineTo(toX(pts[0].dist), pad.t+gh);
         ctx.fillStyle='rgba(0,255,0,0.1)';
         ctx.fill();
+
+        // 見通し線（赤）: 観測点標高 → 目的点標高
+        const startElev = appState.start.elev;
+        const endElev = appState.end.elev;
+        ctx.beginPath();
+        ctx.moveTo(toX(pts[0].dist), toY(startElev));
+        ctx.lineTo(toX(pts[pts.length - 1].dist), toY(endElev));
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 }
 
