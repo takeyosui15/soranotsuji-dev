@@ -152,18 +152,6 @@ html {
     display: block;
 }
 
-#elevation-info {
-    position: absolute;
-    top: 5px;
-    left: 10px;
-    color: #ccc;
-    font-size: 12px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 2px 5px;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
 /* プログレスバー */
 #progress-overlay {
     position: absolute;
