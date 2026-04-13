@@ -3731,14 +3731,16 @@ async function startElevationFetch() {
     const s = L.latLng(appState.start.lat, appState.start.lng);
     const e = L.latLng(appState.end.lat, appState.end.lng);
     const dist = s.distanceTo(e);
-    const steps = Math.floor(dist / 100);
+    const steps = 2000;
+    const intervalM = dist / steps;
+    appState.elevationData.intervalM = intervalM; // グラフ表示用に保持
 
     for(let i=0; i<=steps; i++) {
         const r = i/steps;
         appState.elevationData.points.push({
             lat: s.lat + (e.lat - s.lat)*r,
             lng: s.lng + (e.lng - s.lng)*r,
-            dist: i*0.1,
+            dist: (dist * r) / 1000, // km単位
             elev: null,
             fetched: false
         });
@@ -3794,6 +3796,16 @@ function drawProfileGraph() {
         ctx.fillText(Math.round(minE+(maxE-minE)*(i/4)), 2, y+3);
     }
     ctx.stroke();
+
+    // グラフ上部に間隔情報を表示
+    const intervalM = appState.elevationData.intervalM;
+    if (intervalM !== undefined) {
+        ctx.fillStyle = '#aaa';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${intervalM.toFixed(1)}m間隔 2000地点`, w - pad.r, pad.t - 5);
+        ctx.textAlign = 'start';
+    }
 
     if(pts.length > 1) {
         ctx.beginPath();
