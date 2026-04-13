@@ -640,6 +640,7 @@ function setupUI() {
     document.getElementById('btn-mystars-down').onclick = moveMyStarDown;
     document.getElementById('btn-mystars-delete').onclick = deleteMyStar;
     document.getElementById('btn-mystars-csv-import').onclick = importMyStarsCsv;
+    document.getElementById('btn-mystars-csv-append').onclick = appendMyStarsCsv;
     document.getElementById('btn-mystars-csv-export').onclick = exportMyStarsCsv;
 
     // My観測点ボタン
@@ -2452,6 +2453,77 @@ function importMyStarsCsv() {
                 renderMyStarsList();
                 updateAll();
                 alert(`${newStars.length}件のMy天体を登録しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** 追加CSV入力 (My天体 — 既存リストに追加) */
+function appendMyStarsCsv() {
+    if (!confirm('My天体リストにCSVファイルから"追加"入力・登録しますか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+
+                const csvEntries = [];
+                const csvIds = new Set();
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
+                    const id = parseInt(toHalfWidth(cols[0].trim()));
+                    const name = cols[1].trim();
+                    const ra = parseFloat(toHalfWidth(cols[2].trim()));
+                    const dec = parseFloat(toHalfWidth(cols[3].trim()));
+                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+                    if (csvIds.has(id)) { alert(`CSV内でID ${id} が重複しています`); return; }
+                    if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
+                    if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
+                    csvIds.add(id);
+                    csvEntries.push({ id, name, ra, dec });
+                }
+
+                let addedCount = 0;
+                for (const entry of csvEntries) {
+                    // 上限チェック
+                    if (appState.myStars.length >= 1000) { alert('My天体の登録上限(1000件)に達しています'); return; }
+
+                    // ID重複チェック
+                    if (appState.myStars.some(s => s.id === entry.id)) {
+                        const ok = confirm(`My天体(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                        if (!ok) return;
+                        entry.id = getNextMyStarId();
+                        if (entry.id === null) { alert('My天体の登録上限(1000件)に達しています'); return; }
+                    }
+
+                    // 赤経/赤緯が同じ既存エントリがあればスキップ
+                    const duplicate = appState.myStars.some(s => s.ra === entry.ra && s.dec === entry.dec);
+                    if (duplicate) continue;
+
+                    appState.myStars.push({
+                        id: entry.id, name: entry.name, ra: entry.ra, dec: entry.dec,
+                        visible: false, color: '#DDA0DD', isDashed: true
+                    });
+                    addedCount++;
+                }
+
+                syncMyStarsToBodies();
+                saveAppState();
+                renderMyStarsList();
+                updateAll();
+                alert(`${addedCount}件のMy天体を追加しました`);
             } catch (err) {
                 alert('CSVの読み込みに失敗しました: ' + err.message);
             }
