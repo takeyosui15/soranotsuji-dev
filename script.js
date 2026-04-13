@@ -2413,6 +2413,18 @@ function toHalfWidth(str) {
               .replace(/　/g, ' ');
 }
 
+/** ファイル名用日時フォーマット (YYYYMMDD-hhmmss) */
+function formatFileDateTime() {
+    const d = new Date();
+    const Y = d.getFullYear();
+    const M = String(d.getMonth() + 1).padStart(2, '0');
+    const D = String(d.getDate()).padStart(2, '0');
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    return `${Y}${M}${D}-${h}${m}${s}`;
+}
+
 /** CSV入力 (My天体) */
 function importMyStarsCsv() {
     if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
@@ -2546,7 +2558,7 @@ function exportMyStarsCsv() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'mystars.csv';
+    a.download = `soranotsuji-My天体-${formatFileDateTime()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -3114,7 +3126,7 @@ function exportMyPointsCsv(type) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `my${cfg.label}.csv`;
+    a.download = `soranotsuji-${cfg.labelFull}-${formatFileDateTime()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }

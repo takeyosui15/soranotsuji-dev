@@ -712,3 +712,18 @@ Claudeさん、ありがとうございます。
 
 です。
 ご対応の程、よろしくお願いいたします。
+
+### 回答 (2026-04-13)
+
+依頼者の修正（追加CSV入力の処理順序変更＝重複データスキップ→ID重複チェックの順）を取り込みました。
+
+#### CSV出力ファイル名の統一
+`formatFileDateTime()` ヘルパー関数を新規作成し、以下のファイル名形式に統一:
+
+- `soranotsuji-My天体-YYYYMMDD-hhmmss.csv`
+- `soranotsuji-My観測点-YYYYMMDD-hhmmss.csv`
+- `soranotsuji-My目的点-YYYYMMDD-hhmmss.csv`
+
+修正箇所:
+1. `exportMyStarsCsv()` のファイル名を統一形式に変更
+2. `exportMyPointsCsv()` のファイル名を統一形式に変更
