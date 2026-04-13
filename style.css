@@ -1347,8 +1347,7 @@ input[type="range"] {
 
 /* --- My観測点 / My目的点 --- */
 .mypoint-list {
-    max-height: 600px;
-    overflow-y: auto;
+    overflow-y: visible;
 }
 
 .mypoint-row {

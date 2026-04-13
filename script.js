@@ -2986,12 +2986,8 @@ function appendMyPointsCsv(type) {
 
                 let addedCount = 0;
                 for (const entry of csvEntries) {
-                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ
-                    const duplicate = existingList.some(p =>
-                        p.lat === entry.lat && p.lng === entry.lng &&
-                        p.elev === entry.elev && p.height === entry.height
-                    );
-                    if (duplicate) continue;
+                    // 上限チェック
+                    if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
 
                     // ID重複チェック
                     if (existingList.some(p => p.id === entry.id)) {
@@ -3001,14 +2997,18 @@ function appendMyPointsCsv(type) {
                         if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
                     }
 
-                    // 上限チェック
-                    if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
-
                     // 標高が未設定の場合は取得
                     if (entry.elev === null || isNaN(entry.elev)) {
                         const el = await getElevation(entry.lat, entry.lng);
                         entry.elev = el !== null ? el : 0;
                     }
+                    
+                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ
+                    const duplicate = existingList.some(p =>
+                        p.lat === entry.lat && p.lng === entry.lng &&
+                        p.elev === entry.elev && p.height === entry.height
+                    );
+                    if (duplicate) continue;
 
                     existingList.push(entry);
                     addedCount++;
