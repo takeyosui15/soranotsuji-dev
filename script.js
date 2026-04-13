@@ -651,6 +651,7 @@ function setupUI() {
     document.getElementById('btn-myobs-addrow').onclick = () => addMyPointRow('obs');
     document.getElementById('btn-myobs-delrow').onclick = () => deleteMyPointRow('obs');
     document.getElementById('btn-myobs-csv-import').onclick = () => importMyPointsCsv('obs');
+    document.getElementById('btn-myobs-csv-append').onclick = () => appendMyPointsCsv('obs');
     document.getElementById('btn-myobs-csv-export').onclick = () => exportMyPointsCsv('obs');
     document.getElementById('btn-myobs-url').onclick = () => getMyPointUrl('obs');
 
@@ -663,6 +664,7 @@ function setupUI() {
     document.getElementById('btn-mytgt-addrow').onclick = () => addMyPointRow('tgt');
     document.getElementById('btn-mytgt-delrow').onclick = () => deleteMyPointRow('tgt');
     document.getElementById('btn-mytgt-csv-import').onclick = () => importMyPointsCsv('tgt');
+    document.getElementById('btn-mytgt-csv-append').onclick = () => appendMyPointsCsv('tgt');
     document.getElementById('btn-mytgt-csv-export').onclick = () => exportMyPointsCsv('tgt');
     document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
 
@@ -2921,6 +2923,90 @@ function importMyPointsCsv(type) {
                 renderMyPointsList(type);
                 updateMyPointMarkers();
                 alert(`${newPoints.length}件の${cfg.labelFull}を登録しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** 追加CSV入力 (既存リストに追加) */
+function appendMyPointsCsv(type) {
+    const cfg = myPointConfig(type);
+    if (!confirm(`${cfg.labelFull}リストにCSVファイルから"追加"入力・登録しますか？`)) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+
+                const existingList = cfg.list();
+                const csvEntries = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
+                    const id = parseInt(toHalfWidth(cols[0].trim()));
+                    const name = cols[1].trim();
+                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
+                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
+                    let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
+                    const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+                    if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+                    csvEntries.push({ id, name, lat, lng, elev, height });
+                }
+
+                // CSV内のID重複チェック
+                const csvIds = new Set();
+                for (const entry of csvEntries) {
+                    if (csvIds.has(entry.id)) { alert(`CSV内でID ${entry.id} が重複しています`); return; }
+                    csvIds.add(entry.id);
+                }
+
+                let addedCount = 0;
+                for (const entry of csvEntries) {
+                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ
+                    const duplicate = existingList.some(p =>
+                        p.lat === entry.lat && p.lng === entry.lng &&
+                        p.elev === entry.elev && p.height === entry.height
+                    );
+                    if (duplicate) continue;
+
+                    // ID重複チェック
+                    if (existingList.some(p => p.id === entry.id)) {
+                        const ok = confirm(`事前チェック: ${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                        if (!ok) return;
+                        entry.id = getNextMyPointId(type);
+                        if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
+                    }
+
+                    // 上限チェック
+                    if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
+
+                    // 標高が未設定の場合は取得
+                    if (entry.elev === null || isNaN(entry.elev)) {
+                        const el = await getElevation(entry.lat, entry.lng);
+                        entry.elev = el !== null ? el : 0;
+                    }
+
+                    existingList.push(entry);
+                    addedCount++;
+                }
+
+                saveAppState();
+                setMyPointDirty(type, false);
+                renderMyPointsList(type);
+                updateMyPointMarkers();
+                alert(`${addedCount}件の${cfg.labelFull}を追加しました`);
             } catch (err) {
                 alert('CSVの読み込みに失敗しました: ' + err.message);
             }
