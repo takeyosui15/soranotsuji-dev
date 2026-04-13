@@ -2665,6 +2665,7 @@ function renderMyPointsList(type) {
         row.querySelector('.mypoint-name').addEventListener('input', () => setMyPointDirty(type, true));
         row.querySelector('.mypoint-name').addEventListener('change', (e) => {
             pt.name = e.target.value.trim();
+            saveAppState();
             setMyPointDirty(type, true);
         });
         // イベント: 緯度経度変更 (Enter で地名検索 or 数値入力)
@@ -2684,6 +2685,7 @@ function renderMyPointsList(type) {
                 const elev = await getElevation(pt.lat, pt.lng);
                 pt.elev = elev !== null ? elev : 0;
                 row.querySelector('.mypoint-elev').value = pt.elev;
+                saveAppState();
                 setMyPointDirty(type, true);
             } else {
                 // 地名検索
@@ -2696,6 +2698,7 @@ function renderMyPointsList(type) {
                         const elev = await getElevation(pt.lat, pt.lng);
                         pt.elev = elev !== null ? elev : 0;
                         row.querySelector('.mypoint-elev').value = pt.elev;
+                        saveAppState();
                         setMyPointDirty(type, true);
                     });
                 } else {
@@ -2710,6 +2713,7 @@ function renderMyPointsList(type) {
             if (!val) {
                 pt.lat = null;
                 pt.lng = null;
+                saveAppState();
                 setMyPointDirty(type, true);
                 return;
             }
@@ -2717,6 +2721,7 @@ function renderMyPointsList(type) {
             if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
                 pt.lat = parseFloat(parts[0]);
                 pt.lng = parseFloat(parts[1]);
+                saveAppState();
                 setMyPointDirty(type, true);
             }
             // 非数値(地名)の場合はpt.lat/lngを更新しない(Enterで地名検索してもらう)
@@ -2724,10 +2729,12 @@ function renderMyPointsList(type) {
         // イベント: 標高/高さ変更
         row.querySelector('.mypoint-elev').addEventListener('change', (e) => {
             pt.elev = parseFloat(e.target.value) || 0;
+            saveAppState();
             setMyPointDirty(type, true);
         });
         row.querySelector('.mypoint-height').addEventListener('change', (e) => {
             pt.height = parseFloat(e.target.value) || 0;
+            saveAppState();
             setMyPointDirty(type, true);
         });
         container.appendChild(row);
@@ -2773,6 +2780,7 @@ function getMyPointFromLocation(type) {
         lat: loc.lat, lng: loc.lng,
         elev: apiElev, height: height
     });
+    saveAppState();
     setMyPointDirty(type, true);
     renderMyPointsList(type);
 }
@@ -2818,6 +2826,7 @@ function addMyPointRow(type) {
     } else {
         cfg.list().push(newPt);
     }
+    saveAppState();
     setMyPointDirty(type, true);
     renderMyPointsList(type);
     // 新しい行を選択
@@ -2834,6 +2843,7 @@ function deleteMyPointRow(type) {
     if (!pt) return;
     if (!confirm(`${cfg.labelFull}リストの${cfg.label}（ID:${id}、${pt.name || ''}）を削除しますか？`)) return;
     cfg.setList(cfg.list().filter(p => p.id !== id));
+    saveAppState();
     setMyPointDirty(type, true);
     renderMyPointsList(type);
 }
@@ -2847,6 +2857,7 @@ function moveMyPointUp(type) {
     if (idx <= 0) return;
     const list = cfg.list();
     [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+    saveAppState();
     setMyPointDirty(type, true);
     renderMyPointsList(type);
     const radio = document.querySelector(`input[name="${cfg.prefix}-select"][value="${id}"]`);
@@ -2862,6 +2873,7 @@ function moveMyPointDown(type) {
     const idx = list.findIndex(p => p.id === id);
     if (idx < 0 || idx >= list.length - 1) return;
     [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+    saveAppState();
     setMyPointDirty(type, true);
     renderMyPointsList(type);
     const radio = document.querySelector(`input[name="${cfg.prefix}-select"][value="${id}"]`);
