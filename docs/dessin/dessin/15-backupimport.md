@@ -28,7 +28,7 @@
       - このボタンを押下すると、実行する前に、確認メッセージ「Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、設定のリストをバックアップファイルに全て出力しますか？」（window.confirmで、OK、キャンセル）が表示される。
         - 確認メッセージの後にブラウザからJSONファイルをダウンロードできる。
       - ファイル名にバックアップ実施日時を含める。
-        - soranotsuji-bkup-YYYYMMDD-hhmmss.json
+        - soranotsuji-バックアップ-YYYYMMDD-hhmmss.json
       - 以下の情報をJSON形式でバックアップする。
         - バックアップ実施日時
         - Homeボタン

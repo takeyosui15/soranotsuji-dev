@@ -2500,6 +2500,10 @@ function appendMyStarsCsv() {
                     // 上限チェック
                     if (appState.myStars.length >= 1000) { alert('My天体の登録上限(1000件)に達しています'); return; }
 
+                    // 赤経/赤緯が同じ既存エントリがあればスキップ
+                    const duplicate = appState.myStars.some(s => s.ra === entry.ra && s.dec === entry.dec);
+                    if (duplicate) continue;
+
                     // ID重複チェック
                     if (appState.myStars.some(s => s.id === entry.id)) {
                         const ok = confirm(`My天体(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
@@ -2507,10 +2511,6 @@ function appendMyStarsCsv() {
                         entry.id = getNextMyStarId();
                         if (entry.id === null) { alert('My天体の登録上限(1000件)に達しています'); return; }
                     }
-
-                    // 赤経/赤緯が同じ既存エントリがあればスキップ
-                    const duplicate = appState.myStars.some(s => s.ra === entry.ra && s.dec === entry.dec);
-                    if (duplicate) continue;
 
                     appState.myStars.push({
                         id: entry.id, name: entry.name, ra: entry.ra, dec: entry.dec,
@@ -3061,14 +3061,6 @@ function appendMyPointsCsv(type) {
                     // 上限チェック
                     if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
 
-                    // ID重複チェック
-                    if (existingList.some(p => p.id === entry.id)) {
-                        const ok = confirm(`${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
-                        if (!ok) return;
-                        entry.id = getNextMyPointId(type);
-                        if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
-                    }
-
                     // 標高が未設定の場合は取得
                     if (entry.elev === null || isNaN(entry.elev)) {
                         const el = await getElevation(entry.lat, entry.lng);
@@ -3081,6 +3073,14 @@ function appendMyPointsCsv(type) {
                         p.elev === entry.elev && p.height === entry.height
                     );
                     if (duplicate) continue;
+
+                    // ID重複チェック
+                    if (existingList.some(p => p.id === entry.id)) {
+                        const ok = confirm(`${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                        if (!ok) return;
+                        entry.id = getNextMyPointId(type);
+                        if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
+                    }
 
                     existingList.push(entry);
                     addedCount++;
