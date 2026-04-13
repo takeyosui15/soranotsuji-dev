@@ -2983,7 +2983,7 @@ function appendMyPointsCsv(type) {
 
                     // ID重複チェック
                     if (existingList.some(p => p.id === entry.id)) {
-                        const ok = confirm(`事前チェック: ${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                        const ok = confirm(`${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
                         if (!ok) return;
                         entry.id = getNextMyPointId(type);
                         if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
