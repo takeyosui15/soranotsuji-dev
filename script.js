@@ -237,7 +237,7 @@ let appState = {
     tsujiSearchToleranceAz: 15,
     tsujiSearchBaseAlt: 0,
     tsujiSearchOffsetAlt: 0,
-    tsujiSearchToleranceAlt: 2.5,
+    tsujiSearchToleranceAlt: 15,
     tsujiSearchDays: 365,
 
     // 月齢 (計算値、appStateで管理)
@@ -556,7 +556,7 @@ function setupUI() {
         updateOffsetDistances();
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
-        appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 2.5;
+        appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 15;
         e.target.value = appState.tsujiSearchToleranceAlt;
         saveAppState();
     });
