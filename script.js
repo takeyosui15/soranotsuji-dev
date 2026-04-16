@@ -186,6 +186,12 @@ let appState = {
     myObservations: [],  // { id, name, lat, lng, elev, height }
     myTargets: [],       // { id, name, lat, lng, elev, height }
 
+    // My辻検索
+    myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
+                          //   baseAz, baseAlt, offsetAz, offsetAlt,
+                          //   toleranceAz, toleranceAlt,
+                          //   moonFilter, moonBase, moonTolerance, checked }
+
     // 大気差補正の有効/無効
     refractionEnabled: false,
 
@@ -785,6 +791,7 @@ function saveAppState() {
         myStars: appState.myStars,
         myObservations: appState.myObservations,
         myTargets: appState.myTargets,
+        myTsujiSearches: appState.myTsujiSearches,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -825,6 +832,7 @@ function loadAppState() {
             if(saved.myStars) appState.myStars = saved.myStars;
             if(saved.myObservations) appState.myObservations = saved.myObservations;
             if(saved.myTargets) appState.myTargets = saved.myTargets;
+            if(saved.myTsujiSearches) appState.myTsujiSearches = saved.myTsujiSearches;
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);

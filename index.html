@@ -426,6 +426,42 @@ GNU General Public License for more details.
                 </div>
             </div>
 
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-mytsuji')">
+                    <span>My辻検索</span> <span id="icon-sec-mytsuji">▼</span>
+                </div>
+                <div id="sec-mytsuji" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-mytsuji-toggle-all" class="nav-btn main-btn">一括選択</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-batch" class="nav-btn main-btn">一括計算</button>
+                        <button id="btn-mytsuji-file" class="nav-btn main-btn">File取得</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-get" class="nav-btn main-btn">辻検索取得</button>
+                        <button id="btn-mytsuji-regall" class="nav-btn main-btn">全て登録</button>
+                    </div>
+                    <div id="mytsuji-error" class="mypoint-error"></div>
+                    <div id="mytsuji-list" class="mypoint-list"></div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-up" class="nav-btn main-btn">▲上へ</button>
+                        <button id="btn-mytsuji-down" class="nav-btn main-btn">▼下へ</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-addrow" class="nav-btn main-btn">行追加</button>
+                        <button id="btn-mytsuji-delrow" class="nav-btn main-btn">行削除</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-csv-import" class="nav-btn main-btn">全CSV入力</button>
+                        <button id="btn-mytsuji-csv-append" class="nav-btn main-btn">追加CSV入力</button>
+                        <button id="btn-mytsuji-csv-export" class="nav-btn main-btn">CSV出力</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mytsuji-url" class="nav-btn main-btn">URL取得</button>
+                    </div>
+                </div>
+            </div>
 
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-myobs')">
@@ -736,6 +772,11 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>標高グラフ</h3>
                     <p>観測点と目的点の間の地形断面を表示します。国土地理院のDEM標高タイルから2000地点で標高を取得します。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>My辻検索</h3>
+                    <p>辻検索の条件を複数登録・管理し、一括で計算・CSV出力できます。「辻検索取得」で現在の辻検索メニューの条件を取得、「行追加」で空行を追加できます。観測点ID・目的点IDは、My観測点・My目的点メニューで登録したIDを指定してください。</p>
                 </section>
 
                 <section class="help-section">

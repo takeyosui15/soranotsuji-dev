@@ -205,3 +205,37 @@ Claudeさん、ありがとうございます。
 デッサン`08-mytsujisearch.md`を参照してください。
 疑問点、気になるところがあれば質問をしてください。
 疑問点、質問点がなくなってから、実装してください。
+
+### 回答 (2026-04-16) — Phase A-1: My辻検索メニューのHTML骨格
+
+Stream idle timeoutを避けるため、Phase A を4段階に細分化して順次実装します。
+- **A-1 (本回)**: HTMLセクション骨格 + appState + localStorage保存/復元
+- A-2: `renderMyTsujiList()` 行描画 + 初期化呼び出し + dirty flag
+- A-3: CRUD操作 (行追加/行削除/上下移動/辻検索取得/全て登録) + イベントリスナー
+- A-4: バリデーション (観測点ID/目的点ID存在チェック + 基準方位角/視高度自動計算)
+
+#### A-1 実施内容
+
+1. **`index.html`** — `sec-mytsuji` セクションを `sec-twilight` と `sec-myobs` の間に追加
+   - 1段目: 一括選択トグル
+   - 2段目: 一括計算/File取得
+   - 3段目: 辻検索取得/全て登録
+   - エラー表示エリア (`#mytsuji-error`) と リスト表示エリア (`#mytsuji-list`)
+   - N+1段目: 上下移動
+   - N+2段目: 行追加/行削除
+   - N+3段目: 全CSV入力/追加CSV入力/CSV出力
+   - N+4段目: URL取得
+   - ヘルプセクション「My辻検索」を「My観測点」の前に追加
+
+2. **`script.js`** — `appState.myTsujiSearches = []` を追加
+   - 各要素のスキーマ: `{id, name, days, bodyIds, obsId, tgtId, baseAz, baseAlt, offsetAz, offsetAlt, toleranceAz, toleranceAlt, moonFilter, moonBase, moonTolerance, checked}`
+   - `saveAppState()` / `loadAppState()` の両方に対応
+
+#### 確認事項
+- ブラウザで「My辻検索」セクションが「薄明情報」と「My観測点」の間に表示
+- 「▼」で開閉できる（初期: 閉）
+- 中身は空のリストと各種ボタン（A-1ではボタンは非動作）
+- `appState.myTsujiSearches === []` がコンソールで確認可能
+- リロード後もlocalStorageから復元される
+
+次回 A-2 では、`renderMyTsujiList()` 関数を作成し、`appState.myTsujiSearches` をベースに `#mytsuji-list` div内に行を動的描画します。
