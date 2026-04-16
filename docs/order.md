@@ -107,3 +107,35 @@ OKです👍
 
 また、辻検索の検索期間を「最大36500日(100年間)」と拡大しました。
 こちらの対応もよろしくお願いいたします。
+
+### 回答 (2026-04-16)
+
+#### 1. 検索期間を36500日(100年間)に拡大
+- `index.html:167` input要素: `max="1461"` → `max="36500"`, プレースホルダー変更
+- `script.js:574` 検証範囲: `1461` → `36500`
+- ヘルプテキストも更新
+
+#### 2. 月齢フィルタ機能の追加
+**UI要素** (index.html): 許容範囲視高度の後に水平線で区切り、以下を追加:
+- 「フィルタ」チェックボックス (`chk-tsuji-moon-filter`, 初期値オフ)
+- 「基準月齢:」テキストボックス (`input-tsuji-moon-base`, 初期値15, 0〜30, step 0.1)
+- 「許容範囲月齢:±」テキストボックス (`input-tsuji-moon-tolerance`, 初期値2, 0〜15, step 0.1)
+
+**appState 追加**:
+- `tsujiMoonFilterEnabled: false`
+- `tsujiMoonBase: 15`
+- `tsujiMoonTolerance: 2`
+
+**saveAppState/loadAppState**: 3つの新プロパティを保存・復元対応
+
+**`updateTsujiMoonFilterUI()`**: フィルタオフ時、基準月齢と許容範囲月齢のテキストボックスを `disabled` に (CSS `:disabled` セレクタで灰色背景)
+
+**`isMoonAgeInRange(moonAge, base, tolerance)`**: 月齢の循環(SYNODIC_MONTH = 29.53058886)を考慮した範囲判定関数
+- `diff = |moonAge - base|`
+- 循環で近い方を取る: `if (diff > S/2) diff = S - diff`
+- `diff <= tolerance` なら範囲内
+
+**辻検索ロジック適用** (`startTsujiSearch` 内の rowData 構築部分):
+- フィルタ有効かつ範囲外の結果は `return` でスキップ
+
+例: 基準月齢=0, 許容範囲=2 → `27.53〜29.53` と `0〜2` の月齢範囲のみ表示(新月付近)。満月付近なら基準=15, 許容=2。

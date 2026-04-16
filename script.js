@@ -240,6 +240,11 @@ let appState = {
     tsujiSearchToleranceAlt: 15,
     tsujiSearchDays: 365,
 
+    // 辻検索: 月齢フィルタ
+    tsujiMoonFilterEnabled: false,
+    tsujiMoonBase: 15,
+    tsujiMoonTolerance: 2,
+
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
 
@@ -326,6 +331,10 @@ window.onload = function() {
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
     document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
     document.getElementById('input-tsuji-search-days').value = appState.tsujiSearchDays;
+    document.getElementById('chk-tsuji-moon-filter').checked = appState.tsujiMoonFilterEnabled;
+    document.getElementById('input-tsuji-moon-base').value = appState.tsujiMoonBase;
+    document.getElementById('input-tsuji-moon-tolerance').value = appState.tsujiMoonTolerance;
+    updateTsujiMoonFilterUI();
     updateOffsetDistances();
 
     // リストを生成
@@ -561,8 +570,24 @@ function setupUI() {
         saveAppState();
     });
     document.getElementById('input-tsuji-search-days').addEventListener('change', (e) => {
-        appState.tsujiSearchDays = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 1461);
+        appState.tsujiSearchDays = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 36500);
         e.target.value = appState.tsujiSearchDays;
+        saveAppState();
+    });
+    // 月齢フィルタ
+    document.getElementById('chk-tsuji-moon-filter').addEventListener('change', (e) => {
+        appState.tsujiMoonFilterEnabled = e.target.checked;
+        updateTsujiMoonFilterUI();
+        saveAppState();
+    });
+    document.getElementById('input-tsuji-moon-base').addEventListener('change', (e) => {
+        appState.tsujiMoonBase = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 30);
+        e.target.value = appState.tsujiMoonBase;
+        saveAppState();
+    });
+    document.getElementById('input-tsuji-moon-tolerance').addEventListener('change', (e) => {
+        appState.tsujiMoonTolerance = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 15);
+        e.target.value = appState.tsujiMoonTolerance;
         saveAppState();
     });
 
@@ -773,6 +798,9 @@ function saveAppState() {
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
         tsujiSearchDays: appState.tsujiSearchDays,
+        tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
+        tsujiMoonBase: appState.tsujiMoonBase,
+        tsujiMoonTolerance: appState.tsujiMoonTolerance,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -812,6 +840,9 @@ function loadAppState() {
             if(saved.tsujiSearchBaseAlt !== undefined) appState.tsujiSearchBaseAlt = saved.tsujiSearchBaseAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
+            if(saved.tsujiMoonFilterEnabled !== undefined) appState.tsujiMoonFilterEnabled = saved.tsujiMoonFilterEnabled;
+            if(saved.tsujiMoonBase !== undefined) appState.tsujiMoonBase = saved.tsujiMoonBase;
+            if(saved.tsujiMoonTolerance !== undefined) appState.tsujiMoonTolerance = saved.tsujiMoonTolerance;
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -3419,6 +3450,22 @@ function updateOffsetDistances() {
     document.getElementById('input-tsuji-alt-offset-dist').value = parseFloat(altDist.toFixed(1));
 }
 
+/** 月齢フィルタのUI状態を更新 (入力可否) */
+function updateTsujiMoonFilterUI() {
+    const enabled = appState.tsujiMoonFilterEnabled;
+    document.getElementById('input-tsuji-moon-base').disabled = !enabled;
+    document.getElementById('input-tsuji-moon-tolerance').disabled = !enabled;
+}
+
+/** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
+function isMoonAgeInRange(moonAge, base, tolerance) {
+    const S = SYNODIC_MONTH;
+    // 循環を考慮した最短距離
+    let diff = Math.abs(moonAge - base);
+    if (diff > S / 2) diff = S - diff;
+    return diff <= tolerance;
+}
+
 // --- 辻検索 ---
 function toggleTsujiSearch() {
     appState.isTsujiSearchActive = !appState.isTsujiSearchActive;
@@ -3663,6 +3710,12 @@ async function startTsujiSearch() {
             const moonAge = (phase / 360) * SYNODIC_MONTH;
             const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
             const moonIcon = icons[Math.round(phase / 45) % 8];
+
+            // 月齢フィルタが有効な場合は範囲外をスキップ
+            if (appState.tsujiMoonFilterEnabled &&
+                !isMoonAgeInRange(moonAge, appState.tsujiMoonBase, appState.tsujiMoonTolerance)) {
+                return;
+            }
 
             rowData.push({
                 body, symbol, dateStr, timeStr, dateObj: dt,

@@ -692,6 +692,19 @@ select,
     margin-right: 5px;
 }
 
+/* 辻検索メニュー内の水平線 */
+.tsujisearch-separator {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 8px 0;
+}
+
+/* 月齢フィルタの入力不可時の背景色 */
+input[type="number"]:disabled {
+    background-color: #f0f0f0;
+    color: #999;
+}
+
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
 input[type="number"].elev-readonly,
