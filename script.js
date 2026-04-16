@@ -3658,14 +3658,11 @@ async function startTsujiSearch() {
 
             const angR = getBodyAngularRadius(body.id, dt, observer);
 
-            let moonAge = -1;
-            let moonIcon = '';
-            if (body.id === 'Moon') {
-                const phase = Astronomy.MoonPhase(dt);
-                moonAge = (phase / 360) * SYNODIC_MONTH;
-                const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
-                moonIcon = icons[Math.round(phase / 45) % 8];
-            }
+            // 月齢と月齢アイコンは全天体で辻時刻の月の状態を表示
+            const phase = Astronomy.MoonPhase(dt);
+            const moonAge = (phase / 360) * SYNODIC_MONTH;
+            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+            const moonIcon = icons[Math.round(phase / 45) % 8];
 
             rowData.push({
                 body, symbol, dateStr, timeStr, dateObj: dt,
@@ -3687,7 +3684,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.moonAge >= 0 ? r.moonAge.toFixed(1) : ''}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${angRDisplay}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
