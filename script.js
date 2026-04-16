@@ -713,7 +713,13 @@ function setupUI() {
     document.getElementById('btn-mytsuji-csv-import').onclick = importMyTsujiCsv;
     document.getElementById('btn-mytsuji-csv-append').onclick = appendMyTsujiCsv;
     document.getElementById('btn-mytsuji-csv-export').onclick = exportMyTsujiCsv;
-    // URL/batch ボタンは Phase C で実装
+    document.getElementById('btn-mytsuji-url').onclick = getMyTsujiUrl;
+    // batch (Phase C-2)
+    document.getElementById('btn-mytsuji-batch').onclick = runBatchMyTsujiSearch;
+    document.getElementById('btn-mytsuji-file').onclick = fileBatchMyTsujiSearch;
+    document.getElementById('btn-mytsuji-panel-close').onclick = () => {
+        document.getElementById('mytsuji-panel').classList.add('hidden');
+    };
 
     // 天体検索ボタン
     document.getElementById('btn-starsearch').onclick = searchStars;
@@ -3778,6 +3784,424 @@ function exportMyTsujiCsv() {
     a.download = `soranotsuji-My辻検索-${formatFileDateTime()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// My辻検索 — URL取得 (Phase C-1)
+// ============================================================
+
+/** ラジオボタン選択中のMy辻検索のURLをクリップボードにコピー */
+function getMyTsujiUrl() {
+    const id = getSelectedMyTsujiId();
+    if (id === null) return alert('URL取得するMy辻検索を選択してください');
+    const t = appState.myTsujiSearches.find(x => x.id === id);
+    if (!t) return;
+    const obs = appState.myObservations.find(o => o.id === t.obsId);
+    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+    if (!obs || !tgt) return alert('観測点または目的点がMy観測点/My目的点リストに存在しません');
+
+    const params = new URLSearchParams();
+    // 位置情報
+    params.set('startLat', String(obs.lat));
+    params.set('startLng', String(obs.lng));
+    params.set('startApiElv', String(obs.elev ?? 0));
+    params.set('startElv', String(obs.height ?? 0));
+    params.set('endLat', String(tgt.lat));
+    params.set('endLng', String(tgt.lng));
+    params.set('endApiElv', String(tgt.elev ?? 0));
+    params.set('endElv', String(tgt.height ?? 0));
+    // 天体ID (":" 区切り → 複数の starId パラメータへ)
+    (t.bodyIds || '').split(':').forEach(bid => {
+        const v = bid.trim();
+        if (v) params.append('starId', v);
+    });
+    // 辻検索パラメータ
+    params.set('tsujiSearchDays', String(t.days ?? 365));
+    if (t.baseAz != null) params.set('tsujiAz', String(t.baseAz));
+    if (t.baseAlt != null) params.set('tsujiAlt', String(t.baseAlt));
+    params.set('tsujiAzOffset', String(t.offsetAz ?? 0));
+    params.set('tsujiAltOffset', String(t.offsetAlt ?? 0));
+    params.set('tsujiAzTolerance', String(t.toleranceAz ?? 15));
+    params.set('tsujiAltTolerance', String(t.toleranceAlt ?? 15));
+    // 月齢フィルタ
+    params.set('tsujiMoonFilter', t.moonFilter ? 'true' : 'false');
+    params.set('tsujiMoonBase', String(t.moonBase ?? 15));
+    params.set('tsujiMoonTolerance', String(t.moonTolerance ?? 2));
+
+    const url = buildBaseUrl() + '?' + params.toString();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
+        }).catch(err => {
+            console.error('clipboard error:', err);
+            prompt('URLをコピーしてください:', url);
+        });
+    } else {
+        prompt('URLをコピーしてください:', url);
+    }
+}
+
+// ============================================================
+// My辻検索 — 一括計算 (Phase C-2)
+// ============================================================
+
+/** 単一のMy辻検索行を実行し、body単位の結果配列を返す */
+async function executeSingleMyTsujiSearch(t) {
+    const obs = appState.myObservations.find(o => o.id === t.obsId);
+    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+    if (!obs || !tgt) return null;
+
+    const observerData = {
+        lat: obs.lat,
+        lng: obs.lng,
+        elev: (obs.elev || 0) + (obs.height || 0)
+    };
+    const refractionEnabled = appState.refractionEnabled;
+    const searchStart = new Date(appState.currentDate);
+    searchStart.setHours(0, 0, 0, 0);
+    const searchStartMs = searchStart.getTime();
+    const MAX_RESULTS_PER_BODY = 1461;
+
+    const targetAz = ((t.baseAz || 0) + (t.offsetAz || 0) + 360) % 360;
+    const targetAlt = (t.baseAlt || 0) + (t.offsetAlt || 0);
+    const toleranceAz = t.toleranceAz || 15;
+    const toleranceAlt = t.toleranceAlt || 15;
+
+    const bodyIds = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
+    const bodies = bodyIds.map(bid => appState.bodies.find(b => b.id === bid)).filter(Boolean);
+    if (bodies.length === 0) return { tsuji: t, obs, tgt, bodyResults: [] };
+
+    const bodyResults = [];
+    for (const body of bodies) {
+        let bodyMsg;
+        if (isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        } else {
+            bodyMsg = { id: body.id, fixed: false };
+        }
+
+        const chunkSize = Math.ceil(t.days / TSUJI_NUM_WORKERS);
+        const chunkPromises = [];
+        const chunkWorkers = [];
+        for (let w = 0; w < TSUJI_NUM_WORKERS; w++) {
+            const dayStart = w * chunkSize;
+            if (dayStart >= t.days) break;
+            const dayEnd = Math.min(dayStart + chunkSize, t.days);
+            const worker = new Worker('tsuji-search-worker.js');
+            chunkWorkers.push(worker);
+            tsujiActiveWorkers.push(worker);
+            const p = new Promise((resolve) => {
+                worker.onmessage = (e) => {
+                    if (e.data && e.data.error) resolve({ results: [], dayStart, dayEnd });
+                    else resolve(e.data);
+                };
+                worker.onerror = () => resolve({ results: [], dayStart, dayEnd });
+                worker.postMessage({
+                    body: bodyMsg, observerData, refractionEnabled,
+                    targetAz, targetAlt, toleranceAz, toleranceAlt,
+                    searchStartMs, dayStart, dayEnd,
+                    maxResults: MAX_RESULTS_PER_BODY
+                });
+            });
+            chunkPromises.push(p);
+        }
+        const chunkResults = await Promise.all(chunkPromises);
+        chunkWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+        tsujiActiveWorkers = tsujiActiveWorkers.filter(w => !chunkWorkers.includes(w));
+
+        chunkResults.sort((a, b) => a.dayStart - b.dayStart);
+        const flatResults = [];
+        let limitReached = false;
+        for (const ch of chunkResults) {
+            for (const r of ch.results) {
+                flatResults.push({
+                    time: new Date(r.timeMs),
+                    azimuth: r.azimuth,
+                    altitude: r.altitude,
+                    dist: r.dist
+                });
+                if (flatResults.length >= MAX_RESULTS_PER_BODY) { limitReached = true; break; }
+            }
+            if (limitReached) break;
+        }
+        bodyResults.push({ body, results: flatResults, limitReached });
+    }
+    return { tsuji: t, obs, tgt, bodyResults };
+}
+
+/** 結果オブジェクトの配列に装飾情報(symbol/moonAge/moonIcon/dateStr/timeStr)を付加。
+ *  月齢フィルタで除外される行は null として filter */
+function decorateMyTsujiResults(results) {
+    const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+    return results.map(r => {
+        const phase = Astronomy.MoonPhase(r.time);
+        const moonAge = (phase / 360) * SYNODIC_MONTH;
+        const moonIcon = moonIcons[Math.round(phase / 45) % 8];
+        let symbol;
+        if (r.dist <= 0.125) symbol = '◎';
+        else if (r.dist <= 0.25) symbol = '○';
+        else if (r.dist <= 1.0) symbol = '△';
+        else symbol = '-';
+        if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) return null;
+        const dt = r.time;
+        const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+        const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dow})`;
+        const timeStr = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
+        return { ...r, symbol, dateStr, timeStr, moonAge, moonIcon };
+    }).filter(Boolean);
+}
+
+/** 一括計算 — チェック済みMy辻検索を全て実行し、結果を専用パネルに表示 */
+async function runBatchMyTsujiSearch() {
+    const checked = appState.myTsujiSearches.filter(t => t.checked);
+    if (checked.length === 0) return alert('一括計算するMy辻検索をチェックしてください');
+    if (!confirm('チェックされた辻検索を実行しますか？')) return;
+
+    const panel = document.getElementById('mytsuji-panel');
+    const content = document.getElementById('mytsuji-panel-content');
+    const statusEl = document.getElementById('mytsuji-panel-status');
+    panel.classList.remove('hidden');
+    content.innerHTML = '';
+
+    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+    tsujiActiveWorkers = [];
+
+    const allResults = [];
+    for (let i = 0; i < checked.length; i++) {
+        const t = checked[i];
+        statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        const res = await executeSingleMyTsujiSearch(t);
+        if (!res) continue;
+        for (const br of res.bodyResults) {
+            for (const r of br.results) {
+                allResults.push({
+                    tsuji: t, obs: res.obs, tgt: res.tgt,
+                    body: br.body,
+                    time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist
+                });
+            }
+        }
+    }
+
+    const decorated = decorateMyTsujiResults(allResults);
+    statusEl.textContent = `${decorated.length}件`;
+    if (decorated.length === 0) {
+        content.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません</div>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.innerHTML = `<thead><tr>
+        <th>辻検索ID</th><th>辻検索名</th><th>日付</th><th>辻時刻</th>
+        <th>天体ID</th><th>精度</th><th>精度角距離</th>
+        <th>月齢</th><th>月齢アイコン</th>
+        <th>方位角</th><th>視高度</th>
+    </tr></thead><tbody></tbody>`;
+    const tbody = table.querySelector('tbody');
+    decorated.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.body.color;
+        tr.innerHTML = `
+            <td>${r.tsuji.id}</td>
+            <td>${escapeHtml(r.tsuji.name || '')}</td>
+            <td>${r.dateStr}</td>
+            <td>${r.timeStr}</td>
+            <td>${escapeHtml(r.body.id)}</td>
+            <td>${r.symbol}</td>
+            <td>${r.dist.toFixed(3)}°</td>
+            <td>${r.moonAge.toFixed(1)}</td>
+            <td>${r.moonIcon}</td>
+            <td>${r.azimuth.toFixed(2)}°</td>
+            <td>${r.altitude.toFixed(2)}°</td>`;
+        tr.addEventListener('click', () => {
+            // 観測点・目的点を設定して当該日時でプレビュー
+            appState.startApiElev = r.obs.elev || 0;
+            appState.startHeight = r.obs.height || 0;
+            appState.start = { lat: r.obs.lat, lng: r.obs.lng, elev: appState.startApiElev + appState.startHeight };
+            appState.endApiElev = r.tgt.elev || 0;
+            appState.endHeight = r.tgt.height || 0;
+            appState.end = { lat: r.tgt.lat, lng: r.tgt.lng, elev: appState.endApiElev + appState.endHeight };
+            appState.currentDate = new Date(r.time);
+            syncUIFromState();
+            updateAll();
+        });
+        tbody.appendChild(tr);
+    });
+    content.appendChild(table);
+}
+
+// ============================================================
+// My辻検索 — File取得 (Phase C-3)
+// ============================================================
+
+/** Date を HH:mm:ss 形式にフォーマット (null時は '--:--:--') */
+function fmtHms(d) {
+    if (!d) return '--:--:--';
+    const x = d instanceof Date ? d : (d.date || d);
+    return `${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}:${String(x.getSeconds()).padStart(2,'0')}`;
+}
+
+/** decorated 結果1件分をCSV行の配列へ変換 */
+function buildMyTsujiCsvRow(r) {
+    const dt = r.time;
+    const startOfDay = new Date(dt);
+    startOfDay.setHours(0, 0, 0, 0);
+    const observer = new Astronomy.Observer(r.obs.lat, r.obs.lng, (r.obs.elev || 0) + (r.obs.height || 0));
+
+    let sr, ss, mr, ms;
+    try {
+        sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+        ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+        mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+        ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+    } catch (_) {}
+
+    let astroDawn, nautDawn, yoake, civilDawn, civilDusk, higure, nautDusk, astroDusk;
+    try {
+        astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
+        nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
+        yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
+        civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+        civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
+        higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
+        nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
+        astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
+    } catch (_) {}
+
+    let raStr = '', decStr = '';
+    try {
+        const eq = Astronomy.Equator(r.body.id, dt, observer, true, true);
+        raStr = eq.ra.toFixed(6) + 'h';
+        decStr = eq.dec.toFixed(6) + '°';
+    } catch (_) {}
+
+    const angR = getBodyAngularRadius(r.body.id, dt, observer);
+    const angRStr = BODY_RADIUS_KM[r.body.id] ? angR.toFixed(3) + '°' : '';
+
+    // プレビューURL (mode=preview)
+    const urlParams = new URLSearchParams();
+    urlParams.set('date', formatDateForUrl(dt));
+    urlParams.set('time', formatTimeForUrl(dt));
+    urlParams.set('timeZone', getLocalTimezoneOffsetString());
+    urlParams.set('startLat', String(r.obs.lat));
+    urlParams.set('startLng', String(r.obs.lng));
+    urlParams.set('startApiElv', String(r.obs.elev ?? 0));
+    urlParams.set('startElv', String(r.obs.height ?? 0));
+    urlParams.set('endLat', String(r.tgt.lat));
+    urlParams.set('endLng', String(r.tgt.lng));
+    urlParams.set('endApiElv', String(r.tgt.elev ?? 0));
+    urlParams.set('endElv', String(r.tgt.height ?? 0));
+    urlParams.append('starId', r.body.id);
+    urlParams.set('mode', 'preview');
+    const previewUrl = buildBaseUrl() + '?' + urlParams.toString();
+
+    const dowStr = `${dt.getFullYear()}年${String(dt.getMonth()+1).padStart(2,'0')}月${String(dt.getDate()).padStart(2,'0')}日(${['日','月','火','水','木','金','土'][dt.getDay()]})`;
+
+    return [
+        r.tsuji.id,
+        r.tsuji.name ?? '',
+        dowStr,
+        fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
+        r.moonAge.toFixed(1),
+        r.moonIcon,
+        fmtHms(astroDawn), fmtHms(nautDawn), fmtHms(yoake), fmtHms(civilDawn),
+        fmtHms(sr), fmtHms(ss),
+        fmtHms(civilDusk), fmtHms(higure), fmtHms(nautDusk), fmtHms(astroDusk),
+        r.body.id, r.body.name ?? '',
+        decStr, raStr,
+        r.obs.id, r.obs.name ?? '',
+        (r.obs.lat ?? 0).toFixed(6) + '°',
+        (r.obs.lng ?? 0).toFixed(6) + '°',
+        (r.obs.elev ?? 0).toFixed(1) + 'm',
+        (r.obs.height ?? 0).toFixed(1) + 'm',
+        r.tgt.id, r.tgt.name ?? '',
+        (r.tgt.lat ?? 0).toFixed(6) + '°',
+        (r.tgt.lng ?? 0).toFixed(6) + '°',
+        (r.tgt.elev ?? 0).toFixed(1) + 'm',
+        (r.tgt.height ?? 0).toFixed(1) + 'm',
+        r.symbol,
+        r.dist.toFixed(3) + '°',
+        fmtHms(dt),
+        r.azimuth.toFixed(2) + '°',
+        r.altitude.toFixed(2) + '°',
+        angRStr,
+        previewUrl
+    ];
+}
+
+/** File取得 — チェック済みMy辻検索を実行し、結果をCSVダウンロード */
+async function fileBatchMyTsujiSearch() {
+    const checked = appState.myTsujiSearches.filter(t => t.checked);
+    if (checked.length === 0) return alert('File取得するMy辻検索をチェックしてください');
+    if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？')) return;
+
+    const panel = document.getElementById('mytsuji-panel');
+    const statusEl = document.getElementById('mytsuji-panel-status');
+    panel.classList.remove('hidden');
+    document.getElementById('mytsuji-panel-content').innerHTML = '';
+
+    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+    tsujiActiveWorkers = [];
+
+    const allResults = [];
+    for (let i = 0; i < checked.length; i++) {
+        const t = checked[i];
+        statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        const res = await executeSingleMyTsujiSearch(t);
+        if (!res) continue;
+        for (const br of res.bodyResults) {
+            for (const r of br.results) {
+                allResults.push({
+                    tsuji: t, obs: res.obs, tgt: res.tgt,
+                    body: br.body,
+                    time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist
+                });
+            }
+        }
+    }
+
+    const decorated = decorateMyTsujiResults(allResults);
+    if (decorated.length === 0) {
+        statusEl.textContent = '0件';
+        return alert('該当する日時はありません');
+    }
+
+    statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+
+    const header = [
+        '辻検索ID','辻検索名','日付','日の出時刻','日の入時刻','月の出時刻','月の入時刻',
+        '月齢','月齢アイコン',
+        '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明[始]時刻',
+        '日の出時刻','日の入時刻',
+        '常用薄明[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
+        '天体ID','天体名','天体赤緯','天体赤経',
+        '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高',
+        '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高',
+        '精度記号','精度角距離',
+        '辻時刻','方位角','視高度','視半径',
+        'プレビューURL'
+    ];
+    const esc = v => {
+        const s = String(v ?? '');
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    };
+    const bom = '\uFEFF';
+    let csv = bom + header.map(esc).join(',') + '\r\n';
+    decorated.forEach(r => {
+        csv += buildMyTsujiCsvRow(r).map(esc).join(',') + '\r\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
 }
 
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */
