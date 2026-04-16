@@ -349,3 +349,40 @@ renderMyTsujiList();
 - C: 一括計算 / File取得 / URL取得 / 専用結果パネル
 
 次回 **Phase A-4** で、観測点ID/目的点IDの検証と、基準方位角/視高度の自動計算を実装します。
+
+### 回答 (2026-04-16) — Phase A-4: バリデーション + 基準方位角/視高度自動計算
+
+#### A-4 実施内容
+
+**1. 新規ヘルパー関数** (`script.js`):
+- `renderMyTsujiRowError(row, messages)` — 行内エラー表示エリアにメッセージを設定 (空なら非表示)
+- `validateMyTsujiRow(t, row)` — 観測点ID/目的点IDの存在チェック
+  - 存在しないIDが入力されていれば、「観測点ID:(数字)はMy観測点リストに存在しません」「目的点ID:(数字)はMy目的点リストに存在しません」のメッセージを行内に赤字太字で表示
+  - 正常なら空配列を返して表示クリア
+- `autoCalcMyTsujiBase(t, row)` — 観測点ID/目的点IDから基準方位角・視高度を自動計算
+  - `calculateBearing` で方位角を算出
+  - `calculateApparentAltitude` で視高度を算出 (観測点elev+height、目的点elev+height、地球曲率+気差考慮)
+  - `t.baseAz` / `t.baseAlt` を小数第2位まで丸めて更新し、DOMにも反映
+
+**2. `renderMyTsujiList()` 拡張**:
+- 行テンプレートに `<div class="mytsuji-row-error"></div>` を追加 (観測点ID/目的点ID行の下)
+- 初期描画時に `validateMyTsujiRow(t, row)` を呼び出し、既存データのエラーを表示
+- `onChange('mytsuji-obsid')` / `onChange('mytsuji-tgtid')` に検証+自動計算処理を追加
+  - 入力直後に `validateMyTsujiRow()` でエラーチェック
+  - エラーなしなら `autoCalcMyTsujiBase()` で基準方位角/視高度を自動更新
+  - オフセット距離も連動再計算 (既存 `updateDist()`)
+
+**3. CSS追加** (`style.css`):
+- `.mytsuji-row-error`: 行内エラー表示エリア (margin 4px 0)
+
+#### Phase A-4 完了で動作するもの (A-3 に加えて)
+- 観測点ID/目的点IDの入力時に存在チェック → 無効なら行内に赤字エラー表示
+- 観測点ID/目的点ID 変更時に、両方有効なら基準方位角/視高度を自動計算
+- 観測点/目的点の緯度経度・標高・高さを使用し、地球曲率 + 気差補正込みで計算
+- リロード時に既存データ内の無効IDもエラー表示される
+
+#### Phase A 完了 — 残りフェーズ
+- Phase B: CSV入出力 (全CSV入力 / 追加CSV入力 / CSV出力)
+- Phase C: 一括計算 / File取得 / URL取得 / 専用結果パネル
+
+次回 **Phase B** に進み、CSV入出力を実装します。

@@ -1421,6 +1421,12 @@ input[type="range"] {
     font-size: 13px;
 }
 
+/* My辻検索 行内エラー表示 */
+.mytsuji-row-error {
+    min-height: 0;
+    margin: 4px 0;
+}
+
 /* 「全て登録」ボタンの dirty 状態 */
 .nav-btn.dirty {
     color: red;

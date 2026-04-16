@@ -3515,6 +3515,51 @@ function toggleAllMyTsuji() {
     renderMyTsujiList();
 }
 
+/** 行エラー表示エリアにメッセージを設定 (空なら非表示) */
+function renderMyTsujiRowError(row, messages) {
+    const err = row.querySelector('.mytsuji-row-error');
+    if (!err) return;
+    if (!messages || messages.length === 0) {
+        err.innerHTML = '';
+    } else {
+        err.innerHTML = `<span class="mypoint-error-text">${messages.join(' / ')}</span>`;
+    }
+}
+
+/** 観測点ID/目的点IDの存在チェック。エラー配列を返す */
+function validateMyTsujiRow(t, row) {
+    const errors = [];
+    if (t.obsId != null) {
+        const obs = appState.myObservations.find(o => o.id === t.obsId);
+        if (!obs) errors.push(`観測点ID:${t.obsId}はMy観測点リストに存在しません`);
+    }
+    if (t.tgtId != null) {
+        const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+        if (!tgt) errors.push(`目的点ID:${t.tgtId}はMy目的点リストに存在しません`);
+    }
+    renderMyTsujiRowError(row, errors);
+    return errors.length === 0;
+}
+
+/** 観測点ID/目的点IDから基準方位角/視高度を自動計算して反映 */
+function autoCalcMyTsujiBase(t, row) {
+    if (t.obsId == null || t.tgtId == null) return;
+    const obs = appState.myObservations.find(o => o.id === t.obsId);
+    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+    if (!obs || !tgt || obs.lat == null || tgt.lat == null) return;
+    const obsElev = (obs.elev || 0) + (obs.height || 0);
+    const tgtElev = (tgt.elev || 0) + (tgt.height || 0);
+    const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
+    const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
+    const alt = calculateApparentAltitude(dist, obsElev, tgtElev);
+    t.baseAz = parseFloat(az.toFixed(2));
+    t.baseAlt = parseFloat(alt.toFixed(2));
+    const azInput = row.querySelector('.mytsuji-base-az');
+    const altInput = row.querySelector('.mytsuji-base-alt');
+    if (azInput) azInput.value = t.baseAz;
+    if (altInput) altInput.value = t.baseAlt;
+}
+
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */
 function renderMyTsujiList() {
     const container = document.getElementById('mytsuji-list');
@@ -3552,6 +3597,7 @@ function renderMyTsujiList() {
                 <label class="mypoint-label">目的点ID:</label>
                 <input type="number" class="mytsuji-tgtid" value="${t.tgtId !== undefined && t.tgtId !== null ? t.tgtId : ''}" placeholder="目的点ID(数字)" step="1" min="1" max="1000" data-id="${t.id}">
             </div>
+            <div class="mytsuji-row-error"></div>
             <div class="control-row">
                 <label class="mypoint-label">基準方位角(°):</label>
                 <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz : ''}" placeholder="基準方位角(°)" step="0.01" min="0" max="360" data-id="${t.id}">
@@ -3588,10 +3634,11 @@ function renderMyTsujiList() {
                 <input type="number" class="mytsuji-moon-tol" value="${t.moonTolerance !== undefined && t.moonTolerance !== null ? t.moonTolerance : 2}" placeholder="許容範囲月齢±" step="0.1" min="0" max="15" data-id="${t.id}" ${moonDisabled}>
             </div>`;
 
-        // 初期表示でオフセット距離を計算
+        // 初期表示でオフセット距離を計算 + ID検証
         const { azDist, altDist } = recalcMyTsujiOffsetDist(t);
         row.querySelector('.mytsuji-offset-az-dist').value = azDist.toFixed(1);
         row.querySelector('.mytsuji-offset-alt-dist').value = altDist.toFixed(1);
+        validateMyTsujiRow(t, row);
 
         // ヘルパー: 行内の指定クラスを持つ要素にchangeハンドラを登録
         const onChange = (cls, fn) => {
@@ -3613,11 +3660,13 @@ function renderMyTsujiList() {
         onChange('mytsuji-obsid', e => {
             const v = parseInt(e.target.value);
             t.obsId = isNaN(v) ? null : v;
+            if (validateMyTsujiRow(t, row)) autoCalcMyTsujiBase(t, row);
             saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-tgtid', e => {
             const v = parseInt(e.target.value);
             t.tgtId = isNaN(v) ? null : v;
+            if (validateMyTsujiRow(t, row)) autoCalcMyTsujiBase(t, row);
             saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-base-az', e => {
