@@ -574,6 +574,14 @@ select,
     vertical-align: middle;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
 .nav-btn {
     background: #eee;
     border: 1px solid #ccc;
@@ -690,6 +698,14 @@ select,
     flex-shrink: 0;
     text-align: right;
     margin-right: 5px;
+}
+
+.control-row.left-row {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    margin-bottom: 10px;
+    gap: 5px;
 }
 
 /* 辻検索メニュー内の水平線 */
@@ -900,6 +916,7 @@ input[type="range"] {
     height: 20px;
     margin-right: 10px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .style-indicator {
