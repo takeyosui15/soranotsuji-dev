@@ -709,7 +709,11 @@ function setupUI() {
     document.getElementById('btn-mytsuji-down').onclick = moveMyTsujiDown;
     document.getElementById('btn-mytsuji-addrow').onclick = addMyTsujiRow;
     document.getElementById('btn-mytsuji-delrow').onclick = deleteMyTsujiRow;
-    // CSV/URL/batch ボタンは Phase B/C で実装
+    // CSV (Phase B)
+    document.getElementById('btn-mytsuji-csv-import').onclick = importMyTsujiCsv;
+    document.getElementById('btn-mytsuji-csv-append').onclick = appendMyTsujiCsv;
+    document.getElementById('btn-mytsuji-csv-export').onclick = exportMyTsujiCsv;
+    // URL/batch ボタンは Phase C で実装
 
     // 天体検索ボタン
     document.getElementById('btn-starsearch').onclick = searchStars;
@@ -3541,12 +3545,12 @@ function validateMyTsujiRow(t, row) {
     return errors.length === 0;
 }
 
-/** 観測点ID/目的点IDから基準方位角/視高度を自動計算して反映 */
-function autoCalcMyTsujiBase(t, row) {
-    if (t.obsId == null || t.tgtId == null) return;
+/** 観測点ID/目的点IDから基準方位角/視高度を計算し、appState上の t を直接更新 (DOM非依存) */
+function calcMyTsujiBaseValues(t) {
+    if (t.obsId == null || t.tgtId == null) return false;
     const obs = appState.myObservations.find(o => o.id === t.obsId);
     const tgt = appState.myTargets.find(g => g.id === t.tgtId);
-    if (!obs || !tgt || obs.lat == null || tgt.lat == null) return;
+    if (!obs || !tgt || obs.lat == null || tgt.lat == null) return false;
     const obsElev = (obs.elev || 0) + (obs.height || 0);
     const tgtElev = (tgt.elev || 0) + (tgt.height || 0);
     const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
@@ -3554,10 +3558,226 @@ function autoCalcMyTsujiBase(t, row) {
     const alt = calculateApparentAltitude(dist, obsElev, tgtElev);
     t.baseAz = parseFloat(az.toFixed(2));
     t.baseAlt = parseFloat(alt.toFixed(2));
+    return true;
+}
+
+/** 観測点ID/目的点IDから基準方位角/視高度を自動計算して appState と行DOM に反映 */
+function autoCalcMyTsujiBase(t, row) {
+    if (!calcMyTsujiBaseValues(t)) return;
     const azInput = row.querySelector('.mytsuji-base-az');
     const altInput = row.querySelector('.mytsuji-base-alt');
     if (azInput) azInput.value = t.baseAz;
     if (altInput) altInput.value = t.baseAlt;
+}
+
+// ============================================================
+// My辻検索 — CSV入出力 (Phase B)
+// ============================================================
+
+/** CSV 1行分をMy辻検索オブジェクトにパース。エラー時はalert + null。 */
+function parseMyTsujiCsvLine(cols, lineNum) {
+    if (cols.length < 6) { alert(`${lineNum}行目: 列数が不足しています(最低6列必要)`); return null; }
+    const id = parseInt(toHalfWidth(cols[0].trim()));
+    if (isNaN(id) || id < 1 || id > 1000) { alert(`${lineNum}行目: 辻検索IDが無効です(1〜1000)`); return null; }
+    const name = cols[1].trim();  // 全角保持
+    if (!name) { alert(`${lineNum}行目: 辻検索名が空です`); return null; }
+    const days = parseInt(toHalfWidth(cols[2].trim()));
+    if (isNaN(days) || days < 1 || days > 36500) { alert(`${lineNum}行目: 検索期間が無効です(1〜36500)`); return null; }
+    const bodyIds = toHalfWidth(cols[3].trim());
+    if (!bodyIds) { alert(`${lineNum}行目: 天体IDが空です`); return null; }
+    const obsId = parseInt(toHalfWidth(cols[4].trim()));
+    if (isNaN(obsId) || obsId < 1 || obsId > 1000) { alert(`${lineNum}行目: 観測点IDが無効です(1〜1000)`); return null; }
+    const tgtId = parseInt(toHalfWidth(cols[5].trim()));
+    if (isNaN(tgtId) || tgtId < 1 || tgtId > 1000) { alert(`${lineNum}行目: 目的点IDが無効です(1〜1000)`); return null; }
+    // 7-8列目: 基準方位角/視高度 (空なら null で後から再計算)
+    const baseAzStr = (cols[6] ?? '').trim();
+    const baseAltStr = (cols[7] ?? '').trim();
+    const baseAz = baseAzStr === '' ? null : parseFloat(toHalfWidth(baseAzStr));
+    const baseAlt = baseAltStr === '' ? null : parseFloat(toHalfWidth(baseAltStr));
+    if (baseAz !== null && isNaN(baseAz)) { alert(`${lineNum}行目: 基準方位角が無効です`); return null; }
+    if (baseAlt !== null && isNaN(baseAlt)) { alert(`${lineNum}行目: 基準視高度が無効です`); return null; }
+    // 9-15列目: 省略可。省略時はデフォルト値
+    const parseNumOr = (v, def) => {
+        if (v == null || v.trim() === '') return def;
+        const n = parseFloat(toHalfWidth(v.trim()));
+        return isNaN(n) ? def : n;
+    };
+    const offsetAz = parseNumOr(cols[8], 0);
+    const offsetAlt = parseNumOr(cols[9], 0);
+    const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
+    const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
+    // フィルタ: ON/OFF または 1/0 (省略時 false)
+    let moonFilter = false;
+    if (cols[12] != null) {
+        const v = toHalfWidth(cols[12].trim()).toUpperCase();
+        moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
+    }
+    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 15), 0), 30);
+    const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
+    return {
+        id, name, days, bodyIds,
+        obsId, tgtId,
+        baseAz, baseAlt,
+        offsetAz, offsetAlt,
+        toleranceAz, toleranceAlt,
+        moonFilter, moonBase, moonTolerance,
+        checked: false
+    };
+}
+
+/** 全CSV入力 (リスト全置換) */
+function importMyTsujiCsv() {
+    if (!confirm('My辻検索リストにCSVファイルから全て上書き入力・登録しますか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+                if (lines.length > 1001) return alert('CSVの上限は1000件です(ヘッダー行を除く)');
+                const newList = [];
+                const usedIds = new Set();
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    const t = parseMyTsujiCsvLine(cols, i + 1);
+                    if (!t) return;
+                    if (usedIds.has(t.id)) { alert(`${i + 1}行目: 辻検索ID ${t.id} が重複しています`); return; }
+                    usedIds.add(t.id);
+                    // 基準方位角/視高度が空なら観測点ID/目的点IDから再計算
+                    if (t.baseAz === null || t.baseAlt === null) {
+                        calcMyTsujiBaseValues(t);
+                    }
+                    newList.push(t);
+                }
+                appState.myTsujiSearches = newList;
+                saveAppState();
+                setMyTsujiDirty(false);
+                renderMyTsujiList();
+                alert(`${newList.length}件のMy辻検索を登録しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** 追加CSV入力 (既存リストに追加) */
+function appendMyTsujiCsv() {
+    if (!confirm('My辻検索リストにCSVファイルから"追加"入力・登録しますか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const text = ev.target.result;
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+
+                // 全行パース
+                const csvEntries = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    const t = parseMyTsujiCsvLine(cols, i + 1);
+                    if (!t) return;
+                    csvEntries.push(t);
+                }
+                // CSV内ID重複チェック
+                const csvIds = new Set();
+                for (const entry of csvEntries) {
+                    if (csvIds.has(entry.id)) { alert(`CSV内で辻検索ID ${entry.id} が重複しています`); return; }
+                    csvIds.add(entry.id);
+                }
+
+                const existingList = appState.myTsujiSearches;
+                let addedCount = 0;
+
+                // 重複判定(辻検索IDと辻検索名以外が全て一致)
+                const isContentDup = (a, b) =>
+                    a.days === b.days && a.bodyIds === b.bodyIds &&
+                    a.obsId === b.obsId && a.tgtId === b.tgtId &&
+                    a.baseAz === b.baseAz && a.baseAlt === b.baseAlt &&
+                    a.offsetAz === b.offsetAz && a.offsetAlt === b.offsetAlt &&
+                    a.toleranceAz === b.toleranceAz && a.toleranceAlt === b.toleranceAlt &&
+                    a.moonFilter === b.moonFilter &&
+                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance;
+
+                for (const entry of csvEntries) {
+                    if (existingList.length >= 1000) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
+                    // 基準方位角/視高度が空なら再計算
+                    if (entry.baseAz === null || entry.baseAlt === null) {
+                        calcMyTsujiBaseValues(entry);
+                    }
+                    // 内容重複ならスキップ
+                    if (existingList.some(x => isContentDup(x, entry))) continue;
+                    // ID重複: 採番するか確認
+                    if (existingList.some(x => x.id === entry.id)) {
+                        const ok = confirm(`辻検索(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                        if (!ok) break;
+                        const newId = getNextMyTsujiId();
+                        if (newId === null) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
+                        entry.id = newId;
+                    }
+                    existingList.push(entry);
+                    addedCount++;
+                }
+
+                saveAppState();
+                setMyTsujiDirty(false);
+                renderMyTsujiList();
+                alert(`${addedCount}件のMy辻検索を追加しました`);
+            } catch (err) {
+                alert('CSVの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** CSV出力 */
+function exportMyTsujiCsv() {
+    if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
+    if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
+    const bom = '\uFEFF';
+    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,フィルタ,基準月齢,許容範囲月齢\r\n';
+    appState.myTsujiSearches.forEach(t => {
+        csv += [
+            t.id,
+            t.name ?? '',
+            t.days ?? '',
+            t.bodyIds ?? '',
+            t.obsId ?? '',
+            t.tgtId ?? '',
+            t.baseAz ?? '',
+            t.baseAlt ?? '',
+            t.offsetAz ?? 0,
+            t.offsetAlt ?? 0,
+            t.toleranceAz ?? 15,
+            t.toleranceAlt ?? 15,
+            t.moonFilter ? 'ON' : 'OFF',
+            t.moonBase ?? 15,
+            t.moonTolerance ?? 2
+        ].join(',') + '\r\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-My辻検索-${formatFileDateTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */

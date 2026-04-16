@@ -386,3 +386,67 @@ renderMyTsujiList();
 - Phase C: 一括計算 / File取得 / URL取得 / 専用結果パネル
 
 次回 **Phase B** に進み、CSV入出力を実装します。
+
+### 回答 (2026-04-16) — Phase B: My辻検索 CSV入出力
+
+#### 確定済み方針
+- **CSV列構成**: 15列に拡張 (デッサンの12列 + 月齢フィルタ3列)
+- インポート時の13-15列 (フィルタ/基準月齢/許容範囲月齢) は省略可 — 省略時はデフォルト値 (OFF/15/2)
+- 既存12列フォーマットもそのまま読み込める後方互換
+
+#### CSV 列構成 (ヘッダー + データ行)
+| # | 列名 | 省略時 |
+|---|---|---|
+| 1 | 辻検索ID | 必須 (1-1000) |
+| 2 | 辻検索名 | 必須 |
+| 3 | 検索期間 | 必須 (1-36500) |
+| 4 | 天体ID | 必須 (`Sun:Moon`形式) |
+| 5 | 観測点ID | 必須 (1-1000) |
+| 6 | 目的点ID | 必須 (1-1000) |
+| 7 | 基準方位角 | 空なら観測点/目的点から再計算 |
+| 8 | 基準視高度 | 空なら観測点/目的点から再計算 |
+| 9 | オフセット方位角 | 0 |
+| 10 | オフセット視高度 | 0 |
+| 11 | 許容範囲方位角 | 15 |
+| 12 | 許容範囲視高度 | 15 |
+| 13 | フィルタ (ON/OFF or 1/0) | OFF |
+| 14 | 基準月齢 | 15 |
+| 15 | 許容範囲月齢 | 2 |
+
+#### B 実施内容
+
+**1. 新規関数** (`script.js`):
+- `calcMyTsujiBaseValues(t)` — DOM非依存で `t.baseAz` / `t.baseAlt` を計算・反映
+- `autoCalcMyTsujiBase(t, row)` — 上記 + DOM更新 (A-4からリファクタ)
+- `parseMyTsujiCsvLine(cols, lineNum)` — CSV 1行パース共通ロジック
+- `importMyTsujiCsv()` — 全CSV入力 (上書き)
+  - 1001行まで (ヘッダー込み)
+  - 辻検索ID重複チェック
+  - 基準方位角/視高度が空なら再計算
+- `appendMyTsujiCsv()` — 追加CSV入力
+  - CSV内ID重複チェック
+  - 内容重複 (ID/名前以外全一致) はスキップ
+  - 既存ID重複時は確認ダイアログで採番 or 終了
+  - 上限1000件到達でbreak
+- `exportMyTsujiCsv()` — CSV出力
+  - BOM付きUTF-8
+  - ファイル名: `soranotsuji-My辻検索-YYYY-MM-DD-HHmmss.csv`
+
+**2. setupUI ボタン onclick 登録**:
+- `btn-mytsuji-csv-import` → `importMyTsujiCsv`
+- `btn-mytsuji-csv-append` → `appendMyTsujiCsv`
+- `btn-mytsuji-csv-export` → `exportMyTsujiCsv`
+
+**3. 全角→半角変換**: 辻検索名以外の全列を `toHalfWidth()` で変換
+
+#### 動作確認方法 (例)
+1. 行追加等で2〜3件登録
+2. 「CSV出力」→ ファイルがダウンロードされ、15列構成で内容が一致すること
+3. 「全CSV入力」→ 上記ファイルを選択 → 同じ内容が復元されること
+4. 基準方位角/視高度を空にしたCSVを作成 → 「全CSV入力」→ 自動再計算されること
+5. 「追加CSV入力」→ ID重複は確認ダイアログ、内容重複はスキップ
+
+#### 残り
+- Phase C: 一括計算 / File取得 / URL取得 / 専用結果パネル
+
+次回 **Phase C** に進み、一括計算等を実装します。
