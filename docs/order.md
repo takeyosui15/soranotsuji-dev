@@ -155,3 +155,31 @@ Claudeさん、ありがとうございます。
 
 辻検索でのURL取得した時も、クエリストリングが必要になるので、`00-overview.md`にキーを記載しました。
 辻検索で、月齢フィルタを有効にした場合も、URL取得で、きちんと動作をするように、機能改善をお願いいたします。
+
+### 回答 (2026-04-16)
+
+辻検索のURL取得に月齢フィルタ関連のクエリストリングを追加しました。
+
+#### 追加したURLパラメータ (00-overview.md 準拠)
+- `tsujiMoonFilter`: boolean ("true"/"false"), 省略時 false
+- `tsujiMoonBase`: float, 省略時 15.0
+- `tsujiMoonTolerance`: float, 省略時 2.0
+
+#### 修正箇所 (script.js)
+
+**1. URL生成** (`copyTsujiSearchUrl` 内, L4138-4141):
+```js
+params.set('tsujiAltTolerance', String(appState.tsujiSearchToleranceAlt));
+params.set('tsujiMoonFilter', appState.tsujiMoonFilterEnabled ? 'true' : 'false');
+params.set('tsujiMoonBase', String(appState.tsujiMoonBase));
+params.set('tsujiMoonTolerance', String(appState.tsujiMoonTolerance));
+```
+
+**2. URL復元** (`restoreFromUrl` 内 `mode === 'tsujisearch'` ブロック内):
+```js
+if (params.has('tsujiMoonFilter')) { appState.tsujiMoonFilterEnabled = params.get('tsujiMoonFilter') === 'true'; }
+if (params.has('tsujiMoonBase')) { const v = parseFloat(params.get('tsujiMoonBase')); if (!isNaN(v)) appState.tsujiMoonBase = v; }
+if (params.has('tsujiMoonTolerance')) { const v = parseFloat(params.get('tsujiMoonTolerance')); if (!isNaN(v)) appState.tsujiMoonTolerance = v; }
+```
+
+UIの同期は既存の初期化処理（L334-337）で `appState` → UI反映が行われるため、URL からの復元後にチェックボックスと入力値が正しく反映されます。

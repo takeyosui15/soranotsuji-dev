@@ -4136,6 +4136,9 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAltOffset', String(appState.tsujiSearchOffsetAlt));
     params.set('tsujiAzTolerance', String(appState.tsujiSearchToleranceAz));
     params.set('tsujiAltTolerance', String(appState.tsujiSearchToleranceAlt));
+    params.set('tsujiMoonFilter', appState.tsujiMoonFilterEnabled ? 'true' : 'false');
+    params.set('tsujiMoonBase', String(appState.tsujiMoonBase));
+    params.set('tsujiMoonTolerance', String(appState.tsujiMoonTolerance));
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -4251,6 +4254,9 @@ function restoreFromUrl() {
         if (params.has('tsujiAltOffset')) { const v = parseFloat(params.get('tsujiAltOffset')); if (!isNaN(v)) appState.tsujiSearchOffsetAlt = v; }
         if (params.has('tsujiAzTolerance')) { const v = parseFloat(params.get('tsujiAzTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAz = v; }
         if (params.has('tsujiAltTolerance')) { const v = parseFloat(params.get('tsujiAltTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAlt = v; }
+        if (params.has('tsujiMoonFilter')) { appState.tsujiMoonFilterEnabled = params.get('tsujiMoonFilter') === 'true'; }
+        if (params.has('tsujiMoonBase')) { const v = parseFloat(params.get('tsujiMoonBase')); if (!isNaN(v)) appState.tsujiMoonBase = v; }
+        if (params.has('tsujiMoonTolerance')) { const v = parseFloat(params.get('tsujiMoonTolerance')); if (!isNaN(v)) appState.tsujiMoonTolerance = v; }
     }
 
     // 標高(elev)を再計算: elev = apiElev + height
