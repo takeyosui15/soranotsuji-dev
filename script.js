@@ -349,6 +349,7 @@ window.onload = function() {
     renderMyStarsList();
     renderMyPointsList('obs');
     renderMyPointsList('tgt');
+    renderMyTsujiList();
 
     // My観測点/My目的点マーカーを表示
     setTimeout(() => updateMyPointMarkers(), 500);
@@ -3261,6 +3262,105 @@ function updateMyPointMarkers() {
             saveAppState();
             updateAll();
         });
+    });
+}
+
+// ============================================================
+// My辻検索 — 共通関数
+// ============================================================
+
+let myTsujiDirty = false;
+
+/** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
+function setMyTsujiDirty(val) {
+    myTsujiDirty = val;
+    const btn = document.getElementById('btn-mytsuji-regall');
+    if (btn) {
+        if (val) { btn.classList.add('dirty'); }
+        else { btn.classList.remove('dirty'); }
+    }
+}
+
+/** 空きID番号の最小値を返す (1〜1000) */
+function getNextMyTsujiId() {
+    const usedIds = new Set(appState.myTsujiSearches.map(t => t.id));
+    for (let i = 1; i <= 1000; i++) { if (!usedIds.has(i)) return i; }
+    return null;
+}
+
+/** リスト描画 (Phase A-2: 描画のみ。イベントハンドラはA-3で追加) */
+function renderMyTsujiList() {
+    const container = document.getElementById('mytsuji-list');
+    if (!container) return;
+    container.innerHTML = '';
+    const list = appState.myTsujiSearches;
+    if (list.length === 0) {
+        container.innerHTML = `<div class="mystars-empty">My辻検索は登録されていません</div>`;
+        return;
+    }
+    list.forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.className = 'mypoint-row';
+        const moonDisabled = t.moonFilter ? '' : 'disabled';
+        row.innerHTML = `
+            <div class="mypoint-row-header">
+                <input type="radio" name="mytsuji-select" value="${t.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="body-checkbox mytsuji-check" data-id="${t.id}" ${t.checked ? 'checked' : ''}>
+                <span class="mypoint-id">ID:${String(t.id).padStart(4, ' ')}</span>
+            </div>
+            <div class="control-row">
+                <input type="text" class="mytsuji-name" value="${escapeHtml(t.name || '')}" placeholder="辻検索名" maxlength="150" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">検索期間(日):</label>
+                <input type="number" class="mytsuji-days" value="${t.days !== undefined ? t.days : ''}" placeholder="検索期間(日:最大36500)" step="1" min="1" max="36500" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">天体ID:</label>
+                <input type="text" class="mytsuji-bodyids" value="${escapeHtml(t.bodyIds || '')}" placeholder="天体ID:天体ID:..." maxlength="150" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">観測点ID:</label>
+                <input type="number" class="mytsuji-obsid" value="${t.obsId !== undefined && t.obsId !== null ? t.obsId : ''}" placeholder="観測点ID(数字)" step="1" min="1" max="1000" data-id="${t.id}">
+                <label class="mypoint-label">目的点ID:</label>
+                <input type="number" class="mytsuji-tgtid" value="${t.tgtId !== undefined && t.tgtId !== null ? t.tgtId : ''}" placeholder="目的点ID(数字)" step="1" min="1" max="1000" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">基準方位角(°):</label>
+                <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz : ''}" placeholder="基準方位角(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+                <label class="mypoint-label">基準視高度(°):</label>
+                <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt : ''}" placeholder="基準視高度(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">オフセット方位角(°):</label>
+                <input type="number" class="mytsuji-offset-az" value="${t.offsetAz !== undefined && t.offsetAz !== null ? t.offsetAz : 0}" placeholder="オフセット方位角(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+                <label class="mypoint-label">オフセット視高度(°):</label>
+                <input type="number" class="mytsuji-offset-alt" value="${t.offsetAlt !== undefined && t.offsetAlt !== null ? t.offsetAlt : 0}" placeholder="オフセット視高度(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">オフセット方位距離(m):</label>
+                <input type="number" class="mytsuji-offset-az-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
+                <label class="mypoint-label">オフセット視高距離(m):</label>
+                <input type="number" class="mytsuji-offset-alt-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">許容範囲方位角(°): ±</label>
+                <input type="number" class="mytsuji-tol-az" value="${t.toleranceAz !== undefined && t.toleranceAz !== null ? t.toleranceAz : 15}" placeholder="許容範囲方位角(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+                <label class="mypoint-label">許容範囲視高度(°): ±</label>
+                <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row">
+                <input type="checkbox" class="body-checkbox mytsuji-moon-filter" data-id="${t.id}" ${t.moonFilter ? 'checked' : ''}>
+                <label class="mypoint-label">フィルタ</label>
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">基準月齢:</label>
+                <input type="number" class="mytsuji-moon-base" value="${t.moonBase !== undefined && t.moonBase !== null ? t.moonBase : 15}" placeholder="基準月齢" step="0.1" min="0" max="30" data-id="${t.id}" ${moonDisabled}>
+                <label class="mypoint-label">許容範囲月齢: ±</label>
+                <input type="number" class="mytsuji-moon-tol" value="${t.moonTolerance !== undefined && t.moonTolerance !== null ? t.moonTolerance : 2}" placeholder="許容範囲月齢±" step="0.1" min="0" max="15" data-id="${t.id}" ${moonDisabled}>
+            </div>`;
+        container.appendChild(row);
     });
 }
 
