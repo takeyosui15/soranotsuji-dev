@@ -701,6 +701,16 @@ function setupUI() {
     document.getElementById('btn-mytgt-csv-export').onclick = () => exportMyPointsCsv('tgt');
     document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
 
+    // My辻検索ボタン (Phase A-3)
+    document.getElementById('btn-mytsuji-toggle-all').onclick = toggleAllMyTsuji;
+    document.getElementById('btn-mytsuji-get').onclick = getMyTsujiFromTsujiSearch;
+    document.getElementById('btn-mytsuji-regall').onclick = registerAllMyTsuji;
+    document.getElementById('btn-mytsuji-up').onclick = moveMyTsujiUp;
+    document.getElementById('btn-mytsuji-down').onclick = moveMyTsujiDown;
+    document.getElementById('btn-mytsuji-addrow').onclick = addMyTsujiRow;
+    document.getElementById('btn-mytsuji-delrow').onclick = deleteMyTsujiRow;
+    // CSV/URL/batch ボタンは Phase B/C で実装
+
     // 天体検索ボタン
     document.getElementById('btn-starsearch').onclick = searchStars;
     document.getElementById('btn-starsearch-reg').onclick = registerSearchStar;
@@ -3288,7 +3298,224 @@ function getNextMyTsujiId() {
     return null;
 }
 
-/** リスト描画 (Phase A-2: 描画のみ。イベントハンドラはA-3で追加) */
+/** 選択中のID取得 */
+function getSelectedMyTsujiId() {
+    const radio = document.querySelector('input[name="mytsuji-select"]:checked');
+    return radio ? parseInt(radio.value) : null;
+}
+
+/** オフセット方位距離・視高距離を再計算して返す */
+function recalcMyTsujiOffsetDist(t) {
+    const obs = appState.myObservations.find(o => o.id === t.obsId);
+    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+    if (!obs || !tgt || obs.lat == null || tgt.lat == null) return { azDist: 0, altDist: 0 };
+    const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
+    const azDist = dist * Math.tan((t.offsetAz || 0) * Math.PI / 180);
+    const altDist = dist * Math.tan((t.offsetAlt || 0) * Math.PI / 180);
+    return { azDist, altDist };
+}
+
+/** 行追加/削除/移動ボタンの活性状態を更新 */
+function updateMyTsujiButtonStates() {
+    const list = appState.myTsujiSearches;
+    const addBtn = document.getElementById('btn-mytsuji-addrow');
+    const delBtn = document.getElementById('btn-mytsuji-delrow');
+    const upBtn = document.getElementById('btn-mytsuji-up');
+    const dnBtn = document.getElementById('btn-mytsuji-down');
+    if (addBtn) addBtn.disabled = list.length >= 1000;
+    if (delBtn) delBtn.disabled = list.length === 0;
+    if (upBtn) upBtn.disabled = list.length < 2;
+    if (dnBtn) dnBtn.disabled = list.length < 2;
+}
+
+/** 位置情報メニューの観測点と一致するMy観測点IDを返す。なければ新規追加してそのIDを返す */
+function findOrCreateMyObsFromCurrent() {
+    const loc = appState.start;
+    const apiElev = appState.startApiElev;
+    const height = appState.startHeight;
+    const match = appState.myObservations.find(o =>
+        o.lat === loc.lat && o.lng === loc.lng &&
+        o.elev === apiElev && o.height === height
+    );
+    if (match) return match.id;
+    const newId = getNextMyPointId('obs');
+    if (newId === null) { alert('My観測点の登録上限(1000件)に達しています'); return null; }
+    appState.myObservations.push({
+        id: newId, name: '新規観測点名',
+        lat: loc.lat, lng: loc.lng,
+        elev: apiElev, height: height
+    });
+    saveAppState();
+    setMyPointDirty('obs', true);
+    renderMyPointsList('obs');
+    if (typeof updateMyPointMarkers === 'function') updateMyPointMarkers();
+    return newId;
+}
+
+/** 位置情報メニューの目的点と一致するMy目的点IDを返す。なければ新規追加してそのIDを返す */
+function findOrCreateMyTgtFromCurrent() {
+    const loc = appState.end;
+    const apiElev = appState.endApiElev;
+    const height = appState.endHeight;
+    const match = appState.myTargets.find(g =>
+        g.lat === loc.lat && g.lng === loc.lng &&
+        g.elev === apiElev && g.height === height
+    );
+    if (match) return match.id;
+    const newId = getNextMyPointId('tgt');
+    if (newId === null) { alert('My目的点の登録上限(1000件)に達しています'); return null; }
+    appState.myTargets.push({
+        id: newId, name: '新規目的点名',
+        lat: loc.lat, lng: loc.lng,
+        elev: apiElev, height: height
+    });
+    saveAppState();
+    setMyPointDirty('tgt', true);
+    renderMyPointsList('tgt');
+    if (typeof updateMyPointMarkers === 'function') updateMyPointMarkers();
+    return newId;
+}
+
+/** 行追加 (空の辻検索情報) */
+function addMyTsujiRow() {
+    if (appState.myTsujiSearches.length >= 1000) return alert('My辻検索の登録上限(1000件)に達しています');
+    if (!confirm('My辻検索リストの末尾に辻検索の行を追加しますか？')) return;
+    const id = getNextMyTsujiId();
+    if (id === null) return;
+    const selId = getSelectedMyTsujiId();
+    const idx = selId !== null ? appState.myTsujiSearches.findIndex(t => t.id === selId) : -1;
+    const newT = {
+        id, name: '', days: 365, bodyIds: 'Sun:Moon',
+        obsId: null, tgtId: null,
+        baseAz: null, baseAlt: null,
+        offsetAz: 0, offsetAlt: 0,
+        toleranceAz: 15, toleranceAlt: 15,
+        moonFilter: false, moonBase: 15, moonTolerance: 2,
+        checked: false
+    };
+    if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
+    else appState.myTsujiSearches.push(newT);
+    saveAppState();
+    setMyTsujiDirty(true);
+    renderMyTsujiList();
+    const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 行削除 */
+function deleteMyTsujiRow() {
+    const id = getSelectedMyTsujiId();
+    if (id === null) return alert('削除するMy辻検索を選択してください');
+    const t = appState.myTsujiSearches.find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`My辻検索リストの辻検索（ID:${id}、${t.name || ''}）を削除しますか？`)) return;
+    appState.myTsujiSearches = appState.myTsujiSearches.filter(x => x.id !== id);
+    saveAppState();
+    setMyTsujiDirty(true);
+    renderMyTsujiList();
+}
+
+/** 上に移動 */
+function moveMyTsujiUp() {
+    const id = getSelectedMyTsujiId();
+    if (id === null) return;
+    const list = appState.myTsujiSearches;
+    const idx = list.findIndex(t => t.id === id);
+    if (idx <= 0) return;
+    [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+    saveAppState();
+    setMyTsujiDirty(true);
+    renderMyTsujiList();
+    const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 下に移動 */
+function moveMyTsujiDown() {
+    const id = getSelectedMyTsujiId();
+    if (id === null) return;
+    const list = appState.myTsujiSearches;
+    const idx = list.findIndex(t => t.id === id);
+    if (idx < 0 || idx >= list.length - 1) return;
+    [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+    saveAppState();
+    setMyTsujiDirty(true);
+    renderMyTsujiList();
+    const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 辻検索取得: 現在の辻検索メニューの内容を1件のMy辻検索として追加 */
+function getMyTsujiFromTsujiSearch() {
+    if (appState.myTsujiSearches.length >= 1000) return alert('My辻検索の登録上限(1000件)に達しています');
+    if (!confirm('現在の観測点/目的点の位置情報（緯度経度・標高・高さ）と、辻検索情報を、My辻検索リストに追加しますか？')) return;
+    const id = getNextMyTsujiId();
+    if (id === null) return;
+    const obsId = findOrCreateMyObsFromCurrent();
+    if (obsId === null) return;
+    const tgtId = findOrCreateMyTgtFromCurrent();
+    if (tgtId === null) return;
+    appState.myTsujiSearches.push({
+        id,
+        name: '新規辻検索名',
+        days: appState.tsujiSearchDays,
+        bodyIds: 'Sun:Moon',
+        obsId, tgtId,
+        baseAz: appState.tsujiSearchBaseAz,
+        baseAlt: appState.tsujiSearchBaseAlt,
+        offsetAz: appState.tsujiSearchOffsetAz,
+        offsetAlt: appState.tsujiSearchOffsetAlt,
+        toleranceAz: appState.tsujiSearchToleranceAz,
+        toleranceAlt: appState.tsujiSearchToleranceAlt,
+        moonFilter: appState.tsujiMoonFilterEnabled,
+        moonBase: appState.tsujiMoonBase,
+        moonTolerance: appState.tsujiMoonTolerance,
+        checked: false
+    });
+    saveAppState();
+    setMyTsujiDirty(true);
+    renderMyTsujiList();
+    const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 全て登録: バリデーション + dirty flag クリア */
+function registerAllMyTsuji() {
+    const list = appState.myTsujiSearches;
+    for (const t of list) {
+        if (!t.name || t.days == null || !t.bodyIds ||
+            t.obsId == null || t.tgtId == null ||
+            t.baseAz == null || t.baseAlt == null) {
+            document.getElementById('mytsuji-error').innerHTML =
+                `<span class="mypoint-error-text">辻検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            return;
+        }
+    }
+    document.getElementById('mytsuji-error').innerHTML = '';
+    if (!confirm('現在のMy辻検索リストをローカルストレージに登録しますか？')) return;
+    saveAppState();
+    setMyTsujiDirty(false);
+    alert('My辻検索を登録しました');
+}
+
+/** 一括選択/一括解除トグル */
+function toggleAllMyTsuji() {
+    const btn = document.getElementById('btn-mytsuji-toggle-all');
+    const isPressed = btn.classList.contains('mytsuji-toggle-active');
+    const newState = !isPressed;
+    if (newState) {
+        btn.textContent = '一括解除';
+        btn.classList.add('mytsuji-toggle-active');
+    } else {
+        btn.textContent = '一括選択';
+        btn.classList.remove('mytsuji-toggle-active');
+    }
+    appState.myTsujiSearches.forEach(t => { t.checked = newState; });
+    saveAppState();
+    renderMyTsujiList();
+}
+
+/** リスト描画 (Phase A-3: イベントハンドラ追加) */
 function renderMyTsujiList() {
     const container = document.getElementById('mytsuji-list');
     if (!container) return;
@@ -3360,8 +3587,90 @@ function renderMyTsujiList() {
                 <label class="mypoint-label">許容範囲月齢: ±</label>
                 <input type="number" class="mytsuji-moon-tol" value="${t.moonTolerance !== undefined && t.moonTolerance !== null ? t.moonTolerance : 2}" placeholder="許容範囲月齢±" step="0.1" min="0" max="15" data-id="${t.id}" ${moonDisabled}>
             </div>`;
+
+        // 初期表示でオフセット距離を計算
+        const { azDist, altDist } = recalcMyTsujiOffsetDist(t);
+        row.querySelector('.mytsuji-offset-az-dist').value = azDist.toFixed(1);
+        row.querySelector('.mytsuji-offset-alt-dist').value = altDist.toFixed(1);
+
+        // ヘルパー: 行内の指定クラスを持つ要素にchangeハンドラを登録
+        const onChange = (cls, fn) => {
+            const el = row.querySelector('.' + cls);
+            if (el) el.addEventListener('change', fn);
+        };
+        const updateDist = () => {
+            const r = recalcMyTsujiOffsetDist(t);
+            row.querySelector('.mytsuji-offset-az-dist').value = r.azDist.toFixed(1);
+            row.querySelector('.mytsuji-offset-alt-dist').value = r.altDist.toFixed(1);
+        };
+
+        onChange('mytsuji-name', e => { t.name = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-days', e => {
+            const v = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 36500);
+            t.days = v; e.target.value = v; saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-bodyids', e => { t.bodyIds = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-obsid', e => {
+            const v = parseInt(e.target.value);
+            t.obsId = isNaN(v) ? null : v;
+            saveAppState(); setMyTsujiDirty(true); updateDist();
+        });
+        onChange('mytsuji-tgtid', e => {
+            const v = parseInt(e.target.value);
+            t.tgtId = isNaN(v) ? null : v;
+            saveAppState(); setMyTsujiDirty(true); updateDist();
+        });
+        onChange('mytsuji-base-az', e => {
+            const v = parseFloat(e.target.value);
+            t.baseAz = isNaN(v) ? null : v;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-base-alt', e => {
+            const v = parseFloat(e.target.value);
+            t.baseAlt = isNaN(v) ? null : v;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-offset-az', e => {
+            t.offsetAz = parseFloat(e.target.value) || 0;
+            e.target.value = t.offsetAz;
+            saveAppState(); setMyTsujiDirty(true); updateDist();
+        });
+        onChange('mytsuji-offset-alt', e => {
+            t.offsetAlt = parseFloat(e.target.value) || 0;
+            e.target.value = t.offsetAlt;
+            saveAppState(); setMyTsujiDirty(true); updateDist();
+        });
+        onChange('mytsuji-tol-az', e => {
+            t.toleranceAz = Math.min(Math.max(parseFloat(e.target.value) || 15, 0), 360);
+            e.target.value = t.toleranceAz;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-tol-alt', e => {
+            t.toleranceAlt = Math.min(Math.max(parseFloat(e.target.value) || 15, 0), 360);
+            e.target.value = t.toleranceAlt;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-moon-filter', e => {
+            t.moonFilter = e.target.checked;
+            row.querySelector('.mytsuji-moon-base').disabled = !t.moonFilter;
+            row.querySelector('.mytsuji-moon-tol').disabled = !t.moonFilter;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-moon-base', e => {
+            t.moonBase = Math.min(Math.max(parseFloat(e.target.value) || 15, 0), 30);
+            e.target.value = t.moonBase;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-moon-tol', e => {
+            t.moonTolerance = Math.min(Math.max(parseFloat(e.target.value) || 2, 0), 15);
+            e.target.value = t.moonTolerance;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
+
         container.appendChild(row);
     });
+    updateMyTsujiButtonStates();
 }
 
 // リスト・パレット

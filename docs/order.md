@@ -289,3 +289,63 @@ renderMyTsujiList();
 → My辻検索メニューに1行表示されること
 
 次回 **A-3** では、各ボタンと各フィールドのイベントハンドラを実装し、CRUD操作を可能にします。
+
+### 回答 (2026-04-16) — Phase A-3: CRUD + イベントハンドラ
+
+#### A-3 実施内容
+
+**1. ヘルパー関数追加** (`script.js`):
+- `getSelectedMyTsujiId()` — ラジオボタン選択中のIDを取得
+- `recalcMyTsujiOffsetDist(t)` — 観測点-目的点間の距離からオフセット方位距離・視高距離を再計算
+- `updateMyTsujiButtonStates()` — 行追加/削除/上下移動ボタンの有効/無効を更新 (0件で削除/上下無効、1000件で追加無効)
+- `findOrCreateMyObsFromCurrent()` — 位置情報メニューの観測点と一致するMy観測点IDを返す。なければ新規追加
+- `findOrCreateMyTgtFromCurrent()` — 同上 (My目的点)
+
+**2. CRUD関数追加** (`script.js`):
+- `addMyTsujiRow()` — 空の辻検索情報を追加 (確認ダイアログあり)
+  - 初期値: name='', days=365, bodyIds='Sun:Moon', obsId/tgtId/baseAz/baseAlt=null, offsetAz/Alt=0, toleranceAz/Alt=15, moonFilter=false, moonBase=15, moonTolerance=2, checked=false
+  - 選択中の行の次に挿入
+- `deleteMyTsujiRow()` — 選択中の行を削除 (確認ダイアログあり)
+- `moveMyTsujiUp()` / `moveMyTsujiDown()` — 上下移動
+- `getMyTsujiFromTsujiSearch()` — 辻検索取得
+  - 観測点/目的点の現在値からMy観測点/My目的点を find or create
+  - 辻検索メニューの全パラメータをコピー
+- `registerAllMyTsuji()` — 全て登録 (バリデーション + dirty クリア)
+  - 必須項目: name, days, bodyIds, obsId, tgtId, baseAz, baseAlt
+  - 未入力なら赤字メッセージ「辻検索ID:(数字)に未入力のものがあります。入力するか、行削除してください。」表示
+- `toggleAllMyTsuji()` — 一括選択/一括解除トグル
+  - クラス `.mytsuji-toggle-active` (黄色背景・太字) のオン/オフでラベル切替
+
+**3. `renderMyTsujiList()` 拡張** (`script.js`):
+- 描画後、各行のフィールドに `change` イベントハンドラを登録
+  - 名前 / 検索期間 (1〜36500) / 天体ID / 観測点ID / 目的点ID
+  - 基準方位角 / 基準視高度 / オフセット方位角・視高度
+  - 許容範囲方位角 (0〜360) / 視高度 (0〜360)
+  - 月齢フィルタチェック / 基準月齢 (0〜30) / 許容範囲月齢 (0〜15)
+  - 一括計算チェックボックス
+- フィルタチェックボックス変更時に基準月齢・許容範囲月齢の disabled をトグル
+- オフセット方位角/視高度/観測点ID/目的点ID 変更時にオフセット距離を自動再計算
+- 描画完了後 `updateMyTsujiButtonStates()` を呼び出し
+
+**4. ボタン onclick 登録** (`script.js setupUI`):
+- 一括選択 / 辻検索取得 / 全て登録 / ▲上へ / ▼下へ / 行追加 / 行削除
+- CSV / URL / 一括計算 / File取得 ボタンは Phase B/C で実装
+
+**5. CSS追加** (`style.css`):
+- `.mytsuji-toggle-active`: 黄色背景・太字 (一括解除状態)
+
+#### Phase A-3 完了で動作するもの
+- 「辻検索取得」: 現在の辻検索条件を1件追加 (My観測点/My目的点も自動追加)
+- 「行追加」: 空行を追加
+- 「行削除」: 選択行を削除
+- 「▲上へ」「▼下へ」: 並べ替え
+- 各フィールド編集 → appState/localStorageに即時反映 + dirty flag
+- 「全て登録」: バリデーション + dirty クリア
+- 「一括選択/一括解除」: 全行のチェックボックスを一括切替
+
+#### 動作未対応 (Phase A-4 / B / C)
+- A-4: 観測点ID/目的点IDの存在チェック (フォーカスアウト時) + 基準方位角/視高度の自動計算
+- B: 全CSV入力 / 追加CSV入力 / CSV出力
+- C: 一括計算 / File取得 / URL取得 / 専用結果パネル
+
+次回 **Phase A-4** で、観測点ID/目的点IDの検証と、基準方位角/視高度の自動計算を実装します。

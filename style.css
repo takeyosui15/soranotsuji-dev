@@ -721,6 +721,13 @@ input[type="number"]:disabled {
     color: #999;
 }
 
+/* My辻検索 一括選択トグル: 「一括解除」状態 */
+.mytsuji-toggle-active {
+    background-color: yellow !important;
+    color: black !important;
+    font-weight: bold !important;
+}
+
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
 input[type="number"].elev-readonly,
