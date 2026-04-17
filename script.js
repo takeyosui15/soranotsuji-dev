@@ -2812,6 +2812,23 @@ function importBackup() {
                 }
                 saveAppState();
                 syncUIFromState();
+                // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
+                const btnRegStart = document.getElementById('btn-reg-start');
+                const btnRegEnd = document.getElementById('btn-reg-end');
+                if (appState.homeStart) {
+                    btnRegStart.classList.add('active');
+                    btnRegStart.title = '登録済みの観測点を呼び出し';
+                } else {
+                    btnRegStart.classList.remove('active');
+                    btnRegStart.title = '';
+                }
+                if (appState.homeEnd) {
+                    btnRegEnd.classList.add('active');
+                    btnRegEnd.title = '登録済みの目的点を呼び出し';
+                } else {
+                    btnRegEnd.classList.remove('active');
+                    btnRegEnd.title = '';
+                }
                 renderCelestialList();
                 renderMyStarsList();
                 renderMyPointsList('obs');
