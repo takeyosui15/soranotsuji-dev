@@ -236,3 +236,32 @@ Claudeさん、ありがとうございます。
 - `08-mytsujisearch.md` `09-myobservation.md` `10-mytarget.md`で、1件のMy辻検索、My観測点、My目的点毎に、メモを記入できるようにデッサンを修正しました。実装をお願いいたします。
 
 上記をご対応お願いいたします。
+
+### 回答 (2026-04-17) — URL取得時刻表示hh:mm:ss + メモフィールド追加
+
+#### 1. URL取得ポップアップの時刻表示を hh:mm:ss に修正
+`toggleUrlPanel()` のラベル生成に秒 (`ss`) を追加しました。
+- 旧: `日時固定(2026年04月17日12:30)`
+- 新: `日時固定(2026年04月17日12:30:45)`
+- 半固定ラベルも同様に秒を追加
+
+#### 2. My観測点 / My目的点 にメモテキストボックスを追加
+- `renderMyPointsList()` のHTMLテンプレートに `<input type="text" class="mypoint-memo">` を追加 (高さの下)
+- `change` イベントで `pt.memo` に保存 + dirty flag
+- `registerAllMyPoints()` で `pt.memo` の半角カンマ→全角カンマ変換
+- `getMyPointFromLocation()` / `addMyPointRow()` の初期値に `memo: ''`
+- `findOrCreateMyObsFromCurrent()` / `findOrCreateMyTgtFromCurrent()` にも `memo: ''`
+
+#### 3. My辻検索 にメモテキストボックスを追加
+- `renderMyTsujiSearches()` のHTMLテンプレートに `<input type="text" class="mytsuji-memo">` を追加 (月齢フィルタの下)
+- `change` イベントで `t.memo` に保存 + dirty flag
+- `registerAllMyTsuji()` で `t.memo` の半角カンマ→全角カンマ変換
+- `addMyTsujiRow()` / `getMyTsujiFromTsujiSearch()` / `toggleAllMyTsuji()` の初期値に `memo: ''`
+- `appState.myTsujiSearches` のコメントに `memo` を追記
+
+#### メモフィールド共通仕様
+- プレースホルダー: 「メモ(150文字)」
+- 最大文字数: 150文字 (`maxlength="150"`)
+- 初期値: 空白
+- 登録時に半角カンマ → 全角カンマ (U+FF0C) に変換
+- localStorage に自動保存

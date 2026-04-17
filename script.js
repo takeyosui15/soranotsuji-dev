@@ -190,7 +190,7 @@ let appState = {
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
                           //   baseAz, baseAlt, offsetAz, offsetAlt,
                           //   toleranceAz, toleranceAlt,
-                          //   moonFilter, moonBase, moonTolerance, checked }
+                          //   moonFilter, moonBase, moonTolerance, checked, memo }
 
     // 大気差補正の有効/無効
     refractionEnabled: false,
@@ -2811,6 +2811,10 @@ function renderMyPointsList(type) {
                 <input type="number" class="mypoint-elev" value="${pt.elev !== null && pt.elev !== undefined ? pt.elev : ''}" placeholder="標高" step="0.1" data-id="${pt.id}">
                 <label class="mypoint-label">高さ:</label>
                 <input type="number" class="mypoint-height" value="${pt.height !== null && pt.height !== undefined ? pt.height : ''}" placeholder="高さ" step="0.1" data-id="${pt.id}">
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">メモ:</label>
+                <input type="text" class="mypoint-memo" value="${escapeHtml(pt.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${pt.id}">
             </div>`;
         // イベント: 名前変更
         row.querySelector('.mypoint-name').addEventListener('input', () => setMyPointDirty(type, true));
@@ -2888,6 +2892,11 @@ function renderMyPointsList(type) {
             saveAppState();
             setMyPointDirty(type, true);
         });
+        row.querySelector('.mypoint-memo').addEventListener('change', (e) => {
+            pt.memo = e.target.value.trim();
+            saveAppState();
+            setMyPointDirty(type, true);
+        });
         container.appendChild(row);
     });
 }
@@ -2929,7 +2938,7 @@ function getMyPointFromLocation(type) {
     cfg.list().push({
         id, name: `新規${cfg.label}名`,
         lat: loc.lat, lng: loc.lng,
-        elev: apiElev, height: height
+        elev: apiElev, height: height, memo: ''
     });
     saveAppState();
     setMyPointDirty(type, true);
@@ -2952,6 +2961,7 @@ function registerAllMyPoints(type) {
     if (!confirm(`現在の${cfg.labelFull}リストをローカルストレージに登録しますか？`)) return;
     points.forEach(pt => {
         pt.name = (pt.name || '').replace(/,/g, '，');
+        pt.memo = (pt.memo || '').replace(/,/g, '，');
         if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
         if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
     });
@@ -2971,7 +2981,7 @@ function addMyPointRow(type) {
     // 選択中の行の次に挿入
     const selId = getSelectedMyPointId(type);
     const idx = selId !== null ? cfg.list().findIndex(p => p.id === selId) : -1;
-    const newPt = { id, name: '', lat: null, lng: null, elev: null, height: 0 };
+    const newPt = { id, name: '', lat: null, lng: null, elev: null, height: 0, memo: '' };
     if (idx >= 0) {
         cfg.list().splice(idx + 1, 0, newPt);
     } else {
@@ -3355,7 +3365,7 @@ function findOrCreateMyObsFromCurrent() {
     appState.myObservations.push({
         id: newId, name: '新規観測点名',
         lat: loc.lat, lng: loc.lng,
-        elev: apiElev, height: height
+        elev: apiElev, height: height, memo: ''
     });
     saveAppState();
     setMyPointDirty('obs', true);
@@ -3379,7 +3389,7 @@ function findOrCreateMyTgtFromCurrent() {
     appState.myTargets.push({
         id: newId, name: '新規目的点名',
         lat: loc.lat, lng: loc.lng,
-        elev: apiElev, height: height
+        elev: apiElev, height: height, memo: ''
     });
     saveAppState();
     setMyPointDirty('tgt', true);
@@ -3403,7 +3413,7 @@ function addMyTsujiRow() {
         offsetAz: 0, offsetAlt: 0,
         toleranceAz: 15, toleranceAlt: 15,
         moonFilter: false, moonBase: 15, moonTolerance: 2,
-        checked: false
+        checked: false, memo: ''
     };
     if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
     else appState.myTsujiSearches.push(newT);
@@ -3507,6 +3517,7 @@ function registerAllMyTsuji() {
     if (!confirm('現在のMy辻検索リストをローカルストレージに登録しますか？')) return;
     list.forEach(t => {
         t.name = (t.name || '').replace(/,/g, '，');
+        t.memo = (t.memo || '').replace(/,/g, '，');
     });
     saveAppState();
     setMyTsujiDirty(false);
@@ -4334,6 +4345,10 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-moon-base" value="${t.moonBase !== undefined && t.moonBase !== null ? t.moonBase : 15}" placeholder="基準月齢" step="0.1" min="0" max="30" data-id="${t.id}" ${moonDisabled}>
                 <label class="mytsuji-label">許容範囲月齢: ±</label>
                 <input type="number" class="mytsuji-moon-tol" value="${t.moonTolerance !== undefined && t.moonTolerance !== null ? t.moonTolerance : 2}" placeholder="許容範囲月齢±" step="0.1" min="0" max="15" data-id="${t.id}" ${moonDisabled}>
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">メモ:</label>
+                <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}">
             </div>`;
 
         // 初期表示でオフセット距離を計算 + ID検証
@@ -4418,6 +4433,7 @@ function renderMyTsujiSearches() {
             saveAppState(); setMyTsujiDirty(true);
         });
         onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
+        onChange('mytsuji-memo', e => { t.memo = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
 
         container.appendChild(row);
     });
@@ -5281,9 +5297,10 @@ function toggleUrlPanel(type) {
     const dd = String(d.getDate()).padStart(2,'0');
     const hh = String(d.getHours()).padStart(2,'0');
     const mi = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
 
-    fixedLabel.textContent = `日時固定(${d.getFullYear()}年${mm}月${dd}日${hh}:${mi})`;
-    semiFixedLabel.textContent = `日時半固定(アクセス年の${mm}月${dd}日${hh}:${mi})`;
+    fixedLabel.textContent = `日時固定(${d.getFullYear()}年${mm}月${dd}日${hh}:${mi}:${ss})`;
+    semiFixedLabel.textContent = `日時半固定(アクセス年の${mm}月${dd}日${hh}:${mi}:${ss})`;
     urlPickerMode = type;
     picker.classList.remove('hidden');
 }
