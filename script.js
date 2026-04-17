@@ -4027,7 +4027,8 @@ async function runBatchMyTsujiSearch() {
         <th>方位角</th><th>視高度</th><th>視半径</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
-    decorated.forEach(r => {
+
+    const renderMyTsujiResultRow = (r) => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
@@ -4051,7 +4052,6 @@ async function runBatchMyTsujiSearch() {
             <td>${r.altitude.toFixed(2)}°</td>
             <td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
-            // 観測点・目的点を設定して当該日時でプレビュー
             appState.startApiElev = r.obs.elev || 0;
             appState.startHeight = r.obs.height || 0;
             appState.start = { lat: r.obs.lat, lng: r.obs.lng, elev: appState.startApiElev + appState.startHeight };
@@ -4062,9 +4062,32 @@ async function runBatchMyTsujiSearch() {
             syncUIFromState();
             updateAll();
         });
-        tbody.appendChild(tr);
-    });
+        return tr;
+    };
+
+    decorated.forEach(r => tbody.appendChild(renderMyTsujiResultRow(r)));
     content.appendChild(table);
+
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
+    setupTableSort(table, decorated, [
+        { label: '辻検索ID', compare: (a, b) => a.tsuji.id - b.tsuji.id },
+        { label: '辻検索名', compare: (a, b) => (a.tsuji.name || '').localeCompare(b.tsuji.name || '') },
+        { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
+        { label: '天体名', compare: (a, b) => (a.body.name || '').localeCompare(b.body.name || '') },
+        { label: '観測点ID', compare: (a, b) => (a.obs.id ?? 0) - (b.obs.id ?? 0) },
+        { label: '観測点名', compare: (a, b) => (a.obs.name || '').localeCompare(b.obs.name || '') },
+        { label: '目的点ID', compare: (a, b) => (a.tgt.id ?? 0) - (b.tgt.id ?? 0) },
+        { label: '目的点名', compare: (a, b) => (a.tgt.name || '').localeCompare(b.tgt.name || '') },
+        { label: '精度記号', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
+        { label: '日付', compare: (a, b) => a.time - b.time },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
+        { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
+        { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+    ], renderMyTsujiResultRow);
 }
 
 // ============================================================
