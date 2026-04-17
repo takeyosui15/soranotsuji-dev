@@ -44,7 +44,7 @@ html {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 25%;
+    height: 33.33%;
     background-color: rgba(30, 30, 30, 0.9);
     border-top: 1px solid #555;
     z-index: 910;
@@ -60,7 +60,7 @@ html {
 }
 
 #tsujisearch-panel.with-elevation {
-    bottom: 25%;
+    bottom: 33.33%;
 }
 
 #tsujisearch-header {
@@ -132,7 +132,7 @@ html {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 25%;
+    height: 33.33%;
     background-color: rgba(30, 30, 30, 0.9);
     border-top: 1px solid #555;
     z-index: 900;
@@ -545,6 +545,10 @@ html {
 .section-content.closed {
     display: none;
 }
+
+#sec-myobs { background-color: rgba(144, 238, 144, 0.15); }
+#sec-mytgt { background-color: rgba(255, 165, 0, 0.15); }
+#sec-mytsuji { background-color: rgba(186, 85, 211, 0.15); }
 
 .control-row {
     display: flex;

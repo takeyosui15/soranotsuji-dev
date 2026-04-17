@@ -2371,7 +2371,7 @@ function addMyStar(name, ra, dec) {
         return false;
     }
     appState.myStars.push({
-        id, name, ra, dec,
+        id, name: name.replace(/,/g, '，'), ra, dec,
         visible: false,
         color: '#DDA0DD',
         isDashed: true
@@ -2949,8 +2949,8 @@ function registerAllMyPoints(type) {
     }
     document.getElementById(`${cfg.prefix}-error`).innerHTML = '';
     if (!confirm(`現在の${cfg.labelFull}リストをローカルストレージに登録しますか？`)) return;
-    // 全角→半角変換（名前以外）
     points.forEach(pt => {
+        pt.name = (pt.name || '').replace(/,/g, '，');
         if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
         if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
     });
@@ -3504,6 +3504,9 @@ function registerAllMyTsuji() {
     }
     document.getElementById('mytsuji-error').innerHTML = '';
     if (!confirm('現在のMy辻検索リストをローカルストレージに登録しますか？')) return;
+    list.forEach(t => {
+        t.name = (t.name || '').replace(/,/g, '，');
+    });
     saveAppState();
     setMyTsujiDirty(false);
     alert('My辻検索を登録しました');
