@@ -3852,7 +3852,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
-        alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
+        alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
     }).catch(err => {
         console.error('clipboard error:', err);
         prompt('URLをコピーしてください:', url);
