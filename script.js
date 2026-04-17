@@ -3076,12 +3076,13 @@ function importMyPointsCsv(type) {
                     const lng = parseFloat(toHalfWidth(cols[3].trim()));
                     let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
                     const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+                    const memo = (cols[6] !== undefined ? cols[6] : '').trim();
                     if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
                     if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
                     if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
                     usedIds.add(id);
                     // 標高が空の場合は後で取得
-                    newPoints.push({ id, name, lat, lng, elev, height });
+                    newPoints.push({ id, name, lat, lng, elev, height, memo });
                 }
                 // 標高が未設定の場合は取得
                 for (const pt of newPoints) {
@@ -3133,9 +3134,10 @@ function appendMyPointsCsv(type) {
                     const lng = parseFloat(toHalfWidth(cols[3].trim()));
                     let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
                     const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+                    const memo = (cols[6] !== undefined ? cols[6] : '').trim();
                     if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
                     if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
-                    csvEntries.push({ id, name, lat, lng, elev, height });
+                    csvEntries.push({ id, name, lat, lng, elev, height, memo });
                 }
 
                 // CSV内のID重複チェック
@@ -3195,9 +3197,9 @@ function exportMyPointsCsv(type) {
     if (cfg.list().length === 0) return alert(`${cfg.labelFull}が登録されていません`);
     if (!confirm(`${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
     const bom = '\uFEFF';
-    let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ\r\n`;
+    let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ,メモ\r\n`;
     cfg.list().forEach(pt => {
-        csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height}\r\n`;
+        csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${pt.memo || ''}\r\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -3628,14 +3630,16 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const offsetAlt = parseNumOr(cols[9], 0);
     const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
     const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
-    // フィルタ: ON/OFF または 1/0 (省略時 false)
+    // 13列目: メモ (デッサン準拠。省略時は空文字)
+    const memo = (cols[12] ?? '').trim();
+    // 14列目以降: フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
     let moonFilter = false;
-    if (cols[12] != null) {
-        const v = toHalfWidth(cols[12].trim()).toUpperCase();
+    if (cols[13] != null) {
+        const v = toHalfWidth(cols[13].trim()).toUpperCase();
         moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
     }
-    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 15), 0), 30);
-    const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
+    const moonBase = Math.min(Math.max(parseNumOr(cols[14], 15), 0), 30);
+    const moonTolerance = Math.min(Math.max(parseNumOr(cols[15], 2), 0), 15);
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -3643,7 +3647,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         offsetAz, offsetAlt,
         toleranceAz, toleranceAlt,
         moonFilter, moonBase, moonTolerance,
-        checked: false
+        checked: false, memo
     };
 }
 
@@ -3733,7 +3737,8 @@ function appendMyTsujiCsv() {
                     a.offsetAz === b.offsetAz && a.offsetAlt === b.offsetAlt &&
                     a.toleranceAz === b.toleranceAz && a.toleranceAlt === b.toleranceAlt &&
                     a.moonFilter === b.moonFilter &&
-                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance;
+                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance &&
+                    (a.memo || '') === (b.memo || '');
 
                 for (const entry of csvEntries) {
                     if (existingList.length >= 1000) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
@@ -3773,7 +3778,7 @@ function exportMyTsujiCsv() {
     if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
     if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
-    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,フィルタ,基準月齢,許容範囲月齢\r\n';
+    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,メモ,フィルタ,基準月齢,許容範囲月齢\r\n';
     appState.myTsujiSearches.forEach(t => {
         csv += [
             t.id,
@@ -3788,6 +3793,7 @@ function exportMyTsujiCsv() {
             t.offsetAlt ?? 0,
             t.toleranceAz ?? 15,
             t.toleranceAlt ?? 15,
+            t.memo ?? '',
             t.moonFilter ? 'ON' : 'OFF',
             t.moonBase ?? 15,
             t.moonTolerance ?? 2
