@@ -349,7 +349,7 @@ window.onload = function() {
     renderMyStarsList();
     renderMyPointsList('obs');
     renderMyPointsList('tgt');
-    renderMyTsujiList();
+    renderMyTsujiSearches();
 
     // My観測点/My目的点マーカーを表示
     setTimeout(() => updateMyPointMarkers(), 500);
@@ -714,12 +714,10 @@ function setupUI() {
     document.getElementById('btn-mytsuji-csv-append').onclick = appendMyTsujiCsv;
     document.getElementById('btn-mytsuji-csv-export').onclick = exportMyTsujiCsv;
     document.getElementById('btn-mytsuji-url').onclick = getMyTsujiUrl;
-    // batch (Phase C-2)
+    // batch (Phase C-2/C-3) — 結果は辻検索パネルを再利用
     document.getElementById('btn-mytsuji-batch').onclick = runBatchMyTsujiSearch;
     document.getElementById('btn-mytsuji-file').onclick = fileBatchMyTsujiSearch;
-    document.getElementById('btn-mytsuji-panel-close').onclick = () => {
-        document.getElementById('mytsuji-panel').classList.add('hidden');
-    };
+
 
     // 天体検索ボタン
     document.getElementById('btn-starsearch').onclick = searchStars;
@@ -3407,7 +3405,7 @@ function addMyTsujiRow() {
     else appState.myTsujiSearches.push(newT);
     saveAppState();
     setMyTsujiDirty(true);
-    renderMyTsujiList();
+    renderMyTsujiSearches();
     const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
     if (radio) radio.checked = true;
 }
@@ -3422,7 +3420,7 @@ function deleteMyTsujiRow() {
     appState.myTsujiSearches = appState.myTsujiSearches.filter(x => x.id !== id);
     saveAppState();
     setMyTsujiDirty(true);
-    renderMyTsujiList();
+    renderMyTsujiSearches();
 }
 
 /** 上に移動 */
@@ -3435,7 +3433,7 @@ function moveMyTsujiUp() {
     [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
     saveAppState();
     setMyTsujiDirty(true);
-    renderMyTsujiList();
+    renderMyTsujiSearches();
     const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
     if (radio) radio.checked = true;
 }
@@ -3450,7 +3448,7 @@ function moveMyTsujiDown() {
     [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
     saveAppState();
     setMyTsujiDirty(true);
-    renderMyTsujiList();
+    renderMyTsujiSearches();
     const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
     if (radio) radio.checked = true;
 }
@@ -3484,7 +3482,7 @@ function getMyTsujiFromTsujiSearch() {
     });
     saveAppState();
     setMyTsujiDirty(true);
-    renderMyTsujiList();
+    renderMyTsujiSearches();
     const radio = document.querySelector(`input[name="mytsuji-select"][value="${id}"]`);
     if (radio) radio.checked = true;
 }
@@ -3522,7 +3520,7 @@ function toggleAllMyTsuji() {
     }
     appState.myTsujiSearches.forEach(t => { t.checked = newState; });
     saveAppState();
-    renderMyTsujiList();
+    renderMyTsujiSearches();
 }
 
 /** 行エラー表示エリアにメッセージを設定 (空なら非表示) */
@@ -3664,7 +3662,7 @@ function importMyTsujiCsv() {
                 appState.myTsujiSearches = newList;
                 saveAppState();
                 setMyTsujiDirty(false);
-                renderMyTsujiList();
+                renderMyTsujiSearches();
                 alert(`${newList.length}件のMy辻検索を登録しました`);
             } catch (err) {
                 alert('CSVの読み込みに失敗しました: ' + err.message);
@@ -3741,7 +3739,7 @@ function appendMyTsujiCsv() {
 
                 saveAppState();
                 setMyTsujiDirty(false);
-                renderMyTsujiList();
+                renderMyTsujiSearches();
                 alert(`${addedCount}件のMy辻検索を追加しました`);
             } catch (err) {
                 alert('CSVの読み込みに失敗しました: ' + err.message);
@@ -3860,7 +3858,7 @@ async function executeSingleMyTsujiSearch(t) {
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
     const searchStartMs = searchStart.getTime();
-    const MAX_RESULTS_PER_BODY = 1461;
+    const MAX_RESULTS_PER_BODY = 36500;
 
     const targetAz = ((t.baseAz || 0) + (t.offsetAz || 0) + 360) % 360;
     const targetAlt = (t.baseAlt || 0) + (t.offsetAlt || 0);
@@ -3958,10 +3956,9 @@ async function runBatchMyTsujiSearch() {
     if (checked.length === 0) return alert('一括計算するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行しますか？')) return;
 
-    const panel = document.getElementById('mytsuji-panel');
-    const content = document.getElementById('mytsuji-panel-content');
-    const statusEl = document.getElementById('mytsuji-panel-status');
-    panel.classList.remove('hidden');
+    showTsujiPanelForMyTsuji('My辻検索結果');
+    const content = document.getElementById('tsujisearch-content');
+    const statusEl = document.getElementById('tsujisearch-status');
     content.innerHTML = '';
 
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
@@ -4137,10 +4134,9 @@ async function fileBatchMyTsujiSearch() {
     if (checked.length === 0) return alert('File取得するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？')) return;
 
-    const panel = document.getElementById('mytsuji-panel');
-    const statusEl = document.getElementById('mytsuji-panel-status');
-    panel.classList.remove('hidden');
-    document.getElementById('mytsuji-panel-content').innerHTML = '';
+    showTsujiPanelForMyTsuji('My辻検索結果 (File出力)');
+    const statusEl = document.getElementById('tsujisearch-status');
+    document.getElementById('tsujisearch-content').innerHTML = '';
 
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
     tsujiActiveWorkers = [];
@@ -4205,7 +4201,7 @@ async function fileBatchMyTsujiSearch() {
 }
 
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */
-function renderMyTsujiList() {
+function renderMyTsujiSearches() {
     const container = document.getElementById('mytsuji-list');
     if (!container) return;
     container.innerHTML = '';
@@ -4577,6 +4573,16 @@ function isMoonAgeInRange(moonAge, base, tolerance) {
 }
 
 // --- 辻検索 ---
+/** 辻検索パネルをMy辻検索結果表示用に開く (startTsujiSearchを呼ばず、ヘッダーテキストを差し替える) */
+function showTsujiPanelForMyTsuji(titleText) {
+    appState.isTsujiSearchActive = true;
+    document.getElementById('btn-tsuji-search').classList.add('active');
+    document.getElementById('tsujisearch-panel').classList.remove('hidden');
+    document.getElementById('tsujisearch-header').innerHTML =
+        `${titleText} <span id="tsujisearch-status"></span>`;
+    syncBottomPanels();
+}
+
 function toggleTsujiSearch() {
     appState.isTsujiSearchActive = !appState.isTsujiSearchActive;
     const btn = document.getElementById('btn-tsuji-search');
@@ -4677,7 +4683,7 @@ async function startTsujiSearch() {
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
     const searchStartMs = searchStart.getTime();
-    const MAX_RESULTS_PER_BODY = 1461;
+    const MAX_RESULTS_PER_BODY = 36500;
     const totalResults = [];
 
     // 既存ワーカーをクリーンアップ（前回の検索が残っていれば中断）
