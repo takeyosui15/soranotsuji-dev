@@ -2795,6 +2795,7 @@ function renderMyPointsList(type) {
         const row = document.createElement('div');
         row.className = 'mypoint-row';
         row.innerHTML = `
+            <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
                 <input type="radio" name="${cfg.prefix}-select" value="${pt.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
                 <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
@@ -4252,6 +4253,7 @@ function renderMyTsujiSearches() {
         row.className = 'mypoint-row';
         const moonDisabled = t.moonFilter ? '' : 'disabled';
         row.innerHTML = `
+            <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
                 <input type="radio" name="mytsuji-select" value="${t.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
                 <input type="checkbox" class="body-checkbox mytsuji-check" data-id="${t.id}" ${t.checked ? 'checked' : ''}>

@@ -715,7 +715,7 @@ input[type="radio"] {
 /* 辻検索メニュー内の水平線 */
 .tsujisearch-separator {
     border: none;
-    border-top: 1px solid #ccc;
+    border-top: 1px solid;
     margin: 8px 0;
 }
 
