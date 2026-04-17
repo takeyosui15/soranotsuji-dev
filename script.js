@@ -611,18 +611,21 @@ function setupUI() {
         closeUrlPicker();
         if (mode === 'location') copyLocationUrl('fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('fixed');
+        else if (mode === 'mytsuji') copyMyTsujiSearchUrl('fixed');
     });
     document.getElementById('url-picker-semi-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
         closeUrlPicker();
         if (mode === 'location') copyLocationUrl('semi-fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('semi-fixed');
+        else if (mode === 'mytsuji') copyMyTsujiSearchUrl('semi-fixed');
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
         const mode = urlPickerMode;
         closeUrlPicker();
         if (mode === 'location') copyLocationUrl(false);
         else if (mode === 'tsuji') copyTsujiSearchUrl(false);
+        else if (mode === 'mytsuji') copyMyTsujiSearchUrl(false);
     });
 
     // 座標入力 (changeイベント)
@@ -3788,7 +3791,7 @@ function exportMyTsujiCsv() {
 // My辻検索 — URL取得 (Phase C-1)
 // ============================================================
 
-/** ラジオボタン選択中のMy辻検索のURLをクリップボードにコピー */
+/** URL取得: ポップアップで3種類のURLを選択 */
 function getMyTsujiUrl() {
     const id = getSelectedMyTsujiId();
     if (id === null) return alert('URL取得するMy辻検索を選択してください');
@@ -3797,9 +3800,32 @@ function getMyTsujiUrl() {
     const obs = appState.myObservations.find(o => o.id === t.obsId);
     const tgt = appState.myTargets.find(g => g.id === t.tgtId);
     if (!obs || !tgt) return alert('観測点または目的点がMy観測点/My目的点リストに存在しません');
+    toggleUrlPanel('mytsuji');
+}
 
+/** My辻検索のURLをビルドしてクリップボードにコピー */
+function copyMyTsujiSearchUrl(includeDateTime) {
+    const id = getSelectedMyTsujiId();
+    if (id === null) return;
+    const t = appState.myTsujiSearches.find(x => x.id === id);
+    if (!t) return;
+    const obs = appState.myObservations.find(o => o.id === t.obsId);
+    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+    if (!obs || !tgt) return;
+
+    const d = appState.currentDate;
     const params = new URLSearchParams();
-    // 位置情報
+    if (includeDateTime === 'fixed') {
+        params.set('date', formatDateForUrl(d));
+        params.set('time', formatTimeForUrl(d));
+        params.set('timeZone', getLocalTimezoneOffsetString());
+    } else if (includeDateTime === 'semi-fixed') {
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        params.set('date', `0000${mm}${dd}`);
+        params.set('time', formatTimeForUrl(d));
+        params.set('timeZone', getLocalTimezoneOffsetString());
+    }
     params.set('startLat', String(obs.lat));
     params.set('startLng', String(obs.lng));
     params.set('startApiElv', String(obs.elev ?? 0));
@@ -3808,12 +3834,10 @@ function getMyTsujiUrl() {
     params.set('endLng', String(tgt.lng));
     params.set('endApiElv', String(tgt.elev ?? 0));
     params.set('endElv', String(tgt.height ?? 0));
-    // 天体ID (":" 区切り → 複数の starId パラメータへ)
     (t.bodyIds || '').split(':').forEach(bid => {
         const v = bid.trim();
         if (v) params.append('starId', v);
     });
-    // 辻検索パラメータ
     params.set('tsujiSearchDays', String(t.days ?? 365));
     if (t.baseAz != null) params.set('tsujiAz', String(t.baseAz));
     if (t.baseAlt != null) params.set('tsujiAlt', String(t.baseAlt));
@@ -3821,22 +3845,18 @@ function getMyTsujiUrl() {
     params.set('tsujiAltOffset', String(t.offsetAlt ?? 0));
     params.set('tsujiAzTolerance', String(t.toleranceAz ?? 15));
     params.set('tsujiAltTolerance', String(t.toleranceAlt ?? 15));
-    // 月齢フィルタ
     params.set('tsujiMoonFilter', t.moonFilter ? 'true' : 'false');
     params.set('tsujiMoonBase', String(t.moonBase ?? 15));
     params.set('tsujiMoonTolerance', String(t.moonTolerance ?? 2));
+    params.set('mode', 'tsujisearch');
 
     const url = buildBaseUrl() + '?' + params.toString();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => {
-            alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
-        }).catch(err => {
-            console.error('clipboard error:', err);
-            prompt('URLをコピーしてください:', url);
-        });
-    } else {
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
+    }).catch(err => {
+        console.error('clipboard error:', err);
         prompt('URLをコピーしてください:', url);
-    }
+    });
 }
 
 // ============================================================
@@ -3946,7 +3966,9 @@ function decorateMyTsujiResults(results) {
         const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
         const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dow})`;
         const timeStr = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
-        return { ...r, symbol, dateStr, timeStr, moonAge, moonIcon };
+        const observer = new Astronomy.Observer(r.obs.lat, r.obs.lng, (r.obs.elev || 0) + (r.obs.height || 0));
+        const angularRadius = getBodyAngularRadius(r.body.id, dt, observer);
+        return { ...r, symbol, dateStr, timeStr, moonAge, moonIcon, angularRadius };
     }).filter(Boolean);
 }
 
@@ -3989,29 +4011,41 @@ async function runBatchMyTsujiSearch() {
     }
 
     const table = document.createElement('table');
+    table.className = 'td-table';
     table.innerHTML = `<thead><tr>
-        <th>辻検索ID</th><th>辻検索名</th><th>日付</th><th>辻時刻</th>
-        <th>天体ID</th><th>精度</th><th>精度角距離</th>
+        <th>辻検索ID</th><th>辻検索名</th>
+        <th>天体ID</th><th>天体名</th>
+        <th>観測点ID</th><th>観測点名</th>
+        <th>目的点ID</th><th>目的点名</th>
+        <th>精度記号</th><th>精度角距離</th>
+        <th>日付</th><th>辻時刻</th>
         <th>月齢</th><th>月齢アイコン</th>
-        <th>方位角</th><th>視高度</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
     decorated.forEach(r => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
+        const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
         tr.innerHTML = `
             <td>${r.tsuji.id}</td>
             <td>${escapeHtml(r.tsuji.name || '')}</td>
-            <td>${r.dateStr}</td>
-            <td>${r.timeStr}</td>
             <td>${escapeHtml(r.body.id)}</td>
+            <td>${escapeHtml(r.body.name || '')}</td>
+            <td>${r.obs.id ?? ''}</td>
+            <td>${escapeHtml(r.obs.name || '')}</td>
+            <td>${r.tgt.id ?? ''}</td>
+            <td>${escapeHtml(r.tgt.name || '')}</td>
             <td>${r.symbol}</td>
             <td>${r.dist.toFixed(3)}°</td>
+            <td>${r.dateStr}</td>
+            <td>${r.timeStr}</td>
             <td>${r.moonAge.toFixed(1)}</td>
             <td>${r.moonIcon}</td>
             <td>${r.azimuth.toFixed(2)}°</td>
-            <td>${r.altitude.toFixed(2)}°</td>`;
+            <td>${r.altitude.toFixed(2)}°</td>
+            <td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
             // 観測点・目的点を設定して当該日時でプレビュー
             appState.startApiElev = r.obs.elev || 0;
