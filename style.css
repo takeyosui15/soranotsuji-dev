@@ -1431,6 +1431,27 @@ input[type="range"] {
     margin: 4px 0;
 }
 
+.mytsuji-label {
+    width: 73px;
+    white-space: wrap;
+    margin-right: 2px;
+}
+
+.mytsuji-obsid,
+.mytsuji-tgtid,
+.mytsuji-base-az,
+.mytsuji-base-alt,
+.mytsuji-offset-az,
+.mytsuji-offset-alt,
+.mytsuji-offset-az-dist,
+.mytsuji-offset-alt-dist,
+.mytsuji-tol-az,
+.mytsuji-tol-alt,
+.mytsuji-moon-base,
+.mytsuji-moon-tol {
+    width: 75px;
+}
+
 /* 「全て登録」ボタンの dirty 状態 */
 .nav-btn.dirty {
     color: red;
