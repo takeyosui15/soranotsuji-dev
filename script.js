@@ -3737,8 +3737,7 @@ function appendMyTsujiCsv() {
                     a.offsetAz === b.offsetAz && a.offsetAlt === b.offsetAlt &&
                     a.toleranceAz === b.toleranceAz && a.toleranceAlt === b.toleranceAlt &&
                     a.moonFilter === b.moonFilter &&
-                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance &&
-                    (a.memo || '') === (b.memo || '');
+                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance;
 
                 for (const entry of csvEntries) {
                     if (existingList.length >= 1000) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
