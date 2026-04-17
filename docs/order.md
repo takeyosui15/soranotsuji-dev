@@ -386,3 +386,43 @@ OKです👍
 では、次に機能追加をします。
 デッサン`15-backupimport.md`を実装してください。
 疑問点、気になったことがあれば、ご質問ください。
+
+### 回答 (2026-04-17) — バックアップ/インポートメニュー実装
+
+デッサン `15-backupimport.md` に基づき、設定メニューの下にバックアップ/インポートメニューを実装しました。
+
+#### 1. `index.html` — 新セクション `sec-backup`
+- 設定メニューの直後、visitor-counter の直前に配置
+- ヘッダー「バックアップ/インポート」(開閉可能、初期: **開**)
+- 2つのボタン: 「バックアップ」「インポート」
+
+#### 2. `script.js` — `exportBackup()` (バックアップ)
+- 確認メッセージ後、以下のデータをJSON形式でダウンロード:
+  - `backupDate`: バックアップ実施日時 (ISO 8601)
+  - `homeStart` / `homeEnd`: Homeボタン/推し山ボタンの位置情報
+  - `bodies`: 表示天体 (ID, visible, color, isDashed)
+  - `myStars`: My天体 (全フィールド)
+  - `myObservations` / `myTargets`: My観測点/My目的点 (メモ含む)
+  - `myTsujiSearches`: My辻検索 (全フィールド、メモ含む)
+  - `settings`: 気差補正 ON/OFF, 気象パラメータ (p, t, l)
+- ファイル名: `soranotsuji-バックアップ-YYYYMMDD-hhmmss.json`
+
+#### 3. `script.js` — `importBackup()` (インポート)
+- 確認メッセージ後、JSONファイルを選択
+- 各フィールドを appState に反映:
+  - `homeStart` / `homeEnd`: 直接復元
+  - `bodies`: ID一致で visible/color/isDashed を更新 (不一致IDはスキップ)
+  - `myStars`: 直接セット + `syncMyStarsToBodies()` でbodiesに反映
+  - `myObservations` / `myTargets` / `myTsujiSearches`: 直接セット
+  - `settings`: refractionEnabled + meteo (p, t, l)
+- `saveAppState()` で localStorage に書き込み → appState と localStorage の整合性を保証
+- UI再構築: `syncUIFromState()`, `renderCelestialList()`, `renderMyStarsList()`, `renderMyPointsList('obs'/'tgt')`, `renderMyTsujiSearches()`, `updateMyPointMarkers()`, `updateAll()`
+- 成功メッセージ: 「バックアップファイルからインポートしました。」
+- JSON不正時は try-catch で alert
+
+#### 4. setupUI — ボタン onclick 登録
+- `btn-backup` → `exportBackup`
+- `btn-import` → `importBackup`
+
+#### 疑問点・気づいたこと
+特にありません。

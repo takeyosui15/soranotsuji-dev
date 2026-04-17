@@ -726,6 +726,10 @@ function setupUI() {
     document.getElementById('btn-starsearch').onclick = searchStars;
     document.getElementById('btn-starsearch-reg').onclick = registerSearchStar;
 
+    // バックアップ / インポート
+    document.getElementById('btn-backup').onclick = exportBackup;
+    document.getElementById('btn-import').onclick = importBackup;
+
     // --- ★追加: 気象パラメータ連動 ---
     const iK = document.getElementById('input-refraction-k');
     const iP = document.getElementById('input-meteo-p');
@@ -2733,6 +2737,96 @@ function registerSearchStar() {
         document.getElementById('input-starsearch-radec').value = '';
         selectedSearchStar = null;
     }
+}
+
+// ============================================================
+// バックアップ / インポート
+// ============================================================
+
+function exportBackup() {
+    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、設定のリストをバックアップファイルに全て出力しますか？')) return;
+    const data = {
+        backupDate: new Date().toISOString(),
+        homeStart: appState.homeStart,
+        homeEnd: appState.homeEnd,
+        bodies: appState.bodies.filter(b => !b.isCustom).map(b => ({
+            id: b.id, visible: b.visible, color: b.color, isDashed: b.isDashed
+        })),
+        myStars: appState.myStars,
+        myObservations: appState.myObservations,
+        myTargets: appState.myTargets,
+        myTsujiSearches: appState.myTsujiSearches,
+        settings: {
+            refractionEnabled: appState.refractionEnabled,
+            meteo: { p: appState.meteo.p, t: appState.meteo.t, l: appState.meteo.l }
+        }
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-バックアップ-${formatFileDateTime()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importBackup() {
+    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、設定のリストをバックアップファイルから全て上書き入力・登録しますか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.homeStart) appState.homeStart = data.homeStart;
+                if (data.homeEnd) appState.homeEnd = data.homeEnd;
+                if (data.bodies && Array.isArray(data.bodies)) {
+                    data.bodies.forEach(b => {
+                        const existing = appState.bodies.find(x => x.id === b.id && !x.isCustom);
+                        if (existing) {
+                            if (b.visible !== undefined) existing.visible = b.visible;
+                            if (b.color !== undefined) existing.color = b.color;
+                            if (b.isDashed !== undefined) existing.isDashed = b.isDashed;
+                        }
+                    });
+                }
+                if (data.myStars && Array.isArray(data.myStars)) {
+                    appState.myStars = data.myStars;
+                    syncMyStarsToBodies();
+                }
+                if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
+                if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
+                if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
+                if (data.settings) {
+                    if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
+                    if (data.settings.meteo) {
+                        if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
+                        if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
+                        if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
+                    }
+                }
+                saveAppState();
+                syncUIFromState();
+                renderCelestialList();
+                renderMyStarsList();
+                renderMyPointsList('obs');
+                renderMyPointsList('tgt');
+                renderMyTsujiSearches();
+                updateMyPointMarkers();
+                updateAll();
+                alert('バックアップファイルからインポートしました。');
+            } catch (err) {
+                alert('バックアップファイルの読み込みに失敗しました: ' + err.message);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
 }
 
 // ============================================================
