@@ -3630,16 +3630,16 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const offsetAlt = parseNumOr(cols[9], 0);
     const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
     const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
-    // 13列目: メモ (デッサン準拠。省略時は空文字)
-    const memo = (cols[12] ?? '').trim();
-    // 14列目以降: フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
+    // 13-15列目: フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
     let moonFilter = false;
-    if (cols[13] != null) {
-        const v = toHalfWidth(cols[13].trim()).toUpperCase();
+    if (cols[12] != null) {
+        const v = toHalfWidth(cols[12].trim()).toUpperCase();
         moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
     }
-    const moonBase = Math.min(Math.max(parseNumOr(cols[14], 15), 0), 30);
-    const moonTolerance = Math.min(Math.max(parseNumOr(cols[15], 2), 0), 15);
+    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 15), 0), 30);
+    const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
+    // 16列目: メモ (省略時は空文字)
+    const memo = (cols[15] ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -3778,7 +3778,7 @@ function exportMyTsujiCsv() {
     if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
     if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
-    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,メモ,フィルタ,基準月齢,許容範囲月齢\r\n';
+    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,フィルタ,基準月齢,許容範囲月齢,メモ\r\n';
     appState.myTsujiSearches.forEach(t => {
         csv += [
             t.id,
@@ -3793,10 +3793,10 @@ function exportMyTsujiCsv() {
             t.offsetAlt ?? 0,
             t.toleranceAz ?? 15,
             t.toleranceAlt ?? 15,
-            t.memo ?? '',
             t.moonFilter ? 'ON' : 'OFF',
             t.moonBase ?? 15,
-            t.moonTolerance ?? 2
+            t.moonTolerance ?? 2,
+            t.memo ?? ''
         ].join(',') + '\r\n';
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -4202,6 +4202,7 @@ function buildMyTsujiCsvRow(r) {
         r.azimuth.toFixed(2) + '°',
         r.altitude.toFixed(2) + '°',
         angRStr,
+        r.tsuji.memo ?? '',
         previewUrl
     ];
 }
@@ -4255,7 +4256,7 @@ async function fileBatchMyTsujiSearch() {
         '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高',
         '精度記号','精度角距離',
         '辻時刻','方位角','視高度','視半径',
-        'プレビューURL'
+        'メモ','プレビューURL'
     ];
     const esc = v => {
         const s = String(v ?? '');
