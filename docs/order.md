@@ -203,3 +203,55 @@ Claudeさん、ありがとうございます。
   - GASのソースファイルは`gas_spredsheet.js`です。
 
 よろしくお願いいたします。
+
+### 回答 (2026-04-18) — 訪問カウンター不具合の調査
+
+コードを調査しました。ロジック自体に明らかなバグは見つかりませんでしたが、以下の可能性を検証する必要があります。
+
+#### 調査したフロー
+1. `initVisitorCounter()` (script.js L5206) — 1秒後に `setTimeout` で呼ばれる
+2. `location.hostname === 'soranotsuji.net'` かつ `lastVisitDate !== todayStr` の場合のみ `action = 'visit'`
+3. `fetchVisitorData('visit', todayStr)` → GAS API に `?action=visit` を送信
+4. GAS側 `doGet()` (gas_spredsheet.js L56-62) → `findDateRow` で今日の行を見つけて `+1`
+5. 成功後、`appState.lastVisitDate = todayStr` を保存 → 同日の再アクセスは `action = 'get'`
+
+#### 可能性のある原因
+
+**1. GASのデプロイメント設定（最も可能性が高い）**
+- v1.19.0リリース前後で GAS のソースを更新した場合、**新しいデプロイメントを作成**していないと旧コードのまま動作する
+- GAS Web Apps はデプロイバージョンごとに URL が固定されるため、コードを変更しただけでは反映されない
+- **確認方法**: GAS エディタ → デプロイ → デプロイを管理 → 最新バージョンが反映されているか確認
+
+**2. スプレッドシートの2026年シートの問題**
+- `findDateRow` が今日の日付の行を見つけられない場合、`rowIndex === -1` となりカウントアップされない
+- **確認方法**: スプレッドシートの「2026」シートを開き、A列に今日の日付 (2026/04/18) の行が存在し、B列が数値であること
+- もし行が無い場合: スプレッドシートのUIメニュー「ログ管理」→「新規ログシート作成」を実行
+
+**3. `lastVisitDate` が意図せず設定されている**
+- 本番サイトでの訪問日が既に保存されていて、`action = 'get'` になっている可能性
+- **確認方法**: ブラウザの DevTools → Application → Local Storage → `soranotsuji_app` → `lastVisitDate` の値を確認
+- 一時的にテストするなら、DevTools で `localStorage.removeItem('soranotsuji_app')` 後にリロード
+
+**4. ネットワーク/CORS エラー**
+- GAS API への fetch が失敗している場合、catch節で `- - -` が表示されカウントは増えない
+- **確認方法**: DevTools → Network タブ → `exec?action=visit` のリクエストを確認 → レスポンスが正常な JSON か
+
+#### 推奨される検証手順
+
+```
+1. ブラウザの DevTools を開く (F12)
+2. Console タブで以下を実行:
+   > appState.lastVisitDate
+   → null なら未訪問状態 (正常は action=visit が飛ぶ)
+   → "2026-04-18" なら本日訪問済み扱い
+   
+3. Network タブを開いた状態でページをリロード
+   → 1秒後に GAS API へのリクエストが飛ぶか確認
+   → action=visit or action=get のどちらか
+   → レスポンスの JSON 内容を確認
+
+4. スプレッドシートの2026シートを直接確認
+   → 今日の日付の行のB列の値が正しいか
+```
+
+v1.19.0のコード変更 (My辻検索、バックアップ等) は訪問カウンターロジックに直接影響する箇所がないため、GAS側の設定またはスプレッドシートデータの問題が疑われます。
