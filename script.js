@@ -2244,19 +2244,19 @@ function updateMoonInfo(date) {
 }
 
 function formatTime(date, baseDate) {
-    if (!date) return "--:--";
-    
+    if (!date) return "--:--:--";
+
     let h = date.getHours();
     const m = date.getMinutes();
-    
+    const s = date.getSeconds();
+
     if (baseDate) {
-        // 24時間以上経過しているかチェック (86400000ms = 24h)
         if (date.getTime() - baseDate.getTime() >= 86400000) {
             h += 24;
         }
     }
-    
-    return `${('00'+h).slice(-2)}:${('00'+m).slice(-2)}`;
+
+    return `${('00'+h).slice(-2)}:${('00'+m).slice(-2)}:${('00'+s).slice(-2)}`;
 }
 
 function searchStarRiseSet(ra, dec, observer, startOfDay) {
