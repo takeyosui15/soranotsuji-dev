@@ -1387,7 +1387,7 @@ input[type="range"] {
 .mypoint-row-header {
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
     margin-bottom: 10px;
     gap: 5px;
 }
