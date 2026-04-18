@@ -164,3 +164,23 @@ Claudeさん、ありがとうございます。
 私の環境は、`pre-migration-tag-guide.md`と`repo-migration-guide.md`を経て、構成されています。
 soranotsuji-sandbox-localは、フォルダ名です。
 もう一度書き直していただけないでしょうか。
+
+### 回答 (2026-04-18) — 環境移行手順書を実環境に合わせて書き直し
+
+認識違いで申し訳ございません。`pre-migration-tag-guide.md` / `repo-migration-guide.md` / `branch-strategy.md` を確認し、実環境に合わせて `docs/operation/env-migration-guide.md` を全面的に書き直しました。
+
+#### 認識の訂正
+- `soranotsuji-dev-local` / `soranotsuji-sandbox-local` は **ローカルフォルダ名** (iCloud配下)
+- GitHub リモートリポジトリは `soranotsuji-dev` / `soranotsuji-sandbox` / `soranotsuji` (本番)
+- ローカルフォルダはそれぞれ対応するリモートを `origin` として追跡
+
+#### 書き直した内容
+1. **前提セクション**: リポジトリ構成・ローカルフォルダ構成の表を追加 (パス定義は `$DOCS` 変数で統一)
+2. **初回セットアップ**: クロスリモート登録 (`soranotsuji-dev-local` に `sandbox` リモートを追加、逆方向も)
+3. **パターン1: 開発環境 → 試行環境**: ブランチマージ / cherry-pick / ファイルコピーの3方法
+4. **パターン2: 試行環境 → 開発環境**: ブランチ戦略 (claude/yyy → work → develop → main) に合わせた取り込み手順
+5. **日常フロー例**: 試行→本番化までの流れを明記
+6. **トラブルシューティング**: コンフリクト解消、マージやり直し、バージョン番号調整など
+7. **参考資料**: 既存の `branch-strategy.md` / `deploy-guide.md` / `pre-migration-tag-guide.md` / `repo-migration-guide.md` / `git-basics.md` へのリンク
+
+iCloud フルパス (`~/Library/Mobile Documents/com~apple~CloudDocs/Documents/`) もコマンド例で使用しており、既存手順書と整合が取れるようにしました。
