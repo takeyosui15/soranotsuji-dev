@@ -1143,12 +1143,14 @@ function updateCalculation() {
             radecEl.innerText = `赤経 ${ra.toFixed(6)}h / 赤緯 ${dec.toFixed(6)}°`;
         }
 
-        // 出・南中・入時刻
+        // 出/入時刻・南中時
         const risesetEl = document.getElementById(`riseset-${body.id}`);
+        const transitEl = document.getElementById(`transit-${body.id}`);
         if (risesetEl) {
             if (isFixedStar(body.id)) {
                 // 恒星: 出入り時刻・南中時を全て非同期で一括計算
-                risesetEl.innerText = `出時刻 --:-- / 南中時 --:-- / 入時刻 --:--`;
+                risesetEl.innerText = `出時刻 --:--:-- / 入時刻 --:--:--`;
+                if (transitEl) transitEl.innerText = `南中時 --:--:--`;
                 const bodyId = body.id;
                 const capturedRa = ra;
                 const capturedDec = dec;
@@ -1156,28 +1158,31 @@ function updateCalculation() {
                     const times = searchStarRiseSet(capturedRa, capturedDec, observer, startOfDay);
                     let rs = times.rise;
                     let ss = times.set;
-                    if (rs === "--:--" && ss === "--:--") {
+                    if (rs === "--:--:--" && ss === "--:--:--") {
                         const h = Astronomy.Horizon(obsDate, observer, capturedRa, capturedDec, appState.refractionEnabled ? "normal" : null);
-                        if (h.altitude > 0) { rs = "00:00"; ss = "00:00"; }
+                        if (h.altitude > 0) { rs = "00:00:00"; ss = "00:00:00"; }
                     }
                     const transitStr = searchStarTransit(capturedRa, capturedDec, observer, startOfDay);
-                    const el = document.getElementById(`riseset-${bodyId}`);
-                    if (el) el.innerText = `出時刻 ${rs} / 南中時 ${transitStr} / 入時刻 ${ss}`;
+                    const rsEl = document.getElementById(`riseset-${bodyId}`);
+                    const trEl = document.getElementById(`transit-${bodyId}`);
+                    if (rsEl) rsEl.innerText = `出時刻 ${rs} / 入時刻 ${ss}`;
+                    if (trEl) trEl.innerText = `南中時 ${transitStr}`;
                 }, 0);
             } else {
                 // 太陽系天体: 出入り時刻は同期、南中時のみ非同期
-                risesetEl.innerText = `出時刻 ${riseStr} / 南中時 --:-- / 入時刻 ${setStr}`;
+                risesetEl.innerText = `出時刻 ${riseStr} / 入時刻 ${setStr}`;
+                if (transitEl) transitEl.innerText = `南中時 --:--:--`;
                 const bodyId = body.id;
                 setTimeout(() => {
-                    let transitStr = "--:--";
+                    let transitStr = "--:--:--";
                     try {
                         const transit = Astronomy.SearchHourAngle(bodyId, observer, 0, startOfDay);
                         if (transit && transit.time) {
                             transitStr = formatTime(transit.time.date, startOfDay);
                         }
                     } catch(e) {}
-                    const el = document.getElementById(`riseset-${bodyId}`);
-                    if (el) el.innerText = `出時刻 ${riseStr} / 南中時 ${transitStr} / 入時刻 ${setStr}`;
+                    const trEl = document.getElementById(`transit-${bodyId}`);
+                    if (trEl) trEl.innerText = `南中時 ${transitStr}`;
                 }, 0);
             }
         }
@@ -2281,8 +2286,8 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
         prevAlt = alt;
     }
     return {
-        rise: rise ? formatTime(rise) : "--:--",
-        set: set ? formatTime(set) : "--:--"
+        rise: rise ? formatTime(rise) : "--:--:--",
+        set: set ? formatTime(set) : "--:--:--"
     };
 }
 
@@ -2298,7 +2303,7 @@ function searchStarTransit(ra, dec, observer, startOfDay) {
             transitTime = time;
         }
     }
-    return transitTime ? formatTime(transitTime, startOfDay) : "--:--";
+    return transitTime ? formatTime(transitTime, startOfDay) : "--:--:--";
 }
 
 /**
@@ -2410,7 +2415,8 @@ function renderMyStarsList() {
                 <span class="body-name-label">${escapeHtml(star.name)}</span>
                 <span class="body-name-id">ID: ${star.id}</span>
                 <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
-                <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
+                <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
+                <span id="transit-${star.id}" class="body-detail-text">南中時 --:--:--</span>
                 <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 -.---°</span>
             </div>`;
         // チェックボックス: 表示/非表示
@@ -4574,7 +4580,8 @@ function renderCelestialList() {
                 <span class="body-name-label">${escapeHtml(body.name)}</span>
                 <span class="body-name-id">ID: ${escapeHtml(body.id)}</span>
                 <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
-                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:-- / 南中時 --:-- / 入時刻 --:--</span>
+                <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
+                <span id="transit-${escapeHtml(body.id)}" class="body-detail-text">南中時 --:--:--</span>
                 <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
