@@ -1228,9 +1228,15 @@ function updateCalculation() {
 
         // 方位角・視高度・視半径
         const dataEl = document.getElementById(`data-${body.id}`);
+        const transitEl2 = document.getElementById(`transit-${body.id}`);
         if (dataEl) {
             const angRStr = BODY_RADIUS_KM[body.id] ? angR.toFixed(3) + '°' : '-.---°';
-            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(4)}° / 視高度 ${hor.altitude.toFixed(4)}° / 視半径 ${angRStr}`;
+            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(4)}° / 視高度 ${hor.altitude.toFixed(4)}°`;
+            if (transitEl2) {
+                const currentTransit = transitEl2.innerText;
+                const transitPart = currentTransit.split(' / 視半径')[0];
+                transitEl2.innerText = `${transitPart} / 視半径 ${angRStr}`;
+            }
         }
 
         if (body.visible) {
@@ -2460,8 +2466,8 @@ function renderMyStarsList() {
                 <span class="body-name-id">ID: ${star.id}</span>
                 <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
                 <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
-                <span id="transit-${star.id}" class="body-detail-text">南中時 --:--:--</span>
-                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 -.---°</span>
+                <span id="transit-${star.id}" class="body-detail-text">南中時 --:--:-- / 視半径 -.---°</span>
+                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --°</span>
             </div>`;
         // チェックボックス: 表示/非表示
         li.querySelector('.body-checkbox').addEventListener('change', function() {
@@ -2946,7 +2952,7 @@ function renderMyPointsList(type) {
     const cfg = myPointConfig(type);
     const container = document.getElementById(`${cfg.prefix}-list`);
     if (!container) return;
-    container.innerHTML = '';
+    while (container.firstChild) container.removeChild(container.firstChild);
     const points = cfg.list();
     if (points.length === 0) {
         container.innerHTML = `<div class="mystars-empty">${cfg.labelFull}は登録されていません</div>`;
@@ -2962,10 +2968,10 @@ function renderMyPointsList(type) {
                 <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}">
+                <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}" autocomplete="off">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
@@ -2975,7 +2981,7 @@ function renderMyPointsList(type) {
             </div>
             <div class="control-row">
                 <label class="mypoint-label">メモ:</label>
-                <input type="text" class="mypoint-memo" value="${escapeHtml(pt.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${pt.id}">
+                <input type="text" class="mypoint-memo" value="${escapeHtml(pt.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${pt.id}" autocomplete="off">
             </div>`;
         // イベント: 名前変更
         row.querySelector('.mypoint-name').addEventListener('input', () => setMyPointDirty(type, true));
@@ -4452,7 +4458,7 @@ async function fileBatchMyTsujiSearch() {
 function renderMyTsujiSearches() {
     const container = document.getElementById('mytsuji-list');
     if (!container) return;
-    container.innerHTML = '';
+    while (container.firstChild) container.removeChild(container.firstChild);
     const list = appState.myTsujiSearches;
     if (list.length === 0) {
         container.innerHTML = `<div class="mystars-empty">My辻検索は登録されていません</div>`;
@@ -4470,7 +4476,7 @@ function renderMyTsujiSearches() {
                 <span class="mypoint-id">ID:${String(t.id).padStart(4, ' ')}</span>
             </div>
             <div class="control-row">
-                <input type="text" class="mytsuji-name" value="${escapeHtml(t.name || '')}" placeholder="辻検索名" maxlength="150" data-id="${t.id}">
+                <input type="text" class="mytsuji-name" value="${escapeHtml(t.name || '')}" placeholder="辻検索名" maxlength="150" data-id="${t.id}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">検索期間(日):</label>
@@ -4535,7 +4541,7 @@ function renderMyTsujiSearches() {
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">メモ:</label>
-                <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}">
+                <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}" autocomplete="off">
             </div>`;
 
         // 初期表示でオフセット距離を計算 + ID検証
@@ -4657,8 +4663,8 @@ function renderCelestialList() {
                 <span class="body-name-id">ID: ${escapeHtml(body.id)}</span>
                 <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
                 <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
-                <span id="transit-${escapeHtml(body.id)}" class="body-detail-text">南中時 --:--:--</span>
-                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --° / 視半径 --°</span>
+                <span id="transit-${escapeHtml(body.id)}" class="body-detail-text">南中時 --:--:-- / 視半径 --°</span>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
             toggleVisibility(body.id, this.checked);
@@ -5080,9 +5086,9 @@ async function startTsujiSearch() {
 
     // 結果表示
     const totalCount = totalResults.reduce((sum, t) => sum + t.results.length, 0);
-    statusEl.textContent = `(${totalCount}件)`;
 
     if (totalCount === 0) {
+        statusEl.textContent = `(0件)`;
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません</div>';
         return;
     }
@@ -5143,6 +5149,12 @@ async function startTsujiSearch() {
             extraRows.push(tr);
         }
     });
+
+    statusEl.textContent = `(${rowData.length}件)`;
+    if (rowData.length === 0) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">フィルタの結果、該当する日時はありません</div>';
+        return;
+    }
 
     const renderRow = (r) => {
         const tr = document.createElement('tr');

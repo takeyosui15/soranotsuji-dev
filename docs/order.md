@@ -174,3 +174,24 @@ Claudeさん、ありがとうございます。
   - 方位角 270.9491° / 視高度 19.9867°
 
 よろしくお願いします。
+
+### 回答 (2026-04-22) — 不具合修正 + 表示順序変更
+
+#### 1. 辻検索の結果件数をフィルタ後の件数に修正
+- 旧: フィルタ前の全件数 (`totalCount`) を表示
+- 新: フィルタ後の `rowData.length` を表示
+- フィルタの結果0件の場合も「フィルタの結果、該当する日時はありません」と表示
+
+#### 2. 行削除後のappState同期問題への対処
+- コードロジック (delete → saveAppState → render) 自体は正しく動作しています
+- 原因として、ブラウザの autocomplete がフォーム値を勝手に復元する可能性があるため、以下の対策を実施:
+  - `renderMyPointsList` / `renderMyTsujiSearches` のコンテナリセットを `innerHTML = ''` → `while (firstChild) removeChild(firstChild)` に変更 (DOM をより確実にクリア)
+  - My観測点/My目的点/My辻検索の主要テキスト入力に `autocomplete="off"` を追加
+- もし問題が継続する場合はお知らせください。追加の調査を行います。
+
+#### 3. 表示天体の表示順序変更
+- 旧: 南中時 (1行) → 方位角/視高度/視半径 (1行)
+- 新: **南中時 / 視半径** (1行) → **方位角 / 視高度** (1行)
+- HTMLテンプレート (`renderCelestialList`, `renderMyStarsList`) と updateCalculation のセッターロジックを変更
+- `transit-{id}` span: 南中時 + 視半径を表示
+- `data-{id}` span: 方位角 + 視高度のみ表示
