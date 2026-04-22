@@ -4514,7 +4514,7 @@ function renderMyTsujiSearches() {
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-moon-filter" data-id="${t.id}" ${t.moonFilter ? 'checked' : ''}>
-                <label class="mytsuji-label">月齢フィルタ</label>
+                <label>月齢フィルタ</label>
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">基準月齢:</label>
@@ -4525,13 +4525,13 @@ function renderMyTsujiSearches() {
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-acc-filter" data-id="${t.id}" ${t.accuracyFilter ? 'checked' : ''}>
-                <label class="mytsuji-label">精度フィルタ</label>
+                <label>精度フィルタ</label>
             </div>
             <div class="control-row left-row">
-                <input type="checkbox" class="body-checkbox mytsuji-acc-dbl-circle" data-id="${t.id}" ${t.accDblCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:◎</label>
-                <input type="checkbox" class="body-checkbox mytsuji-acc-circle" data-id="${t.id}" ${t.accCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:○</label>
-                <input type="checkbox" class="body-checkbox mytsuji-acc-triangle" data-id="${t.id}" ${t.accTriangle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:△</label>
-                <input type="checkbox" class="body-checkbox mytsuji-acc-dash" data-id="${t.id}" ${t.accDash ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:-</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-dbl-circle" data-id="${t.id}" ${t.accDblCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:◎</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-circle" data-id="${t.id}" ${t.accCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:○</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-triangle" data-id="${t.id}" ${t.accTriangle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:△</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-dash" data-id="${t.id}" ${t.accDash ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:-</label>
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">メモ:</label>
