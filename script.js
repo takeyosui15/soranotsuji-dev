@@ -1189,7 +1189,7 @@ function updateCalculation() {
             if (isFixedStar(body.id)) {
                 // 恒星: 出入り時刻・南中時を全て非同期で一括計算
                 risesetEl.innerText = `出時刻 --:--:-- / 入時刻 --:--:--`;
-                if (transitEl) transitEl.innerText = `南中時 --:--:--`;
+                if (transitEl) transitEl.innerText = `南中時 --:--:-- / 視半径 -.---°`;
                 const bodyId = body.id;
                 const capturedRa = ra;
                 const capturedDec = dec;
@@ -1205,12 +1205,16 @@ function updateCalculation() {
                     const rsEl = document.getElementById(`riseset-${bodyId}`);
                     const trEl = document.getElementById(`transit-${bodyId}`);
                     if (rsEl) rsEl.innerText = `出時刻 ${rs} / 入時刻 ${ss}`;
-                    if (trEl) trEl.innerText = `南中時 ${transitStr}`;
+                    if (trEl) {
+                        const existing = trEl.innerText;
+                        const angPart = existing.includes(' / 視半径') ? existing.substring(existing.indexOf(' / 視半径')) : '';
+                        trEl.innerText = `南中時 ${transitStr}${angPart}`;
+                    }
                 }, 0);
             } else {
                 // 太陽系天体: 出入り時刻は同期、南中時のみ非同期
                 risesetEl.innerText = `出時刻 ${riseStr} / 入時刻 ${setStr}`;
-                if (transitEl) transitEl.innerText = `南中時 --:--:--`;
+                if (transitEl) transitEl.innerText = `南中時 --:--:-- / 視半径 --°`;
                 const bodyId = body.id;
                 setTimeout(() => {
                     let transitStr = "--:--:--";
@@ -1221,7 +1225,11 @@ function updateCalculation() {
                         }
                     } catch(e) {}
                     const trEl = document.getElementById(`transit-${bodyId}`);
-                    if (trEl) trEl.innerText = `南中時 ${transitStr}`;
+                    if (trEl) {
+                        const existing = trEl.innerText;
+                        const angPart = existing.includes(' / 視半径') ? existing.substring(existing.indexOf(' / 視半径')) : '';
+                        trEl.innerText = `南中時 ${transitStr}${angPart}`;
+                    }
                 }, 0);
             }
         }
@@ -3662,7 +3670,12 @@ function getMyTsujiFromTsujiSearch() {
         moonFilter: appState.tsujiMoonFilterEnabled,
         moonBase: appState.tsujiMoonBase,
         moonTolerance: appState.tsujiMoonTolerance,
-        checked: false
+        accuracyFilter: appState.tsujiAccuracyFilterEnabled,
+        accDblCircle: appState.tsujiAccDblCircle,
+        accCircle: appState.tsujiAccCircle,
+        accTriangle: appState.tsujiAccTriangle,
+        accDash: appState.tsujiAccDash,
+        checked: false, memo: ''
     });
     saveAppState();
     setMyTsujiDirty(true);
