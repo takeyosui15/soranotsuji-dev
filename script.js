@@ -4049,6 +4049,11 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiMoonFilter', t.moonFilter ? 'true' : 'false');
     params.set('tsujiMoonBase', String(t.moonBase ?? 15));
     params.set('tsujiMoonTolerance', String(t.moonTolerance ?? 2));
+    params.set('tsujiAccuracyFilter', t.accuracyFilter ? 'true' : 'false');
+    params.set('tsujiAccDblCircle', t.accDblCircle ? 'true' : 'false');
+    params.set('tsujiAccCircle', t.accCircle ? 'true' : 'false');
+    params.set('tsujiAccTriangle', t.accTriangle ? 'true' : 'false');
+    params.set('tsujiAccDash', t.accDash ? 'true' : 'false');
     params.set('mode', 'tsujisearch');
 
     const url = buildBaseUrl() + '?' + params.toString();
@@ -5577,6 +5582,11 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiMoonFilter', appState.tsujiMoonFilterEnabled ? 'true' : 'false');
     params.set('tsujiMoonBase', String(appState.tsujiMoonBase));
     params.set('tsujiMoonTolerance', String(appState.tsujiMoonTolerance));
+    params.set('tsujiAccuracyFilter', appState.tsujiAccuracyFilterEnabled ? 'true' : 'false');
+    params.set('tsujiAccDblCircle', appState.tsujiAccDblCircle ? 'true' : 'false');
+    params.set('tsujiAccCircle', appState.tsujiAccCircle ? 'true' : 'false');
+    params.set('tsujiAccTriangle', appState.tsujiAccTriangle ? 'true' : 'false');
+    params.set('tsujiAccDash', appState.tsujiAccDash ? 'true' : 'false');
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -5695,6 +5705,11 @@ function restoreFromUrl() {
         if (params.has('tsujiMoonFilter')) { appState.tsujiMoonFilterEnabled = params.get('tsujiMoonFilter') === 'true'; }
         if (params.has('tsujiMoonBase')) { const v = parseFloat(params.get('tsujiMoonBase')); if (!isNaN(v)) appState.tsujiMoonBase = v; }
         if (params.has('tsujiMoonTolerance')) { const v = parseFloat(params.get('tsujiMoonTolerance')); if (!isNaN(v)) appState.tsujiMoonTolerance = v; }
+        if (params.has('tsujiAccuracyFilter')) { appState.tsujiAccuracyFilterEnabled = params.get('tsujiAccuracyFilter') === 'true'; }
+        if (params.has('tsujiAccDblCircle')) { appState.tsujiAccDblCircle = params.get('tsujiAccDblCircle') === 'true'; }
+        if (params.has('tsujiAccCircle')) { appState.tsujiAccCircle = params.get('tsujiAccCircle') === 'true'; }
+        if (params.has('tsujiAccTriangle')) { appState.tsujiAccTriangle = params.get('tsujiAccTriangle') === 'true'; }
+        if (params.has('tsujiAccDash')) { appState.tsujiAccDash = params.get('tsujiAccDash') === 'true'; }
     }
 
     // 標高(elev)を再計算: elev = apiElev + height

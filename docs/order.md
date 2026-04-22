@@ -266,3 +266,19 @@ Claudeさん、ありがとうございます。
 
 不具合ではなくて、デッサンに書き忘れていたのですが、My辻検索でURL取得ボタンを押下したときに、精度フィルタの情報も記録して、復元したいです。
 デッサン`00-overview.md`に記載をしましたので、よろしくお願いいたします。
+
+### 回答 (2026-04-22) — URL取得/復元に精度フィルタのパラメータを追加
+
+デッサン `00-overview.md` のURL仕様に追加された精度フィルタ5パラメータを3箇所に反映しました。
+
+#### 追加パラメータ
+- `tsujiAccuracyFilter` — 精度フィルタ有効/無効 (true/false)
+- `tsujiAccDblCircle` — ◎フィルタ (true/false)
+- `tsujiAccCircle` — ○フィルタ (true/false)
+- `tsujiAccTriangle` — △フィルタ (true/false)
+- `tsujiAccDash` — -フィルタ (true/false)
+
+#### 修正箇所
+1. **`copyTsujiSearchUrl()`** (辻検索URL取得): `appState.tsujiAccuracyFilterEnabled` 等を URLパラメータに追加
+2. **`copyMyTsujiSearchUrl()`** (My辻検索URL取得): `t.accuracyFilter` 等を URLパラメータに追加
+3. **`restoreFromUrl()`** (URL復元): `mode=tsujisearch` 時に精度フィルタ5パラメータを読み込み `appState` に反映
