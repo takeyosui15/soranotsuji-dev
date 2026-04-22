@@ -191,7 +191,9 @@ let appState = {
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
                           //   baseAz, baseAlt, offsetAz, offsetAlt,
                           //   toleranceAz, toleranceAlt,
-                          //   moonFilter, moonBase, moonTolerance, checked, memo }
+                          //   moonFilter, moonBase, moonTolerance,
+                          //   accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
+                          //   checked, memo }
 
     // 大気差補正の有効/無効
     refractionEnabled: false,
@@ -251,6 +253,13 @@ let appState = {
     tsujiMoonFilterEnabled: false,
     tsujiMoonBase: 15,
     tsujiMoonTolerance: 2,
+
+    // 精度フィルタ
+    tsujiAccuracyFilterEnabled: false,
+    tsujiAccDblCircle: false,
+    tsujiAccCircle: false,
+    tsujiAccTriangle: false,
+    tsujiAccDash: false,
 
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
@@ -341,6 +350,12 @@ window.onload = function() {
     document.getElementById('chk-tsuji-moon-filter').checked = appState.tsujiMoonFilterEnabled;
     document.getElementById('input-tsuji-moon-base').value = appState.tsujiMoonBase;
     document.getElementById('input-tsuji-moon-tolerance').value = appState.tsujiMoonTolerance;
+    document.getElementById('chk-tsuji-accuracy-filter').checked = appState.tsujiAccuracyFilterEnabled;
+    document.getElementById('chk-tsuji-acc-dbl-circle').checked = appState.tsujiAccDblCircle;
+    document.getElementById('chk-tsuji-acc-circle').checked = appState.tsujiAccCircle;
+    document.getElementById('chk-tsuji-acc-triangle').checked = appState.tsujiAccTriangle;
+    document.getElementById('chk-tsuji-acc-dash').checked = appState.tsujiAccDash;
+    updateTsujiAccuracyFilterUI();
     updateTsujiMoonFilterUI();
     updateOffsetDistances();
 
@@ -598,6 +613,19 @@ function setupUI() {
         e.target.value = appState.tsujiMoonTolerance;
         saveAppState();
     });
+    // 精度フィルタ
+    document.getElementById('chk-tsuji-accuracy-filter').addEventListener('change', (e) => {
+        appState.tsujiAccuracyFilterEnabled = e.target.checked;
+        updateTsujiAccuracyFilterUI();
+        saveAppState();
+    });
+    ['dbl-circle', 'circle', 'triangle', 'dash'].forEach(key => {
+        const propMap = { 'dbl-circle': 'tsujiAccDblCircle', 'circle': 'tsujiAccCircle', 'triangle': 'tsujiAccTriangle', 'dash': 'tsujiAccDash' };
+        document.getElementById(`chk-tsuji-acc-${key}`).addEventListener('change', (e) => {
+            appState[propMap[key]] = e.target.checked;
+            saveAppState();
+        });
+    });
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -835,6 +863,11 @@ function saveAppState() {
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
         tsujiMoonTolerance: appState.tsujiMoonTolerance,
+        tsujiAccuracyFilterEnabled: appState.tsujiAccuracyFilterEnabled,
+        tsujiAccDblCircle: appState.tsujiAccDblCircle,
+        tsujiAccCircle: appState.tsujiAccCircle,
+        tsujiAccTriangle: appState.tsujiAccTriangle,
+        tsujiAccDash: appState.tsujiAccDash,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -878,6 +911,11 @@ function loadAppState() {
             if(saved.tsujiMoonFilterEnabled !== undefined) appState.tsujiMoonFilterEnabled = saved.tsujiMoonFilterEnabled;
             if(saved.tsujiMoonBase !== undefined) appState.tsujiMoonBase = saved.tsujiMoonBase;
             if(saved.tsujiMoonTolerance !== undefined) appState.tsujiMoonTolerance = saved.tsujiMoonTolerance;
+            if(saved.tsujiAccuracyFilterEnabled !== undefined) appState.tsujiAccuracyFilterEnabled = saved.tsujiAccuracyFilterEnabled;
+            if(saved.tsujiAccDblCircle !== undefined) appState.tsujiAccDblCircle = saved.tsujiAccDblCircle;
+            if(saved.tsujiAccCircle !== undefined) appState.tsujiAccCircle = saved.tsujiAccCircle;
+            if(saved.tsujiAccTriangle !== undefined) appState.tsujiAccTriangle = saved.tsujiAccTriangle;
+            if(saved.tsujiAccDash !== undefined) appState.tsujiAccDash = saved.tsujiAccDash;
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1192,7 +1230,7 @@ function updateCalculation() {
         const dataEl = document.getElementById(`data-${body.id}`);
         if (dataEl) {
             const angRStr = BODY_RADIUS_KM[body.id] ? angR.toFixed(3) + '°' : '-.---°';
-            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(2)}° / 視高度 ${hor.altitude.toFixed(2)}° / 視半径 ${angRStr}`;
+            dataEl.innerText = `方位角 ${hor.azimuth.toFixed(4)}° / 視高度 ${hor.altitude.toFixed(4)}° / 視半径 ${angRStr}`;
         }
 
         if (body.visible) {
@@ -1618,7 +1656,7 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
                 weight: 1
             }).addTo(dpLayer);
             
-            const timeStr = formatTime(p.time);
+            const timeStr = formatTimeHM(p.time);
             L.marker(pt, {
                 icon: L.divIcon({
                     className: 'dp-label-icon',
@@ -2130,8 +2168,8 @@ function createLocationPopup(title, pos, target, apiElev, height) {
         標高: ${apiElev != null ? apiElev : pos.elev} m<br>
         高さ: ${height != null ? height : 0} m<br>
         相手距離: ${(dist/1000).toFixed(2)} km<br>
-        相手方位: ${az.toFixed(2)}°<br>
-        相手高度: ${alt.toFixed(2)}°
+        相手方位: ${az.toFixed(4)}°<br>
+        相手高度: ${alt.toFixed(4)}°
     `;
 }
 
@@ -2162,7 +2200,7 @@ function calculateBearing(lat1, lng1, lat2, lng2) {
 function getRiseSetAlt(bodyId, date, observer, refr) {
     const eq = Astronomy.Equator(bodyId, date, observer, true, true);
     const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
-    return hor.altitude.toFixed(2);
+    return hor.altitude.toFixed(4);
 }
 
 function updateShortcutsData(startOfDay, observer) {
@@ -2263,6 +2301,11 @@ function formatTime(date, baseDate) {
     }
 
     return `${('00'+h).slice(-2)}:${('00'+m).slice(-2)}:${('00'+s).slice(-2)}`;
+}
+
+function formatTimeHM(date) {
+    if (!date) return "--:--";
+    return `${('00'+date.getHours()).slice(-2)}:${('00'+date.getMinutes()).slice(-2)}`;
 }
 
 function searchStarRiseSet(ra, dec, observer, startOfDay) {
@@ -3533,6 +3576,7 @@ function addMyTsujiRow() {
         offsetAz: 0, offsetAlt: 0,
         toleranceAz: 15, toleranceAlt: 15,
         moonFilter: false, moonBase: 15, moonTolerance: 2,
+        accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
         checked: false, memo: ''
     };
     if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
@@ -3698,8 +3742,8 @@ function calcMyTsujiBaseValues(t) {
     const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
     const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
     const alt = calculateApparentAltitude(dist, obsElev, tgtElev);
-    t.baseAz = parseFloat(az.toFixed(2));
-    t.baseAlt = parseFloat(alt.toFixed(2));
+    t.baseAz = parseFloat(az.toFixed(4));
+    t.baseAlt = parseFloat(alt.toFixed(4));
     return true;
 }
 
@@ -4100,6 +4144,14 @@ function decorateMyTsujiResults(results) {
         else if (r.dist <= 1.0) symbol = '△';
         else symbol = '-';
         if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) return null;
+        if (r.tsuji.accuracyFilter) {
+            const allowed = [];
+            if (r.tsuji.accDblCircle) allowed.push('◎');
+            if (r.tsuji.accCircle) allowed.push('○');
+            if (r.tsuji.accTriangle) allowed.push('△');
+            if (r.tsuji.accDash) allowed.push('-');
+            if (allowed.length > 0 && !allowed.includes(symbol)) return null;
+        }
         const dt = r.time;
         const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
         const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}(${dow})`;
@@ -4177,13 +4229,13 @@ async function runBatchMyTsujiSearch() {
             <td>${r.tgt.id ?? ''}</td>
             <td>${escapeHtml(r.tgt.name || '')}</td>
             <td>${r.symbol}</td>
-            <td>${r.dist.toFixed(3)}°</td>
+            <td>${r.dist.toFixed(5)}°</td>
             <td>${r.dateStr}</td>
             <td>${r.timeStr}</td>
             <td>${r.moonAge.toFixed(1)}</td>
             <td>${r.moonIcon}</td>
-            <td>${r.azimuth.toFixed(2)}°</td>
-            <td>${r.altitude.toFixed(2)}°</td>
+            <td>${r.azimuth.toFixed(4)}°</td>
+            <td>${r.altitude.toFixed(4)}°</td>
             <td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
             appState.startApiElev = r.obs.elev || 0;
@@ -4314,10 +4366,10 @@ function buildMyTsujiCsvRow(r) {
         (r.tgt.elev ?? 0).toFixed(1) + 'm',
         (r.tgt.height ?? 0).toFixed(1) + 'm',
         r.symbol,
-        r.dist.toFixed(3) + '°',
+        r.dist.toFixed(5) + '°',
         fmtHms(dt),
-        r.azimuth.toFixed(2) + '°',
-        r.altitude.toFixed(2) + '°',
+        r.azimuth.toFixed(4) + '°',
+        r.altitude.toFixed(4) + '°',
         angRStr,
         r.tsuji.memo ?? '',
         previewUrl
@@ -4462,13 +4514,24 @@ function renderMyTsujiSearches() {
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-moon-filter" data-id="${t.id}" ${t.moonFilter ? 'checked' : ''}>
-                <label class="mytsuji-label">フィルタ</label>
+                <label class="mytsuji-label">月齢フィルタ</label>
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">基準月齢:</label>
                 <input type="number" class="mytsuji-moon-base" value="${t.moonBase !== undefined && t.moonBase !== null ? t.moonBase : 15}" placeholder="基準月齢" step="0.1" min="0" max="30" data-id="${t.id}" ${moonDisabled}>
                 <label class="mytsuji-label">許容範囲月齢: ±</label>
                 <input type="number" class="mytsuji-moon-tol" value="${t.moonTolerance !== undefined && t.moonTolerance !== null ? t.moonTolerance : 2}" placeholder="許容範囲月齢±" step="0.1" min="0" max="15" data-id="${t.id}" ${moonDisabled}>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-acc-filter" data-id="${t.id}" ${t.accuracyFilter ? 'checked' : ''}>
+                <label class="mytsuji-label">精度フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-acc-dbl-circle" data-id="${t.id}" ${t.accDblCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:◎</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-circle" data-id="${t.id}" ${t.accCircle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:○</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-triangle" data-id="${t.id}" ${t.accTriangle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:△</label>
+                <input type="checkbox" class="body-checkbox mytsuji-acc-dash" data-id="${t.id}" ${t.accDash ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label>:-</label>
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">メモ:</label>
@@ -4556,6 +4619,18 @@ function renderMyTsujiSearches() {
             e.target.value = t.moonTolerance;
             saveAppState(); setMyTsujiDirty(true);
         });
+        onChange('mytsuji-acc-filter', e => {
+            t.accuracyFilter = e.target.checked;
+            row.querySelector('.mytsuji-acc-dbl-circle').disabled = !t.accuracyFilter;
+            row.querySelector('.mytsuji-acc-circle').disabled = !t.accuracyFilter;
+            row.querySelector('.mytsuji-acc-triangle').disabled = !t.accuracyFilter;
+            row.querySelector('.mytsuji-acc-dash').disabled = !t.accuracyFilter;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-acc-dbl-circle', e => { t.accDblCircle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-acc-circle', e => { t.accCircle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-acc-triangle', e => { t.accTriangle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-acc-dash', e => { t.accDash = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
         onChange('mytsuji-memo', e => { t.memo = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
 
@@ -4764,6 +4839,14 @@ function updateTsujiMoonFilterUI() {
     const enabled = appState.tsujiMoonFilterEnabled;
     document.getElementById('input-tsuji-moon-base').disabled = !enabled;
     document.getElementById('input-tsuji-moon-tolerance').disabled = !enabled;
+}
+
+function updateTsujiAccuracyFilterUI() {
+    const enabled = appState.tsujiAccuracyFilterEnabled;
+    document.getElementById('chk-tsuji-acc-dbl-circle').disabled = !enabled;
+    document.getElementById('chk-tsuji-acc-circle').disabled = !enabled;
+    document.getElementById('chk-tsuji-acc-triangle').disabled = !enabled;
+    document.getElementById('chk-tsuji-acc-dash').disabled = !enabled;
 }
 
 /** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
@@ -5036,6 +5119,16 @@ async function startTsujiSearch() {
                 return;
             }
 
+            // 精度フィルタが有効な場合はチェックされた記号以外をスキップ
+            if (appState.tsujiAccuracyFilterEnabled) {
+                const allowed = [];
+                if (appState.tsujiAccDblCircle) allowed.push('◎');
+                if (appState.tsujiAccCircle) allowed.push('○');
+                if (appState.tsujiAccTriangle) allowed.push('△');
+                if (appState.tsujiAccDash) allowed.push('-');
+                if (allowed.length > 0 && !allowed.includes(symbol)) return;
+            }
+
             rowData.push({
                 body, symbol, dateStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
@@ -5056,7 +5149,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(3)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${angRDisplay}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();

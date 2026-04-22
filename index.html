@@ -201,7 +201,7 @@ GNU General Public License for more details.
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-moon-filter" class="body-checkbox">
-                        <label for="chk-tsuji-moon-filter">フィルタ</label>
+                        <label for="chk-tsuji-moon-filter">月齢フィルタ</label>
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">基準月齢:</label>
@@ -210,6 +210,17 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">許容範囲月齢: ±</label>
                         <input type="number" id="input-tsuji-moon-tolerance" placeholder="0〜15" step="0.1" min="0" max="15">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-accuracy-filter" class="body-checkbox">
+                        <label for="chk-tsuji-accuracy-filter">精度フィルタ</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-acc-dbl-circle" class="body-checkbox" disabled> <label>:◎</label>
+                        <input type="checkbox" id="chk-tsuji-acc-circle" class="body-checkbox" disabled> <label>:○</label>
+                        <input type="checkbox" id="chk-tsuji-acc-triangle" class="body-checkbox" disabled> <label>:△</label>
+                        <input type="checkbox" id="chk-tsuji-acc-dash" class="body-checkbox" disabled> <label>:-</label>
                     </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
@@ -770,9 +781,10 @@ GNU General Public License for more details.
                         <li><strong>オフセット視高距離:</strong> 観測点でのオフセット視高度を目的点での垂直距離(m)に換算した値です(読み取り専用)。目的点でどのくらい上下にずれるかの目安になります。</li>
                         <li><strong>許容範囲方位角: ±</strong> 検索中心(基準方位角+オフセット方位角)からの許容範囲(初期値: 15°)。</li>
                         <li><strong>許容範囲視高度: ±</strong> 検索中心(基準視高度+オフセット視高度)からの許容範囲(初期値: 2.5°)。</li>
-                        <li><strong>フィルタ:</strong> 検索結果を対象とする月齢の範囲でフィルタします。満月(15)や新月(0)の近傍を抽出します。</li>
+                        <li><strong>月齢フィルタ:</strong> 検索結果を対象とする月齢の範囲でフィルタします。満月(15)や新月(0)の近傍を抽出します。</li>
                         <li><strong>基準月齢:</strong> フィルタする月齢の基準値。初期値は15。</li>
                         <li><strong>許容範囲月齢: ±</strong> フィルタする月齢からの許容範囲(初期値: 2)。</li>
+                        <li><strong>精度フィルタ:</strong> 検索結果を精度記号(◎○△-)で絞り込みます。チェックした精度記号の結果のみ表示します。</li>
                         <li><strong>◎:</strong> 天体の中心がほぼ目的点に重なる日(誤差±0.125°[誤差範囲0.25°、およそ視半径以内])</li>
                         <li><strong>○:</strong> 天体の縁が目的点に接する範囲の日(誤差±0.25°[誤差範囲0.5°、およそ視直径以内])</li>
                         <li><strong>△:</strong> 目的点との誤差が天体の直径4倍以内の日(誤差±1°[誤差範囲2°、およそ視直径×4以内])</li>

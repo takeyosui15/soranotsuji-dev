@@ -106,3 +106,33 @@ Claudeさん、ありがとうございます。
 - 辻検索とMy辻検索にあったフィルタを「月齢フィルタ」と改名し、新たに「精度フィルタ」を追加しました。
 デッサンは`02-tsujisearch.md``08-mytsujisearch.md`を参照してください。
 実装と、ヘルプ・README.mdへの記載をお願いいたします。
+
+### 回答 (2026-04-22) — 時刻表示 + 精度桁数 + 精度フィルタ
+
+#### 1. 辻ラインの5分マーカー時刻を hh:mm に戻す
+- `formatTimeHM(date)` 関数を新設 (秒なしの `HH:mm` 形式)
+- 辻ラインの5分間隔マーカーで `formatTime` → `formatTimeHM` に変更
+
+#### 2. 方位角/視高度の精度を4桁、精度角距離を5桁に
+- 方位角/視高度: `.toFixed(2)` → `.toFixed(4)` (全7箇所)
+  - 天体詳細表示、getRiseSetAlt、辻検索/My辻検索の結果テーブル、CSV出力、ツールチップ、baseAz/baseAlt計算
+- 精度角距離: `.toFixed(3)` → `.toFixed(5)` (全3箇所)
+  - 辻検索/My辻検索の結果テーブル、CSV出力
+
+#### 3. 「フィルタ」→「月齢フィルタ」改名 + 「精度フィルタ」新規追加
+**辻検索メニュー (index.html + script.js)**:
+- ラベル「フィルタ」→「月齢フィルタ」に変更
+- 精度フィルタUI追加: 「精度フィルタ」チェックボックス + 「:◎」「:○」「:△」「:-」の4つのチェックボックス
+- 精度フィルタOFF時は4つの精度チェックボックスが disabled
+- appState に `tsujiAccuracyFilterEnabled` + 4つの精度フラグ追加 (save/load対応)
+- `startTsujiSearch` の結果フィルタに精度フィルタロジック追加
+
+**My辻検索 (script.js)**:
+- 各行のテンプレートに精度フィルタUI追加 (月齢フィルタの下)
+- `appState.myTsujiSearches` のスキーマに `accuracyFilter`, `accDblCircle`, `accCircle`, `accTriangle`, `accDash` 追加
+- `decorateMyTsujiResults` に精度フィルタロジック追加
+- 初期値 (addMyTsujiRow / getMyTsujiFromTsujiSearch) に追加
+
+#### 4. ヘルプ・README.md
+- ヘルプ: 辻検索セクションに「精度フィルタ」の説明を追加
+- README.md: 辻検索機能の説明に月齢フィルタ・精度フィルタを追記
