@@ -3811,7 +3811,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const offsetAlt = parseNumOr(cols[9], 0);
     const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
     const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
-    // 13-15列目: フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
+    // 13-15列目: 月齢フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
     let moonFilter = false;
     if (cols[12] != null) {
         const v = toHalfWidth(cols[12].trim()).toUpperCase();
@@ -3819,8 +3819,19 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     }
     const moonBase = Math.min(Math.max(parseNumOr(cols[13], 15), 0), 30);
     const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
-    // 16列目: メモ (省略時は空文字)
-    const memo = (cols[15] ?? '').trim();
+    // 16-20列目: 精度フィルタ (省略時はfalse)
+    const parseBoolOr = (v) => {
+        if (v == null) return false;
+        const s = toHalfWidth(v.trim()).toUpperCase();
+        return (s === 'ON' || s === '1' || s === 'TRUE');
+    };
+    const accuracyFilter = parseBoolOr(cols[15]);
+    const accDblCircle = parseBoolOr(cols[16]);
+    const accCircle = parseBoolOr(cols[17]);
+    const accTriangle = parseBoolOr(cols[18]);
+    const accDash = parseBoolOr(cols[19]);
+    // 21列目: メモ (省略時は空文字)
+    const memo = (cols[20] ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -3828,6 +3839,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         offsetAz, offsetAlt,
         toleranceAz, toleranceAlt,
         moonFilter, moonBase, moonTolerance,
+        accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
         checked: false, memo
     };
 }
@@ -3958,7 +3970,7 @@ function exportMyTsujiCsv() {
     if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
     if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
-    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,フィルタ,基準月齢,許容範囲月齢,メモ\r\n';
+    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,月齢フィルタ,基準月齢,許容範囲月齢,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,メモ\r\n';
     appState.myTsujiSearches.forEach(t => {
         csv += [
             t.id,
@@ -3976,6 +3988,11 @@ function exportMyTsujiCsv() {
             t.moonFilter ? 'ON' : 'OFF',
             t.moonBase ?? 15,
             t.moonTolerance ?? 2,
+            t.accuracyFilter ? 'ON' : 'OFF',
+            t.accDblCircle ? 'ON' : 'OFF',
+            t.accCircle ? 'ON' : 'OFF',
+            t.accTriangle ? 'ON' : 'OFF',
+            t.accDash ? 'ON' : 'OFF',
             t.memo ?? ''
         ].join(',') + '\r\n';
     });
