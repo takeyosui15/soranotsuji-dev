@@ -4495,15 +4495,15 @@ function renderMyTsujiSearches() {
             <div class="mytsuji-row-error"></div>
             <div class="control-row">
                 <label class="mytsuji-label">基準方位角(°):</label>
-                <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz : ''}" placeholder="基準方位角(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz : ''}" placeholder="基準方位角(°)" step="0.0001" min="0" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">基準視高度(°):</label>
-                <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt : ''}" placeholder="基準視高度(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt : ''}" placeholder="基準視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">オフセット方位角(°):</label>
-                <input type="number" class="mytsuji-offset-az" value="${t.offsetAz !== undefined && t.offsetAz !== null ? t.offsetAz : 0}" placeholder="オフセット方位角(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-offset-az" value="${t.offsetAz !== undefined && t.offsetAz !== null ? t.offsetAz : 0}" placeholder="オフセット方位角(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">オフセット視高度(°):</label>
-                <input type="number" class="mytsuji-offset-alt" value="${t.offsetAlt !== undefined && t.offsetAlt !== null ? t.offsetAlt : 0}" placeholder="オフセット視高度(°)" step="0.01" min="-360" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-offset-alt" value="${t.offsetAlt !== undefined && t.offsetAlt !== null ? t.offsetAlt : 0}" placeholder="オフセット視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">オフセット方位距離(m):</label>
@@ -4513,9 +4513,9 @@ function renderMyTsujiSearches() {
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">許容範囲方位角(°): ±</label>
-                <input type="number" class="mytsuji-tol-az" value="${t.toleranceAz !== undefined && t.toleranceAz !== null ? t.toleranceAz : 15}" placeholder="許容範囲方位角(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-tol-az" value="${t.toleranceAz !== undefined && t.toleranceAz !== null ? t.toleranceAz : 15}" placeholder="許容範囲方位角(°)" step="0.1" min="0" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">許容範囲視高度(°): ±</label>
-                <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.01" min="0" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.1" min="0" max="360" data-id="${t.id}">
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
@@ -4822,8 +4822,8 @@ function updateTsujiSearchInputs() {
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev);
-    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(2));
-    appState.tsujiSearchBaseAlt = parseFloat(alt.toFixed(2));
+    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(4));
+    appState.tsujiSearchBaseAlt = parseFloat(alt.toFixed(4));
     document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
     document.getElementById('input-tsuji-alt').value = appState.tsujiSearchBaseAlt;
     saveAppState();
