@@ -15,7 +15,7 @@
 |---|---|---|---|
 | 本番 | `soranotsuji` | main | https://soranotsuji.net |
 | **開発** | `soranotsuji-dev` | main, develop, work, claude/yyy | https://takeyosui15.github.io/soranotsuji-dev/ (develop) |
-| **試行** | `soranotsuji-sandbox` | main, develop, claude/xxx | (公開なし) |
+| **試行** | `soranotsuji-sandbox` | main, develop, work, claude/xxx | (公開なし) |
 
 ### ローカルフォルダ構成 (Mac, iCloud)
 
@@ -32,7 +32,7 @@
 ### ブランチ戦略（概略）
 
 - **開発環境 (soranotsuji-dev)**: `claude/yyy → work → develop → main` の順で流す
-- **試行環境 (soranotsuji-sandbox)**: 実験的な作業用。main / develop を基本とする
+- **試行環境 (soranotsuji-sandbox)**: `claude/xxx → work → develop → main` (開発環境と同じフロー)
 
 詳細は `branch-strategy.md` を参照。
 
