@@ -245,3 +245,9 @@ Claudeさん、ありがとうございます。
 
 - My辻検索の辻検索取得ボタンで辻検索を取得したときに、天体IDに、表示天体の表示中の天体IDが反映されていない。
 
+### 回答 (2026-04-22) — 辻検索取得時の天体ID反映修正
+
+**原因**: `getMyTsujiFromTsujiSearch()` で `bodyIds` が `'Sun:Moon'` にハードコードされていた。行追加 (`addMyTsujiRow`) のデフォルト値としては正しいが、辻検索取得では現在表示中の天体IDを反映すべきだった。
+
+**修正**: `bodyIds: 'Sun:Moon'` → `bodyIds: appState.bodies.filter(b => b.visible).map(b => b.id).join(':')` に変更。表示中の天体IDが `:` 区切りで設定されるようになりました。
+

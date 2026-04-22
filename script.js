@@ -3659,7 +3659,7 @@ function getMyTsujiFromTsujiSearch() {
         id,
         name: '新規辻検索名',
         days: appState.tsujiSearchDays,
-        bodyIds: 'Sun:Moon',
+        bodyIds: appState.bodies.filter(b => b.visible).map(b => b.id).join(':'),
         obsId, tgtId,
         baseAz: appState.tsujiSearchBaseAz,
         baseAlt: appState.tsujiSearchBaseAlt,
