@@ -398,3 +398,48 @@ Claudeさん、ありがとうございます。
 不具合を発見しました。
 同じ観測点と目的点で、辻検索とMy辻検索の一括計算、File出力の結果がそれぞれ異なるようです。
 原因を突き止めて、修正をお願いいたします。
+
+### 回答 (2026-04-29) — 辻検索とMy辻検索の結果差異の調査
+
+コードを詳細に比較調査しました。
+
+#### 分析結果
+
+`startTsujiSearch()` (辻検索) と `executeSingleMyTsujiSearch()` (My辻検索) で、ワーカーに渡すパラメータを比較しました。
+
+| パラメータ | 辻検索 | My辻検索 |
+|---|---|---|
+| observer lat/lng | `appState.start.lat/lng` | `obs.lat/lng` (My観測点) |
+| observer elev | `appState.start.elev` (= apiElev + height) | `obs.elev + obs.height` (My観測点) |
+| targetAz | `(baseAz + offsetAz + 360) % 360` | `((t.baseAz \|\| 0) + (t.offsetAz \|\| 0) + 360) % 360` |
+| targetAlt | `baseAlt + offsetAlt` | `(t.baseAlt \|\| 0) + (t.offsetAlt \|\| 0)` |
+| toleranceAz | `appState.tsujiSearchToleranceAz` | `t.toleranceAz \|\| 15` |
+| toleranceAlt | `appState.tsujiSearchToleranceAlt` | `t.toleranceAlt \|\| 15` |
+| searchStart | `appState.currentDate` (当日0時) | `appState.currentDate` (当日0時) |
+| searchDays | `appState.tsujiSearchDays` | `t.days` |
+| bodies | `appState.bodies.filter(b => b.visible)` | `t.bodyIds` から解決 |
+| refraction | `appState.refractionEnabled` | `appState.refractionEnabled` |
+
+#### 考えられる差異の原因
+
+**1. 観測点の位置・標高の微差**
+- `appState.start` (現在の位置情報) と My観測点のデータが異なる可能性
+- 「辻検索取得」後に位置を微調整していると差が出ます
+- **確認方法**: DevTools で `appState.start` と `appState.myObservations.find(o => o.id === <obsId>)` の lat/lng/elev/height を比較
+
+**2. baseAz/baseAlt の精度差**
+- 辻検索メニューの値は `updateTsujiSearchInputs()` でリアルタイム計算
+- My辻検索の値は「辻検索取得」時のスナップショット (toFixed(4) で丸め)
+- **確認方法**: 辻検索メニューの基準方位角/視高度と、My辻検索の同フィールドを比較
+
+**3. 天体リストの違い**
+- 辻検索: 現在チェックONの表示天体
+- My辻検索: 「辻検索取得」時にコピーされた天体ID
+- **確認方法**: My辻検索の天体IDフィールドと、現在の表示天体のチェック状態を比較
+
+具体的にどのような差異があるかを教えていただけますか？
+- 結果の件数が違う？
+- 同じ天体の同じ日時で方位角/視高度の数値が違う？
+- 特定の結果が片方にだけ表示される？
+
+これにより原因を特定して修正できます。
