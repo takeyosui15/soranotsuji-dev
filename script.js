@@ -3762,8 +3762,8 @@ function calcMyTsujiBaseValues(t) {
     const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
     const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
     const alt = calculateApparentAltitude(dist, obsElev, tgtElev);
-    t.baseAz = parseFloat(az.toFixed(4));
-    t.baseAlt = parseFloat(alt.toFixed(4));
+    t.baseAz = az;
+    t.baseAlt = alt;
     return true;
 }
 
@@ -3772,8 +3772,8 @@ function autoCalcMyTsujiBase(t, row) {
     if (!calcMyTsujiBaseValues(t)) return;
     const azInput = row.querySelector('.mytsuji-base-az');
     const altInput = row.querySelector('.mytsuji-base-alt');
-    if (azInput) azInput.value = t.baseAz;
-    if (altInput) altInput.value = t.baseAlt;
+    if (azInput) azInput.value = t.baseAz != null ? t.baseAz.toFixed(4) : '';
+    if (altInput) altInput.value = t.baseAlt != null ? t.baseAlt.toFixed(4) : '';
 }
 
 // ============================================================
@@ -4531,9 +4531,9 @@ function renderMyTsujiSearches() {
             <div class="mytsuji-row-error"></div>
             <div class="control-row">
                 <label class="mytsuji-label">基準方位角(°):</label>
-                <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz : ''}" placeholder="基準方位角(°)" step="0.0001" min="0" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-base-az" value="${t.baseAz !== undefined && t.baseAz !== null ? t.baseAz.toFixed(4) : ''}" placeholder="基準方位角(°)" step="0.0001" min="0" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">基準視高度(°):</label>
-                <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt : ''}" placeholder="基準視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
+                <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt.toFixed(4) : ''}" placeholder="基準視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">オフセット方位角(°):</label>
@@ -4858,10 +4858,10 @@ function updateTsujiSearchInputs() {
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev);
-    appState.tsujiSearchBaseAz = parseFloat(az.toFixed(4));
-    appState.tsujiSearchBaseAlt = parseFloat(alt.toFixed(4));
-    document.getElementById('input-tsuji-az').value = appState.tsujiSearchBaseAz;
-    document.getElementById('input-tsuji-alt').value = appState.tsujiSearchBaseAlt;
+    appState.tsujiSearchBaseAz = az;
+    appState.tsujiSearchBaseAlt = alt;
+    document.getElementById('input-tsuji-az').value = az.toFixed(4);
+    document.getElementById('input-tsuji-alt').value = alt.toFixed(4);
     saveAppState();
     updateOffsetDistances();
 }

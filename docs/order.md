@@ -460,3 +460,33 @@ Claudeさん、ありがとうございます。
 これが怪しいですね。
 辻検索では、精度記号が◎なのに、My辻検索で一括計算、File出力すると精度記号が-になってしまいます。
 「toFixed(4) で丸め」が問題ではないでしょうか。
+
+### 回答 (2026-04-29) — baseAz/baseAlt のフル精度保存に修正
+
+ご指摘の通り、`toFixed(4)` での丸めが原因の可能性があります。
+
+#### 問題の根本原因
+
+辻検索とMy辻検索の両方で `appState.tsujiSearchBaseAz`/`t.baseAz` 等は **toFixed(4) で4桁に丸められた値** を保持していました。両者ともに同じ丸め処理をしていたので**理論上は同じ値**になるはずでしたが、実際には次のような微妙な差が生じる可能性があります:
+
+1. `updateTsujiSearchInputs()` のキャッシュ機構 (`_lastTsujiPosKey`) で、`appState.start.elev` が小数点以下で位置情報の再計算がスキップされる場合
+2. 観測点の標高/高さの順序や合算タイミングで浮動小数点誤差が累積
+3. baseAz/baseAlt の0.0001°の差が、ターゲットからの角距離を1°以上ずらすケース (天体の見かけの動きと方向が偶然うまく相関する位置)
+
+#### 修正内容
+
+**baseAz/baseAlt をフル精度で保存し、入力フィールドの表示のみ `.toFixed(4)` で丸める**ように変更しました。
+
+- **`updateTsujiSearchInputs()`**:
+  - `appState.tsujiSearchBaseAz = az;` (フル精度で保存)
+  - 入力フィールド表示は `az.toFixed(4)`
+- **`calcMyTsujiBaseValues(t)`**:
+  - `t.baseAz = az;` (フル精度で保存)
+- **`autoCalcMyTsujiBase()`**:
+  - 入力フィールド表示は `t.baseAz.toFixed(4)`
+- **`renderMyTsujiSearches()`** のテンプレート:
+  - value属性は `t.baseAz.toFixed(4)` で表示
+
+これにより、辻検索とMy辻検索が**同じフル精度の値**を使って targetAz/targetAlt を計算するため、結果が一致するはずです。
+
+ご確認をお願いいたします。
