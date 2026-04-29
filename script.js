@@ -4088,7 +4088,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 // ============================================================
 
 /** 単一のMy辻検索行を実行し、body単位の結果配列を返す */
-async function executeSingleMyTsujiSearch(t) {
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride) {
     const obs = appState.myObservations.find(o => o.id === t.obsId);
     const tgt = appState.myTargets.find(g => g.id === t.tgtId);
     if (!obs || !tgt) return null;
@@ -4099,9 +4099,14 @@ async function executeSingleMyTsujiSearch(t) {
         elev: (obs.elev || 0) + (obs.height || 0)
     };
     const refractionEnabled = appState.refractionEnabled;
-    const searchStart = new Date(appState.currentDate);
-    searchStart.setHours(0, 0, 0, 0);
-    const searchStartMs = searchStart.getTime();
+    let searchStartMs;
+    if (searchStartMsOverride != null) {
+        searchStartMs = searchStartMsOverride;
+    } else {
+        const searchStart = new Date(appState.currentDate);
+        searchStart.setHours(0, 0, 0, 0);
+        searchStartMs = searchStart.getTime();
+    }
     const MAX_RESULTS_PER_BODY = 36500;
 
     const targetAz = ((t.baseAz || 0) + (t.offsetAz || 0) + 360) % 360;
@@ -4218,11 +4223,16 @@ async function runBatchMyTsujiSearch() {
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
     tsujiActiveWorkers = [];
 
+    // 計算開始時の日時を固定 (計算中にユーザーが日時を変更しても影響しない)
+    const batchStartDate = new Date(appState.currentDate);
+    batchStartDate.setHours(0, 0, 0, 0);
+    const batchStartMs = batchStartDate.getTime();
+
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
         const t = checked[i];
         statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const res = await executeSingleMyTsujiSearch(t);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs);
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {
@@ -4431,11 +4441,16 @@ async function fileBatchMyTsujiSearch() {
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
     tsujiActiveWorkers = [];
 
+    // 計算開始時の日時を固定 (計算中にユーザーが日時を変更しても影響しない)
+    const batchStartDate = new Date(appState.currentDate);
+    batchStartDate.setHours(0, 0, 0, 0);
+    const batchStartMs = batchStartDate.getTime();
+
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
         const t = checked[i];
         statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const res = await executeSingleMyTsujiSearch(t);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs);
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {

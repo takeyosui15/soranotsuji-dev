@@ -504,3 +504,43 @@ Claudeさん、ありがとうございます。
 制度の問題は、解消されたようです。
 もう一つ気になるところがあるのですが、辻検索やMy辻検索の一括計算とFile取得で、計算中に、日時情報を動かしてしまうと、それが計算に反映されて、データがおかしくなっているような気がします。
 その辺りのことを調査できなでしょうか。
+
+### 回答 (2026-04-29) — バッチ計算中の日時変更による影響を修正
+
+#### 調査結果
+
+辻検索 (`startTsujiSearch`) は計算開始時に `searchStart`/`searchStartMs` を**1度だけキャプチャ**するため、計算中に `appState.currentDate` を変更してもその回の検索結果には影響しません(ワーカーが既に開始済みのパラメータを使うため)。
+
+しかし、My辻検索の **一括計算** (`runBatchMyTsujiSearch`) と **File取得** (`fileBatchMyTsujiSearch`) には問題がありました:
+
+```js
+for (let i = 0; i < checked.length; i++) {
+    const t = checked[i];
+    const res = await executeSingleMyTsujiSearch(t);  // 各反復で appState.currentDate を再読み込み
+    ...
+}
+```
+
+`executeSingleMyTsujiSearch(t)` の中で毎回 `appState.currentDate` を読んでいたため、**ユーザーが計算中に日時を変更すると、後続のMy辻検索行の検索開始日時が変わってしまう**バグがありました。これにより、各行が異なる日時範囲で計算され、結果に一貫性がなくなります。
+
+#### 修正内容
+
+1. **`executeSingleMyTsujiSearch(t, searchStartMsOverride)`**: 第2引数に optional な `searchStartMsOverride` を追加。指定された場合はそれを使い、未指定なら従来通り `appState.currentDate` から計算。
+
+2. **`runBatchMyTsujiSearch()`**: バッチ開始時に `batchStartMs` をキャプチャし、各行の `executeSingleMyTsujiSearch(t, batchStartMs)` に渡す。
+
+3. **`fileBatchMyTsujiSearch()`**: 同上。
+
+```js
+// 計算開始時の日時を固定 (計算中にユーザーが日時を変更しても影響しない)
+const batchStartDate = new Date(appState.currentDate);
+batchStartDate.setHours(0, 0, 0, 0);
+const batchStartMs = batchStartDate.getTime();
+
+for (let i = 0; i < checked.length; i++) {
+    const res = await executeSingleMyTsujiSearch(t, batchStartMs);
+    ...
+}
+```
+
+これで、バッチ計算中にユーザーが日時を動かしても、すべての行が**バッチ開始時刻を起点**として計算されるため、結果に一貫性が保たれます。
