@@ -557,3 +557,21 @@ git show 36cf7ac
 Claudeさん、ありがとうございます。
 確認しました。
 同様の問題として、計算中に観測点と目的点を移動した時も、計算が変更されないかどうかの調査と修正をお願いいたします。
+
+### 回答 (2026-05-01) — バッチ計算中の観測点/目的点変更からの保護
+
+#### 調査結果
+
+**辻検索 (`startTsujiSearch`)**: 計算開始時に `observerData` (lat/lng/elev) と `baseAz`/`baseAlt` を1度キャプチャしてワーカーに渡すため、計算中にユーザーが地図上で位置を移動しても影響しません。問題なし。
+
+**My辻検索 バッチ (`runBatchMyTsujiSearch`, `fileBatchMyTsujiSearch`)**: 各反復で `appState.myObservations.find(...)` / `appState.myTargets.find(...)` を読むため、計算中にユーザーがMy観測点/My目的点のフィールドを編集すると、後続の反復に変更が反映される可能性がありました。
+
+#### 修正内容
+
+1. **`executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt)`**: 第3,4引数に optional な My観測点/My目的点のスナップショットを追加。指定された場合はスナップショットから検索、未指定なら `appState` から直接検索。
+
+2. **`runBatchMyTsujiSearch()`**: バッチ開始時に `JSON.parse(JSON.stringify(...))` でMy観測点/My目的点のディープコピーを取得し、各反復に渡す。
+
+3. **`fileBatchMyTsujiSearch()`**: 同上。
+
+これで、バッチ計算中にユーザーがMy観測点/My目的点のデータを編集・移動しても、すべての行が**バッチ開始時のスナップショット**を使って計算されるため、結果に一貫性が保たれます。

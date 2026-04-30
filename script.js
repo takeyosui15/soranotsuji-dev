@@ -4088,9 +4088,11 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 // ============================================================
 
 /** 単一のMy辻検索行を実行し、body単位の結果配列を返す */
-async function executeSingleMyTsujiSearch(t, searchStartMsOverride) {
-    const obs = appState.myObservations.find(o => o.id === t.obsId);
-    const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt) {
+    const obsSource = snapshotObs || appState.myObservations;
+    const tgtSource = snapshotTgt || appState.myTargets;
+    const obs = obsSource.find(o => o.id === t.obsId);
+    const tgt = tgtSource.find(g => g.id === t.tgtId);
     if (!obs || !tgt) return null;
 
     const observerData = {
@@ -4223,16 +4225,18 @@ async function runBatchMyTsujiSearch() {
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
     tsujiActiveWorkers = [];
 
-    // 計算開始時の日時を固定 (計算中にユーザーが日時を変更しても影響しない)
+    // 計算開始時の日時・観測点・目的点を固定 (計算中にユーザーが変更しても影響しない)
     const batchStartDate = new Date(appState.currentDate);
     batchStartDate.setHours(0, 0, 0, 0);
     const batchStartMs = batchStartDate.getTime();
+    const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
+    const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
         const t = checked[i];
         statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {
@@ -4441,16 +4445,18 @@ async function fileBatchMyTsujiSearch() {
     tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
     tsujiActiveWorkers = [];
 
-    // 計算開始時の日時を固定 (計算中にユーザーが日時を変更しても影響しない)
+    // 計算開始時の日時・観測点・目的点を固定 (計算中にユーザーが変更しても影響しない)
     const batchStartDate = new Date(appState.currentDate);
     batchStartDate.setHours(0, 0, 0, 0);
     const batchStartMs = batchStartDate.getTime();
+    const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
+    const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
         const t = checked[i];
         statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {
