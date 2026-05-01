@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.19.2 - 2026-05-01: fix: 辻検索とMy辻検索の精度不整合、辻検索とMy辻検索の計算中の観測点/目的点/日時の動的問題を修正
 Version 1.19.1 - 2026-04-22: fix: 方位角/視高度4桁精度、精度角距離5桁精度、辻検索/My辻検索に精度フィルタ、各種不具合修正（件数表示、南中時/視半径、天体ID反映等）
 Version 1.19.0 - 2026-04-18: feat: My天体改修、My観測点、My目的点、My辻検索、バックアップ/インポートの機能追加
 Version 1.18.1 - 2026-04-05: fix: URL取得形式を3種類(日時固定、日時半固定、アクセス日時)に修正、マーカー位置を微調整
@@ -291,7 +292,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (v1.19.1)");
+    console.log("宙の辻: 起動 (v1.19.2)");
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
