@@ -1614,23 +1614,43 @@ function calculateDPPathPoints(targetDate, body, observer) {
     const valElev = appState.start.elev;
     const dip = getHorizonDip(valElev); // 地平線の低下量 (度)
     const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1); // 地平線の低下分 + 太陽の視直径 + 0.1度のマージン
+    const refr = appState.refractionEnabled ? "normal" : null;
 
-    for (let m = 0; m < 8640; m += 1) { // 10秒毎 (1日 = 8640 × 10秒)
-        const time = new Date(startOfDay.getTime() + m * 10000);
-        let r;
-        let d;
-        
-        if (isFixedStar(body.id)) {
-            const rd = getFixedStarRaDec(body.id);
-            r = rd.ra;
-            d = rd.dec;
-        } else {
-            const eq = Astronomy.Equator(body.id, time, observer, true, true);
-            r = eq.ra;
-            d = eq.dec;
+    // 天体のra/decを取得するヘルパー (固定恒星はキャッシュ、太陽系天体は時刻依存)
+    const isFixed = isFixedStar(body.id);
+    let fixedRa = null, fixedDec = null;
+    if (isFixed) {
+        const rd = getFixedStarRaDec(body.id);
+        fixedRa = rd.ra;
+        fixedDec = rd.dec;
+    }
+    const getRD = (time) => {
+        if (isFixed) return { r: fixedRa, d: fixedDec };
+        const eq = Astronomy.Equator(body.id, time, observer, true, true);
+        return { r: eq.ra, d: eq.dec };
+    };
+
+    // 1時間刻みの粗い可視判定 (hours 0..24, 25個のスロット)
+    const visibleHour = new Array(25).fill(false);
+    for (let h = 0; h <= 24; h++) {
+        const time = new Date(startOfDay.getTime() + h * 3600000);
+        const { r, d } = getRD(time);
+        const hor = Astronomy.Horizon(time, observer, r, d, refr);
+        if (hor.altitude > limit) {
+            visibleHour[h] = true;
         }
+    }
 
-        const hor = Astronomy.Horizon(time, observer, r, d, appState.refractionEnabled ? "normal" : null);
+    // 10秒刻みの細かい計算 (可視時間帯+前後1時間のバッファのみ計算する)
+    for (let m = 0; m < 8640; m += 1) { // 10秒毎 (1日 = 8640 × 10秒)
+        const h = Math.floor(m / 360);
+        // 現在の時間と前後の時間のいずれかが可視ならば計算する (出/入時刻のキャプチャ用バッファ)
+        const isNear = visibleHour[h] || visibleHour[h+1] || (h > 0 && visibleHour[h-1]);
+        if (!isNear) continue;
+
+        const time = new Date(startOfDay.getTime() + m * 10000);
+        const { r, d } = getRD(time);
+        const hor = Astronomy.Horizon(time, observer, r, d, refr);
         if (hor.altitude > limit) {
             const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
             if (dist > 0 && dist < 500000) { // 500km以内のみ
