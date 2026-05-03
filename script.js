@@ -1543,6 +1543,10 @@ function stopMove() {
     appState.moveSpeed = null;
     clearInterval(appState.timers.move);
     document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    // アニメーション停止後、辻ラインを高精度(1秒サンプリング)で再描画
+    if (appState.isDPActive) {
+        updateDPLines();
+    }
 }
 
 function toggleSpeed(speed) {
@@ -1694,13 +1698,18 @@ async function calculateDPPathPoints(targetDate, body, observer) {
         bodyMsg = { id: body.id, fixed: false };
     }
 
+    // ra/dec取得ヘルパー (メインスレッド用)
+    const getRD = (time) => {
+        if (isFixed) return { r: bodyMsg.ra, d: bodyMsg.dec };
+        const eq = Astronomy.Equator(body.id, time, observer, true, true);
+        return { r: eq.ra, d: eq.dec };
+    };
+
     // 1時間刻みの粗い可視判定 (メインスレッドで実施: 25回のHorizon呼び出し)
     const visibleHour = new Array(25).fill(false);
     for (let h = 0; h <= 24; h++) {
         const time = new Date(startOfDayMs + h * 3600000);
-        let r, d;
-        if (isFixed) { r = bodyMsg.ra; d = bodyMsg.dec; }
-        else { const eq = Astronomy.Equator(body.id, time, observer, true, true); r = eq.ra; d = eq.dec; }
+        const { r, d } = getRD(time);
         const hor = Astronomy.Horizon(time, observer, r, d, refr);
         if (hor.altitude > limit) visibleHour[h] = true;
     }
@@ -1713,7 +1722,26 @@ async function calculateDPPathPoints(targetDate, body, observer) {
     }
     if (hoursToProcess.length === 0) return [];
 
-    // プール内のWorkerに1時間ずつ並列にタスクを依頼 (1秒刻みサンプリング)
+    // アニメーション中: 1分間隔の粗いサンプリング (メインスレッドで同期処理、軽量)
+    if (appState.isMoving) {
+        const path = [];
+        for (const h of hoursToProcess) {
+            for (let m = 0; m < 60; m++) {
+                const time = new Date(startOfDayMs + (h * 60 + m) * 60000);
+                const { r, d } = getRD(time);
+                const hor = Astronomy.Horizon(time, observer, r, d, refr);
+                if (hor.altitude > limit) {
+                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
+                    if (dist > 0 && dist < 500000) {
+                        path.push({ dist, az: hor.azimuth, time });
+                    }
+                }
+            }
+        }
+        return path;
+    }
+
+    // 停止中: 1秒刻みサンプリング、プール内のWorkerに1時間ずつ並列にタスクを依頼
     const observerData = { lat: observer.latitude, lng: observer.longitude, elev: observer.height };
     const promises = hoursToProcess.map(h => {
         const taskId = ++dpTaskIdCounter;
