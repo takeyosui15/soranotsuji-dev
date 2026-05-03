@@ -1615,8 +1615,8 @@ function calculateDPPathPoints(targetDate, body, observer) {
     const dip = getHorizonDip(valElev); // 地平線の低下量 (度)
     const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1); // 地平線の低下分 + 太陽の視直径 + 0.1度のマージン
 
-    for (let m = 0; m < 1440; m += 1) { // 1分毎
-        const time = new Date(startOfDay.getTime() + m * 60000);
+    for (let m = 0; m < 8640; m += 1) { // 10秒毎 (1日 = 8640 × 10秒)
+        const time = new Date(startOfDay.getTime() + m * 10000);
         let r;
         let d;
         
@@ -1663,7 +1663,7 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
         }
         currentSegment.push(pt);
         
-        if (withMarkers && p.time.getMinutes() % 5 === 0) {
+        if (withMarkers && p.time.getMinutes() % 5 === 0 && p.time.getSeconds() === 0) {
             L.circleMarker(pt, {
                 radius: 4,
                 color: color,
