@@ -1290,13 +1290,17 @@ async function updateDPLines() {
         drawDPPath(pNext, body.color, '1, 13', false);
         drawDPPath(pCurr, body.color, '13, 13', true);
 
-        // 視半径エッジライン (一点鎖線)
+        // 視半径エッジライン (一点鎖線) — ○ 精度の境界 (±angR)
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
         if (angR >= 0.01) {
             const dashDot = '1, 13, 13, 13';
             drawDPPath(pCurr, body.color, dashDot, false, +angR);
             drawDPPath(pCurr, body.color, dashDot, false, -angR);
         }
+        // △ 精度の境界 (±1°) — 二点鎖線
+        const dashDotDot = '1, 13, 1, 13, 13, 13';
+        drawDPPath(pCurr, body.color, dashDotDot, false, +1);
+        drawDPPath(pCurr, body.color, dashDotDot, false, -1);
     });
 }
 
