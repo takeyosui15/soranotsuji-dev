@@ -1259,21 +1259,33 @@ function updateCalculation() {
     updateMoonInfo(obsDate);
 }
 
-function updateDPLines() {
+async function updateDPLines() {
+    // 新しい世代を発番し、既存キューにある古い世代のタスクをキャンセル
+    const generation = ++dpCurrentGeneration;
+    dpPoolCancelQueued();
     dpLayer.clearLayers();
+
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
-
     const datePrev = new Date(baseDate.getTime() - 86400000);
     const dateNext = new Date(baseDate.getTime() + 86400000);
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const visibleBodies = appState.bodies.filter(b => b.visible);
 
-    appState.bodies.forEach(body => {
-        if (!body.visible) return;
-        const pPrev = calculateDPPathPoints(datePrev, body, observer);
-        const pNext = calculateDPPathPoints(dateNext, body, observer);
-        const pCurr = calculateDPPathPoints(baseDate, body, observer);
+    // 各天体について prev/curr/next 3日分の計算をプールで並列実行
+    const allComputed = await Promise.all(visibleBodies.map(async body => {
+        const [pPrev, pNext, pCurr] = await Promise.all([
+            calculateDPPathPoints(datePrev, body, observer),
+            calculateDPPathPoints(dateNext, body, observer),
+            calculateDPPathPoints(baseDate, body, observer),
+        ]);
+        return { body, pPrev, pNext, pCurr };
+    }));
 
+    // 計算遅延中に新しい呼び出しがあった場合は描画しない
+    if (generation !== dpCurrentGeneration) return;
+
+    allComputed.forEach(({ body, pPrev, pNext, pCurr }) => {
         drawDPPath(pPrev, body.color, '1, 13', false);
         drawDPPath(pNext, body.color, '1, 13', false);
         drawDPPath(pCurr, body.color, '13, 13', true);
@@ -1281,7 +1293,7 @@ function updateDPLines() {
         // 視半径エッジライン (一点鎖線)
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
         if (angR >= 0.01) {
-            const dashDot = '1, 13, 13, 13'; // 点-スペース-線-スペースのパターン
+            const dashDot = '1, 13, 13, 13';
             drawDPPath(pCurr, body.color, dashDot, false, +angR);
             drawDPPath(pCurr, body.color, dashDot, false, -angR);
         }
@@ -1607,54 +1619,128 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
     }).addTo(linesLayer);
 }
 
-function calculateDPPathPoints(targetDate, body, observer) {
-    const path = [];
+// ============================================================
+// DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
+// ============================================================
+const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+let dpWorkerPool = null;       // { workers, idle, queue }
+let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
+let dpCurrentGeneration = 0;   // 現在の有効世代
+
+function ensureDPWorkerPool() {
+    if (dpWorkerPool) return dpWorkerPool;
+    const workers = [];
+    for (let i = 0; i < DP_POOL_SIZE; i++) {
+        workers.push(new Worker('dp-line-worker.js'));
+    }
+    dpWorkerPool = { workers, idle: [...workers], queue: [] };
+    return dpWorkerPool;
+}
+
+function _dpRunOnWorker(worker, task) {
+    const handler = (e) => {
+        worker.removeEventListener('message', handler);
+        task.resolve(e.data || { points: [], hourStart: task.message.hourStart });
+        // 完了後、キューに次のタスクがあればそれを実行、なければ idle に戻す
+        if (dpWorkerPool && dpWorkerPool.queue.length > 0) {
+            const next = dpWorkerPool.queue.shift();
+            _dpRunOnWorker(worker, next);
+        } else if (dpWorkerPool) {
+            dpWorkerPool.idle.push(worker);
+        }
+    };
+    worker.addEventListener('message', handler);
+    worker.postMessage(task.message);
+}
+
+function dpPoolRunTask(message) {
+    const pool = ensureDPWorkerPool();
+    return new Promise(resolve => {
+        const task = { message, resolve };
+        if (pool.idle.length > 0) {
+            _dpRunOnWorker(pool.idle.pop(), task);
+        } else {
+            pool.queue.push(task);
+        }
+    });
+}
+
+/** キュー上の未開始タスクをすべてキャンセル (世代切替時に呼ぶ) */
+function dpPoolCancelQueued() {
+    if (!dpWorkerPool) return;
+    for (const task of dpWorkerPool.queue) {
+        task.resolve({ canceled: true, points: [], hourStart: task.message.hourStart });
+    }
+    dpWorkerPool.queue = [];
+}
+
+async function calculateDPPathPoints(targetDate, body, observer) {
     const startOfDay = new Date(targetDate.getTime());
     startOfDay.setHours(0, 0, 0, 0);
+    const startOfDayMs = startOfDay.getTime();
     const valElev = appState.start.elev;
-    const dip = getHorizonDip(valElev); // 地平線の低下量 (度)
-    const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1); // 地平線の低下分 + 太陽の視直径 + 0.1度のマージン
+    const dip = getHorizonDip(valElev);
+    const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
     const refr = appState.refractionEnabled ? "normal" : null;
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
 
-    // 天体のra/decを取得するヘルパー (固定恒星はキャッシュ、太陽系天体は時刻依存)
+    // 天体メッセージを構築 (固定恒星は ra/dec をプリセット)
     const isFixed = isFixedStar(body.id);
-    let fixedRa = null, fixedDec = null;
+    let bodyMsg;
     if (isFixed) {
         const rd = getFixedStarRaDec(body.id);
-        fixedRa = rd.ra;
-        fixedDec = rd.dec;
+        bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+    } else {
+        bodyMsg = { id: body.id, fixed: false };
     }
-    const getRD = (time) => {
-        if (isFixed) return { r: fixedRa, d: fixedDec };
-        const eq = Astronomy.Equator(body.id, time, observer, true, true);
-        return { r: eq.ra, d: eq.dec };
-    };
 
-    // 1時間刻みの粗い可視判定 (hours 0..24, 25個のスロット)
+    // 1時間刻みの粗い可視判定 (メインスレッドで実施: 25回のHorizon呼び出し)
     const visibleHour = new Array(25).fill(false);
     for (let h = 0; h <= 24; h++) {
-        const time = new Date(startOfDay.getTime() + h * 3600000);
-        const { r, d } = getRD(time);
+        const time = new Date(startOfDayMs + h * 3600000);
+        let r, d;
+        if (isFixed) { r = bodyMsg.ra; d = bodyMsg.dec; }
+        else { const eq = Astronomy.Equator(body.id, time, observer, true, true); r = eq.ra; d = eq.dec; }
         const hor = Astronomy.Horizon(time, observer, r, d, refr);
-        if (hor.altitude > limit) {
-            visibleHour[h] = true;
-        }
+        if (hor.altitude > limit) visibleHour[h] = true;
     }
 
-    // 10秒刻みの細かい計算 (可視時間帯+前後1時間のバッファのみ計算する)
-    for (let m = 0; m < 8640; m += 1) { // 10秒毎 (1日 = 8640 × 10秒)
-        const h = Math.floor(m / 360);
-        // 現在の時間と前後の時間のいずれかが可視ならば計算する (出/入時刻のキャプチャ用バッファ)
+    // 可視な時間帯 (前後の時間も含む) を抽出
+    const hoursToProcess = [];
+    for (let h = 0; h < 24; h++) {
         const isNear = visibleHour[h] || visibleHour[h+1] || (h > 0 && visibleHour[h-1]);
-        if (!isNear) continue;
+        if (isNear) hoursToProcess.push(h);
+    }
+    if (hoursToProcess.length === 0) return [];
 
-        const time = new Date(startOfDay.getTime() + m * 10000);
-        const { r, d } = getRD(time);
-        const hor = Astronomy.Horizon(time, observer, r, d, refr);
-        if (hor.altitude > limit) {
-            const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
-            if (dist > 0 && dist < 500000) { // 500km以内のみ
-                path.push({ dist: dist, az: hor.azimuth, time: time });
+    // プール内のWorkerに1時間ずつ並列にタスクを依頼 (1秒刻みサンプリング)
+    const observerData = { lat: observer.latitude, lng: observer.longitude, elev: observer.height };
+    const promises = hoursToProcess.map(h => {
+        const taskId = ++dpTaskIdCounter;
+        return dpPoolRunTask({
+            body: bodyMsg,
+            observerData,
+            refractionEnabled: appState.refractionEnabled,
+            k,
+            startOfDayMs,
+            hourStart: h,
+            hourEnd: h + 1,
+            valElev,
+            targetElev: appState.end.elev,
+            limit,
+            distLimit: 500000,
+            taskId,
+        });
+    });
+
+    const results = await Promise.all(promises);
+    // 結果を時系列順にマージ (canceled タスクは points が空)
+    results.sort((a, b) => (a.hourStart || 0) - (b.hourStart || 0));
+    const path = [];
+    for (const result of results) {
+        if (result && result.points) {
+            for (const p of result.points) {
+                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs) });
             }
         }
     }

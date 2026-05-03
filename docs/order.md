@@ -206,3 +206,34 @@ Claudeさん、ありがとうございます。
 1. ワーカーをプール化して初期化コストを抑える (複雑度高)
 
 をお願いできますでしょうか。
+
+### 回答 (2026-05-03) — Web Worker プール化で再実装
+
+ご依頼の通り、Workerをプール化して初期化コストを最小化する実装に変更しました。
+
+#### 修正内容
+
+1. **`dp-line-worker.js`** を再作成 (内容は前回と同等)
+2. **`script.js`** にWorker pool ヘルパーを追加:
+   - `DP_POOL_SIZE = navigator.hardwareConcurrency` (最大8) のWorkerをアプリ起動時に**1度だけ**生成
+   - `dpWorkerPool.idle` (idle workers) と `dpWorkerPool.queue` (待機中タスク) で管理
+   - タスク完了後、Workerは idle に戻るかキューから次タスクを引き取る
+   - `dpPoolCancelQueued()` で古い世代の未開始タスクを即座にキャンセル
+3. **`calculateDPPathPoints()`** を async 化、`dpPoolRunTask()` を呼ぶだけのシンプルな実装
+4. **`updateDPLines()`** を async 化:
+   - 世代カウンタ `dpCurrentGeneration` で連続呼び出しを管理
+   - 新しい呼び出し時に `dpPoolCancelQueued()` でキューをクリア (in-flight タスクは完走するが結果は無視)
+
+#### プール化のメリット (前回のWorker版との違い)
+
+| | 前回 (毎回 new Worker) | 今回 (Pool) |
+|---|---|---|
+| Worker初期化 | 毎回14個作成 (重い) | アプリ起動時に1度のみ |
+| 連続呼び出し | 毎回 terminate + 再生成 | キューをクリアするだけ |
+| アニメーション動作 | 初期化オーバーヘッドで困難 | スムーズに動作する想定 |
+
+これで、アニメーションを動かしてもWorker生成コストはかからず、計算のみが並列で走ります。動作確認をお願いいたします。
+
+#### 注意事項
+- アプリ最初の `updateDPLines()` 呼び出し時に Pool が初期化されます (約100ms程度の一回限りのオーバーヘッド)
+- 古い世代の in-flight タスクは完走しますが、結果は世代チェックで discardされるため map には描画されません
