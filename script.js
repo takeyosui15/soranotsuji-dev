@@ -5736,6 +5736,8 @@ async function startElevationFetch() {
 
     document.getElementById('progress-overlay').classList.add('hidden');
     drawProfileGraph();
+    // 取得完了後、可視判定の結果をポップアップで通知
+    showVisibilityResult();
 }
 
 function updateProgress(pct, cur, tot) {
@@ -5800,15 +5802,49 @@ function drawProfileGraph() {
         ctx.fillStyle='rgba(0,255,0,0.1)';
         ctx.fill();
 
-        // 見通し線（赤）: 観測点標高 → 目的点標高
-        const startElev = appState.start.elev;
-        const endElev = appState.end.elev;
+        // 見通し線（赤）: スタート地点(API標高+観測点高) → ゴール地点(API標高+目的点高)
+        const startElev = appState.startApiElev + appState.startHeight;
+        const endElev = appState.endApiElev + appState.endHeight;
         ctx.beginPath();
         ctx.moveTo(toX(pts[0].dist), toY(startElev));
         ctx.lineTo(toX(pts[pts.length - 1].dist), toY(endElev));
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.stroke();
+    }
+}
+
+/** 標高プロファイルから可視判定を計算する。
+ *  各点が可視直線(スタート(API標高+観測点高) → ゴール(API標高+目的点高))より下なら可視 (OK)。
+ *  返り値: { visible: boolean, blockingDist?: number, blockingElev?: number, lineElevAtBlocking?: number } */
+function computeVisibility() {
+    const pts = appState.elevationData.points.filter(p => p.fetched);
+    if (pts.length < 2) return { visible: true };
+    const startElev = appState.startApiElev + appState.startHeight;
+    const endElev = appState.endApiElev + appState.endHeight;
+    const totalDist = pts[pts.length - 1].dist;
+    if (totalDist <= 0) return { visible: true };
+    // 両端は除外 (スタート/ゴール地点自体は判定対象外)
+    for (let i = 1; i < pts.length - 1; i++) {
+        const pt = pts[i];
+        const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
+        if (pt.elev > lineElev) {
+            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+        }
+    }
+    return { visible: true };
+}
+
+/** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ) */
+function showVisibilityResult() {
+    const r = computeVisibility();
+    if (r.visible) {
+        alert('可視判定: OK\n観測点から目的点が見通せます');
+    } else {
+        const dist = r.blockingDist.toFixed(2);
+        const elev = r.blockingElev.toFixed(1);
+        const lineE = r.lineElevAtBlocking.toFixed(1);
+        alert(`可視判定: NG\n観測点から ${dist}km 地点 (標高 ${elev}m) が可視直線(${lineE}m)を遮っています`);
     }
 }
 

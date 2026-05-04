@@ -546,3 +546,84 @@ Claudeさん、ありがとうございます。
 
 詳細は、`01-location.md`に記載しましたので、ご確認ください。
 実装をお願いいたします。
+
+### 回答 (2026-05-04) — 標高グラフの可視直線(高さ補正) + OK/NG可視判定ポップアップ
+
+#### 1. 赤い可視直線を「観測点高/目的点高」を含む明示的な値で描画
+
+旧コード: `appState.start.elev` / `appState.end.elev` を使用 (内部的に `recalcElev` で `apiElev + height` が反映されるが、計算経路によっては不整合の可能性あり)
+
+```js
+const startElev = appState.start.elev;  // 暗黙に height を含む
+const endElev = appState.end.elev;
+```
+
+新コード: API標高と高さを**明示的に加算**して使用 (意図と整合性が明確)
+
+```js
+// 見通し線（赤）: スタート地点(API標高+観測点高) → ゴール地点(API標高+目的点高)
+const startElev = appState.startApiElev + appState.startHeight;
+const endElev = appState.endApiElev + appState.endHeight;
+```
+
+これにより、標高グラフ上の赤線は**観測点高(`input-start-elev`)** と**目的点高(`input-end-elev`)** の値を直接反映します。
+
+#### 2. 可視判定ロジック (`computeVisibility`)
+
+100mおきの2000地点の標高データから、可視直線との比較で可視性を判定:
+
+```js
+function computeVisibility() {
+    const pts = appState.elevationData.points.filter(p => p.fetched);
+    if (pts.length < 2) return { visible: true };
+    const startElev = appState.startApiElev + appState.startHeight;
+    const endElev = appState.endApiElev + appState.endHeight;
+    const totalDist = pts[pts.length - 1].dist;
+    // 両端は判定対象外 (スタート/ゴール地点自体は除外)
+    for (let i = 1; i < pts.length - 1; i++) {
+        const pt = pts[i];
+        const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
+        if (pt.elev > lineElev) {
+            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+        }
+    }
+    return { visible: true };
+}
+```
+
+各点について、可視直線上の同距離での高さ `lineElev` を線形補間で求め、地形標高 `pt.elev` がそれを超える点が一つでもあればNG。最初に検出した地点の情報 (距離・標高・直線高度) を返します。
+
+#### 3. ポップアップ表示 (`showVisibilityResult`)
+
+取得完了後に1回だけ呼び、結果を `alert` で通知:
+
+```js
+function showVisibilityResult() {
+    const r = computeVisibility();
+    if (r.visible) {
+        alert('可視判定: OK\n観測点から目的点が見通せます');
+    } else {
+        alert(`可視判定: NG\n観測点から ${r.blockingDist.toFixed(2)}km 地点 (標高 ${r.blockingElev.toFixed(1)}m) が可視直線(${r.lineElevAtBlocking.toFixed(1)}m)を遮っています`);
+    }
+}
+```
+
+NG時はどこでブロックされているかも具体的に表示するため、ユーザーが原因地点を把握しやすくなります。
+
+#### 4. `startElevationFetch` の最後で呼び出し
+
+進捗中の `drawProfileGraph` (中間描画) ではポップアップを出さず、**全タイル取得完了後の最終描画後に1回だけ**呼ぶよう配置:
+
+```js
+await fetchAllElevations(...);
+document.getElementById('progress-overlay').classList.add('hidden');
+drawProfileGraph();
+showVisibilityResult();  // ← 取得完了後の1回のみ
+```
+
+#### 仕様メモ
+
+- 両端 (スタート・ゴール地点自体) は判定対象外。それらは線の端点なので必然的に直線上にあり、誤判定を避けるため `for (let i = 1; i < pts.length - 1; i++)` でスキップ。
+- 屈折・地球曲率は考慮していない単純な直線判定です (山などの遠距離見通しでは精度に注意)。
+- 観測点高 / 目的点高 を変更後に標高グラフを再表示すると、新しい高さで再判定されます。
+
