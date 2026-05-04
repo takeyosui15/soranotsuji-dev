@@ -4238,8 +4238,9 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 // My辻検索 — 一括計算 (Phase C-2)
 // ============================================================
 
-/** 単一のMy辻検索行を実行し、body単位の結果配列を返す */
-async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, progressCb) {
+/** 単一のMy辻検索行を実行し、body単位の結果配列を返す。
+ *  chunkDoneCb は1チャンク (365日分) 完了ごとに呼ばれる (進捗バー用) */
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, chunkDoneCb) {
     const obsSource = snapshotObs || appState.myObservations;
     const tgtSource = snapshotTgt || appState.myTargets;
     const obs = obsSource.find(o => o.id === t.obsId);
@@ -4271,10 +4272,8 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
     const bodies = bodyIds.map(bid => appState.bodies.find(b => b.id === bid)).filter(Boolean);
     if (bodies.length === 0) return { tsuji: t, obs, tgt, bodyResults: [] };
 
-    const bodyResults = [];
-    for (let bIdx = 0; bIdx < bodies.length; bIdx++) {
-        const body = bodies[bIdx];
-        if (progressCb) progressCb(bIdx, bodies.length);
+    // 全天体・全チャンクをプールに一括投入し、並列処理する
+    const perBodyChunks = bodies.map(body => {
         let bodyMsg;
         if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
@@ -4282,37 +4281,21 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
         } else {
             bodyMsg = { id: body.id, fixed: false };
         }
+        return { body, bodyMsg };
+    });
 
-        const chunkSize = Math.ceil(t.days / TSUJI_NUM_WORKERS);
-        const chunkPromises = [];
-        const chunkWorkers = [];
-        for (let w = 0; w < TSUJI_NUM_WORKERS; w++) {
-            const dayStart = w * chunkSize;
-            if (dayStart >= t.days) break;
-            const dayEnd = Math.min(dayStart + chunkSize, t.days);
-            const worker = new Worker('tsuji-search-worker.js');
-            chunkWorkers.push(worker);
-            tsujiActiveWorkers.push(worker);
-            const p = new Promise((resolve) => {
-                worker.onmessage = (e) => {
-                    if (e.data && e.data.error) resolve({ results: [], dayStart, dayEnd });
-                    else resolve(e.data);
-                };
-                worker.onerror = () => resolve({ results: [], dayStart, dayEnd });
-                worker.postMessage({
-                    body: bodyMsg, observerData, refractionEnabled,
-                    targetAz, targetAlt, toleranceAz, toleranceAlt,
-                    searchStartMs, dayStart, dayEnd,
-                    maxResults: MAX_RESULTS_PER_BODY
-                });
-            });
-            chunkPromises.push(p);
-        }
-        const chunkResults = await Promise.all(chunkPromises);
-        chunkWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-        tsujiActiveWorkers = tsujiActiveWorkers.filter(w => !chunkWorkers.includes(w));
+    const bodyChunkResults = await Promise.all(perBodyChunks.map(({ bodyMsg }) =>
+        runTsujiChunks({
+            bodyMsg, observerData, refractionEnabled,
+            targetAz, targetAlt, toleranceAz, toleranceAlt,
+            searchStartMs, days: t.days,
+            maxResults: MAX_RESULTS_PER_BODY,
+            onChunkDone: chunkDoneCb
+        })
+    ));
 
-        chunkResults.sort((a, b) => a.dayStart - b.dayStart);
+    const bodyResults = perBodyChunks.map(({ body }, bi) => {
+        const chunkResults = bodyChunkResults[bi];
         const flatResults = [];
         let limitReached = false;
         for (const ch of chunkResults) {
@@ -4327,8 +4310,9 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
             }
             if (limitReached) break;
         }
-        bodyResults.push({ body, results: flatResults, limitReached });
-    }
+        return { body, results: flatResults, limitReached };
+    });
+
     return { tsuji: t, obs, tgt, bodyResults };
 }
 
@@ -4387,12 +4371,13 @@ function hideTsujiProgress() {
     if (bar) bar.classList.add('hidden');
 }
 
-/** 一括計算/File取得を強制キャンセル (相手側の起動前に呼ぶ) */
+/** 一括計算/File取得を強制キャンセル (相手側の起動前に呼ぶ)
+ *  プール内のワーカーを terminate することで、ペンディング中の Promise が
+ *  reject され、orphan async が await から抜けて正常終了できる。 */
 async function forceCancelMyTsujiBatch() {
     myTsujiBatchCanceled = true;
     myTsujiBatchGen++;
-    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-    tsujiActiveWorkers = [];
+    tsujiPool.terminateAll();
     myTsujiBatchRunning = false;
     document.getElementById('btn-mytsuji-batch').classList.remove('active');
     hideTsujiProgress();
@@ -4401,8 +4386,7 @@ async function forceCancelMyTsujiBatch() {
 async function forceCancelMyTsujiFile() {
     myTsujiFileCanceled = true;
     myTsujiFileGen++;
-    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-    tsujiActiveWorkers = [];
+    tsujiPool.terminateAll();
     myTsujiFileRunning = false;
     document.getElementById('btn-mytsuji-file').classList.remove('active');
     hideTsujiProgress();
@@ -4425,9 +4409,6 @@ async function runBatchMyTsujiSearch() {
     const statusEl = document.getElementById('tsujisearch-status');
     content.innerHTML = '';
 
-    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-    tsujiActiveWorkers = [];
-
     // 計算開始時の日時・観測点・目的点を固定 (計算中にユーザーが変更しても影響しない)
     const batchStartDate = new Date(appState.currentDate);
     batchStartDate.setHours(0, 0, 0, 0);
@@ -4435,13 +4416,18 @@ async function runBatchMyTsujiSearch() {
     const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
     const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
-    // 進捗バーの分母 = 全行 × 各行の天体数 (細かい進捗を出すため)
-    const totalWork = checked.reduce((sum, t) => {
+    // 進捗バーの分母 = 全行 × 各行の天体数 × 各天体あたりのチャンク数 (365日単位)
+    const totalChunks = checked.reduce((sum, t) => {
         const ids = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
-        return sum + Math.max(1, ids.length);
+        const chunksPerBody = Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS);
+        return sum + Math.max(1, ids.length) * Math.max(1, chunksPerBody);
     }, 0);
-    let doneWork = 0;
-    setTsujiProgress(0, totalWork);
+    let doneChunks = 0;
+    setTsujiProgress(0, totalChunks);
+    const chunkDoneCb = () => {
+        doneChunks++;
+        setTsujiProgress(doneChunks, totalChunks);
+    };
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
@@ -4449,14 +4435,7 @@ async function runBatchMyTsujiSearch() {
         if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const bodyCount = Math.max(1, (t.bodyIds || '').split(':').filter(s => s.trim()).length);
-        const startWork = doneWork;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, (bi, bn) => {
-            // 進捗コールバック: 行内の天体ループで呼ばれる
-            setTsujiProgress(startWork + bi, totalWork);
-        });
-        doneWork = startWork + bodyCount;
-        setTsujiProgress(doneWork, totalWork);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiBatchGen) return;
         if (!res) continue;
         for (const br of res.bodyResults) {
@@ -4673,9 +4652,6 @@ async function fileBatchMyTsujiSearch() {
     const statusEl = document.getElementById('tsujisearch-status');
     document.getElementById('tsujisearch-content').innerHTML = '';
 
-    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-    tsujiActiveWorkers = [];
-
     // 計算開始時の日時・観測点・目的点を固定 (計算中にユーザーが変更しても影響しない)
     const batchStartDate = new Date(appState.currentDate);
     batchStartDate.setHours(0, 0, 0, 0);
@@ -4683,13 +4659,18 @@ async function fileBatchMyTsujiSearch() {
     const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
     const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
-    // 進捗バーの分母 = 全行 × 各行の天体数
-    const totalWork = checked.reduce((sum, t) => {
+    // 進捗バーの分母 = 全行 × 各行の天体数 × 各天体あたりのチャンク数 (365日単位)
+    const totalChunks = checked.reduce((sum, t) => {
         const ids = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
-        return sum + Math.max(1, ids.length);
+        const chunksPerBody = Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS);
+        return sum + Math.max(1, ids.length) * Math.max(1, chunksPerBody);
     }, 0);
-    let doneWork = 0;
-    setTsujiProgress(0, totalWork);
+    let doneChunks = 0;
+    setTsujiProgress(0, totalChunks);
+    const chunkDoneCb = () => {
+        doneChunks++;
+        setTsujiProgress(doneChunks, totalChunks);
+    };
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
@@ -4697,13 +4678,7 @@ async function fileBatchMyTsujiSearch() {
         if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        const bodyCount = Math.max(1, (t.bodyIds || '').split(':').filter(s => s.trim()).length);
-        const startWork = doneWork;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, (bi, bn) => {
-            setTsujiProgress(startWork + bi, totalWork);
-        });
-        doneWork = startWork + bodyCount;
-        setTsujiProgress(doneWork, totalWork);
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiFileGen) return;
         if (!res) continue;
         for (const br of res.bodyResults) {
@@ -4792,7 +4767,7 @@ function renderMyTsujiSearches() {
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">検索期間(日):</label>
-                <input type="number" class="mytsuji-days" value="${t.days !== undefined ? t.days : ''}" placeholder="検索期間(日:最大36500)" step="1" min="1" max="36500" data-id="${t.id}">
+                <input type="number" class="mytsuji-days" value="${t.days !== undefined ? t.days : ''}" placeholder="検索期間(日:最大36500)" step="365" min="1" max="36500" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">天体ID:</label>
@@ -5251,9 +5226,103 @@ function isAzimuthInRange(az, targetAz, tolerance) {
     return Math.abs(diff) <= tolerance;
 }
 
-// --- 辻検索 Web Worker 並行化 ---
+// --- 辻検索 Web Worker プール ---
+// 365日単位のチャンクをプール内のワーカーが順次処理する。
+// 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
+// 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
+const TSUJI_CHUNK_DAYS = 365;
 const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
-let tsujiActiveWorkers = []; // キャンセル時に terminate するための参照保持
+let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
+
+const tsujiPool = (() => {
+    let workers = [];
+    let idle = [];
+    const queue = [];
+    const active = new Map(); // worker -> task
+
+    function ensure() {
+        while (workers.length < TSUJI_NUM_WORKERS) {
+            const w = new Worker('tsuji-search-worker.js');
+            workers.push(w);
+            idle.push(w);
+        }
+    }
+    function dispatch() {
+        while (idle.length && queue.length) {
+            const w = idle.shift();
+            const task = queue.shift();
+            run(w, task);
+        }
+    }
+    function run(worker, task) {
+        active.set(worker, task);
+        worker.onmessage = (e) => {
+            active.delete(worker);
+            if (e.data && e.data.error) task.reject(new Error(e.data.error));
+            else task.resolve(e.data);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.onerror = (err) => {
+            active.delete(worker);
+            task.reject(err);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.postMessage(task.taskData);
+    }
+    return {
+        get size() { return TSUJI_NUM_WORKERS; },
+        runTask(taskData) {
+            return new Promise((resolve, reject) => {
+                ensure();
+                queue.push({ taskData, resolve, reject });
+                dispatch();
+            });
+        },
+        terminateAll() {
+            workers.forEach(w => { try { w.terminate(); } catch(_) {} });
+            const err = new Error('canceled');
+            active.forEach(t => t.reject(err));
+            active.clear();
+            queue.forEach(t => t.reject(err));
+            queue.length = 0;
+            workers = [];
+            idle = [];
+        }
+    };
+})();
+
+/** 辻検索のチャンク要求を発行するヘルパー。
+ *  bodyMsg/共通パラメータと days を渡すと、365日単位でプールに投入し、
+ *  完了したチャンクごとに onChunkDone() を呼びつつ全結果をマージして返す。 */
+async function runTsujiChunks({
+    bodyMsg, observerData, refractionEnabled,
+    targetAz, targetAlt, toleranceAz, toleranceAlt,
+    searchStartMs, days, maxResults, onChunkDone
+}) {
+    const numChunks = Math.ceil(days / TSUJI_CHUNK_DAYS);
+    const promises = [];
+    for (let c = 0; c < numChunks; c++) {
+        const dayStart = c * TSUJI_CHUNK_DAYS;
+        const dayEnd = Math.min(dayStart + TSUJI_CHUNK_DAYS, days);
+        const p = tsujiPool.runTask({
+            body: bodyMsg, observerData, refractionEnabled,
+            targetAz, targetAlt, toleranceAz, toleranceAlt,
+            searchStartMs, dayStart, dayEnd, maxResults
+        }).then(data => {
+            if (onChunkDone) onChunkDone();
+            return data;
+        }).catch(_ => {
+            if (onChunkDone) onChunkDone();
+            return { results: [], dayStart, dayEnd };
+        });
+        promises.push(p);
+    }
+    const chunkResults = await Promise.all(promises);
+    chunkResults.sort((a, b) => a.dayStart - b.dayStart);
+    return chunkResults;
+}
 
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
@@ -5290,20 +5359,19 @@ async function startTsujiSearch() {
     const MAX_RESULTS_PER_BODY = 36500;
     const totalResults = [];
 
-    // 既存ワーカーをクリーンアップ（前回の検索が残っていれば中断）
-    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-    tsujiActiveWorkers = [];
+    // 進捗バーの分母 = 天体数 × 各天体あたりのチャンク数 (365日単位)
+    const chunksPerBody = Math.ceil(searchDays / TSUJI_CHUNK_DAYS);
+    const totalChunks = visibleBodies.length * chunksPerBody;
+    let doneChunks = 0;
+    setTsujiProgress(0, totalChunks);
+    const chunkDoneCb = () => {
+        doneChunks++;
+        setTsujiProgress(doneChunks, totalChunks);
+    };
 
-    for (let bi = 0; bi < visibleBodies.length; bi++) {
-        if (generation !== appState.tsujiSearchGeneration) {
-            tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-            tsujiActiveWorkers = [];
-            return;
-        }
-
-        const body = visibleBodies[bi];
-
-        // body を Worker に渡す形に変換（fixed star は ra/dec を抽出）
+    // 全天体のチャンクをプールに一括投入し、並列処理する
+    statusEl.textContent = `(検索中… ${visibleBodies.length}天体 / ${totalChunks}チャンク)`;
+    const allBodyResults = await Promise.all(visibleBodies.map(body => {
         let bodyMsg;
         if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
@@ -5311,64 +5379,18 @@ async function startTsujiSearch() {
         } else {
             bodyMsg = { id: body.id, fixed: false };
         }
+        return runTsujiChunks({
+            bodyMsg, observerData, refractionEnabled,
+            targetAz, targetAlt, toleranceAz, toleranceAlt,
+            searchStartMs, days: searchDays,
+            maxResults: MAX_RESULTS_PER_BODY,
+            onChunkDone: chunkDoneCb
+        }).then(chunkResults => ({ body, chunkResults }));
+    }));
 
-        // 日数を NUM_WORKERS 個のチャンクに分割
-        const chunkSize = Math.ceil(searchDays / TSUJI_NUM_WORKERS);
-        const chunkPromises = [];
-        const chunkWorkers = [];
-        for (let w = 0; w < TSUJI_NUM_WORKERS; w++) {
-            const dayStart = w * chunkSize;
-            if (dayStart >= searchDays) break;
-            const dayEnd = Math.min(dayStart + chunkSize, searchDays);
+    if (generation !== appState.tsujiSearchGeneration) return;
 
-            const worker = new Worker('tsuji-search-worker.js');
-            chunkWorkers.push(worker);
-            tsujiActiveWorkers.push(worker);
-
-            const p = new Promise((resolve) => {
-                worker.onmessage = (e) => {
-                    if (e.data && e.data.error) {
-                        console.error('tsuji worker error:', e.data.error);
-                        resolve({ results: [], dayStart, dayEnd });
-                    } else {
-                        resolve(e.data);
-                    }
-                };
-                worker.onerror = (err) => {
-                    console.error('tsuji worker onerror:', err.message || err);
-                    resolve({ results: [], dayStart, dayEnd });
-                };
-                worker.postMessage({
-                    body: bodyMsg,
-                    observerData,
-                    refractionEnabled,
-                    targetAz, targetAlt,
-                    toleranceAz, toleranceAlt,
-                    searchStartMs,
-                    dayStart,
-                    dayEnd,
-                    maxResults: MAX_RESULTS_PER_BODY,
-                });
-            });
-            chunkPromises.push(p);
-        }
-
-        statusEl.textContent = `(検索中… ${body.name} ${bi + 1}/${visibleBodies.length})`;
-        setTsujiProgress(bi, visibleBodies.length);
-        const chunkResults = await Promise.all(chunkPromises);
-
-        // この天体のワーカーは役目終了
-        chunkWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-        tsujiActiveWorkers = tsujiActiveWorkers.filter(w => !chunkWorkers.includes(w));
-
-        if (generation !== appState.tsujiSearchGeneration) {
-            tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
-            tsujiActiveWorkers = [];
-            return;
-        }
-
-        // チャンク結果を dayStart 順にマージし、MAX_RESULTS_PER_BODY で打ち切る
-        chunkResults.sort((a, b) => a.dayStart - b.dayStart);
+    for (const { body, chunkResults } of allBodyResults) {
         const bodyResults = [];
         let bodyLimitReached = false;
         for (const ch of chunkResults) {
@@ -5386,12 +5408,9 @@ async function startTsujiSearch() {
             }
             if (bodyLimitReached) break;
         }
-
         totalResults.push({ body, results: bodyResults, limitReached: bodyLimitReached });
-        statusEl.textContent = `(検索中… ${bi + 1}/${visibleBodies.length} 天体完了)`;
     }
 
-    tsujiActiveWorkers = [];
     if (generation !== appState.tsujiSearchGeneration) return;
 
     // 結果表示用の observer を再構築（後段の getBodyAngularRadius 等で利用）

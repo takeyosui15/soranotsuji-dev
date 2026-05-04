@@ -26,3 +26,110 @@ Claudeさん、ありがとうございます。
 検索期間は、だいたい365の倍数になるので、ワーカースレッドに渡す単位を365単位くらいが良いと思います。
 それから、テキストボックスのステップを1日単位でなくて、365日単位にして欲しいです。
 よろしくお願いいたします。
+
+### 回答 (2026-05-04) — 辻検索/My辻検索のWorkerプール化 + 365日チャンク + 進捗バー細粒化
+
+#### 1. Worker Pool アーキテクチャの実装
+
+辻検索 / My辻検索の両方が**同一の `tsujiPool` を共有**するグローバル Worker プールを実装しました。プールはタスクキューを持ち、空いているワーカーから順にタスクを処理します。
+
+```js
+const TSUJI_CHUNK_DAYS = 365;
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+
+const tsujiPool = (() => {
+    let workers = [];
+    let idle = [];
+    const queue = [];
+    const active = new Map();
+
+    function ensure() { while (workers.length < TSUJI_NUM_WORKERS) { ... } }
+    function dispatch() { while (idle.length && queue.length) { ... } }
+    function run(worker, task) {
+        worker.onmessage = (e) => { task.resolve(e.data); idle.push(worker); dispatch(); };
+        worker.postMessage(task.taskData);
+    }
+    return {
+        runTask(taskData) { ... ensure(); queue.push({...}); dispatch(); },
+        terminateAll() { ... reject all active+pending ... }
+    };
+})();
+```
+
+**特徴**:
+- ワーカーは一度作成すると再利用 (起動オーバーヘッドを毎回負担しない)
+- 同時実行数は最大 `navigator.hardwareConcurrency` (上限8)
+- `terminateAll()` で全ワーカーを破棄しつつ、active/pending タスクを reject (orphan async が await から抜けて正常終了できる)
+
+#### 2. 365日固定チャンクへの変更
+
+旧: `chunkSize = Math.ceil(searchDays / TSUJI_NUM_WORKERS)` (例: 36500/8 = 4563日)
+新: 固定 `TSUJI_CHUNK_DAYS = 365` (36500日 → 100チャンク)
+
+これにより、**100年分の検索でも100個の細かいタスクに分割され、プール内で並列処理**されます。1チャンク = 約365日分 = 365 × (1440分 + 121秒) の計算量で、1〜2秒程度で完了します。
+
+ヘルパー関数 `runTsujiChunks()` を追加:
+
+```js
+async function runTsujiChunks({ bodyMsg, ..., days, onChunkDone }) {
+    const numChunks = Math.ceil(days / TSUJI_CHUNK_DAYS);
+    const promises = [];
+    for (let c = 0; c < numChunks; c++) {
+        const dayStart = c * TSUJI_CHUNK_DAYS;
+        const dayEnd = Math.min(dayStart + TSUJI_CHUNK_DAYS, days);
+        const p = tsujiPool.runTask({...}).then(data => {
+            if (onChunkDone) onChunkDone();  // ← 1チャンクごとに進捗更新
+            return data;
+        }).catch(_ => { onChunkDone?.(); return { results: [], dayStart, dayEnd }; });
+        promises.push(p);
+    }
+    return (await Promise.all(promises)).sort((a, b) => a.dayStart - b.dayStart);
+}
+```
+
+#### 3. 進捗バー細粒化 (チャンク単位)
+
+進捗バーの分母を「チャンクの総数」に変更:
+- **辻検索**: `天体数 × ceil(searchDays/365)` (例: 5天体 × 100チャンク = 500)
+- **My辻検索**: `Σ(行ごと: 天体数 × ceil(days/365))`
+
+```js
+const totalChunks = checked.reduce((sum, t) => {
+    const ids = (t.bodyIds || '').split(':').filter(s => s.trim());
+    const chunksPerBody = Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS);
+    return sum + Math.max(1, ids.length) * Math.max(1, chunksPerBody);
+}, 0);
+let doneChunks = 0;
+const chunkDoneCb = () => {
+    doneChunks++;
+    setTsujiProgress(doneChunks, totalChunks);
+};
+```
+
+これで100年検索でも100チャンク単位で進捗が見え、進捗バーが必ず表示されます。1天体分でも100チャンクなので、十分な粒度になります。
+
+#### 4. 計算順序の変更 (天体間も並列化)
+
+旧: 天体ごとに sequential `for` ループ + 各天体内のチャンクを並列
+新: **全天体の全チャンクを Promise.all で一気にプールへ投入**
+
+```js
+const allBodyResults = await Promise.all(visibleBodies.map(body => {
+    return runTsujiChunks({ ... onChunkDone: chunkDoneCb });
+}));
+```
+
+プールサイズ8、100年×5天体 = 500チャンクの場合、8並列で順次処理されます。
+
+#### 5. テキストボックスのステップ変更 (1日 → 365日)
+
+- `index.html` L168: `<input id="input-tsuji-search-days" step="1">` → `step="365"`
+- `script.js` L4795: `<input class="mytsuji-days" step="1">` → `step="365"`
+
+これで↑↓キーやスピナーで365日単位で値を変更できます。
+
+#### 6. 強制キャンセルの動作改善
+
+旧: `worker.terminate()` は `worker.onmessage` を発火させないため、`Promise.all(chunkPromises)` がハングし orphan async がメモリリーク。
+新: `tsujiPool.terminateAll()` 内で active/pending タスクの Promise を**明示的に reject** するため、orphan async は `await` から抜けて自身の generation チェックでクリーンに return できます。
+
