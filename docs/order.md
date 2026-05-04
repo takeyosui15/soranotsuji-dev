@@ -208,3 +208,93 @@ Claudeさん、ありがとうございます。
 「辻ライン365」ボタンを追加します。
 詳細は、デッサン`01-location.md`に記載をしました。
 よろしくお願いいたします。
+
+### 回答 (2026-05-04) — 辻ライン365 トグルボタンの追加
+
+#### 1. ボタンの追加 (`index.html`)
+
+位置情報メニュー1列目5段目 (旧spacer-btn位置) に追加:
+
+```html
+<div class="control-row">
+    <div class="btn-group-left">
+        <button id="btn-dp365" class="nav-btn small" title="辻ライン365(直近1年の辻ラインを描画します)">辻</button>
+    </div>
+    <label class="input-label">目的点標高(m):</label>
+    ...
+</div>
+```
+
+#### 2. 状態管理 (`script.js`)
+
+- `appState.isDP365Active: false` (新規)
+- `saveAppState` / `loadAppState` に追加
+- 起動時の `if (appState.isDP365Active) document.getElementById('btn-dp365').classList.add('active')`
+
+#### 3. `toggleDP365()` トグルハンドラ
+
+```js
+function toggleDP365() {
+    appState.isDP365Active = !appState.isDP365Active;
+    const btn = document.getElementById('btn-dp365');
+    if (appState.isDP365Active) {
+        btn.classList.add('active');
+        updateDP365Lines();
+    } else {
+        btn.classList.remove('active');
+        dp365Layer.clearLayers();
+        dp365CurrentGeneration++; // 進行中の計算を破棄
+    }
+    saveAppState();
+}
+```
+
+OFF時は世代カウンタをインクリメントすることで、進行中の Promise が結果を破棄します。
+
+#### 4. `updateDP365Lines()` — 並列バッチ計算
+
+365日分 × 表示天体分のpath計算を、DPプール (`dp-line-worker`) のWorkerプールに投入します。UIフリーズ回避のため `BATCH_DAYS = DP_POOL_SIZE` (8日) ずつのバッチで処理し、バッチ間で `await` して yield。
+
+```js
+const BATCH_DAYS = DP_POOL_SIZE;
+for (let dOff = 0; dOff < totalDays; dOff += BATCH_DAYS) {
+    if (generation !== dp365CurrentGeneration) return;
+    const batchTasks = [];
+    for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
+        const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
+        for (const body of visibleBodies) {
+            batchTasks.push(calculateDPPathPoints(day, body, observer).then(pts => {
+                if (generation !== dp365CurrentGeneration) return;
+                drawDP365Path(pts, body.color);
+                doneWork++;
+                updateLabel();  // 「辻」ボタンに XX% 表示
+            }));
+        }
+    }
+    await Promise.all(batchTasks);
+}
+```
+
+`calculateDPPathPoints` は既存の DP プール (1秒サンプリング) を再利用するため、新規 Worker は不要です。
+
+#### 5. `drawDP365Path()` — 軽量描画 (◎破線のみ)
+
+通常の辻ラインと違い、5分マーカー・時刻ラベル・前後日線・視半径エッジ線・△境界線などは描画しません。`dashArray: '13, 13'` の破線のみ、weight=3, opacity=0.6 で控えめに表示します。
+
+```js
+L.polyline(seg, { color, weight: 3, opacity: 0.6, dashArray: '13, 13' }).addTo(dp365Layer);
+```
+
+`dp365Layer` は通常の `dpLayer` とは独立したレイヤーで、365のON/OFFが通常の辻ラインに影響しません。
+
+#### 6. 進捗表示
+
+ボタン自体に `XX%` を表示します (例: `45%`)。完了時に「辻」に戻ります。
+
+#### 7. 仕様メモ
+
+- 365日 × 5天体 = 1825 path計算 (各day内で各天体について 1時間粗スキャン → 可視時間のみ Worker で 1秒サンプリング)
+- 太陽・月のように毎日空に出る天体だと、各day平均 6〜12時間 × 1825 day ≈ 11000〜22000 Workerタスク。プール8並列で数分〜十数分の処理。
+- `appState.isMoving` 中は `calculateDPPathPoints` がメインスレッド1分粗描画パスへ分岐するため、365 を有効化中にアニメーションを開始した場合は描画品質が下がります (停止後に手動でトグルOFF→ONで再計算してください)。
+- 計算中にユーザーが日付/位置を変更しても、既に開始した365計算は当時の値で完了します (現在の世代のものは描画される)。次回ON時に最新値で再計算されます。
+

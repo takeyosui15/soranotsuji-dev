@@ -160,6 +160,8 @@ let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
+let dp365Layer;
+let dp365CurrentGeneration = 0;
 
 // ★ 全てを管理する状態オブジェクト
 let appState = {
@@ -238,6 +240,7 @@ let appState = {
     isMoving: false,
     moveSpeed: null,  // 'month', 'day', 'hour', 'min'
     isDPActive: true,
+    isDP365Active: false,
     locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
     isElevationActive: false,
     isTsujiSearchActive: false,
@@ -324,6 +327,9 @@ window.onload = function() {
     // 5. 初期状態反映
     if (appState.isDPActive) {
         document.getElementById('btn-dp').classList.add('active');
+    }
+    if (appState.isDP365Active) {
+        document.getElementById('btn-dp365').classList.add('active');
     }
     
     // 登録ボタンの見た目 (登録データがあるかどうかで判定)
@@ -467,6 +473,7 @@ function initMap() {
     linesLayer = L.layerGroup().addTo(map);
     locationLayer = L.layerGroup().addTo(map);
     dpLayer = L.layerGroup().addTo(map);
+    dp365Layer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
 }
@@ -551,6 +558,7 @@ function setupUI() {
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
     document.getElementById('btn-dp').onclick = toggleDP;
+    document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
     // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
@@ -866,6 +874,7 @@ function saveAppState() {
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
+        isDP365Active: appState.isDP365Active,
         locMode: appState.locMode,
         lastVisitDate: appState.lastVisitDate,
         // 辻検索パラメータ (①〜⑥+検索期間)
@@ -914,6 +923,7 @@ function loadAppState() {
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
+            if(saved.isDP365Active !== undefined) appState.isDP365Active = saved.isDP365Active;
             if(saved.locMode) appState.locMode = saved.locMode;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             // 辻検索パラメータ復元 (①〜⑥+検索期間)
@@ -1318,6 +1328,89 @@ async function updateDPLines() {
     });
 }
 
+/** 辻ライン365 — 直近1年(365日分)の◎精度の辻ラインを破線のみで描画。
+ *  各日のラインは独立したセグメントとして描画され、5分マーカーや時刻表示は無い。
+ *  DPプール (dp-line-worker) に各日のチャンクを投入して並列処理する。
+ *  UIフリーズを避けるため、日数をバッチ単位で処理して間に yield する。 */
+async function updateDP365Lines() {
+    const generation = ++dp365CurrentGeneration;
+    dp365Layer.clearLayers();
+
+    const baseDate = new Date(appState.currentDate);
+    baseDate.setHours(0, 0, 0, 0);
+    const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+
+    const btn = document.getElementById('btn-dp365');
+    const origLabel = '辻';
+    const totalDays = 365;
+    const totalWork = totalDays * visibleBodies.length;
+    let doneWork = 0;
+    const updateLabel = () => {
+        const pct = Math.round(doneWork / totalWork * 100);
+        btn.textContent = `${pct}%`;
+    };
+    updateLabel();
+
+    // バッチ単位で並列実行 (1バッチ = BATCH_DAYS日 × 全天体)
+    // 各バッチ完了後に await で yield して UI ブロックを回避
+    const BATCH_DAYS = DP_POOL_SIZE; // プールサイズと同程度が効率的
+    try {
+        for (let dOff = 0; dOff < totalDays; dOff += BATCH_DAYS) {
+            if (generation !== dp365CurrentGeneration) return;
+            const batchTasks = [];
+            for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
+                const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
+                for (const body of visibleBodies) {
+                    batchTasks.push(calculateDPPathPoints(day, body, observer).then(pts => {
+                        if (generation !== dp365CurrentGeneration) return;
+                        drawDP365Path(pts, body.color);
+                        doneWork++;
+                        updateLabel();
+                    }));
+                }
+            }
+            await Promise.all(batchTasks);
+        }
+    } finally {
+        if (generation === dp365CurrentGeneration) {
+            btn.textContent = origLabel;
+        }
+    }
+}
+
+/** 辻ライン365 用の軽量描画 (◎破線のみ、マーカー無し)。
+ *  drawDPPath の同等処理だが dp365Layer に追加し、azOffset/markerは固定。 */
+function drawDP365Path(points, color) {
+    if (!points || points.length === 0) return;
+    const targetPt = appState.end;
+    let segments = [];
+    let currentSegment = [];
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const obsAz = (p.az + 540) % 360;
+        const dest = getDestinationGeodesic(targetPt.lat, targetPt.lng, obsAz, p.dist);
+        const pt = [dest.lat, dest.lng];
+        if (currentSegment.length > 0) {
+            const prev = points[i - 1];
+            if (Math.abs(p.az - prev.az) > 5) {
+                segments.push(currentSegment);
+                currentSegment = [];
+            }
+        }
+        currentSegment.push(pt);
+    }
+    if (currentSegment.length > 0) segments.push(currentSegment);
+    segments.forEach(seg => {
+        L.polyline(seg, {
+            color: color,
+            weight: 3,
+            opacity: 0.6,
+            dashArray: '13, 13'
+        }).addTo(dp365Layer);
+    });
+}
+
 
 // ============================================================
 // 7. ロジック・ヘルパー
@@ -1592,14 +1685,28 @@ function toggleSpeed(speed) {
 function toggleDP() {
     appState.isDPActive = !appState.isDPActive;
     const btn = document.getElementById('btn-dp');
-    
+
     if(appState.isDPActive) {
-        btn.classList.add('active'); 
+        btn.classList.add('active');
     } else {
         btn.classList.remove('active');
     }
     saveAppState();
     updateAll();
+}
+
+function toggleDP365() {
+    appState.isDP365Active = !appState.isDP365Active;
+    const btn = document.getElementById('btn-dp365');
+    if (appState.isDP365Active) {
+        btn.classList.add('active');
+        updateDP365Lines();
+    } else {
+        btn.classList.remove('active');
+        dp365Layer.clearLayers();
+        dp365CurrentGeneration++; // 進行中の計算を破棄
+    }
+    saveAppState();
 }
 
 function useGPS() {
