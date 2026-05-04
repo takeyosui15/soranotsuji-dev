@@ -691,3 +691,67 @@ Claudeさん、ありがとうございます。
 
 続いて、`02-tsujisearch.md`と`08-mytsujisearch.md`で、辻検索とMy辻検索の画面表示項目とFile出力項目を見直しました。
 実装をお願いいたします。
+
+### 回答 (2026-05-04) — 辻検索/My辻検索の表示項目とFile出力項目を再構成
+
+#### 1. 辻検索パネル (`startTsujiSearch`)
+
+**列構成変更**:
+- 削除: 天体ID
+- 追加: 日の出時刻 / 日の入時刻 / 月の出時刻 / 月の入時刻 (辻時刻の直後)
+- 順序: 天体名 → 精度記号 → 精度角距離 → 日付 → 辻時刻 → 日の出/日の入/月の出/月の入時刻 → 月齢 → 月齢アイコン → 方位角 → 視高度 → 視半径
+
+**書式変更**:
+- 日付: `YYYY/MM/DD(曜日)` → `YYYY年MM月DD日(曜日)` (Japanese format, dessin準拠)
+- 方位角/視高度: `0.0000°` → `0.00°` (dessinで2桁指定。precision regression to 2 decimals)
+- 精度角距離: `0.00000°` (5桁、変更なし)
+
+**rise/set計算**:
+日付別キャッシュ `riseSetCache[dateString]` で、`Astronomy.SearchRiseSet` を 1日につき1回 (Sun rise/set, Moon rise/set の4回) のみ実行。365日 × 4 = 1460回程度に抑制。
+
+```js
+const riseSetCache = {};
+function getRiseSetForDay(dateObj) {
+    const key = dateObj.toDateString();
+    if (riseSetCache[key]) return riseSetCache[key];
+    // ... Astronomy.SearchRiseSet × 4 ...
+    return riseSetCache[key] = { sr, ss, mr, ms };
+}
+```
+
+**ソート対応**: 日の出/日の入/月の出/月の入時刻列に対する `setupTableSort` 比較関数を追加。
+
+#### 2. My辻検索パネル (`renderMyTsujiResultRow`)
+
+**列構成変更**:
+- 追加: 日の出時刻 / 日の入時刻 / 月の出時刻 / 月の入時刻 (辻時刻と月齢の間)
+- 順序: 辻検索ID → 辻検索名 → 天体ID → 天体名 → 観測点ID → 観測点名 → 目的点ID → 目的点名 → 精度記号 → 精度角距離 → 日付 → 辻時刻 → 日の出/日の入/月の出/月の入時刻 → 月齢 → 月齢アイコン → 方位角 → 視高度 → 視半径
+
+**書式変更**:
+- 日付: `YYYY/MM/DD(曜日)` → `YYYY年MM月DD日(曜日)`
+- 方位角/視高度: `0.0000°` (4桁、変更なし)
+
+**rise/set計算**:
+`decorateMyTsujiResults()` 内で行ごとに直接計算 (観測点が行ごとに異なるためキャッシュは複雑化を避ける)。
+
+#### 3. My辻検索 File出力 (`buildMyTsujiCsvRow`)
+
+**列構成変更**:
+- 移動: 辻時刻 — 「精度角距離と方位角の間」 → 「日付の直後」
+- 追加: 相手距離 / 相手方位 / 相手高度 (視半径と オフセット系の間)
+- 追加: オフセット方位角 / オフセット視高度 / オフセット方位距離 / オフセット視高距離 (相手系とメモの間)
+
+**新規計算項目**:
+- `相手距離` = `L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng))` (m)
+- `相手方位` = `calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng)` (°)
+- `相手高度` = `calculateApparentAltitude(distance, obs.totalElev, tgt.totalElev)` (°、屈折・地球曲率考慮)
+- `オフセット方位角` = `r.tsuji.offsetAz` (°)
+- `オフセット視高度` = `r.tsuji.offsetAlt` (°)
+- `オフセット方位距離` = `dist * tan(offsetAz)` (m)
+- `オフセット視高距離` = `dist * tan(offsetAlt)` (m)
+
+#### 4. 確認ポイント
+
+- `02-tsujisearch.md` の構造化リストに従い、辻検索の方位角/視高度は **2桁** ("0.00°") に再設定しました。前回4桁にしたばかりですが、dessinの新しい指定を優先しています。意図と異なる場合はお知らせください (My辻検索は4桁のままです)。
+- 辻検索デッサンに残骸テキスト (158行目「天体ID、天体名、精度記号、…」) が残っていますが、構造化リストの方を仕様として採用しました。
+- File出力でも `辻時刻` は1度だけ出力 (旧版は中間にも重複していたが、新dessinでは日付直後のみ)。日の出/日の入は2箇所重複するのが新仕様 (上部の単純表示 + 中部の薄明セクション内) です。
