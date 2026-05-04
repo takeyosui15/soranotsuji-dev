@@ -362,6 +362,17 @@ document.querySelectorAll('input').forEach(el => el.setAttribute('autocomplete',
 - CSVパーサーのフォールバック値: `parseNumOr(cols[13], 14.8)`
 - `decorateMyTsujiResults` / `copyMyTsujiSearchUrl` のフォールバック値: `?? 14.8`
 
-#### 3-4. 一括計算/File取得のキャンセル + 進捗バー (次コミットで対応)
-これらは実装の複雑度が高いため、次のコミットで対応します。
+#### 3. 一括計算/File取得のトグルキャンセル + 独立実行
+- `myTsujiBatchRunning` / `myTsujiFileRunning` で実行状態を個別管理
+- `myTsujiBatchCanceled` / `myTsujiFileCanceled` でキャンセルフラグを個別管理
+- 一括計算ボタン: クリックで開始、実行中にクリックでキャンセル、ボタンに `.active` クラス
+- File取得ボタン: 同上
+- ループ内でキャンセルフラグをチェック、キャンセル時は「(キャンセルされました)」表示
+- 辻検索ボタンとは独立 (辻検索パネルは表示のみ)
+
+#### 4. 辻検索/My辻検索に進捗バー追加
+- `index.html` に `#tsujisearch-progress` (3px の金色バー) を追加
+- `setTsujiProgress(current, total)` / `hideTsujiProgress()` ヘルパー追加
+- 辻検索 (`startTsujiSearch`): 天体ごとに進捗バー更新、完了後に非表示
+- My辻検索一括計算/File取得: 行ごとに進捗バー更新、完了/キャンセル後に非表示
 

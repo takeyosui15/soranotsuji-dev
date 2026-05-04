@@ -751,8 +751,14 @@ function setupUI() {
     document.getElementById('btn-mytsuji-csv-export').onclick = exportMyTsujiCsv;
     document.getElementById('btn-mytsuji-url').onclick = getMyTsujiUrl;
     // batch (Phase C-2/C-3) — 結果は辻検索パネルを再利用
-    document.getElementById('btn-mytsuji-batch').onclick = runBatchMyTsujiSearch;
-    document.getElementById('btn-mytsuji-file').onclick = fileBatchMyTsujiSearch;
+    document.getElementById('btn-mytsuji-batch').onclick = () => {
+        if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; }
+        else { runBatchMyTsujiSearch(); }
+    };
+    document.getElementById('btn-mytsuji-file').onclick = () => {
+        if (myTsujiFileRunning) { myTsujiFileCanceled = true; }
+        else { fileBatchMyTsujiSearch(); }
+    };
 
 
     // 天体検索ボタン
@@ -4352,11 +4358,34 @@ function decorateMyTsujiResults(results) {
     }).filter(Boolean);
 }
 
+// 一括計算 / File取得の実行状態とキャンセルフラグ (独立管理)
+let myTsujiBatchRunning = false;
+let myTsujiBatchCanceled = false;
+let myTsujiFileRunning = false;
+let myTsujiFileCanceled = false;
+
+/** 辻検索パネルの進捗バーを更新 */
+function setTsujiProgress(current, total) {
+    const bar = document.getElementById('tsujisearch-progress');
+    const fill = document.getElementById('tsujisearch-progress-fill');
+    if (!bar || !fill) return;
+    bar.classList.remove('hidden');
+    fill.style.width = `${Math.round(current / total * 100)}%`;
+}
+function hideTsujiProgress() {
+    const bar = document.getElementById('tsujisearch-progress');
+    if (bar) bar.classList.add('hidden');
+}
+
 /** 一括計算 — チェック済みMy辻検索を全て実行し、結果を専用パネルに表示 */
 async function runBatchMyTsujiSearch() {
     const checked = appState.myTsujiSearches.filter(t => t.checked);
     if (checked.length === 0) return alert('一括計算するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行しますか？')) return;
+
+    myTsujiBatchRunning = true;
+    myTsujiBatchCanceled = false;
+    document.getElementById('btn-mytsuji-batch').classList.add('active');
 
     showTsujiPanelForMyTsuji('My辻検索結果');
     const content = document.getElementById('tsujisearch-content');
@@ -4375,8 +4404,10 @@ async function runBatchMyTsujiSearch() {
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
+        if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        setTsujiProgress(i, checked.length);
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
         if (!res) continue;
         for (const br of res.bodyResults) {
@@ -4390,8 +4421,14 @@ async function runBatchMyTsujiSearch() {
         }
     }
 
+    myTsujiBatchRunning = false;
+    document.getElementById('btn-mytsuji-batch').classList.remove('active');
+    hideTsujiProgress();
+    setTsujiProgress(checked.length, checked.length);
+
     const decorated = decorateMyTsujiResults(allResults);
-    statusEl.textContent = `${decorated.length}件`;
+    if (!myTsujiBatchCanceled) statusEl.textContent = `${decorated.length}件`;
+    hideTsujiProgress();
     if (decorated.length === 0) {
         content.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません</div>';
         return;
@@ -4579,6 +4616,10 @@ async function fileBatchMyTsujiSearch() {
     if (checked.length === 0) return alert('File取得するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？')) return;
 
+    myTsujiFileRunning = true;
+    myTsujiFileCanceled = false;
+    document.getElementById('btn-mytsuji-file').classList.add('active');
+
     showTsujiPanelForMyTsuji('My辻検索結果 (File出力)');
     const statusEl = document.getElementById('tsujisearch-status');
     document.getElementById('tsujisearch-content').innerHTML = '';
@@ -4595,8 +4636,10 @@ async function fileBatchMyTsujiSearch() {
 
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
+        if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        setTsujiProgress(i, checked.length);
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
         if (!res) continue;
         for (const br of res.bodyResults) {
@@ -4609,6 +4652,12 @@ async function fileBatchMyTsujiSearch() {
             }
         }
     }
+
+    myTsujiFileRunning = false;
+    document.getElementById('btn-mytsuji-file').classList.remove('active');
+    hideTsujiProgress();
+
+    if (myTsujiFileCanceled) return;
 
     const decorated = decorateMyTsujiResults(allResults);
     if (decorated.length === 0) {
@@ -5240,6 +5289,7 @@ async function startTsujiSearch() {
         }
 
         statusEl.textContent = `(検索中… ${body.name} ${bi + 1}/${visibleBodies.length})`;
+        setTsujiProgress(bi, visibleBodies.length);
         const chunkResults = await Promise.all(chunkPromises);
 
         // この天体のワーカーは役目終了
@@ -5349,6 +5399,7 @@ async function startTsujiSearch() {
     });
 
     statusEl.textContent = `(${rowData.length}件)`;
+    hideTsujiProgress();
     if (rowData.length === 0) {
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">フィルタの結果、該当する日時はありません</div>';
         return;
