@@ -641,3 +641,38 @@ Claudeさん、ありがとうございます。
 そこまで具体的にありがとうございます。
 
 可視判定のメッセージとヘルプに、「屈折・地球曲率は考慮していない単純な直線判定です（遠距離見通しでは精度に注意）」という注意書きを書けないでしょうか。
+
+### 回答 (2026-05-04) — 可視判定の注意書きをポップアップ/ヘルプに追加
+
+#### 1. ポップアップメッセージ (`script.js` の `showVisibilityResult`)
+
+OK/NGどちらの場合も末尾に注意書きを付加するため、共通の `note` 定数を導入:
+
+```js
+function showVisibilityResult() {
+    const r = computeVisibility();
+    const note = '\n\n※ 屈折・地球曲率は考慮していない単純な直線判定です(遠距離見通しでは精度に注意)';
+    if (r.visible) {
+        alert('可視判定: OK\n観測点から目的点が見通せます' + note);
+    } else {
+        const dist = r.blockingDist.toFixed(2);
+        const elev = r.blockingElev.toFixed(1);
+        const lineE = r.lineElevAtBlocking.toFixed(1);
+        alert(`可視判定: NG\n観測点から ${dist}km 地点 (標高 ${elev}m) が可視直線(${lineE}m)を遮っています` + note);
+    }
+}
+```
+
+注意書きの前に空行 (`\n\n`) と「※」マークを置き、本文と分離して見やすくしました。
+
+#### 2. ヘルプセクション (`index.html` 標高グラフ)
+
+```html
+<section class="help-section">
+    <h3>標高グラフ</h3>
+    <p>観測点と目的点の間の地形断面を表示します。国土地理院のDEM標高タイルから2000地点で標高を取得します。</p>
+    <p>取得完了後、観測点高・目的点高を加えた可視直線(赤線)に対して、地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」のポップアップを表示します。なお、屈折・地球曲率は考慮していない単純な直線判定です(遠距離見通しでは精度に注意)。</p>
+</section>
+```
+
+可視判定機能の動作概要 + 注意書きを2段落目として追加しました。

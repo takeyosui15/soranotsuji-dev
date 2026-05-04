@@ -5838,13 +5838,14 @@ function computeVisibility() {
 /** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ) */
 function showVisibilityResult() {
     const r = computeVisibility();
+    const note = '\n\n※ 屈折・地球曲率は考慮していない単純な直線判定です(遠距離見通しでは精度に注意)';
     if (r.visible) {
-        alert('可視判定: OK\n観測点から目的点が見通せます');
+        alert('可視判定: OK\n観測点から目的点が見通せます' + note);
     } else {
         const dist = r.blockingDist.toFixed(2);
         const elev = r.blockingElev.toFixed(1);
         const lineE = r.lineElevAtBlocking.toFixed(1);
-        alert(`可視判定: NG\n観測点から ${dist}km 地点 (標高 ${elev}m) が可視直線(${lineE}m)を遮っています`);
+        alert(`可視判定: NG\n観測点から ${dist}km 地点 (標高 ${elev}m) が可視直線(${lineE}m)を遮っています` + note);
     }
 }
 
