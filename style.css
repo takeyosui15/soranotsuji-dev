@@ -627,6 +627,7 @@ input[type="radio"] {
 #btn-reg-start,
 #btn-reg-end,
 #btn-url-location,
+#btn-dp365,
 #btn-reg-settings {
     width: 46px;
     min-width: 46px;
