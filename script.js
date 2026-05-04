@@ -875,7 +875,10 @@ function saveAppState() {
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
-        isDP365Active: appState.isDP365Active,
+        // isDP365Active は意図的に保存しない:
+        // - 365日計算はキャッシュ無効化(位置/日付変更)を伴うため起動時のキャッシュ復元が困難
+        // - 重い計算を起動時にユーザーの意図なしに走らせない
+        // - 起動時は常にOFFで、ユーザーがボタン押下時のみ計算開始
         locMode: appState.locMode,
         lastVisitDate: appState.lastVisitDate,
         // 辻検索パラメータ (①〜⑥+検索期間)
@@ -924,7 +927,7 @@ function loadAppState() {
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
-            if(saved.isDP365Active !== undefined) appState.isDP365Active = saved.isDP365Active;
+            // isDP365Active は読み込まない: 起動時は常に OFF で初期化済み (saveAppStateにも保存しない)
             if(saved.locMode) appState.locMode = saved.locMode;
             if(saved.lastVisitDate) appState.lastVisitDate = saved.lastVisitDate;
             // 辻検索パラメータ復元 (①〜⑥+検索期間)
