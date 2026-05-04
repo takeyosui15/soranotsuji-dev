@@ -399,3 +399,106 @@ Claudeさん、ありがとうございます。
 デッサンも書き換えました。
 
 よろしくお願いいたします。
+
+### 回答 (2026-05-04) — My辻検索 進捗バー / 排他トグル / 位置スナップショット / 天体ID既定値
+
+#### 1. My辻検索 進捗バーが表示されない問題の修正
+
+**原因**: 既存実装は「行ごと」(`i / checked.length`) でしか進捗を更新していなかったため、1行のMy辻検索を実行した場合は `0/1 = 0%` のまま長時間止まり、完了後すぐに非表示になるため、ユーザーには進捗バーが見えない状態でした。
+
+**修正**: 進捗の単位を「行 × 各行の天体数」のサブステップに細分化しました。
+
+```js
+// runBatchMyTsujiSearch / fileBatchMyTsujiSearch 内
+const totalWork = checked.reduce((sum, t) => {
+    const ids = (t.bodyIds || '').split(':').filter(s => s.trim());
+    return sum + Math.max(1, ids.length);
+}, 0);
+let doneWork = 0;
+setTsujiProgress(0, totalWork);
+
+for (let i = 0; i < checked.length; i++) {
+    const startWork = doneWork;
+    const res = await executeSingleMyTsujiSearch(t, ..., (bi, bn) => {
+        setTsujiProgress(startWork + bi, totalWork); // 天体ごとに更新
+    });
+    doneWork = startWork + bodyCount;
+    setTsujiProgress(doneWork, totalWork);
+}
+```
+
+`executeSingleMyTsujiSearch` には `progressCb(bIdx, bodies.length)` 引数を追加し、行内の各天体ループで callback を呼ぶようにしました。これで「1行 × 5天体」のような場合も 0% → 20% → 40% → 60% → 80% → 100% と段階的に進捗が見えます。
+
+また、`setTsujiProgress` の `total` が0の時は早期リターンし、二重 `hideTsujiProgress()` 呼び出しを整理しました。
+
+#### 2. 一括計算/File取得ボタンの排他トグル化
+
+**仕様変更**: どちらかを押下したら、もう一方を強制キャンセル(トグルOFF)してから新しい処理を開始します。
+
+```js
+document.getElementById('btn-mytsuji-batch').onclick = async () => {
+    if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; return; }
+    if (myTsujiFileRunning) await forceCancelMyTsujiFile();
+    runBatchMyTsujiSearch();
+};
+document.getElementById('btn-mytsuji-file').onclick = async () => {
+    if (myTsujiFileRunning) { myTsujiFileCanceled = true; return; }
+    if (myTsujiBatchRunning) await forceCancelMyTsujiBatch();
+    fileBatchMyTsujiSearch();
+};
+```
+
+`forceCancelMyTsuji{Batch,File}` ヘルパーを追加:
+- `tsujiActiveWorkers.terminate()` で全Workerを即座に停止
+- 世代カウンタ `myTsuji{Batch,File}Gen` をインクリメント (orphan async が自身のクリーンアップをスキップするため)
+- 実行フラグ `myTsuji{Batch,File}Running = false` と `.active` クラスを即座に解除
+- `hideTsujiProgress()` で進捗バーを非表示
+
+旧実装の async 関数は `await Promise.all(chunkPromises)` でハングしますが、世代カウンタによりUIには触れないため副作用はありません (orphan は GC を待ちます)。
+
+#### 3. 位置情報のスナップショット (計算中に変更しても結果がズレないか)
+
+**辻検索 (`startTsujiSearch`)**:
+関数の冒頭で位置・日時を**プリミティブ値としてローカル const にコピー**しているため、計算中に `appState.start.lat` 等を変更しても結果に影響しません:
+
+```js
+const observerData = { lat: appState.start.lat, lng: appState.start.lng, elev: appState.start.elev };
+const baseAz = appState.tsujiSearchBaseAz;
+// ...
+const searchStart = new Date(appState.currentDate);  // 新規Dateオブジェクト
+```
+
+さらに `worker.postMessage({observerData, ...})` は **structured clone** されるため、Worker内部にもディープコピーが渡ります。
+
+**My辻検索 (`runBatchMyTsujiSearch`/`fileBatchMyTsujiSearch`)**:
+こちらは観測点・目的点が `appState.myObservations[]`/`appState.myTargets[]` のオブジェクト参照だったため、**既に前回修正で `JSON.parse(JSON.stringify())` の深いコピーをスナップショット化**しています:
+
+```js
+const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
+const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
+const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, ...);
+```
+
+`executeSingleMyTsujiSearch` 内部も snapshotObs/snapshotTgt から `obs`/`tgt` を引いて使用するため、計算中に位置情報を変更しても in-flight の計算結果は影響を受けません。
+
+→ **結論**: 観測点・目的点を計算中に変更しても、計算結果はズレません。
+
+#### 4. 天体ID既定値の変更 (Sun:Moon → 表示中の天体IDを:で区切る)
+
+**`addMyTsujiRow` (行追加)**: 修正済
+```js
+const newT = {
+    id, name: '', days: 365,
+    bodyIds: appState.bodies.filter(b => b.visible).map(b => b.id).join(':'),
+    // ...
+};
+```
+
+**`getMyTsujiFromTsujiSearch` (辻検索取得)**: 既に同じ式を使用していたため変更なし
+```js
+bodyIds: appState.bodies.filter(b => b.visible).map(b => b.id).join(':'),
+```
+
+これで両ボタンとも、押下時点で表示中の天体IDが`:`区切りで初期値として入ります。
+また、`mytsuji-bodyids` 入力欄にも `autocomplete="off"` を追加して、ブラウザによる`Sun:Moon`等の自動補完を防止しました。
+

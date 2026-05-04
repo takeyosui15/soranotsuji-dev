@@ -751,13 +751,16 @@ function setupUI() {
     document.getElementById('btn-mytsuji-csv-export').onclick = exportMyTsujiCsv;
     document.getElementById('btn-mytsuji-url').onclick = getMyTsujiUrl;
     // batch (Phase C-2/C-3) — 結果は辻検索パネルを再利用
-    document.getElementById('btn-mytsuji-batch').onclick = () => {
-        if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; }
-        else { runBatchMyTsujiSearch(); }
+    // 一括計算とFile取得は排他: 一方を押下すると他方がキャンセル
+    document.getElementById('btn-mytsuji-batch').onclick = async () => {
+        if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; return; }
+        if (myTsujiFileRunning) await forceCancelMyTsujiFile();
+        runBatchMyTsujiSearch();
     };
-    document.getElementById('btn-mytsuji-file').onclick = () => {
-        if (myTsujiFileRunning) { myTsujiFileCanceled = true; }
-        else { fileBatchMyTsujiSearch(); }
+    document.getElementById('btn-mytsuji-file').onclick = async () => {
+        if (myTsujiFileRunning) { myTsujiFileCanceled = true; return; }
+        if (myTsujiBatchRunning) await forceCancelMyTsujiBatch();
+        fileBatchMyTsujiSearch();
     };
 
 
@@ -3732,7 +3735,8 @@ function addMyTsujiRow() {
     const selId = getSelectedMyTsujiId();
     const idx = selId !== null ? appState.myTsujiSearches.findIndex(t => t.id === selId) : -1;
     const newT = {
-        id, name: '', days: 365, bodyIds: 'Sun:Moon',
+        id, name: '', days: 365,
+        bodyIds: appState.bodies.filter(b => b.visible).map(b => b.id).join(':'),
         obsId: null, tgtId: null,
         baseAz: null, baseAlt: null,
         offsetAz: 0, offsetAlt: 0,
@@ -4235,7 +4239,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 // ============================================================
 
 /** 単一のMy辻検索行を実行し、body単位の結果配列を返す */
-async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt) {
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, progressCb) {
     const obsSource = snapshotObs || appState.myObservations;
     const tgtSource = snapshotTgt || appState.myTargets;
     const obs = obsSource.find(o => o.id === t.obsId);
@@ -4268,7 +4272,9 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
     if (bodies.length === 0) return { tsuji: t, obs, tgt, bodyResults: [] };
 
     const bodyResults = [];
-    for (const body of bodies) {
+    for (let bIdx = 0; bIdx < bodies.length; bIdx++) {
+        const body = bodies[bIdx];
+        if (progressCb) progressCb(bIdx, bodies.length);
         let bodyMsg;
         if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
@@ -4363,18 +4369,44 @@ let myTsujiBatchRunning = false;
 let myTsujiBatchCanceled = false;
 let myTsujiFileRunning = false;
 let myTsujiFileCanceled = false;
+// 世代カウンタ: 強制キャンセル時にインクリメントし、orphan asyncが自身の最終クリーンアップをスキップする
+let myTsujiBatchGen = 0;
+let myTsujiFileGen = 0;
 
 /** 辻検索パネルの進捗バーを更新 */
 function setTsujiProgress(current, total) {
     const bar = document.getElementById('tsujisearch-progress');
     const fill = document.getElementById('tsujisearch-progress-fill');
-    if (!bar || !fill) return;
+    if (!bar || !fill || !total) return;
     bar.classList.remove('hidden');
-    fill.style.width = `${Math.round(current / total * 100)}%`;
+    const pct = Math.max(0, Math.min(100, Math.round(current / total * 100)));
+    fill.style.width = `${pct}%`;
 }
 function hideTsujiProgress() {
     const bar = document.getElementById('tsujisearch-progress');
     if (bar) bar.classList.add('hidden');
+}
+
+/** 一括計算/File取得を強制キャンセル (相手側の起動前に呼ぶ) */
+async function forceCancelMyTsujiBatch() {
+    myTsujiBatchCanceled = true;
+    myTsujiBatchGen++;
+    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+    tsujiActiveWorkers = [];
+    myTsujiBatchRunning = false;
+    document.getElementById('btn-mytsuji-batch').classList.remove('active');
+    hideTsujiProgress();
+    await new Promise(r => setTimeout(r, 0));
+}
+async function forceCancelMyTsujiFile() {
+    myTsujiFileCanceled = true;
+    myTsujiFileGen++;
+    tsujiActiveWorkers.forEach(w => { try { w.terminate(); } catch(_) {} });
+    tsujiActiveWorkers = [];
+    myTsujiFileRunning = false;
+    document.getElementById('btn-mytsuji-file').classList.remove('active');
+    hideTsujiProgress();
+    await new Promise(r => setTimeout(r, 0));
 }
 
 /** 一括計算 — チェック済みMy辻検索を全て実行し、結果を専用パネルに表示 */
@@ -4383,6 +4415,7 @@ async function runBatchMyTsujiSearch() {
     if (checked.length === 0) return alert('一括計算するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行しますか？')) return;
 
+    const myGen = ++myTsujiBatchGen;
     myTsujiBatchRunning = true;
     myTsujiBatchCanceled = false;
     document.getElementById('btn-mytsuji-batch').classList.add('active');
@@ -4402,13 +4435,29 @@ async function runBatchMyTsujiSearch() {
     const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
     const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
+    // 進捗バーの分母 = 全行 × 各行の天体数 (細かい進捗を出すため)
+    const totalWork = checked.reduce((sum, t) => {
+        const ids = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
+        return sum + Math.max(1, ids.length);
+    }, 0);
+    let doneWork = 0;
+    setTsujiProgress(0, totalWork);
+
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
+        if (myGen !== myTsujiBatchGen) return; // 強制キャンセル済 (新規起動済)
         if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        setTsujiProgress(i, checked.length);
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
+        const bodyCount = Math.max(1, (t.bodyIds || '').split(':').filter(s => s.trim()).length);
+        const startWork = doneWork;
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, (bi, bn) => {
+            // 進捗コールバック: 行内の天体ループで呼ばれる
+            setTsujiProgress(startWork + bi, totalWork);
+        });
+        doneWork = startWork + bodyCount;
+        setTsujiProgress(doneWork, totalWork);
+        if (myGen !== myTsujiBatchGen) return;
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {
@@ -4421,10 +4470,9 @@ async function runBatchMyTsujiSearch() {
         }
     }
 
+    if (myGen !== myTsujiBatchGen) return;
     myTsujiBatchRunning = false;
     document.getElementById('btn-mytsuji-batch').classList.remove('active');
-    hideTsujiProgress();
-    setTsujiProgress(checked.length, checked.length);
 
     const decorated = decorateMyTsujiResults(allResults);
     if (!myTsujiBatchCanceled) statusEl.textContent = `${decorated.length}件`;
@@ -4616,6 +4664,7 @@ async function fileBatchMyTsujiSearch() {
     if (checked.length === 0) return alert('File取得するMy辻検索をチェックしてください');
     if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？')) return;
 
+    const myGen = ++myTsujiFileGen;
     myTsujiFileRunning = true;
     myTsujiFileCanceled = false;
     document.getElementById('btn-mytsuji-file').classList.add('active');
@@ -4634,13 +4683,28 @@ async function fileBatchMyTsujiSearch() {
     const snapshotObs = JSON.parse(JSON.stringify(appState.myObservations));
     const snapshotTgt = JSON.parse(JSON.stringify(appState.myTargets));
 
+    // 進捗バーの分母 = 全行 × 各行の天体数
+    const totalWork = checked.reduce((sum, t) => {
+        const ids = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
+        return sum + Math.max(1, ids.length);
+    }, 0);
+    let doneWork = 0;
+    setTsujiProgress(0, totalWork);
+
     const allResults = [];
     for (let i = 0; i < checked.length; i++) {
+        if (myGen !== myTsujiFileGen) return;
         if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
         statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
-        setTsujiProgress(i, checked.length);
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt);
+        const bodyCount = Math.max(1, (t.bodyIds || '').split(':').filter(s => s.trim()).length);
+        const startWork = doneWork;
+        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, (bi, bn) => {
+            setTsujiProgress(startWork + bi, totalWork);
+        });
+        doneWork = startWork + bodyCount;
+        setTsujiProgress(doneWork, totalWork);
+        if (myGen !== myTsujiFileGen) return;
         if (!res) continue;
         for (const br of res.bodyResults) {
             for (const r of br.results) {
@@ -4653,6 +4717,7 @@ async function fileBatchMyTsujiSearch() {
         }
     }
 
+    if (myGen !== myTsujiFileGen) return;
     myTsujiFileRunning = false;
     document.getElementById('btn-mytsuji-file').classList.remove('active');
     hideTsujiProgress();
@@ -4731,7 +4796,7 @@ function renderMyTsujiSearches() {
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">天体ID:</label>
-                <input type="text" class="mytsuji-bodyids" value="${escapeHtml(t.bodyIds || '')}" placeholder="天体ID:天体ID:..." maxlength="150" data-id="${t.id}">
+                <input type="text" class="mytsuji-bodyids" value="${escapeHtml(t.bodyIds || '')}" placeholder="天体ID:天体ID:..." maxlength="150" data-id="${t.id}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">観測点ID:</label>
