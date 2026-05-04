@@ -313,3 +313,66 @@ Claudeさん、ありがとうございます。
 1秒間隔でなくて1分間隔にしましょう。
 あと、途中で処理をキャンセルすると、ボタンラベル名が「何％」のままで「辻」に戻りません。
 修正をよろしくお願いいたします。
+
+### 回答 (2026-05-04) — 辻ライン365 を1分間隔に変更 + キャンセル時のラベル復元
+
+#### 1. サンプリング間隔を 1秒 → 1分 に変更 (メモリ削減 60×)
+
+**worker側 (`dp-line-worker.js`)**: `stepSeconds` パラメータを追加し、ループ刻み幅を可変化:
+
+```js
+const stepSec = (stepSeconds && stepSeconds > 0) ? stepSeconds : 1;
+const startSec = hourStart * 3600;
+const endSec = hourEnd * 3600;
+for (let s = startSec; s < endSec; s += stepSec) {
+    // ...
+}
+```
+
+`stepSeconds` 未指定時は従来通り 1秒 (通常の辻ライン用)。
+
+**`calculateDPPathPoints` (`script.js`)**: 第4引数に `opts` オブジェクトを追加:
+
+```js
+async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
+    const stepSeconds = opts.stepSeconds || 1;
+    const forceWorker = !!opts.forceWorker;
+    // ...
+    if (appState.isMoving && !forceWorker) { /* main-thread fallback */ }
+    // ... pass stepSeconds to dpPoolRunTask({ ..., stepSeconds })
+}
+```
+
+- `opts.stepSeconds`: Worker内サンプリング間隔(秒) (デフォルト 1)
+- `opts.forceWorker`: アニメ中でもメインスレッドフォールバックせずWorkerパス強制 (365モード用)
+
+**`updateDP365Lines`**: `{ stepSeconds: 60, forceWorker: true }` を渡す:
+
+```js
+calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true })
+```
+
+これで:
+- 1チャンク (1時間) 当たり最大 3600 → 60 ポイント (60×削減)
+- 365日 × 5天体 × 60点/時間 × 6〜12時間 ≈ 65万〜130万 → 1万〜2万 ポイントへ
+- スマホでもメモリ枯渇しにくくなります
+
+**他の動作への影響なし**: 通常の辻ライン (`updateDPLines`) は引数を渡さないため、従来通り1秒精度のまま動作します。
+
+#### 2. キャンセル時のボタンラベル復元
+
+**バグの原因**: `updateDP365Lines` の `finally` ブロックは「自分の世代がまだアクティブな時のみ」ラベルを復元していたため、ユーザーがOFFトグル → `dp365CurrentGeneration++` の時、orphan は既に古い世代になっており finally の条件分岐がfalseとなり、ラベルが「XX%」のままでした。
+
+**修正**: `toggleDP365()` のOFF分岐で**即座にラベルを復元**:
+
+```js
+} else {
+    btn.classList.remove('active');
+    btn.textContent = '辻'; // ← 進捗表示(XX%)が残らないように即座にラベル復元
+    dp365Layer.clearLayers();
+    dp365CurrentGeneration++;
+}
+```
+
+orphan async の `.then()` 内では `if (generation !== dp365CurrentGeneration) return;` チェックを通るため、キャンセル後の遅延ポイント描画やラベル更新は行われず、リセット済みラベルが上書きされる心配もありません。
+

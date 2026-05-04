@@ -52,17 +52,19 @@ self.onmessage = (e) => {
         body, observerData, refractionEnabled, k,
         startOfDayMs, hourStart, hourEnd,
         valElev, targetElev, limit, distLimit,
-        taskId
+        taskId,
+        stepSeconds  // optional: サンプリング間隔(秒) デフォルト 1
     } = e.data;
 
     const observer = new A.Observer(observerData.lat, observerData.lng, observerData.elev);
     const refr = refractionEnabled ? 'normal' : null;
     const points = [];
 
+    const stepSec = (stepSeconds && stepSeconds > 0) ? stepSeconds : 1;
     const startSec = hourStart * 3600;
     const endSec = hourEnd * 3600;
 
-    for (let s = startSec; s < endSec; s++) {
+    for (let s = startSec; s < endSec; s += stepSec) {
         const time = new Date(startOfDayMs + s * 1000);
         let r, d;
         if (body.fixed) {

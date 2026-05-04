@@ -1362,7 +1362,7 @@ async function updateDP365Lines() {
             for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
                 const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
                 for (const body of visibleBodies) {
-                    batchTasks.push(calculateDPPathPoints(day, body, observer).then(pts => {
+                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
                         drawDP365Path(pts, body.color);
                         doneWork++;
@@ -1703,8 +1703,9 @@ function toggleDP365() {
         updateDP365Lines();
     } else {
         btn.classList.remove('active');
+        btn.textContent = '辻'; // 進捗表示(XX%)が残らないように即座にラベル復元
         dp365Layer.clearLayers();
-        dp365CurrentGeneration++; // 進行中の計算を破棄
+        dp365CurrentGeneration++; // 進行中の計算を破棄 (orphan async は generation チェックで早期 return)
     }
     saveAppState();
 }
@@ -1803,7 +1804,12 @@ function dpPoolCancelQueued() {
     dpWorkerPool.queue = [];
 }
 
-async function calculateDPPathPoints(targetDate, body, observer) {
+async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
+    // opts.stepSeconds: Worker内サンプリング間隔(秒) デフォルト 1
+    // opts.forceWorker: アニメ中でもメインスレッドフォールバックせずWorkerパスを強制
+    const stepSeconds = opts.stepSeconds || 1;
+    const forceWorker = !!opts.forceWorker;
+
     const startOfDay = new Date(targetDate.getTime());
     startOfDay.setHours(0, 0, 0, 0);
     const startOfDayMs = startOfDay.getTime();
@@ -1848,7 +1854,8 @@ async function calculateDPPathPoints(targetDate, body, observer) {
     if (hoursToProcess.length === 0) return [];
 
     // アニメーション中: 1分間隔の粗いサンプリング (メインスレッドで同期処理、軽量)
-    if (appState.isMoving) {
+    // (forceWorker 指定時はこの分岐をスキップしてWorkerパスを使う)
+    if (appState.isMoving && !forceWorker) {
         const path = [];
         for (const h of hoursToProcess) {
             for (let m = 0; m < 60; m++) {
@@ -1883,6 +1890,7 @@ async function calculateDPPathPoints(targetDate, body, observer) {
             limit,
             distLimit: 500000,
             taskId,
+            stepSeconds,  // 365モードでは60(1分)、通常は1(1秒)
         });
     });
 
