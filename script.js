@@ -4504,7 +4504,8 @@ function decorateMyTsujiResults(results) {
         }
         const dt = r.time;
         const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-        const dateStr = `${dt.getFullYear()}年${String(dt.getMonth()+1).padStart(2,'0')}月${String(dt.getDate()).padStart(2,'0')}日(${dow})`;
+        const dateStr = `${dt.getFullYear()}年${String(dt.getMonth()+1).padStart(2,'0')}月${String(dt.getDate()).padStart(2,'0')}日`;
+        const dowStr = `(${dow})`;
         const timeStr = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
         const observer = new Astronomy.Observer(r.obs.lat, r.obs.lng, (r.obs.elev || 0) + (r.obs.height || 0));
         const angularRadius = getBodyAngularRadius(r.body.id, dt, observer);
@@ -4517,7 +4518,7 @@ function decorateMyTsujiResults(results) {
             moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2));
             moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
         } catch (_) {}
-        return { ...r, symbol, dateStr, timeStr, moonAge, moonIcon, angularRadius,
+        return { ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, angularRadius,
                  sunriseStr, sunsetStr, moonriseStr, moonsetStr };
     }).filter(Boolean);
 }
@@ -4643,7 +4644,7 @@ async function runBatchMyTsujiSearch() {
         <th>観測点ID</th><th>観測点名</th>
         <th>目的点ID</th><th>目的点名</th>
         <th>精度記号</th><th>精度角距離</th>
-        <th>日付</th><th>辻時刻</th>
+        <th>日付</th><th>曜日</th><th>辻時刻</th>
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
         <th>月齢</th><th>月齢アイコン</th>
@@ -4668,6 +4669,7 @@ async function runBatchMyTsujiSearch() {
             <td>${r.symbol}</td>
             <td>${r.dist.toFixed(5)}°</td>
             <td>${r.dateStr}</td>
+            <td>${r.dowStr}</td>
             <td>${r.timeStr}</td>
             <td>${r.sunriseStr}</td>
             <td>${r.sunsetStr}</td>
@@ -4708,6 +4710,7 @@ async function runBatchMyTsujiSearch() {
         { label: '精度記号', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
         { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
         { label: '日付', compare: (a, b) => a.time - b.time },
+        { label: '曜日', compare: (a, b) => a.time.getDay() - b.time.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
         { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
         { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
@@ -4786,7 +4789,9 @@ function buildMyTsujiCsvRow(r) {
     urlParams.set('mode', 'preview');
     const previewUrl = buildBaseUrl() + '?' + urlParams.toString();
 
-    const dowStr = `${dt.getFullYear()}年${String(dt.getMonth()+1).padStart(2,'0')}月${String(dt.getDate()).padStart(2,'0')}日(${['日','月','火','水','木','金','土'][dt.getDay()]})`;
+    // CSV用: YYYY/MM/DD (Excel加工しやすい形式) + 曜日は単独カラム
+    const csvDateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`;
+    const csvDowStr = ['日','月','火','水','木','金','土'][dt.getDay()];
 
     // 相手距離・相手方位・相手高度 (観測点→目的点の地理計算)
     const obsLat = r.obs.lat ?? 0, obsLng = r.obs.lng ?? 0;
@@ -4805,7 +4810,9 @@ function buildMyTsujiCsvRow(r) {
     return [
         r.tsuji.id,
         r.tsuji.name ?? '',
-        dowStr,
+        r.tsuji.memo ?? '',
+        csvDateStr,
+        csvDowStr,
         fmtHms(dt),
         fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
         r.moonAge.toFixed(1),
@@ -4820,11 +4827,13 @@ function buildMyTsujiCsvRow(r) {
         obsLng.toFixed(6) + '°',
         (r.obs.elev ?? 0).toFixed(1) + 'm',
         (r.obs.height ?? 0).toFixed(1) + 'm',
+        r.obs.memo ?? '',
         r.tgt.id, r.tgt.name ?? '',
         tgtLat.toFixed(6) + '°',
         tgtLng.toFixed(6) + '°',
         (r.tgt.elev ?? 0).toFixed(1) + 'm',
         (r.tgt.height ?? 0).toFixed(1) + 'm',
+        r.tgt.memo ?? '',
         r.symbol,
         r.dist.toFixed(5) + '°',
         r.azimuth.toFixed(4) + '°',
@@ -4837,7 +4846,6 @@ function buildMyTsujiCsvRow(r) {
         offsetAlt.toFixed(4) + '°',
         offsetAzDist.toFixed(1) + 'm',
         offsetAltDist.toFixed(1) + 'm',
-        r.tsuji.memo ?? '',
         previewUrl
     ];
 }
@@ -4913,20 +4921,20 @@ async function fileBatchMyTsujiSearch() {
     statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
 
     const header = [
-        '辻検索ID','辻検索名','日付','辻時刻',
+        '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
         '月齢','月齢アイコン',
         '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明[始]時刻',
         '日の出時刻','日の入時刻',
         '常用薄明[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
         '天体ID','天体名','天体赤緯','天体赤経',
-        '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高',
-        '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高',
+        '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高','観測点メモ',
+        '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高','目的点メモ',
         '精度記号','精度角距離',
         '方位角','視高度','視半径',
         '相手距離','相手方位','相手高度',
         'オフセット方位角','オフセット視高度','オフセット方位距離','オフセット視高距離',
-        'メモ','プレビューURL'
+        'プレビューURL'
     ];
     const esc = v => {
         const s = String(v ?? '');
@@ -5672,7 +5680,8 @@ async function startTsujiSearch() {
 
             const dt = r.time;
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-            const dateStr = `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日(${dow})`;
+            const dateStr = `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`;
+            const dowStr = `(${dow})`;
             const timeStr = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
 
             const angR = getBodyAngularRadius(body.id, dt, observer);
@@ -5701,7 +5710,7 @@ async function startTsujiSearch() {
             }
 
             rowData.push({
-                body, symbol, dateStr, timeStr, dateObj: dt,
+                body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
                 angularRadius: angR, moonAge, moonIcon,
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
@@ -5712,7 +5721,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="14">${escapeHtml(body.name)}: and more…</td>`;
+            tr.innerHTML = `<td colspan="16">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -5729,7 +5738,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.timeStr}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(2)}°</td><td>${r.altitude.toFixed(2)}°</td><td>${angRDisplay}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -5741,7 +5750,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>辻時刻</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -5750,6 +5759,7 @@ async function startTsujiSearch() {
     contentEl.appendChild(table);
 
     setupTableSort(table, rowData, [
+        { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
         { label: '天体名', compare: (a, b) => {
             const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
             const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
@@ -5758,6 +5768,7 @@ async function startTsujiSearch() {
         { label: '精度記号', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
         { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
         { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '曜日', compare: (a, b) => a.dateObj.getDay() - b.dateObj.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
         { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
         { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
