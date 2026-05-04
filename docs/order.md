@@ -391,3 +391,77 @@ Claudeさん、ありがとうございます。
 
 あと、私の伝え方が良くなかったのですが、表示天体メニューで表示を切り替えた時に、表示・再表示出来るようにしたいです。
 何か疑問点や質問はありますでしょうか。
+
+### 回答 (2026-05-04) — 表示天体トグルに連動した辻ライン365の表示/再表示
+
+#### 質問はありません — 仕様を以下のように設計しました
+
+「再計算は重い」 (1分間隔でも数分かかる) ため、単純な「全再計算」ではなく **天体ごとレイヤー + 計算済みキャッシュ** で実装しました。これにより既に計算済みの天体は再計算なしで瞬時に表示・非表示を切り替えできます。
+
+#### 1. データ構造の変更 (`dp365LayerByBody` + `dp365CalculatedBodies`)
+
+旧: 単一 `dp365Layer = L.layerGroup()` に全天体の線をまとめて描画
+新:
+```js
+let dp365LayerByBody = {};      // body.id -> L.layerGroup
+let dp365CalculatedBodies = new Set();  // 365日分の計算が完了した天体ID
+```
+
+各天体ごとに独立したレイヤーグループを保持し、map への add/remove で表示・非表示を制御します。
+
+#### 2. `toggleVisibility` フック
+
+表示天体メニューのチェックボックス変更時に `updateDP365Lines()` を呼び出し:
+
+```js
+function toggleVisibility(id, checked) {
+    // ...既存処理...
+    if (appState.isDP365Active) {
+        updateDP365Lines();
+    }
+}
+```
+
+#### 3. `updateDP365Lines` のスマート化
+
+```js
+async function updateDP365Lines() {
+    const generation = ++dp365CurrentGeneration;
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    const visibleIds = new Set(visibleBodies.map(b => b.id));
+
+    // (a) 非表示になった天体: レイヤーをmapから外す (キャッシュは保持)
+    Object.entries(dp365LayerByBody).forEach(([id, layer]) => {
+        if (!visibleIds.has(id) && map.hasLayer(layer)) {
+            layer.removeFrom(map);
+        }
+    });
+    // (b) 計算済み・表示中の天体: 即座にmapに追加 (再計算なし)
+    visibleBodies.forEach(body => {
+        if (dp365CalculatedBodies.has(body.id)) {
+            const layer = ensureDP365LayerForBody(body.id);
+            if (!map.hasLayer(layer)) layer.addTo(map);
+        }
+    });
+    // (c) 未計算の天体だけ計算
+    const newBodies = visibleBodies.filter(b => !dp365CalculatedBodies.has(b.id));
+    if (newBodies.length === 0) return;  // 全て計算済みなら即終了
+    // ... (newBodies のみ 365日 × プールバッチで計算) ...
+}
+```
+
+#### 4. 振る舞い表
+
+| シナリオ | 動作 |
+|---|---|
+| 365 OFF→ON (Sun, Moon表示中) | Sun, Moon の365日分を計算 (数分) |
+| Marsチェック (Sun, Moon計算済) | **Mars のみ計算** (Sun, Moon は再計算しない) |
+| Sun チェック解除 | Sun のレイヤーを map から外すだけ (即時) |
+| Sun チェック再投入 | キャッシュ済みなのでレイヤーを map に再追加 (即時) |
+| 365 OFF→ON | キャッシュをクリア → 全可視天体を再計算 (位置/日付変更後の更新はこれで) |
+
+#### 5. 既知のリミテーション
+
+- 観測点・目的点・日付・気象パラメータを変更してもキャッシュは無効化されません。最新値で再計算したい場合は **365 OFF→ON** で完全リフレッシュしてください (ボタンOFF時に `clearAllDP365Layers()` でキャッシュ全クリア)。
+- 計算中(`%`表示中)に追加で天体をチェックすると、進行中計算は generation チェックでキャンセルされ、新規天体含む再計算が始まります。既存天体の計算が完了していなければ完了マークもされないため、再計算時に再度処理されます。
+

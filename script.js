@@ -160,7 +160,9 @@ let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
-let dp365Layer;
+// 辻ライン365 — 天体ごとに L.layerGroup を保持し、表示天体メニューの切替に高速応答する
+let dp365LayerByBody = {}; // body.id -> L.layerGroup (mapに追加されている時のみ表示中)
+let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
 let dp365CurrentGeneration = 0;
 
 // ★ 全てを管理する状態オブジェクト
@@ -473,7 +475,6 @@ function initMap() {
     linesLayer = L.layerGroup().addTo(map);
     locationLayer = L.layerGroup().addTo(map);
     dpLayer = L.layerGroup().addTo(map);
-    dp365Layer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
 }
@@ -1328,23 +1329,49 @@ async function updateDPLines() {
     });
 }
 
+/** 天体IDのlayerGroupを取得(無ければ作成) */
+function ensureDP365LayerForBody(bodyId) {
+    if (!dp365LayerByBody[bodyId]) {
+        dp365LayerByBody[bodyId] = L.layerGroup();
+    }
+    return dp365LayerByBody[bodyId];
+}
+
 /** 辻ライン365 — 直近1年(365日分)の◎精度の辻ラインを破線のみで描画。
- *  各日のラインは独立したセグメントとして描画され、5分マーカーや時刻表示は無い。
- *  DPプール (dp-line-worker) に各日のチャンクを投入して並列処理する。
- *  UIフリーズを避けるため、日数をバッチ単位で処理して間に yield する。 */
+ *  各天体ごとに L.layerGroup を作成し、表示天体メニューの切替で:
+ *  - チェック→ レイヤーが既に計算済みなら即時 mapに追加 (高速)、未計算なら新規計算
+ *  - チェック解除→ そのレイヤーを mapから外す (キャッシュは保持、再表示で復元)
+ *  非表示の天体や、観測点/目的点/日付変更後の再計算は OFF→ON で実施。 */
 async function updateDP365Lines() {
     const generation = ++dp365CurrentGeneration;
-    dp365Layer.clearLayers();
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
     const visibleBodies = appState.bodies.filter(b => b.visible);
+    const visibleIds = new Set(visibleBodies.map(b => b.id));
+
+    // 非表示になった天体のレイヤーを map から外す (キャッシュは残す)
+    Object.entries(dp365LayerByBody).forEach(([id, layer]) => {
+        if (!visibleIds.has(id) && map.hasLayer(layer)) {
+            layer.removeFrom(map);
+        }
+    });
+    // 計算済み・表示中の天体は即座にレイヤーをmapに追加 (高速)
+    visibleBodies.forEach(body => {
+        if (dp365CalculatedBodies.has(body.id)) {
+            const layer = ensureDP365LayerForBody(body.id);
+            if (!map.hasLayer(layer)) layer.addTo(map);
+        }
+    });
+
+    // 未計算の天体だけを計算対象に
+    const newBodies = visibleBodies.filter(b => !dp365CalculatedBodies.has(b.id));
+    if (newBodies.length === 0) return;
 
     const btn = document.getElementById('btn-dp365');
-    const origLabel = '辻';
     const totalDays = 365;
-    const totalWork = totalDays * visibleBodies.length;
+    const totalWork = totalDays * newBodies.length;
     let doneWork = 0;
     const updateLabel = () => {
         const pct = Math.round(doneWork / totalWork * 100);
@@ -1352,19 +1379,21 @@ async function updateDP365Lines() {
     };
     updateLabel();
 
-    // バッチ単位で並列実行 (1バッチ = BATCH_DAYS日 × 全天体)
-    // 各バッチ完了後に await で yield して UI ブロックを回避
-    const BATCH_DAYS = DP_POOL_SIZE; // プールサイズと同程度が効率的
+    // バッチ単位で並列実行 (1バッチ = BATCH_DAYS日 × 新規天体)
+    // バッチ間で await して UI ブロックを回避
+    const BATCH_DAYS = DP_POOL_SIZE;
     try {
         for (let dOff = 0; dOff < totalDays; dOff += BATCH_DAYS) {
             if (generation !== dp365CurrentGeneration) return;
             const batchTasks = [];
             for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
                 const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
-                for (const body of visibleBodies) {
+                for (const body of newBodies) {
                     batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
-                        drawDP365Path(pts, body.color);
+                        const layer = ensureDP365LayerForBody(body.id);
+                        if (!map.hasLayer(layer)) layer.addTo(map);
+                        drawDP365Path(pts, body.color, layer);
                         doneWork++;
                         updateLabel();
                     }));
@@ -1372,16 +1401,20 @@ async function updateDP365Lines() {
             }
             await Promise.all(batchTasks);
         }
+        // 全完了したら計算済みマーク
+        if (generation === dp365CurrentGeneration) {
+            newBodies.forEach(b => dp365CalculatedBodies.add(b.id));
+        }
     } finally {
         if (generation === dp365CurrentGeneration) {
-            btn.textContent = origLabel;
+            btn.textContent = '辻';
         }
     }
 }
 
 /** 辻ライン365 用の軽量描画 (◎破線のみ、マーカー無し)。
- *  drawDPPath の同等処理だが dp365Layer に追加し、azOffset/markerは固定。 */
-function drawDP365Path(points, color) {
+ *  指定された targetLayer (天体ごとの L.layerGroup) に追加する。 */
+function drawDP365Path(points, color, targetLayer) {
     if (!points || points.length === 0) return;
     const targetPt = appState.end;
     let segments = [];
@@ -1407,7 +1440,7 @@ function drawDP365Path(points, color) {
             weight: 3,
             opacity: 0.6,
             dashArray: '13, 13'
-        }).addTo(dp365Layer);
+        }).addTo(targetLayer);
     });
 }
 
@@ -1695,6 +1728,16 @@ function toggleDP() {
     updateAll();
 }
 
+/** 全ての辻ライン365レイヤーをmapから外し、キャッシュをクリア */
+function clearAllDP365Layers() {
+    Object.values(dp365LayerByBody).forEach(layer => {
+        if (map.hasLayer(layer)) layer.removeFrom(map);
+        layer.clearLayers();
+    });
+    dp365LayerByBody = {};
+    dp365CalculatedBodies.clear();
+}
+
 function toggleDP365() {
     appState.isDP365Active = !appState.isDP365Active;
     const btn = document.getElementById('btn-dp365');
@@ -1704,7 +1747,7 @@ function toggleDP365() {
     } else {
         btn.classList.remove('active');
         btn.textContent = '辻'; // 進捗表示(XX%)が残らないように即座にラベル復元
-        dp365Layer.clearLayers();
+        clearAllDP365Layers();
         dp365CurrentGeneration++; // 進行中の計算を破棄 (orphan async は generation チェックで早期 return)
     }
     saveAppState();
@@ -5090,6 +5133,10 @@ function toggleVisibility(id, checked) {
         body.visible = checked;
         saveAppState();
         updateAll();
+        // 辻ライン365 連動: 表示天体が変わったら再計算 (世代カウンタで進行中をキャンセル)
+        if (appState.isDP365Active) {
+            updateDP365Lines();
+        }
     }
 }
 
