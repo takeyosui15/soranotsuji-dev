@@ -597,7 +597,10 @@ function setupUI() {
         saveAppState();
     });
     document.getElementById('input-tsuji-search-days').addEventListener('change', (e) => {
-        appState.tsujiSearchDays = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 36500);
+        // step=365, min=0 だが、内部値は最小1に正規化 (0日検索は無効)
+        let v = parseInt(e.target.value);
+        if (isNaN(v)) v = 365;
+        appState.tsujiSearchDays = Math.min(Math.max(v, 1), 36500);
         e.target.value = appState.tsujiSearchDays;
         saveAppState();
     });
@@ -4767,7 +4770,7 @@ function renderMyTsujiSearches() {
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">検索期間(日):</label>
-                <input type="number" class="mytsuji-days" value="${t.days !== undefined ? t.days : ''}" placeholder="検索期間(日:最大36500)" step="365" min="1" max="36500" data-id="${t.id}">
+                <input type="number" class="mytsuji-days" value="${t.days !== undefined ? t.days : ''}" placeholder="検索期間(日:最大36500)" step="365" min="0" max="36500" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">天体ID:</label>
@@ -4850,7 +4853,10 @@ function renderMyTsujiSearches() {
 
         onChange('mytsuji-name', e => { t.name = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-days', e => {
-            const v = Math.min(Math.max(parseInt(e.target.value) || 365, 1), 36500);
+            // step=365, min=0 だが、内部値は最小1に正規化 (0日検索は無効)
+            let v = parseInt(e.target.value);
+            if (isNaN(v)) v = 365;
+            v = Math.min(Math.max(v, 1), 36500);
             t.days = v; e.target.value = v; saveAppState(); setMyTsujiDirty(true);
         });
         onChange('mytsuji-bodyids', e => { t.bodyIds = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
