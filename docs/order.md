@@ -347,3 +347,21 @@ Claudeさん、ありがとうございます。
 - My辻検索をした時に、辻検索ボタンでのキャンセルではなくて、一括計算とFile取得のトグルボタンで、キャンセルができるようにする。また、一括計算とFile取得を同時に実行した時、独立して実行できるようにする。
 - 辻検索とMy辻検索の計算中の進捗状況を標高グラフの進捗バーのように表示する。
 
+### 回答 (2026-05-03) — autocomplete無効化 + 月齢初期値14.8 (部分回答)
+
+#### 1. 全テキストボックスのautocomplete無効化
+`setupUI()` 内で、すべての `<input>` 要素に `autocomplete="off"` を一括設定:
+```js
+document.querySelectorAll('input').forEach(el => el.setAttribute('autocomplete', 'off'));
+```
+これでブラウザのフォーム復元が全ての入力欄で無効になります。
+
+#### 2. 月齢フィルタの基準月齢初期値を 15 → 14.8 に変更
+- `appState.tsujiMoonBase: 14.8`
+- My辻検索の行追加/辻検索取得時のデフォルト: `moonBase: 14.8`
+- CSVパーサーのフォールバック値: `parseNumOr(cols[13], 14.8)`
+- `decorateMyTsujiResults` / `copyMyTsujiSearchUrl` のフォールバック値: `?? 14.8`
+
+#### 3-4. 一括計算/File取得のキャンセル + 進捗バー (次コミットで対応)
+これらは実装の複雑度が高いため、次のコミットで対応します。
+

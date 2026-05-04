@@ -253,7 +253,7 @@ let appState = {
 
     // 辻検索: 月齢フィルタ
     tsujiMoonFilterEnabled: false,
-    tsujiMoonBase: 15,
+    tsujiMoonBase: 14.8,
     tsujiMoonTolerance: 2,
 
     // 精度フィルタ
@@ -477,6 +477,8 @@ function initMap() {
 // ============================================================
 
 function setupUI() {
+    // 全テキストボックスのautocomplete無効化 (ブラウザのフォーム復元を防止)
+    document.querySelectorAll('input').forEach(el => el.setAttribute('autocomplete', 'off'));
     document.getElementById('btn-help').onclick = toggleHelp;
 
     // 日時変更
@@ -3729,7 +3731,7 @@ function addMyTsujiRow() {
         baseAz: null, baseAlt: null,
         offsetAz: 0, offsetAlt: 0,
         toleranceAz: 15, toleranceAlt: 15,
-        moonFilter: false, moonBase: 15, moonTolerance: 2,
+        moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
         checked: false, memo: ''
     };
@@ -3957,7 +3959,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         const v = toHalfWidth(cols[12].trim()).toUpperCase();
         moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
     }
-    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 15), 0), 30);
+    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 14.8), 0), 30);
     const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
     // 16-20列目: 精度フィルタ (省略時はfalse)
     const parseBoolOr = (v) => {
@@ -4126,7 +4128,7 @@ function exportMyTsujiCsv() {
             t.toleranceAz ?? 15,
             t.toleranceAlt ?? 15,
             t.moonFilter ? 'ON' : 'OFF',
-            t.moonBase ?? 15,
+            t.moonBase ?? 14.8,
             t.moonTolerance ?? 2,
             t.accuracyFilter ? 'ON' : 'OFF',
             t.accDblCircle ? 'ON' : 'OFF',
@@ -4204,7 +4206,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAzTolerance', String(t.toleranceAz ?? 15));
     params.set('tsujiAltTolerance', String(t.toleranceAlt ?? 15));
     params.set('tsujiMoonFilter', t.moonFilter ? 'true' : 'false');
-    params.set('tsujiMoonBase', String(t.moonBase ?? 15));
+    params.set('tsujiMoonBase', String(t.moonBase ?? 14.8));
     params.set('tsujiMoonTolerance', String(t.moonTolerance ?? 2));
     params.set('tsujiAccuracyFilter', t.accuracyFilter ? 'true' : 'false');
     params.set('tsujiAccDblCircle', t.accDblCircle ? 'true' : 'false');
