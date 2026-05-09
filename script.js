@@ -1316,9 +1316,15 @@ async function updateDPLines() {
     allComputed.forEach(({ body, pPrev, pNext, pCurr }) => {
         drawDPPath(pPrev, body.color, '1, 13', false);
         drawDPPath(pNext, body.color, '1, 13', false);
-        drawDPPath(pCurr, body.color, '13, 13', true);
+        // 丁度 — 実線 (天体の中心が目的点に完全に重なる位置)
+        drawDPPath(pCurr, body.color, null, true);
 
-        // 視半径エッジライン (一点鎖線) — ○ 精度の境界 (±angR)
+        // ◎ 精度の境界 (±0.125°) — 破線
+        const dashLine = '13, 13';
+        drawDPPath(pCurr, body.color, dashLine, false, +0.125);
+        drawDPPath(pCurr, body.color, dashLine, false, -0.125);
+
+        // ○ 精度の境界 (±angR: 視半径) — 一点鎖線
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
         if (angR >= 0.01) {
             const dashDot = '1, 13, 13, 13';
