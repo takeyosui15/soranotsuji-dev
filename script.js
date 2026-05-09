@@ -1430,8 +1430,8 @@ function drawDP365Path(points, color, targetLayer) {
     let currentSegment = [];
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const obsAz = (p.az + 540) % 360;
-        const dest = getDestinationGeodesic(targetPt.lat, targetPt.lng, obsAz, p.dist);
+        const desiredBearing = ((p.az) % 360 + 360) % 360;
+        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
         const pt = [dest.lat, dest.lng];
         if (currentSegment.length > 0) {
             const prev = points[i - 1];
@@ -1969,10 +1969,10 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
 
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const obsAz = (p.az + offset + 540) % 360; // +180 して逆方位 + offset
-        const dest = getDestinationGeodesic(targetPt.lat, targetPt.lng, obsAz, p.dist);
+        const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
+        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
         const pt = [dest.lat, dest.lng];
-        
+
         if (currentSegment.length > 0) {
             const prev = points[i-1];
             if (Math.abs(p.az - prev.az) > 5) {
@@ -2067,7 +2067,9 @@ function getFixedStarRaDec(bodyId) {
  * @param {number} hTarget ターゲットの標高 (m)
  */
 function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
-    // 地球半径 (定数より取得)
+    // 球面近似 (R = 赤道半径)。WGS84 局所半径 (~6373km @lat35°) との差は ~0.08%
+    // (100km で ~80m)。子午線収差による back-bearing 誤差 (drawDPPath 側で対処済)
+    // に比べ十分小さいため、現行の近似を維持する。
     const R = EARTH_RADIUS;
     
     // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
@@ -2111,11 +2113,30 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
 function getDestinationGeodesic(lat1, lon1, az, dist) {
     // WGS84楕円体を使用
     const geod = geodesic.Geodesic.WGS84;
-    
+
     // Direct(順解法): 始点(lat1, lon1), 方位(az), 距離(dist) -> 終点
     // GeographicLibのDirectメソッドは { lat2, lon2, ... } を返します
     const r = geod.Direct(lat1, lon1, az, dist);
 
+    return { lat: r.lat2, lng: r.lon2 };
+}
+
+/** 目的点 (target) から「観測点→目的点の方位 = desiredBearing」となる観測点 P を距離 L で求める。
+ *  WGS84 上では forward/back bearing が厳密に 180° 差ではない (子午線収差) ため、
+ *  geod.Direct の azi2 (到着点での方位) を使って Newton 反復で正確な初期方位を求める。
+ *  通常 2-4 回で tolerance 1e-7° (≈ 1mm @ 100km) に収束する。 */
+function getObserverFromTargetBackAzimuth(targetLat, targetLng, desiredBearing, L) {
+    const geod = geodesic.Geodesic.WGS84;
+    let initAz = ((desiredBearing + 180) % 360 + 360) % 360;
+    let r = geod.Direct(targetLat, targetLng, initAz, L);
+    for (let iter = 0; iter < 6; iter++) {
+        const currentBackAz = ((r.azi2 + 180) % 360 + 360) % 360;
+        let delta = desiredBearing - currentBackAz;
+        delta = ((delta + 540) % 360) - 180;
+        if (Math.abs(delta) < 1e-7) break;
+        initAz = ((initAz + delta) % 360 + 360) % 360;
+        r = geod.Direct(targetLat, targetLng, initAz, L);
+    }
     return { lat: r.lat2, lng: r.lon2 };
 }
 
