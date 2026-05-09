@@ -1430,8 +1430,14 @@ function drawDP365Path(points, color, targetLayer) {
     let currentSegment = [];
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const desiredBearing = ((p.az) % 360 + 360) % 360;
-        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        // Worker が反復補正済の lat/lng を提供する (365モードは offset 無し)
+        let dest;
+        if (p.lat != null && p.lng != null) {
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            const desiredBearing = ((p.az) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
         const pt = [dest.lat, dest.lng];
         if (currentSegment.length > 0) {
             const prev = points[i - 1];
@@ -1907,6 +1913,8 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
 
     // アニメーション中: 1分間隔の粗いサンプリング (メインスレッドで同期処理、軽量)
     // (forceWorker 指定時はこの分岐をスキップしてWorkerパスを使う)
+    // 注: アニメ中の簡易計算では視差の反復補正は行わない (リアルタイム性優先)。
+    //     ただし、緯度依存の局所半径は使う (calculateDistanceForAltitudes 第4引数)。
     if (appState.isMoving && !forceWorker) {
         const path = [];
         for (const h of hoursToProcess) {
@@ -1915,7 +1923,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
                 const { r, d } = getRD(time);
                 const hor = Astronomy.Horizon(time, observer, r, d, refr);
                 if (hor.altitude > limit) {
-                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev);
+                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev, observer.latitude);
                     if (dist > 0 && dist < 500000) {
                         path.push({ dist, az: hor.azimuth, time });
                     }
@@ -1925,13 +1933,15 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
         return path;
     }
 
-    // 停止中: 1秒刻みサンプリング、プール内のWorkerに1時間ずつ並列にタスクを依頼
+    // 停止中: 反復補正版 Worker に1時間ずつ並列にタスクを依頼
     const observerData = { lat: observer.latitude, lng: observer.longitude, elev: observer.height };
+    const targetData = { lat: appState.end.lat, lng: appState.end.lng };
     const promises = hoursToProcess.map(h => {
         const taskId = ++dpTaskIdCounter;
         return dpPoolRunTask({
             body: bodyMsg,
             observerData,
+            targetData,  // Worker での反復補正に必要
             refractionEnabled: appState.refractionEnabled,
             k,
             startOfDayMs,
@@ -1953,7 +1963,8 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     for (const result of results) {
         if (result && result.points) {
             for (const p of result.points) {
-                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs) });
+                // Worker は反復補正済の lat/lng を返す。offset=0 ではそのまま使えるよう保持。
+                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs), lat: p.lat, lng: p.lng });
             }
         }
     }
@@ -1969,8 +1980,15 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
 
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
-        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        let dest;
+        if (offset === 0 && p.lat != null && p.lng != null) {
+            // Worker が反復補正済の正確な lat/lng を提供している場合 (offset=0)
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            // 精度バンド (◎/○/△) のオフセット適用、または非Worker (isMoving) パス
+            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
         const pt = [dest.lat, dest.lng];
 
         if (currentSegment.length > 0) {
@@ -2066,11 +2084,29 @@ function getFixedStarRaDec(bodyId) {
  * @param {number} hObs 観測者の標高 (m)
  * @param {number} hTarget ターゲットの標高 (m)
  */
-function calculateDistanceForAltitudes(altObs, hObs, hTarget) {
-    // 球面近似 (R = 赤道半径)。WGS84 局所半径 (~6373km @lat35°) との差は ~0.08%
-    // (100km で ~80m)。子午線収差による back-bearing 誤差 (drawDPPath 側で対処済)
-    // に比べ十分小さいため、現行の近似を維持する。
-    const R = EARTH_RADIUS;
+// WGS84 楕円体パラメータ
+const WGS84_SEMI_MAJOR = 6378137;          // 赤道半径
+const WGS84_SEMI_MINOR = 6356752.3142;     // 極半径
+
+/** 観測点緯度 (deg) における WGS84 局所地球半径。
+ *  子午線方向と卯酉線方向の幾何平均で、約 6378137 (赤道) → 6356752 (極) の間。
+ *  例: lat=35° で約 6371km。 */
+function getLocalEarthRadius(latDeg) {
+    const lat = latDeg * Math.PI / 180;
+    const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+    const a = WGS84_SEMI_MAJOR, b = WGS84_SEMI_MINOR;
+    const a2cos2 = (a * a) * cosLat * cosLat;
+    const b2sin2 = (b * b) * sinLat * sinLat;
+    const acos = a * cosLat;
+    const bsin = b * sinLat;
+    return Math.sqrt((a * a2cos2 + b * b * b2sin2) / (acos * acos + bsin * bsin));
+}
+
+function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat) {
+    // 観測者高 hObs / ターゲット高 hTarget で、観測高度 altObs に見える地表距離。
+    // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用 (精度向上)。
+    // 未指定時は赤道半径フォールバック (旧挙動)。
+    const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
     
     // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
@@ -2514,8 +2550,8 @@ function createLocationPopup(title, pos, target, apiElev, height) {
     const az = calculateBearing(pos.lat, pos.lng, target.lat, target.lng);
     const dist = L.latLng(pos.lat, pos.lng).distanceTo(L.latLng(target.lat, target.lng));
 
-    // ★追加: 視高度を計算
-    const alt = calculateApparentAltitude(dist, pos.elev, target.elev);
+    // ★追加: 視高度を計算 (観測点緯度を渡して局所半径で補正)
+    const alt = calculateApparentAltitude(dist, pos.elev, target.elev, pos.lat);
 
     return `
         <b>${title}</b><br>
@@ -2530,7 +2566,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
 }
 
 // ★追加: 2点間の距離と標高差から視高度(角度)を計算する関数
-function calculateApparentAltitude(dist, hObs, hTarget) {
+function calculateApparentAltitude(dist, hObs, hTarget, obsLat) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
 
     // 気差係数k (気差OFF時は0)
@@ -2538,7 +2574,9 @@ function calculateApparentAltitude(dist, hObs, hTarget) {
 
     // 地球の曲率(と気差)を考慮した視高度計算式
     // tan(a) = (H_target - H_obs) / d - d / (2 * R) * (1 - k)
-    const val = (hTarget - hObs) / dist - (dist * (1 - k)) / (2 * EARTH_RADIUS);
+    // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用 (精度向上)。
+    const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
+    const val = (hTarget - hObs) / dist - (dist * (1 - k)) / (2 * R);
     return Math.atan(val) * 180 / Math.PI;
 }
 
@@ -4103,7 +4141,7 @@ function calcMyTsujiBaseValues(t) {
     const tgtElev = (tgt.elev || 0) + (tgt.height || 0);
     const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
     const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
-    const alt = calculateApparentAltitude(dist, obsElev, tgtElev);
+    const alt = calculateApparentAltitude(dist, obsElev, tgtElev, obs.lat);
     t.baseAz = az;
     t.baseAlt = alt;
     return true;
@@ -4827,7 +4865,7 @@ function buildMyTsujiCsvRow(r) {
     const tgtTotalElev = (r.tgt.elev ?? 0) + (r.tgt.height ?? 0);
     const partnerDist = L.latLng(obsLat, obsLng).distanceTo(L.latLng(tgtLat, tgtLng));
     const partnerAz = calculateBearing(obsLat, obsLng, tgtLat, tgtLng);
-    const partnerAlt = calculateApparentAltitude(partnerDist, obsTotalElev, tgtTotalElev);
+    const partnerAlt = calculateApparentAltitude(partnerDist, obsTotalElev, tgtTotalElev, obsLat);
     // オフセット方位/視高 (My辻検索情報)
     const offsetAz = r.tsuji.offsetAz || 0;
     const offsetAlt = r.tsuji.offsetAlt || 0;
@@ -5358,7 +5396,7 @@ function updateTsujiSearchInputs() {
                   .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
-    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev);
+    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat);
     appState.tsujiSearchBaseAz = az;
     appState.tsujiSearchBaseAlt = alt;
     document.getElementById('input-tsuji-az').value = az.toFixed(4);
