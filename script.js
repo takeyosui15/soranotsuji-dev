@@ -1922,7 +1922,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
                 const { r, d } = getRD(time);
                 const hor = Astronomy.Horizon(time, observer, r, d, refr);
                 if (hor.altitude > limit) {
-                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev, observer.latitude);
+                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev, observer.latitude, appState.end.lat);
                     if (dist > 0 && dist < 500000) {
                         path.push({ dist, az: hor.azimuth, time });
                     }
@@ -2084,34 +2084,41 @@ function getFixedStarRaDec(bodyId) {
 const WGS84_SEMI_MAJOR = 6378137;          // 赤道半径
 const WGS84_SEMI_MINOR = 6356752.3142;     // 極半径
 
-/** 観測点緯度 (deg) における WGS84 局所地球半径。
- *  子午線方向と卯酉線方向の幾何平均で、約 6378137 (赤道) → 6356752 (極) の間。
- *  例: lat=35° で約 6371km。 */
+/** 観測点緯度 (deg) における WGS84 楕円体上の地心距離 (geocentric radius)。
+ *  ρ(φ) = sqrt[((a²cosφ)² + (b²sinφ)²) / ((a cosφ)² + (b sinφ)²)]
+ *  lat=0 で a (赤道半径), lat=90 で b (極半径), lat=35° で約 6371km。 */
 function getLocalEarthRadius(latDeg) {
     const lat = latDeg * Math.PI / 180;
     const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
     const a = WGS84_SEMI_MAJOR, b = WGS84_SEMI_MINOR;
-    const a2cos2 = (a * a) * cosLat * cosLat;
-    const b2sin2 = (b * b) * sinLat * sinLat;
+    const a2cos = a * a * cosLat;
+    const b2sin = b * b * sinLat;
     const acos = a * cosLat;
     const bsin = b * sinLat;
-    return Math.sqrt((a * a2cos2 + b * b * b2sin2) / (acos * acos + bsin * bsin));
+    return Math.sqrt(
+        (a2cos * a2cos + b2sin * b2sin) /
+        (acos * acos + bsin * bsin)
+    );
 }
 
-function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat) {
+function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat, tgtLat) {
     // 観測者高 hObs / ターゲット高 hTarget で、観測高度 altObs に見える地表距離。
-    // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用 (精度向上)。
-    // 未指定時は赤道半径フォールバック (旧挙動)。
-    const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
+    // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用。
+    // tgtLat も指定すると、観測点とターゲットで別々の局所半径を使用 (より高精度)。
+    const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
+    const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
 
     // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
     // 有効地球半径モデル: 光路の屈折を「地球半径が 1/(1-k) 倍に膨らんだ」
-    // と等価に扱うため、三角形の各辺も Reff ベースで計算する (calculateApparentAltitude と整合)
-    const Reff = R / (1 - k);
+    // と等価に扱うため、各点の地心距離も Reff ベースで計算する。
+    const Reff_obs = R_obs / (1 - k);
+    const Reff_tgt = R_tgt / (1 - k);
+    // 大円距離計算には観測点とターゲットの平均的な有効半径を使う。
+    const Reff_avg = (Reff_obs + Reff_tgt) / 2;
 
-    const r1 = Reff + hObs;    // 観測者
-    const r2 = Reff + hTarget; // ターゲット
+    const r1 = Reff_obs + hObs;     // 観測者の地心距離 (有効半径ベース)
+    const r2 = Reff_tgt + hTarget;  // ターゲットの地心距離
 
     const altObsRad = altObs * Math.PI / 180;
 
@@ -2132,7 +2139,7 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat) {
         altTargetRad = Math.asin(sinVal) - Math.PI/2;
         c = -altObsRad - altTargetRad; // 観測点が高い場合は、地球中心角cは両者の和になる
     }
-    const L = Reff * c;
+    const L = Reff_avg * c;
 
     return L;
 }
@@ -2549,7 +2556,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
     const dist = L.latLng(pos.lat, pos.lng).distanceTo(L.latLng(target.lat, target.lng));
 
     // ★追加: 視高度を計算 (観測点緯度を渡して局所半径で補正)
-    const alt = calculateApparentAltitude(dist, pos.elev, target.elev, pos.lat);
+    const alt = calculateApparentAltitude(dist, pos.elev, target.elev, pos.lat, target.lat);
 
     return `
         <b>${title}</b><br>
@@ -2564,7 +2571,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
 }
 
 // ★追加: 2点間の距離と標高差から視高度(角度)を計算する関数
-function calculateApparentAltitude(dist, hObs, hTarget, obsLat) {
+function calculateApparentAltitude(dist, hObs, hTarget, obsLat, tgtLat) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
 
     // 気差係数k (気差OFF時は0)
@@ -2572,8 +2579,10 @@ function calculateApparentAltitude(dist, hObs, hTarget, obsLat) {
 
     // 地球の曲率(と気差)を考慮した視高度計算式
     // tan(a) = (H_target - H_obs) / d - d / (2 * R) * (1 - k)
-    // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用 (精度向上)。
-    const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
+    // obsLat / tgtLat を渡すと WGS84 局所半径を使用。両方指定時は平均半径。
+    const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
+    const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
+    const R = (R_obs + R_tgt) / 2;
     const val = (hTarget - hObs) / dist - (dist * (1 - k)) / (2 * R);
     return Math.atan(val) * 180 / Math.PI;
 }
@@ -4139,7 +4148,7 @@ function calcMyTsujiBaseValues(t) {
     const tgtElev = (tgt.elev || 0) + (tgt.height || 0);
     const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
     const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
-    const alt = calculateApparentAltitude(dist, obsElev, tgtElev, obs.lat);
+    const alt = calculateApparentAltitude(dist, obsElev, tgtElev, obs.lat, tgt.lat);
     t.baseAz = az;
     t.baseAlt = alt;
     return true;
@@ -4863,7 +4872,7 @@ function buildMyTsujiCsvRow(r) {
     const tgtTotalElev = (r.tgt.elev ?? 0) + (r.tgt.height ?? 0);
     const partnerDist = L.latLng(obsLat, obsLng).distanceTo(L.latLng(tgtLat, tgtLng));
     const partnerAz = calculateBearing(obsLat, obsLng, tgtLat, tgtLng);
-    const partnerAlt = calculateApparentAltitude(partnerDist, obsTotalElev, tgtTotalElev, obsLat);
+    const partnerAlt = calculateApparentAltitude(partnerDist, obsTotalElev, tgtTotalElev, obsLat, tgtLat);
     // オフセット方位/視高 (My辻検索情報)
     const offsetAz = r.tsuji.offsetAz || 0;
     const offsetAlt = r.tsuji.offsetAlt || 0;
@@ -5394,7 +5403,7 @@ function updateTsujiSearchInputs() {
                   .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
-    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat);
+    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
     appState.tsujiSearchBaseAz = az;
     appState.tsujiSearchBaseAlt = alt;
     document.getElementById('input-tsuji-az').value = az.toFixed(4);

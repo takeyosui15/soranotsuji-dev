@@ -29,26 +29,32 @@ const WGS84_A = 6378137;          // 赤道半径 (semi-major)
 const WGS84_B = 6356752.3142;     // 極半径 (semi-minor)
 const WGS84_F = 1 / 298.257223563; // 扁平率
 
-/** 観測点緯度における WGS84 局所地球半径 (子午線・卯酉線の幾何平均) */
+/** 観測点緯度における WGS84 楕円体上の地心距離 (geocentric radius)
+ *  ρ(φ) = sqrt[((a²cosφ)² + (b²sinφ)²) / ((a cosφ)² + (b sinφ)²)] */
 function getLocalEarthRadius(latDeg) {
     const lat = latDeg * Math.PI / 180;
     const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
-    const a2cos2 = (WGS84_A * WGS84_A) * cosLat * cosLat;
-    const b2sin2 = (WGS84_B * WGS84_B) * sinLat * sinLat;
-    const acos2 = WGS84_A * cosLat;
-    const bsin2 = WGS84_B * sinLat;
-    return Math.sqrt((WGS84_A * a2cos2 + WGS84_B * WGS84_B * b2sin2) /
-                     (acos2 * acos2 + bsin2 * bsin2));
+    const a2cos = WGS84_A * WGS84_A * cosLat;
+    const b2sin = WGS84_B * WGS84_B * sinLat;
+    const acos = WGS84_A * cosLat;
+    const bsin = WGS84_B * sinLat;
+    return Math.sqrt(
+        (a2cos * a2cos + b2sin * b2sin) /
+        (acos * acos + bsin * bsin)
+    );
 }
 
 /** 観測者高 hObs / ターゲット高 hTarget のとき、観測高度 altObs に見える距離。
  *  有効地球半径モデル: 気差で光路が曲がる効果を「Reff = R/(1-k) に膨らんだ地球」
- *  と等価に扱う。三角形の全ての辺で Reff を使うのが正しい (R 混在は誤り)。 */
-function calculateDistanceForAltitudes(altObs, hObs, hTarget, k, obsLat) {
-    const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : WGS84_A;
-    const Reff = R / (1 - k);
-    const r1 = Reff + hObs;
-    const r2 = Reff + hTarget;
+ *  と等価に扱う。観測点とターゲットで緯度が異なる場合、それぞれの局所半径を使う。 */
+function calculateDistanceForAltitudes(altObs, hObs, hTarget, k, obsLat, tgtLat) {
+    const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : WGS84_A;
+    const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
+    const Reff_obs = R_obs / (1 - k);
+    const Reff_tgt = R_tgt / (1 - k);
+    const Reff_avg = (Reff_obs + Reff_tgt) / 2;
+    const r1 = Reff_obs + hObs;
+    const r2 = Reff_tgt + hTarget;
     const altObsRad = altObs * Math.PI / 180;
 
     let sinVal, altTargetRad, c;
@@ -65,7 +71,7 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, k, obsLat) {
         altTargetRad = Math.asin(sinVal) - Math.PI / 2;
         c = -altObsRad - altTargetRad;
     }
-    return Reff * c;
+    return Reff_avg * c;
 }
 
 /** Vincenty Direct (WGS84 楕円体上の順問題)
@@ -197,7 +203,8 @@ self.onmessage = (e) => {
             const hor = A.Horizon(time, curObs, r, d, refr);
             if (hor.altitude <= limit) { limitReached = true; break; }
 
-            const dist = calculateDistanceForAltitudes(hor.altitude, valElev, targetElev, k, curLat);
+            const tgtLatForCalc = hasTarget ? targetData.lat : undefined;
+            const dist = calculateDistanceForAltitudes(hor.altitude, valElev, targetElev, k, curLat, tgtLatForCalc);
             if (dist <= 0 || dist >= distLimit) { limitReached = true; break; }
 
             if (!hasTarget) {
