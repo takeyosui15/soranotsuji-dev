@@ -1452,8 +1452,8 @@ function drawDP365Path(points, color, targetLayer) {
     segments.forEach(seg => {
         L.polyline(seg, {
             color: color,
-            weight: 3,
-            opacity: 0.35  // 透けて見える程度に薄く (365日重ねて表示するため控えめに)
+            weight: 7,
+            opacity: 0.5  // 透けて見える程度に薄く (365日重ねて表示するため控えめに)
             // dashArray なし = 実線
         }).addTo(targetLayer);
     });
