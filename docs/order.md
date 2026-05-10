@@ -383,3 +383,187 @@ const G = (typeof geodesic !== 'undefined') ? geodesic : ...;
 - 最終 lat/lng を Main Thread 側で再計算する際も、Worker が返す az/dist が初期位置ベースのまま → 精度低下
 
 今回は Worker 内で GeographicLib を正しくロードし、反復補正も Worker 内で正確に行う b838da8 のアルゴリズムに復帰しました。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 6534ec7
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-05-10)
+Claudeさん、ありがとうございます。
+確認しましたが、どうやらまだ不具合があるようです。
+
+ブラウザのコンソールエラーメッセージを添付します。
+
+```bash
+script.js:300 宙の辻: 起動 (v1.19.2)
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:14:1
+（匿名） @ dp-line-worker.js:14
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392
+```
+
+ちなみに、Geographiclibは、パッケージが２つあるそうです。
+一つしか読み込まれていないですが、大丈夫でしょうか。
+
+```markdown
+These packages are a JavaScript implementations of the geodesic and DMS routines from GeographicLib. The two packages are
+
+- geographiclib-geodesic solves the direct and inverse geodesic problems for an ellipsoid of revolution.
+
+- geographiclib-dms converts angles in decimal degrees to degrees-minutes-seconds and vice versa.
+```
+```html
+<script
+  type="text/javascript"
+  src="https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js">
+</script>
+<script
+  type="text/javascript"
+  src="https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js">
+</script>
+```
+どうぞ、よろしくお願いいたします。
