@@ -41,12 +41,14 @@ function getLocalEarthRadius(latDeg) {
                      (acos2 * acos2 + bsin2 * bsin2));
 }
 
-/** 観測者高 hObs / ターゲット高 hTarget のとき、観測高度 altObs に見える距離。 */
+/** 観測者高 hObs / ターゲット高 hTarget のとき、観測高度 altObs に見える距離。
+ *  有効地球半径モデル: 気差で光路が曲がる効果を「Reff = R/(1-k) に膨らんだ地球」
+ *  と等価に扱う。三角形の全ての辺で Reff を使うのが正しい (R 混在は誤り)。 */
 function calculateDistanceForAltitudes(altObs, hObs, hTarget, k, obsLat) {
     const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : WGS84_A;
     const Reff = R / (1 - k);
-    const r1 = R + hObs;
-    const r2 = R + hTarget;
+    const r1 = Reff + hObs;
+    const r2 = Reff + hTarget;
     const altObsRad = altObs * Math.PI / 180;
 
     let sinVal, altTargetRad, c;

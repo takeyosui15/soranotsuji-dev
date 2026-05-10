@@ -2103,13 +2103,15 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat) {
     // obsLat (観測点緯度 deg) を渡すと WGS84 局所半径を使用 (精度向上)。
     // 未指定時は赤道半径フォールバック (旧挙動)。
     const R = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
-    
+
     // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    // 有効地球半径モデル: 光路の屈折を「地球半径が 1/(1-k) 倍に膨らんだ」
+    // と等価に扱うため、三角形の各辺も Reff ベースで計算する (calculateApparentAltitude と整合)
     const Reff = R / (1 - k);
 
-    const r1 = R + hObs;    // 観測者
-    const r2 = R + hTarget; // ターゲット
+    const r1 = Reff + hObs;    // 観測者
+    const r2 = Reff + hTarget; // ターゲット
 
     const altObsRad = altObs * Math.PI / 180;
 

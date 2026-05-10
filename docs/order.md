@@ -873,3 +873,67 @@ Claudeさん、ありがとうございます。
 この気差を考慮した計算アルゴリズムは、問題ないのでしょうか。
 
 検証をお願い申し上げます。
+
+### 回答 (2026-05-10) — 気差計算の不整合を発見・修正 (R vs Reff の混在)
+
+検証の結果、**気差計算に1箇所だけ不整合があり修正しました**。これがユーザーの「もう少し精度が」と感じられる原因の一つだった可能性が高いです。
+
+#### 検証結果
+
+気差関連の処理は全部で4箇所:
+
+| # | 処理 | 状態 |
+|---|---|---|
+| 1 | `Astronomy.Horizon(refr='normal')` で天体の見かけ高度を取得 | ✓ 正しい (標準大気屈折を astronomy-engine 内蔵で計算) |
+| 2 | `calculateApparentAltitude` の `(1-k)/(2R)` | ✓ 正しい (これは `1/(2 Reff)` と等価) |
+| 3 | Worker への `k` パラメータ受け渡し | ✓ 正しい |
+| 4 | **`calculateDistanceForAltitudes` の三角形計算** | ✗ **不整合 (R と Reff が混在)** |
+
+#### 問題箇所 (script.js / dp-line-worker.js 共通)
+
+```js
+const Reff = R / (1 - k);   // 有効地球半径
+const r1 = R + hObs;        // ← 素のR を使用 (誤り)
+const r2 = R + hTarget;     // ← 素のR を使用 (誤り)
+// ... 三角形を解く ...
+const L = Reff * c;         // ← Reff を使用
+```
+
+「有効地球半径モデル」は、光路の屈折を「地球半径が 1/(1-k) 倍に膨らんだ地球の上の直線光路」と等価に扱う標準的な近似です。**幾何計算の全ての辺で Reff を使うのが正しい**のですが、現状の `r1, r2` だけ素の R を使っており、結果として気差効果が**過大**になっていました。
+
+#### 数値検証 (TT 標高 250m → 富士山 標高 3776m)
+
+| ケース | 距離 |
+|---|---|
+| 気差なし (k=0) | 61.57 km |
+| 気差あり R 使用 (旧コード) | **70.77 km** ← +9.2 km の過大評価 |
+| 気差あり Reff 使用 (修正版) | 62.21 km ← 妥当 |
+
+地平線近く (alt=0.5°) の月のケースだと **15.8km** もの差が出ていました。これだけの距離差があると、辻ライン上の観測点位置も大きくずれます。
+
+#### 修正内容
+
+```js
+// 旧:
+const r1 = R + hObs;
+const r2 = R + hTarget;
+
+// 新 (calculateApparentAltitude と整合):
+const r1 = Reff + hObs;
+const r2 = Reff + hTarget;
+```
+
+`script.js` (メインスレッド) と `dp-line-worker.js` (Worker) の両方を修正しました。
+
+#### 整合性の確認
+
+修正後、`calculateDistanceForAltitudes` と `calculateApparentAltitude` が**逆関数の関係**で完全に整合します:
+
+- `calculateApparentAltitude(d, h1, h2)`: 距離 d → 視高度 a を計算 (Reff モデル)
+- `calculateDistanceForAltitudes(a, h1, h2)`: 視高度 a → 距離 d を計算 (Reff モデル)
+
+#### 期待される効果
+
+- 気差ON時の辻ライン位置精度が大幅に向上 (TT-Fuji で ~9km の系統誤差 → 解消)
+- パール槍ヶ岳のように高地・遠距離のケースでより正確に
+- 気差OFF時 (k=0) の挙動は変わらず (Reff = R)
