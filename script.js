@@ -1430,14 +1430,8 @@ function drawDP365Path(points, color, targetLayer) {
     let currentSegment = [];
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        // Worker が反復補正済の lat/lng を提供する (365モードは offset 無し)
-        let dest;
-        if (p.lat != null && p.lng != null) {
-            dest = { lat: p.lat, lng: p.lng };
-        } else {
-            const desiredBearing = ((p.az) % 360 + 360) % 360;
-            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
-        }
+        const desiredBearing = ((p.az) % 360 + 360) % 360;
+        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
         const pt = [dest.lat, dest.lng];
         if (currentSegment.length > 0) {
             const prev = points[i - 1];
@@ -1963,8 +1957,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     for (const result of results) {
         if (result && result.points) {
             for (const p of result.points) {
-                // Worker は反復補正済の lat/lng を返す。offset=0 ではそのまま使えるよう保持。
-                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs), lat: p.lat, lng: p.lng });
+                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs) });
             }
         }
     }
@@ -1980,15 +1973,8 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
 
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        let dest;
-        if (offset === 0 && p.lat != null && p.lng != null) {
-            // Worker が反復補正済の正確な lat/lng を提供している場合 (offset=0)
-            dest = { lat: p.lat, lng: p.lng };
-        } else {
-            // 精度バンド (◎/○/△) のオフセット適用、または非Worker (isMoving) パス
-            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
-            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
-        }
+        const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
+        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
         const pt = [dest.lat, dest.lng];
 
         if (currentSegment.length > 0) {

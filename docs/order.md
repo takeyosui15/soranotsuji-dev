@@ -302,3 +302,36 @@ Claudeさん、ありがとうございます。
 ブラウザの強制リロード(Command＋Shift＋R)もダメです。
 
 ご対応の程、よろしくお願いいたします。
+
+### 回答 (2026-05-10) — 辻ライン表示不具合の修正
+
+#### 原因
+
+前回の修正で `dp-line-worker.js` に GeographicLib (`geographiclib-geodesic.min.js`) を `importScripts` で追加しましたが、**Web Worker 内で GeographicLib が正しくロードされなかった**ため、Worker が初期化時にエラーとなり、全てのタスクが空の結果 (`points: []`) を返していました。
+
+Worker の `self.onmessage` ハンドラ先頭で `if (!A || !G)` チェックによりエラーメッセージを返して即 return → Main Thread 側は `result.points` が undefined → 辻ラインの点が0件 → 辻365は「0%」のまま、通常辻ラインも描画されない、という状態でした。
+
+#### 修正方針の変更
+
+**旧設計 (問題あり)**:
+- Worker 内で GeographicLib を importScripts → back-azimuth 反復計算 → lat/lng も Worker が返す
+- 問題: GeographicLib の Worker 内ロードが不安定
+
+**新設計 (修正後)**:
+- Worker は **Astronomy Engine のみ** 使用 (従来と同じ importScripts)
+- 反復補正の位置更新は **球面近似 (`getDestinationSpherical`)** で行う (GeographicLib 不要)
+- 最終的な lat/lng 座標は **Main Thread 側** で GeographicLib の `getObserverFromTargetBackAzimuth` で正確に計算
+
+球面近似での位置ずれ (~100m) は反復の次ステップで**天体方位が正確** (Astronomy Engine の topocentric 計算) になるため、最終的な `(az, dist)` はほぼ完全な値になります。Main Thread で GeographicLib を使って正確な lat/lng に変換するので、**子午線収差の精度は維持**されます。
+
+#### 修正箇所
+
+1. **`dp-line-worker.js`**: GeographicLib を完全に除去。代わりに `getDestinationSpherical` (球面近似) を追加して反復位置更新に使用。
+2. **`script.js` (`drawDPPath`, `drawDP365Path`)**: Worker の lat/lng 分岐を除去 (Worker は lat/lng を返さない)。全ての位置計算を Main Thread の `getObserverFromTargetBackAzimuth` で行う。
+
+#### 精度 (変更なし)
+
+新設計でも精度は前回と同等です:
+- 子午線収差: Main Thread の GeographicLib back-azimuth で対処 (< 1mm)
+- 月の視差: Worker の反復で topocentric 再計算 (< 1m)
+- 球面 R 近似: Worker の局所半径 `getLocalEarthRadius` で対処 (< 1m)
