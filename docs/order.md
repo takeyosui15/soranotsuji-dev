@@ -1281,3 +1281,66 @@ Claudeさん、ありがとうございます。
 お願いできないでしょうか。
 あと、辻ボタンの辻ラインは、1分間隔のままで、破線→実線に変更して、透明度をもう少し上げて、より透けて見えるようにしたいです。
 いかがでしょうか。
+
+### 回答 (2026-05-10) — 辻ライン 1秒→5秒 + 辻ライン365 を実線+透過
+
+#### ご質問への回答: 5秒間隔で**精度は変わりません**
+
+サンプリング間隔の変更は方位角の精度に**全く影響しません**。各時刻の方位角・視高度は時刻ごとに正確に計算されるため、間隔を粗くしても各点自体の精度は同じです。線分が粗くなる (各点を結ぶ直線の刻みが大きくなる) だけです。
+
+5秒間隔の効果:
+- 計算量: **1/5** に削減 (PC/スマホで軽快に)
+- 線分の刻み: 5秒間で太陽は最大 ~1.25° 動くので、見た目の滑らかさは少し落ちる
+- 方位角の精度: **同等**
+
+#### 修正内容
+
+**1. 辻ラインのサンプリング間隔: 1秒 → 5秒**
+
+`updateDPLines` 内の `calculateDPPathPoints` 呼び出しに `stepSeconds: 5` を指定:
+
+```js
+const allComputed = await Promise.all(visibleBodies.map(async body => {
+    const [pPrev, pNext, pCurr] = await Promise.all([
+        calculateDPPathPoints(datePrev, body, observer, { stepSeconds: 5 }),
+        calculateDPPathPoints(dateNext, body, observer, { stepSeconds: 5 }),
+        calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5 }),
+    ]);
+    return { body, pPrev, pNext, pCurr };
+}));
+```
+
+辻ライン365 (`updateDP365Lines`) は変更なし (1分間隔のまま)。
+
+**2. 辻ライン365 を実線 + 透明度向上**
+
+```js
+// 旧:
+L.polyline(seg, {
+    color: color,
+    weight: 3,
+    opacity: 0.6,
+    dashArray: '13, 13'   // 破線
+}).addTo(targetLayer);
+
+// 新:
+L.polyline(seg, {
+    color: color,
+    weight: 3,
+    opacity: 0.35  // 透けて見える程度に薄く
+    // dashArray なし = 実線
+}).addTo(targetLayer);
+```
+
+| 項目 | 旧 | 新 |
+|---|---|---|
+| 線種 | 破線 (`'13, 13'`) | **実線** |
+| 透明度 | 0.6 (40%透過) | **0.35 (65%透過)** |
+
+365日分の線が重なって地図が見づらくなるのを避けるため、透明度を 0.6 → 0.35 に下げて、地図の地形やランドマークがより透けて見えるようにしました。
+
+#### 実機での効果
+
+- 辻ライン (毎日切替表示): 計算速度が約 5倍速、PC/スマホで快適に
+- 辻ライン365 (年間表示): 線が重なっても地図が見やすく、実線で全体の流れも視認しやすい
+- 辻ラインの方位角・視高度の精度は維持 (WGS84 楕円体ベース)
