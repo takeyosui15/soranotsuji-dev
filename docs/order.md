@@ -567,3 +567,53 @@ These packages are a JavaScript implementations of the geodesic and DMS routines
 </script>
 ```
 どうぞ、よろしくお願いいたします。
+
+### 回答 (2026-05-10) — sourceforge URL は Worker で読めないため jsdelivr に変更
+
+詳細なエラーログをありがとうございます。原因が完全に特定できました。
+
+#### 原因
+
+```
+dp-line-worker.js:14 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope':
+The script at 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js' failed to load.
+```
+
+**`geographiclib.sourceforge.io` の URL は Web Worker の `importScripts` では NetworkError で読み込めない**ことが判明しました。これはブラウザによるセキュリティ制限 (CORS ヘッダ要件) と sourceforge のレスポンスヘッダの問題が組み合わさった結果です。メインページの `<script>` タグからは読めても、Worker の `importScripts` では読めない、というケースです。
+
+#### 修正内容
+
+Worker からは **CORS 対応 CDN の jsdelivr** を使用します:
+
+```js
+// 旧 (Workerで NetworkError):
+importScripts('https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js');
+
+// 新 (jsdelivr は CORS 対応):
+importScripts('https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js');
+```
+
+加えて、グローバル変数名の取得を堅牢化し、`geodesic` (現行版) と `GeographicLib` (古い版) の両方を試すようにしました:
+
+```js
+const G = (typeof geodesic !== 'undefined') ? geodesic
+        : (typeof self !== 'undefined' && self.geodesic) ? self.geodesic
+        : (typeof GeographicLib !== 'undefined') ? GeographicLib
+        : (typeof self !== 'undefined' && self.GeographicLib) ? self.GeographicLib
+        : null;
+```
+
+これで b838da8 の精度の高いアルゴリズム (Worker 内 GeographicLib 反復補正) がそのまま動くはずです。
+
+#### geographiclib-dms について
+
+ご指摘の `geographiclib-dms` パッケージは「角度の DMS (度分秒) 変換」用で、本アプリでは度数 (decimal degrees) のみ扱うため不要です。`geographiclib-geodesic` だけで OK です。
+
+メインページの `index.html` は `sourceforge.io` のままで問題ありません (メインスレッドからは読めるため)。Worker だけが別 CDN を使う形です。
+
+#### 検証
+
+ブラウザで強制リロード (Ctrl+Shift+R) 後:
+- 辻ラインが正常に表示されること
+- 東京タワー / 富士山のダイヤモンド富士で、辻ラインが東京タワー直上を通過すること (子午線収差補正済)
+- DevTools Console で `dp-line-worker.js` のロードエラーが出ないこと

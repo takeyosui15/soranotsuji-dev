@@ -11,13 +11,19 @@
 // 1度だけ負担して、以降のメッセージは postMessage のみで処理する。
 
 importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
-importScripts('https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js');
+// GeographicLib: jsdelivr (CORS対応CDN) を使用。メインページの sourceforge URL は
+// Worker の importScripts では NetworkError になるブラウザがあるため。
+// グローバル変数名はパッケージにより `geodesic` (sourceforge版/npm版共通) または
+// 古い版で `GeographicLib` の可能性があるので両方を試す。
+importScripts('https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js');
 
 const A = (typeof Astronomy !== 'undefined') ? Astronomy
         : (typeof self !== 'undefined' && self.Astronomy) ? self.Astronomy
         : null;
 const G = (typeof geodesic !== 'undefined') ? geodesic
         : (typeof self !== 'undefined' && self.geodesic) ? self.geodesic
+        : (typeof GeographicLib !== 'undefined') ? GeographicLib
+        : (typeof self !== 'undefined' && self.GeographicLib) ? self.GeographicLib
         : null;
 
 if (!A) {
