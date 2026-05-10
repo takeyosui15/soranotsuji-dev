@@ -352,3 +352,34 @@ Claudeさん、ありがとうございます。
 算出アルゴリズムは、合っていたと思うのですが、Geoライブラリの参照パスを間違えていただけではないのでしょうか。
 
 前のアルゴリズムに戻して、もう一度、ご検討の程、よろしくお願いいたします。
+
+### 回答 (2026-05-10) — b838da8 のアルゴリズムを復元 + CDN URL/変数名の修正
+
+ご指摘の通りです。アルゴリズム自体は正しく、GeographicLib の参照パスとグローバル変数名が間違っていただけでした。申し訳ありません。
+
+#### 修正内容 (2箇所のみ)
+
+**`dp-line-worker.js`**: b838da8 版のアルゴリズム (Worker 内 GeographicLib + 反復補正) をそのまま復元し、以下の 2 点だけ修正:
+
+```js
+// 旧 (ロード失敗していた):
+importScripts('https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.0/geographiclib-geodesic.min.js');
+const G = (typeof GeographicLib !== 'undefined') ? GeographicLib : ...;
+
+// 新 (メインページと同じ sourceforge URL + 正しいグローバル変数名 'geodesic'):
+importScripts('https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js');
+const G = (typeof geodesic !== 'undefined') ? geodesic : ...;
+```
+
+1. **CDN URL**: `cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.0/...` → `geographiclib.sourceforge.io/scripts/...` (メインページの `index.html` と同じ URL)
+2. **グローバル変数名**: `GeographicLib` → `geodesic` (このライブラリは `geodesic` というグローバル変数を公開する)
+
+**`script.js`**: drawDPPath / drawDP365Path の Worker lat/lng 分岐と、calculateDPPathPoints の結果マージも b838da8 版に復元。
+
+#### 前回 713b227 で精度が悪化した理由
+
+前回の修正では、GeographicLib のロード問題を回避するため Worker から GeographicLib を完全除去し、反復位置更新を球面近似 (`getDestinationSpherical`) に切り替えました。これにより:
+- Worker 内の反復で使う位置が ~1km ずれた状態のまま → 月の視差補正が不正確に
+- 最終 lat/lng を Main Thread 側で再計算する際も、Worker が返す az/dist が初期位置ベースのまま → 精度低下
+
+今回は Worker 内で GeographicLib を正しくロードし、反復補正も Worker 内で正確に行う b838da8 のアルゴリズムに復帰しました。

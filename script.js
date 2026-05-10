@@ -1430,8 +1430,13 @@ function drawDP365Path(points, color, targetLayer) {
     let currentSegment = [];
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const desiredBearing = ((p.az) % 360 + 360) % 360;
-        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        let dest;
+        if (p.lat != null && p.lng != null) {
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            const desiredBearing = ((p.az) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
         const pt = [dest.lat, dest.lng];
         if (currentSegment.length > 0) {
             const prev = points[i - 1];
@@ -1957,7 +1962,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     for (const result of results) {
         if (result && result.points) {
             for (const p of result.points) {
-                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs) });
+                path.push({ dist: p.dist, az: p.az, time: new Date(p.timeMs), lat: p.lat, lng: p.lng });
             }
         }
     }
@@ -1973,8 +1978,13 @@ function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
 
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
-        const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
-        const dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        let dest;
+        if (offset === 0 && p.lat != null && p.lng != null) {
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
         const pt = [dest.lat, dest.lng];
 
         if (currentSegment.length > 0) {
