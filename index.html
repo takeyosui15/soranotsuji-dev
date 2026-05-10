@@ -738,7 +738,7 @@ GNU General Public License for more details.
                         <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
-                        <li><strong>Hom (Home) / 推 (推し山)</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
+                        <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
                         <li><strong>辻 (辻ライン365)</strong>: 直近365日分の辻ラインを実線で一括表示 (重い計算のため起動時は常にOFF)。</li>
                         <li><strong>URL</strong>: 現在の状態を共有/復元するURLをコピー (日時固定/半固定/アクセス日時から選択)。</li>
                     </ul>
@@ -810,7 +810,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>My辻検索 / My観測点 / My目的点</h3>
                     <ul class="help-list">
-                        <li><strong>My辻検索</strong>: 辻検索の条件を複数登録・管理。「一括計算」で全件をWorkerプール並列実行、「File取得」でCSV出力。</li>
+                        <li><strong>My辻検索</strong>: 辻検索の条件を複数登録・管理。「一括計算」で全件をWorkerプール並列実行、「File取得」でCSV出力。CSV出力の方が<strong>画面出力より詳細</strong>です。</li>
                         <li><strong>My観測点 / My目的点</strong>: 複数の観測点・目的点を登録・管理。地図上に緑/橙のマーカー表示。「位置反映」で位置情報メニューに反映。CSV入出力対応。</li>
                     </ul>
                 </section>
@@ -935,16 +935,18 @@ GNU General Public License for more details.
                     <div class="advice-formal">
                         <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
                         (日中なら気温減率を <b>\(0.0125\)</b> 程度にすると、測量標準の \( K=0.132 \) に近づきます)
-                        また、テクニックとして、近距離(20km以内ぐらい)の場合は、気差係数\( K \)を0にすると、何故だか辻ラインの精度がアップします。
-                        (設定では、気圧\( P \)(hPa)を0にすると、\( K \)が0になります。)
-                        本栖湖や竜ヶ岳など、近距離のダイヤモンド富士を狙うときは、ぜひ試してみてください。
-                        (年末年始は、竜ヶ岳からのダイヤモンド富士が近距離で狙えるので、\( K=0 \) で試してみるのがおすすめです！)
                     </div>
                 </div>
                 
                 <section class="help-section">
                     <h3>注意事項・免責事項</h3>
                     <ul class="help-list">
+                        <li>本サイト：</li>
+                            <ul>
+                                <li><a href="https://soranotsuji.net/" target="_blank" rel="noopener noreferrer">https://soranotsuji.net/</a></li>
+                                <li><a href="https://note.com/takeyosui" target="_blank" rel="noopener noreferrer">https://note.com/takeyosui</a></li>
+                                <li><a href="https://github.com/takeyosui15" target="_blank" rel="noopener noreferrer">https://github.com/takeyosui15</a></li>
+                            </ul>
                         <li>本サイトでの表示内容は、その情報の正確性を保証するものではありません。実際の観測には十分な余裕を持って行動してください。</li>
                         <li>本サイトは、国土地理院などの無料サービスを利用して成り立っています。サーバーに高負荷をかける行為はご遠慮ください。</li>
                         <li>本サイトを利用したことにより生じたいかなる損害についても責任を負いません。</li>
