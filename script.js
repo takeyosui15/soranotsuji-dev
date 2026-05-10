@@ -2127,16 +2127,19 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat, tgtLat) {
     let c = 0;
 
     if (hObs <= hTarget) {
+        // r1 ≤ r2 (大辺対大角の規則): ∠OP2P1 は鋭角
         sinVal = r1/r2 * Math.sin(Math.PI/2 + altObsRad);
         if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
         if (sinVal < -1) sinVal = -1;
         altTargetRad = Math.PI/2 - Math.asin(sinVal);
         c = altTargetRad - altObsRad; // 観測点が低い場合は、地球中心角cは両者の差になる
     } else {
+        // r1 > r2 (観測者が高い): ∠OP2P1 は鈍角を選ぶ (鋭角解は遠方の偽解)
         sinVal = r1/r2 * Math.sin(Math.PI/2 - altObsRad);
         if (sinVal > 1) sinVal = 1; // 安全策: asinの引数は[-1, 1]の範囲でなければならない
         if (sinVal < -1) sinVal = -1;
-        altTargetRad = Math.asin(sinVal) - Math.PI/2;
+        // 鈍角解: ∠OP2P1 = π - asin(sinVal), altTargetRad = ∠OP2P1 - π/2 = π/2 - asin(sinVal)
+        altTargetRad = Math.PI/2 - Math.asin(sinVal);
         c = -altObsRad - altTargetRad; // 観測点が高い場合は、地球中心角cは両者の和になる
     }
     const L = Reff_avg * c;
@@ -2577,14 +2580,29 @@ function calculateApparentAltitude(dist, hObs, hTarget, obsLat, tgtLat) {
     // 気差係数k (気差OFF時は0)
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
 
-    // 地球の曲率(と気差)を考慮した視高度計算式
-    // tan(a) = (H_target - H_obs) / d - d / (2 * R) * (1 - k)
-    // obsLat / tgtLat を渡すと WGS84 局所半径を使用。両方指定時は平均半径。
+    // 観測点・目的点の局所地球半径 (緯度依存) と有効半径 (気差込み)
     const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
     const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
-    const R = (R_obs + R_tgt) / 2;
-    const val = (hTarget - hObs) / dist - (dist * (1 - k)) / (2 * R);
-    return Math.atan(val) * 180 / Math.PI;
+    const Reff_obs = R_obs / (1 - k);
+    const Reff_tgt = R_tgt / (1 - k);
+    const Reff_avg = (Reff_obs + Reff_tgt) / 2;
+
+    // 厳密な三角形解 (calculateDistanceForAltitudes と完全に逆関数)
+    // 三角形 OP1P2 で:
+    //   OP1 = r1 = Reff_obs + hObs (観測者の地心距離)
+    //   OP2 = r2 = Reff_tgt + hTarget (ターゲットの地心距離)
+    //   ∠P1OP2 = c = dist / Reff_avg (中心角)
+    //   slant = |P1P2| (余弦定理)
+    //   ∠OP1P2 = atan2(sin, cos) で範囲 [0, π] を一意に求める
+    //   altObs = ∠OP1P2 - π/2
+    const r1 = Reff_obs + hObs;
+    const r2 = Reff_tgt + hTarget;
+    const c = dist / Reff_avg;
+    const slant = Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(c));
+    const sinAng = r2 * Math.sin(c) / slant;
+    const cosAng = (r1 * r1 + slant * slant - r2 * r2) / (2 * r1 * slant);
+    const angle = Math.atan2(sinAng, cosAng);
+    return (angle - Math.PI / 2) * 180 / Math.PI;
 }
 
 function calculateBearing(lat1, lng1, lat2, lng2) {

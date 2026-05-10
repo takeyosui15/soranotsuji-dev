@@ -59,16 +59,18 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, k, obsLat, tgtLat)
 
     let sinVal, altTargetRad, c;
     if (hObs <= hTarget) {
+        // r1 ≤ r2: ∠OP2P1 は鋭角解
         sinVal = r1 / r2 * Math.sin(Math.PI / 2 + altObsRad);
         if (sinVal > 1) sinVal = 1;
         if (sinVal < -1) sinVal = -1;
         altTargetRad = Math.PI / 2 - Math.asin(sinVal);
         c = altTargetRad - altObsRad;
     } else {
+        // r1 > r2: ∠OP2P1 は鈍角解 (鋭角解は遠方の偽解)
         sinVal = r1 / r2 * Math.sin(Math.PI / 2 - altObsRad);
         if (sinVal > 1) sinVal = 1;
         if (sinVal < -1) sinVal = -1;
-        altTargetRad = Math.asin(sinVal) - Math.PI / 2;
+        altTargetRad = Math.PI / 2 - Math.asin(sinVal);  // 鈍角解
         c = -altObsRad - altTargetRad;
     }
     return Reff_avg * c;

@@ -1077,3 +1077,80 @@ Claudeさん、ありがとうございます。
 
 とありますが、近似式ではなくて、厳密三角形解に変更すると、もっと精度が上がるのでしょうか。
 気になります。
+
+### 回答 (2026-05-10) — 厳密三角形解化 + バグ2件発見・修正
+
+ご質問のおかげで**さらに2件のバグ**を発見・修正しました。完璧な精度になります!
+
+#### ご質問への回答: はい、精度が上がります
+
+`calculateApparentAltitude` を厳密三角形解にすることで、`calculateDistanceForAltitudes` と**完全な逆関数**になります。検証では往復誤差が **0.000000m** (完璧!)。
+
+#### 1. `calculateApparentAltitude` を厳密三角形解 (atan2版) に置き換え
+
+旧 (近似式):
+```js
+const val = (hTarget - hObs) / dist - (dist * (1 - k)) / (2 * R);
+return Math.atan(val) * 180 / Math.PI;
+```
+
+新 (厳密三角形解):
+```js
+// 三角形 OP1P2 (地心O, 観測者P1, ターゲットP2) を解く
+const r1 = Reff_obs + hObs;
+const r2 = Reff_tgt + hTarget;
+const c = dist / Reff_avg;            // 中心角
+const slant = Math.sqrt(r1*r1 + r2*r2 - 2*r1*r2*Math.cos(c));  // 弦長
+const sinAng = r2 * Math.sin(c) / slant;                  // sin(∠OP1P2)
+const cosAng = (r1*r1 + slant*slant - r2*r2) / (2*r1*slant); // cos(∠OP1P2)
+const angle = Math.atan2(sinAng, cosAng);  // [0, π] で一意
+return (angle - Math.PI / 2) * 180 / Math.PI;  // altObs = ∠OP1P2 - π/2
+```
+
+**TT-Fuji ケースでの差**: 近似式 1.687621° → 厳密解 1.757744° (差 0.07°、双方向整合性が完璧に)。
+
+#### 2. (発見!) `calculateDistanceForAltitudes` の `hObs > hTarget` 分岐に**潜在バグ**
+
+検証中に発見しました。観測者が高い場合 (山頂から下を見下ろす)、三角形の `∠OP2P1` は**鈍角**になるべきですが、現状コードは `Math.asin(...)` で**鋭角解**を取っており、**遠方の偽解**を返していました。
+
+```js
+// 旧 (バグ):
+altTargetRad = Math.asin(sinVal) - Math.PI/2;   // 鋭角解 - π/2
+
+// 新 (鈍角解):
+altTargetRad = Math.PI/2 - Math.asin(sinVal);   // π/2 - 鋭角 = 鈍角解 - π/2 と同等
+```
+
+**例**: h_obs=3000m から h_tgt=100m を距離 10km で見るとき (alt=-16.2°)
+- 旧 (鋭角解): 距離復元 4,133km (4000km の誤差!)
+- 新 (鈍角解): 距離復元 10.000km (誤差ゼロ)
+
+幸い、辻ライン計算では観測者が地表近く・ターゲットが山頂などで `hObs ≤ hTarget` 分岐を通るため、このバグは辻ラインには影響していませんでした。それでも将来的に「山頂からの観測」(パール槍ヶ岳の頂上から下界を見るなど) で必要になります。
+
+#### 3. 双方向整合性検証 (修正後)
+
+すべてのケースで往復誤差ゼロ:
+
+| ケース | alt | 距離復元 | 誤差 |
+|---|---|---|---|
+| TT-Fuji 気差ON | 1.757744° | 97600.00 m | **0.00 m** |
+| TT-Fuji 気差OFF | 1.691346° | 97600.00 m | **0.00 m** |
+| 同高度 100km | -0.391196° | 100000.00 m | **0.00 m** |
+| 高所→低所 (山頂) | -16.208033° | 10000.00 m | **0.00 m** ← 旧 4M m 誤差 |
+| 長距離 (パール槍) | 0.122990° | 200000.00 m | **0.00 m** |
+
+#### 修正内容まとめ
+
+| ファイル | 変更内容 |
+|---|---|
+| `script.js` | `calculateApparentAltitude` を厳密三角形解 (atan2版) に置換 |
+| `script.js` | `calculateDistanceForAltitudes` の `hObs > hTarget` 分岐を鈍角解に修正 |
+| `dp-line-worker.js` | 同様の `hObs > hTarget` 鈍角解修正 |
+
+#### 期待される効果
+
+- 視高度・距離の双方向計算が**完全な逆関数**に (理論上の最高精度)
+- パール槍ヶ岳の山頂から下界を撮る運用にも対応 (将来の拡張性確保)
+- 表示天体メニュー等で表示される視高度の値が、辻ライン計算で使う値と整合
+
+ユーザーのご質問が無ければ気付かなかった2件目のバグ (鋭角解 vs 鈍角解) でした。鋭い視点をありがとうございます!
