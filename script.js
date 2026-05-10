@@ -2556,7 +2556,7 @@ async function fetchAllElevations(points, onProgress) {
 
 function createLocationPopup(title, pos, target, apiElev, height) {
     const az = calculateBearing(pos.lat, pos.lng, target.lat, target.lng);
-    const dist = L.latLng(pos.lat, pos.lng).distanceTo(L.latLng(target.lat, target.lng));
+    const dist = getDistanceWGS84(pos.lat, pos.lng, target.lat, target.lng);
 
     // ★追加: 視高度を計算 (観測点緯度を渡して局所半径で補正)
     const alt = calculateApparentAltitude(dist, pos.elev, target.elev, pos.lat, target.lat);
@@ -2605,15 +2605,18 @@ function calculateApparentAltitude(dist, hObs, hTarget, obsLat, tgtLat) {
     return (angle - Math.PI / 2) * 180 / Math.PI;
 }
 
+/** 観測点 (lat1,lng1) から目的点 (lat2,lng2) への WGS84 楕円体上の forward azimuth (deg)。
+ *  球面三角法より高精度 (TT→Fuji で約 0.08° の差、辻検索の baseAz 精度に直結)。 */
 function calculateBearing(lat1, lng1, lat2, lng2) {
-    const toRad = deg => deg * Math.PI / 180;
-    const toDeg = rad => rad * 180 / Math.PI;
-    const l1 = toRad(lat1);
-    const l2 = toRad(lat2);
-    const dLng = toRad(lng2 - lng1);
-    const y = Math.sin(dLng) * Math.cos(l2);
-    const x = Math.cos(l1) * Math.sin(l2) - Math.sin(l1) * Math.cos(l2) * Math.cos(dLng);
-    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    const r = geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2);
+    return ((r.azi1 + 360) % 360);
+}
+
+/** 2地点間の WGS84 楕円体上の geodesic 距離 (m)。
+ *  L.latLng().distanceTo() は球面 (Haversine) で精度がやや低いため、
+ *  辻検索の baseAlt 計算など精度が必要な場面ではこちらを使う。 */
+function getDistanceWGS84(lat1, lng1, lat2, lng2) {
+    return geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2).s12;
 }
 
 function getRiseSetAlt(bodyId, date, observer, refr) {
@@ -3913,7 +3916,7 @@ function recalcMyTsujiOffsetDist(t) {
     const obs = appState.myObservations.find(o => o.id === t.obsId);
     const tgt = appState.myTargets.find(g => g.id === t.tgtId);
     if (!obs || !tgt || obs.lat == null || tgt.lat == null) return { azDist: 0, altDist: 0 };
-    const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
+    const dist = getDistanceWGS84(obs.lat, obs.lng, tgt.lat, tgt.lng);
     const azDist = dist * Math.tan((t.offsetAz || 0) * Math.PI / 180);
     const altDist = dist * Math.tan((t.offsetAlt || 0) * Math.PI / 180);
     return { azDist, altDist };
@@ -4164,7 +4167,7 @@ function calcMyTsujiBaseValues(t) {
     if (!obs || !tgt || obs.lat == null || tgt.lat == null) return false;
     const obsElev = (obs.elev || 0) + (obs.height || 0);
     const tgtElev = (tgt.elev || 0) + (tgt.height || 0);
-    const dist = L.latLng(obs.lat, obs.lng).distanceTo(L.latLng(tgt.lat, tgt.lng));
+    const dist = getDistanceWGS84(obs.lat, obs.lng, tgt.lat, tgt.lng);
     const az = calculateBearing(obs.lat, obs.lng, tgt.lat, tgt.lng);
     const alt = calculateApparentAltitude(dist, obsElev, tgtElev, obs.lat, tgt.lat);
     t.baseAz = az;
@@ -4888,7 +4891,7 @@ function buildMyTsujiCsvRow(r) {
     const tgtLat = r.tgt.lat ?? 0, tgtLng = r.tgt.lng ?? 0;
     const obsTotalElev = (r.obs.elev ?? 0) + (r.obs.height ?? 0);
     const tgtTotalElev = (r.tgt.elev ?? 0) + (r.tgt.height ?? 0);
-    const partnerDist = L.latLng(obsLat, obsLng).distanceTo(L.latLng(tgtLat, tgtLng));
+    const partnerDist = getDistanceWGS84(obsLat, obsLng, tgtLat, tgtLng);
     const partnerAz = calculateBearing(obsLat, obsLng, tgtLat, tgtLng);
     const partnerAlt = calculateApparentAltitude(partnerDist, obsTotalElev, tgtTotalElev, obsLat, tgtLat);
     // オフセット方位/視高 (My辻検索情報)

@@ -1173,3 +1173,90 @@ Claudeさん、ありがとうございます。
 
 そこで、再び思うのですが、今回の精度問題は、辻検索やMy辻検索でも考慮しなくて良いのでしょうか。
 再び、ご検証の程、よろしくお願いいたします🤗
+
+### 回答 (2026-05-10) — 辻検索/My辻検索の精度向上 (calculateBearing と距離計算を WGS84 化)
+
+おっしゃる通りです、気が付いたら直す!の精神で、辻検索/My辻検索を検証したところ**追加の精度問題**を発見・修正しました 😊
+
+#### 検証結果
+
+辻検索 Worker (`tsuji-search-worker.js`) 自体は **観測点固定で時刻だけを求める forward search** なので、辻ライン特有の問題 (子午線収差・反復補正) は発生しません。
+
+しかし、辻検索の前段で計算する **基準値 `targetAz` (基準方位角) / `targetAlt` (基準視高度)** が、**球面近似の関数**を使っていました:
+
+| 関数 | 旧実装 | 問題 |
+|---|---|---|
+| `calculateBearing` | 球面三角法 (Haversine) | TT→Fuji で WGS84 と **0.08° 差** |
+| `L.latLng().distanceTo()` | Leaflet 球面 (R=6378137 単一値) | TT→Fuji で **61m 差** |
+
+#### 影響量 (TT→Fuji ケース)
+
+```
+方位差: 球面 250.590° vs WGS84 250.671° → 0.0809°
+  → 太陽方位速度 0.25°/分で 約 19秒の時刻ズレ
+  → 100km地点での位置精度 約 141m
+距離差: 球面 97658m vs WGS84 97719m → 61m
+  → baseAlt に 約 0.001° の影響 (ほぼ無視可)
+```
+
+特に **方位 0.08° の差は辻検索の時刻に約 19秒の影響**を与え、太陽の動き (約 0.25°/分) を考えると無視できないレベルでした。
+
+#### 修正内容
+
+**1. `calculateBearing` を WGS84 ベースに置換**
+
+```js
+// 旧 (球面三角法、Haversine):
+function calculateBearing(lat1, lng1, lat2, lng2) {
+    // ... 球面公式 ...
+}
+
+// 新 (WGS84 楕円体、GeographicLib):
+function calculateBearing(lat1, lng1, lat2, lng2) {
+    const r = geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2);
+    return ((r.azi1 + 360) % 360);
+}
+```
+
+`calculateBearing` の呼び出し箇所すべてが自動的に精度向上します:
+- `tsujiSearchBaseAz` 計算 (辻検索の核心、19秒の時刻精度向上)
+- 表示天体メニューの「相手方位」
+- My辻検索の方位計算
+- CSV出力の partnerAz
+
+**2. 新ヘルパー `getDistanceWGS84` を追加**
+
+```js
+function getDistanceWGS84(lat1, lng1, lat2, lng2) {
+    return geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2).s12;
+}
+```
+
+**3. `L.latLng().distanceTo()` を `getDistanceWGS84` に置換 (4箇所)**
+
+| 箇所 | 用途 |
+|---|---|
+| `createLocationPopup` | 位置ポップアップの「相手距離」 |
+| `recalcMyTsujiOffsetDist` | オフセット方位距離・視高距離計算 |
+| `renderMyTsuji` 関連 | 観測点-目的点の距離 |
+| `buildMyTsujiCsvRow` | CSV出力の partnerDist |
+
+#### 最終的な精度向上まとめ
+
+| 機能 | 旧誤差 (TT-Fuji 100km) | 新誤差 |
+|---|---|---|
+| 辻ラインの位置 (子午線収差) | ~1000m | < 1mm |
+| 辻ラインの位置 (球面R近似) | ~80m | < 1m |
+| 辻ラインの位置 (月の視差) | ~25m | < 1m |
+| 辻ラインの位置 (geocentric R バグ) | ~大きな系統誤差 | 修正済 |
+| 視高度・距離の双方向整合性 | ~3km 誤差 | **0.00m** |
+| **辻検索の時刻精度** | **約 19秒** | **< 1秒** |
+| 辻検索の baseAlt | 0.001° | ほぼ完璧 |
+
+#### 検証
+
+ブラウザで実機検証:
+- 東京タワー / 富士山のダイヤモンド富士で、辻検索の時刻が約 19秒ずれていた状態が解消
+- 位置・方位・視高度・距離の全計算が WGS84 楕円体ベースに統一され、整合性確保
+
+辻検索 Worker (`tsuji-search-worker.js`) 自体は変更不要 (観測点固定で時刻を求めるだけ)。基準値計算と表示用関数を改善することで、辻検索の精度も向上しました。
