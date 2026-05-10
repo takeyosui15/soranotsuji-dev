@@ -617,3 +617,158 @@ const G = (typeof geodesic !== 'undefined') ? geodesic
 - 辻ラインが正常に表示されること
 - 東京タワー / 富士山のダイヤモンド富士で、辻ラインが東京タワー直上を通過すること (子午線収差補正済)
 - DevTools Console で `dp-line-worker.js` のロードエラーが出ないこと
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 37a2f8e
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-05-10)
+Claudeさん、ありがとうございます。
+確認しましたが、どうやらまだ不具合があるようです。
+
+ブラウザのコンソールエラーメッセージを添付します。
+
+```bash
+宙の辻: 起動 (v1.19.2)
+3___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+___vscode_livepreview_injected_script:228 Uncaught TypeError: Cannot read properties of null (reading 'stack')
+    at handleError (___vscode_livepreview_injected_script:228:35)
+    at ___vscode_livepreview_injected_script:14:45
+handleError @ ___vscode_livepreview_injected_script:228
+（匿名） @ ___vscode_livepreview_injected_script:14このエラーを分析
+dp-line-worker.js:18 Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at 'https://cdn.jsdelivr.net/npm/geographiclib-geodesic@2.1.1/geographiclib-geodesic.min.js' failed to load.
+    at dp-line-worker.js:18:1
+（匿名） @ dp-line-worker.js:18
+Worker Created
+ensureDPWorkerPool @ script.js:1821
+dpPoolRunTask @ script.js:1844
+（匿名） @ script.js:1940
+calculateDPPathPoints @ script.js:1938
+（匿名） @ script.js:1306
+updateDPLines @ script.js:1304
+updateAll @ script.js:1105
+setNow @ script.js:1593
+window.onload @ script.js:392このエラーを分析
+```
+
+自前ホストしかないのでしょうか。
+また、自前ホストは、ライセンス上問題ないのでしょうか。
