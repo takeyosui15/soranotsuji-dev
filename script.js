@@ -1264,9 +1264,10 @@ function updateCalculation() {
             }
         }
 
-        // 方位角・視高度・視半径
+        // 方位角・視高度・視半径 + 方位の日本語名
         const dataEl = document.getElementById(`data-${body.id}`);
         const transitEl2 = document.getElementById(`transit-${body.id}`);
+        const bodyIdEl = document.getElementById(`bodyid-${body.id}`);
         if (dataEl) {
             const angRStr = BODY_RADIUS_KM[body.id] ? angR.toFixed(3) + '°' : '-.---°';
             dataEl.innerText = `方位角 ${hor.azimuth.toFixed(4)}° / 視高度 ${hor.altitude.toFixed(4)}°`;
@@ -1275,6 +1276,9 @@ function updateCalculation() {
                 const transitPart = currentTransit.split(' / 視半径')[0];
                 transitEl2.innerText = `${transitPart} / 視半径 ${angRStr}`;
             }
+        }
+        if (bodyIdEl) {
+            bodyIdEl.innerText = `ID: ${body.id} / 方位 ${azimuthToDirectionJP(hor.azimuth)}`;
         }
 
         if (body.visible) {
@@ -1810,7 +1814,7 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
 // ============================================================
 // DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
 // ============================================================
-const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
@@ -2620,6 +2624,13 @@ function getDistanceWGS84(lat1, lng1, lat2, lng2) {
     return geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2).s12;
 }
 
+/** 方位角 (0-360°) を16方位の日本語 (最大3文字) に変換。例: 112.5° → 東南東 */
+function azimuthToDirectionJP(azDeg) {
+    const dirs = ['北','北北東','北東','東北東','東','東南東','南東','南南東',
+                  '南','南南西','南西','西南西','西','西北西','北西','北北西'];
+    return dirs[Math.round(((azDeg % 360) + 360) % 360 / 22.5) % 16];
+}
+
 function getRiseSetAlt(bodyId, date, observer, refr) {
     const eq = Astronomy.Equator(bodyId, date, observer, true, true);
     const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
@@ -2880,11 +2891,11 @@ function renderMyStarsList() {
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(star.color)};"></div>
             <div class="body-info">
                 <span class="body-name-label">${escapeHtml(star.name)}</span>
-                <span class="body-name-id">ID: ${star.id}</span>
-                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
+                <span class="body-name-id" id="bodyid-${star.id}">ID: ${star.id}</span>
+                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --°</span>
                 <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
                 <span id="transit-${star.id}" class="body-detail-text">南中時 --:--:-- / 視半径 -.---°</span>
-                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --°</span>
+                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
             </div>`;
         // チェックボックス: 表示/非表示
         li.querySelector('.body-checkbox').addEventListener('change', function() {
@@ -5260,11 +5271,11 @@ function renderCelestialList() {
             <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
             <div class="body-info">
                 <span class="body-name-label">${escapeHtml(body.name)}</span>
-                <span class="body-name-id">ID: ${escapeHtml(body.id)}</span>
-                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
+                <span class="body-name-id" id="bodyid-${escapeHtml(body.id)}">ID: ${escapeHtml(body.id)}</span>
+                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --°</span>
                 <span id="riseset-${escapeHtml(body.id)}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
                 <span id="transit-${escapeHtml(body.id)}" class="body-detail-text">南中時 --:--:-- / 視半径 --°</span>
-                <span id="data-${escapeHtml(body.id)}" class="body-detail-text">方位角 --° / 視高度 --°</span>
+                <span id="radec-${escapeHtml(body.id)}" class="body-detail-text">赤経 --h / 赤緯 --°</span>
             </div>`;
         li.querySelector('.body-checkbox').addEventListener('change', function() {
             toggleVisibility(body.id, this.checked);
@@ -5548,7 +5559,7 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
 // 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
 const TSUJI_CHUNK_DAYS = 365;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {

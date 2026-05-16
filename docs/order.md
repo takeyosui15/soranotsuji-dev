@@ -227,3 +227,79 @@ ID: Sun / 方位 東南東
 2は、将来的にCPUのコア数が増えることを考えると32にしておくのも良いかと思ったのですが、いかがでしょうか。
 
 よろしくお願いいたします。
+
+### 回答 (2026-05-16) — 表示天体レイアウト + 方位日本語 + Worker数32 + SharedArrayBuffer
+
+#### 1. 表示天体の方位を日本語で表示
+
+16方位の日本語変換ヘルパー `azimuthToDirectionJP` を追加:
+
+```js
+function azimuthToDirectionJP(azDeg) {
+    const dirs = ['北','北北東','北東','東北東','東','東南東','南東','南南東',
+                  '南','南南西','南西','西南西','西','西北西','北西','北北西'];
+    return dirs[Math.round(((azDeg % 360) + 360) % 360 / 22.5) % 16];
+}
+```
+
+ID行に「方位 東南東」を動的表示:
+
+```
+太陽
+ID: Sun / 方位 東南東
+方位角 313.2795° / 視高度 -19.6782°
+出時刻 04:43:07 / 入時刻 18:44:15
+南中時 11:43:28 / 視半径 0.264°
+赤経 3.552663h / 赤緯 19.163396°
+```
+
+#### 2. 表示天体のレイアウト入れ替え
+
+旧順序: ID → 赤経赤緯 → 出入時刻 → 南中/視半径 → 方位角/視高度
+新順序: **ID/方位 → 方位角/視高度 → 出入時刻 → 南中/視半径 → 赤経赤緯**
+
+方位角/視高度を最上位 (よく見る情報) に、赤経赤緯を最下位 (詳細情報) に移動。表示天体リストとMy天体リストの両方を変更。
+
+#### 3. Worker 数上限を 8 → 32 に引き上げ
+
+```js
+// 旧:
+const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 8));
+
+// 新:
+const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+```
+
+将来の多コア CPU (16コア、32コア) に対応できます。現在のPCでは `navigator.hardwareConcurrency` の値 (通常 4〜16) がそのまま使われるので、無駄な Worker は作られません。
+
+#### 4. SharedArrayBuffer について — 注意点
+
+SharedArrayBuffer を使うと Worker 間で高速なゼロコピー通信が可能ですが、**重要な前提条件**があります:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+これらの **HTTPヘッダーがサーバー側で必要**です (Spectre 脆弱性対策として、ブラウザが必須としている)。
+
+| 環境 | SharedArrayBuffer |
+|---|---|
+| soranotsuji.net (自前サーバー) | ✓ HTTPヘッダー設定可能 |
+| GitHub Pages | ✗ ヘッダー設定不可 |
+| Netlify | △ _headers ファイルで対応可 |
+| VSCode Live Preview | ✗ |
+
+さらに、COEP (`require-corp`) を有効にすると、**外部CDNからの全てのリソース** (`<script>`, `importScripts`, `<img>` 等) に `crossorigin` 属性が必要になり、CORS 非対応の CDN (例: sourceforge の GeographicLib) が読み込めなくなります。
+
+**現時点の推奨**: SharedArrayBuffer の導入は、サーバー環境の確認と COEP 対応 (全外部リソースの crossorigin 対応) が完了してからが安全です。Worker 数 32 化だけでも十分な並列化向上が見込まれるため、まずはこちらで効果を確認してください。
+
+将来的に SharedArrayBuffer を導入する際は:
+1. サーバーの HTTP ヘッダー設定
+2. 全 `<script>` に `crossorigin="anonymous"` 追加
+3. GeographicLib を自前ホストに変更 (sourceforge は CORS 非対応の可能性)
+4. Worker の postMessage を SharedArrayBuffer ベースに変更
+
+の手順で対応します。
