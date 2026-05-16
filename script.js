@@ -1301,12 +1301,12 @@ async function updateDPLines() {
     const visibleBodies = appState.bodies.filter(b => b.visible);
 
     // 各天体について prev/curr/next 3日分の計算をプールで並列実行
-    // stepSeconds=1 (測量レベル精度。辻検索結果とのズレを最小化)
+    // stepSeconds=5 (方位角の精度は同等、線分刻みが粗くなるだけ。負荷 1/5)
     const allComputed = await Promise.all(visibleBodies.map(async body => {
         const [pPrev, pNext, pCurr] = await Promise.all([
-            calculateDPPathPoints(datePrev, body, observer, { stepSeconds: 1 }),
-            calculateDPPathPoints(dateNext, body, observer, { stepSeconds: 1 }),
-            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 1 }),
+            calculateDPPathPoints(datePrev, body, observer, { stepSeconds: 5 }),
+            calculateDPPathPoints(dateNext, body, observer, { stepSeconds: 5 }),
+            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5 }),
         ]);
         return { body, pPrev, pNext, pCurr };
     }));
