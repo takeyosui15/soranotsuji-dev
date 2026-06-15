@@ -75,8 +75,10 @@ self.onmessage = (e) => {
         let bestMatch = null;
         let bestDist = Infinity;
 
-        // Pass 1: 1分単位スキャン (24時間 × 60分)
-        for (let s = 0; s < stepsPerDay; s++) {
+        // Pass 1: 1分単位スキャン
+        // 前後1分のマージンを設けて日付境界付近の取りこぼしを防ぐ
+        // (Pass 2 のリファインが ±60秒あるため、境界で前日側に最良時刻が移動するケースに対応)
+        for (let s = -1; s <= stepsPerDay; s++) {
             const time = new Date(dayBase + s * 60000);
             const { az, alt } = calcAzAlt(body, time, observer, refractionEnabled);
             if (isAzimuthInRange(az, targetAz, toleranceAz) && Math.abs(alt - targetAlt) <= toleranceAlt) {
