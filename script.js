@@ -4219,6 +4219,7 @@ function addMyTsujiRow() {
         toleranceAz: 15, toleranceAlt: 15,
         moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
+        elevationOption: false, elevOK: false, elevNG: false,
         checked: false, memo: ''
     };
     if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
@@ -4303,6 +4304,7 @@ function getMyTsujiFromTsujiSearch() {
         accCircle: appState.tsujiAccCircle,
         accTriangle: appState.tsujiAccTriangle,
         accDash: appState.tsujiAccDash,
+        elevationOption: appState.tsujiElevationOption, elevOK: appState.tsujiElevOK, elevNG: appState.tsujiElevNG,
         checked: false, memo: ''
     });
     saveAppState();
@@ -4796,10 +4798,22 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
 
 /** 結果オブジェクトの配列に装飾情報(symbol/moonAge/moonIcon/dateStr/timeStr)を付加。
  *  月齢フィルタで除外される行は null として filter */
-function decorateMyTsujiResults(results) {
+async function decorateMyTsujiResults(results) {
     const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
     const twCache = new Map();
-    return results.map(r => {
+    // 標高オプション: (観測点ID,目的点ID)毎に1回だけ可視判定 (entry.elevationOption が ON のもの)
+    const visCache = new Map();
+    for (const r of results) {
+        if (!r.tsuji.elevationOption) continue;
+        const vkey = `${r.obs.id}_${r.tgt.id}`;
+        if (visCache.has(vkey)) continue;
+        const sTot = (r.obs.elev || 0) + (r.obs.height || 0);
+        const eTot = (r.tgt.elev || 0) + (r.tgt.height || 0);
+        const v = await computePathVisibility(r.obs.lat, r.obs.lng, sTot, r.tgt.lat, r.tgt.lng, eTot);
+        visCache.set(vkey, v.visible ? 'OK' : 'NG');
+    }
+    const decorated = [];
+    for (const r of results) {
         const phase = Astronomy.MoonPhase(r.time);
         const moonAge = (phase / 360) * SYNODIC_MONTH;
         const moonIcon = moonIcons[Math.round(phase / 45) % 8];
@@ -4808,14 +4822,22 @@ function decorateMyTsujiResults(results) {
         else if (r.dist <= 0.25) symbol = '○';
         else if (r.dist <= 1.0) symbol = '△';
         else symbol = '-';
-        if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) return null;
+        if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) continue;
         if (r.tsuji.accuracyFilter) {
             const allowed = [];
             if (r.tsuji.accDblCircle) allowed.push('◎');
             if (r.tsuji.accCircle) allowed.push('○');
             if (r.tsuji.accTriangle) allowed.push('△');
             if (r.tsuji.accDash) allowed.push('-');
-            if (allowed.length > 0 && !allowed.includes(symbol)) return null;
+            if (allowed.length > 0 && !allowed.includes(symbol)) continue;
+        }
+        // 標高オプション: 可視判定の結果(OK/NG/-)とOK/NGフィルタ
+        const elevationStatus = r.tsuji.elevationOption ? (visCache.get(`${r.obs.id}_${r.tgt.id}`) || '-') : '-';
+        if (r.tsuji.elevationOption && (r.tsuji.elevOK || r.tsuji.elevNG)) {
+            const allowedElev = [];
+            if (r.tsuji.elevOK) allowedElev.push('OK');
+            if (r.tsuji.elevNG) allowedElev.push('NG');
+            if (!allowedElev.includes(elevationStatus)) continue;
         }
         const dt = r.time;
         const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
@@ -4837,9 +4859,10 @@ function decorateMyTsujiResults(results) {
             moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2));
             moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
         } catch (_) {}
-        return { ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, angularRadius, timeCategory,
-                 sunriseStr, sunsetStr, moonriseStr, moonsetStr };
-    }).filter(Boolean);
+        decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, angularRadius, timeCategory,
+                 elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr });
+    }
+    return decorated;
 }
 
 // 一括計算 / File取得の実行状態とキャンセルフラグ (独立管理)
@@ -4947,7 +4970,7 @@ async function runBatchMyTsujiSearch() {
     myTsujiBatchRunning = false;
     document.getElementById('btn-mytsuji-batch').classList.remove('active');
 
-    const decorated = decorateMyTsujiResults(allResults);
+    const decorated = await decorateMyTsujiResults(allResults);
     if (!myTsujiBatchCanceled) statusEl.textContent = `${decorated.length}件`;
     hideTsujiProgress();
     if (decorated.length === 0) {
@@ -4967,7 +4990,7 @@ async function runBatchMyTsujiSearch() {
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
         <th>月齢</th><th>月齢アイコン</th>
-        <th>方位角</th><th>視高度</th><th>視半径</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th><th>標高グラフ</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
 
@@ -4999,7 +5022,8 @@ async function runBatchMyTsujiSearch() {
             <td>${r.moonIcon}</td>
             <td>${r.azimuth.toFixed(4)}°</td>
             <td>${r.altitude.toFixed(4)}°</td>
-            <td>${angRDisplay}</td>`;
+            <td>${angRDisplay}</td>
+            <td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.startApiElev = r.obs.elev || 0;
             appState.startHeight = r.obs.height || 0;
@@ -5042,6 +5066,7 @@ async function runBatchMyTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
 }
 
@@ -5233,7 +5258,7 @@ async function fileBatchMyTsujiSearch() {
 
     if (myTsujiFileCanceled) return;
 
-    const decorated = decorateMyTsujiResults(allResults);
+    const decorated = await decorateMyTsujiResults(allResults);
     if (decorated.length === 0) {
         statusEl.textContent = '0件';
         return alert('該当する日時はありません');
@@ -5369,6 +5394,15 @@ function renderMyTsujiSearches() {
                 <input type="checkbox" class="body-checkbox mytsuji-acc-triangle" data-id="${t.id}" ${t.accTriangle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:△</label>
                 <input type="checkbox" class="body-checkbox mytsuji-acc-dash" data-id="${t.id}" ${t.accDash ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:-</label>
             </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-elev-option" data-id="${t.id}" ${t.elevationOption ? 'checked' : ''}>
+                <label>標高オプション</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-elev-ok" data-id="${t.id}" ${t.elevOK ? 'checked' : ''} ${t.elevationOption ? '' : 'disabled'}> <label class="tsuji-acc-label">:OK</label>
+                <input type="checkbox" class="body-checkbox mytsuji-elev-ng" data-id="${t.id}" ${t.elevNG ? 'checked' : ''} ${t.elevationOption ? '' : 'disabled'}> <label class="tsuji-acc-label">:NG</label>
+            </div>
             <div class="control-row">
                 <label class="mytsuji-label">メモ:</label>
                 <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}" autocomplete="off">
@@ -5473,6 +5507,14 @@ function renderMyTsujiSearches() {
         onChange('mytsuji-acc-circle', e => { t.accCircle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-acc-triangle', e => { t.accTriangle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-acc-dash', e => { t.accDash = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-elev-option', e => {
+            t.elevationOption = e.target.checked;
+            row.querySelector('.mytsuji-elev-ok').disabled = !t.elevationOption;
+            row.querySelector('.mytsuji-elev-ng').disabled = !t.elevationOption;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-elev-ok', e => { t.elevOK = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-elev-ng', e => { t.elevNG = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
         onChange('mytsuji-memo', e => { t.memo = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
 
