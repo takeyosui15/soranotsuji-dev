@@ -2981,6 +2981,13 @@ function formatFileDateTime() {
     return `${Y}${M}${D}-${h}${m}${s}`;
 }
 
+/** CSVのコメント行(1列目が半角#で始まる行)かどうかを判定する */
+function isCsvCommentLine(line) {
+    if (!line) return false;
+    const firstCell = line.replace(/^﻿/, '').split(',')[0];
+    return firstCell.trim().startsWith('#');
+}
+
 /** CSV入力 (My天体) */
 function importMyStarsCsv() {
     if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
@@ -2994,7 +3001,7 @@ function importMyStarsCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件(見出し行+1000行)です');
 
@@ -3043,7 +3050,7 @@ function appendMyStarsCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 const csvEntries = [];
@@ -3104,10 +3111,12 @@ function appendMyStarsCsv() {
 /** CSV出力 (My天体) */
 function exportMyStarsCsv() {
     if (appState.myStars.length === 0) return alert('My天体が登録されていません');
-    if (!confirm('My天体リストの登録内容をCSVファイルに出力しますか？')) return;
+    const targets = appState.myStars.filter(s => s.visible);
+    if (targets.length === 0) return alert('CSV出力するMy天体が選択されていません');
+    if (!confirm('チェックボックスで選択されたMy天体リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
     let csv = bom + '天体ID,天体名,赤経,赤緯\r\n';
-    appState.myStars.forEach(s => {
+    targets.forEach(s => {
         csv += `${s.id},${s.name},${s.ra},${s.dec}\r\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -3395,6 +3404,7 @@ function renderMyPointsList(type) {
             <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
                 <input type="radio" name="${cfg.prefix}-select" value="${pt.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="body-checkbox mypoint-check" data-id="${pt.id}" ${pt.checked ? 'checked' : ''} title="CSV出力の選択">
                 <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
             </div>
             <div class="control-row">
@@ -3493,6 +3503,11 @@ function renderMyPointsList(type) {
             pt.memo = e.target.value.trim();
             saveAppState();
             setMyPointDirty(type, true);
+        });
+        // イベント: CSV出力選択チェックボックス
+        row.querySelector('.mypoint-check').addEventListener('change', (e) => {
+            pt.checked = e.target.checked;
+            saveAppState();
         });
         container.appendChild(row);
     });
@@ -3659,7 +3674,7 @@ function importMyPointsCsv(type) {
         reader.onload = async (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件です');
                 const newPoints = [];
@@ -3717,7 +3732,7 @@ function appendMyPointsCsv(type) {
         reader.onload = async (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 const existingList = cfg.list();
@@ -3792,10 +3807,12 @@ function appendMyPointsCsv(type) {
 function exportMyPointsCsv(type) {
     const cfg = myPointConfig(type);
     if (cfg.list().length === 0) return alert(`${cfg.labelFull}が登録されていません`);
-    if (!confirm(`${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
+    const targets = cfg.list().filter(pt => pt.checked);
+    if (targets.length === 0) return alert(`CSV出力する${cfg.labelFull}が選択されていません`);
+    if (!confirm(`チェックボックスで選択された${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
     const bom = '\uFEFF';
     let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ,メモ\r\n`;
-    cfg.list().forEach(pt => {
+    targets.forEach(pt => {
         csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${pt.memo || ''}\r\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -4280,7 +4297,7 @@ function importMyTsujiCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件です(ヘッダー行を除く)');
                 const newList = [];
@@ -4324,7 +4341,7 @@ function appendMyTsujiCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 // 全行パース
@@ -4391,10 +4408,12 @@ function appendMyTsujiCsv() {
 /** CSV出力 */
 function exportMyTsujiCsv() {
     if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
-    if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
+    const targets = appState.myTsujiSearches.filter(t => t.checked);
+    if (targets.length === 0) return alert('CSV出力するMy辻検索が選択されていません');
+    if (!confirm('チェックボックスで選択されたMy辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
     let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,月齢フィルタ,基準月齢,許容範囲月齢,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,メモ\r\n';
-    appState.myTsujiSearches.forEach(t => {
+    targets.forEach(t => {
         csv += [
             t.id,
             t.name ?? '',

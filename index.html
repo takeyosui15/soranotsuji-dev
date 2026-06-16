@@ -812,7 +812,8 @@ GNU General Public License for more details.
                     <h3>My辻検索 / My観測点 / My目的点</h3>
                     <ul class="help-list">
                         <li><strong>My辻検索</strong>: 辻検索の条件を複数(最大1000件まで)登録・管理。「一括計算」で全件をWorkerプール並列実行、「File取得」でCSV出力。CSV出力の方が<strong>画面出力より詳細</strong>です。</li>
-                        <li><strong>My観測点 / My目的点</strong>: 複数(最大1000件まで)の観測点・目的点を登録・管理。地図上に緑/橙のマーカー表示。「位置反映」で位置情報メニューに反映。CSV入出力対応。</li>
+                        <li><strong>My観測点 / My目的点</strong>: 複数(最大1000件まで)の観測点・目的点を登録・管理。地図上に緑/橙のマーカー表示。「位置反映」で位置情報メニューに反映。各行のチェックボックスで選択。CSV入出力対応。</li>
+                        <li><strong>CSV出力</strong>は<strong>チェックボックスで選択した行のみ</strong>を出力します。<strong>全CSV入力 / 追加CSV入力</strong>では、1列目が <code>#</code> で始まる行を<strong>コメント行として読み飛ばし</strong>ます。</li>
                     </ul>
                 </section>
 
@@ -820,7 +821,7 @@ GNU General Public License for more details.
                     <h3>表示天体 / My天体 / 天体検索</h3>
                     <ul class="help-list">
                         <li><strong>表示天体</strong>: 太陽・月・8惑星 + 主要恒星 (北極星・北斗七星メラク・オリオン座ミンタカ・すばる・M42・ベガ・アルタイル・デネブ・ベテルギウス・シリウス・プロキオン)。チェックボックスで表示/非表示、カラーパレットで色・線種を変更。各天体の出没/南中時刻・方位角・視高度・視半径を表示。</li>
-                        <li><strong>My天体</strong>: 天体検索で登録した天体の一覧。並べ替え・削除・色変更が可能。CSV入出力対応。</li>
+                        <li><strong>My天体</strong>: 天体検索で登録した天体の一覧。並べ替え・削除・色変更が可能。CSV入出力対応 (CSV出力は表示チェックの天体のみ、CSV入力は <code>#</code> 始まりの行をスキップ)。</li>
                         <li><strong>天体検索</strong>: celestial_db.json から天体を検索 (等級で絞り込み可能)。検索結果から選択し、My天体に登録(最大1000件まで)できます。</li>
                     </ul>
                 </section>
