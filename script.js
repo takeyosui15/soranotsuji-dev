@@ -5253,6 +5253,12 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-offset-alt-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
             </div>
             <div class="control-row">
+                <label class="mytsuji-label">オフセット回転角(°):</label>
+                <input type="number" class="mytsuji-offset-rot elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
+                <label class="mytsuji-label">オフセット回転仰角(°):</label>
+                <input type="number" class="mytsuji-offset-rot-alt elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
+            </div>
+            <div class="control-row">
                 <label class="mytsuji-label">許容範囲方位角(°): ±</label>
                 <input type="number" class="mytsuji-tol-az" value="${t.toleranceAz !== undefined && t.toleranceAz !== null ? t.toleranceAz : 15}" placeholder="許容範囲方位角(°)" step="0.1" min="0" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">許容範囲視高度(°): ±</label>
@@ -5285,22 +5291,25 @@ function renderMyTsujiSearches() {
                 <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}" autocomplete="off">
             </div>`;
 
-        // 初期表示でオフセット距離を計算 + ID検証
-        const { azDist, altDist } = recalcMyTsujiOffsetDist(t);
-        row.querySelector('.mytsuji-offset-az-dist').value = azDist.toFixed(1);
-        row.querySelector('.mytsuji-offset-alt-dist').value = altDist.toFixed(1);
-        validateMyTsujiRow(t, row);
-
         // ヘルパー: 行内の指定クラスを持つ要素にchangeハンドラを登録
         const onChange = (cls, fn) => {
             const el = row.querySelector('.' + cls);
             if (el) el.addEventListener('change', fn);
         };
+        // オフセットの読取専用欄(方位距離/視高距離/回転角/回転仰角)を再計算して反映
         const updateDist = () => {
             const r = recalcMyTsujiOffsetDist(t);
             row.querySelector('.mytsuji-offset-az-dist').value = r.azDist.toFixed(1);
             row.querySelector('.mytsuji-offset-alt-dist').value = r.altDist.toFixed(1);
+            const oAz = t.offsetAz || 0, oAlt = t.offsetAlt || 0;
+            const bAz = t.baseAz, bAlt = t.baseAlt;
+            const baseValid = bAz !== null && bAz !== undefined && !isNaN(bAz) && bAlt !== null && bAlt !== undefined && !isNaN(bAlt);
+            row.querySelector('.mytsuji-offset-rot').value = parseFloat(calcOffsetRotation(oAz, oAlt).toFixed(4));
+            row.querySelector('.mytsuji-offset-rot-alt').value = baseValid ? parseFloat(angularDistance(bAz, bAlt, bAz + oAz, bAlt + oAlt).toFixed(4)) : 0;
         };
+        // 初期表示 + ID検証
+        updateDist();
+        validateMyTsujiRow(t, row);
 
         onChange('mytsuji-name', e => { t.name = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-days', e => {
@@ -5326,12 +5335,12 @@ function renderMyTsujiSearches() {
         onChange('mytsuji-base-az', e => {
             const v = parseFloat(e.target.value);
             t.baseAz = isNaN(v) ? null : v;
-            saveAppState(); setMyTsujiDirty(true);
+            saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-base-alt', e => {
             const v = parseFloat(e.target.value);
             t.baseAlt = isNaN(v) ? null : v;
-            saveAppState(); setMyTsujiDirty(true);
+            saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-offset-az', e => {
             t.offsetAz = parseFloat(e.target.value) || 0;
@@ -5578,14 +5587,37 @@ function updateTsujiSearchInputs() {
     updateOffsetDistances();
 }
 
-/** オフセット方位距離・視高距離を再計算してUIに反映 */
+/** 球面角距離 (Az,Alt座標系での厳密な角距離、°)。tsuji-search-worker.js の angularDistance と同一式。 */
+function angularDistance(az1, alt1, az2, alt2) {
+    const toRad = Math.PI / 180;
+    const cosD = Math.sin(alt1 * toRad) * Math.sin(alt2 * toRad) +
+                 Math.cos(alt1 * toRad) * Math.cos(alt2 * toRad) * Math.cos((az1 - az2) * toRad);
+    return Math.acos(Math.max(-1, Math.min(1, cosD))) * 180 / Math.PI;
+}
+
+/** オフセット回転角 (目的点方向を向いて0時(上)から時計回りの角度、°[0,360))。上=0°・右(方位角+)=90°。 */
+function calcOffsetRotation(offsetAz, offsetAlt) {
+    return (Math.atan2(offsetAz, offsetAlt) * 180 / Math.PI + 360) % 360;
+}
+
+/** オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
 function updateOffsetDistances() {
     const dist = L.latLng(appState.start.lat, appState.start.lng)
                   .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
-    const azDist = dist * Math.tan(appState.tsujiSearchOffsetAz * Math.PI / 180);
-    const altDist = dist * Math.tan(appState.tsujiSearchOffsetAlt * Math.PI / 180);
+    const offsetAz = appState.tsujiSearchOffsetAz;
+    const offsetAlt = appState.tsujiSearchOffsetAlt;
+    const azDist = dist * Math.tan(offsetAz * Math.PI / 180);
+    const altDist = dist * Math.tan(offsetAlt * Math.PI / 180);
     document.getElementById('input-tsuji-az-offset-dist').value = parseFloat(azDist.toFixed(1));
     document.getElementById('input-tsuji-alt-offset-dist').value = parseFloat(altDist.toFixed(1));
+    // 回転角 (上=0°・時計回り) / 回転仰角 (中心方向とオフセット適用方向の球面角距離)
+    const baseAz = appState.tsujiSearchBaseAz;
+    const baseAlt = appState.tsujiSearchBaseAlt;
+    const valid = !isNaN(baseAz) && !isNaN(baseAlt) && !isNaN(offsetAz) && !isNaN(offsetAlt);
+    const rot = valid ? calcOffsetRotation(offsetAz, offsetAlt) : 0;
+    const rotAlt = valid ? angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt) : 0;
+    document.getElementById('input-tsuji-rot').value = parseFloat(rot.toFixed(4));
+    document.getElementById('input-tsuji-rot-alt').value = parseFloat(rotAlt.toFixed(4));
 }
 
 /** 月齢フィルタのUI状態を更新 (入力可否) */
