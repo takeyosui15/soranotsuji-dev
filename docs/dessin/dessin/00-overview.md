@@ -82,6 +82,9 @@
 | tsujiAccCircle | false | 可 | 不可| 複数指定不可 | 辻検索の精度○フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiAccTriangle | false | 可 | 不可| 複数指定不可 | 辻検索の精度△フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiAccDash | false | 可 | 不可| 複数指定不可 | 辻検索の精度-フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
+| tsujiElevationOption | false | 可 | 不可| 複数指定不可 | 辻検索の標高オプションを指定。キー省略時は、false。 | 無効 | 有効 |
+| tsujiElevOK | false | 可 | 不可| 複数指定不可 | 辻検索の標高OKフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
+| tsujiElevNG | false | 可 | 不可| 複数指定不可 | 辻検索の標高NGフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 
 ### 仕様詳細:
 - 上記表のキーで、「複数指定可能」となっているものは、URLSearchParams.getAll()で取得し、starIdと対応する他のキーの内容が一致するようにする。

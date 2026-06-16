@@ -270,6 +270,11 @@ let appState = {
     tsujiAccTriangle: false,
     tsujiAccDash: false,
 
+    // 標高オプション
+    tsujiElevationOption: false,
+    tsujiElevOK: false,
+    tsujiElevNG: false,
+
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
 
@@ -367,8 +372,12 @@ window.onload = function() {
     document.getElementById('chk-tsuji-acc-circle').checked = appState.tsujiAccCircle;
     document.getElementById('chk-tsuji-acc-triangle').checked = appState.tsujiAccTriangle;
     document.getElementById('chk-tsuji-acc-dash').checked = appState.tsujiAccDash;
+    document.getElementById('chk-tsuji-elev-option').checked = appState.tsujiElevationOption;
+    document.getElementById('chk-tsuji-elev-ok').checked = appState.tsujiElevOK;
+    document.getElementById('chk-tsuji-elev-ng').checked = appState.tsujiElevNG;
     updateTsujiAccuracyFilterUI();
     updateTsujiMoonFilterUI();
+    updateTsujiElevationOptionUI();
     updateOffsetDistances();
 
     // リストを生成
@@ -645,6 +654,20 @@ function setupUI() {
             saveAppState();
         });
     });
+    // 標高オプション
+    document.getElementById('chk-tsuji-elev-option').addEventListener('change', (e) => {
+        appState.tsujiElevationOption = e.target.checked;
+        updateTsujiElevationOptionUI();
+        saveAppState();
+    });
+    document.getElementById('chk-tsuji-elev-ok').addEventListener('change', (e) => {
+        appState.tsujiElevOK = e.target.checked;
+        saveAppState();
+    });
+    document.getElementById('chk-tsuji-elev-ng').addEventListener('change', (e) => {
+        appState.tsujiElevNG = e.target.checked;
+        saveAppState();
+    });
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -900,6 +923,9 @@ function saveAppState() {
         tsujiAccCircle: appState.tsujiAccCircle,
         tsujiAccTriangle: appState.tsujiAccTriangle,
         tsujiAccDash: appState.tsujiAccDash,
+        tsujiElevationOption: appState.tsujiElevationOption,
+        tsujiElevOK: appState.tsujiElevOK,
+        tsujiElevNG: appState.tsujiElevNG,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -949,6 +975,9 @@ function loadAppState() {
             if(saved.tsujiAccCircle !== undefined) appState.tsujiAccCircle = saved.tsujiAccCircle;
             if(saved.tsujiAccTriangle !== undefined) appState.tsujiAccTriangle = saved.tsujiAccTriangle;
             if(saved.tsujiAccDash !== undefined) appState.tsujiAccDash = saved.tsujiAccDash;
+            if(saved.tsujiElevationOption !== undefined) appState.tsujiElevationOption = saved.tsujiElevationOption;
+            if(saved.tsujiElevOK !== undefined) appState.tsujiElevOK = saved.tsujiElevOK;
+            if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -5689,6 +5718,13 @@ function updateTsujiAccuracyFilterUI() {
     document.getElementById('chk-tsuji-acc-dash').disabled = !enabled;
 }
 
+/** 標高オプションのUI状態を更新 (OK/NGチェックの入力可否) */
+function updateTsujiElevationOptionUI() {
+    const enabled = appState.tsujiElevationOption;
+    document.getElementById('chk-tsuji-elev-ok').disabled = !enabled;
+    document.getElementById('chk-tsuji-elev-ng').disabled = !enabled;
+}
+
 /** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
 function isMoonAgeInRange(moonAge, base, tolerance) {
     const S = SYNODIC_MONTH;
@@ -5972,6 +6008,17 @@ async function startTsujiSearch() {
         return;
     }
 
+    // 標高オプション: start→end の可視判定を1回計算 (start/end は検索中固定のため全行共通)
+    let elevStatus = '-';
+    if (appState.tsujiElevationOption) {
+        statusEl.textContent = '(標高判定中…)';
+        const vis = await computePathVisibility(
+            appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
+            appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
+        if (generation !== appState.tsujiSearchGeneration) return;
+        elevStatus = vis.visible ? 'OK' : 'NG';
+    }
+
     // ソート用データをフラットに事前計算
     const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     const rowData = [];
@@ -6034,11 +6081,20 @@ async function startTsujiSearch() {
                 if (allowed.length > 0 && !allowed.includes(symbol)) return;
             }
 
+            // 標高オプションのOK/NGフィルタ
+            if (appState.tsujiElevationOption && (appState.tsujiElevOK || appState.tsujiElevNG)) {
+                const allowedElev = [];
+                if (appState.tsujiElevOK) allowedElev.push('OK');
+                if (appState.tsujiElevNG) allowedElev.push('NG');
+                if (!allowedElev.includes(elevStatus)) return;
+            }
+
             rowData.push({
                 body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
                 angularRadius: angR, moonAge, moonIcon,
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
+                elevationStatus: elevStatus,
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
                 moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms)
             });
@@ -6047,7 +6103,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="17">${escapeHtml(body.name)}: and more…</td>`;
+            tr.innerHTML = `<td colspan="18">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -6064,7 +6120,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -6076,7 +6132,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -6106,6 +6162,7 @@ async function startTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, extraRows);
 }
 
@@ -6251,6 +6308,33 @@ function computeVisibility() {
     for (let i = 1; i < pts.length - 1; i++) {
         const pt = pts[i];
         const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
+        if (pt.elev > lineElev) {
+            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+        }
+    }
+    return { visible: true };
+}
+
+/** 任意のパス start→end の可視判定 (標高オプション用)。appState/DOM非依存、DEMタイルキャッシュ再利用。
+ *  startTotalElev/endTotalElev は (API標高+高さ)[m]。返り値は computeVisibility と同形式。 */
+async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev) {
+    const s = L.latLng(startLat, startLng);
+    const e = L.latLng(endLat, endLng);
+    const dist = s.distanceTo(e);
+    const steps = 2000;
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+        const r = i / steps;
+        pts.push({ lat: s.lat + (e.lat - s.lat) * r, lng: s.lng + (e.lng - s.lng) * r, dist: (dist * r) / 1000, elev: null, fetched: false });
+    }
+    await fetchAllElevations(pts, null);
+    const fetched = pts.filter(p => p.fetched);
+    if (fetched.length < 2) return { visible: true };
+    const totalDist = fetched[fetched.length - 1].dist;
+    if (totalDist <= 0) return { visible: true };
+    for (let i = 1; i < fetched.length - 1; i++) {
+        const pt = fetched[i];
+        const lineElev = startTotalElev + (endTotalElev - startTotalElev) * (pt.dist / totalDist);
         if (pt.elev > lineElev) {
             return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
         }
@@ -6533,6 +6617,9 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAccCircle', appState.tsujiAccCircle ? 'true' : 'false');
     params.set('tsujiAccTriangle', appState.tsujiAccTriangle ? 'true' : 'false');
     params.set('tsujiAccDash', appState.tsujiAccDash ? 'true' : 'false');
+    params.set('tsujiElevationOption', appState.tsujiElevationOption ? 'true' : 'false');
+    params.set('tsujiElevOK', appState.tsujiElevOK ? 'true' : 'false');
+    params.set('tsujiElevNG', appState.tsujiElevNG ? 'true' : 'false');
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -6656,6 +6743,9 @@ function restoreFromUrl() {
         if (params.has('tsujiAccCircle')) { appState.tsujiAccCircle = params.get('tsujiAccCircle') === 'true'; }
         if (params.has('tsujiAccTriangle')) { appState.tsujiAccTriangle = params.get('tsujiAccTriangle') === 'true'; }
         if (params.has('tsujiAccDash')) { appState.tsujiAccDash = params.get('tsujiAccDash') === 'true'; }
+        if (params.has('tsujiElevationOption')) { appState.tsujiElevationOption = params.get('tsujiElevationOption') === 'true'; }
+        if (params.has('tsujiElevOK')) { appState.tsujiElevOK = params.get('tsujiElevOK') === 'true'; }
+        if (params.has('tsujiElevNG')) { appState.tsujiElevNG = params.get('tsujiElevNG') === 'true'; }
     }
 
     // 標高(elev)を再計算: elev = apiElev + height

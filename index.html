@@ -231,6 +231,15 @@ GNU General Public License for more details.
                         <input type="checkbox" id="chk-tsuji-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:△</label>
                         <input type="checkbox" id="chk-tsuji-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label">:-</label>
                     </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-elev-option" class="body-checkbox">
+                        <label for="chk-tsuji-elev-option">標高オプション</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                        <input type="checkbox" id="chk-tsuji-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+                    </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
@@ -800,6 +809,7 @@ GNU General Public License for more details.
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
+                        <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
                     </ul>
                     <p>精度記号:</p>
