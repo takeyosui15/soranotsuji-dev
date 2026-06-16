@@ -796,6 +796,7 @@ GNU General Public License for more details.
                         <li><strong>基準方位角・基準視高度</strong>: 観測点→目的点の方位角・視高度 (自動計算)。</li>
                         <li><strong>オフセット方位角/視高度</strong>: 基準値からのズレ (度)。</li>
                         <li><strong>オフセット方位距離/視高距離</strong>: 上記オフセットを目的点での横/縦の距離 (m) に換算した参考値。</li>
+                        <li><strong>オフセット回転角/回転仰角</strong>: 目的点方向を向いて0時(上)から時計回りの角度と、中心からの球面角距離 (参考値・読取専用)。</li>
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
@@ -809,6 +810,7 @@ GNU General Public License for more details.
                         <li><strong>-</strong>: 上記以外で許容範囲内</li>
                     </ul>
                     <p>検索は1分間隔の粗スキャン → ベスト時刻の前後60秒を1秒単位リファインで実行。各天体最大36500件 (100年分)。太陽・月の視半径は ≈ 0.26°。</p>
+                    <p>結果リストの<strong>時間帯</strong>列は、辻時刻がその日の薄明・日の出/日の入で区切った12区分のどこに入るか (例 <code>日の出&lt;=x&lt;12時</code>) を示します。</p>
                 </section>
 
                 <section class="help-section">
