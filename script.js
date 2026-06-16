@@ -562,6 +562,7 @@ function setupUI() {
     document.getElementById('btn-elevation').onclick = toggleElevation;
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
+    document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
 
     // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
@@ -1792,6 +1793,105 @@ function useGPS() {
     }, () => alert('位置情報を取得できませんでした'));
 }
 
+/**
+ * 準最高地点移動「高移」
+ * ラジオで選択中の観測点/目的点の近傍256×256ピクセル(現在ピクセル中心)を検索し、
+ * 現在地点から最も近い・現在より高い小ピーク(局所最大)へ移動する。
+ * 判定順: ①最も近い ②より高い。DEM標高タイルで算出する。
+ */
+async function moveToNearestPeak() {
+    const isStart = appState.locMode !== 'end';
+    const cur = isStart ? appState.start : appState.end;
+    if (!cur || cur.lat === null || cur.lat === undefined) {
+        return alert((isStart ? '観測点' : '目的点') + 'の緯度経度が設定されていません');
+    }
+    const btn = document.getElementById('btn-move-peak');
+    if (btn) { btn.disabled = true; btn.textContent = '⌛'; }
+    try {
+        // 現在点を覆うDEMソースを選定 (5A→5B→5C→10B)。現在標高と現在グローバルピクセルを取得
+        let chosen = null, curElev = null, gpx0 = 0, gpy0 = 0;
+        for (const dem of GSI_DEM_SOURCES) {
+            const ti = _getTileInfo(cur.lat, cur.lng, dem.zoom);
+            const imgData = await _getTileImageData(_makeTileUrl(dem, ti.x, ti.y));
+            if (!imgData) continue;
+            const idx = (ti.pY * 256 + ti.pX) * 4;
+            const h = _elevFromRGB(imgData.data[idx], imgData.data[idx + 1], imgData.data[idx + 2]);
+            if (h !== null) {
+                chosen = dem; curElev = h;
+                gpx0 = ti.x * 256 + ti.pX; gpy0 = ti.y * 256 + ti.pY;
+                break;
+            }
+        }
+        if (!chosen) return alert('近傍の標高データを取得できませんでした');
+
+        // 現在ピクセルを中心とする256×256の窓を構成し、必要なタイルを一括ロード
+        const HALF = 128, W = HALF * 2;
+        const minGX = gpx0 - HALF, minGY = gpy0 - HALF;
+        const tiles = {};
+        const loads = [];
+        const minTX = Math.floor(minGX / 256), maxTX = Math.floor((minGX + W - 1) / 256);
+        const minTY = Math.floor(minGY / 256), maxTY = Math.floor((minGY + W - 1) / 256);
+        for (let tx = minTX; tx <= maxTX; tx++) {
+            for (let ty = minTY; ty <= maxTY; ty++) {
+                loads.push(_getTileImageData(_makeTileUrl(chosen, tx, ty)).then(d => { tiles[tx + '_' + ty] = d; }));
+            }
+        }
+        await Promise.all(loads);
+
+        // 標高グリッドを構築 (データ無しのピクセルは valid=0)
+        const grid = new Float64Array(W * W);
+        const valid = new Uint8Array(W * W);
+        for (let j = 0; j < W; j++) {
+            for (let i = 0; i < W; i++) {
+                const gx = minGX + i, gy = minGY + j;
+                const tx = Math.floor(gx / 256), ty = Math.floor(gy / 256);
+                const d = tiles[tx + '_' + ty];
+                if (!d) continue;
+                const idx = ((gy - ty * 256) * 256 + (gx - tx * 256)) * 4;
+                const h = _elevFromRGB(d.data[idx], d.data[idx + 1], d.data[idx + 2]);
+                if (h === null) continue;
+                grid[j * W + i] = h; valid[j * W + i] = 1;
+            }
+        }
+
+        // 中心ピクセル=(HALF,HALF)。局所最大(8近傍より高い)かつ現在より高い候補を
+        // ①最も近い(ピクセル距離最小) ②より高い の順で1点選定
+        const ci = HALF, cj = HALF;
+        let best = null;
+        for (let j = 1; j < W - 1; j++) {
+            for (let i = 1; i < W - 1; i++) {
+                if (!valid[j * W + i]) continue;
+                const h = grid[j * W + i];
+                if (h <= curElev) continue;
+                let isPeak = true;
+                for (let dj = -1; dj <= 1 && isPeak; dj++) {
+                    for (let di = -1; di <= 1; di++) {
+                        if (di === 0 && dj === 0) continue;
+                        const n = (j + dj) * W + (i + di);
+                        if (valid[n] && grid[n] > h) { isPeak = false; break; }
+                    }
+                }
+                if (!isPeak) continue;
+                const d2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
+                if (!best || d2 < best.d2 || (d2 === best.d2 && h > best.h)) {
+                    best = { i, j, h, d2 };
+                }
+            }
+        }
+        if (!best) return alert('近傍により高い地点が見つかりませんでした');
+
+        // 選定ピクセル → 緯度経度。選択中の点に反映し、移動先を画面中心にズーム
+        const dest = _globalPixelToLatLng(minGX + best.i, minGY + best.j, chosen.zoom);
+        await applyLocationCoords({ lat: dest.lat, lng: dest.lng }, isStart);
+        const maxZ = (map && map.getMaxZoom) ? map.getMaxZoom() : 17;
+        map.setView([dest.lat, dest.lng], Math.min(17, maxZ));
+    } catch (e) {
+        alert('準最高地点の探索に失敗しました: ' + (e && e.message ? e.message : e));
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '高移'; }
+    }
+}
+
 
 // ------------------------------------------------------
 // 計算・描画ヘルパー (汎用)
@@ -2395,6 +2495,18 @@ function _getTileInfo(lat, lng, zoom) {
         pX: Math.floor(pixelX - tileX * 256),
         pY: Math.floor(pixelY - tileY * 256)
     };
+}
+
+/** グローバルピクセル座標(gpx,gpy)を緯度経度に逆変換する (_getTileInfo の逆。ピクセル中心を返す) */
+function _globalPixelToLatLng(gpx, gpy, zoom) {
+    const scale = Math.pow(2, zoom);
+    const R = 128 / Math.PI;
+    const worldX = (gpx + 0.5) / scale;
+    const lng = (worldX / R - Math.PI) * 180 / Math.PI;
+    const worldY = (gpy + 0.5) / scale;
+    const eL = Math.exp((128 - worldY) * 2 / R);
+    const lat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+    return { lat, lng };
 }
 
 function _loadTileImage(url) {
@@ -5962,7 +6074,7 @@ function drawProfileGraph() {
     const minE = Math.min(0, ...elevs);
     const maxE = Math.max(100, ...elevs);
     
-    const pad = {l:40, r:10, t:20, b:20};
+    const pad = {l:40, r:10, t:20, b:26};
     const gw = w - pad.l - pad.r;
     const gh = h - pad.t - pad.b;
     const maxD = appState.elevationData.points[appState.elevationData.points.length-1].dist;
@@ -5980,6 +6092,24 @@ function drawProfileGraph() {
         ctx.fillText(Math.round(minE+(maxE-minE)*(i/4)), 2, y+3);
     }
     ctx.stroke();
+
+    // 横軸: 直線距離の目盛 (縦の補助線 + 距離ラベル)。縦軸=標高/横軸=距離が分かるようにする
+    const distDecimals = maxD >= 10 ? 0 : (maxD >= 1 ? 1 : 2);
+    const xTicks = 4;
+    ctx.strokeStyle = '#444';
+    ctx.fillStyle = '#aaa';
+    ctx.font = '11px sans-serif';
+    ctx.beginPath();
+    for (let i = 0; i <= xTicks; i++) {
+        const d = maxD * (i / xTicks);
+        const x = toX(d);
+        ctx.moveTo(x, pad.t);
+        ctx.lineTo(x, pad.t + gh);
+        ctx.textAlign = i === 0 ? 'left' : (i === xTicks ? 'right' : 'center');
+        ctx.fillText(`${d.toFixed(distDecimals)}km`, x, pad.t + gh + 14);
+    }
+    ctx.stroke();
+    ctx.textAlign = 'start';
 
     // グラフ上部に間隔情報を表示
     const intervalM = appState.elevationData.intervalM;
