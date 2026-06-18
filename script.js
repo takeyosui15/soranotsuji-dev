@@ -2988,9 +2988,9 @@ function passesTimeFilter(dt, tw, fs) {
 }
 
 /** 時間フィルタの薄明/出没10種モードのラジオ(グリッド)HTMLを生成 */
-function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr) {
+function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr, disabledAttr = 'disabled') {
     return TSUJI_TIME_MODES.map(m =>
-        `<label class="tsuji-time-mode"><input type="radio" name="${name}" value="${m.v}" class="${cls}" ${dataAttr} ${checkedValue === m.v ? 'checked' : ''} disabled>${m.l}</label>`
+        `<label class="tsuji-time-mode"><input type="radio" name="${name}" value="${m.v}" class="${cls}" ${dataAttr} ${checkedValue === m.v ? 'checked' : ''} ${disabledAttr}>${m.l}</label>`
     ).join('');
 }
 
@@ -3012,6 +3012,44 @@ function buildTsujiTimeGroupHtml(group) {
             <input type="time" id="input-tsuji-${group}-offset" class="tsuji-${group}-prepost-control" value="${appState['tsuji' + G + 'Offset']}" disabled>
         </div>
     </div>`;
+}
+
+/** My辻検索の1行の時間フィルタ1グループ(開始/終了)のHTMLを生成 (per-row、クラス+data-id) */
+function buildMyTsujiTimeGroupHtml(t, group) {
+    const id = t.id;
+    const name = `mytsuji-${group}-mode-${id}`, ppName = `mytsuji-${group}-prepost-dir-${id}`;
+    const mode = t[group + 'Mode'] || (group === 'start' ? 'sunset' : 'sunrise');
+    const time = t[group + 'Time'] || '00:00';
+    const prePost = !!t[group + 'PrePost'];
+    const ppDir = t[group + 'PrePostDir'] || 'before';
+    const offset = t[group + 'Offset'] || '00:00';
+    const dis = t.timeFilter ? '' : 'disabled';
+    const ppDis = (t.timeFilter && prePost) ? '' : 'disabled';
+    const cls = `mytsuji-time-control mytsuji-${group}-mode`;
+    const ppCls = `mytsuji-${group}-prepost-control`;
+    return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="${cls}" data-id="${id}" ${mode === 'fixed' ? 'checked' : ''} ${dis}>時刻指定</label>
+            <input type="time" class="mytsuji-time-control mytsuji-${group}-time" data-id="${id}" value="${time}" ${dis}>
+        </div>
+        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, cls, `data-id="${id}"`, dis)}</div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="checkbox" class="body-checkbox mytsuji-time-control mytsuji-${group}-prepost" data-id="${id}" ${prePost ? 'checked' : ''} ${dis}>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" data-id="${id}" ${ppDir === 'before' ? 'checked' : ''} ${ppDis}>前</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" data-id="${id}" ${ppDir === 'after' ? 'checked' : ''} ${ppDis}>後</label>
+            <input type="time" class="mytsuji-${group}-offset ${ppCls}" data-id="${id}" value="${offset}" ${ppDis}>
+        </div>
+    </div>`;
+}
+
+/** My辻検索の1行の時間フィルタの活性/非活性を更新 */
+function updateMyTsujiRowTimeFilterUI(row, t) {
+    const on = !!t.timeFilter;
+    row.querySelectorAll('.mytsuji-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const pp = on && !!t[group + 'PrePost'];
+        row.querySelectorAll('.mytsuji-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
 }
 
 function updateMoonInfo(date) {
@@ -4332,6 +4370,7 @@ function addMyTsujiRow() {
         moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
         elevationOption: false, elevOK: false, elevNG: false,
+        timeFilter: false, startMode: 'sunset', startTime: '00:00', startPrePost: false, startPrePostDir: 'before', startOffset: '00:00', endMode: 'sunrise', endTime: '00:00', endPrePost: false, endPrePostDir: 'before', endOffset: '00:00',
         checked: false, memo: ''
     };
     if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
@@ -4417,6 +4456,7 @@ function getMyTsujiFromTsujiSearch() {
         accTriangle: appState.tsujiAccTriangle,
         accDash: appState.tsujiAccDash,
         elevationOption: appState.tsujiElevationOption, elevOK: appState.tsujiElevOK, elevNG: appState.tsujiElevNG,
+        timeFilter: appState.tsujiTimeFilter, startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset, endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
         checked: false, memo: ''
     });
     saveAppState();
@@ -4964,6 +5004,14 @@ async function decorateMyTsujiResults(results) {
         let tw = twCache.get(twKey);
         if (!tw) { tw = computeDayTwilight(startOfDay, observer); twCache.set(twKey, tw); }
         const timeCategory = classifyTimeCategory(dt, tw, startOfDay);
+        // 時間フィルタ: 辻時刻がその日の範囲外ならスキップ
+        if (r.tsuji.timeFilter) {
+            const fs = {
+                startMode: r.tsuji.startMode || 'sunset', startTime: r.tsuji.startTime || '00:00', startPrePost: !!r.tsuji.startPrePost, startPrePostDir: r.tsuji.startPrePostDir || 'before', startOffset: r.tsuji.startOffset || '00:00',
+                endMode: r.tsuji.endMode || 'sunrise', endTime: r.tsuji.endTime || '00:00', endPrePost: !!r.tsuji.endPrePost, endPrePostDir: r.tsuji.endPrePostDir || 'before', endOffset: r.tsuji.endOffset || '00:00',
+            };
+            if (!passesTimeFilter(dt, tw, fs)) continue;
+        }
         let sunriseStr = '--:--:--', sunsetStr = '--:--:--', moonriseStr = '--:--:--', moonsetStr = '--:--:--';
         try {
             sunriseStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1));
@@ -5497,6 +5545,13 @@ function renderMyTsujiSearches() {
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-time-filter" data-id="${t.id}" ${t.timeFilter ? 'checked' : ''}>
+                <label>時間フィルタ</label>
+            </div>
+            ${buildMyTsujiTimeGroupHtml(t, 'start')}
+            ${buildMyTsujiTimeGroupHtml(t, 'end')}
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-acc-filter" data-id="${t.id}" ${t.accuracyFilter ? 'checked' : ''}>
                 <label>精度フィルタ</label>
             </div>
@@ -5627,6 +5682,26 @@ function renderMyTsujiSearches() {
         });
         onChange('mytsuji-elev-ok', e => { t.elevOK = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-elev-ng', e => { t.elevNG = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        // 時間フィルタ
+        onChange('mytsuji-time-filter', e => {
+            t.timeFilter = e.target.checked;
+            updateMyTsujiRowTimeFilterUI(row, t);
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        ['start', 'end'].forEach(group => {
+            row.querySelectorAll('.mytsuji-' + group + '-mode').forEach(r => {
+                r.addEventListener('change', e => { t[group + 'Mode'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            });
+            const timeBox = row.querySelector('.mytsuji-' + group + '-time');
+            if (timeBox) timeBox.addEventListener('change', e => { t[group + 'Time'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            const ppChk = row.querySelector('.mytsuji-' + group + '-prepost');
+            if (ppChk) ppChk.addEventListener('change', e => { t[group + 'PrePost'] = e.target.checked; updateMyTsujiRowTimeFilterUI(row, t); saveAppState(); setMyTsujiDirty(true); });
+            row.querySelectorAll('.mytsuji-' + group + '-prepost-control[type="radio"]').forEach(r => {
+                r.addEventListener('change', e => { t[group + 'PrePostDir'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            });
+            const offBox = row.querySelector('.mytsuji-' + group + '-offset');
+            if (offBox) offBox.addEventListener('change', e => { t[group + 'Offset'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+        });
         onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
         onChange('mytsuji-memo', e => { t.memo = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
 
