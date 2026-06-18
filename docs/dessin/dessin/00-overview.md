@@ -85,6 +85,17 @@
 | tsujiElevationOption | false | 可 | 不可| 複数指定不可 | 辻検索の標高オプションを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiElevOK | false | 可 | 不可| 複数指定不可 | 辻検索の標高OKフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiElevNG | false | 可 | 不可| 複数指定不可 | 辻検索の標高NGフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
+| tsujiTimeFilter | false | 可 | 不可| 複数指定不可 | 辻検索の時間フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
+| tsujiStartMode | sunset | 可 | 不可| 複数指定不可 | 時間フィルタ開始の時刻モード。fixed(時刻指定)/astroDawn(天文薄明[始])/nautDawn(航海薄明[始])/yoake(夜明)/civilDawn(常用薄明[始])/sunrise(日の出)/sunset(日の入)/civilDusk(常用薄明[終])/higure(日暮)/nautDusk(航海薄明[終])/astroDusk(天文薄明[終])。キー省略時は、sunset。 | 無効 | 有効 |
+| tsujiStartTime | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ開始がfixedの時の時刻(HH:MM)。 | 無効 | 有効 |
+| tsujiStartPrePost | false | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後時刻指定を有効化。キー省略時は、false。 | 無効 | 有効 |
+| tsujiStartPrePostDir | before | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後方向。before(前)/after(後)。 | 無効 | 有効 |
+| tsujiStartOffset | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後時間(HH:MM)。 | 無効 | 有効 |
+| tsujiEndMode | sunrise | 可 | 不可| 複数指定不可 | 時間フィルタ終了の時刻モード(値は tsujiStartMode と同様)。キー省略時は、sunrise。 | 無効 | 有効 |
+| tsujiEndTime | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ終了がfixedの時の時刻(HH:MM)。 | 無効 | 有効 |
+| tsujiEndPrePost | false | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後時刻指定を有効化。キー省略時は、false。 | 無効 | 有効 |
+| tsujiEndPrePostDir | before | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後方向。before(前)/after(後)。 | 無効 | 有効 |
+| tsujiEndOffset | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後時間(HH:MM)。 | 無効 | 有効 |
 
 ### 仕様詳細:
 - 上記表のキーで、「複数指定可能」となっているものは、URLSearchParams.getAll()で取得し、starIdと対応する他のキーの内容が一致するようにする。

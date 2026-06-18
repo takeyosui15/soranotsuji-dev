@@ -222,6 +222,12 @@ GNU General Public License for more details.
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-time-filter" class="body-checkbox">
+                        <label for="chk-tsuji-time-filter">時間フィルタ</label>
+                    </div>
+                    <div id="tsuji-time-filter-groups"></div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-accuracy-filter" class="body-checkbox">
                         <label for="chk-tsuji-accuracy-filter">精度フィルタ</label>
                     </div>
@@ -808,6 +814,7 @@ GNU General Public License for more details.
                         <li><strong>オフセット回転角/回転仰角</strong>: 目的点方向を向いて0時(上)から時計回りの角度と、中心からの球面角距離 (参考値・読取専用)。</li>
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
+                        <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/各薄明から選べ、前後オフセットも指定可。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
                         <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>

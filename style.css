@@ -740,6 +740,27 @@ input[type="radio"] {
     margin-right: 2px;
 }
 
+/* 時間フィルタ: 開始(薄青)/終了(薄赤)グループ */
+.tsuji-time-group {
+    padding: 3px 4px;
+    border-radius: 4px;
+    margin: 3px 0;
+}
+.tsuji-time-start { background-color: rgba(100, 150, 255, 0.15); }
+.tsuji-time-end { background-color: rgba(255, 120, 120, 0.15); }
+.tsuji-time-radio-grid {
+    flex-wrap: wrap;
+    gap: 1px 6px;
+}
+.tsuji-time-mode {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.82em;
+    white-space: nowrap;
+    margin-right: 2px;
+}
+.tsuji-time-mode input { margin-right: 1px; }
+
 
 /* 月齢フィルタの入力不可時の背景色 */
 input[type="number"]:disabled {

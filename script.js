@@ -275,6 +275,11 @@ let appState = {
     tsujiElevOK: false,
     tsujiElevNG: false,
 
+    // 時間フィルタ
+    tsujiTimeFilter: false,
+    tsujiStartMode: 'sunset', tsujiStartTime: '00:00', tsujiStartPrePost: false, tsujiStartPrePostDir: 'before', tsujiStartOffset: '00:00',
+    tsujiEndMode: 'sunrise', tsujiEndTime: '00:00', tsujiEndPrePost: false, tsujiEndPrePostDir: 'before', tsujiEndOffset: '00:00',
+
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
 
@@ -378,6 +383,7 @@ window.onload = function() {
     updateTsujiAccuracyFilterUI();
     updateTsujiMoonFilterUI();
     updateTsujiElevationOptionUI();
+    syncTsujiTimeFilter();
     updateOffsetDistances();
 
     // リストを生成
@@ -668,6 +674,28 @@ function setupUI() {
         appState.tsujiElevNG = e.target.checked;
         saveAppState();
     });
+    // 時間フィルタ: グループHTMLを生成してから各種ハンドラを登録
+    const tfContainer = document.getElementById('tsuji-time-filter-groups');
+    if (tfContainer) {
+        tfContainer.innerHTML = buildTsujiTimeGroupHtml('start') + buildTsujiTimeGroupHtml('end');
+        document.getElementById('chk-tsuji-time-filter').addEventListener('change', (e) => {
+            appState.tsujiTimeFilter = e.target.checked;
+            updateTsujiTimeFilterUI();
+            saveAppState();
+        });
+        ['start', 'end'].forEach(group => {
+            const G = group === 'start' ? 'Start' : 'End';
+            document.querySelectorAll(`input[name="tsuji-${group}-mode"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsuji' + G + 'Mode'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsuji-${group}-time`).addEventListener('change', (e) => { appState['tsuji' + G + 'Time'] = e.target.value; saveAppState(); });
+            document.getElementById(`chk-tsuji-${group}-prepost`).addEventListener('change', (e) => { appState['tsuji' + G + 'PrePost'] = e.target.checked; updateTsujiTimeFilterUI(); saveAppState(); });
+            document.querySelectorAll(`input[name="tsuji-${group}-prepost-dir"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsuji' + G + 'PrePostDir'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsuji-${group}-offset`).addEventListener('change', (e) => { appState['tsuji' + G + 'Offset'] = e.target.value; saveAppState(); });
+        });
+    }
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -926,6 +954,9 @@ function saveAppState() {
         tsujiElevationOption: appState.tsujiElevationOption,
         tsujiElevOK: appState.tsujiElevOK,
         tsujiElevNG: appState.tsujiElevNG,
+        tsujiTimeFilter: appState.tsujiTimeFilter,
+        tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
+        tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -978,6 +1009,7 @@ function loadAppState() {
             if(saved.tsujiElevationOption !== undefined) appState.tsujiElevationOption = saved.tsujiElevationOption;
             if(saved.tsujiElevOK !== undefined) appState.tsujiElevOK = saved.tsujiElevOK;
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
+            ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -2900,6 +2932,86 @@ function classifyTimeCategory(dt, tw, startOfDay) {
         if (bounds[i] && dt < bounds[i]) return TIME_CATEGORY_LABELS[i];
     }
     return '-';
+}
+
+// 時間フィルタの時刻モード (値は computeDayTwilight の返却キーに一致)。これに加えて 'fixed'(時刻指定) がある。
+const TSUJI_TIME_MODES = [
+    { v: 'astroDawn', l: '天文薄明[始]' },
+    { v: 'nautDawn',  l: '航海薄明[始]' },
+    { v: 'yoake',     l: '夜明' },
+    { v: 'civilDawn', l: '常用薄明[始]' },
+    { v: 'sunrise',   l: '日の出' },
+    { v: 'sunset',    l: '日の入' },
+    { v: 'civilDusk', l: '常用薄明[終]' },
+    { v: 'higure',    l: '日暮' },
+    { v: 'nautDusk',  l: '航海薄明[終]' },
+    { v: 'astroDusk', l: '天文薄明[終]' },
+];
+
+/** 'HH:MM' を分に変換 (不正時は0) */
+function hhmmToMinutes(s) {
+    if (!s || typeof s !== 'string') return 0;
+    const parts = s.split(':');
+    const h = parseInt(parts[0], 10), mi = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(mi)) return 0;
+    return h * 60 + mi;
+}
+
+/** 時間フィルタの境界時刻を「当日の分(0-1440)」で返す。tw=computeDayTwilightの結果。
+ *  null = 境界が解決できない(その日はその境界を無効扱い)。 */
+function timeModeToMinutes(mode, fixedHHMM, prePost, dir, offsetHHMM, tw) {
+    let base;
+    if (mode === 'fixed') {
+        base = hhmmToMinutes(fixedHHMM);
+    } else {
+        const d = tw ? tw[mode] : null;
+        if (!d) return null;
+        base = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+    }
+    if (prePost) {
+        const off = hhmmToMinutes(offsetHHMM);
+        base += (dir === 'after' ? off : -off);
+    }
+    return ((base % 1440) + 1440) % 1440;
+}
+
+/** 辻時刻dtが時間フィルタの範囲内かを判定する。
+ *  fs = {startMode,startTime,startPrePost,startPrePostDir,startOffset, end同等}。
+ *  開始>終了 のときは夜間(日付境界またぎ)として扱う。境界が解決できない場合は通す。 */
+function passesTimeFilter(dt, tw, fs) {
+    const sMin = timeModeToMinutes(fs.startMode, fs.startTime, fs.startPrePost, fs.startPrePostDir, fs.startOffset, tw);
+    const eMin = timeModeToMinutes(fs.endMode, fs.endTime, fs.endPrePost, fs.endPrePostDir, fs.endOffset, tw);
+    if (sMin === null || eMin === null) return true;
+    const tMin = dt.getHours() * 60 + dt.getMinutes() + dt.getSeconds() / 60;
+    if (sMin <= eMin) return tMin >= sMin && tMin <= eMin;
+    return tMin >= sMin || tMin <= eMin; // 夜間 (日付境界またぎ)
+}
+
+/** 時間フィルタの薄明/出没10種モードのラジオ(グリッド)HTMLを生成 */
+function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr) {
+    return TSUJI_TIME_MODES.map(m =>
+        `<label class="tsuji-time-mode"><input type="radio" name="${name}" value="${m.v}" class="${cls}" ${dataAttr} ${checkedValue === m.v ? 'checked' : ''} disabled>${m.l}</label>`
+    ).join('');
+}
+
+/** 辻検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成 */
+function buildTsujiTimeGroupHtml(group) {
+    const G = group === 'start' ? 'Start' : 'End';
+    const name = `tsuji-${group}-mode`, ppName = `tsuji-${group}-prepost-dir`;
+    const mode = appState['tsuji' + G + 'Mode'];
+    return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="tsuji-time-control" ${mode === 'fixed' ? 'checked' : ''} disabled>時刻指定</label>
+            <input type="time" id="input-tsuji-${group}-time" class="tsuji-time-control" value="${appState['tsuji' + G + 'Time']}" disabled>
+        </div>
+        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, 'tsuji-time-control', '')}</div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="checkbox" id="chk-tsuji-${group}-prepost" class="body-checkbox tsuji-time-control" ${appState['tsuji' + G + 'PrePost'] ? 'checked' : ''} disabled>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="tsuji-${group}-prepost-control" ${appState['tsuji' + G + 'PrePostDir'] === 'before' ? 'checked' : ''} disabled>前</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="tsuji-${group}-prepost-control" ${appState['tsuji' + G + 'PrePostDir'] === 'after' ? 'checked' : ''} disabled>後</label>
+            <input type="time" id="input-tsuji-${group}-offset" class="tsuji-${group}-prepost-control" value="${appState['tsuji' + G + 'Offset']}" disabled>
+        </div>
+    </div>`;
 }
 
 function updateMoonInfo(date) {
@@ -5767,6 +5879,35 @@ function updateTsujiElevationOptionUI() {
     document.getElementById('chk-tsuji-elev-ng').disabled = !enabled;
 }
 
+/** 時間フィルタのUI状態(活性/非活性)を更新 */
+function updateTsujiTimeFilterUI() {
+    const on = appState.tsujiTimeFilter;
+    document.querySelectorAll('#tsuji-time-filter-groups .tsuji-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const pp = on && appState['tsuji' + G + 'PrePost'];
+        document.querySelectorAll('.tsuji-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
+}
+
+/** 時間フィルタのフォーム値をappStateから反映 */
+function syncTsujiTimeFilter() {
+    const chk = document.getElementById('chk-tsuji-time-filter');
+    if (!chk) return;
+    chk.checked = appState.tsujiTimeFilter;
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const mr = document.querySelector(`input[name="tsuji-${group}-mode"][value="${appState['tsuji' + G + 'Mode']}"]`);
+        if (mr) mr.checked = true;
+        document.getElementById(`input-tsuji-${group}-time`).value = appState['tsuji' + G + 'Time'];
+        document.getElementById(`chk-tsuji-${group}-prepost`).checked = appState['tsuji' + G + 'PrePost'];
+        const dr = document.querySelector(`input[name="tsuji-${group}-prepost-dir"][value="${appState['tsuji' + G + 'PrePostDir']}"]`);
+        if (dr) dr.checked = true;
+        document.getElementById(`input-tsuji-${group}-offset`).value = appState['tsuji' + G + 'Offset'];
+    });
+    updateTsujiTimeFilterUI();
+}
+
 /** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
 function isMoonAgeInRange(moonAge, base, tolerance) {
     const S = SYNODIC_MONTH;
@@ -6061,6 +6202,12 @@ async function startTsujiSearch() {
         elevStatus = vis.visible ? 'OK' : 'NG';
     }
 
+    // 時間フィルタの設定 (全行共通)。各行ごとに当日の薄明/出没(rs.tw)で範囲判定する。
+    const timeFs = {
+        startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset,
+        endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
+    };
+
     // ソート用データをフラットに事前計算
     const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     const rowData = [];
@@ -6130,6 +6277,9 @@ async function startTsujiSearch() {
                 if (appState.tsujiElevNG) allowedElev.push('NG');
                 if (!allowedElev.includes(elevStatus)) return;
             }
+
+            // 時間フィルタ: 辻時刻がその日の範囲外ならスキップ
+            if (appState.tsujiTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
 
             rowData.push({
                 body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
@@ -6662,6 +6812,17 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiElevationOption', appState.tsujiElevationOption ? 'true' : 'false');
     params.set('tsujiElevOK', appState.tsujiElevOK ? 'true' : 'false');
     params.set('tsujiElevNG', appState.tsujiElevNG ? 'true' : 'false');
+    params.set('tsujiTimeFilter', appState.tsujiTimeFilter ? 'true' : 'false');
+    params.set('tsujiStartMode', appState.tsujiStartMode);
+    params.set('tsujiStartTime', appState.tsujiStartTime);
+    params.set('tsujiStartPrePost', appState.tsujiStartPrePost ? 'true' : 'false');
+    params.set('tsujiStartPrePostDir', appState.tsujiStartPrePostDir);
+    params.set('tsujiStartOffset', appState.tsujiStartOffset);
+    params.set('tsujiEndMode', appState.tsujiEndMode);
+    params.set('tsujiEndTime', appState.tsujiEndTime);
+    params.set('tsujiEndPrePost', appState.tsujiEndPrePost ? 'true' : 'false');
+    params.set('tsujiEndPrePostDir', appState.tsujiEndPrePostDir);
+    params.set('tsujiEndOffset', appState.tsujiEndOffset);
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -6788,6 +6949,17 @@ function restoreFromUrl() {
         if (params.has('tsujiElevationOption')) { appState.tsujiElevationOption = params.get('tsujiElevationOption') === 'true'; }
         if (params.has('tsujiElevOK')) { appState.tsujiElevOK = params.get('tsujiElevOK') === 'true'; }
         if (params.has('tsujiElevNG')) { appState.tsujiElevNG = params.get('tsujiElevNG') === 'true'; }
+        if (params.has('tsujiTimeFilter')) { appState.tsujiTimeFilter = params.get('tsujiTimeFilter') === 'true'; }
+        if (params.has('tsujiStartMode')) { appState.tsujiStartMode = params.get('tsujiStartMode'); }
+        if (params.has('tsujiStartTime')) { appState.tsujiStartTime = params.get('tsujiStartTime'); }
+        if (params.has('tsujiStartPrePost')) { appState.tsujiStartPrePost = params.get('tsujiStartPrePost') === 'true'; }
+        if (params.has('tsujiStartPrePostDir')) { appState.tsujiStartPrePostDir = params.get('tsujiStartPrePostDir'); }
+        if (params.has('tsujiStartOffset')) { appState.tsujiStartOffset = params.get('tsujiStartOffset'); }
+        if (params.has('tsujiEndMode')) { appState.tsujiEndMode = params.get('tsujiEndMode'); }
+        if (params.has('tsujiEndTime')) { appState.tsujiEndTime = params.get('tsujiEndTime'); }
+        if (params.has('tsujiEndPrePost')) { appState.tsujiEndPrePost = params.get('tsujiEndPrePost') === 'true'; }
+        if (params.has('tsujiEndPrePostDir')) { appState.tsujiEndPrePostDir = params.get('tsujiEndPrePostDir'); }
+        if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
 
     // 標高(elev)を再計算: elev = apiElev + height
