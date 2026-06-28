@@ -1,3 +1,18 @@
+/*
+宙の辻 - Sora no Tsuji
+Copyright (C) 2026 Takeyoshi Watanabe (Sora no Tsuji Project)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+*/
+
 // 辻検索 Web Worker
 // メインスレッドから 1天体・指定日範囲のチャンクを受け取り、
 // 1分単位スキャン → 前後60秒の1秒単位リファインを行ってベスト時刻を返す。

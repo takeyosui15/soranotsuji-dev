@@ -1,6 +1,6 @@
 /*
 宙の辻 - Sora no Tsuji
-Copyright (c) 2026- Sora no Tsuji Project
+Copyright (C) 2026 Takeyoshi Watanabe (Sora no Tsuji Project)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -395,7 +395,7 @@ window.onload = function() {
     renderMyTsujiSearches();
 
     // My観測点/My目的点マーカーを表示
-    setTimeout(() => updateMyPointMarkers(), 500);
+    setTimeout(() => updateMyPointMarkers(), 460);
 
     // ツールチップ設定
     setupTooltips();
@@ -416,7 +416,7 @@ window.onload = function() {
         }
     });
 
-    setTimeout(initVisitorCounter, 1000);
+    setTimeout(initVisitorCounter, 900);
 
     // URLパラメータで辻検索が指定されていた場合、自動実行
     if (appState._pendingTsujiSearch) {
@@ -1977,7 +1977,7 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
 // ============================================================
 // DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
 // ============================================================
-const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
@@ -2703,7 +2703,7 @@ async function fetchAllElevations(points, onProgress) {
     const unfetched = points.filter(p => !p.fetched);
     if (unfetched.length > 0) {
         // Open-Meteo APIはカンマ区切りで複数地点を一括取得可能
-        const BATCH_OM = 100;
+        const BATCH_OM = 96;
         for (let b = 0; b < unfetched.length; b += BATCH_OM) {
             if (generation !== _elevFetchGeneration) return;
             const batch = unfetched.slice(b, b + BATCH_OM);
@@ -6072,7 +6072,7 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
 // 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
 const TSUJI_CHUNK_DAYS = 365;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
@@ -6639,7 +6639,7 @@ function fetchVisitorData(action, todayStr) {
         if (d.error === 'lock_busy') {
             // ロック解除待ち表示 → 3秒後リトライ
             setCounterDisplay('- -', '- -', '- -', '- -');
-            setTimeout(() => fetchVisitorData(action, todayStr), 3000);
+            setTimeout(() => fetchVisitorData(action, todayStr), 2700);
             return;
         }
         if (d.error === 'no_sheet') {
