@@ -7894,7 +7894,7 @@ function _smBuildSky() {
     return mesh;
 }
 
-/** 実画像(高解像度 milkyway-skymap_4k-8bit.webp)があれば背景球テクスチャを差し替え */
+/** 実画像(高解像度 milkyway-skymap_4k.webp)があれば背景球テクスチャを差し替え */
 function _smTryLoadRealImage() {
     const img = new Image();
     img.onload = () => {
@@ -7908,7 +7908,7 @@ function _smTryLoadRealImage() {
         if (appState.isSoramadoActive) drawSoramado();
     };
     img.onerror = () => { /* 取得不可: 模式図のまま */ };
-    img.src = 'milkyway-skymap_4k-8bit.webp';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
+    img.src = 'milkyway-skymap_4k.webp';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
 }
 
 /** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
