@@ -7687,7 +7687,13 @@ function _smInit() {
     _smRenderer.autoClear = false;
     _smScene = new THREE.Scene();
     _smScene.background = null;
-    _smCamera = new THREE.PerspectiveCamera(40, 1, 0.01, 200);
+    _smCamera = new THREE.PerspectiveCamera(40, 1, 0.01, 300);
+    // F2: 背景天球・軌跡・天体マーカー (描画順: 空→軌跡→天体)
+    _smSky = _smBuildSky();
+    _smScene.add(_smSky);
+    _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
+    _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
+    _smTryLoadRealImage();
     _smInited = true;
 }
 
@@ -7723,6 +7729,11 @@ function drawSoramado() {
     _smCamera.lookAt(_smDir(az, alt));
     _smCamera.updateProjectionMatrix();
 
+    // F2: 背景球の向き/可視・天体マーカー・軌跡を更新
+    _smUpdateSky();
+    _smBuildBodies();
+    _smBuildTraj();
+
     // ファインダー矩形 (描画バッファpx)
     const dpr = _smRenderer.getPixelRatio();
     const r = _smFitRect(w * dpr, h * dpr, finderAspect, 0.94);
@@ -7735,7 +7746,7 @@ function drawSoramado() {
     _smRenderer.setScissor(r.x, glY, r.w, r.h);
     _smRenderer.setClearColor(0x0a0e1a, 1);
     _smRenderer.clear(true, true, true);                 // ファインダー内を空色でクリア
-    _smRenderer.render(_smScene, _smCamera);             // F1: シーンは空
+    _smRenderer.render(_smScene, _smCamera);             // 背景球・天体・軌跡
     _smRenderer.setScissorTest(false);
 
     // HTMLオーバーレイ (CSS px で配置)
@@ -7749,3 +7760,182 @@ function drawSoramado() {
 }
 
 function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }
+
+// --- F2: 天体プレビュー (背景球・天体マーカー・月相・軌跡) ---
+const _SM_BODY_R = 50, _SM_SKY_R = 90;
+let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
+const _smTexCache = {};   // key → CanvasTexture
+
+/** 背景天球(BackSide, 赤道座標テクスチャ)を生成 */
+function _smBuildSky() {
+    const slices = 64, stacks = 32, positions = [], uvs = [], indices = [];
+    for (let j = 0; j <= stacks; j++) {
+        const dec = -90 + 180 * j / stacks;
+        for (let i = 0; i <= slices; i++) {
+            const v = _mwEquVec(24 * i / slices, dec);
+            positions.push(v[0] * _SM_SKY_R, v[1] * _SM_SKY_R, v[2] * _SM_SKY_R);
+            uvs.push(i / slices, j / stacks);
+        }
+    }
+    const row = slices + 1;
+    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
+        const a = j * row + i, b = a + row;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    _smSkyTex = new THREE.CanvasTexture(_mwBuildProceduralTexture());
+    _smSkyTex.colorSpace = THREE.SRGBColorSpace;
+    _smSkyMat = new THREE.MeshBasicMaterial({ map: _smSkyTex, side: THREE.DoubleSide, depthWrite: false });
+    const mesh = new THREE.Mesh(geo, _smSkyMat);
+    mesh.renderOrder = -1;
+    return mesh;
+}
+
+/** 実画像(milkyway-skymap.jpg)があれば背景球テクスチャを差し替え */
+function _smTryLoadRealImage() {
+    const img = new Image();
+    img.onload = () => {
+        if (_smFailed || !_smSkyMat) return;
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 0.5;   // NASA赤道座標版に整合
+        tex.needsUpdate = true;
+        if (_smSkyTex) _smSkyTex.dispose();
+        _smSkyTex = tex; _smSkyMat.map = tex; _smSkyMat.needsUpdate = true;
+        if (appState.isSoramadoActive) drawSoramado();
+    };
+    img.onerror = () => { /* 取得不可: 模式図のまま */ };
+    img.src = 'milkyway-skymap.jpg';
+}
+
+/** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
+function _smUpdateSky() {
+    if (!_smSky) return;
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    _smSky.visible = !!(mw && mw.visible);
+    if (!_smSky.visible) return;
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const toW = (raH, decD) => { const hor = Astronomy.Horizon(date, observer, raH, decD, null); const d = _smDir(hor.azimuth, hor.altitude); return [d.x, d.y, d.z]; };
+    const Rx = toW(0, 0), Rz = toW(0, 90);
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const rz = norm(Rz), d = dot(Rx, rz);
+    const rx = norm([Rx[0] - rz[0] * d, Rx[1] - rz[1] * d, Rx[2] - rz[2] * d]);
+    const ry = cross(rz, rx);
+    const m = new THREE.Matrix4();
+    m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
+    _smSky.quaternion.setFromRotationMatrix(m);
+}
+
+/** 64px キャンバスを描いて CanvasTexture をキャッシュ */
+function _smCanvasTex(key, draw, size) {
+    if (_smTexCache[key]) return _smTexCache[key];
+    const s = size || 64, cv = document.createElement('canvas'); cv.width = cv.height = s;
+    draw(cv.getContext('2d'), s);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    _smTexCache[key] = tex; return tex;
+}
+function _smCrossTex(color) {
+    return _smCanvasTex('cross_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.strokeStyle = color; c.lineWidth = 3; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(s / 2, 10); c.lineTo(s / 2, s - 10); c.moveTo(10, s / 2); c.lineTo(s - 10, s / 2); c.stroke();
+    });
+}
+function _smDiskTex(color) {
+    return _smCanvasTex('disk_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.fillStyle = color;
+        c.beginPath(); c.arc(s / 2, s / 2, s / 2 - 3, 0, 2 * Math.PI); c.fill();
+    });
+}
+/** 月の満ち欠けキャンバス(clip+半分塗り+ターミネーター楕円) + 視半径の細線円 */
+function _smDrawMoon(c, s, fraction, waxing) {
+    const R = s / 2 - 6, cx = s / 2, cy = s / 2;
+    const dark = 'rgba(48,50,60,0.92)', lit = '#f4f1e0';
+    c.clearRect(0, 0, s, s);
+    c.save();
+    c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.clip();
+    c.fillStyle = dark; c.fillRect(0, 0, s, s);
+    const k = Math.max(0, Math.min(1, fraction));
+    c.fillStyle = lit;
+    if (waxing) c.fillRect(cx, 0, s, s); else c.fillRect(0, 0, cx, s);   // 明るい縁側の半分
+    const ex = R * Math.abs(1 - 2 * k);                                  // ターミネーター楕円の横半径
+    c.beginPath(); c.ellipse(cx, cy, ex, R, 0, 0, 2 * Math.PI);
+    c.fillStyle = (k > 0.5) ? lit : dark;                               // 凸(満ちて)→明, 凹(欠けて)→暗
+    c.fill();
+    c.restore();
+    c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1;            // 視半径の細線円
+    c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.stroke();
+}
+
+/** 表示天体のマーカー(中心十字・視半径円・月相)を毎回再構築 */
+function _smBuildBodies() {
+    if (!_smBodiesGrp) return;
+    while (_smBodiesGrp.children.length) { const c = _smBodiesGrp.children.pop(); if (c.material) c.material.dispose(); }
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const refr = appState.refractionEnabled ? 'normal' : null;
+    appState.bodies.forEach(body => {
+        if (!body.visible || body.id === 'MilkyWay') return;   // 天の川は背景球で表現
+        let ra, dec;
+        if (isFixedStar(body.id)) { const rd = getFixedStarRaDec(body.id); ra = rd.ra; dec = rd.dec; }
+        else { try { const eq = Astronomy.Equator(body.id, date, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { return; } }
+        const hor = Astronomy.Horizon(date, observer, ra, dec, refr);
+        const pos = _smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R);
+        const angR = getBodyAngularRadius(body.id, date, observer);    // deg (点光源は0)
+        if (body.id === 'Moon') {
+            const ill = Astronomy.Illumination('Moon', date);
+            const waxing = Astronomy.MoonPhase(date) < 180;
+            const tex = _smCanvasTex(`moon_${ill.phase_fraction.toFixed(2)}_${waxing}`, (c, s) => _smDrawMoon(c, s, ill.phase_fraction, waxing), 128);
+            const r = _SM_BODY_R * Math.tan(Math.max(angR, 0.08) * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        } else if (angR > 0) {
+            const r = _SM_BODY_R * Math.tan(angR * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(body.color), transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        }
+        // 中心十字 (全天体・画面固定サイズ)
+        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        cross.scale.set(0.015, 0.015, 1); cross.position.copy(pos); _smBodiesGrp.add(cross);
+    });
+}
+
+/** 表示天体の軌跡(日付±1日, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
+function _smBuildTraj() {
+    if (!_smTrajGrp) return;
+    const dayStart = new Date(appState.currentDate); dayStart.setHours(0, 0, 0, 0);
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
+    const visibleIds = appState.bodies.filter(b => b.visible && b.id !== 'MilkyWay').map(b => b.id).join(',');
+    const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}`;
+    if (key === _smTrajKey) return;
+    _smTrajKey = key;
+    while (_smTrajGrp.children.length) { const c = _smTrajGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    if (!appState.soraTraj) return;
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const base = appState.currentDate.getTime(), N = 96;
+    appState.bodies.forEach(body => {
+        if (!body.visible || body.id === 'MilkyWay') return;
+        const isFixed = isFixedStar(body.id);
+        const rd = isFixed ? getFixedStarRaDec(body.id) : null;
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+            const t = new Date(base + (i / N * 2 - 1) * 86400000);   // -1日 .. +1日
+            let ra, dec;
+            if (isFixed) { ra = rd.ra; dec = rd.dec; }
+            else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
+            const hor = Astronomy.Horizon(t, observer, ra, dec, null);
+            pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
+        }
+        if (pts.length < 2) return;
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: false }));
+        _smTrajGrp.add(line);
+    });
+}
