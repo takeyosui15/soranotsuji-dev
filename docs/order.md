@@ -645,3 +645,18 @@ Claudeさん、ありがとうございます.
 全天儀の天の川画像には、WebP画像で、milkyway-skymap.webpを使用し、宙の窓の天の川写真は、高解像度のmilkyway-skymap_4k-8bit.webpを使用する。
 
 よろしくお願いいたします。
+
+### 回答 (2026-06-30) 天の川画像をWebPに変更
+ご用意いただいたWebP画像（Illustratorで変換）に切り替えました（ヘッドレスChromiumで検証）。
+
+**1. 天の川画像をWebPに → 対応**
+- 全天儀＝`milkyway-skymap.webp`、宙の窓＝高解像度 `milkyway-skymap_4k-8bit.webp` に切り替えました。
+- 検証: 両WebPが正しくリクエスト（200）され、全天儀・宙の窓ともに**透過アーティファクト無く**、JSエラー0件で描画されることを確認しました。
+
+**補足（画像の確認結果）**
+- 追加いただいたWebPはいずれも VP8X 形式で、**アルファチャンネル付き**でした。
+  - `milkyway-skymap.webp`(434KB) / `milkyway-skymap_4k-8bit.webp`(7.4MB)＝背景は不透明な天の川写真なので描画に影響なし（PNGより軽量で◎）。
+  - **`constellation_figures_skymap.webp`（星座線）/ `constellation_bounds_skymap.webp`（星座領域）も アルファ付き** ＝今後の星座重ね合わせ（基本オプションメニュー）に**そのまま使えます**。透過で天の川の上に綺麗に重ねられます。
+- これで、次は「基本オプションメニュー＋3レイヤー（天の川／星座線／星座領域）の表示チェックボックス」を、アルファ付きWebPの重ね合わせで実装できます。ご希望のタイミングでお申し付けください。
+
+ご確認のうえ、未使用になった旧PNG/JPG（milkyway-skymap.{png,jpg} / _4k-8bit.{png,jpg}）の削除や、星座重ね合わせの実装など、ご指示をお願いいたします。
