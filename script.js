@@ -246,7 +246,7 @@ let appState = {
     // 宙の窓パラメータ (isSoramadoActive以外はlocalStorage保存)
     soraSensorKey: 'fullframe',
     soraAspectW: 3,
-    soraAspectH: 3,
+    soraAspectH: 2,
     soraFocal: 35,
     soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
     soraFocusDist: 1000,
@@ -1087,7 +1087,7 @@ function normalizeAppState() {
     appState.tsujiTimeFilter = !!appState.tsujiTimeFilter;
     // 宙の窓: 数値の範囲・型
     appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
-    appState.soraAspectH = num(appState.soraAspectH, 3, 1, 100);
+    appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
     appState.soraFocal = num(appState.soraFocal, 35, 6, 3000);
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
     appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 10000);
@@ -2053,7 +2053,7 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
 // ============================================================
 // DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
 // ============================================================
-const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
+const DP_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
@@ -6130,6 +6130,30 @@ function syncBottomPanels() {
     tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
     tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
     tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
+    // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
+    recenterObserverInView();
+}
+
+/** 下部パネル(全天儀/標高グラフ/宙の窓/辻検索)で隠れていない可視領域の中央へ、
+ * 観測点(appState.start)が来るよう地図をパンする。requestAnimationFrameで多重呼出をコアレス。 */
+let _recenterRAF = null;
+function recenterObserverInView(animate = true) {
+    if (typeof map === 'undefined' || !map || !appState.start) return;
+    if (_recenterRAF) cancelAnimationFrame(_recenterRAF);
+    _recenterRAF = requestAnimationFrame(() => {
+        _recenterRAF = null;
+        if (!map || !appState.start) return;
+        const size = map.getSize();
+        // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
+        const other = appState.isElevationActive || appState.isMilkyWayActive || appState.isSoramadoActive;
+        const tsuji = appState.isTsujiSearchActive;
+        const coveredFrac = (tsuji && other) ? (2 / 3) : ((tsuji || other) ? (1 / 3) : 0);
+        const z = map.getZoom();
+        const obsPx = map.project([appState.start.lat, appState.start.lng], z);
+        // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと観測点が可視領域の中央に来る
+        const centerPx = obsPx.add([0, size.y * coveredFrac / 2]);
+        map.panTo(map.unproject(centerPx, z), { animate });
+    });
 }
 
 
@@ -6174,7 +6198,7 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
 // 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
 const TSUJI_CHUNK_DAYS = 365;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
@@ -7609,10 +7633,10 @@ function soraSyncUI() {
     chk('chk-sora-grayscale', appState.soraGrayscale);
     chk('chk-sora-traj', appState.soraTraj);
     chk('chk-sora-center', appState.soraCenterCross);
-    set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(2));
-    set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(2));
-    set('input-sora-offset-az', appState.soraOffsetAz);
-    set('input-sora-offset-alt', appState.soraOffsetAlt);
+    set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(4));
+    set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(4));
+    set('input-sora-offset-az', Number(appState.soraOffsetAz).toFixed(4));
+    set('input-sora-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
     set('input-sora-range', appState.soraViewRange);
     set('input-sora-range-slider', appState.soraViewRange);
     const o = soraComputeOptics();
@@ -8033,7 +8057,7 @@ function _smUpdateTerrain() {
 }
 
 // --- F3: DEM地形タイル取得 ワーカープール (fetch/PNGデコード/標高化を並列オフロード) ---
-const SORA_TERRAIN_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
+const SORA_TERRAIN_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
 let _smTerrainPool = null;
 function _smEnsureTerrainPool() {
     if (_smTerrainPool) return _smTerrainPool;
