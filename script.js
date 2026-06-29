@@ -7682,18 +7682,20 @@ function _smInit() {
         return;
     }
     const cv = document.getElementById('soramado-canvas');
-    _smRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    _smRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, logarithmicDepthBuffer: true });
     _smRenderer.setPixelRatio(window.devicePixelRatio || 1);
     _smRenderer.autoClear = false;
     _smScene = new THREE.Scene();
     _smScene.background = null;
-    _smCamera = new THREE.PerspectiveCamera(40, 1, 0.01, 300);
+    _smCamera = new THREE.PerspectiveCamera(40, 1, 1, 1e6);
     // F2: 背景天球・軌跡・天体マーカー (描画順: 空→軌跡→天体)
     _smSky = _smBuildSky();
     _smScene.add(_smSky);
+    _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
     _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
     _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
     _smTryLoadRealImage();
+    _smInitPost();
     _smInited = true;
 }
 
@@ -7733,6 +7735,8 @@ function drawSoramado() {
     _smUpdateSky();
     _smBuildBodies();
     _smBuildTraj();
+    // F3: DEM地形(扇が変わった時のみ再取得)
+    _smUpdateTerrain();
 
     // ファインダー矩形 (描画バッファpx)
     const dpr = _smRenderer.getPixelRatio();
@@ -7741,13 +7745,30 @@ function drawSoramado() {
     _smRenderer.setScissorTest(false);
     _smRenderer.setClearColor(0x000000, 1);
     _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
-    _smRenderer.setScissorTest(true);
-    _smRenderer.setViewport(r.x, glY, r.w, r.h);
-    _smRenderer.setScissor(r.x, glY, r.w, r.h);
-    _smRenderer.setClearColor(0x0a0e1a, 1);
-    _smRenderer.clear(true, true, true);                 // ファインダー内を空色でクリア
-    _smRenderer.render(_smScene, _smCamera);             // 背景球・天体・軌跡
-    _smRenderer.setScissorTest(false);
+    if (appState.soraFisheye && _smPostMat) {
+        // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
+        const rw = Math.max(2, Math.round(r.w)), rh = Math.max(2, Math.round(r.h));
+        _smRT.setSize(rw, rh);
+        _smRenderer.setRenderTarget(_smRT);
+        _smRenderer.setViewport(0, 0, rw, rh);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+        _smRenderer.setRenderTarget(null);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(r.x, glY, r.w, r.h);
+        _smRenderer.setScissor(r.x, glY, r.w, r.h);
+        _smRenderer.render(_smPostScene, _smPostCam);
+        _smRenderer.setScissorTest(false);
+    } else {
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(r.x, glY, r.w, r.h);
+        _smRenderer.setScissor(r.x, glY, r.w, r.h);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        _smRenderer.clear(true, true, true);             // ファインダー内を空色でクリア
+        _smRenderer.render(_smScene, _smCamera);         // 背景球・天体・軌跡・地形
+        _smRenderer.setScissorTest(false);
+    }
 
     // HTMLオーバーレイ (CSS px で配置)
     const cr = _smFitRect(w, h, finderAspect, 0.94);
@@ -7762,7 +7783,7 @@ function drawSoramado() {
 function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }
 
 // --- F2: 天体プレビュー (背景球・天体マーカー・月相・軌跡) ---
-const _SM_BODY_R = 50, _SM_SKY_R = 90;
+const _SM_BODY_R = 400000, _SM_SKY_R = 600000;   // 天体・天球は地形(≤300km)より外側に置き、地形で遮蔽できるように
 let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
 const _smTexCache = {};   // key → CanvasTexture
 
@@ -7894,16 +7915,16 @@ function _smBuildBodies() {
             const waxing = Astronomy.MoonPhase(date) < 180;
             const tex = _smCanvasTex(`moon_${ill.phase_fraction.toFixed(2)}_${waxing}`, (c, s) => _smDrawMoon(c, s, ill.phase_fraction, waxing), 128);
             const r = _SM_BODY_R * Math.tan(Math.max(angR, 0.08) * Math.PI / 180);
-            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false }));
             sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
         } else if (angR > 0) {
             const r = _SM_BODY_R * Math.tan(angR * Math.PI / 180);
-            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(body.color), transparent: true, opacity: 0.55, depthTest: false, depthWrite: false }));
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(body.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
             sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
         }
         // 中心十字 (全天体・画面固定サイズ)
-        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
-        cross.scale.set(0.015, 0.015, 1); cross.position.copy(pos); _smBodiesGrp.add(cross);
+        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+        cross.scale.set(0.015, 0.015, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
     });
 }
 
@@ -7935,7 +7956,180 @@ function _smBuildTraj() {
             pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
         }
         if (pts.length < 2) return;
-        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: false }));
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
         _smTrajGrp.add(line);
     });
+}
+// --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
+let _smTerrainGrp = null, _smTerrainMesh = null, _smHeightfield = null, _smGeomKey = '', _smShadeKey = '', _smTerrainGen = 0;
+
+/** 球面上の終点(始点lat,lng・方位az度・距離distm) → {lat,lng} */
+function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
+    const R = EARTH_RADIUS, dr = distM / R;
+    const lat1 = latDeg * Math.PI / 180, lng1 = lngDeg * Math.PI / 180, az = azDeg * Math.PI / 180;
+    const sinLat2 = Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(az);
+    const lat2 = Math.asin(Math.max(-1, Math.min(1, sinLat2)));
+    const lng2 = lng1 + Math.atan2(Math.sin(az) * Math.sin(dr) * Math.cos(lat1), Math.cos(dr) - Math.sin(lat1) * sinLat2);
+    return { lat: lat2 * 180 / Math.PI, lng: ((lng2 * 180 / Math.PI + 540) % 360) - 180 };
+}
+
+/** 視界範囲(km)からタイル数を抑える適応ズーム (dem_png は z≤14) */
+function _smTerrainZoom(rangeKm, latDeg) {
+    const span = Math.max(rangeKm / 6, 0.2);   // 1タイルあたり ~ range/6 km を狙う
+    const z = Math.round(Math.log2(40075 * Math.cos(latDeg * Math.PI / 180) / span));
+    return Math.max(9, Math.min(14, z));
+}
+
+/** 地形の更新: 扇(位置・方位・画角・範囲)が変わった時のみ非同期取得。陰影は毎回反映 */
+function _smUpdateTerrain() {
+    if (!_smTerrainGrp) return;
+    const o = soraComputeOptics();
+    const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const range = Math.max(1, Number(appState.soraViewRange) || 1);
+    const zoom = _smTerrainZoom(range, appState.start.lat);
+    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${o.aovH.toFixed(1)}|${range}|${zoom}`;
+    if (geomKey !== _smGeomKey) {
+        _smGeomKey = geomKey;
+        _smFetchTerrain(centerAz, o.aovH, range, zoom);
+    }
+    _smApplyShading();
+}
+
+/** 扇形をサンプリングし、DEM(またはテスト用合成)から標高を取得 → ハイトフィールド */
+async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
+    const gen = ++_smTerrainGen;
+    const nA = 140, nR = 100, nearKm = 0.03;
+    const azHalf = aovH / 2 + 2;     // 余白2°
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    const samples = new Array((nA + 1) * (nR + 1));
+    let p = 0;
+    for (let j = 0; j <= nR; j++) {
+        const rr = j / nR, dkm = nearKm + (rangeKm - nearKm) * rr * rr;   // 近傍を密に
+        for (let i = 0; i <= nA; i++) {
+            const a = centerAz + (-azHalf + 2 * azHalf * i / nA);
+            const d = _smDestPoint(oLat, oLng, a, dkm * 1000);
+            samples[p++] = { a, dkm, lat: d.lat, lng: d.lng, elev: 0 };
+        }
+    }
+    const hf = { nA, nR, samples, centerAz };
+    // テスト用合成標高フック
+    if (typeof window !== 'undefined' && typeof window._smSyntheticElev === 'function') {
+        for (const s of samples) s.elev = window._smSyntheticElev(s.lat, s.lng);
+        _smOnTerrainFetched(gen, hf);
+        return;
+    }
+    // 実DEM: 適応ズームの dem_png タイル単位で取得(キャッシュ)
+    const groups = {};
+    for (let idx = 0; idx < samples.length; idx++) {
+        const ti = _getTileInfo(samples[idx].lat, samples[idx].lng, zoom);
+        const k = `${ti.x}_${ti.y}`;
+        (groups[k] || (groups[k] = { url: `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`, pts: [] })).pts.push({ idx, pX: ti.pX, pY: ti.pY });
+    }
+    const keys = Object.keys(groups);
+    const info = document.getElementById('soramado-info');
+    let done = 0;
+    for (const k of keys) {
+        if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル
+        const g = groups[k];
+        const img = await _getTileImageData(g.url);
+        for (const pt of g.pts) {
+            let h = 0;
+            if (img) { const i = (pt.pY * 256 + pt.pX) * 4; const v = _elevFromRGB(img.data[i], img.data[i + 1], img.data[i + 2]); h = (v === null) ? 0 : v; }
+            samples[pt.idx].elev = h;
+        }
+        if (info && (++done % 4 === 0 || done === keys.length)) info.textContent = `地形取得 ${Math.round(done / keys.length * 100)}%`;
+    }
+    _smOnTerrainFetched(gen, hf);
+}
+
+function _smOnTerrainFetched(gen, hf) {
+    if (gen !== _smTerrainGen) return;
+    _smHeightfield = hf;
+    _smShadeKey = '';   // 陰影を再構築
+    _smApplyShading();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+/** ハイトフィールドからメッシュを生成・陰影 (グレースケール/白黒/ピーキング)。fetch不要 */
+function _smApplyShading() {
+    if (!_smHeightfield) return;
+    const o = soraComputeOptics();
+    const focusNear = o.near, focusFar = o.far;   // m (soraComputeOptics は m単位)
+    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}`;
+    if (shadeKey === _smShadeKey && _smTerrainMesh) return;
+    _smShadeKey = shadeKey;
+    _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar);
+}
+
+function _smBuildTerrainMesh(hf, focusNear, focusFar) {
+    while (_smTerrainGrp.children.length) { const c = _smTerrainGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    _smTerrainMesh = null;
+    const { nA, nR, samples } = hf;
+    const row = nA + 1;
+    const obsElev = Number(appState.start.elev) || 0;
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const Reff = getLocalEarthRadius(appState.start.lat) / (1 - k);
+    // 標高レンジ
+    let minE = Infinity, maxE = -Infinity;
+    for (const s of samples) { if (s.elev < minE) minE = s.elev; if (s.elev > maxE) maxE = s.elev; }
+    if (!isFinite(minE)) { minE = 0; maxE = 1; }
+    const span = Math.max(1, maxE - minE);
+    const gray = appState.soraGrayscale, peak = appState.soraPeaking;
+    const positions = new Float32Array(samples.length * 3);
+    const colors = new Float32Array(samples.length * 3);
+    for (let idx = 0; idx < samples.length; idx++) {
+        const s = samples[idx], d = s.dkm * 1000, a = s.a * Math.PI / 180;
+        const E = d * Math.sin(a), N = d * Math.cos(a);
+        const drop = d * d / (2 * Reff);
+        const Up = (s.elev - obsElev) - drop;
+        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = Up;
+        const slant = Math.sqrt(E * E + N * N + Up * Up);
+        let r, g, b;
+        if (peak && slant >= focusNear && slant <= focusFar) { r = 0.95; g = 0.12; b = 0.12; }     // フォーカスピーキング(赤)
+        else if (!gray) { r = g = 0.5; b = 0.52; }                                                   // 白黒2値(一様トーンのシルエット)
+        else {
+            const hz = Math.min(1, d / (s.dkm > 0 ? (hf.samples[hf.samples.length - 1].dkm * 1000) : 1));   // 距離ヘイズ
+            let lum = 0.30 + 0.45 * ((s.elev - minE) / span);
+            lum = lum * (1 - hz * 0.7) + 0.62 * (hz * 0.7);
+            r = lum * 0.92; g = lum * 0.95; b = lum;
+        }
+        colors[idx * 3] = r; colors[idx * 3 + 1] = g; colors[idx * 3 + 2] = b;
+    }
+    const indices = [];
+    for (let j = 0; j < nR; j++) for (let i = 0; i < nA; i++) {
+        const aI = j * row + i, bI = aI + row;
+        indices.push(aI, bI, aI + 1, aI + 1, bI, bI + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setIndex(indices);
+    const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    _smTerrainMesh = new THREE.Mesh(geo, mat);
+    _smTerrainGrp.add(_smTerrainMesh);
+}
+
+// --- F3: フィッシュアイ post-process (近似: 透視レンダをRTへ→バレル歪み) ---
+let _smRT = null, _smPostScene = null, _smPostCam = null, _smPostMat = null;
+function _smInitPost() {
+    if (typeof THREE === 'undefined') return;
+    _smRT = new THREE.WebGLRenderTarget(16, 16);
+    _smPostCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    _smPostMat = new THREE.ShaderMaterial({
+        depthTest: false, depthWrite: false,
+        uniforms: { tDiffuse: { value: _smRT.texture }, uK: { value: 0.35 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+        fragmentShader: [
+            'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uK;',
+            'void main(){',
+            '  vec2 c = vUv - 0.5;',
+            '  float r2 = dot(c, c) * 4.0;',                 // 0..2 (中心0, 角2)
+            '  vec2 src = 0.5 + c * (1.0 - uK * r2);',       // 樽歪み(縁を内側へ→魚眼風)
+            '  if (src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0) gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+            '  else gl_FragColor = texture2D(tDiffuse, src);',
+            '}'
+        ].join('\n')
+    });
+    _smPostScene = new THREE.Scene();
+    _smPostScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smPostMat));
 }
