@@ -121,22 +121,31 @@ const KM_PER_AU = 149597870.7;
 const DEFAULT_START = { lat: 35.658595126386274, lng: 139.74544465541842, elev: 18.5, height: 150.0 };
 const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, height: 0 };
 
-// 天体ごとの初期スタイル (リセット用)
+// 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
+// ここが全組込天体の既定値の唯一の定義。appState.bodies はこれから派生する。
 const DEFAULT_BODIES = [
-    { id: 'Sun',     color: '#FF0000', isDashed: false },
-    { id: 'Moon',    color: '#FFFF00', isDashed: false },
-    { id: 'Mercury', color: '#00BFFF', isDashed: false },
-    { id: 'Venus',   color: '#FFC0CB', isDashed: false },
-    { id: 'Mars',    color: '#FFA500', isDashed: false },
-    { id: 'Jupiter', color: '#A52A2A', isDashed: false },
-    { id: 'Saturn',  color: '#008000', isDashed: false },
-    { id: 'Uranus',  color: '#ADFF2F', isDashed: false },
-    { id: 'Neptune', color: '#4B0082', isDashed: false },
-    { id: 'Pluto',   color: '#800080', isDashed: false },
-    { id: 'Polaris', color: '#000000', isDashed: false },
-    { id: 'Merak',   color: '#654321', isDashed: false },
-    { id: 'Mintaka', color: '#FFFFFF', isDashed: false },
-    { id: 'Subaru',  color: '#0000FF', isDashed: false }
+    { id: 'MilkyWay', name: '天の川',   color: '#800080', isDashed: false, visible: false },
+    { id: 'Sun',     name: '太陽',     color: '#FF0000', isDashed: false, visible: true },
+    { id: 'Moon',    name: '月',       color: '#FFFF00', isDashed: false, visible: true },
+    { id: 'Mercury', name: '水星',     color: '#00BFFF', isDashed: false, visible: false },
+    { id: 'Venus',   name: '金星',     color: '#FFC0CB', isDashed: false, visible: false },
+    { id: 'Mars',    name: '火星',     color: '#FFA500', isDashed: false, visible: false },
+    { id: 'Jupiter', name: '木星',     color: '#A52A2A', isDashed: false, visible: false },
+    { id: 'Saturn',  name: '土星',     color: '#008000', isDashed: false, visible: false },
+    { id: 'Uranus',  name: '天王星',   color: '#ADFF2F', isDashed: false, visible: false },
+    { id: 'Neptune', name: '海王星',   color: '#4B0082', isDashed: false, visible: false },
+    { id: 'Pluto',   name: '冥王星',   color: '#808080', isDashed: false, visible: false },
+    { id: 'Polaris', name: '北極星',   color: '#000000', isDashed: false, visible: false },
+    { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
+    { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
+    { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
+    { id: 'M42',     name: 'オリオン大星雲M42', color: '#DDA0DD', isDashed: false, visible: false },
+    { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
+    { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
+    { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
+    { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
+    { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
+    { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false }
 ];
 
 const COLOR_MAP = [
@@ -220,30 +229,8 @@ let appState = {
     lastVisitDate: null,
 
     // 天体設定
-    bodies: [
-        { id: 'MilkyWay', name: '天の川', color: '#800080', isDashed: false, visible: false },
-        { id: 'Sun',     name: '太陽',   color: '#FF0000', isDashed: false, visible: true },
-        { id: 'Moon',    name: '月',     color: '#FFFF00', isDashed: false, visible: true },
-        { id: 'Mercury', name: '水星',   color: '#00BFFF', isDashed: false, visible: false },
-        { id: 'Venus',   name: '金星',   color: '#FFC0CB', isDashed: false, visible: false },
-        { id: 'Mars',    name: '火星',   color: '#FFA500', isDashed: false, visible: false },
-        { id: 'Jupiter', name: '木星',   color: '#A52A2A', isDashed: false, visible: false },
-        { id: 'Saturn',  name: '土星',   color: '#008000', isDashed: false, visible: false },
-        { id: 'Uranus',  name: '天王星', color: '#ADFF2F', isDashed: false, visible: false },
-        { id: 'Neptune', name: '海王星', color: '#4B0082', isDashed: false, visible: false },
-        { id: 'Pluto',   name: '冥王星', color: '#808080', isDashed: false, visible: false },
-        { id: 'Polaris', name: '北極星', color: '#000000', isDashed: false, visible: false },
-        { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
-        { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
-        { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
-        { id: 'M42',     name: 'オリオン大星雲M42', color: '#DDA0DD', isDashed: false, visible: false },
-        { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
-        { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
-        { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
-        { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
-        { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
-        { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false }
-    ],
+    // 組込天体は DEFAULT_BODIES から派生（単一情報源）。My天体は別途 myStars から追加される。
+    bodies: DEFAULT_BODIES.map(b => ({ ...b })),
 
     // 機能フラグ
     isMoving: false,
@@ -7629,9 +7616,7 @@ function soraSyncUI() {
     set('input-sora-range', appState.soraViewRange);
     set('input-sora-range-slider', appState.soraViewRange);
     const o = soraComputeOptics();
-    txt('sora-aov-h', o.aovH.toFixed(1) + '°');
-    txt('sora-aov-v', o.aovV.toFixed(1) + '°');
-    txt('sora-aov-d', o.aovD.toFixed(1) + '°');
+    txt('sora-aov', 'H:' + o.aovH.toFixed(1) + '° V:' + o.aovV.toFixed(1) + '° D:' + o.aovD.toFixed(1) + '°');
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
@@ -7645,7 +7630,7 @@ function soraUpdateBaseFromPoints() {
     const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     appState.soraBaseAz = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     appState.soraBaseAlt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
-    appState.soraViewRange = Math.max(1, Math.min(300, Math.round(dist / 1000)));
+    appState.soraViewRange = Math.max(1, Math.min(300, Math.ceil(dist / 1000)));   // 相手距離kmを切り上げ(0km〜この範囲)
     saveAppState();
     soraSyncUI();
 }
@@ -7774,32 +7759,34 @@ function drawSoramado() {
     // F3: DEM地形(扇が変わった時のみ再取得)
     _smUpdateTerrain();
 
-    // ファインダー矩形 (描画バッファpx)
+    // ファインダー矩形: HTML枠(#soramado-frame)と一致させるため CSS px(論理px)で指定する。
+    // three.js は setViewport/setScissor の座標を内部で devicePixelRatio 倍する(three.js WebGLRenderer)。
+    // ここでデバイスpxを渡すと dpr>1 で二重スケールし、プレビュー内容だけ枠からズレる(スマホで顕著)。
     const dpr = _smRenderer.getPixelRatio();
-    const r = _smFitRect(w * dpr, h * dpr, finderAspect, 0.94);
-    const glY = h * dpr - r.y - r.h;
+    const cr = _smFitRect(w, h, finderAspect, 0.94);   // CSS px (HTMLオーバーレイと共通)
+    const glY = h - cr.y - cr.h;                        // WebGLは左下原点
     _smRenderer.setScissorTest(false);
     _smRenderer.setClearColor(0x000000, 1);
     _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
     if (appState.soraFisheye && _smPostMat) {
         // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
-        const rw = Math.max(2, Math.round(r.w)), rh = Math.max(2, Math.round(r.h));
+        // RTは鮮鋭さのためデバイスpxで確保。RTバインド中は RT 自身のviewportが使われるため setViewport は不要。
+        const rw = Math.max(2, Math.round(cr.w * dpr)), rh = Math.max(2, Math.round(cr.h * dpr));
         _smRT.setSize(rw, rh);
         _smRenderer.setRenderTarget(_smRT);
-        _smRenderer.setViewport(0, 0, rw, rh);
         _smRenderer.setClearColor(0x0a0e1a, 1);
         _smRenderer.clear(true, true, true);
         _smRenderer.render(_smScene, _smCamera);
         _smRenderer.setRenderTarget(null);
         _smRenderer.setScissorTest(true);
-        _smRenderer.setViewport(r.x, glY, r.w, r.h);
-        _smRenderer.setScissor(r.x, glY, r.w, r.h);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
         _smRenderer.render(_smPostScene, _smPostCam);
         _smRenderer.setScissorTest(false);
     } else {
         _smRenderer.setScissorTest(true);
-        _smRenderer.setViewport(r.x, glY, r.w, r.h);
-        _smRenderer.setScissor(r.x, glY, r.w, r.h);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
         _smRenderer.setClearColor(0x0a0e1a, 1);
         _smRenderer.clear(true, true, true);             // ファインダー内を空色でクリア
         _smRenderer.render(_smScene, _smCamera);         // 背景球・天体・軌跡・地形
@@ -7807,7 +7794,6 @@ function drawSoramado() {
     }
 
     // HTMLオーバーレイ (CSS px で配置)
-    const cr = _smFitRect(w, h, finderAspect, 0.94);
     const frame = document.getElementById('soramado-frame');
     if (frame) { frame.style.width = cr.w + 'px'; frame.style.height = cr.h + 'px'; }
     const cross = document.getElementById('soramado-center');
@@ -7999,6 +7985,21 @@ function _smBuildTraj() {
 // --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
 let _smTerrainGrp = null, _smTerrainMesh = null, _smHeightfield = null, _smGeomKey = '', _smShadeKey = '', _smTerrainGen = 0;
 
+/** 現在日時・観測点での太陽のENU方向(単位ベクトル)と高度。地形ヒルシェードの光源に使う。
+ * 夜間(太陽が地平線下)は方位を保ちつつ高度を底上げし、尾根のレリーフを常に維持する。 */
+function _smSunDir() {
+    try {
+        const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+        const date = appState.currentDate;
+        const eq = Astronomy.Equator('Sun', date, observer, true, true);
+        const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, null);
+        const altUse = hor.altitude < 3 ? 35 : hor.altitude;
+        return { vec: _smDir(hor.azimuth, altUse), alt: hor.altitude, az: hor.azimuth };
+    } catch (e) {
+        return { vec: _smDir(135, 45), alt: 45, az: 135 };   // 取得失敗時は南東45°の既定光
+    }
+}
+
 /** 球面上の終点(始点lat,lng・方位az度・距離distm) → {lat,lng} */
 function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
     const R = EARTH_RADIUS, dr = distM / R;
@@ -8031,10 +8032,50 @@ function _smUpdateTerrain() {
     _smApplyShading();
 }
 
-/** 扇形をサンプリングし、DEM(またはテスト用合成)から標高を取得 → ハイトフィールド */
+// --- F3: DEM地形タイル取得 ワーカープール (fetch/PNGデコード/標高化を並列オフロード) ---
+const SORA_TERRAIN_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 6, 30));
+let _smTerrainPool = null;
+function _smEnsureTerrainPool() {
+    if (_smTerrainPool) return _smTerrainPool;
+    const workers = [];
+    for (let i = 0; i < SORA_TERRAIN_POOL_SIZE; i++) workers.push(new Worker('sora-terrain-worker.js'));
+    _smTerrainPool = { workers, idle: [...workers], queue: [], seq: 0 };
+    return _smTerrainPool;
+}
+function _smTerrainRunOnWorker(worker, task) {
+    const handler = (e) => {
+        worker.removeEventListener('message', handler);
+        task.resolve(e.data || { elevs: [] });
+        if (_smTerrainPool && _smTerrainPool.queue.length > 0) _smTerrainRunOnWorker(worker, _smTerrainPool.queue.shift());
+        else if (_smTerrainPool) _smTerrainPool.idle.push(worker);
+    };
+    worker.addEventListener('message', handler);
+    worker.postMessage(task.message);
+}
+function _smTerrainPoolRun(message) {
+    const pool = _smEnsureTerrainPool();
+    return new Promise(resolve => {
+        const task = { message, resolve };
+        if (pool.idle.length > 0) _smTerrainRunOnWorker(pool.idle.pop(), task);
+        else pool.queue.push(task);
+    });
+}
+
+/** 地形取得の進捗バー。done<0 で非表示、それ以外は done/total を表示。 */
+function _smSetTerrainProgress(done, total) {
+    const bar = document.getElementById('soramado-progress');
+    const fill = document.getElementById('soramado-progress-fill');
+    if (!bar || !fill) return;
+    if (done < 0 || !total) { bar.classList.add('hidden'); return; }
+    bar.classList.remove('hidden');
+    fill.style.width = Math.round(Math.min(1, done / total) * 100) + '%';
+}
+
+/** 扇形をサンプリングし、DEM(またはテスト用合成)から標高を取得 → ハイトフィールド。
+ * 実DEMはタイル単位にまとめ、ワーカープールで並列取得(対応環境)。進捗バーを表示。 */
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
-    const nA = 140, nR = 100, nearKm = 0.03;
+    const nA = 140, nR = 100, nearKm = 0.01;   // 0km近傍から
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
     const samples = new Array((nA + 1) * (nR + 1));
@@ -8048,13 +8089,13 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         }
     }
     const hf = { nA, nR, samples, centerAz };
-    // テスト用合成標高フック
+    // テスト用合成標高フック(実DEMを遮断する検証環境用)
     if (typeof window !== 'undefined' && typeof window._smSyntheticElev === 'function') {
         for (const s of samples) s.elev = window._smSyntheticElev(s.lat, s.lng);
         _smOnTerrainFetched(gen, hf);
         return;
     }
-    // 実DEM: 適応ズームの dem_png タイル単位で取得(キャッシュ)
+    // 実DEM: 適応ズームの dem_png タイル単位でグループ化
     const groups = {};
     for (let idx = 0; idx < samples.length; idx++) {
         const ti = _getTileInfo(samples[idx].lat, samples[idx].lng, zoom);
@@ -8062,19 +8103,39 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         (groups[k] || (groups[k] = { url: `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`, pts: [] })).pts.push({ idx, pX: ti.pX, pY: ti.pY });
     }
     const keys = Object.keys(groups);
-    const info = document.getElementById('soramado-info');
+    const total = keys.length;
     let done = 0;
-    for (const k of keys) {
-        if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル
-        const g = groups[k];
-        const img = await _getTileImageData(g.url);
-        for (const pt of g.pts) {
-            let h = 0;
-            if (img) { const i = (pt.pY * 256 + pt.pX) * 4; const v = _elevFromRGB(img.data[i], img.data[i + 1], img.data[i + 2]); h = (v === null) ? 0 : v; }
-            samples[pt.idx].elev = h;
+    _smSetTerrainProgress(0, total);
+    const tileDone = () => { _smSetTerrainProgress(++done, total); };
+
+    // ワーカープールで並列取得(対応環境)。非対応時はメインスレッド逐次にフォールバック。
+    const canWorker = (typeof Worker !== 'undefined') && (typeof OffscreenCanvas !== 'undefined');
+    if (canWorker) {
+        const pool = _smEnsureTerrainPool();
+        const seq0 = ++pool.seq;
+        await Promise.all(keys.map(async (k) => {
+            if (gen !== _smTerrainGen) return;
+            const g = groups[k];
+            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, pts: g.pts });
+            if (gen !== _smTerrainGen) return;
+            for (const e of res.elevs) samples[e.idx].elev = e.elev;
+            tileDone();
+        }));
+    } else {
+        for (const k of keys) {
+            if (gen !== _smTerrainGen) { _smSetTerrainProgress(-1, total); return; }
+            const g = groups[k];
+            const img = await _getTileImageData(g.url);
+            for (const pt of g.pts) {
+                let h = 0;
+                if (img) { const i = (pt.pY * 256 + pt.pX) * 4; const v = _elevFromRGB(img.data[i], img.data[i + 1], img.data[i + 2]); h = (v === null) ? 0 : v; }
+                samples[pt.idx].elev = h;
+            }
+            tileDone();
         }
-        if (info && (++done % 4 === 0 || done === keys.length)) info.textContent = `地形取得 ${Math.round(done / keys.length * 100)}%`;
     }
+    _smSetTerrainProgress(-1, total);   // 非表示
+    if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル
     _smOnTerrainFetched(gen, hf);
 }
 
@@ -8086,18 +8147,22 @@ function _smOnTerrainFetched(gen, hf) {
     if (appState.isSoramadoActive && !_smFailed) drawSoramado();
 }
 
-/** ハイトフィールドからメッシュを生成・陰影 (グレースケール/白黒/ピーキング)。fetch不要 */
+/** ハイトフィールドからメッシュを生成・陰影。fetch不要。
+ * 太陽光ヒルシェード(尾根筋の立体)＋標高グレー(視界範囲内の最高標高=白)を頂点色に焼き込む。 */
 function _smApplyShading() {
     if (!_smHeightfield) return;
     const o = soraComputeOptics();
     const focusNear = o.near, focusFar = o.far;   // m (soraComputeOptics は m単位)
-    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}`;
+    const sun = _smSunDir();
+    // 太陽方位/高度を量子化して鍵に含める→日時変化で陰影を再計算
+    const sunKey = `${Math.round(sun.az)}_${Math.round(sun.alt)}`;
+    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}`;
     if (shadeKey === _smShadeKey && _smTerrainMesh) return;
     _smShadeKey = shadeKey;
-    _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar);
+    _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar, sun.vec);
 }
 
-function _smBuildTerrainMesh(hf, focusNear, focusFar) {
+function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     while (_smTerrainGrp.children.length) { const c = _smTerrainGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
     _smTerrainMesh = null;
     const { nA, nR, samples } = hf;
@@ -8112,24 +8177,40 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar) {
     const span = Math.max(1, maxE - minE);
     const gray = appState.soraGrayscale, peak = appState.soraPeaking;
     const positions = new Float32Array(samples.length * 3);
-    const colors = new Float32Array(samples.length * 3);
+    // 1) 位置(ENU・曲率落差込み)を先に作る
     for (let idx = 0; idx < samples.length; idx++) {
         const s = samples[idx], d = s.dkm * 1000, a = s.a * Math.PI / 180;
         const E = d * Math.sin(a), N = d * Math.cos(a);
         const drop = d * d / (2 * Reff);
-        const Up = (s.elev - obsElev) - drop;
-        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = Up;
-        const slant = Math.sqrt(E * E + N * N + Up * Up);
-        let r, g, b;
-        if (peak && slant >= focusNear && slant <= focusFar) { r = 0.95; g = 0.12; b = 0.12; }     // フォーカスピーキング(赤)
-        else if (!gray) { r = g = 0.5; b = 0.52; }                                                   // 白黒2値(一様トーンのシルエット)
-        else {
-            const hz = Math.min(1, d / (s.dkm > 0 ? (hf.samples[hf.samples.length - 1].dkm * 1000) : 1));   // 距離ヘイズ
-            let lum = 0.30 + 0.45 * ((s.elev - minE) / span);
-            lum = lum * (1 - hz * 0.7) + 0.62 * (hz * 0.7);
-            r = lum * 0.92; g = lum * 0.95; b = lum;
+        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = (s.elev - obsElev) - drop;
+    }
+    // 2) 扇グリッドの隣接差分から頂点法線を解析的に算出(上向きに正規化)→安定したヒルシェード
+    const sx = sunVec.x, sy = sunVec.y, sz = sunVec.z;
+    const colors = new Float32Array(samples.length * 3);
+    const getP = (i, j) => { const id = j * row + i; return [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]]; };
+    for (let j = 0; j <= nR; j++) {
+        for (let i = 0; i <= nA; i++) {
+            const idx = j * row + i, s = samples[idx];
+            const pa0 = getP(Math.max(0, i - 1), j), pa1 = getP(Math.min(nA, i + 1), j);   // 方位接線
+            const pr0 = getP(i, Math.max(0, j - 1)), pr1 = getP(i, Math.min(nR, j + 1));   // 距離接線
+            const tax = pa1[0] - pa0[0], tay = pa1[1] - pa0[1], taz = pa1[2] - pa0[2];
+            const trx = pr1[0] - pr0[0], try_ = pr1[1] - pr0[1], trz = pr1[2] - pr0[2];
+            let nx = try_ * taz - trz * tay, ny = trz * tax - trx * taz, nz = trx * tay - try_ * tax;
+            if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+            const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+            // ランバート陰影(環境光0.35＋拡散0.75)→尾根の向きで明暗
+            const lambert = 0.35 + 0.75 * Math.max(0, nx * sx + ny * sy + nz * sz);
+            const d = s.dkm * 1000, slant = Math.hypot(positions[idx * 3], positions[idx * 3 + 1], positions[idx * 3 + 2]);
+            let r, g, b;
+            if (peak && slant >= focusNear && slant <= focusFar) { r = 0.95; g = 0.12; b = 0.12; }   // フォーカスピーキング(赤)
+            else {
+                // 標高グレー(最高標高=白)。grayscale OFF時は一様グレーで純レリーフ。
+                const base = gray ? (0.18 + 0.82 * ((s.elev - minE) / span)) : 0.6;
+                let lum = Math.min(1, base * lambert);
+                r = lum * 0.94; g = lum * 0.97; b = lum;   // ごく僅かに寒色
+            }
+            colors[idx * 3] = r; colors[idx * 3 + 1] = g; colors[idx * 3 + 2] = b;
         }
-        colors[idx * 3] = r; colors[idx * 3 + 1] = g; colors[idx * 3 + 2] = b;
     }
     const indices = [];
     for (let j = 0; j < nR; j++) for (let i = 0; i < nA; i++) {
@@ -8140,6 +8221,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.setIndex(indices);
+    // 陰影は頂点色に焼き込み済み(視点非依存のヒルシェード)→MeshBasicでそのまま表示
     const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
     _smTerrainMesh = new THREE.Mesh(geo, mat);
     _smTerrainGrp.add(_smTerrainMesh);

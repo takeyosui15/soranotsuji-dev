@@ -250,6 +250,25 @@ html {
     pointer-events: none;
 }
 
+/* 地形取得の進捗バー(パネル上端) */
+#soramado-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 920;
+    pointer-events: none;
+}
+#soramado-progress.hidden { display: none; }
+#soramado-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: #ffd700;
+    transition: width 0.15s;
+}
+
 /* 画面中心の十字(+) */
 .soramado-cross {
     position: absolute;

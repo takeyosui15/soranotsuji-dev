@@ -92,6 +92,7 @@ GNU General Public License for more details.
         <div id="soramado-frame"></div>
         <div id="soramado-center" class="soramado-cross"></div>
         <div id="soramado-info"></div>
+        <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
     </div>
 
     <div id="control-panel" class="control-panel minimized">
@@ -298,11 +299,8 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <input type="range" id="input-sora-focal-slider" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離">
                     </div>
-                    <div class="control-row left-row"><label class="input-label tsujisearch-label">画角:</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">水平:</label><span id="sora-aov-h" class="sora-val">--°</span>
-                        <label class="input-label tsujisearch-label">垂直:</label><span id="sora-aov-v" class="sora-val">--°</span>
-                        <label class="input-label tsujisearch-label">対角:</label><span id="sora-aov-d" class="sora-val">--°</span>
+                        <label class="input-label tsujisearch-label">画角:</label><span id="sora-aov" class="sora-val">H:--° V:--° D:--°</span>
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">F値:</label><span id="sora-fnum-label" class="sora-val">2.8</span>
