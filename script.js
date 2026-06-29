@@ -7095,9 +7095,12 @@ const _MW_D2R = Math.PI / 180;
 const _MW_R = 1;             // 天球半径(ワールド)
 let _mwInited = false, _mwFailed = false;
 let _mwRenderer = null, _mwScene = null, _mwCamera = null;
+let _mwWorld = null;         // マスターGroup(ドラッグで回転。初期=北が上)
 let _mwGlobe = null;         // テクスチャ球+赤道格子(EQJ系; 観測者へ回転)
 let _mwTexture = null, _mwMaterial = null;
-let _mwView = { az: 200 * _MW_D2R, el: 26 * _MW_D2R, dist: 3.4 }; // 視点(カメラ軌道)
+const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
+const _MW_DIST0 = 3.4;                     // 初期カメラ距離
+let _mwDist = _MW_DIST0;                    // ホイールズーム用
 
 /** 銀河座標(l,b 度) → 赤道座標 J2000 {ra(時), dec(度)} (固定回転行列) */
 function galacticToEquatorial(lDeg, bDeg) {
@@ -7141,11 +7144,11 @@ function _mwBuildProceduralTexture() {
         const cen = Math.max(0, Math.cos((((l + 180) % 360) - 180) * _MW_D2R)); // 銀河中心(l=0)付近で明るく
         for (const x of [x0 - W, x0, x0 + W]) {
             let grd = g.createRadialGradient(x, y, 0, x, y, 90);   // 広いハロー
-            grd.addColorStop(0, `rgba(170,190,235,${(0.05 + 0.05 * cen).toFixed(3)})`);
+            grd.addColorStop(0, `rgba(170,190,235,${(0.032 + 0.032 * cen).toFixed(3)})`);
             grd.addColorStop(1, 'rgba(170,190,235,0)');
             g.fillStyle = grd; g.beginPath(); g.arc(x, y, 90, 0, 2 * Math.PI); g.fill();
             grd = g.createRadialGradient(x, y, 0, x, y, 34);       // 明るいコア
-            grd.addColorStop(0, `rgba(220,228,255,${(0.10 + 0.10 * cen).toFixed(3)})`);
+            grd.addColorStop(0, `rgba(220,228,255,${(0.055 + 0.06 * cen).toFixed(3)})`);
             grd.addColorStop(1, 'rgba(220,228,255,0)');
             g.fillStyle = grd; g.beginPath(); g.arc(x, y, 34, 0, 2 * Math.PI); g.fill();
         }
@@ -7176,9 +7179,9 @@ function _mwBuildProceduralTexture() {
             g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, 2 * Math.PI); g.fill();
         }
     };
-    glow(0, 0, 150, 'rgba(255,225,180,0.26)');   // いて座(銀河中心)
-    glow(80, 0, 110, 'rgba(210,220,255,0.14)');  // はくちょう座方向
-    glow(287, -1, 95, 'rgba(255,205,185,0.14)'); // りゅうこつ座方向
+    glow(0, 0, 150, 'rgba(255,225,180,0.18)');   // いて座(銀河中心)
+    glow(80, 0, 110, 'rgba(210,220,255,0.10)');  // はくちょう座方向
+    glow(287, -1, 95, 'rgba(255,205,185,0.10)'); // りゅうこつ座方向
     g.globalCompositeOperation = 'source-over';
     return cv;
 }
@@ -7190,6 +7193,9 @@ function _mwTryLoadRealImage() {
         if (_mwFailed || !_mwMaterial) return;
         const tex = new THREE.Texture(img);
         tex.colorSpace = THREE.SRGBColorSpace;
+        // NASA赤道座標版は「0h RAが中央・RAは左へ増加」配置。球UV(u=RA/24)へ水平反転オフセットで整合
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1; tex.offset.x = 0.5;
         tex.needsUpdate = true;
         if (_mwTexture) _mwTexture.dispose();
         _mwTexture = tex;
@@ -7208,14 +7214,14 @@ function _mwBuildGraticule() {
     const matMinor = new THREE.LineBasicMaterial({ color: 0x4a6fa5, transparent: true, opacity: 0.35 });
     const matMajor = new THREE.LineBasicMaterial({ color: 0x6f9fd8, transparent: true, opacity: 0.55 });
     const RR = _MW_R * 1.002;
-    for (const dec of [-60, -30, 0, 30, 60]) {       // 赤緯小円
+    for (let dec = -75; dec <= 75; dec += 15) {      // 赤緯(緯度)小円 15°刻み
         const pts = [];
         for (let i = 0; i <= 128; i++) { const v = _mwEquVec(24 * i / 128, dec); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
         grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dec === 0 ? matMajor : matMinor));
     }
-    for (let ra = 0; ra < 24; ra += 2) {             // 赤経経線
+    for (let ra = 0; ra < 24; ra += 1) {             // 赤経(経度)経線 1h=15°刻み
         const pts = [];
-        for (let j = 0; j <= 64; j++) { const v = _mwEquVec(ra, -80 + 160 * j / 64); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
+        for (let j = 0; j <= 64; j++) { const v = _mwEquVec(ra, -82.5 + 165 * j / 64); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
         grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matMinor));
     }
     return grp;
@@ -7241,22 +7247,36 @@ function _mwBuildGlobe() {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
-    _mwMaterial = new THREE.MeshBasicMaterial({ map: _mwTexture, side: THREE.DoubleSide });
+    // 加算合成: 暗い背景は透過し、星/帯のみ浮かぶ→内側からも透けて両面で環が見える
+    _mwMaterial = new THREE.MeshBasicMaterial({
+        map: _mwTexture, side: THREE.DoubleSide,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
     const globe = new THREE.Group();
     globe.add(new THREE.Mesh(geo, _mwMaterial));
     globe.add(_mwBuildGraticule());
     return globe;
 }
 
-/** 地平線円と東西南北マーカー(ワールド地平系: カメラに対し固定) */
+/** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
 function _mwBuildHorizon() {
     const grp = new THREE.Group();
+    // 地平面: 中心から15°刻みの放射状線(方位コンパス)
+    const matSpoke = new THREE.LineBasicMaterial({ color: 0x557799, transparent: true, opacity: 0.30 });
+    const matSpokeMain = new THREE.LineBasicMaterial({ color: 0x88aacc, transparent: true, opacity: 0.55 });
+    for (let az = 0; az < 360; az += 15) {
+        const v = _mwWorldVec(az, 0);
+        const seg = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(v[0] * _MW_R, 0, v[2] * _MW_R)];
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), (az % 90 === 0) ? matSpokeMain : matSpoke));
+    }
+    // 地平線円(地平面と外側の枠が交わる水平線): 緑
     const pts = [];
     for (let az = 0; az <= 360; az += 2) { const v = _mwWorldVec(az, 0); pts.push(new THREE.Vector3(v[0] * _MW_R * 1.004, 0, v[2] * _MW_R * 1.004)); }
-    grp.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.85 })));
+    grp.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.9 })));
+    // 方位マーカー: 北=赤、東/南/西=水色
     for (const [label, az] of [['北', 0], ['東', 90], ['南', 180], ['西', 270]]) {
         const v = _mwWorldVec(az, 0);
-        const sp = _mwTextSprite(label, az === 0 ? '#ff8866' : '#9fd8ff');
+        const sp = _mwTextSprite(label, az === 0 ? '#ff4444' : '#66ccff');
         sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
         grp.add(sp);
     }
@@ -7292,30 +7312,35 @@ function _mwComputeOrientation() {
     return { rx, ry, rz };
 }
 
+/** 固定俯瞰カメラ: 南側上方から原点を見る。画面上=北(+X)・右=東(+Z)・俯瞰で地平面を上から見る */
 function _mwUpdateCamera() {
-    const { az, el, dist } = _mwView, ce = Math.cos(el);
-    _mwCamera.position.set(dist * ce * Math.sin(az), dist * Math.sin(el), dist * ce * Math.cos(az));
-    _mwCamera.up.set(0, 1, 0);
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    _mwCamera.position.set(-_mwDist * ct, _mwDist * st, 0);
+    _mwCamera.up.set(st, ct, 0);
     _mwCamera.lookAt(0, 0, 0);
 }
 
 function _mwRender() { if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera); }
 
+/** ドラッグでマスターGroup(_mwWorld)をトラックボール回転、ホイールでズーム */
 function _mwAttachDrag(cv) {
     let dragging = false, px = 0, py = 0;
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    const upAxis = new THREE.Vector3(st, ct, 0);     // 画面の上方向(=カメラup)
+    const rightAxis = new THREE.Vector3(0, 0, 1);    // 画面の右方向(=東)
     cv.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', e => {
-        if (!dragging) return;
-        _mwView.az -= (e.clientX - px) * 0.005; _mwView.el += (e.clientY - py) * 0.005;
+        if (!dragging || !_mwWorld) return;
+        _mwWorld.rotateOnWorldAxis(upAxis, -(e.clientX - px) * 0.006);
+        _mwWorld.rotateOnWorldAxis(rightAxis, (e.clientY - py) * 0.006);
         px = e.clientX; py = e.clientY;
-        const lim = 85 * _MW_D2R; _mwView.el = Math.max(-lim, Math.min(lim, _mwView.el));
-        _mwUpdateCamera(); _mwRender();
+        _mwRender();
     });
     const end = () => { dragging = false; };
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
     cv.addEventListener('wheel', e => {
         e.preventDefault();
-        _mwView.dist = Math.max(1.7, Math.min(7, _mwView.dist * (e.deltaY > 0 ? 1.1 : 0.9)));
+        _mwDist = Math.max(1.7, Math.min(7, _mwDist * (e.deltaY > 0 ? 1.1 : 0.9)));
         _mwUpdateCamera(); _mwRender();
     }, { passive: false });
 }
@@ -7336,8 +7361,10 @@ function _mwInit() {
     _mwTexture = new THREE.CanvasTexture(_mwBuildProceduralTexture());
     _mwTexture.colorSpace = THREE.SRGBColorSpace;
     _mwGlobe = _mwBuildGlobe();
-    _mwScene.add(_mwGlobe);
-    _mwScene.add(_mwBuildHorizon());
+    _mwWorld = new THREE.Group();          // ドラッグで回す全体。初期は識別回転(=北が上)
+    _mwWorld.add(_mwGlobe);
+    _mwWorld.add(_mwBuildHorizon());
+    _mwScene.add(_mwWorld);
     _mwUpdateCamera();
     _mwAttachDrag(cv);
     const cr = document.getElementById('milkyway-credit');
@@ -7346,10 +7373,13 @@ function _mwInit() {
     _mwInited = true;
 }
 
-/** パネルを開いた時の起動 */
+/** パネルを開いた時の起動。毎回「北が上」にリセット */
 function startMilkyWayGlobe() {
     if (!_mwInited && !_mwFailed) _mwInit();
     if (_mwFailed) return;
+    if (_mwWorld) _mwWorld.quaternion.identity();   // 初期表示は毎回 北が上
+    _mwDist = _MW_DIST0;
+    _mwUpdateCamera();
     resizeMilkyWayGlobe();
     updateMilkyWayGlobe();
 }
