@@ -6963,6 +6963,13 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         }
     });
 
+    // 下部パネル等の表示/非表示状態(プレビュー/辻検索の両モードで復元): 辻ライン・標高グラフ・全天儀・宙の窓・辻検索
+    params.set('dp', appState.isDPActive ? 'true' : 'false');
+    params.set('elevation', appState.isElevationActive ? 'true' : 'false');
+    params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
+    params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
+    params.set('tsujisearch', appState.isTsujiSearchActive ? 'true' : 'false');
+
     return params;
 }
 
@@ -6995,12 +7002,7 @@ function closeUrlPicker() {
 function copyLocationUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
-
-    // 下部パネル等の表示/非表示状態(プレビューモードで復元): 辻ライン・標高グラフ・全天儀・宙の窓
-    params.set('dp', appState.isDPActive ? 'true' : 'false');
-    params.set('elevation', appState.isElevationActive ? 'true' : 'false');
-    params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
-    params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
+    // パネル状態(dp/elevation/milkyway/soramado/tsujisearch)は buildCommonUrlParams で付与済み
 
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
@@ -7180,15 +7182,15 @@ function restoreFromUrl() {
         if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
 
-    // プレビューモード: 下部パネル等の表示/非表示状態を復元
-    if (mode === 'preview') {
-        // 辻ライン(地図オーバーレイ): フラグ復元→ init の active反映＋updateAll で描画
-        if (params.has('dp')) appState.isDPActive = params.get('dp') === 'true';
-        // 標高グラフ/全天儀/宙の窓は排他のため、ONは1つだけ遅延オープン(elevation→milkyway→soramado優先)
-        if (params.get('elevation') === 'true') appState._pendingPanel = 'elevation';
-        else if (params.get('milkyway') === 'true') appState._pendingPanel = 'milkyway';
-        else if (params.get('soramado') === 'true') appState._pendingPanel = 'soramado';
-    }
+    // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
+    // 辻ライン(地図オーバーレイ): フラグ復元→ init の active反映＋updateAll で描画
+    if (params.has('dp')) appState.isDPActive = params.get('dp') === 'true';
+    // 標高グラフ/全天儀/宙の窓は排他のため、ONは1つだけ遅延オープン(elevation→milkyway→soramado優先)
+    if (params.get('elevation') === 'true') appState._pendingPanel = 'elevation';
+    else if (params.get('milkyway') === 'true') appState._pendingPanel = 'milkyway';
+    else if (params.get('soramado') === 'true') appState._pendingPanel = 'soramado';
+    // 辻検索: ONなら遅延オープン(他パネルと共存可)
+    if (params.get('tsujisearch') === 'true') appState._pendingTsujiSearch = true;
 
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
@@ -7891,7 +7893,7 @@ function _smBuildSky() {
     return mesh;
 }
 
-/** 実画像(milkyway-skymap.jpg)があれば背景球テクスチャを差し替え */
+/** 実画像(高解像度 milkyway-skymap_4k-8bit.jpg)があれば背景球テクスチャを差し替え */
 function _smTryLoadRealImage() {
     const img = new Image();
     img.onload = () => {
@@ -7905,7 +7907,7 @@ function _smTryLoadRealImage() {
         if (appState.isSoramadoActive) drawSoramado();
     };
     img.onerror = () => { /* 取得不可: 模式図のまま */ };
-    img.src = 'milkyway-skymap.jpg';
+    img.src = 'milkyway-skymap_4k-8bit.jpg';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
 }
 
 /** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
@@ -8005,6 +8007,14 @@ function _smBuildBodies() {
         const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
         cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
     });
+
+    // 目的点マーカー: 基準方位角・基準視高度(=観測点→目的点方向, オフセット無し)に赤い十字を画面固定サイズで表示。
+    // depthTest:false＋高renderOrderで地形に隠れず常に見える。オフセット0なら白い中心十字と重なる。
+    const tpos = _smDir(Number(appState.soraBaseAz), Number(appState.soraBaseAlt)).multiplyScalar(_SM_BODY_R);
+    const tfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const tcs = _SM_CROSS_PX * 2 * Math.tan(tfov / 2) / _smFinderH;
+    const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+    tcross.scale.set(tcs, tcs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999; _smBodiesGrp.add(tcross);
 }
 
 /** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */

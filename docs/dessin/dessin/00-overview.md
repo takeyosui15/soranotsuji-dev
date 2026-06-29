@@ -61,16 +61,17 @@
 | endLng | 138.730781 | 可 | 不可 | 複数指定不可 | 目的点の経度を指定。キー省略時は、富士山の経度(138.730781)が設定される。 | 有効 | 有効 |
 | endApiElv | 3774.9 | 可 | 不可 | 複数指定不可 | 目的点の標高を指定。キー省略時は、富士山の標高(3774.9)が設定される。 | 有効 | 有効 |
 | endElv | 0 | 可 | 不可 | 複数指定不可 | 目的点の高さを指定。キー省略時は、富士山の追加の高さ(0)が設定される。 | 有効 | 有効 |
-| starId | \[ Sun \| Moon \| Mercury \| Venus \| Mars \| Jupiter \| Saturn \| Uranus \| Neptune \| Pluto \| Polaris \| Merak \| Mintaka \| Subaru \| M42 \| Vega \| Altair \| Deneb \| Betelgeuse \| Sirius \| Procyon \| Number \] | 可 | 不可 | 複数指定可能 | 既定の表示天体のIDか、My天体はID(数字)を指定する。キー省略時は、値「starId=Sun」「starId=Moon」が指定されているものとする。 | 有効 | 有効 |
+| starId | \[ MilkyWay \| Sun \| Moon \| Mercury \| Venus \| Mars \| Jupiter \| Saturn \| Uranus \| Neptune \| Pluto \| Polaris \| Merak \| Mintaka \| Subaru \| M42 \| Vega \| Altair \| Deneb \| Betelgeuse \| Sirius \| Procyon \| Number \] | 可 | 不可 | 複数指定可能 | 既定の表示天体のIDか、My天体はID(数字)を指定する。キー省略時は、値「starId=Sun」「starId=Moon」が指定されているものとする。 | 有効 | 有効 |
 | starName | (空白) | 可 | 可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体名を指定。キー省略時は、空白。最大150文字まで。日本語は、こちら(encodeURI.html)からエンコードして渡します。 | 有効 | 有効 |
 | starRa | 0.000000 | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の赤経(h)を指定。 | 有効 | 有効 |
 | starDec | 0.000000 | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の赤緯(°)を指定。 | 有効 | 有効 |
 | starColor | \[ Red \| Pink \| Orange \| Yellow \| YellowGreen \| Green \| LightBlue \| Blue \| Indigo \| Purple \| LightPurple \| Brown \| DarkBrown \| White \| Black \] | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の線色を指定。 | 有効 | 有効 |
 | starIsDashed | \[ True \| False \] | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の線種を指定。True=破線、False=実線。 | 有効 | 有効 |
-| dp | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 辻ライン(当日の辻ライン)の表示/非表示を指定。キー省略時は、復元しない(現状維持)。 | 有効 | 無効 |
-| elevation | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 標高グラフの表示/非表示を指定。true=表示。標高グラフ/全天儀/宙の窓は排他のため、trueは1つだけ有効。キー省略時は、復元しない。 | 有効 | 無効 |
-| milkyway | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 全天儀の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 無効 |
-| soramado | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 宙の窓の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 無効 |
+| dp | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 辻ライン(当日の辻ライン)の表示/非表示を指定。キー省略時は、復元しない(現状維持)。 | 有効 | 有効 |
+| elevation | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 標高グラフの表示/非表示を指定。true=表示。標高グラフ/全天儀/宙の窓は排他のため、trueは1つだけ有効。キー省略時は、復元しない。 | 有効 | 有効 |
+| milkyway | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 全天儀の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 有効 |
+| soramado | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 宙の窓の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 有効 |
+| tsujisearch | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 辻検索パネルの表示/非表示を指定。true=辻検索を開いて実行(他パネルと共存可)。キー省略時は、復元しない。 | 有効 | 有効 |
 | tsujiSearchDays | 365 | 可 | 不可 | 複数指定不可 | 辻検索の検索期間を指定。キー省略時は、365が設定される。 | 無効 | 有効 |
 | tsujiAz | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索の基準方位角を指定。キー省略時は、観測点/目的点から算出される。 | 無効 | 有効 |
 | tsujiAlt | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索の基準視高度を指定。キー省略時は、観測点/目的点から算出される。 | 無効 | 有効 |
