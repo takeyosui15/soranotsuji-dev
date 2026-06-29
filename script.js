@@ -951,6 +951,7 @@ function setupUI() {
 function saveAppState() {
     // 保存したいデータだけを抽出
     const stateToSave = {
+        appSchema: APP_SCHEMA,   // localStorageスキーマ版数（将来のマイグレーション/診断用）
         start: appState.start,
         end: appState.end,
         homeStart: appState.homeStart, // 登録場所
@@ -1071,8 +1072,43 @@ function loadAppState() {
                     }
                 });
             }
+            appState._loadedSchema = (typeof saved.appSchema === 'number') ? saved.appSchema : 0;
         } catch(e) { console.error("Load Error:", e); }
     }
+    // 旧/不整合な保存データを安全な値に正規化（バージョンアップ時の自己修復）
+    normalizeAppState();
+}
+
+/** 読み込んだ appState を安全な値に正規化（冪等）。旧バージョン/不整合データの自己修復。 */
+const APP_SCHEMA = 1;
+function normalizeAppState() {
+    const validModes = TSUJI_TIME_MODES.map(m => m.v).concat('fixed');
+    const num = (v, def, min, max) => {
+        const n = parseFloat(v);
+        if (!isFinite(n)) return def;
+        return Math.max(min, Math.min(max, n));
+    };
+    const reTime = /^\d{1,2}:\d{2}$/;
+    // 時間フィルタ: モード・前後方向・時刻形式
+    ['Start', 'End'].forEach(G => {
+        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
+        if (!validModes.includes(appState['tsuji' + G + 'Mode'])) appState['tsuji' + G + 'Mode'] = defMode;
+        if (appState['tsuji' + G + 'PrePostDir'] !== 'before' && appState['tsuji' + G + 'PrePostDir'] !== 'after') appState['tsuji' + G + 'PrePostDir'] = 'before';
+        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsuji' + G + k])) appState['tsuji' + G + k] = '00:00'; });
+        appState['tsuji' + G + 'PrePost'] = !!appState['tsuji' + G + 'PrePost'];
+    });
+    appState.tsujiTimeFilter = !!appState.tsujiTimeFilter;
+    // 宙の窓: 数値の範囲・型
+    appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
+    appState.soraAspectH = num(appState.soraAspectH, 3, 1, 100);
+    appState.soraFocal = num(appState.soraFocal, 35, 6, 3000);
+    appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
+    appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 10000);
+    appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
+    ['soraFisheye', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
+    if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
+    // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
+    // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
 }
 
 /** 登録ボタンロジック (登録 / 呼び出し) */

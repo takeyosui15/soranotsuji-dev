@@ -108,6 +108,14 @@ GNU General Public License for more details.
             </div>
     </div>
 
+    <div class="box">
+        <p><strong>消去する前に、必ずバックアップを。</strong> 消去すると元に戻せません。My観測点・My目的点・My辻検索などを失わないよう、先に下のボタンでバックアップしてください（アプリ内の「バックアップ」ボタンや各リストの「CSV出力」もご利用いただけます）。</p>
+        <button id="backupBtn" style="background-color:#27ae60;">全データをJSONでバックアップ（ダウンロード）</button>
+        <p style="margin-top:14px;">バックアップから元に戻す場合:</p>
+        <button id="restoreBtn" style="background-color:#2980b9;">バックアップJSONから復元</button>
+        <input type="file" id="restoreFile" accept=".json" style="display:none;">
+    </div>
+
     <button id="clearBtn">すべてのデータを消去する</button>
     <p id="statusMessage" class="alert-message"></p>
 
@@ -172,6 +180,59 @@ GNU General Public License for more details.
                 statusMsg.textContent = 'データをすべて消去しました。';
                 statusMsg.style.color = '#27ae60'; // 緑色に変更
             }
+        });
+
+        // ファイル名用の日時文字列
+        function fileStamp() {
+            const d = new Date();
+            const p = n => ('0' + n).slice(-2);
+            return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+        }
+
+        // バックアップ: 全localStorageを {キー:値} のJSONにしてダウンロード（生データの完全コピー）
+        document.getElementById('backupBtn').addEventListener('click', function() {
+            if (localStorage.length === 0) { alert('保存されているデータがありません。'); return; }
+            const data = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                data[k] = localStorage.getItem(k);
+            }
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `soranotsuji-localStorage-${fileStamp()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.textContent = 'バックアップ（JSON）をダウンロードしました。';
+            statusMsg.style.color = '#27ae60';
+        });
+
+        // 復元: バックアップJSONを読み、各キーをlocalStorageへ書き戻す
+        document.getElementById('restoreBtn').addEventListener('click', function() {
+            document.getElementById('restoreFile').click();
+        });
+        document.getElementById('restoreFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('バックアップの形式が不正です');
+                    if (!confirm('バックアップの内容で現在のデータを上書きします。よろしいですか？')) return;
+                    Object.keys(data).forEach(k => { localStorage.setItem(k, String(data[k])); });
+                    renderStorageData();
+                    const statusMsg = document.getElementById('statusMessage');
+                    statusMsg.textContent = 'バックアップから復元しました。';
+                    statusMsg.style.color = '#27ae60';
+                } catch (err) {
+                    alert('復元に失敗しました: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         });
     </script>
 </body>
