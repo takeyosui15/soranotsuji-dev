@@ -8037,7 +8037,7 @@ function _smBuildTraj() {
     if (!_smTrajGrp) return;
     const dayStart = new Date(appState.currentDate); dayStart.setHours(0, 0, 0, 0);
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
-    const visibleIds = appState.bodies.filter(b => b.visible && b.id !== 'MilkyWay').map(b => b.id).join(',');
+    const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
     const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}`;
     if (key === _smTrajKey) return;
     _smTrajKey = key;
@@ -8047,9 +8047,16 @@ function _smBuildTraj() {
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
     const dayStartMs = dayStart.getTime(), N = 96;
     appState.bodies.forEach(body => {
-        if (!body.visible || body.id === 'MilkyWay') return;
-        const isFixed = isFixedStar(body.id);
-        const rd = isFixed ? getFixedStarRaDec(body.id) : null;
+        if (!body.visible) return;
+        // 天の川は「銀河中心(銀河座標 l=0,b=0)」を固定点として軌跡を描く。それ以外は通常天体。
+        let isFixed, rd;
+        if (body.id === 'MilkyWay') {
+            const gc = galacticToEquatorial(0, 0);
+            isFixed = true; rd = { ra: gc.ra, dec: gc.dec };
+        } else {
+            isFixed = isFixedStar(body.id);
+            rd = isFixed ? getFixedStarRaDec(body.id) : null;
+        }
         // 前日/当日/翌日 を各日 0:00〜23:59:59 で1本ずつ(計3本)描画
         for (let d = -1; d <= 1; d++) {
             const day0 = dayStartMs + d * 86400000;
@@ -8069,14 +8076,14 @@ function _smBuildTraj() {
     });
 }
 
-/** 天の川の環(銀河赤道 b=0 の大円)を天体色の線で描画。時刻・位置・色が変わった時のみ再計算(キャッシュ)。
+/** 天の川の環(銀河赤道 b=0 の大円)を白色の線で描画。時刻・位置が変わった時のみ再計算(キャッシュ)。
  *  背景球と同じ Astronomy.Horizon→_smDir 変換で作るため、天の川写真の帯にぴたり整列する。 */
 function _smUpdateMilkyWayRing() {
     if (!_smMwRingGrp) return;
     const mw = appState.bodies.find(b => b.id === 'MilkyWay');
     const visible = !!(mw && mw.visible);
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
-    const key = visible ? `${appState.currentDate.getTime()}|${posKey}|${mw.color}` : 'off';
+    const key = visible ? `${appState.currentDate.getTime()}|${posKey}` : 'off';
     if (key === _smMwRingKey) return;
     _smMwRingKey = key;
     while (_smMwRingGrp.children.length) { const c = _smMwRingGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
@@ -8091,7 +8098,7 @@ function _smUpdateMilkyWayRing() {
         const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
         pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R));
     }
-    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(mw.color), transparent: true, opacity: 0.8, depthTest: true }));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthTest: true }));
     _smMwRingGrp.add(line);
 }
 // --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
