@@ -7769,6 +7769,9 @@ function drawSoramado() {
     const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const finderAspect = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : 1;
+    // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズ算出に使う(_smBuildBodiesより前)
+    const cr = _smFitRect(w, h, finderAspect, 0.94);
+    _smFinderH = cr.h || 1;
     _smCamera.fov = Math.max(1, Math.min(170, o.aovV));
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
@@ -7787,8 +7790,7 @@ function drawSoramado() {
     // three.js は setViewport/setScissor の座標を内部で devicePixelRatio 倍する(three.js WebGLRenderer)。
     // ここでデバイスpxを渡すと dpr>1 で二重スケールし、プレビュー内容だけ枠からズレる(スマホで顕著)。
     const dpr = _smRenderer.getPixelRatio();
-    const cr = _smFitRect(w, h, finderAspect, 0.94);   // CSS px (HTMLオーバーレイと共通)
-    const glY = h - cr.y - cr.h;                        // WebGLは左下原点
+    const glY = h - cr.y - cr.h;                        // WebGLは左下原点 (cr は上部で算出済み)
     _smRenderer.setScissorTest(false);
     _smRenderer.setClearColor(0x000000, 1);
     _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
@@ -7830,7 +7832,9 @@ function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSor
 
 // --- F2: 天体プレビュー (背景球・天体マーカー・月相・軌跡) ---
 const _SM_BODY_R = 400000, _SM_SKY_R = 600000;   // 天体・天球は地形(≤300km)より外側に置き、地形で遮蔽できるように
+const _SM_CROSS_PX = 26;   // 天体中心十字のスプライト画面高さ(px固定)。可視十字は約0.69倍≈18pxで画面中心十字と同程度
 let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
+let _smFinderH = 200;   // 直近のファインダーCSS高さ(px)。中心十字の画面固定サイズ算出に使用(drawSoramadoで更新)
 const _smTexCache = {};   // key → CanvasTexture
 
 /** 背景天球(BackSide, 赤道座標テクスチャ)を生成 */
@@ -7968,13 +7972,16 @@ function _smBuildBodies() {
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(body.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
             sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
         }
-        // 中心十字 (全天体・画面固定サイズ)
+        // 中心十字 (全天体・焦点距離/プレビューサイズに依らず ≈_SM_CROSS_PX の画面固定サイズ＝画面中心十字と同程度)。
+        // sizeAttenuation:false のSpriteの画面高さ比 = scale/(2·tan(fov/2)) なので、px固定になるよう scale を逆算する。
+        const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+        const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
         const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
-        cross.scale.set(0.015, 0.015, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
     });
 }
 
-/** 表示天体の軌跡(日付±1日, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
+/** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
 function _smBuildTraj() {
     if (!_smTrajGrp) return;
     const dayStart = new Date(appState.currentDate); dayStart.setHours(0, 0, 0, 0);
@@ -7987,23 +7994,27 @@ function _smBuildTraj() {
     if (!appState.soraTraj) return;
     let observer;
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
-    const base = appState.currentDate.getTime(), N = 96;
+    const dayStartMs = dayStart.getTime(), N = 96;
     appState.bodies.forEach(body => {
         if (!body.visible || body.id === 'MilkyWay') return;
         const isFixed = isFixedStar(body.id);
         const rd = isFixed ? getFixedStarRaDec(body.id) : null;
-        const pts = [];
-        for (let i = 0; i <= N; i++) {
-            const t = new Date(base + (i / N * 2 - 1) * 86400000);   // -1日 .. +1日
-            let ra, dec;
-            if (isFixed) { ra = rd.ra; dec = rd.dec; }
-            else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
-            const hor = Astronomy.Horizon(t, observer, ra, dec, null);
-            pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
+        // 前日/当日/翌日 を各日 0:00〜23:59:59 で1本ずつ(計3本)描画
+        for (let d = -1; d <= 1; d++) {
+            const day0 = dayStartMs + d * 86400000;
+            const pts = [];
+            for (let i = 0; i <= N; i++) {
+                const t = new Date(day0 + (i / N) * 86399000);   // 0:00 .. 23:59:59
+                let ra, dec;
+                if (isFixed) { ra = rd.ra; dec = rd.dec; }
+                else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
+                const hor = Astronomy.Horizon(t, observer, ra, dec, null);
+                pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
+            }
+            if (pts.length < 2) continue;
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
+            _smTrajGrp.add(line);
         }
-        if (pts.length < 2) return;
-        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
-        _smTrajGrp.add(line);
     });
 }
 // --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
