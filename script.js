@@ -98,9 +98,12 @@ const SIRIUS_RA = 6.752477;
 const SIRIUS_DEC = -16.716116;
 const PROCYON_RA = 7.655033;
 const PROCYON_DEC = 5.224988;
+// 天の川: 代表点として天の川銀河の中心 (Sgr A*, J2000) を用いる
+const MILKYWAY_RA = 17.761122;
+const MILKYWAY_DEC = -29.007806;
 
 // 固定RA/Decの恒星IDリスト
-const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon'];
+const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon', 'MilkyWay'];
 
 /** 固定恒星判定 (既定恒星 + My天体) */
 function isFixedStar(bodyId) {
@@ -217,6 +220,7 @@ let appState = {
 
     // 天体設定
     bodies: [
+        { id: 'MilkyWay', name: '天の川', color: '#FFFFFF', isDashed: false, visible: false },
         { id: 'Sun',     name: '太陽',   color: '#FF0000', isDashed: false, visible: true },
         { id: 'Moon',    name: '月',     color: '#FFFF00', isDashed: false, visible: true },
         { id: 'Mercury', name: '水星',   color: '#00BFFF', isDashed: false, visible: false },
@@ -2222,6 +2226,7 @@ function getFixedStarRaDec(bodyId) {
         case 'Betelgeuse': return { ra: BETELGEUSE_RA, dec: BETELGEUSE_DEC };
         case 'Sirius':     return { ra: SIRIUS_RA, dec: SIRIUS_DEC };
         case 'Procyon':    return { ra: PROCYON_RA, dec: PROCYON_DEC };
+        case 'MilkyWay':   return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
         default: {
             // My天体から検索
             const myStar = appState.myStars.find(s => String(s.id) === bodyId);
