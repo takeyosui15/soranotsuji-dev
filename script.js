@@ -451,6 +451,17 @@ window.onload = function() {
             startTsujiSearch();
         }, 500);
     }
+
+    // URL(プレビューモード)で下部パネルが指定されていた場合、UI準備後に開く(排他なので1つ)
+    if (appState._pendingPanel) {
+        const panel = appState._pendingPanel;
+        delete appState._pendingPanel;
+        setTimeout(() => {
+            if (panel === 'elevation' && !appState.isElevationActive) toggleElevation();
+            else if (panel === 'milkyway' && !appState.isMilkyWayActive) toggleMilkyWayInstrument();
+            else if (panel === 'soramado' && !appState.isSoramadoActive) toggleSoramado();
+        }, 500);
+    }
 };
 
 // 古いキーの削除関数
@@ -1238,7 +1249,7 @@ function updateAll() {
 
     updateTsujiSearchInputs();
 
-    // 天の川儀: 観測者の位置・日時が変わったら向きを更新
+    // 全天儀: 観測者の位置・日時が変わったら向きを更新
     if (appState.isMilkyWayActive) {
         updateMilkyWayGlobe();
     }
@@ -5944,7 +5955,7 @@ function toggleElevation() {
     appState.isElevationActive = !appState.isElevationActive;
 
     if (appState.isElevationActive) {
-        // 天の川儀・宙の窓とは画面下1/3を排他利用するため、開いていれば閉じる
+        // 全天儀・宙の窓とは画面下1/3を排他利用するため、開いていれば閉じる
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         if (appState.isSoramadoActive) closeSoramado();
         btn.classList.add('active');
@@ -5959,7 +5970,7 @@ function toggleElevation() {
     syncBottomPanels();
 }
 
-/** 天の川儀の表示/非表示トグル (標高グラフと排他、辻検索とは共存) */
+/** 全天儀の表示/非表示トグル (標高グラフと排他、辻検索とは共存) */
 function toggleMilkyWayInstrument() {
     if (appState.isMilkyWayActive) {
         closeMilkyWayInstrument();
@@ -5975,7 +5986,7 @@ function toggleMilkyWayInstrument() {
     syncBottomPanels();
 }
 
-/** 天の川儀を閉じる (内部用: syncBottomPanels は呼び出し側で行う) */
+/** 全天儀を閉じる (内部用: syncBottomPanels は呼び出し側で行う) */
 function closeMilkyWayInstrument() {
     appState.isMilkyWayActive = false;
     document.getElementById('btn-milkyway').classList.remove('active');
@@ -6126,7 +6137,7 @@ function toggleTsujiSearch() {
 
 function syncBottomPanels() {
     const tdPnl = document.getElementById('tsujisearch-panel');
-    // 辻検索パネルは、標高グラフ/天の川儀が下にあるとき1段上へ押し上げる
+    // 辻検索パネルは、標高グラフ/全天儀が下にあるとき1段上へ押し上げる
     tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
     tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
     tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
@@ -6985,6 +6996,12 @@ function copyLocationUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
 
+    // 下部パネル等の表示/非表示状態(プレビューモードで復元): 辻ライン・標高グラフ・全天儀・宙の窓
+    params.set('dp', appState.isDPActive ? 'true' : 'false');
+    params.set('elevation', appState.isElevationActive ? 'true' : 'false');
+    params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
+    params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
+
     const url = buildBaseUrl() + '?' + params.toString();
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
@@ -7163,6 +7180,16 @@ function restoreFromUrl() {
         if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
 
+    // プレビューモード: 下部パネル等の表示/非表示状態を復元
+    if (mode === 'preview') {
+        // 辻ライン(地図オーバーレイ): フラグ復元→ init の active反映＋updateAll で描画
+        if (params.has('dp')) appState.isDPActive = params.get('dp') === 'true';
+        // 標高グラフ/全天儀/宙の窓は排他のため、ONは1つだけ遅延オープン(elevation→milkyway→soramado優先)
+        if (params.get('elevation') === 'true') appState._pendingPanel = 'elevation';
+        else if (params.get('milkyway') === 'true') appState._pendingPanel = 'milkyway';
+        else if (params.get('soramado') === 'true') appState._pendingPanel = 'soramado';
+    }
+
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
     appState.end.elev = appState.endApiElev + appState.endHeight;
@@ -7174,7 +7201,7 @@ function restoreFromUrl() {
 }
 
 // ============================================================
-// 天の川儀 (Milky Way orrery) — 3D天体儀パネル
+// 全天儀 (Milky Way orrery) — 3D天体儀パネル
 //  - 赤道座標(EQJ)のスカイテクスチャを貼った球を、観測者の地平座標へ
 //    合わせて回転し、外側から俯瞰する。地平線・東西南北・赤道格子を重畳。
 //  - テクスチャは既定でプロシージャル生成。milkyway-skymap.jpg があれば差替。
@@ -7700,7 +7727,7 @@ function toggleSoramado() {
     if (appState.isSoramadoActive) {
         closeSoramado();
     } else {
-        // 標高グラフ・天の川儀とは画面下1/3を排他利用
+        // 標高グラフ・全天儀とは画面下1/3を排他利用
         if (appState.isElevationActive) toggleElevation();
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         appState.isSoramadoActive = true;
@@ -7824,8 +7851,7 @@ function drawSoramado() {
     if (frame) { frame.style.width = cr.w + 'px'; frame.style.height = cr.h + 'px'; }
     const cross = document.getElementById('soramado-center');
     if (cross) cross.classList.toggle('hidden', !appState.soraCenterCross);
-    const info = document.getElementById('soramado-info');
-    if (info) info.textContent = `中心 方位${az.toFixed(1)}° 視高度${alt.toFixed(1)}° / 画角 水平${o.aovH.toFixed(1)}°×垂直${o.aovV.toFixed(1)}°`;
+    // 左下の中心・画角キャプションは表示しない(依頼により削除)。#soramado-info は three.js読込失敗時のエラー表示にのみ使用。
 }
 
 function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }

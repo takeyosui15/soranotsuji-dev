@@ -167,7 +167,7 @@ html {
     display: block;
 }
 
-/* 天の川儀パネル(標高グラフと同じ画面下1/3) */
+/* 全天儀パネル(標高グラフと同じ画面下1/3) */
 #milkyway-panel {
     position: absolute;
     bottom: 0;
@@ -215,7 +215,7 @@ html {
     text-align: right;
 }
 
-/* 宙の窓パネル (標高グラフ・天の川儀と同じ画面下1/3) */
+/* 宙の窓パネル (標高グラフ・全天儀と同じ画面下1/3) */
 #soramado-panel {
     position: absolute;
     bottom: 0;
@@ -303,6 +303,8 @@ html {
     pointer-events: none;
     max-width: 80%;
 }
+/* 通常は空(中心・画角キャプションは削除)。three.js読込失敗時のエラーのみ表示し、空のときは隠す */
+#soramado-info:empty { display: none; }
 
 /* 宙の窓メニューのフォーム小物 */
 .sora-val {
