@@ -60,7 +60,8 @@ html {
 }
 
 #tsujisearch-panel.with-elevation,
-#tsujisearch-panel.with-milkyway {
+#tsujisearch-panel.with-milkyway,
+#tsujisearch-panel.with-soramado {
     bottom: 33.33%;
 }
 
@@ -213,6 +214,85 @@ html {
     max-width: 70%;
     text-align: right;
 }
+
+/* 宙の窓パネル (標高グラフ・天の川儀と同じ画面下1/3) */
+#soramado-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+    background-color: #000;
+    border-top: 1px solid #555;
+    z-index: 900;
+    display: block;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#soramado-panel.hidden { display: none; }
+
+#soramado-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ファインダー枠(中央にアスペクト比でレターボックス) */
+#soramado-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+
+/* 画面中心の十字(+) */
+.soramado-cross {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.soramado-cross::before,
+.soramado-cross::after {
+    content: "";
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+}
+.soramado-cross::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-50%); }
+.soramado-cross::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
+.soramado-cross.hidden { display: none; }
+
+#soramado-info {
+    position: absolute;
+    left: 6px;
+    bottom: 4px;
+    margin: 0;
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 3px;
+    pointer-events: none;
+    max-width: 80%;
+}
+
+/* 宙の窓メニューのフォーム小物 */
+.sora-val {
+    color: #555;
+    font-size: 12px;
+    margin-right: 8px;
+}
+.sora-aspect { width: 3.2em; }
+.sora-slider { width: 100%; }
 
 /* プログレスバー */
 #progress-overlay {

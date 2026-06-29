@@ -253,7 +253,26 @@ let appState = {
     locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
     isElevationActive: false,
     isMilkyWayActive: false,
+    isSoramadoActive: false,
     isTsujiSearchActive: false,
+
+    // 宙の窓パラメータ (isSoramadoActive以外はlocalStorage保存)
+    soraSensorKey: 'fullframe',
+    soraAspectW: 3,
+    soraAspectH: 3,
+    soraFocal: 35,
+    soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
+    soraFocusDist: 1000,
+    soraFisheye: false,
+    soraPeaking: true,
+    soraGrayscale: true,
+    soraBaseAz: 0,
+    soraBaseAlt: 0,
+    soraOffsetAz: 0,
+    soraOffsetAlt: 0,
+    soraViewRange: 10,
+    soraTraj: true,
+    soraCenterCross: true,
 
     // 辻検索パラメータ (全てlocalStorage保存)
     tsujiSearchBaseAz: 0,
@@ -423,6 +442,9 @@ window.onload = function() {
         if(appState.isMilkyWayActive) {
             resizeMilkyWayGlobe();
         }
+        if(appState.isSoramadoActive) {
+            resizeSoramado();
+        }
     });
 
     setTimeout(initVisitorCounter, 900);
@@ -585,6 +607,8 @@ function setupUI() {
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
     document.getElementById('btn-milkyway').onclick = toggleMilkyWayInstrument;
+    document.getElementById('btn-soramado').onclick = toggleSoramado;
+    setupSoramadoControls();
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
@@ -967,6 +991,12 @@ function saveAppState() {
         tsujiTimeFilter: appState.tsujiTimeFilter,
         tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
         tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
+        // 宙の窓パラメータ
+        soraSensorKey: appState.soraSensorKey, soraAspectW: appState.soraAspectW, soraAspectH: appState.soraAspectH,
+        soraFocal: appState.soraFocal, soraFNumberIdx: appState.soraFNumberIdx, soraFocusDist: appState.soraFocusDist,
+        soraFisheye: appState.soraFisheye, soraPeaking: appState.soraPeaking, soraGrayscale: appState.soraGrayscale,
+        soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt, soraOffsetAz: appState.soraOffsetAz, soraOffsetAlt: appState.soraOffsetAlt,
+        soraViewRange: appState.soraViewRange, soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1020,6 +1050,8 @@ function loadAppState() {
             if(saved.tsujiElevOK !== undefined) appState.tsujiElevOK = saved.tsujiElevOK;
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+            // 宙の窓パラメータ復元
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1186,6 +1218,12 @@ function updateAll() {
     // 天の川儀: 観測者の位置・日時が変わったら向きを更新
     if (appState.isMilkyWayActive) {
         updateMilkyWayGlobe();
+    }
+
+    // 宙の窓: 位置変化で基準方位角/視高度を更新し、開いていれば再描画
+    soraUpdateBaseFromPoints();
+    if (appState.isSoramadoActive) {
+        drawSoramado();
     }
 }
 
@@ -5883,8 +5921,9 @@ function toggleElevation() {
     appState.isElevationActive = !appState.isElevationActive;
 
     if (appState.isElevationActive) {
-        // 天の川儀とは画面下1/3を排他利用するため、開いていれば閉じる
+        // 天の川儀・宙の窓とは画面下1/3を排他利用するため、開いていれば閉じる
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+        if (appState.isSoramadoActive) closeSoramado();
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         startElevationFetch();
@@ -5902,8 +5941,9 @@ function toggleMilkyWayInstrument() {
     if (appState.isMilkyWayActive) {
         closeMilkyWayInstrument();
     } else {
-        // 標高グラフとは排他: 開いていれば閉じる
+        // 標高グラフ・宙の窓とは排他: 開いていれば閉じる
         if (appState.isElevationActive) toggleElevation();
+        if (appState.isSoramadoActive) closeSoramado();
         appState.isMilkyWayActive = true;
         document.getElementById('btn-milkyway').classList.add('active');
         document.getElementById('milkyway-panel').classList.remove('hidden');
@@ -6066,6 +6106,7 @@ function syncBottomPanels() {
     // 辻検索パネルは、標高グラフ/天の川儀が下にあるとき1段上へ押し上げる
     tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
     tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
+    tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
 }
 
 
@@ -7456,3 +7497,255 @@ function resizeMilkyWayGlobe() {
     _mwCamera.aspect = w / h; _mwCamera.updateProjectionMatrix();
     _mwRender();
 }
+
+// ============================================================
+// 宙の窓 (Sora no Mado) — 観測点→目的点方向のカメラ視点シミュレーション
+//  フェーズ1: メニュー・光学計算・パネル枠(three.jsカメラ枠/ファインダー/中心十字)
+//  天体描画(F2)・DEM地形(F3)は後続フェーズ。
+// ============================================================
+const SORA_SENSORS = [
+    { key: 'mediumformat', name: '中判 (44×33)',                 w: 44,   h: 33 },
+    { key: 'fullframe',    name: 'フルサイズ (36×24)',            w: 36,   h: 24 },
+    { key: 'apsh',         name: 'APS-H (28.7×19)',              w: 28.7, h: 19 },
+    { key: 'apsc',         name: 'APS-C (23.5×15.6)',            w: 23.5, h: 15.6 },
+    { key: 'apsc_canon',   name: 'APS-C Canon (22.3×14.9)',      w: 22.3, h: 14.9 },
+    { key: 'm43',          name: 'マイクロフォーサーズ (17.3×13)', w: 17.3, h: 13 },
+    { key: 'one',          name: '1型 (13.2×8.8)',               w: 13.2, h: 8.8 },
+    { key: 'type114',      name: '1/1.14型 (11.2×8.4)',          w: 11.2, h: 8.4 },
+    { key: 'type128',      name: '1/1.28型 (9.8×7.3)',           w: 9.8,  h: 7.3 },
+    { key: 'type17',       name: '1/1.7型 (7.6×5.7)',            w: 7.6,  h: 5.7 },
+    { key: 'type20',       name: '1/2.0型 (6.4×4.8)',            w: 6.4,  h: 4.8 },
+    { key: 'type23',       name: '1/2.3型 (6.17×4.55)',          w: 6.17, h: 4.55 },
+    { key: 'type255',      name: '1/2.55型 (5.7×4.3)',           w: 5.7,  h: 4.3 },
+    { key: 'type30',       name: '1/3.0型 (4.8×3.6)',            w: 4.8,  h: 3.6 },
+    { key: 'type36',       name: '1/3.6型 (4.0×3.0)',            w: 4.0,  h: 3.0 },
+];
+const SORA_FOCALS = [10,11,12,13,14,15,16,17,18,20,24,26,28,30,35,40,50,58,70,75,85,105,120,135,140,180,200,250,400,500,600,800,1000];
+const SORA_FNUMBERS = [0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.2,3.5,4.0,4.5,5.0,5.6,6.3,7.1,8.0,9.0,10,11,13,14,16,18,20,22];
+
+function soraSensor() { return SORA_SENSORS.find(s => s.key === appState.soraSensorKey) || SORA_SENSORS[1]; }
+function soraFNumber() { return SORA_FNUMBERS[Math.max(0, Math.min(SORA_FNUMBERS.length - 1, appState.soraFNumberIdx))]; }
+
+/** 実効フレーム: アスペクト比をセンサー(W×H mm)に内接させ {We,He} を返す */
+function soraEffectiveFrame() {
+    const s = soraSensor();
+    const a = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : s.w / s.h;
+    const sensorA = s.w / s.h;
+    if (a >= sensorA) return { We: s.w, He: s.w / a };
+    return { We: s.h * a, He: s.h };
+}
+
+/** 光学計算: 画角(水平/垂直/対角°)・過焦点距離・合焦近遠・被写界深度(m) */
+function soraComputeOptics() {
+    const f = appState.soraFocal, N = soraFNumber(), s = soraSensor();
+    const { We, He } = soraEffectiveFrame();
+    const aovH = 2 * Math.atan(We / (2 * f)) * 180 / Math.PI;
+    const aovV = 2 * Math.atan(He / (2 * f)) * 180 / Math.PI;
+    const aovD = 2 * Math.atan(Math.hypot(We, He) / (2 * f)) * 180 / Math.PI;
+    const c = Math.hypot(s.w, s.h) / 1500;          // 許容錯乱円 mm
+    const Hmm = f * f / (N * c) + f;                // 過焦点距離 mm
+    const sMm = appState.soraFocusDist * 1000;      // ピント距離 mm
+    const nearMm = Hmm * sMm / (Hmm + (sMm - f));
+    const farMm = (sMm < Hmm) ? Hmm * sMm / (Hmm - (sMm - f)) : Infinity;
+    const near = nearMm / 1000, far = (farMm === Infinity) ? Infinity : farMm / 1000;
+    return { aovH, aovV, aovD, hyperfocal: Hmm / 1000, near, far, dof: (far === Infinity) ? Infinity : far - near };
+}
+
+function soraFmtM(v) {
+    if (v === Infinity) return '∞';
+    if (v >= 1000) return (v / 1000).toFixed(2) + 'km';
+    if (v >= 10) return v.toFixed(0) + 'm';
+    return v.toFixed(2) + 'm';
+}
+
+/** select の選択肢を生成 */
+function soraPopulateSelects() {
+    const ss = document.getElementById('input-sora-sensor');
+    if (ss && !ss.options.length) SORA_SENSORS.forEach(s => { const o = document.createElement('option'); o.value = s.key; o.textContent = s.name; ss.appendChild(o); });
+    const fs = document.getElementById('input-sora-focal-select');
+    if (fs && !fs.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fs.appendChild(o); });
+}
+
+/** appState → フォーム値・算出表示を反映 (フォーカス中の入力は保護) */
+function soraSyncUI() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    set('input-sora-sensor', appState.soraSensorKey);
+    set('input-sora-aspect-w', appState.soraAspectW);
+    set('input-sora-aspect-h', appState.soraAspectH);
+    set('input-sora-focal-select', String(appState.soraFocal));
+    set('input-sora-focal-slider', appState.soraFocal);
+    txt('sora-focal-label', appState.soraFocal + 'mm');
+    set('input-sora-fnum-slider', appState.soraFNumberIdx);
+    txt('sora-fnum-label', 'F' + soraFNumber());
+    set('input-sora-focus-slider', appState.soraFocusDist);
+    txt('sora-focus-label', appState.soraFocusDist + 'm');
+    chk('chk-sora-fisheye', appState.soraFisheye);
+    chk('chk-sora-peaking', appState.soraPeaking);
+    chk('chk-sora-grayscale', appState.soraGrayscale);
+    chk('chk-sora-traj', appState.soraTraj);
+    chk('chk-sora-center', appState.soraCenterCross);
+    set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(2));
+    set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(2));
+    set('input-sora-offset-az', appState.soraOffsetAz);
+    set('input-sora-offset-alt', appState.soraOffsetAlt);
+    set('input-sora-range', appState.soraViewRange);
+    set('input-sora-range-slider', appState.soraViewRange);
+    const o = soraComputeOptics();
+    txt('sora-aov-h', o.aovH.toFixed(1) + '°');
+    txt('sora-aov-v', o.aovV.toFixed(1) + '°');
+    txt('sora-aov-d', o.aovD.toFixed(1) + '°');
+    txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
+    txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
+    txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
+}
+
+/** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
+function soraUpdateBaseFromPoints() {
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    if (posKey === appState._soraLastPosKey) return;
+    appState._soraLastPosKey = posKey;
+    const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAz = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAlt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
+    appState.soraViewRange = Math.max(1, Math.min(300, Math.round(dist / 1000)));
+    saveAppState();
+    soraSyncUI();
+}
+
+/** 各コントロールのイベント登録 */
+function setupSoramadoControls() {
+    soraPopulateSelects();
+    const after = () => { soraSyncUI(); saveAppState(); if (appState.isSoramadoActive) drawSoramado(); };
+    const numH = (id, key, min, max, round) => {
+        const el = document.getElementById(id); if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (!isNaN(v)) { v = Math.max(min, Math.min(max, v)); appState[key] = round ? Math.round(v) : v; }
+            after();
+        });
+    };
+    numH('input-sora-aspect-w', 'soraAspectW', 1, 100, true);
+    numH('input-sora-aspect-h', 'soraAspectH', 1, 100, true);
+    numH('input-sora-base-az', 'soraBaseAz', 0, 360, false);
+    numH('input-sora-base-alt', 'soraBaseAlt', -360, 360, false);
+    numH('input-sora-offset-az', 'soraOffsetAz', -360, 360, false);
+    numH('input-sora-offset-alt', 'soraOffsetAlt', -360, 360, false);
+    numH('input-sora-range', 'soraViewRange', 1, 300, true);
+    const selH = (id, key, parse) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = parse(el.value); after(); }); };
+    selH('input-sora-sensor', 'soraSensorKey', v => v);
+    selH('input-sora-focal-select', 'soraFocal', v => parseInt(v));
+    const sliderH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { appState[key] = parseInt(el.value); after(); }); };
+    sliderH('input-sora-focal-slider', 'soraFocal');
+    sliderH('input-sora-fnum-slider', 'soraFNumberIdx');
+    sliderH('input-sora-focus-slider', 'soraFocusDist');
+    sliderH('input-sora-range-slider', 'soraViewRange');
+    const chkH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = el.checked; after(); }); };
+    chkH('chk-sora-fisheye', 'soraFisheye');
+    chkH('chk-sora-peaking', 'soraPeaking');
+    chkH('chk-sora-grayscale', 'soraGrayscale');
+    chkH('chk-sora-traj', 'soraTraj');
+    chkH('chk-sora-center', 'soraCenterCross');
+    soraSyncUI();
+}
+
+// --- パネル制御 ---
+function toggleSoramado() {
+    if (appState.isSoramadoActive) {
+        closeSoramado();
+    } else {
+        // 標高グラフ・天の川儀とは画面下1/3を排他利用
+        if (appState.isElevationActive) toggleElevation();
+        if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+        appState.isSoramadoActive = true;
+        document.getElementById('btn-soramado').classList.add('active');
+        document.getElementById('soramado-panel').classList.remove('hidden');
+        drawSoramado();
+    }
+    syncBottomPanels();
+}
+function closeSoramado() {
+    appState.isSoramadoActive = false;
+    document.getElementById('btn-soramado').classList.remove('active');
+    document.getElementById('soramado-panel').classList.add('hidden');
+}
+
+// --- three.js プレビュー (F1: カメラ枠・ファインダー・中心十字) ---
+let _smRenderer = null, _smScene = null, _smCamera = null, _smInited = false, _smFailed = false;
+
+function _smInit() {
+    if (typeof THREE === 'undefined') {
+        _smFailed = true;
+        const info = document.getElementById('soramado-info');
+        if (info) info.textContent = '3Dライブラリ(three.js)を読み込めませんでした';
+        return;
+    }
+    const cv = document.getElementById('soramado-canvas');
+    _smRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    _smRenderer.setPixelRatio(window.devicePixelRatio || 1);
+    _smRenderer.autoClear = false;
+    _smScene = new THREE.Scene();
+    _smScene.background = null;
+    _smCamera = new THREE.PerspectiveCamera(40, 1, 0.01, 200);
+    _smInited = true;
+}
+
+/** 方位az・視高度alt(度) → ワールド単位ベクトル(右手系 ENU: X=東, Y=北, Z=上) */
+function _smDir(azDeg, altDeg) {
+    const az = azDeg * Math.PI / 180, alt = altDeg * Math.PI / 180, ca = Math.cos(alt);
+    return new THREE.Vector3(Math.sin(az) * ca, Math.cos(az) * ca, Math.sin(alt));
+}
+
+/** ファインダー枠の矩形(指定領域内に finderAspect で内接, margin) → {x,y,w,h} */
+function _smFitRect(boxW, boxH, finderAspect, margin) {
+    let w = boxW * margin, h = w / finderAspect;
+    if (h > boxH * margin) { h = boxH * margin; w = h * finderAspect; }
+    return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
+}
+
+function drawSoramado() {
+    if (!_smInited && !_smFailed) _smInit();
+    if (_smFailed) return;
+    const cv = document.getElementById('soramado-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    _smRenderer.setSize(w, h, false);
+
+    const o = soraComputeOptics();
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
+    const finderAspect = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : 1;
+    _smCamera.fov = Math.max(1, Math.min(170, o.aovV));
+    _smCamera.aspect = finderAspect;
+    _smCamera.up.set(0, 0, 1);
+    _smCamera.position.set(0, 0, 0);
+    _smCamera.lookAt(_smDir(az, alt));
+    _smCamera.updateProjectionMatrix();
+
+    // ファインダー矩形 (描画バッファpx)
+    const dpr = _smRenderer.getPixelRatio();
+    const r = _smFitRect(w * dpr, h * dpr, finderAspect, 0.94);
+    const glY = h * dpr - r.y - r.h;
+    _smRenderer.setScissorTest(false);
+    _smRenderer.setClearColor(0x000000, 1);
+    _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
+    _smRenderer.setScissorTest(true);
+    _smRenderer.setViewport(r.x, glY, r.w, r.h);
+    _smRenderer.setScissor(r.x, glY, r.w, r.h);
+    _smRenderer.setClearColor(0x0a0e1a, 1);
+    _smRenderer.clear(true, true, true);                 // ファインダー内を空色でクリア
+    _smRenderer.render(_smScene, _smCamera);             // F1: シーンは空
+    _smRenderer.setScissorTest(false);
+
+    // HTMLオーバーレイ (CSS px で配置)
+    const cr = _smFitRect(w, h, finderAspect, 0.94);
+    const frame = document.getElementById('soramado-frame');
+    if (frame) { frame.style.width = cr.w + 'px'; frame.style.height = cr.h + 'px'; }
+    const cross = document.getElementById('soramado-center');
+    if (cross) cross.classList.toggle('hidden', !appState.soraCenterCross);
+    const info = document.getElementById('soramado-info');
+    if (info) info.textContent = `中心 方位${az.toFixed(1)}° 視高度${alt.toFixed(1)}° / 画角 水平${o.aovH.toFixed(1)}°×垂直${o.aovV.toFixed(1)}°`;
+}
+
+function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }

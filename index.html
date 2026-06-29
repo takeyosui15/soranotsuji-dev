@@ -87,6 +87,13 @@ GNU General Public License for more details.
         <div id="milkyway-credit"></div>
     </div>
 
+    <div id="soramado-panel" class="hidden">
+        <canvas id="soramado-canvas"></canvas>
+        <div id="soramado-frame"></div>
+        <div id="soramado-center" class="soramado-cross"></div>
+        <div id="soramado-info"></div>
+    </div>
+
     <div id="control-panel" class="control-panel minimized">
         <div class="panel-header" onclick="togglePanel()">
             <span id="header-title">
@@ -159,9 +166,12 @@ GNU General Public License for more details.
 
                     <div class="control-row main-buttons-row">
                         <button id="btn-dp" class="nav-btn main-btn">辻ライン</button>
+                        <button id="btn-elevation" class="nav-btn main-btn">標高グラフ</button>
+                        <button id="btn-milkyway" class="nav-btn main-btn">天の川儀</button>
+                    </div>
+                    <div class="control-row main-buttons-row">
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
-                        <button id="btn-elevation" class="nav-btn main-btn">標高</button>
-                        <button id="btn-milkyway" class="nav-btn main-btn">天の川</button>
+                        <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
                     </div>
                 </div>
             </div>
@@ -257,6 +267,102 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-soramado')">
+                    <span>宙の窓</span>
+                    <span id="icon-sec-soramado">▼</span>
+                </div>
+                <div id="sec-soramado" class="section-content closed">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">センサーサイズ:</label>
+                        <select id="input-sora-sensor" title="カメラのセンサーサイズ"></select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">アスペクト比:</label>
+                        <input type="number" id="input-sora-aspect-w" class="sora-aspect" title="ファインダーのアスペクト比(横)" placeholder="1〜100" step="1" min="1" max="100">
+                        <span class="sora-val">:</span>
+                        <input type="number" id="input-sora-aspect-h" class="sora-aspect" title="ファインダーのアスペクト比(縦)" placeholder="1〜100" step="1" min="1" max="100">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">焦点距離:</label>
+                        <span id="sora-focal-label" class="sora-val">35mm</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">焦点距離(選択):</label>
+                        <select id="input-sora-focal-select" title="レンズの焦点距離"></select>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-focal-slider" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離">
+                    </div>
+                    <div class="control-row left-row"><label class="input-label tsujisearch-label">画角:</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">水平:</label><span id="sora-aov-h" class="sora-val">--°</span>
+                        <label class="input-label tsujisearch-label">垂直:</label><span id="sora-aov-v" class="sora-val">--°</span>
+                        <label class="input-label tsujisearch-label">対角:</label><span id="sora-aov-d" class="sora-val">--°</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">F値:</label><span id="sora-fnum-label" class="sora-val">2.8</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-fnum-slider" class="sora-slider" min="0" max="28" step="1" title="レンズのF値(絞り)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">ピント距離:</label><span id="sora-focus-label" class="sora-val">1000m</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-focus-slider" class="sora-slider" min="0" max="10000" step="1" title="フォーカスピーキングのピント距離">
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-fisheye" class="body-checkbox"><label for="chk-sora-fisheye">:フィッシュアイ</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-grayscale" class="body-checkbox"><label for="chk-sora-grayscale">:グレースケール</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">過焦点距離:</label><span id="sora-hyperfocal" class="sora-val">--m</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">合焦範囲:</label><span id="sora-focus-range" class="sora-val">--</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">被写界深度:</label><span id="sora-dof" class="sora-val">--m</span>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準方位角(°):</label>
+                        <input type="number" id="input-sora-base-az" placeholder="北から時計回り(°)" step="0.01" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準視高度(°):</label>
+                        <input type="number" id="input-sora-base-alt" placeholder="水平から上向き(°)" step="0.01" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                        <input type="number" id="input-sora-offset-az" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                        <input type="number" id="input-sora-offset-alt" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">視界範囲(km):</label>
+                        <input type="number" id="input-sora-range" placeholder="1〜300(km)" step="1" min="1" max="300">
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-range-slider" class="sora-slider" min="1" max="300" step="1" title="プレビューに含める奥行きの視界範囲(km)">
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-traj" class="body-checkbox"><label for="chk-sora-traj">:天体軌跡</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-center" class="body-checkbox"><label for="chk-sora-center">:画面中心(+)</label>
                     </div>
                 </div>
             </div>
