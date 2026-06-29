@@ -154,6 +154,7 @@ const COLOR_MAP = [
     { name: '茶', code: '#A52A2A' }, 
     { name: 'こげ茶', code: '#654321' },
     { name: '白', code: '#FFFFFF' },
+    { name: '灰', code: '#808080' },
     { name: '黒', code: '#000000' }
 ];
 
@@ -220,7 +221,7 @@ let appState = {
 
     // 天体設定
     bodies: [
-        { id: 'MilkyWay', name: '天の川', color: '#FFFFFF', isDashed: false, visible: false },
+        { id: 'MilkyWay', name: '天の川', color: '#800080', isDashed: false, visible: false },
         { id: 'Sun',     name: '太陽',   color: '#FF0000', isDashed: false, visible: true },
         { id: 'Moon',    name: '月',     color: '#FFFF00', isDashed: false, visible: true },
         { id: 'Mercury', name: '水星',   color: '#00BFFF', isDashed: false, visible: false },
@@ -230,7 +231,7 @@ let appState = {
         { id: 'Saturn',  name: '土星',   color: '#008000', isDashed: false, visible: false },
         { id: 'Uranus',  name: '天王星', color: '#ADFF2F', isDashed: false, visible: false },
         { id: 'Neptune', name: '海王星', color: '#4B0082', isDashed: false, visible: false },
-        { id: 'Pluto',   name: '冥王星', color: '#800080', isDashed: false, visible: false },
+        { id: 'Pluto',   name: '冥王星', color: '#808080', isDashed: false, visible: false },
         { id: 'Polaris', name: '北極星', color: '#000000', isDashed: false, visible: false },
         { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
         { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
@@ -7255,7 +7256,37 @@ function _mwBuildGlobe() {
     const globe = new THREE.Group();
     globe.add(new THREE.Mesh(geo, _mwMaterial));
     globe.add(_mwBuildGraticule());
+    globe.add(_mwBuildMilkyWayRing());
     return globe;
+}
+
+/** 天の川リング(銀河赤道)・天の川方位線(中心→銀河中心)・交点の赤マーカー。
+ *  WebGLは線幅指定が効かないため太線は TubeGeometry で表現。_mwGlobe の子として M とともに回転。 */
+function _mwBuildMilkyWayRing() {
+    const grp = new THREE.Group();
+    const RR = _MW_R * 1.006;
+    // 天の川リング: 銀河赤道(b=0)を球面化した白い太環
+    const ringPts = [];
+    for (let l = 0; l < 360; l += 3) {
+        const eq = galacticToEquatorial(l, 0);
+        const v = _mwEquVec(eq.ra, eq.dec);
+        ringPts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR));
+    }
+    const ringCurve = new THREE.CatmullRomCurve3(ringPts, true);
+    const matWhite = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(ringCurve, 240, 0.013 * _MW_R, 8, true), matWhite));
+    // 銀河中心方向(=銀河赤道 l=0)。リング・方位線・交点を厳密に一致させる
+    const gc = galacticToEquatorial(0, 0);
+    const gv = _mwEquVec(gc.ra, gc.dec);
+    const gcPos = new THREE.Vector3(gv[0] * RR, gv[1] * RR, gv[2] * RR);
+    // 天の川方位線: 地平面中心(原点)→銀河中心 の白い太線
+    const lineCurve = new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), gcPos);
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(lineCurve, 1, 0.012 * _MW_R, 8, false), matWhite));
+    // 交点(銀河中心)の赤マーカー
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.035 * _MW_R, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+    marker.position.copy(gcPos);
+    grp.add(marker);
+    return grp;
 }
 
 /** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */

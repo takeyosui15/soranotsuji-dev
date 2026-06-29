@@ -1172,7 +1172,7 @@ input[type="range"] {
 
 .palette-colors {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     margin-bottom: 15px;
 }
