@@ -7206,7 +7206,7 @@ function restoreFromUrl() {
 // 全天儀 (Milky Way orrery) — 3D天体儀パネル
 //  - 赤道座標(EQJ)のスカイテクスチャを貼った球を、観測者の地平座標へ
 //    合わせて回転し、外側から俯瞰する。地平線・東西南北・赤道格子を重畳。
-//  - テクスチャは既定でプロシージャル生成。milkyway-skymap.jpg があれば差替。
+//  - テクスチャは既定でプロシージャル生成。milkyway-skymap.png があれば差替。
 //  - three.js (グローバル THREE) を使用。CDN未読込時はメッセージ表示で停止。
 // ============================================================
 const _MW_D2R = Math.PI / 180;
@@ -7304,7 +7304,7 @@ function _mwBuildProceduralTexture() {
     return cv;
 }
 
-/** 実画像(milkyway-skymap.jpg)があれば差し替え。無ければプロシージャルのまま。 */
+/** 実画像(milkyway-skymap.png)があれば差し替え。無ければプロシージャルのまま。 */
 function _mwTryLoadRealImage() {
     const img = new Image();
     img.onload = () => {
@@ -7323,7 +7323,7 @@ function _mwTryLoadRealImage() {
         _mwRender();
     };
     img.onerror = () => { /* 取得不可: 模式図のまま */ };
-    img.src = 'milkyway-skymap.jpg';
+    img.src = 'milkyway-skymap.png';
 }
 
 /** 赤道座標の経緯線(グラティキュール) */
@@ -7500,7 +7500,8 @@ function _mwAttachDrag(cv) {
     cv.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', e => {
         if (!dragging || !_mwWorld) return;
-        _mwWorld.rotateOnWorldAxis(upAxis, -(e.clientX - px) * 0.006);
+        // 外側から掴んで回す操作感: 前面(カメラ側)が指に追従するよう回転。水平は +dx(=東軸まわり)。
+        _mwWorld.rotateOnWorldAxis(upAxis, (e.clientX - px) * 0.006);
         _mwWorld.rotateOnWorldAxis(rightAxis, (e.clientY - py) * 0.006);
         px = e.clientX; py = e.clientY;
         _mwRender();
@@ -7893,7 +7894,7 @@ function _smBuildSky() {
     return mesh;
 }
 
-/** 実画像(高解像度 milkyway-skymap_4k-8bit.jpg)があれば背景球テクスチャを差し替え */
+/** 実画像(高解像度 milkyway-skymap_4k-8bit.png)があれば背景球テクスチャを差し替え */
 function _smTryLoadRealImage() {
     const img = new Image();
     img.onload = () => {
@@ -7907,7 +7908,7 @@ function _smTryLoadRealImage() {
         if (appState.isSoramadoActive) drawSoramado();
     };
     img.onerror = () => { /* 取得不可: 模式図のまま */ };
-    img.src = 'milkyway-skymap_4k-8bit.jpg';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
+    img.src = 'milkyway-skymap_4k-8bit.png';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
 }
 
 /** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
