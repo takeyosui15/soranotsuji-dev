@@ -251,6 +251,7 @@ let appState = {
     isDP365Active: false,
     locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
     isElevationActive: false,
+    isMilkyWayActive: false,
     isTsujiSearchActive: false,
 
     // 辻検索パラメータ (全てlocalStorage保存)
@@ -418,6 +419,9 @@ window.onload = function() {
         if(appState.isElevationActive) {
             drawProfileGraph();
         }
+        if(appState.isMilkyWayActive) {
+            resizeMilkyWayGlobe();
+        }
     });
 
     setTimeout(initVisitorCounter, 900);
@@ -579,6 +583,7 @@ function setupUI() {
 
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
+    document.getElementById('btn-milkyway').onclick = toggleMilkyWayInstrument;
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
@@ -1176,6 +1181,11 @@ function updateAll() {
     }
 
     updateTsujiSearchInputs();
+
+    // 天の川儀: 観測者の位置・日時が変わったら向きを更新
+    if (appState.isMilkyWayActive) {
+        updateMilkyWayGlobe();
+    }
 }
 
 function updateLocationDisplay() {
@@ -5872,6 +5882,8 @@ function toggleElevation() {
     appState.isElevationActive = !appState.isElevationActive;
 
     if (appState.isElevationActive) {
+        // 天の川儀とは画面下1/3を排他利用するため、開いていれば閉じる
+        if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         startElevationFetch();
@@ -5882,6 +5894,28 @@ function toggleElevation() {
         document.getElementById('progress-overlay').classList.add('hidden');
     }
     syncBottomPanels();
+}
+
+/** 天の川儀の表示/非表示トグル (標高グラフと排他、辻検索とは共存) */
+function toggleMilkyWayInstrument() {
+    if (appState.isMilkyWayActive) {
+        closeMilkyWayInstrument();
+    } else {
+        // 標高グラフとは排他: 開いていれば閉じる
+        if (appState.isElevationActive) toggleElevation();
+        appState.isMilkyWayActive = true;
+        document.getElementById('btn-milkyway').classList.add('active');
+        document.getElementById('milkyway-panel').classList.remove('hidden');
+        startMilkyWayGlobe();
+    }
+    syncBottomPanels();
+}
+
+/** 天の川儀を閉じる (内部用: syncBottomPanels は呼び出し側で行う) */
+function closeMilkyWayInstrument() {
+    appState.isMilkyWayActive = false;
+    document.getElementById('btn-milkyway').classList.remove('active');
+    document.getElementById('milkyway-panel').classList.add('hidden');
 }
 
 // --- 辻検索 入力連動 ---
@@ -6028,11 +6062,9 @@ function toggleTsujiSearch() {
 
 function syncBottomPanels() {
     const tdPnl = document.getElementById('tsujisearch-panel');
-    if (appState.isTsujiSearchActive && appState.isElevationActive) {
-        tdPnl.classList.add('with-elevation');
-    } else {
-        tdPnl.classList.remove('with-elevation');
-    }
+    // 辻検索パネルは、標高グラフ/天の川儀が下にあるとき1段上へ押し上げる
+    tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
+    tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
 }
 
 
@@ -7050,4 +7082,295 @@ function restoreFromUrl() {
     if (mode === 'tsujisearch') {
         appState._pendingTsujiSearch = true;
     }
+}
+
+// ============================================================
+// 天の川儀 (Milky Way orrery) — 3D天体儀パネル
+//  - 赤道座標(EQJ)のスカイテクスチャを貼った球を、観測者の地平座標へ
+//    合わせて回転し、外側から俯瞰する。地平線・東西南北・赤道格子を重畳。
+//  - テクスチャは既定でプロシージャル生成。milkyway-skymap.jpg があれば差替。
+//  - three.js (グローバル THREE) を使用。CDN未読込時はメッセージ表示で停止。
+// ============================================================
+const _MW_D2R = Math.PI / 180;
+const _MW_R = 1;             // 天球半径(ワールド)
+let _mwInited = false, _mwFailed = false;
+let _mwRenderer = null, _mwScene = null, _mwCamera = null;
+let _mwGlobe = null;         // テクスチャ球+赤道格子(EQJ系; 観測者へ回転)
+let _mwTexture = null, _mwMaterial = null;
+let _mwView = { az: 200 * _MW_D2R, el: 26 * _MW_D2R, dist: 3.4 }; // 視点(カメラ軌道)
+
+/** 銀河座標(l,b 度) → 赤道座標 J2000 {ra(時), dec(度)} (固定回転行列) */
+function galacticToEquatorial(lDeg, bDeg) {
+    const l = lDeg * _MW_D2R, b = bDeg * _MW_D2R, cb = Math.cos(b);
+    const gx = cb * Math.cos(l), gy = cb * Math.sin(l), gz = Math.sin(b);
+    const ex = -0.0548755604 * gx + 0.4941094279 * gy - 0.8676661490 * gz;
+    const ey = -0.8734370902 * gx - 0.4448296300 * gy - 0.1980763734 * gz;
+    const ez = -0.4838350155 * gx + 0.7469822445 * gy + 0.4559837762 * gz;
+    let ra = Math.atan2(ey, ex); if (ra < 0) ra += 2 * Math.PI;
+    const dec = Math.asin(Math.max(-1, Math.min(1, ez)));
+    return { ra: ra * 12 / Math.PI, dec: dec / _MW_D2R };
+}
+
+/** 赤道座標(RA時,Dec度) → 単位ベクトル(EQJ系: Z=北天極, X=RA0/Dec0) */
+function _mwEquVec(raHours, decDeg) {
+    const ra = raHours * 15 * _MW_D2R, dec = decDeg * _MW_D2R, cd = Math.cos(dec);
+    return [cd * Math.cos(ra), cd * Math.sin(ra), Math.sin(dec)];
+}
+
+/** 地平座標(az,alt 度) → ワールドベクトル(右手系: X=北, Y=天頂, Z=東) */
+function _mwWorldVec(azDeg, altDeg) {
+    const az = azDeg * _MW_D2R, alt = altDeg * _MW_D2R, ca = Math.cos(alt);
+    return [ca * Math.cos(az), Math.sin(alt), ca * Math.sin(az)];
+}
+
+/** 天の川テクスチャのプロシージャル生成 (赤道座標 equirectangular の canvas) */
+function _mwBuildProceduralTexture() {
+    const W = 2048, H = 1024;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#05060a'; g.fillRect(0, 0, W, H);
+    const toPx = (raHours, decDeg) => [(raHours / 24) * W, ((90 - decDeg) / 180) * H];
+    // ガウス近似 (約 -2..+2)
+    const gauss = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2;
+
+    g.globalCompositeOperation = 'lighter';
+    // (a) 天の川の帯: 銀河赤道 b=0 を中心に、広いハロー+明るいコアの2層で描く (RA継ぎ目対策で±W複製)
+    for (let l = 0; l < 360; l += 0.4) {
+        const eq = galacticToEquatorial(l, 0);
+        const [x0, y] = toPx(eq.ra, eq.dec);
+        const cen = Math.max(0, Math.cos((((l + 180) % 360) - 180) * _MW_D2R)); // 銀河中心(l=0)付近で明るく
+        for (const x of [x0 - W, x0, x0 + W]) {
+            let grd = g.createRadialGradient(x, y, 0, x, y, 90);   // 広いハロー
+            grd.addColorStop(0, `rgba(170,190,235,${(0.05 + 0.05 * cen).toFixed(3)})`);
+            grd.addColorStop(1, 'rgba(170,190,235,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, 90, 0, 2 * Math.PI); g.fill();
+            grd = g.createRadialGradient(x, y, 0, x, y, 34);       // 明るいコア
+            grd.addColorStop(0, `rgba(220,228,255,${(0.10 + 0.10 * cen).toFixed(3)})`);
+            grd.addColorStop(1, 'rgba(220,228,255,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, 34, 0, 2 * Math.PI); g.fill();
+        }
+    }
+    // (b1) 全天の淡い星
+    for (let i = 0; i < 1800; i++) {
+        const x = Math.random() * W, y = Math.random() * H;
+        const a = 0.15 + Math.random() * 0.45, s = Math.random() < 0.93 ? 0.6 : 1.2;
+        g.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        g.beginPath(); g.arc(x, y, s, 0, 2 * Math.PI); g.fill();
+    }
+    // (b2) 天の川に集中する星 (|b|小でガウス分布)
+    for (let i = 0; i < 5200; i++) {
+        const l = Math.random() * 360, b = gauss() * 9;
+        const eq = galacticToEquatorial(l, b);
+        const [x, y] = toPx(eq.ra, eq.dec);
+        const a = 0.25 + Math.random() * 0.6, s = Math.random() < 0.9 ? 0.6 : 1.4;
+        g.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        g.beginPath(); g.arc(x, y, s, 0, 2 * Math.PI); g.fill();
+    }
+    // (c) 星雲グロー (銀河中心ほか)
+    const glow = (lD, bD, rad, col) => {
+        const eq = galacticToEquatorial(lD, bD);
+        const [x0, y] = toPx(eq.ra, eq.dec);
+        for (const x of [x0 - W, x0, x0 + W]) {
+            const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+            grd.addColorStop(0, col); grd.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, 2 * Math.PI); g.fill();
+        }
+    };
+    glow(0, 0, 150, 'rgba(255,225,180,0.26)');   // いて座(銀河中心)
+    glow(80, 0, 110, 'rgba(210,220,255,0.14)');  // はくちょう座方向
+    glow(287, -1, 95, 'rgba(255,205,185,0.14)'); // りゅうこつ座方向
+    g.globalCompositeOperation = 'source-over';
+    return cv;
+}
+
+/** 実画像(milkyway-skymap.jpg)があれば差し替え。無ければプロシージャルのまま。 */
+function _mwTryLoadRealImage() {
+    const img = new Image();
+    img.onload = () => {
+        if (_mwFailed || !_mwMaterial) return;
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        if (_mwTexture) _mwTexture.dispose();
+        _mwTexture = tex;
+        _mwMaterial.map = tex; _mwMaterial.needsUpdate = true;
+        const cr = document.getElementById('milkyway-credit');
+        if (cr) cr.textContent = '天体写真: NASA/Goddard SVS（Deep Star Maps 2020, パブリックドメイン; Gaia: ESA/Gaia/DPAC）';
+        _mwRender();
+    };
+    img.onerror = () => { /* 取得不可: 模式図のまま */ };
+    img.src = 'milkyway-skymap.jpg';
+}
+
+/** 赤道座標の経緯線(グラティキュール) */
+function _mwBuildGraticule() {
+    const grp = new THREE.Group();
+    const matMinor = new THREE.LineBasicMaterial({ color: 0x4a6fa5, transparent: true, opacity: 0.35 });
+    const matMajor = new THREE.LineBasicMaterial({ color: 0x6f9fd8, transparent: true, opacity: 0.55 });
+    const RR = _MW_R * 1.002;
+    for (const dec of [-60, -30, 0, 30, 60]) {       // 赤緯小円
+        const pts = [];
+        for (let i = 0; i <= 128; i++) { const v = _mwEquVec(24 * i / 128, dec); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dec === 0 ? matMajor : matMinor));
+    }
+    for (let ra = 0; ra < 24; ra += 2) {             // 赤経経線
+        const pts = [];
+        for (let j = 0; j <= 64; j++) { const v = _mwEquVec(ra, -80 + 160 * j / 64); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matMinor));
+    }
+    return grp;
+}
+
+/** テクスチャ球(EQJ系)を生成 */
+function _mwBuildGlobe() {
+    const slices = 96, stacks = 48, positions = [], uvs = [], indices = [];
+    for (let j = 0; j <= stacks; j++) {
+        const dec = -90 + 180 * j / stacks;
+        for (let i = 0; i <= slices; i++) {
+            const v = _mwEquVec(24 * i / slices, dec);
+            positions.push(v[0] * _MW_R, v[1] * _MW_R, v[2] * _MW_R);
+            uvs.push(i / slices, j / stacks);
+        }
+    }
+    const row = slices + 1;
+    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
+        const a = j * row + i, b = a + row;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    _mwMaterial = new THREE.MeshBasicMaterial({ map: _mwTexture, side: THREE.DoubleSide });
+    const globe = new THREE.Group();
+    globe.add(new THREE.Mesh(geo, _mwMaterial));
+    globe.add(_mwBuildGraticule());
+    return globe;
+}
+
+/** 地平線円と東西南北マーカー(ワールド地平系: カメラに対し固定) */
+function _mwBuildHorizon() {
+    const grp = new THREE.Group();
+    const pts = [];
+    for (let az = 0; az <= 360; az += 2) { const v = _mwWorldVec(az, 0); pts.push(new THREE.Vector3(v[0] * _MW_R * 1.004, 0, v[2] * _MW_R * 1.004)); }
+    grp.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.85 })));
+    for (const [label, az] of [['北', 0], ['東', 90], ['南', 180], ['西', 270]]) {
+        const v = _mwWorldVec(az, 0);
+        const sp = _mwTextSprite(label, az === 0 ? '#ff8866' : '#9fd8ff');
+        sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
+        grp.add(sp);
+    }
+    return grp;
+}
+
+/** 文字スプライト */
+function _mwTextSprite(text, color) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    c.font = 'bold 44px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillText(text, 34, 34);
+    c.fillStyle = color; c.fillText(text, 32, 32);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sp.scale.set(0.22, 0.22, 0.22);
+    return sp;
+}
+
+/** 観測者の位置・日時から EQJ→ワールド地平系 の回転を求める (Astronomy.Horizon のみ使用) */
+function _mwComputeOrientation() {
+    const obs = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const date = appState.currentDate;
+    const toWorld = (raH, decD) => { const h = Astronomy.Horizon(date, obs, raH, decD, null); return _mwWorldVec(h.azimuth, h.altitude); };
+    const Rx = toWorld(0, 0), Rz = toWorld(0, 90);   // EQJ標準基底 Xe(RA0/Dec0), Ze(北天極)の像
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const rz = norm(Rz);
+    const d = dot(Rx, rz);
+    const rx = norm([Rx[0] - rz[0] * d, Rx[1] - rz[1] * d, Rx[2] - rz[2] * d]);
+    const ry = cross(rz, rx);   // Ze×Xe = Ye
+    return { rx, ry, rz };
+}
+
+function _mwUpdateCamera() {
+    const { az, el, dist } = _mwView, ce = Math.cos(el);
+    _mwCamera.position.set(dist * ce * Math.sin(az), dist * Math.sin(el), dist * ce * Math.cos(az));
+    _mwCamera.up.set(0, 1, 0);
+    _mwCamera.lookAt(0, 0, 0);
+}
+
+function _mwRender() { if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera); }
+
+function _mwAttachDrag(cv) {
+    let dragging = false, px = 0, py = 0;
+    cv.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        _mwView.az -= (e.clientX - px) * 0.005; _mwView.el += (e.clientY - py) * 0.005;
+        px = e.clientX; py = e.clientY;
+        const lim = 85 * _MW_D2R; _mwView.el = Math.max(-lim, Math.min(lim, _mwView.el));
+        _mwUpdateCamera(); _mwRender();
+    });
+    const end = () => { dragging = false; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('wheel', e => {
+        e.preventDefault();
+        _mwView.dist = Math.max(1.7, Math.min(7, _mwView.dist * (e.deltaY > 0 ? 1.1 : 0.9)));
+        _mwUpdateCamera(); _mwRender();
+    }, { passive: false });
+}
+
+function _mwInit() {
+    if (typeof THREE === 'undefined') {
+        _mwFailed = true;
+        const cr = document.getElementById('milkyway-credit');
+        if (cr) cr.textContent = '3Dライブラリ(three.js)を読み込めませんでした';
+        return;
+    }
+    const cv = document.getElementById('milkyway-canvas');
+    _mwRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    _mwRenderer.setPixelRatio(window.devicePixelRatio || 1);
+    _mwScene = new THREE.Scene();
+    _mwScene.background = new THREE.Color(0x05060a);
+    _mwCamera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+    _mwTexture = new THREE.CanvasTexture(_mwBuildProceduralTexture());
+    _mwTexture.colorSpace = THREE.SRGBColorSpace;
+    _mwGlobe = _mwBuildGlobe();
+    _mwScene.add(_mwGlobe);
+    _mwScene.add(_mwBuildHorizon());
+    _mwUpdateCamera();
+    _mwAttachDrag(cv);
+    const cr = document.getElementById('milkyway-credit');
+    if (cr) cr.textContent = '天の川: 模式図（生成）';
+    _mwTryLoadRealImage();
+    _mwInited = true;
+}
+
+/** パネルを開いた時の起動 */
+function startMilkyWayGlobe() {
+    if (!_mwInited && !_mwFailed) _mwInit();
+    if (_mwFailed) return;
+    resizeMilkyWayGlobe();
+    updateMilkyWayGlobe();
+}
+
+/** 観測者の位置・日時変更に追従して向きを更新 */
+function updateMilkyWayGlobe() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    const { rx, ry, rz } = _mwComputeOrientation();
+    const m = new THREE.Matrix4();
+    m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
+    _mwGlobe.quaternion.setFromRotationMatrix(m);
+    _mwRender();
+}
+
+/** リサイズ対応 */
+function resizeMilkyWayGlobe() {
+    if (!_mwInited || _mwFailed) return;
+    const cv = document.getElementById('milkyway-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    _mwRenderer.setSize(w, h, false);
+    _mwCamera.aspect = w / h; _mwCamera.updateProjectionMatrix();
+    _mwRender();
 }

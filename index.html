@@ -57,6 +57,9 @@ GNU General Public License for more details.
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+
+    <!-- 天の川儀(3D天体儀)用。グローバル THREE を公開する UMD 最終版(r161でUMD廃止のため0.160.0に固定) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
 
@@ -70,13 +73,18 @@ GNU General Public License for more details.
 
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
-        
+
         <div id="progress-overlay" class="hidden">
             <div class="progress-label">データ取得中... <span id="progress-text">0%</span></div>
             <div class="progress-track">
                 <div id="progress-bar"></div>
             </div>
         </div>
+    </div>
+
+    <div id="milkyway-panel" class="hidden">
+        <canvas id="milkyway-canvas"></canvas>
+        <div id="milkyway-credit"></div>
     </div>
 
     <div id="control-panel" class="control-panel minimized">
@@ -153,6 +161,7 @@ GNU General Public License for more details.
                         <button id="btn-dp" class="nav-btn main-btn">辻ライン</button>
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
                         <button id="btn-elevation" class="nav-btn main-btn">標高グラフ</button>
+                        <button id="btn-milkyway" class="nav-btn main-btn">天の川儀</button>
                     </div>
                 </div>
             </div>
@@ -985,7 +994,7 @@ GNU General Public License for more details.
 
                 <section class="help-section">
                     <h3>謝辞</h3>
-                    <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、<a href="https://geographiclib.sourceforge.io/" target="_blank" rel="noopener noreferrer">GeographicLib</a>並びに、AIのGeminiさん、Claudeさんに、並々ならぬ感謝の意を表します。</p>
+                    <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、<a href="https://geographiclib.sourceforge.io/" target="_blank" rel="noopener noreferrer">GeographicLib</a>、<a href="https://threejs.org/" target="_blank" rel="noopener noreferrer">three.js</a>並びに、AIのGeminiさん、Claudeさんに、並々ならぬ感謝の意を表します。</p>
                 </section>
 
                 <section class="help-section">
