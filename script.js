@@ -7311,6 +7311,14 @@ function _mwBuildHorizon() {
         sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
         grp.add(sp);
     }
+    // 方位目盛り: 北=0°、30°おきの度数(地平線円上)。0/90/180/270は北東南西の文字が示す
+    for (let az = 30; az < 360; az += 30) {
+        if (az % 90 === 0) continue;
+        const v = _mwWorldVec(az, 0);
+        const sp = _mwDegreeSprite(String(az));
+        sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
+        grp.add(sp);
+    }
     return grp;
 }
 
@@ -7324,6 +7332,19 @@ function _mwTextSprite(text, color) {
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
     sp.scale.set(0.22, 0.22, 0.22);
+    return sp;
+}
+
+/** 方位目盛り用の小型数字スプライト(薄い灰) */
+function _mwDegreeSprite(text) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    c.font = 'bold 30px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillText(text, 33, 33);
+    c.fillStyle = '#cdd6df'; c.fillText(text, 32, 32);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sp.scale.set(0.15, 0.15, 0.15);
     return sp;
 }
 
