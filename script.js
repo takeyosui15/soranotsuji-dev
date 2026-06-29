@@ -7274,16 +7274,16 @@ function _mwBuildMilkyWayRing() {
     }
     const ringCurve = new THREE.CatmullRomCurve3(ringPts, true);
     const matWhite = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    grp.add(new THREE.Mesh(new THREE.TubeGeometry(ringCurve, 240, 0.013 * _MW_R, 8, true), matWhite));
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(ringCurve, 240, 0.0045 * _MW_R, 8, true), matWhite));
     // 銀河中心方向(=銀河赤道 l=0)。リング・方位線・交点を厳密に一致させる
     const gc = galacticToEquatorial(0, 0);
     const gv = _mwEquVec(gc.ra, gc.dec);
     const gcPos = new THREE.Vector3(gv[0] * RR, gv[1] * RR, gv[2] * RR);
     // 天の川方位線: 地平面中心(原点)→銀河中心 の白い太線
     const lineCurve = new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), gcPos);
-    grp.add(new THREE.Mesh(new THREE.TubeGeometry(lineCurve, 1, 0.012 * _MW_R, 8, false), matWhite));
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(lineCurve, 1, 0.0035 * _MW_R, 8, false), matWhite));
     // 交点(銀河中心)の赤マーカー
-    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.035 * _MW_R, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.018 * _MW_R, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
     marker.position.copy(gcPos);
     grp.add(marker);
     return grp;
