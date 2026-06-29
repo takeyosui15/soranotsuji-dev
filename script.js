@@ -7767,6 +7767,7 @@ function _smInit() {
     _smSky = _smBuildSky();
     _smScene.add(_smSky);
     _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
+    _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
     _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
     _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
     _smTryLoadRealImage();
@@ -7809,10 +7810,11 @@ function drawSoramado() {
     _smCamera.lookAt(_smDir(az, alt));
     _smCamera.updateProjectionMatrix();
 
-    // F2: 背景球の向き/可視・天体マーカー・軌跡を更新
+    // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新
     _smUpdateSky();
     _smBuildBodies();
     _smBuildTraj();
+    _smUpdateMilkyWayRing();
     // F3: DEM地形(扇が変わった時のみ再取得)
     _smUpdateTerrain();
 
@@ -7863,6 +7865,7 @@ function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSor
 const _SM_BODY_R = 400000, _SM_SKY_R = 600000;   // 天体・天球は地形(≤300km)より外側に置き、地形で遮蔽できるように
 const _SM_CROSS_PX = 26;   // 天体中心十字のスプライト画面高さ(px固定)。可視十字は約0.69倍≈18pxで画面中心十字と同程度
 let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
+let _smMwRingGrp = null, _smMwRingKey = '';   // 天の川の環(銀河赤道の大円)を天体色の線で。時刻/位置/色で再計算(キャッシュ)
 let _smFinderH = 200;   // 直近のファインダーCSS高さ(px)。中心十字の画面固定サイズ算出に使用(drawSoramadoで更新)
 const _smTexCache = {};   // key → CanvasTexture
 
@@ -7982,7 +7985,18 @@ function _smBuildBodies() {
     const date = appState.currentDate;
     const refr = appState.refractionEnabled ? 'normal' : null;
     appState.bodies.forEach(body => {
-        if (!body.visible || body.id === 'MilkyWay') return;   // 天の川は背景球で表現
+        if (!body.visible) return;
+        if (body.id === 'MilkyWay') {
+            // 天の川の中心(銀河中心 l=0,b=0)に、他天体と同じ天体色の固定画面サイズ十字
+            const gc = galacticToEquatorial(0, 0);
+            const ghor = Astronomy.Horizon(date, observer, gc.ra, gc.dec, refr);
+            const gpos = _smDir(ghor.azimuth, ghor.altitude).multiplyScalar(_SM_BODY_R);
+            const gfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+            const gcs = _SM_CROSS_PX * 2 * Math.tan(gfov / 2) / _smFinderH;
+            const gcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+            gcross.scale.set(gcs, gcs, 1); gcross.position.copy(gpos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(gcross);
+            return;   // 帯本体は背景球の写真＋天の川の環(線)で表現
+        }
         let ra, dec;
         if (isFixedStar(body.id)) { const rd = getFixedStarRaDec(body.id); ra = rd.ra; dec = rd.dec; }
         else { try { const eq = Astronomy.Equator(body.id, date, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { return; } }
@@ -8053,6 +8067,32 @@ function _smBuildTraj() {
             _smTrajGrp.add(line);
         }
     });
+}
+
+/** 天の川の環(銀河赤道 b=0 の大円)を天体色の線で描画。時刻・位置・色が変わった時のみ再計算(キャッシュ)。
+ *  背景球と同じ Astronomy.Horizon→_smDir 変換で作るため、天の川写真の帯にぴたり整列する。 */
+function _smUpdateMilkyWayRing() {
+    if (!_smMwRingGrp) return;
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    const visible = !!(mw && mw.visible);
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
+    const key = visible ? `${appState.currentDate.getTime()}|${posKey}|${mw.color}` : 'off';
+    if (key === _smMwRingKey) return;
+    _smMwRingKey = key;
+    while (_smMwRingGrp.children.length) { const c = _smMwRingGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    if (!visible) return;
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const refr = appState.refractionEnabled ? 'normal' : null;
+    const pts = [];
+    for (let l = 0; l <= 360; l += 4) {   // 銀河赤道を約91点で大円描画
+        const eq = galacticToEquatorial(l, 0);
+        const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
+        pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R));
+    }
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(mw.color), transparent: true, opacity: 0.8, depthTest: true }));
+    _smMwRingGrp.add(line);
 }
 // --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
 let _smTerrainGrp = null, _smTerrainMesh = null, _smHeightfield = null, _smGeomKey = '', _smShadeKey = '', _smTerrainGen = 0;
