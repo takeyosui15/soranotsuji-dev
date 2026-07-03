@@ -237,6 +237,8 @@ html {
     width: 100%;
     height: 100%;
     display: block;
+    touch-action: none;   /* 2本指パン操作をブラウザ既定のスクロール/ズームに取られないように */
+    cursor: grab;
 }
 
 /* ファインダー枠(中央にアスペクト比でレターボックス) */

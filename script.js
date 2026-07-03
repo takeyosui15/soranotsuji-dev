@@ -1443,9 +1443,9 @@ function updateCalculation() {
 }
 
 async function updateDPLines() {
-    // 新しい世代を発番し、既存キューにある古い世代のタスクをキャンセル
+    // 新しい世代を発番し、既存キューにある古い世代の通常辻ラインタスクをキャンセル(辻ライン365は巻き添えにしない)
     const generation = ++dpCurrentGeneration;
-    dpPoolCancelQueued();
+    dpPoolCancelQueued('dp');
     dpLayer.clearLayers();
 
     const baseDate = new Date(appState.currentDate);
@@ -1509,6 +1509,8 @@ function ensureDP365LayerForBody(bodyId) {
  *  非表示の天体や、観測点/目的点/日付変更後の再計算は OFF→ON で実施。 */
 async function updateDP365Lines() {
     const generation = ++dp365CurrentGeneration;
+    // 前回実行の残キュー(旧世代の辻ライン365タスク)を破棄してから開始
+    dpPoolCancelQueued('dp365');
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
@@ -1554,7 +1556,7 @@ async function updateDP365Lines() {
             for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
                 const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
                 for (const body of newBodies) {
-                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true }).then(pts => {
+                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true, owner: 'dp365' }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
                         const layer = ensureDP365LayerForBody(body.id);
                         if (!map.hasLayer(layer)) layer.addTo(map);
@@ -1919,6 +1921,7 @@ function toggleDP365() {
         btn.textContent = '辻'; // 進捗表示(XX%)が残らないように即座にラベル復元
         clearAllDP365Layers();
         dp365CurrentGeneration++; // 進行中の計算を破棄 (orphan async は generation チェックで早期 return)
+        dpPoolCancelQueued('dp365'); // キューに残った未実行の辻ライン365タスクを全て破棄(走り続け防止)
     }
     saveAppState();
 }
@@ -2107,13 +2110,17 @@ function dpPoolRunTask(message) {
     });
 }
 
-/** キュー上の未開始タスクをすべてキャンセル (世代切替時に呼ぶ) */
-function dpPoolCancelQueued() {
+/** キュー上の未開始タスクをキャンセル (世代切替時に呼ぶ)。
+ *  owner('dp'=通常辻ライン / 'dp365'=辻ライン365)を指定するとそのタスクのみ、省略時は全件。
+ *  プールは両者で共有のため、owner指定で相互の巻き添えキャンセルを防ぐ。 */
+function dpPoolCancelQueued(owner) {
     if (!dpWorkerPool) return;
+    const keep = [];
     for (const task of dpWorkerPool.queue) {
+        if (owner && task.message.owner !== owner) { keep.push(task); continue; }
         task.resolve({ canceled: true, points: [], hourStart: task.message.hourStart });
     }
-    dpWorkerPool.queue = [];
+    dpWorkerPool.queue = keep;
 }
 
 async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
@@ -2207,6 +2214,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
             distLimit: 500000,
             taskId,
             stepSeconds,  // 365モードでは60(1分)、通常は1(1秒)
+            owner: opts.owner || 'dp',   // キュー掃除のスコープ判定用('dp'/'dp365')
         });
     });
 
@@ -6131,6 +6139,10 @@ function toggleTsujiSearch() {
         btn.classList.remove('active');
         pnl.classList.add('hidden');
         appState.tsujiSearchGeneration++;
+        // キャンセル: 実行中ワーカーを terminate し、キューの全タスクを破棄(走り続け防止)。
+        // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止)。
+        if (!myTsujiBatchRunning) tsujiPool.terminateAll();
+        hideTsujiProgress();
     }
     syncBottomPanels();
 }
@@ -6305,6 +6317,10 @@ async function runTsujiChunks({
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
     const generation = ++appState.tsujiSearchGeneration;
+    // 前回検索の残タスク(実行中＋キュー)を全て破棄してから開始する。
+    // ワーカーは terminate されるが、runTask 時の ensure() で再生成される。
+    // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止。プール共有・排他前提)。
+    if (!myTsujiBatchRunning) tsujiPool.terminateAll();
     const contentEl = document.getElementById('tsujisearch-content');
     const statusEl = document.getElementById('tsujisearch-status');
     contentEl.innerHTML = '';
@@ -7493,20 +7509,33 @@ function _mwRender() { if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.ren
 
 /** ドラッグでマスターGroup(_mwWorld)をトラックボール回転、ホイールでズーム */
 function _mwAttachDrag(cv) {
-    let dragging = false, px = 0, py = 0;
     const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
     const upAxis = new THREE.Vector3(st, ct, 0);     // 画面の上方向(=カメラup)
     const rightAxis = new THREE.Vector3(0, 0, 1);    // 画面の右方向(=東)
-    cv.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; cv.setPointerCapture(e.pointerId); });
+    // マウスは1ポインタのドラッグ、タッチ(スマホ)は2本指の重心移動で回転する
+    const pts = new Map();   // pointerId → {x, y}
+    const centroid = () => {
+        let x = 0, y = 0;
+        pts.forEach(p => { x += p.x; y += p.y; });
+        return { x: x / pts.size, y: y / pts.size };
+    };
+    cv.addEventListener('pointerdown', e => {
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    });
     cv.addEventListener('pointermove', e => {
-        if (!dragging || !_mwWorld) return;
+        if (!pts.has(e.pointerId) || !_mwWorld) return;
+        const need = (e.pointerType === 'touch') ? 2 : 1;   // タッチは2本指のみ有効
+        const before = centroid();
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size < need) return;
+        const after = centroid();
         // 外側から掴んで回す操作感: 前面(カメラ側)が指に追従するよう回転。水平は +dx(=東軸まわり)。
-        _mwWorld.rotateOnWorldAxis(upAxis, (e.clientX - px) * 0.006);
-        _mwWorld.rotateOnWorldAxis(rightAxis, (e.clientY - py) * 0.006);
-        px = e.clientX; py = e.clientY;
+        _mwWorld.rotateOnWorldAxis(upAxis, (after.x - before.x) * 0.006);
+        _mwWorld.rotateOnWorldAxis(rightAxis, (after.y - before.y) * 0.006);
         _mwRender();
     });
-    const end = () => { dragging = false; };
+    const end = e => { pts.delete(e.pointerId); };
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
     cv.addEventListener('wheel', e => {
         e.preventDefault();
@@ -7772,7 +7801,48 @@ function _smInit() {
     _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
     _smTryLoadRealImage();
     _smInitPost();
+    _smAttachDrag(cv);
     _smInited = true;
+}
+
+/** プレビューのドラッグパン: マウスは1ポインタのドラッグ、タッチ(スマホ)は2本指の重心移動で
+ *  オフセット方位角/視高度を連動更新する(内容が指に追従するパノラマ操作)。 */
+function _smAttachDrag(cv) {
+    const pts = new Map();   // pointerId → {x, y}
+    const centroid = () => {
+        let x = 0, y = 0;
+        pts.forEach(p => { x += p.x; y += p.y; });
+        return { x: x / pts.size, y: y / pts.size };
+    };
+    cv.addEventListener('pointerdown', e => {
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    cv.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return;
+        const need = (e.pointerType === 'touch') ? 2 : 1;   // タッチは2本指のみ有効
+        const before = centroid();
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size < need) return;
+        const after = centroid();
+        const dx = after.x - before.x, dy = after.y - before.y;
+        if (!dx && !dy) return;
+        // px→角度: ファインダー実寸と画角から換算。内容が指に追従(右へドラッグ=視線は左へ=Az減、下へドラッグ=視線は上へ=Alt増)
+        const o = soraComputeOptics();
+        const dAz = -dx * o.aovH / _smFinderW;
+        const dAlt = dy * o.aovV / _smFinderH;
+        appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
+        appState.soraOffsetAlt = Math.max(-360, Math.min(360, Number(appState.soraOffsetAlt) + dAlt));
+        soraSyncUI();
+        drawSoramado();
+    });
+    const end = e => {
+        if (!pts.has(e.pointerId)) return;
+        pts.delete(e.pointerId);
+        if (pts.size === 0) saveAppState();   // ドラッグ完了時に1回だけ保存
+    };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
 }
 
 /** 方位az・視高度alt(度) → ワールド単位ベクトル(右手系 ENU: X=東, Y=北, Z=上) */
@@ -7800,9 +7870,10 @@ function drawSoramado() {
     const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const finderAspect = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : 1;
-    // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズ算出に使う(_smBuildBodiesより前)
+    // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズやドラッグ換算に使う(_smBuildBodiesより前)
     const cr = _smFitRect(w, h, finderAspect, 0.94);
     _smFinderH = cr.h || 1;
+    _smFinderW = cr.w || 1;
     _smCamera.fov = Math.max(1, Math.min(170, o.aovV));
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
@@ -7866,7 +7937,7 @@ const _SM_BODY_R = 400000, _SM_SKY_R = 600000;   // 天体・天球は地形(≤
 const _SM_CROSS_PX = 26;   // 天体中心十字のスプライト画面高さ(px固定)。可視十字は約0.69倍≈18pxで画面中心十字と同程度
 let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
 let _smMwRingGrp = null, _smMwRingKey = '';   // 天の川の環(銀河赤道の大円)を天体色の線で。時刻/位置/色で再計算(キャッシュ)
-let _smFinderH = 200;   // 直近のファインダーCSS高さ(px)。中心十字の画面固定サイズ算出に使用(drawSoramadoで更新)
+let _smFinderH = 200, _smFinderW = 300;   // 直近のファインダーCSS高さ/幅(px)。十字の画面固定サイズやドラッグのpx→角度換算に使用(drawSoramadoで更新)
 const _smTexCache = {};   // key → CanvasTexture
 
 /** 背景天球(BackSide, 赤道座標テクスチャ)を生成 */
@@ -8179,6 +8250,12 @@ function _smTerrainPoolRun(message) {
         else pool.queue.push(task);
     });
 }
+/** キュー上の未実行タイルタスクを全て破棄(扇の世代切替時に呼ぶ)。結果は空で解決され、旧世代側の gen チェックで捨てられる。 */
+function _smTerrainPoolCancelQueued() {
+    if (!_smTerrainPool) return;
+    for (const task of _smTerrainPool.queue) task.resolve({ reqId: task.message.reqId, elevs: [] });
+    _smTerrainPool.queue = [];
+}
 
 /** 地形取得の進捗バー。done<0 で非表示、それ以外は done/total を表示。 */
 function _smSetTerrainProgress(done, total) {
@@ -8194,6 +8271,7 @@ function _smSetTerrainProgress(done, total) {
  * 実DEMはタイル単位にまとめ、ワーカープールで並列取得(対応環境)。進捗バーを表示。 */
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
+    _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
     const nA = 140, nR = 100, nearKm = 0.01;   // 0km近傍から
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
@@ -8253,8 +8331,8 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
             tileDone();
         }
     }
+    if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル(進捗バーは新しい実行のものを消さない)
     _smSetTerrainProgress(-1, total);   // 非表示
-    if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル
     _smOnTerrainFetched(gen, hf);
 }
 
