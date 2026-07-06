@@ -270,6 +270,9 @@ let appState = {
     soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
     soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
     soraMovImgMb: 8,             // インターバルMov: 画像サイズ(MB) 1〜100
+    soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
+    soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
+    soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -764,6 +767,7 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl('fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('fixed');
+        else if (mode === 'soramado') copySoramadoUrl('fixed');
     });
     document.getElementById('url-picker-semi-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -771,6 +775,7 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl('semi-fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('semi-fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('semi-fixed');
+        else if (mode === 'soramado') copySoramadoUrl('semi-fixed');
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -778,6 +783,7 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl(false);
         else if (mode === 'tsuji') copyTsujiSearchUrl(false);
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl(false);
+        else if (mode === 'soramado') copySoramadoUrl(false);
     });
 
     // 座標入力 (changeイベント)
@@ -1026,6 +1032,7 @@ function saveAppState() {
         soraPanorama: appState.soraPanorama, soraPanoAov: appState.soraPanoAov,
         soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
         soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb,
+        soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1082,6 +1089,7 @@ function loadAppState() {
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb',
+             'soraMwBrightness','soraElevShade','soraSunShade',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1147,6 +1155,9 @@ function normalizeAppState() {
     if (![24, 25, 30, 50, 60].includes(Number(appState.soraMovFps))) appState.soraMovFps = 30; else appState.soraMovFps = Number(appState.soraMovFps);
     if (![0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1].includes(Number(appState.soraMovDispStep))) appState.soraMovDispStep = 0.3; else appState.soraMovDispStep = Number(appState.soraMovDispStep);
     appState.soraMovImgMb = num(appState.soraMovImgMb, 8, 1, 100);
+    appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
+    appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
+    appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -7212,6 +7223,17 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
     params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
     params.set('tsujisearch', appState.isTsujiSearchActive ? 'true' : 'false');
 
+    // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
+    ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
+     'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
+     'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+
     return params;
 }
 
@@ -7250,6 +7272,17 @@ function copyLocationUrl(includeDateTime) {
     const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
+    });
+}
+
+function copySoramadoUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
+    params.set('mode', 'preview');
+    params.set('soramado', 'true');   // 宙の窓URLは必ず宙の窓パネルを開く
+
+    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の宙の窓を開くURLをクリップボードにコピーしました。');
     });
 }
 
@@ -7431,6 +7464,19 @@ function restoreFromUrl() {
         if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
 
+    // 宙の窓メニュー＋コントロールメニューの全項目を復元(preview/tsujisearch の両モード共通)。
+    // 範囲・選択肢の妥当性は直後の normalizeAppState 相当の既定値で担保するため、型変換＋NaNガードのみ行う
+    const soraNum = (key) => { if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState[key] = v; } };
+    const soraBool = (key) => { if (params.has(key)) appState[key] = params.get(key) === 'true'; };
+    const soraStr = (key) => { if (params.has(key)) appState[key] = params.get(key); };
+    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape');
+    ['soraAspectW', 'soraAspectH', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist', 'soraFisheyeStrength', 'soraPanoAov',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade'].forEach(soraNum);
+    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(soraBool);
+    normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
+
     // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
     // 辻ライン(地図オーバーレイ): フラグ復元→ init の active反映＋updateAll で描画
     if (params.has('dp')) appState.isDPActive = params.get('dp') === 'true';
@@ -7444,6 +7490,11 @@ function restoreFromUrl() {
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
     appState.end.elev = appState.endApiElev + appState.endHeight;
+
+    // 宙の窓の基準方位角/視高度/視界範囲をURL値のまま使う(位置起点の自動再計算で上書きしない)
+    if (params.has('soraBaseAz') || params.has('soraBaseAlt')) {
+        appState._soraLastPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    }
 
     // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に）
     if (mode === 'tsujisearch') {
@@ -8310,6 +8361,12 @@ function soraSyncUI() {
     set('input-sora-pano-slider', Math.round(panoAov));
     const panoAsp = soraPanoAspect(o);
     txt('sora-pano-label', 'H:V=' + (panoAsp >= 9.95 ? String(Math.round(panoAsp)) : panoAsp.toFixed(1)) + ':1 H:' + Math.round(panoAov) + '°');
+    set('input-sora-mw-bright', appState.soraMwBrightness);
+    txt('sora-mw-bright-label', (Number(appState.soraMwBrightness) || 0) + '%');
+    set('input-sora-elevshade', appState.soraElevShade);
+    txt('sora-elevshade-label', (Number(appState.soraElevShade) || 0) + '%');
+    set('input-sora-sunshade', appState.soraSunShade);
+    txt('sora-sunshade-label', (Number(appState.soraSunShade) || 0) + '%');
     set('input-sora-mov-interval', appState.soraMovInterval);
     set('input-sora-mov-shots', appState.soraMovShots);
     set('sel-sora-mov-fps', String(appState.soraMovFps));
@@ -8560,6 +8617,10 @@ function setupSoramadoControls() {
     selH('sel-sora-mov-fps', 'soraMovFps', v => parseInt(v));
     selH('sel-sora-mov-step', 'soraMovDispStep', v => parseFloat(v));
     btnH('btn-sora-mov-play', soraMovTogglePlay);
+    sliderH('input-sora-mw-bright', 'soraMwBrightness');
+    sliderH('input-sora-elevshade', 'soraElevShade');
+    sliderH('input-sora-sunshade', 'soraSunShade');
+    btnH('btn-sora-url', () => toggleUrlPanel('soramado'));
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
@@ -8701,6 +8762,11 @@ function drawSoramado() {
     _smCamera.lookAt(_smDir(az, alt));
     _smCamera.updateProjectionMatrix();
 
+    // 天の川の明るさ(黒レベル)をスライダー値から反映
+    if (_smSkyMat && _smSkyMat.userData.uMwBlack) {
+        const mwb = Number(appState.soraMwBrightness);
+        _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
+    }
     // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新
     _smUpdateSky();
     _smBuildBodies();
@@ -8809,6 +8875,15 @@ function _smBuildSky() {
     _smSkyTex = new THREE.CanvasTexture(_mwBuildProceduralTexture());
     _smSkyTex.colorSpace = THREE.SRGBColorSpace;
     _smSkyMat = new THREE.MeshBasicMaterial({ map: _smSkyTex, side: THREE.DoubleSide, depthWrite: false });
+    // 天の川の明るさ(黒レベル持ち上げ): 白に近い明るい色は保ち、暗い色から先に沈める。
+    // uMwBlack=0で原画どおり、1に近づくほど暗色から黒へ(ホワイトバランスを暗い色から0にするイメージ)。
+    _smSkyMat.onBeforeCompile = (shader) => {
+        shader.uniforms.uMwBlack = { value: 1 - Math.max(0, Math.min(100, Number(appState.soraMwBrightness))) / 100 || 0 };
+        _smSkyMat.userData.uMwBlack = shader.uniforms.uMwBlack;
+        shader.fragmentShader = shader.fragmentShader
+            .replace('void main() {', 'uniform float uMwBlack;\nvoid main() {')
+            .replace('#include <map_fragment>', '#include <map_fragment>\n\tdiffuseColor.rgb = max(diffuseColor.rgb - vec3(uMwBlack), vec3(0.0)) / max(1.0 - uMwBlack, 0.001);');
+    };
     const mesh = new THREE.Mesh(geo, _smSkyMat);
     mesh.renderOrder = -1;
     return mesh;
@@ -9199,7 +9274,7 @@ function _smApplyShading() {
     const sun = _smSunDir();
     // 太陽方位/高度を量子化して鍵に含める→日時変化で陰影を再計算
     const sunKey = `${Math.round(sun.az)}_${Math.round(sun.alt)}`;
-    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}`;
+    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}|${appState.soraElevShade}|${appState.soraSunShade}`;
     if (shadeKey === _smShadeKey && _smTerrainMesh) return;
     _smShadeKey = shadeKey;
     _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar, sun.vec);
@@ -9219,6 +9294,8 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     if (!isFinite(minE)) { minE = 0; maxE = 1; }
     const span = Math.max(1, maxE - minE);
     const gray = appState.soraGrayscale, peak = appState.soraPeaking;
+    const sE = Math.max(0, Math.min(100, Number(appState.soraElevShade) || 0)) / 50;   // 標高ヒルシェード適用度(1=従来)
+    const sS = Math.max(0, Math.min(100, Number(appState.soraSunShade) || 0)) / 50;    // 太陽光ヒルシェード適用度(1=従来)
     const positions = new Float32Array(samples.length * 3);
     // 1) 位置(ENU・曲率落差込み)を先に作る
     for (let idx = 0; idx < samples.length; idx++) {
@@ -9248,8 +9325,11 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
             if (peak && slant >= focusNear && slant <= focusFar) { r = 0.95; g = 0.12; b = 0.12; }   // フォーカスピーキング(赤)
             else {
                 // 標高グレー(最高標高=白)。grayscale OFF時は一様グレーで純レリーフ。
-                const base = gray ? (0.18 + 0.82 * ((s.elev - minE) / span)) : 0.6;
-                let lum = Math.min(1, base * lambert);
+                // 適用度スライダー(50%=従来): 標高ヒルシェードは0.6を中心に、太陽光ヒルシェードは1.0(陰影なし)を中心に強弱
+                const base0 = gray ? (0.18 + 0.82 * ((s.elev - minE) / span)) : 0.6;
+                const base = Math.max(0.05, Math.min(1, 0.6 + sE * (base0 - 0.6)));
+                const lam = Math.max(0, 1 + sS * (lambert - 1));
+                let lum = Math.min(1, base * lam);
                 r = lum * 0.94; g = lum * 0.97; b = lum;   // ごく僅かに寒色
             }
             colors[idx * 3] = r; colors[idx * 3 + 1] = g; colors[idx * 3 + 2] = b;

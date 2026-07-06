@@ -513,11 +513,38 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <input type="range" id="input-sora-range-slider" class="sora-slider" min="1" max="300" step="1" title="プレビューに含める奥行きの視界範囲(km)">
                     </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="天の川を実際に写真で撮った印象に近づけるように写真の明るさを調整できます">天の川</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">明るさ:</label><span id="sora-mw-bright-label" class="sora-val">100%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-mw-bright" class="sora-slider" min="0" max="100" step="1" title="天の川写真の明るさ(白に近い明るい色は保ち、暗い色から先に暗くなります)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="視界範囲内の最高標高を白色とした標高ヒルシェードの適用度合い">標高ヒルシェード:</label><span id="sora-elevshade-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-elevshade" class="sora-slider" min="0" max="100" step="1" title="標高ヒルシェードの適用度合い(50%=従来)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="太陽の位置を光源とした太陽光ヒルシェードの適用度合い">太陽光ヒルシェード:</label><span id="sora-sunshade-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-sunshade" class="sora-slider" min="0" max="100" step="1" title="太陽光ヒルシェードの適用度合い(50%=従来)">
+                    </div>
+                    <hr class="baseopt-hr">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-traj" class="body-checkbox"><label for="chk-sora-traj">:天体軌跡</label>
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-center" class="body-checkbox"><label for="chk-sora-center">:画面中心(+)</label>
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row">
+                        <button id="btn-sora-url" class="nav-btn main-btn" title="現在の宙の窓を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
                 </div>
             </div>
