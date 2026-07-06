@@ -273,6 +273,9 @@ let appState = {
     soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
+    soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h265'/'h264'(動画)
+    soraExpW: 100,               // 書き出し画像サイズ 横(px) 1〜4096 (縦とアスペクト連動)
+    soraExpH: 67,                // 書き出し画像サイズ 縦(px) 1〜4096
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1033,6 +1036,7 @@ function saveAppState() {
         soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
         soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb,
         soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
+        soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1089,7 +1093,7 @@ function loadAppState() {
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb',
-             'soraMwBrightness','soraElevShade','soraSunShade',
+             'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1158,6 +1162,9 @@ function normalizeAppState() {
     appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
     appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
     appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
+    if (!['jpeg', 'png', 'h265', 'h264'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
+    appState.soraExpW = Math.round(num(appState.soraExpW, 100, 1, 4096));
+    appState.soraExpH = Math.round(num(appState.soraExpH, 67, 1, 4096));
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -7229,7 +7236,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
      'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
-     'soraMwBrightness', 'soraElevShade', 'soraSunShade'].forEach(k => {
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
@@ -7469,11 +7476,11 @@ function restoreFromUrl() {
     const soraNum = (key) => { if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState[key] = v; } };
     const soraBool = (key) => { if (params.has(key)) appState[key] = params.get(key) === 'true'; };
     const soraStr = (key) => { if (params.has(key)) appState[key] = params.get(key); };
-    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape');
+    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape'); soraStr('soraExpFormat');
     ['soraAspectW', 'soraAspectH', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist', 'soraFisheyeStrength', 'soraPanoAov',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
-     'soraMwBrightness', 'soraElevShade', 'soraSunShade'].forEach(soraNum);
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpW', 'soraExpH'].forEach(soraNum);
     ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(soraBool);
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
 
@@ -8373,6 +8380,13 @@ function soraSyncUI() {
     set('sel-sora-mov-step', String(appState.soraMovDispStep));
     set('input-sora-mov-mb', appState.soraMovImgMb);
     soraMovSyncUI();
+    const expR = document.querySelector(`input[name="sora-exp-format"][value="${appState.soraExpFormat}"]`);
+    if (expR) expR.checked = true;
+    // 出力サイズはプレビューのアスペクト比に常時追従(縦は横から再計算)
+    const expAsp = appState.soraPanorama ? soraPanoAspect(o) : soraOrientedAspect().aw / soraOrientedAspect().ah;
+    appState.soraExpH = Math.max(1, Math.min(4096, Math.round(appState.soraExpW / expAsp)));
+    set('input-sora-exp-w', appState.soraExpW);
+    set('input-sora-exp-h', appState.soraExpH);
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
@@ -8446,6 +8460,226 @@ function soraMovStop() {
     if (btn) { btn.classList.remove('active'); btn.textContent = '再生'; }
     saveAppState();
     soraMovSyncUI();
+}
+
+// --- 書き出し (静止画JPEG/PNG・動画H.265/H.264) ---
+let _expVideo = null;   // 動画書き出し中の状態 {recorder, timer, canceled, startDate}
+
+/** 右下クレジット文字列: 「YYYY/MM/DD hh:mm:ss © 出力年 宙の辻 - Sora no Tsuji」 */
+function soraExpCredit(d) {
+    const p2 = v => ('00' + v).slice(-2);
+    return `${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}` +
+        ` © ${new Date().getFullYear()} 宙の辻 - Sora no Tsuji`;
+}
+
+/** プレビューを w×h でオフスクリーン描画し、右下に日時＋クレジットを載せた2Dキャンバスを返す。
+ *  drawSoramadoと同じ 通常/パノラマ(ストリップ)/フィッシュアイ 分岐。canvas2d を渡すと再利用(動画フレーム用)。 */
+function _smComposeFrame(w, h, canvas2d) {
+    if (!_smInited || _smFailed || !_smRenderer) return null;
+    const o = soraComputeOptics();
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
+    const pano = appState.soraPanorama;
+    const panoAov = pano ? soraPanoEffAov(o) : 0;
+    const _fe = (!pano && appState.soraFisheye) ? soraFisheyeParams() : null;
+    // 画面固定pxの十字などが出力解像度に合うよう、ファインダー寸法を一時差し替えてシーンを再構築
+    const savedW = _smFinderW, savedH = _smFinderH;
+    _smFinderW = w; _smFinderH = h;
+    if (_smSkyMat && _smSkyMat.userData.uMwBlack) {
+        const mwb = Number(appState.soraMwBrightness);
+        _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
+    }
+    _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
+    _smCamera.up.set(0, 0, 1);
+    _smCamera.position.set(0, 0, 0);
+    _smCamera.lookAt(_smDir(az, alt));
+    _smUpdateSky();
+    _smBuildBodies();
+    _smBuildTraj();
+    _smUpdateMilkyWayRing();
+    _smUpdateTerrain();
+    const rt = new THREE.WebGLRenderTarget(w, h);
+    rt.texture.colorSpace = THREE.SRGBColorSpace;
+    _smRenderer.setRenderTarget(rt);
+    _smRenderer.setClearColor(0x0a0e1a, 1);
+    if (pano) {
+        const nStrips = Math.max(1, Math.ceil(panoAov / 10));
+        const stripDeg = panoAov / nStrips;
+        const stripAspect = Math.tan(stripDeg * Math.PI / 360) / Math.tan(_smCamera.fov * Math.PI / 360);
+        _smRenderer.setScissorTest(true);
+        for (let i = 0; i < nStrips; i++) {
+            const px0 = Math.round(w * i / nStrips), px1 = Math.round(w * (i + 1) / nStrips);
+            if (px1 <= px0) continue;
+            const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
+            _smCamera.aspect = stripAspect;
+            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.updateProjectionMatrix();
+            _smRenderer.setViewport(px0, 0, px1 - px0, h);
+            _smRenderer.setScissor(px0, 0, px1 - px0, h);
+            _smRenderer.clear(true, true, true);
+            _smRenderer.render(_smScene, _smCamera);
+        }
+        _smRenderer.setScissorTest(false);
+    } else if (_fe && _smPostMat) {
+        _smCamera.aspect = w / h;
+        _smCamera.updateProjectionMatrix();
+        _smPostMat.uniforms.uK.value = _fe.uK;
+        _smPostMat.uniforms.uCircle.value = appState.soraFisheyeShape === 'circle' ? 1.0 : 0.0;
+        _smPostMat.uniforms.uAspect.value = w / h;
+        _smRT.setSize(w, h);
+        _smRenderer.setRenderTarget(_smRT);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+        _smRenderer.setRenderTarget(rt);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smPostScene, _smPostCam);
+    } else {
+        _smCamera.aspect = w / h;
+        _smCamera.updateProjectionMatrix();
+        _smRenderer.setViewport(0, 0, w, h);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+    }
+    const buf = new Uint8Array(w * h * 4);
+    _smRenderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+    _smRenderer.setRenderTarget(null);
+    rt.dispose();
+    _smFinderW = savedW; _smFinderH = savedH;
+    // 上下反転(WebGLは下原点)して2Dキャンバスへ → 右下クレジット
+    const cv2 = canvas2d || document.createElement('canvas');
+    if (cv2.width !== w) cv2.width = w;
+    if (cv2.height !== h) cv2.height = h;
+    const ctx = cv2.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    for (let y = 0; y < h; y++) img.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+    ctx.putImageData(img, 0, 0);
+    const fs = Math.max(9, Math.round(h / 40));
+    ctx.font = `${fs}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.lineWidth = Math.max(1, Math.round(fs / 6));
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    const credit = soraExpCredit(appState.currentDate);
+    ctx.strokeText(credit, w - Math.round(fs * 0.6), h - Math.round(fs * 0.5));
+    ctx.fillText(credit, w - Math.round(fs * 0.6), h - Math.round(fs * 0.5));
+    return cv2;
+}
+
+function soraExpProgress(text) {
+    const el = document.getElementById('soramado-export-progress');
+    if (!el) return;
+    if (text === null) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.textContent = text;
+}
+
+function soraExportDownload(blob, ext) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-宙の窓-${formatFileDateTime()}.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+/** ファイル出力ボタン: 形式ラジオで静止画/動画に振り分け。動画実行中は中止 */
+function soraExportRun() {
+    if (_expVideo) { soraExportCancel(); return; }
+    if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから実行してください。'); return; }
+    const fmt = appState.soraExpFormat;
+    if (fmt === 'jpeg' || fmt === 'png') soraExportStill(fmt);
+    else soraExportVideo(fmt);
+}
+
+function soraExportStill(fmt) {
+    if (!confirm(`現在のプレビューを${fmt === 'png' ? 'PNG' : 'JPEG'}画像(${appState.soraExpW}×${appState.soraExpH}px)で書き出します。よろしいですか?`)) return;
+    soraExpProgress('画像を書き出し中…');
+    const cv = _smComposeFrame(appState.soraExpW, appState.soraExpH);
+    drawSoramado();   // 画面表示を元の解像度で復元
+    if (!cv) { soraExpProgress(null); alert('画像の生成に失敗しました。'); return; }
+    cv.toBlob(blob => {
+        soraExpProgress(null);
+        if (!blob) { alert('画像の生成に失敗しました。'); return; }
+        soraExportDownload(blob, fmt === 'png' ? 'png' : 'jpg');
+    }, fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92);
+}
+
+/** 選択形式のMIME候補(対応環境ではMP4、非対応はWebMへ自動フォールバック) */
+function soraExpPickMime(fmt) {
+    if (typeof MediaRecorder === 'undefined') return null;
+    const wanted = fmt === 'h265'
+        ? ['video/mp4;codecs=hvc1.1.6.L120.B0', 'video/mp4;codecs=hvc1', 'video/mp4;codecs=hev1.1.6.L120.B0']
+        : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/webm;codecs=h264'];
+    const fallback = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (const m of wanted) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: false }; } catch (_) {} }
+    for (const m of fallback) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: true }; } catch (_) {} }
+    return null;
+}
+
+/** 動画書き出し: インターバルMovの全コマをフレームレートで実時間録画(キャンバスストリーム+MediaRecorder) */
+function soraExportVideo(fmt) {
+    const picked = soraExpPickMime(fmt);
+    if (!picked) { alert('このブラウザは動画の書き出しに対応していません。'); return; }
+    const w = appState.soraExpW, h = appState.soraExpH;
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const durSec = Math.ceil(n / fps);
+    const codecName = fmt === 'h265' ? 'H.265' : 'H.264';
+    const msg = (picked.fellBack ? `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n` : '') +
+        `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
+    if (!confirm(msg)) return;
+    if (_movTimer) soraMovStop();   // 再生中なら停止してから
+    const cv2 = document.createElement('canvas');
+    cv2.width = w; cv2.height = h;
+    const stream = cv2.captureStream();
+    let recorder;
+    try {
+        recorder = new MediaRecorder(stream, { mimeType: picked.mime, videoBitsPerSecond: Math.min(5e7, Math.max(1e6, w * h * fps * 0.15)) });
+    } catch (e) { alert('動画の書き出しを開始できませんでした: ' + e.message); return; }
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    const startDate = new Date(appState.currentDate.getTime());
+    const btn = document.getElementById('btn-sora-export');
+    if (btn) { btn.classList.add('active'); btn.textContent = '中止'; }
+    _expVideo = { recorder, timer: null, canceled: false, startDate };
+    recorder.onstop = () => {
+        const st = _expVideo;
+        _expVideo = null;
+        soraExpProgress(null);
+        if (btn) { btn.classList.remove('active'); btn.textContent = 'ファイル出力'; }
+        // 日時をシミュレーション開始時点へ復元
+        appState.currentDate = new Date(startDate.getTime());
+        syncUIFromState();
+        updateAll();
+        if (st && st.canceled) return;   // 中止時は破棄
+        const blob = new Blob(chunks, { type: picked.mime.split(';')[0] });
+        if (blob.size > 0) soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
+        else alert('動画の生成に失敗しました。');
+    };
+    let f = 0;
+    recorder.start();
+    _expVideo.timer = setInterval(() => {
+        if (!_expVideo) return;
+        if (f >= n) {
+            clearInterval(_expVideo.timer);
+            _expVideo.recorder.stop();
+            return;
+        }
+        appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
+        _smComposeFrame(w, h, cv2);
+        soraExpProgress(`書き出し中 ${f + 1}/${n}`);
+        f++;
+    }, 1000 / fps);
+}
+
+/** 動画書き出しの中止(出力は破棄)。パネルクローズ時も呼ばれる */
+function soraExportCancel() {
+    if (!_expVideo) return;
+    _expVideo.canceled = true;
+    clearInterval(_expVideo.timer);
+    _expVideo.recorder.stop();
 }
 
 /** 各コントロールのイベント登録 */
@@ -8621,6 +8855,30 @@ function setupSoramadoControls() {
     sliderH('input-sora-elevshade', 'soraElevShade');
     sliderH('input-sora-sunshade', 'soraSunShade');
     btnH('btn-sora-url', () => toggleUrlPanel('soramado'));
+    // 書き出し: 形式ラジオ・出力サイズ(アスペクト連動)・ファイル出力
+    document.querySelectorAll('input[name="sora-exp-format"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraExpFormat = r.value; soraSyncUI(); saveAppState(); } });
+    });
+    const expAspect = () => appState.soraPanorama ? soraPanoAspect() : soraOrientedAspect().aw / soraOrientedAspect().ah;
+    const expWEl = document.getElementById('input-sora-exp-w');
+    if (expWEl) expWEl.addEventListener('change', () => {
+        const v = Math.round(parseFloat(expWEl.value));
+        if (!isNaN(v)) {
+            appState.soraExpW = Math.max(1, Math.min(4096, v));
+            appState.soraExpH = Math.max(1, Math.min(4096, Math.round(appState.soraExpW / expAspect())));
+        }
+        soraSyncUI(); saveAppState();
+    });
+    const expHEl = document.getElementById('input-sora-exp-h');
+    if (expHEl) expHEl.addEventListener('change', () => {
+        const v = Math.round(parseFloat(expHEl.value));
+        if (!isNaN(v)) {
+            appState.soraExpH = Math.max(1, Math.min(4096, v));
+            appState.soraExpW = Math.max(1, Math.min(4096, Math.round(appState.soraExpH * expAspect())));
+        }
+        soraSyncUI(); saveAppState();
+    });
+    btnH('btn-sora-export', soraExportRun);
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
@@ -8645,6 +8903,7 @@ function toggleSoramado() {
 }
 function closeSoramado() {
     if (_movTimer) soraMovStop();   // インターバルMov再生中なら停止
+    if (_expVideo) soraExportCancel();   // 動画書き出し中なら中止(破棄)
     appState.isSoramadoActive = false;
     document.getElementById('btn-soramado').classList.remove('active');
     document.getElementById('soramado-panel').classList.add('hidden');

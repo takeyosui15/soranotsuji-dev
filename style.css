@@ -326,6 +326,26 @@ html {
 #sora-mov-total { background: #555; color: #eee; border: 1px solid #666; }
 #btn-sora-mov-play { min-width: 72px; }
 #btn-sora-mov-play.active { background: #b8860b; color: #fff; border-color: #ffd700; }
+#soramado-ctrl-body .baseopt-radio { color: #eee; }
+#btn-sora-export { min-width: 96px; }
+#btn-sora-export.active { background: #b8860b; color: #fff; border-color: #ffd700; }
+
+/* 書き出しの進捗表示(パネル中央上部のオーバーレイ) */
+#soramado-export-progress {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 940;
+    padding: 4px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid #ffd700;
+    border-radius: 4px;
+    color: #ffd700;
+    font-size: 12px;
+    pointer-events: none;
+}
+#soramado-export-progress.hidden { display: none; }
 
 #soramado-canvas {
     width: 100%;

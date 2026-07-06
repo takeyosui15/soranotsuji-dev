@@ -173,8 +173,34 @@ GNU General Public License for more details.
                 <div class="control-row left-row">
                     <button id="btn-sora-mov-play" class="nav-btn" title="撮影開始日時から撮影終了日時まで、表示間隔毎に日時を進めて再生します">再生</button>
                 </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="現在のプレビュー(静止画)またはインターバルMovのシミュレーション(動画)をファイル出力します">書き出し</span>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="jpeg" checked>:JPEG</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="png">:PNG</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="h265">:H.265 8-bit(MOV)</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="h264">:H.264 8-bit(MP4)</label>
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="プレビューのアスペクト比を保って出力する画像サイズ(ピクセル)を指定します">出力画像サイズ</span>
+                </div>
+                <div class="control-row">
+                    <input type="number" id="input-sora-exp-w" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの横(px) 1〜4096。縦と自動連動">
+                    <span class="sora-val">×</span>
+                    <input type="number" id="input-sora-exp-h" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの縦(px) 1〜4096。横と自動連動">
+                </div>
+                <div class="control-row left-row">
+                    <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>
+                </div>
             </div>
         </div>
+        <div id="soramado-export-progress" class="hidden"></div>
     </div>
 
     <div id="control-panel" class="control-panel minimized">
