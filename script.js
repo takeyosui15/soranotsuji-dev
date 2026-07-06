@@ -6284,6 +6284,15 @@ function syncBottomPanels() {
     tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
     tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
     tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
+    // 宙の窓プレビュー領域: 辻検索の有無で高さが変わる(通常2/3⇄1/3、最大化100%⇄66.67%)。
+    // 最大化中に辻検索がONなら辻検索結果を上1/3へ
+    const smPnl = document.getElementById('soramado-panel');
+    if (smPnl) {
+        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive);
+        tdPnl.classList.toggle('with-soramado-max',
+            appState.isTsujiSearchActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
+        resizeSoramado();   // 高さ変更に合わせてプレビューを再描画
+    }
     // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
     recenterObserverInView();
 }
@@ -6299,9 +6308,14 @@ function recenterObserverInView(animate = true) {
         if (!map || !appState.start) return;
         const size = map.getSize();
         // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
-        const other = appState.isElevationActive || appState.isMilkyWayActive || appState.isSoramadoActive;
-        const tsuji = appState.isTsujiSearchActive;
-        const coveredFrac = (tsuji && other) ? (2 / 3) : ((tsuji || other) ? (1 / 3) : 0);
+        // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
+        let coveredPx = 0;
+        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel']) {
+            const el = document.getElementById(id);
+            if (!el || el.classList.contains('hidden')) continue;
+            coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+        }
+        const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
         const z = map.getZoom();
         const obsPx = map.project([appState.start.lat, appState.start.lng], z);
         // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと観測点が可視領域の中央に来る
@@ -8973,8 +8987,8 @@ function setupSoramadoControls() {
         const panel = document.getElementById('soramado-panel');
         const on = panel.classList.toggle('maximized');
         maxBtn.classList.toggle('active', on);
-        maxBtn.title = on ? 'プレビューを元のサイズ(下1/3)に戻す' : 'プレビューを画面いっぱいに最大化';
-        if (appState.isSoramadoActive) drawSoramado();
+        maxBtn.title = on ? 'プレビューを元のサイズに戻す' : 'プレビューを画面いっぱいに最大化';
+        syncBottomPanels();   // 辻検索結果の位置替え(最大化中は上1/3)・プレビュー再描画・地図センタリング
     });
     // プレビュー内コントロールメニュー(開閉・焦点距離・日付/時刻)。開閉状態は保存しない(初期状態:閉)
     const ctrlHeader = document.getElementById('soramado-ctrl-header');
@@ -8982,6 +8996,8 @@ function setupSoramadoControls() {
         const body = document.getElementById('soramado-ctrl-body');
         const open = !body.classList.toggle('hidden');
         document.getElementById('soramado-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('soramado-ctrl').classList.toggle('open', open);   // 開=プレビュー画面と縦分割
+        resizeSoramado();   // プレビュー画面のサイズが変わるので再描画
     });
     sliderH('input-sora-ctrl-focal', 'soraFocal');
     const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
