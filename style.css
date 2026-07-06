@@ -317,6 +317,15 @@ html {
 #soramado-ctrl-body .control-row { margin: 4px 0; }
 #soramado-ctrl-body .input-label,
 #soramado-ctrl-body .sora-val { color: #eee; }
+.soramado-ctrl-group {
+    font-weight: bold;
+    font-size: 12px;
+    color: #ffd700;
+}
+#soramado-ctrl-body .sora-mov-num { width: 90px; }
+#sora-mov-total { background: #555; color: #eee; border: 1px solid #666; }
+#btn-sora-mov-play { min-width: 72px; }
+#btn-sora-mov-play.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 
 #soramado-canvas {
     width: 100%;

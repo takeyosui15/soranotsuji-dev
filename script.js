@@ -265,6 +265,11 @@ let appState = {
     soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
     soraPanorama: false,         // パノラマ撮影モード(アスペクト比可変・水平画角0〜360°)
     soraPanoAov: 0,              // パノラマの水平画角(°) 0=レンズの水平画角(自動追従) / 1〜360=指定値
+    soraMovInterval: 15,         // インターバルMov: 撮影間隔(秒) 0.5〜86400
+    soraMovShots: 1,             // インターバルMov: 撮影回数 1〜99999
+    soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
+    soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
+    soraMovImgMb: 8,             // インターバルMov: 画像サイズ(MB) 1〜100
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1019,6 +1024,8 @@ function saveAppState() {
         soraViewRange: appState.soraViewRange, soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
         soraOrient: appState.soraOrient, soraFisheyeStrength: appState.soraFisheyeStrength, soraFisheyeShape: appState.soraFisheyeShape,
         soraPanorama: appState.soraPanorama, soraPanoAov: appState.soraPanoAov,
+        soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
+        soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1074,6 +1081,7 @@ function loadAppState() {
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
+             'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1134,6 +1142,11 @@ function normalizeAppState() {
     if (appState.soraFisheyeShape !== 'rect' && appState.soraFisheyeShape !== 'circle') appState.soraFisheyeShape = 'rect';
     appState.soraPanorama = !!appState.soraPanorama;
     appState.soraPanoAov = num(appState.soraPanoAov, 0, 0, 360);
+    appState.soraMovInterval = num(appState.soraMovInterval, 15, 0.5, 86400);
+    appState.soraMovShots = Math.round(num(appState.soraMovShots, 1, 1, 99999));
+    if (![24, 25, 30, 50, 60].includes(Number(appState.soraMovFps))) appState.soraMovFps = 30; else appState.soraMovFps = Number(appState.soraMovFps);
+    if (![0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1].includes(Number(appState.soraMovDispStep))) appState.soraMovDispStep = 0.3; else appState.soraMovDispStep = Number(appState.soraMovDispStep);
+    appState.soraMovImgMb = num(appState.soraMovImgMb, 8, 1, 100);
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -1247,12 +1260,17 @@ function syncStateFromUI() {
         const base = new Date(`${dStr}T00:00:00`);
         base.setHours(h, m, s, 0);
         appState.currentDate = base;
-        // 宙の窓プレビューのコントロールメニュー(日付/時刻ピッカー)にも連動反映
+        // 宙の窓プレビューのコントロールメニュー(日付/時刻・撮影開始日時ピッカー)にも連動反映
         // (メインピッカー直接編集の経路は syncUIFromState を通らないためここでミラー)
         const scd = document.getElementById('sora-ctrl-date');
         if (scd) scd.value = dStr;
         const sct = document.getElementById('sora-ctrl-time');
         if (sct) sct.value = tStr;
+        const smd = document.getElementById('sora-mov-date');
+        if (smd) smd.value = dStr;
+        const smt = document.getElementById('sora-mov-time');
+        if (smt) smt.value = tStr;
+        soraMovSyncUI();
     }
 }
 
@@ -1269,11 +1287,16 @@ function syncUIFromState() {
     document.getElementById('time-input').value = `${h}:${m}:${s}`;
     // スライダーは分単位のまま（秒は無視）
     document.getElementById('time-slider').value = d.getHours() * 60 + d.getMinutes();
-    // 宙の窓プレビューのコントロールメニュー(日付/時刻ピッカー)にも連動反映
+    // 宙の窓プレビューのコントロールメニュー(日付/時刻・撮影開始日時ピッカー)にも連動反映
     const scd = document.getElementById('sora-ctrl-date');
     if (scd) scd.value = `${yyyy}-${mm}-${dd}`;
     const sct = document.getElementById('sora-ctrl-time');
     if (sct) sct.value = `${h}:${m}:${s}`;
+    const smd = document.getElementById('sora-mov-date');
+    if (smd) smd.value = `${yyyy}-${mm}-${dd}`;
+    const smt = document.getElementById('sora-mov-time');
+    if (smt) smt.value = `${h}:${m}:${s}`;
+    soraMovSyncUI();   // 撮影終了日時などの算出表示を日時に追従
 }
 
 function updateAll() {
@@ -8287,6 +8310,12 @@ function soraSyncUI() {
     set('input-sora-pano-slider', Math.round(panoAov));
     const panoAsp = soraPanoAspect(o);
     txt('sora-pano-label', 'H:V=' + (panoAsp >= 9.95 ? String(Math.round(panoAsp)) : panoAsp.toFixed(1)) + ':1 H:' + Math.round(panoAov) + '°');
+    set('input-sora-mov-interval', appState.soraMovInterval);
+    set('input-sora-mov-shots', appState.soraMovShots);
+    set('sel-sora-mov-fps', String(appState.soraMovFps));
+    set('sel-sora-mov-step', String(appState.soraMovDispStep));
+    set('input-sora-mov-mb', appState.soraMovImgMb);
+    soraMovSyncUI();
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
@@ -8303,6 +8332,63 @@ function soraUpdateBaseFromPoints() {
     appState.soraViewRange = Math.max(1, Math.min(300, Math.ceil(dist / 1000)));   // 相手距離kmを切り上げ(0km〜この範囲)
     saveAppState();
     soraSyncUI();
+}
+
+// --- インターバルMov (タイムラプス再生シミュレーション) ---
+let _movTimer = null, _movEndMs = 0;
+
+/** 秒数 → "HH:MM:SS" (時は2桁パディング・24時間超も可) */
+function soraMovFmtHMS(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return `${('00' + h).slice(-2)}:${('00' + m).slice(-2)}:${('00' + s).slice(-2)}`;
+}
+
+/** インターバルMovの算出表示(撮影時間・撮影終了日時・再生時間・総画像容量)を更新 */
+function soraMovSyncUI() {
+    const durEl = document.getElementById('sora-mov-duration');
+    if (!durEl) return;
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const durSec = iv * n;
+    durEl.textContent = soraMovFmtHMS(durSec);
+    // 再生中は開始時に確定した終了日時を、停止中は現在日時+撮影時間を表示
+    const endMs = _movTimer ? _movEndMs : appState.currentDate.getTime() + durSec * 1000;
+    const e = new Date(endMs);
+    const p2 = v => ('00' + v).slice(-2);
+    document.getElementById('sora-mov-end').textContent =
+        `${e.getFullYear()}/${p2(e.getMonth() + 1)}/${p2(e.getDate())} ${p2(e.getHours())}:${p2(e.getMinutes())}:${p2(e.getSeconds())}`;
+    document.getElementById('sora-mov-playtime').textContent = soraMovFmtHMS(n / (Number(appState.soraMovFps) || 30));
+    const gb = n * (Number(appState.soraMovImgMb) || 8) / 1024;
+    document.getElementById('sora-mov-total').value = (gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2)) + 'GB';
+}
+
+/** 再生トグル: 撮影開始日時(=現在の日時情報)から撮影終了日時まで、表示間隔毎に日時を撮影間隔ぶん進めて再生 */
+function soraMovTogglePlay() {
+    if (_movTimer) { soraMovStop(); return; }
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    _movEndMs = appState.currentDate.getTime() + iv * n * 1000;
+    const btn = document.getElementById('btn-sora-mov-play');
+    if (btn) { btn.classList.add('active'); btn.textContent = '停止'; }
+    const stepMs = Math.max(50, (Number(appState.soraMovDispStep) || 0.3) * 1000);
+    _movTimer = setInterval(() => {
+        const nextMs = appState.currentDate.getTime() + Math.max(0.5, Number(appState.soraMovInterval) || 15) * 1000;
+        uncheckTimeShortcuts();
+        appState.currentDate = new Date(Math.min(nextMs, _movEndMs));
+        syncUIFromState();
+        updateAll();
+        if (nextMs >= _movEndMs) soraMovStop();
+    }, stepMs);
+    soraMovSyncUI();
+}
+
+function soraMovStop() {
+    if (_movTimer) { clearInterval(_movTimer); _movTimer = null; }
+    const btn = document.getElementById('btn-sora-mov-play');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '再生'; }
+    saveAppState();
+    soraMovSyncUI();
 }
 
 /** 各コントロールのイベント登録 */
@@ -8447,23 +8533,33 @@ function setupSoramadoControls() {
     btnH('btn-sora-ctrl-time-next', () => addMinute(1));
     btnH('btn-sora-ctrl-hour-next', () => addMinute(60));
     // 日付/時刻ピッカー: 日時情報メニューと同じ順序(状態更新→syncUIFromState→updateAll)で反映
-    const ctrlDT = () => {
-        const dStr = document.getElementById('sora-ctrl-date').value;
-        const tStr = document.getElementById('sora-ctrl-time').value;
-        if (!dStr || !tStr) return;
-        const parts = tStr.split(':');
-        const base = new Date(`${dStr}T00:00:00`);
-        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
-        if (isNaN(base.getTime())) return;
-        uncheckTimeShortcuts();
-        appState.currentDate = base;
-        syncUIFromState();
-        updateAll();
+    const dtPairH = (dateId, timeId) => {
+        const dEl = document.getElementById(dateId), tEl = document.getElementById(timeId);
+        if (!dEl || !tEl) return;
+        const handler = () => {
+            const dStr = dEl.value, tStr = tEl.value;
+            if (!dStr || !tStr) return;
+            const parts = tStr.split(':');
+            const base = new Date(`${dStr}T00:00:00`);
+            base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+            if (isNaN(base.getTime())) return;
+            uncheckTimeShortcuts();
+            appState.currentDate = base;
+            syncUIFromState();
+            updateAll();
+        };
+        dEl.addEventListener('change', handler);
+        tEl.addEventListener('change', handler);
     };
-    const scd = document.getElementById('sora-ctrl-date');
-    if (scd) scd.addEventListener('change', ctrlDT);
-    const sct = document.getElementById('sora-ctrl-time');
-    if (sct) sct.addEventListener('change', ctrlDT);
+    dtPairH('sora-ctrl-date', 'sora-ctrl-time');
+    dtPairH('sora-mov-date', 'sora-mov-time');
+    // インターバルMov: パラメータ入力と再生トグル
+    numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
+    numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
+    numH('input-sora-mov-mb', 'soraMovImgMb', 1, 100, false);
+    selH('sel-sora-mov-fps', 'soraMovFps', v => parseInt(v));
+    selH('sel-sora-mov-step', 'soraMovDispStep', v => parseFloat(v));
+    btnH('btn-sora-mov-play', soraMovTogglePlay);
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
@@ -8487,6 +8583,7 @@ function toggleSoramado() {
     syncBottomPanels();
 }
 function closeSoramado() {
+    if (_movTimer) soraMovStop();   // インターバルMov再生中なら停止
     appState.isSoramadoActive = false;
     document.getElementById('btn-soramado').classList.remove('active');
     document.getElementById('soramado-panel').classList.add('hidden');
