@@ -101,7 +101,8 @@ GNU General Public License for more details.
             <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>
             <div id="soramado-ctrl-body" class="hidden">
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">焦点距離:</label><span id="sora-ctrl-focal-label" class="sora-val">35mm</span>
+                    <label class="input-label tsujisearch-label" title="焦点距離(mm):1〜3000">焦点距離(mm):</label>
+                    <input type="number" id="input-sora-ctrl-focal-text" class="sora-mov-num" placeholder="1〜3000mm" step="0.5" min="1" max="3000" title="焦点距離(mm):1〜3000(手入力可。宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
                     <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離(宙の窓メニューと連動)">
@@ -120,25 +121,28 @@ GNU General Public License for more details.
                     <button id="btn-sora-ctrl-time-next" class="nav-btn">▶</button>
                     <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
                 </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                    <input type="number" id="input-sora-ctrl-offset-az" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360" title="基準方位角からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                    <input type="number" id="input-sora-ctrl-offset-alt" class="sora-mov-num" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360" title="基準視高度からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
+                </div>
                 <hr class="baseopt-hr">
                 <div class="control-row left-row">
                     <span class="soramado-ctrl-group" title="表示天体を日時に合わせて動かし、タイムラプス動画をシミュレーションします">インターバルMov</span>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">撮影開始日付:</label>
-                    <input type="date" id="sora-mov-date" title="シミュレーションの開始日付(日時情報メニューと連動)">
+                    <label class="input-label tsujisearch-label" title="シミュレーションの開始日時(上の日付/時刻=日時情報メニューと連動)">撮影開始日時:</label><span id="sora-mov-start" class="sora-val">--</span>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">撮影開始時刻:</label>
-                    <input type="time" id="sora-mov-time" step="1" title="シミュレーションの開始時刻(日時情報メニューと連動)">
-                </div>
-                <div class="control-row">
-                    <label class="input-label tsujisearch-label">撮影間隔:</label>
+                    <label class="input-label tsujisearch-label">撮影間隔(s):</label>
                     <input type="number" id="input-sora-mov-interval" class="sora-mov-num" min="0.5" max="86400" step="0.5" title="シャッター間隔(秒) 0.5, 1〜86400">
                     <span class="sora-val">秒</span>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">撮影回数:</label>
+                    <label class="input-label tsujisearch-label">撮影回数(回):</label>
                     <input type="number" id="input-sora-mov-shots" class="sora-mov-num" min="1" max="99999" step="1" title="撮影間隔でシャッターを切る回数(1〜99999)">
                     <span class="sora-val">回</span>
                 </div>
@@ -149,7 +153,7 @@ GNU General Public License for more details.
                     <label class="input-label tsujisearch-label">撮影終了日時:</label><span id="sora-mov-end" class="sora-val">--</span>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">フレームレート:</label>
+                    <label class="input-label tsujisearch-label">フレームレート(fps):</label>
                     <select id="sel-sora-mov-fps" title="タイムラプス動画のフレームレート">
                         <option value="24">24</option><option value="25">25</option><option value="30" selected>30</option><option value="50">50</option><option value="60">60</option>
                     </select>
@@ -158,7 +162,7 @@ GNU General Public License for more details.
                     <label class="input-label tsujisearch-label">再生時間:</label><span id="sora-mov-playtime" class="sora-val">--:--:--</span>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label">表示間隔:</label>
+                    <label class="input-label tsujisearch-label">表示間隔(s):</label>
                     <select id="sel-sora-mov-step" title="シミュレーション再生で1コマを表示する間隔(秒)">
                         <option value="0.12">0.12</option><option value="0.24">0.24</option><option value="0.25">0.25</option><option value="0.3" selected>0.3</option><option value="0.5">0.5</option><option value="0.6">0.6</option><option value="1">1</option>
                     </select>
@@ -172,7 +176,7 @@ GNU General Public License for more details.
                     <label class="input-label tsujisearch-label">総画像容量(GB):</label>
                     <input type="text" id="sora-mov-total" class="sora-mov-num" readonly title="撮影回数×画像サイズの概算容量">
                 </div>
-                <div class="control-row left-row">
+                <div class="control-row center-row">
                     <button id="btn-sora-mov-play" class="nav-btn" title="撮影開始日時から撮影終了日時まで、表示間隔毎に日時を進めて再生します">再生</button>
                 </div>
                 <hr class="baseopt-hr">
@@ -197,7 +201,7 @@ GNU General Public License for more details.
                     <span class="sora-val">×</span>
                     <input type="number" id="input-sora-exp-h" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの縦(px) 1〜4096。横と自動連動">
                 </div>
-                <div class="control-row left-row">
+                <div class="control-row center-row">
                     <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>
                 </div>
             </div>
@@ -452,8 +456,8 @@ GNU General Public License for more details.
                         <label class="baseopt-radio"><input type="radio" name="sora-orient" value="portrait">縦</label>
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">焦点距離(mm):</label>
-                        <input type="number" id="input-sora-focal-text" class="sora-mov-num" placeholder="0〜3000mm" step="0.5" min="1" max="3000" title="レンズの焦点距離(手入力可。リスト・スライダーと連動)">
+                        <label class="input-label tsujisearch-label" title="焦点距離(mm):1〜3000">焦点距離(mm):</label>
+                        <input type="number" id="input-sora-focal-text" class="sora-mov-num" placeholder="1〜3000mm" step="0.5" min="1" max="3000" title="焦点距離(mm):1〜3000(手入力可。リスト・スライダーと連動)">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">焦点距離(選択):</label>
@@ -516,7 +520,6 @@ GNU General Public License for more details.
                         <input type="range" id="input-sora-pano-slider" class="sora-slider" min="0" max="360" step="1" title="パノラマ撮影の水平画角(0〜360°)">
                     </div>
                     <hr class="baseopt-hr">
-                    <hr class="tsujisearch-separator">
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準方位角(°):</label>
                         <input type="number" id="input-sora-base-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
@@ -550,6 +553,9 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <input type="range" id="input-sora-mw-bright" class="sora-slider" min="0" max="100" step="1" title="天の川写真の明るさ(白に近い明るい色は保ち、暗い色から先に暗くなります)">
                     </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="標高と太陽光のヒルシェードで山々や尾根筋を立体的に表示します">ヒルシェード</label>
+                    </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="視界範囲内の最高標高を白色とした標高ヒルシェードの適用度合い">標高ヒルシェード:</label><span id="sora-elevshade-label" class="sora-val">50%</span>
                     </div>
@@ -562,17 +568,16 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <input type="range" id="input-sora-sunshade" class="sora-slider" min="0" max="100" step="1" title="太陽光ヒルシェードの適用度合い(50%=従来)">
                     </div>
+                    <hr class="baseopt-hr">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
                     </div>
-                    <hr class="baseopt-hr">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-traj" class="body-checkbox"><label for="chk-sora-traj">:天体軌跡</label>
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-center" class="body-checkbox"><label for="chk-sora-center">:画面中心(+)</label>
                     </div>
-                    <hr class="baseopt-hr">
                     <div class="control-row">
                         <button id="btn-sora-url" class="nav-btn main-btn" title="現在の宙の窓を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
@@ -709,7 +714,7 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dawn" class="mystars-radio" value="civil_dawn">
                                 <label for="jump-civil-dawn">
-                                    <span class="shortcut-name">常用薄明/BH[始]</span>
+                                    <span class="shortcut-name">常用薄明<br>/BH[始]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dawn">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>
@@ -719,7 +724,7 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-bh-end-gh-start" class="mystars-radio" value="bh_end_gh_start">
                                 <label for="jump-bh-end-gh-start">
-                                    <span class="shortcut-name">BH[終]/GH[始]</span>
+                                    <span class="shortcut-name">BH[終]<br>/GH[始]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-bh-end-gh-start">--:--</span>
                                         <span class="shortcut-alt">(-4°)</span>
@@ -775,7 +780,7 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-gh-end-bh-start" class="mystars-radio" value="gh_end_bh_start">
                                 <label for="jump-gh-end-bh-start">
-                                    <span class="shortcut-name">GH[終]/BH[始]</span>
+                                    <span class="shortcut-name">GH[終]<br>/BH[始]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-gh-end-bh-start">--:--</span>
                                         <span class="shortcut-alt">(-4°)</span>
@@ -785,7 +790,7 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dusk" class="mystars-radio" value="civil_dusk">
                                 <label for="jump-civil-dusk">
-                                    <span class="shortcut-name">常用薄明/BH[終]</span>
+                                    <span class="shortcut-name">常用薄明<br>/BH[終]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dusk">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>

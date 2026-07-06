@@ -328,11 +328,13 @@ html {
     padding: 4px 8px 6px;
     border-top: 1px solid #4a4a4a;
 }
-/* コントロール領域の各行の幅は宙の辻のコントロールメニュー(max-width:360px)と同じにする */
+/* コントロール領域(3段目以降)の横幅は宙の辻のコントロールメニュー(max-width:360px)と同じにし、中央に配置する */
+#soramado-ctrl-header { max-width: 360px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 #soramado-ctrl-body .control-row,
-#soramado-ctrl-body hr { max-width: 360px; }
+#soramado-ctrl-body hr { max-width: 360px; margin-left: auto; margin-right: auto; }
+#soramado-ctrl-body .control-row.center-row { justify-content: center; }
 #soramado-ctrl-body.hidden { display: none; }
-#soramado-ctrl-body .control-row { margin: 4px 0; }
+#soramado-ctrl-body .control-row { margin: 4px auto; }   /* 上下4px+左右autoで中央配置 */
 #soramado-ctrl-body .input-label,
 #soramado-ctrl-body .sora-val { color: #eee; }
 .soramado-ctrl-group {

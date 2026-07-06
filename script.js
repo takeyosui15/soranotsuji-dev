@@ -124,7 +124,7 @@ const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, 
 // 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
 // ここが全組込天体の既定値の唯一の定義。appState.bodies はこれから派生する。
 const DEFAULT_BODIES = [
-    { id: 'MilkyWay', name: '天の川',   color: '#800080', isDashed: false, visible: false },
+    { id: 'MilkyWay', name: '天の川',   color: '#800080', isDashed: false, visible: true },
     { id: 'Sun',     name: '太陽',     color: '#FF0000', isDashed: false, visible: true },
     { id: 'Moon',    name: '月',       color: '#FFFF00', isDashed: false, visible: true },
     { id: 'Mercury', name: '水星',     color: '#00BFFF', isDashed: false, visible: false },
@@ -1286,10 +1286,6 @@ function syncStateFromUI() {
         if (scd) scd.value = dStr;
         const sct = document.getElementById('sora-ctrl-time');
         if (sct) sct.value = tStr;
-        const smd = document.getElementById('sora-mov-date');
-        if (smd) smd.value = dStr;
-        const smt = document.getElementById('sora-mov-time');
-        if (smt) smt.value = tStr;
         soraMovSyncUI();
     }
 }
@@ -1312,11 +1308,7 @@ function syncUIFromState() {
     if (scd) scd.value = `${yyyy}-${mm}-${dd}`;
     const sct = document.getElementById('sora-ctrl-time');
     if (sct) sct.value = `${h}:${m}:${s}`;
-    const smd = document.getElementById('sora-mov-date');
-    if (smd) smd.value = `${yyyy}-${mm}-${dd}`;
-    const smt = document.getElementById('sora-mov-time');
-    if (smt) smt.value = `${h}:${m}:${s}`;
-    soraMovSyncUI();   // 撮影終了日時などの算出表示を日時に追従
+    soraMovSyncUI();   // 撮影開始/終了日時などの算出表示を日時に追従
 }
 
 function updateAll() {
@@ -3783,7 +3775,7 @@ function registerSearchStar() {
     const ra = parseFloat(parts[0]);
     const dec = parseFloat(parts[1]);
     if (isNaN(ra) || isNaN(dec)) return alert('赤経赤緯の値が不正です');
-    if (!confirm(`検索天体をMy天体に登録しますか？(天体名は書き換えられます。)`)) return;
+    if (!confirm(`検索天体をMy天体に登録しますか？(天体名と赤経赤緯は書き換えられます。)`)) return;
     if (addMyStar(name, ra, dec)) {
         // 入力フィールドをクリア
         document.getElementById('input-starsearch-name').value = '';
@@ -4148,12 +4140,12 @@ function addMyPointRow(type) {
     if (!confirm(`${cfg.labelFull}リストの末尾に${cfg.label}の行を追加しますか？`)) return;
     const id = getNextMyPointId(type);
     if (id === null) return;
-    // 選択中の行の次に挿入
+    // 末尾の行の次に追加
     const selId = getSelectedMyPointId(type);
     const idx = selId !== null ? cfg.list().findIndex(p => p.id === selId) : -1;
     const newPt = { id, name: '', lat: null, lng: null, elev: null, height: 0, memo: '' };
     if (idx >= 0) {
-        cfg.list().splice(idx + 1, 0, newPt);
+        cfg.list().push(newPt);   // 末尾の行の次に追加(デッサン変更に追従)
     } else {
         cfg.list().push(newPt);
     }
@@ -4593,8 +4585,7 @@ function addMyTsujiRow() {
         timeFilter: false, startMode: 'sunset', startTime: '00:00', startPrePost: false, startPrePostDir: 'before', startOffset: '00:00', endMode: 'sunrise', endTime: '00:00', endPrePost: false, endPrePostDir: 'before', endOffset: '00:00',
         checked: false, memo: ''
     };
-    if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
-    else appState.myTsujiSearches.push(newT);
+    appState.myTsujiSearches.push(newT);   // 末尾の行の次に追加(デッサン変更に追従)
     saveAppState();
     setMyTsujiDirty(true);
     renderMyTsujiSearches();
@@ -5753,7 +5744,7 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.1" min="0" max="360" data-id="${t.id}">
             </div>
             <hr class="tsujisearch-separator">
-            <div class="control-row left-row"><label class="mytsuji-label">天の川オプション</label></div>
+            <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
             <div class="control-row">
                 <label class="mytsuji-label" title="天の川の基準点のオフセット中心角(基本オプション・辻検索と連動)">オフセット中心角(°):</label>
                 <input type="number" class="mytsuji-mw-offset" value="${Number(appState.mwOffsetAngle) || 0}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}">
@@ -8038,13 +8029,13 @@ function _mwUpdateLabels() {
         MW_CONSTELLATIONS.forEach(c => {
             const v = _mwEquVec(c.ra, c.dec);
             const pr = proj(new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R));
-            if (pr.front) items.push({ name: c.n, dec: c.dec, x: pr.x, y: pr.y });
+            items.push({ name: c.n, dec: c.dec, x: pr.x, y: pr.y, front: pr.front });   // 全星座を表示(背面は引き出し線なし)
         });
         if (appState.mwConstNameSort === 'pos') items.sort((a, b) => b.dec - a.dec);
         else items.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
         const halve = Math.ceil(items.length / 2);
         items.forEach((it, i) => {
-            (i < halve ? left : right).push({ name: it.name, color: '#9ab', x: it.x, y: it.y, cls: 'const-label' });
+            (i < halve ? left : right).push({ name: it.name, color: '#9ab', x: it.x, y: it.y, cls: 'const-label', noLine: !it.front });
         });
     }
     const rowH = 12;
@@ -8065,7 +8056,9 @@ function _mwUpdateLabels() {
         // 引き出し線は文字の内側端(左列=名称の末尾、右列=名称の先頭)から天体位置へ引く
         const tw = estTextW(it.name, it.cls === 'const-label' ? 10 : 11);
         const lx = isLeft ? ax + tw + 3 : ax - tw - 3;
-        return `<line x1="${lx.toFixed(1)}" y1="${(it.ly - 4).toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>` +
+        // 背面(奥)にある星座は名称のみ表示し、引き出し線は引かない
+        const lineHtml = it.noLine ? '' : `<line x1="${lx.toFixed(1)}" y1="${(it.ly - 4).toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>`;
+        return lineHtml +
                `<text x="${ax}" y="${(it.ly - 3 + rowH - 9).toFixed(1)}" fill="${esc(col)}" ${isLeft ? '' : 'text-anchor="end"'} class="${it.cls}" data-name="${esc(it.name)}">${esc(it.name)}</text>`;
     };
     let html = '';
@@ -8505,7 +8498,9 @@ function soraSyncUI() {
     set('input-sora-focal-slider', appState.soraFocal);
     txt('sora-focal-label', appState.soraFocal + 'mm');
     set('input-sora-ctrl-focal', appState.soraFocal);
-    txt('sora-ctrl-focal-label', appState.soraFocal + 'mm');
+    set('input-sora-ctrl-focal-text', appState.soraFocal);
+    set('input-sora-ctrl-offset-az', Number(appState.soraOffsetAz).toFixed(4));
+    set('input-sora-ctrl-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
     set('input-sora-fnum-select', String(appState.soraFNumberIdx));
     set('input-sora-fnum-slider', appState.soraFNumberIdx);
     txt('sora-fnum-label', 'F' + soraFNumber());
@@ -8592,6 +8587,12 @@ function soraMovSyncUI() {
     const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
     const durSec = iv * n;
     durEl.textContent = soraMovFmtHMS(durSec);
+    // 撮影開始日時 = 現在の日時情報(再生はここから始まる)
+    const sEl = document.getElementById('sora-mov-start');
+    if (sEl) {
+        const d0 = appState.currentDate, q2 = v => ('00' + v).slice(-2);
+        sEl.textContent = `${d0.getFullYear()}/${q2(d0.getMonth() + 1)}/${q2(d0.getDate())} ${q2(d0.getHours())}:${q2(d0.getMinutes())}:${q2(d0.getSeconds())}`;
+    }
     // 再生中は開始時に確定した終了日時を、停止中は現在日時+撮影時間を表示
     const endMs = _movTimer ? _movEndMs : appState.currentDate.getTime() + durSec * 1000;
     const e = new Date(endMs);
@@ -8600,7 +8601,7 @@ function soraMovSyncUI() {
         `${e.getFullYear()}/${p2(e.getMonth() + 1)}/${p2(e.getDate())} ${p2(e.getHours())}:${p2(e.getMinutes())}:${p2(e.getSeconds())}`;
     document.getElementById('sora-mov-playtime').textContent = soraMovFmtHMS(n / (Number(appState.soraMovFps) || 30));
     const gb = n * (Number(appState.soraMovImgMb) || 8) / 1024;
-    document.getElementById('sora-mov-total').value = (gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2)) + 'GB';
+    document.getElementById('sora-mov-total').value = gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2);   // 単位はラベル(GB)側に表示
 }
 
 /** 再生トグル: 撮影開始日時(=現在の日時情報)から撮影終了日時まで、表示間隔毎に日時を撮影間隔ぶん進めて再生 */
@@ -8958,13 +8959,18 @@ function setupSoramadoControls() {
     selH('input-sora-sensor', 'soraSensorKey', v => v);
     selH('input-sora-focal-select', 'soraFocal', v => parseFloat(v));   // 7.5mm等の小数焦点距離に対応
     selH('input-sora-fnum-select', 'soraFNumberIdx', v => parseInt(v));
-    // 焦点距離(mm)テキストボックス: 手入力(0.5刻み)。リスト・スライダーと連動
-    const focalText = document.getElementById('input-sora-focal-text');
-    if (focalText) focalText.addEventListener('change', () => {
-        const v = parseFloat(focalText.value);
-        if (!isNaN(v)) appState.soraFocal = Math.max(1, Math.min(3000, Math.round(v * 2) / 2));
-        after();
-    });
+    // 焦点距離(mm)テキストボックス: 手入力(0.5刻み)。リスト・スライダー・コントロールメニューと連動
+    for (const fid of ['input-sora-focal-text', 'input-sora-ctrl-focal-text']) {
+        const focalText = document.getElementById(fid);
+        if (focalText) focalText.addEventListener('change', () => {
+            const v = parseFloat(focalText.value);
+            if (!isNaN(v)) appState.soraFocal = Math.max(1, Math.min(3000, Math.round(v * 2) / 2));
+            after();
+        });
+    }
+    // コントロールメニューのオフセット方位角/視高度(メニュー・ドラッグパンと連動)
+    numH('input-sora-ctrl-offset-az', 'soraOffsetAz', -360, 360, false);
+    numH('input-sora-ctrl-offset-alt', 'soraOffsetAlt', -360, 360, false);
     const sliderH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { appState[key] = parseInt(el.value); after(); }); };
     sliderH('input-sora-focal-slider', 'soraFocal');
     sliderH('input-sora-fnum-slider', 'soraFNumberIdx');
@@ -9029,7 +9035,6 @@ function setupSoramadoControls() {
         tEl.addEventListener('change', handler);
     };
     dtPairH('sora-ctrl-date', 'sora-ctrl-time');
-    dtPairH('sora-mov-date', 'sora-mov-time');
     // インターバルMov: パラメータ入力と再生トグル
     numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
     numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
