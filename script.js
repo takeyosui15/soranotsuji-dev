@@ -1247,6 +1247,12 @@ function syncStateFromUI() {
         const base = new Date(`${dStr}T00:00:00`);
         base.setHours(h, m, s, 0);
         appState.currentDate = base;
+        // 宙の窓プレビューのコントロールメニュー(日付/時刻ピッカー)にも連動反映
+        // (メインピッカー直接編集の経路は syncUIFromState を通らないためここでミラー)
+        const scd = document.getElementById('sora-ctrl-date');
+        if (scd) scd.value = dStr;
+        const sct = document.getElementById('sora-ctrl-time');
+        if (sct) sct.value = tStr;
     }
 }
 
@@ -1263,6 +1269,11 @@ function syncUIFromState() {
     document.getElementById('time-input').value = `${h}:${m}:${s}`;
     // スライダーは分単位のまま（秒は無視）
     document.getElementById('time-slider').value = d.getHours() * 60 + d.getMinutes();
+    // 宙の窓プレビューのコントロールメニュー(日付/時刻ピッカー)にも連動反映
+    const scd = document.getElementById('sora-ctrl-date');
+    if (scd) scd.value = `${yyyy}-${mm}-${dd}`;
+    const sct = document.getElementById('sora-ctrl-time');
+    if (sct) sct.value = `${h}:${m}:${s}`;
 }
 
 function updateAll() {
@@ -8244,6 +8255,8 @@ function soraSyncUI() {
     set('input-sora-focal-select', String(appState.soraFocal));
     set('input-sora-focal-slider', appState.soraFocal);
     txt('sora-focal-label', appState.soraFocal + 'mm');
+    set('input-sora-ctrl-focal', appState.soraFocal);
+    txt('sora-ctrl-focal-label', appState.soraFocal + 'mm');
     set('input-sora-fnum-slider', appState.soraFNumberIdx);
     txt('sora-fnum-label', 'F' + soraFNumber());
     set('input-sora-focus-slider', appState.soraFocusDist);
@@ -8416,6 +8429,41 @@ function setupSoramadoControls() {
         maxBtn.title = on ? 'プレビューを元のサイズ(下1/3)に戻す' : 'プレビューを画面いっぱいに最大化';
         if (appState.isSoramadoActive) drawSoramado();
     });
+    // プレビュー内コントロールメニュー(開閉・焦点距離・日付/時刻)。開閉状態は保存しない(初期状態:閉)
+    const ctrlHeader = document.getElementById('soramado-ctrl-header');
+    if (ctrlHeader) ctrlHeader.addEventListener('click', () => {
+        const body = document.getElementById('soramado-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('soramado-ctrl-arrow').textContent = open ? '▲' : '▼';
+    });
+    sliderH('input-sora-ctrl-focal', 'soraFocal');
+    const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    btnH('btn-sora-ctrl-month-prev', () => addMonth(-1));
+    btnH('btn-sora-ctrl-date-prev', () => addDay(-1));
+    btnH('btn-sora-ctrl-date-next', () => addDay(1));
+    btnH('btn-sora-ctrl-month-next', () => addMonth(1));
+    btnH('btn-sora-ctrl-hour-prev', () => addMinute(-60));
+    btnH('btn-sora-ctrl-time-prev', () => addMinute(-1));
+    btnH('btn-sora-ctrl-time-next', () => addMinute(1));
+    btnH('btn-sora-ctrl-hour-next', () => addMinute(60));
+    // 日付/時刻ピッカー: 日時情報メニューと同じ順序(状態更新→syncUIFromState→updateAll)で反映
+    const ctrlDT = () => {
+        const dStr = document.getElementById('sora-ctrl-date').value;
+        const tStr = document.getElementById('sora-ctrl-time').value;
+        if (!dStr || !tStr) return;
+        const parts = tStr.split(':');
+        const base = new Date(`${dStr}T00:00:00`);
+        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+        if (isNaN(base.getTime())) return;
+        uncheckTimeShortcuts();
+        appState.currentDate = base;
+        syncUIFromState();
+        updateAll();
+    };
+    const scd = document.getElementById('sora-ctrl-date');
+    if (scd) scd.addEventListener('change', ctrlDT);
+    const sct = document.getElementById('sora-ctrl-time');
+    if (sct) sct.addEventListener('change', ctrlDT);
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');

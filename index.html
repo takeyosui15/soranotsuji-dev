@@ -95,6 +95,31 @@ GNU General Public License for more details.
         <div id="soramado-info"></div>
         <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
         <button id="btn-soramado-max" title="プレビューを画面いっぱいに最大化">⛶</button>
+        <div id="soramado-ctrl">
+            <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>
+            <div id="soramado-ctrl-body" class="hidden">
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">焦点距離:</label><span id="sora-ctrl-focal-label" class="sora-val">35mm</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-ctrl-month-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-sora-ctrl-date-prev" class="nav-btn">◀</button>
+                    <input type="date" id="sora-ctrl-date" title="基準日付(日時情報メニューと連動)">
+                    <button id="btn-sora-ctrl-date-next" class="nav-btn">▶</button>
+                    <button id="btn-sora-ctrl-month-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-ctrl-hour-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-sora-ctrl-time-prev" class="nav-btn">◀</button>
+                    <input type="time" id="sora-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
+                    <button id="btn-sora-ctrl-time-next" class="nav-btn">▶</button>
+                    <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="control-panel" class="control-panel minimized">

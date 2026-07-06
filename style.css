@@ -280,6 +280,44 @@ html {
 #btn-soramado-max:hover { background: rgba(70, 70, 70, 0.85); }
 #btn-soramado-max.active { background: #b8860b; border-color: #ffd700; }
 
+/* プレビュー内コントロールメニュー(パネル下端・開閉式・不透明グレー) */
+#soramado-ctrl {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: calc(100% - 48px);   /* 1/3表示でも最大化ボタン(⛶)と重ならない */
+    z-index: 925;
+    background: #3a3a3a;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+#soramado-ctrl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #eee;
+    border-top: 1px solid #555;
+    cursor: pointer;
+    user-select: none;
+    flex: 0 0 auto;
+}
+#soramado-ctrl-body {
+    max-height: calc(33.33vh - 28px);   /* 最大化中も画面下1/3内に収まる */
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 8px 6px;
+    border-top: 1px solid #4a4a4a;
+}
+#soramado-ctrl-body.hidden { display: none; }
+#soramado-ctrl-body .control-row { margin: 4px 0; }
+#soramado-ctrl-body .input-label,
+#soramado-ctrl-body .sora-val { color: #eee; }
+
 #soramado-canvas {
     width: 100%;
     height: 100%;
