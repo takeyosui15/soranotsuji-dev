@@ -6973,6 +6973,117 @@ function toggleHelp() {
 // URL取得・復元
 // ============================================================
 
+// URL短縮(queryキー)用の可逆圧縮コーデック: LZW(可変コード幅) + Base64URL。
+// 依存なし・同期処理。encodeQueryParam(str) → URL安全文字列、decodeQueryParam(s) → 元文字列(失敗時 null)。
+const _QP_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+// 本アプリのURLに頻出する断片を初期辞書に共有シードとして登録(圧縮率向上・完全可逆のまま)
+// LZWの貪欲一致は接頭辞を辿るため、シードは全接頭辞(2文字以上)に展開して登録する
+function _qpSeedEntries() {
+    const set = [];
+    const seen = new Set();
+    for (const seed of _QP_SEEDS) {
+        for (let n = 2; n <= seed.length; n++) {
+            const pre = seed.slice(0, n);
+            if (!seen.has(pre)) { seen.add(pre); set.push(pre); }
+        }
+    }
+    return set;
+}
+const _QP_SEEDS = ['tsuji','Start','End','Mode=','Offset=','Offset','Tolerance=','Time=','Filter=','PrePost','Dir=before','Dir=after','=false&','=true&','&tsuji','&star','starId=','startL','endL','startApiElv=','endApiElv=','startElv=','endElv=','Lat=3','Lng=13','sunset','sunrise','00%3A00','Acc','DblCircle','Circle','Triangle','Dash','elevation','milkyway','soramado','mode=preview','mode=tsujisearch','&date=20','&time=','timeZone=%2B0900','Search','Days=365','Moon','Base=','&dp=','Elev','ilkyWay','starName=','starRa=','starDec=','starColor=%23','starIsDashed='];
+
+function encodeQueryParam(str) {
+    const bytes = new TextEncoder().encode(str);
+    if (bytes.length === 0) return '';
+    // LZW圧縮 (初期辞書=1バイト256種, コード幅9bit開始で辞書拡大に応じて広げる)
+    const dict = new Map();
+    for (let i = 0; i < 256; i++) dict.set(String.fromCharCode(i), i);
+    let nextCode = 256;
+    for (const e of _qpSeedEntries()) { if (!dict.has(e)) dict.set(e, nextCode++); }
+    let width = 9;
+    while ((1 << width) < nextCode) width++;   // 初期辞書が512を超える場合は幅を拡げて開始
+    const out = [];   // {code, width}
+    let w = '';
+    for (let i = 0; i < bytes.length; i++) {
+        const c = String.fromCharCode(bytes[i]);
+        const wc = w + c;
+        if (dict.has(wc)) { w = wc; continue; }
+        out.push({ code: dict.get(w), width });
+        dict.set(wc, nextCode++);
+        if (nextCode === (1 << width) + 1) width++;   // 新しいコードが幅に収まらなくなる直前に拡幅
+        w = c;
+    }
+    if (w !== '') out.push({ code: dict.get(w), width });
+    // ビットパック → Base64URL (6bit単位)
+    let acc = 0, nbits = 0, s = '';
+    for (const { code, width: wd } of out) {
+        acc = (acc * (1 << wd)) + code;   // 上位詰め
+        nbits += wd;
+        while (nbits >= 6) {
+            nbits -= 6;
+            s += _QP_B64[Math.floor(acc / (1 << nbits)) & 63];
+            acc = acc % (1 << nbits);
+        }
+    }
+    if (nbits > 0) s += _QP_B64[(acc << (6 - nbits)) & 63];
+    return s;
+}
+
+function decodeQueryParam(s) {
+    try {
+        if (!s) return '';
+        // Base64URL → ビット列リーダー
+        const vals = [];
+        for (const ch of s) {
+            const v = _QP_B64.indexOf(ch);
+            if (v < 0) return null;
+            vals.push(v);
+        }
+        let pos = 0;   // ビット位置
+        const total = vals.length * 6;
+        const readBits = (n) => {
+            if (pos + n > total) return null;
+            let r = 0;
+            for (let i = 0; i < n; i++) {
+                const v6 = vals[(pos / 6) | 0];
+                const bit = (v6 >> (5 - (pos % 6))) & 1;
+                r = (r << 1) | bit;
+                pos++;
+            }
+            return r;
+        };
+        // LZW展開
+        const dict = [];
+        for (let i = 0; i < 256; i++) dict.push(String.fromCharCode(i));
+        for (const e of _qpSeedEntries()) dict.push(e);
+        let nextCode = dict.length, width = 9;
+        while ((1 << width) < nextCode) width++;   // エンコーダと同一の初期幅
+        let code = readBits(width);
+        if (code === null) return '';
+        let w = dict[code];
+        if (w === undefined) return null;
+        let res = w;
+        while (true) {
+            if (nextCode === (1 << width)) width++;   // エンコーダが拡幅した直後のコードに合わせる
+            if (pos + width > total) break;           // 端数パディングは無視
+            code = readBits(width);
+            if (code === null) break;
+            let entry;
+            if (code < dict.length) entry = dict[code];
+            else if (code === nextCode) entry = w + w[0];   // KwKwK ケース
+            else return null;
+            res += entry;
+            dict.push(w + entry[0]); nextCode++;
+            w = entry;
+        }
+        // バイト列 → UTF-8文字列
+        const bytes = new Uint8Array(res.length);
+        for (let i = 0; i < res.length; i++) bytes[i] = res.charCodeAt(i);
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (_) {
+        return null;
+    }
+}
+
 function buildBaseUrl() {
     return window.location.origin + window.location.pathname;
 }
@@ -7089,7 +7200,8 @@ function copyLocationUrl(includeDateTime) {
     params.set('mode', 'preview');
     // パネル状態(dp/elevation/milkyway/soramado/tsujisearch)は buildCommonUrlParams で付与済み
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    // 長いクエリを可逆圧縮して query キー1つの短いURLにまとめる(旧形式の長いURLも引き続き読める)
+    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
     });
@@ -7129,14 +7241,20 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiEndPrePostDir', appState.tsujiEndPrePostDir);
     params.set('tsujiEndOffset', appState.tsujiEndOffset);
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    // 長いクエリを可逆圧縮して query キー1つの短いURLにまとめる(旧形式の長いURLも引き続き読める)
+    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
     });
 }
 
 function restoreFromUrl() {
-    const params = new URLSearchParams(window.location.search);
+    let params = new URLSearchParams(window.location.search);
+    // 短縮URL(queryキー)なら展開して通常のパラメータ群に戻す(復号失敗時は無視)
+    if (params.has('query')) {
+        const decoded = decodeQueryParam(params.get('query'));
+        if (decoded) params = new URLSearchParams(decoded);
+    }
     if (!params.has('mode')) return;
 
     const mode = params.get('mode');
