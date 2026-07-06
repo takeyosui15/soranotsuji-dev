@@ -337,6 +337,11 @@ GNU General Public License for more details.
                         <span class="sora-val">:</span>
                         <input type="number" id="input-sora-aspect-h" class="sora-aspect" title="ファインダーのアスペクト比(縦)" placeholder="1〜100" step="1" min="1" max="100">
                     </div>
+                    <div class="control-row left-row">
+                        <label class="input-label tsujisearch-label" title="カメラを横位置(横向き)で構えるか縦位置(縦向き)で構えるか">カメラ位置:</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-orient" value="landscape" checked>横</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-orient" value="portrait">縦</label>
+                    </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">焦点距離:</label>
                         <span id="sora-focal-label" class="sora-val">35mm</span>
@@ -365,6 +370,17 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-fisheye" class="body-checkbox"><label for="chk-sora-fisheye">:フィッシュアイ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">歪み:</label><span id="sora-fisheye-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-fisheye-slider" class="sora-slider" min="0" max="100" step="1" title="魚眼レンズの歪み度合い(画角も連動)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label tsujisearch-label">画面形状:</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="rect" checked>四角</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="circle">円形</label>
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>

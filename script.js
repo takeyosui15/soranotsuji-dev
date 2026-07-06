@@ -260,6 +260,9 @@ let appState = {
     soraViewRange: 10,
     soraTraj: true,
     soraCenterCross: true,
+    soraOrient: 'landscape',     // カメラ位置: 'landscape'=横位置 / 'portrait'=縦位置(アスペクトを回転)
+    soraFisheyeStrength: 50,     // フィッシュアイの歪み(%) 0〜100 (50=従来の見た目)
+    soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1012,6 +1015,7 @@ function saveAppState() {
         soraFisheye: appState.soraFisheye, soraPeaking: appState.soraPeaking, soraGrayscale: appState.soraGrayscale,
         soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt, soraOffsetAz: appState.soraOffsetAz, soraOffsetAlt: appState.soraOffsetAlt,
         soraViewRange: appState.soraViewRange, soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
+        soraOrient: appState.soraOrient, soraFisheyeStrength: appState.soraFisheyeStrength, soraFisheyeShape: appState.soraFisheyeShape,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1066,7 +1070,7 @@ function loadAppState() {
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
-            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross',
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1122,6 +1126,9 @@ function normalizeAppState() {
     appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
     ['soraFisheye', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
     if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
+    if (appState.soraOrient !== 'landscape' && appState.soraOrient !== 'portrait') appState.soraOrient = 'landscape';
+    appState.soraFisheyeStrength = num(appState.soraFisheyeStrength, 50, 0, 100);
+    if (appState.soraFisheyeShape !== 'rect' && appState.soraFisheyeShape !== 'circle') appState.soraFisheyeShape = 'rect';
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -8153,12 +8160,28 @@ function soraSensor() { return SORA_SENSORS.find(s => s.key === appState.soraSen
 function soraFNumber() { return SORA_FNUMBERS[Math.max(0, Math.min(SORA_FNUMBERS.length - 1, appState.soraFNumberIdx))]; }
 
 /** 実効フレーム: アスペクト比をセンサー(W×H mm)に内接させ {We,He} を返す */
+/** カメラ位置(縦/横)を適用したアスペクト比の横/縦を返す(縦位置は横縦を入れ替え) */
+function soraOrientedAspect() {
+    const w = appState.soraAspectW > 0 ? appState.soraAspectW : 3;
+    const h = appState.soraAspectH > 0 ? appState.soraAspectH : 2;
+    return appState.soraOrient === 'portrait' ? { aw: h, ah: w } : { aw: w, ah: h };
+}
+
 function soraEffectiveFrame() {
-    const s = soraSensor();
-    const a = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : s.w / s.h;
+    const s0 = soraSensor();
+    // カメラ位置=縦のときはセンサー自体も回転する(水平/垂直画角が入れ替わる)
+    const s = appState.soraOrient === 'portrait' ? { w: s0.h, h: s0.w } : s0;
+    const { aw, ah } = soraOrientedAspect();
+    const a = aw / ah;
     const sensorA = s.w / s.h;
     if (a >= sensorA) return { We: s.w, He: s.w / a };
     return { We: s.h * a, He: s.h };
+}
+
+/** フィッシュアイの実効パラメータ: uK=樽歪み係数, fovScale=画角拡大率(表示・カメラfovに連動) */
+function soraFisheyeParams() {
+    const s = Math.max(0, Math.min(100, Number(appState.soraFisheyeStrength) || 0));
+    return { uK: 0.7 * s / 100, fovScale: 1 + 0.8 * s / 100 };
 }
 
 /** 光学計算: 画角(水平/垂直/対角°)・過焦点距離・合焦近遠・被写界深度(m) */
@@ -8208,6 +8231,11 @@ function soraSyncUI() {
     set('input-sora-focus-slider', appState.soraFocusDist);
     txt('sora-focus-label', appState.soraFocusDist + 'm');
     chk('chk-sora-fisheye', appState.soraFisheye);
+    set('input-sora-fisheye-slider', appState.soraFisheyeStrength);
+    const orientR = document.querySelector(`input[name="sora-orient"][value="${appState.soraOrient}"]`);
+    if (orientR) orientR.checked = true;
+    const shapeR = document.querySelector(`input[name="sora-fisheye-shape"][value="${appState.soraFisheyeShape}"]`);
+    if (shapeR) shapeR.checked = true;
     chk('chk-sora-peaking', appState.soraPeaking);
     chk('chk-sora-grayscale', appState.soraGrayscale);
     chk('chk-sora-traj', appState.soraTraj);
@@ -8219,7 +8247,10 @@ function soraSyncUI() {
     set('input-sora-range', appState.soraViewRange);
     set('input-sora-range-slider', appState.soraViewRange);
     const o = soraComputeOptics();
-    txt('sora-aov', 'H:' + o.aovH.toFixed(1) + '° V:' + o.aovV.toFixed(1) + '° D:' + o.aovD.toFixed(1) + '°');
+    const fe = appState.soraFisheye ? soraFisheyeParams().fovScale : 1;
+    const aov = x => Math.min(180, x * fe).toFixed(1);
+    txt('sora-aov', 'H:' + aov(o.aovH) + '° V:' + aov(o.aovV) + '° D:' + aov(o.aovD) + '°');
+    txt('sora-fisheye-label', (Number(appState.soraFisheyeStrength) || 0) + '%');
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
@@ -8344,6 +8375,13 @@ function setupSoramadoControls() {
     sliderH('input-sora-range-slider', 'soraViewRange');
     const chkH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = el.checked; after(); }); };
     chkH('chk-sora-fisheye', 'soraFisheye');
+    sliderH('input-sora-fisheye-slider', 'soraFisheyeStrength');
+    document.querySelectorAll('input[name="sora-orient"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraOrient = r.value; after(); } });
+    });
+    document.querySelectorAll('input[name="sora-fisheye-shape"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraFisheyeShape = r.value; after(); } });
+    });
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
@@ -8466,12 +8504,14 @@ function drawSoramado() {
     const o = soraComputeOptics();
     const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
-    const finderAspect = (appState.soraAspectW > 0 && appState.soraAspectH > 0) ? appState.soraAspectW / appState.soraAspectH : 1;
+    const { aw: _oaw, ah: _oah } = soraOrientedAspect();
+    const finderAspect = _oaw / _oah;
     // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズやドラッグ換算に使う(_smBuildBodiesより前)
     const cr = _smFitRect(w, h, finderAspect, 0.94);
     _smFinderH = cr.h || 1;
     _smFinderW = cr.w || 1;
-    _smCamera.fov = Math.max(1, Math.min(170, o.aovV));
+    const _fe = appState.soraFisheye ? soraFisheyeParams() : null;
+    _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));   // フィッシュアイON時は歪みに連動して画角を拡大
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
     _smCamera.position.set(0, 0, 0);
@@ -8497,6 +8537,9 @@ function drawSoramado() {
     if (appState.soraFisheye && _smPostMat) {
         // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
         // RTは鮮鋭さのためデバイスpxで確保。RTバインド中は RT 自身のviewportが使われるため setViewport は不要。
+        _smPostMat.uniforms.uK.value = _fe.uK;
+        _smPostMat.uniforms.uCircle.value = appState.soraFisheyeShape === 'circle' ? 1.0 : 0.0;
+        _smPostMat.uniforms.uAspect.value = finderAspect;
         const rw = Math.max(2, Math.round(cr.w * dpr)), rh = Math.max(2, Math.round(cr.h * dpr));
         _smRT.setSize(rw, rh);
         _smRenderer.setRenderTarget(_smRT);
@@ -9028,12 +9071,16 @@ function _smInitPost() {
     _smPostCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     _smPostMat = new THREE.ShaderMaterial({
         depthTest: false, depthWrite: false,
-        uniforms: { tDiffuse: { value: _smRT.texture }, uK: { value: 0.35 } },
+        uniforms: { tDiffuse: { value: _smRT.texture }, uK: { value: 0.35 }, uCircle: { value: 0.0 }, uAspect: { value: 1.5 } },
         vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
         fragmentShader: [
-            'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uK;',
+            'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uK; uniform float uCircle; uniform float uAspect;',
             'void main(){',
             '  vec2 c = vUv - 0.5;',
+            '  if (uCircle > 0.5) {',                                          // 画面形状=円形: 内接円の外は黒
+            '    float rlim = 0.5 * min(uAspect, 1.0);',
+            '    if (length(vec2(c.x * uAspect, c.y)) > rlim) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
+            '  }',
             '  float r2 = dot(c, c) * 4.0;',                 // 0..2 (中心0, 角2)
             '  vec2 src = 0.5 + c * (1.0 - uK * r2);',       // 樽歪み(縁を内側へ→魚眼風)
             '  if (src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0) gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
