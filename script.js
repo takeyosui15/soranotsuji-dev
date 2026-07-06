@@ -273,7 +273,7 @@ let appState = {
     soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
-    soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h265'/'h264'(動画)
+    soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
     soraExpW: 100,               // 書き出し画像サイズ 横(px) 1〜4096 (縦とアスペクト連動)
     soraExpH: 67,                // 書き出し画像サイズ 縦(px) 1〜4096
 
@@ -1162,7 +1162,8 @@ function normalizeAppState() {
     appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
     appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
     appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
-    if (!['jpeg', 'png', 'h265', 'h264'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
+    if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
+    if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
     appState.soraExpW = Math.round(num(appState.soraExpW, 100, 1, 4096));
     appState.soraExpH = Math.round(num(appState.soraExpH, 67, 1, 4096));
     // 基本オプション
@@ -8304,8 +8305,8 @@ const SORA_SENSORS = [
     { key: 'ip_12pm',      name: 'iPhone 12 Pro Max (1/1.7型)',             w: 7.6,  h: 5.7 },
     { key: 'ip_13',        name: 'iPhone 13/13 mini (1/1.9型)',             w: 6.8,  h: 5.1 },
     { key: 'ip_13p_14',    name: 'iPhone 13 Pro/Pro Max・14/14 Plus (1/1.65型)', w: 7.8, h: 5.9 },
-    { key: 'ip_pro48',     name: 'iPhone 14 Pro/15 Pro/16 Pro 系 (1/1.28型)',    w: 9.8, h: 7.3 },
-    { key: 'ip_15_16',     name: 'iPhone 15/15 Plus・16/16 Plus (1/1.56型)',     w: 8.2, h: 6.2 },
+    { key: 'ip_pro48',     name: 'iPhone 14 Pro/15 Pro/16 Pro/17 Pro 系 (1/1.28型)', w: 9.8, h: 7.3 },
+    { key: 'ip_15_16',     name: 'iPhone 15/16 系・17・Air (1/1.56型)',          w: 8.2, h: 6.2 },
     { key: 'ip_se',        name: 'iPhone SE(第2/3世代) (1/3.0型)',          w: 4.8,  h: 3.6 },
     { key: 'ipod7',        name: 'iPod touch(第7世代) (1/3.2型)',           w: 4.5,  h: 3.4 },
     { key: 'px_4a_6a',     name: 'Pixel 4a/5/5a/6a (1/2.55型)',             w: 5.7,  h: 4.3 },
@@ -8675,13 +8676,15 @@ function soraExportStill(fmt) {
     }, fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92);
 }
 
-/** 選択形式のMIME候補(対応環境ではMP4、非対応はWebMへ自動フォールバック) */
+/** 選択形式のMIME候補。h264=H.264のMP4(非対応はWebMへ)、webm=H.264のWebM(非対応はVP9等のWebMへ) */
 function soraExpPickMime(fmt) {
     if (typeof MediaRecorder === 'undefined') return null;
-    const wanted = fmt === 'h265'
-        ? ['video/mp4;codecs=hvc1.1.6.L120.B0', 'video/mp4;codecs=hvc1', 'video/mp4;codecs=hev1.1.6.L120.B0']
-        : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/webm;codecs=h264'];
-    const fallback = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    const wanted = fmt === 'webm'
+        ? ['video/webm;codecs=h264']
+        : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E'];
+    const fallback = fmt === 'webm'
+        ? ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+        : ['video/webm;codecs=h264', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
     for (const m of wanted) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: false }; } catch (_) {} }
     for (const m of fallback) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: true }; } catch (_) {} }
     return null;
@@ -8696,8 +8699,11 @@ function soraExportVideo(fmt) {
     const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
     const fps = Number(appState.soraMovFps) || 30;
     const durSec = Math.ceil(n / fps);
-    const codecName = fmt === 'h265' ? 'H.265' : 'H.264';
-    const msg = (picked.fellBack ? `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n` : '') +
+    const codecName = fmt === 'webm' ? 'H.264(WebM)' : 'H.264(MP4)';
+    const msg = (picked.fellBack
+        ? (fmt === 'webm' ? 'お使いのブラウザはH.264のWebM書き出しに対応していないため、VP9等のWebM形式で出力します。\n'
+                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n`)
+        : '') +
         `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
     if (!confirm(msg)) return;
     if (_movTimer) soraMovStop();   // 再生中なら停止してから
