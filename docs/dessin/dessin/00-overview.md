@@ -92,7 +92,7 @@
 | tsujiElevOK | false | 可 | 不可| 複数指定不可 | 辻検索の標高OKフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiElevNG | false | 可 | 不可| 複数指定不可 | 辻検索の標高NGフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
 | tsujiTimeFilter | false | 可 | 不可| 複数指定不可 | 辻検索の時間フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiStartMode | sunset | 可 | 不可| 複数指定不可 | 時間フィルタ開始の時刻モード。fixed(時刻指定)/astroDawn(天文薄明[始])/nautDawn(航海薄明[始])/yoake(夜明)/civilDawn(常用薄明[始])/sunrise(日の出)/sunset(日の入)/civilDusk(常用薄明[終])/higure(日暮)/nautDusk(航海薄明[終])/astroDusk(天文薄明[終])。キー省略時は、sunset。 | 無効 | 有効 |
+| tsujiStartMode | sunset | 可 | 不可| 複数指定不可 | 時間フィルタ開始の時刻モード。fixed(時刻指定)/astroDawn(天文薄明[始])/nautDawn(航海薄明[始])/yoake(夜明)/civilDawn(常用薄明/BH[始])/bhEndGhStart(BH[終]/GH[始])/sunrise(日の出)/ghEnd(GH[終])/ghStart(GH[始])/sunset(日の入)/ghEndBhStart(GH[終]/BH[始])/civilDusk(常用薄明/BH[終])/higure(日暮)/nautDusk(航海薄明[終])/astroDusk(天文薄明[終])。キー省略時は、sunset。 | 無効 | 有効 |
 | tsujiStartTime | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ開始がfixedの時の時刻(HH:MM)。 | 無効 | 有効 |
 | tsujiStartPrePost | false | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後時刻指定を有効化。キー省略時は、false。 | 無効 | 有効 |
 | tsujiStartPrePostDir | before | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後方向。before(前)/after(後)。 | 無効 | 有効 |

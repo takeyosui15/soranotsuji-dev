@@ -495,10 +495,20 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dawn" class="mystars-radio" value="civil_dawn">
                                 <label for="jump-civil-dawn">
-                                    <span class="shortcut-name">常用薄明[始]</span>
+                                    <span class="shortcut-name">常用薄明/BH[始]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dawn">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-bh-end-gh-start" class="mystars-radio" value="bh_end_gh_start">
+                                <label for="jump-bh-end-gh-start">
+                                    <span class="shortcut-name">BH[終]/GH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-bh-end-gh-start">--:--</span>
+                                        <span class="shortcut-alt">(-4°)</span>
                                     </span>
                                 </label>
                             </div>
@@ -512,12 +522,32 @@ GNU General Public License for more details.
                                     </span>
                                 </label>
                             </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-end" class="mystars-radio" value="gh_end">
+                                <label for="jump-gh-end">
+                                    <span class="shortcut-name">GH[終]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-end">--:--</span>
+                                        <span class="shortcut-alt">(+6°)</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <!-- 日暮グループ -->
                     <div class="twilight-group">
                         <div class="twilight-group-title">日暮</div>
                         <div class="twilight-grid">
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-start" class="mystars-radio" value="gh_start">
+                                <label for="jump-gh-start">
+                                    <span class="shortcut-name">GH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-start">--:--</span>
+                                        <span class="shortcut-alt">(+6°)</span>
+                                    </span>
+                                </label>
+                            </div>
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-tw-sunset" class="mystars-radio" value="tw_sunset">
                                 <label for="jump-tw-sunset">
@@ -528,11 +558,20 @@ GNU General Public License for more details.
                                     </span>
                                 </label>
                             </div>
-                            <div class="shortcut-item twilight-spacer"></div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-end-bh-start" class="mystars-radio" value="gh_end_bh_start">
+                                <label for="jump-gh-end-bh-start">
+                                    <span class="shortcut-name">GH[終]/BH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-end-bh-start">--:--</span>
+                                        <span class="shortcut-alt">(-4°)</span>
+                                    </span>
+                                </label>
+                            </div>
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dusk" class="mystars-radio" value="civil_dusk">
                                 <label for="jump-civil-dusk">
-                                    <span class="shortcut-name">常用薄明[終]</span>
+                                    <span class="shortcut-name">常用薄明/BH[終]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dusk">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>
@@ -693,10 +732,10 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row starsearch-result">
                         <label>天体名:</label>
-                        <input type="text" id="input-starsearch-name" placeholder="天体名を変更可能" maxlength="150">
+                        <input type="text" id="input-starsearch-name" placeholder="天体名を入力可能" maxlength="150">
                     </div>
                     <div class="control-row starsearch-result">
-                        <input type="text" id="input-starsearch-radec" readonly placeholder="赤経, 赤緯">
+                        <input type="text" id="input-starsearch-radec" placeholder="赤経, 赤緯 を入力可能" maxlength="150">
                     </div>
                 </div>
             </div>

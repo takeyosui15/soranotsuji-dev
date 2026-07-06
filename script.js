@@ -2943,10 +2943,14 @@ function updateTwilightData(startOfDay, observer) {
         const nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
         const yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
         const civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+        const bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);   // BH[終]/GH[始]
         const sr        = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+        const ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);       // GH[終]
 
         // 日暮側 (descending)
+        const ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);       // GH[始]
         const ss        = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+        const ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);   // GH[終]/BH[始]
         const civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
         const higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
         const nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
@@ -2957,9 +2961,13 @@ function updateTwilightData(startOfDay, observer) {
         document.getElementById('time-naut-dawn').innerText  = nautDawn ? formatTime(nautDawn.date) : "--:--";
         document.getElementById('time-yoake').innerText      = yoake ? formatTime(yoake.date) : "--:--";
         document.getElementById('time-civil-dawn').innerText = civilDawn ? formatTime(civilDawn.date) : "--:--";
+        document.getElementById('time-bh-end-gh-start').innerText = bhEndGhStart ? formatTime(bhEndGhStart.date) : "--:--";
         document.getElementById('time-tw-sunrise').innerText = sr ? formatTime(sr.date) : "--:--";
+        document.getElementById('time-gh-end').innerText     = ghEnd ? formatTime(ghEnd.date) : "--:--";
 
+        document.getElementById('time-gh-start').innerText   = ghStart ? formatTime(ghStart.date) : "--:--";
         document.getElementById('time-tw-sunset').innerText  = ss ? formatTime(ss.date) : "--:--";
+        document.getElementById('time-gh-end-bh-start').innerText = ghEndBhStart ? formatTime(ghEndBhStart.date) : "--:--";
         document.getElementById('time-civil-dusk').innerText = civilDusk ? formatTime(civilDusk.date) : "--:--";
         document.getElementById('time-higure').innerText     = higure ? formatTime(higure.date) : "--:--";
         document.getElementById('time-naut-dusk').innerText  = nautDusk ? formatTime(nautDusk.date) : "--:--";
@@ -2974,8 +2982,12 @@ function updateTwilightData(startOfDay, observer) {
         currentRiseSetData.naut_dawn  = nautDawn?.date;
         currentRiseSetData.yoake      = yoake?.date;
         currentRiseSetData.civil_dawn = civilDawn?.date;
+        currentRiseSetData.bh_end_gh_start = bhEndGhStart?.date;
         currentRiseSetData.tw_sunrise = sr?.date;
+        currentRiseSetData.gh_end     = ghEnd?.date;
+        currentRiseSetData.gh_start   = ghStart?.date;
         currentRiseSetData.tw_sunset  = ss?.date;
+        currentRiseSetData.gh_end_bh_start = ghEndBhStart?.date;
         currentRiseSetData.civil_dusk = civilDusk?.date;
         currentRiseSetData.higure     = higure?.date;
         currentRiseSetData.naut_dusk  = nautDusk?.date;
@@ -2983,17 +2995,21 @@ function updateTwilightData(startOfDay, observer) {
     } catch(e) {}
 }
 
-// 辻検索/My辻検索の結果「時間帯」列のラベル (0時起点で時間順に12区分)
+// 辻検索/My辻検索の結果「時間帯」列のラベル (0時起点で時間順に16区分。BH=ブルーアワー, GH=ゴールデンアワー)
 const TIME_CATEGORY_LABELS = [
     '0時<=x<天文薄明[始]',
     '天文薄明[始]<=x<航海薄明[始]',
     '航海薄明[始]<=x<夜明',
-    '夜明<=x<常用薄明[始]',
-    '常用薄明[始]<=x<日の出',
-    '日の出<=x<12時',
-    '12時<=x<日の入',
-    '日の入<=x<常用薄明[終]',
-    '常用薄明[終]<=x<日暮',
+    '夜明<=x<常用薄明/BH[始]',
+    '常用薄明/BH[始]<=x<BH[終]/GH[始]',
+    'BH[終]/GH[始]<=x<日の出',
+    '日の出<=x<GH[終]',
+    'GH[終]<=x<12時',
+    '12時<=x<GH[始]',
+    'GH[始]<=x<日の入',
+    '日の入<=x<GH[終]/BH[始]',
+    'GH[終]/BH[始]<=x<常用薄明/BH[終]',
+    '常用薄明/BH[終]<=x<日暮',
     '日暮<=x<航海薄明[終]',
     '航海薄明[終]<=x<天文薄明[終]',
     '天文薄明[終]<=x<0時',
@@ -3011,7 +3027,8 @@ function computeDayTwilight(startOfDay, observer) {
     };
     return {
         astroDawn: alt(+1, -18), nautDawn: alt(+1, -12), yoake: alt(+1, -7.361111),
-        civilDawn: alt(+1, -6), sunrise: rs(+1), sunset: rs(-1),
+        civilDawn: alt(+1, -6), bhEndGhStart: alt(+1, -4), sunrise: rs(+1), ghEnd: alt(+1, 6),
+        ghStart: alt(-1, 6), sunset: rs(-1), ghEndBhStart: alt(-1, -4),
         civilDusk: alt(-1, -6), higure: alt(-1, -7.361111),
         nautDusk: alt(-1, -12), astroDusk: alt(-1, -18)
     };
@@ -3022,8 +3039,8 @@ function computeDayTwilight(startOfDay, observer) {
 function classifyTimeCategory(dt, tw, startOfDay) {
     const noon = new Date(startOfDay); noon.setHours(12, 0, 0, 0);
     const nextMidnight = new Date(startOfDay.getTime() + 86400000);
-    const bounds = [tw.astroDawn, tw.nautDawn, tw.yoake, tw.civilDawn, tw.sunrise,
-                    noon, tw.sunset, tw.civilDusk, tw.higure, tw.nautDusk, tw.astroDusk, nextMidnight];
+    const bounds = [tw.astroDawn, tw.nautDawn, tw.yoake, tw.civilDawn, tw.bhEndGhStart, tw.sunrise, tw.ghEnd,
+                    noon, tw.ghStart, tw.sunset, tw.ghEndBhStart, tw.civilDusk, tw.higure, tw.nautDusk, tw.astroDusk, nextMidnight];
     for (let i = 0; i < bounds.length; i++) {
         if (bounds[i] && dt < bounds[i]) return TIME_CATEGORY_LABELS[i];
     }
@@ -3032,16 +3049,20 @@ function classifyTimeCategory(dt, tw, startOfDay) {
 
 // 時間フィルタの時刻モード (値は computeDayTwilight の返却キーに一致)。これに加えて 'fixed'(時刻指定) がある。
 const TSUJI_TIME_MODES = [
-    { v: 'astroDawn', l: '天文薄明[始]' },
-    { v: 'nautDawn',  l: '航海薄明[始]' },
-    { v: 'yoake',     l: '夜明' },
-    { v: 'civilDawn', l: '常用薄明[始]' },
-    { v: 'sunrise',   l: '日の出' },
-    { v: 'sunset',    l: '日の入' },
-    { v: 'civilDusk', l: '常用薄明[終]' },
-    { v: 'higure',    l: '日暮' },
-    { v: 'nautDusk',  l: '航海薄明[終]' },
-    { v: 'astroDusk', l: '天文薄明[終]' },
+    { v: 'astroDawn',    l: '天文薄明[始]' },
+    { v: 'nautDawn',     l: '航海薄明[始]' },
+    { v: 'yoake',        l: '夜明' },
+    { v: 'civilDawn',    l: '常用薄明/BH[始]' },
+    { v: 'bhEndGhStart', l: 'BH[終]/GH[始]' },
+    { v: 'sunrise',      l: '日の出' },
+    { v: 'ghEnd',        l: 'GH[終]' },
+    { v: 'ghStart',      l: 'GH[始]' },
+    { v: 'sunset',       l: '日の入' },
+    { v: 'ghEndBhStart', l: 'GH[終]/BH[始]' },
+    { v: 'civilDusk',    l: '常用薄明/BH[終]' },
+    { v: 'higure',       l: '日暮' },
+    { v: 'nautDusk',     l: '航海薄明[終]' },
+    { v: 'astroDusk',    l: '天文薄明[終]' },
 ];
 
 /** 'HH:MM' を分に変換 (不正時は0) */
@@ -3083,7 +3104,7 @@ function passesTimeFilter(dt, tw, fs) {
     return tMin >= sMin || tMin <= eMin; // 夜間 (日付境界またぎ)
 }
 
-/** 時間フィルタの薄明/出没10種モードのラジオ(グリッド)HTMLを生成 */
+/** 時間フィルタの薄明/出没/GH/BHモード(TSUJI_TIME_MODES)のラジオ(グリッド)HTMLを生成 */
 function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr, disabledAttr = 'disabled') {
     return TSUJI_TIME_MODES.map(m =>
         `<label class="tsuji-time-mode"><input type="radio" name="${name}" value="${m.v}" class="${cls}" ${dataAttr} ${checkedValue === m.v ? 'checked' : ''} ${disabledAttr}>${m.l}</label>`
@@ -3095,7 +3116,9 @@ function buildTsujiTimeGroupHtml(group) {
     const G = group === 'start' ? 'Start' : 'End';
     const name = `tsuji-${group}-mode`, ppName = `tsuji-${group}-prepost-dir`;
     const mode = appState['tsuji' + G + 'Mode'];
+    const groupLabel = group === 'start' ? '開始時刻' : '終了時刻';
     return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row"><span class="tsuji-time-group-label">${groupLabel}</span></div>
         <div class="control-row left-row">
             <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="tsuji-time-control" ${mode === 'fixed' ? 'checked' : ''} disabled>時刻指定</label>
             <input type="time" id="input-tsuji-${group}-time" class="tsuji-time-control" value="${appState['tsuji' + G + 'Time']}" disabled>
@@ -3123,7 +3146,9 @@ function buildMyTsujiTimeGroupHtml(t, group) {
     const ppDis = (t.timeFilter && prePost) ? '' : 'disabled';
     const cls = `mytsuji-time-control mytsuji-${group}-mode`;
     const ppCls = `mytsuji-${group}-prepost-control`;
+    const groupLabel = group === 'start' ? '開始時刻' : '終了時刻';
     return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row"><span class="tsuji-time-group-label">${groupLabel}</span></div>
         <div class="control-row left-row">
             <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="${cls}" data-id="${id}" ${mode === 'fixed' ? 'checked' : ''} ${dis}>時刻指定</label>
             <input type="time" class="mytsuji-time-control mytsuji-${group}-time" data-id="${id}" value="${time}" ${dis}>
