@@ -199,6 +199,22 @@ html {
     cursor: grabbing;
 }
 
+/* 全天儀: 表示天体名称と引き出し線のオーバーレイ */
+#milkyway-labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+#milkyway-labels text {
+    font-size: 11px;
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, 0.75);
+    stroke-width: 2px;
+}
+
 #milkyway-credit {
     position: absolute;
     right: 6px;

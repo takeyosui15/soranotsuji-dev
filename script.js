@@ -7300,6 +7300,9 @@ let _mwGlobe = null;         // テクスチャ球+赤道格子(EQJ系; 観測�
 let _mwTexture = null, _mwMaterial = null;
 let _mwMwObjGrp = null;      // 天の川オブジェクト群(環・方位線・マーカー・オフセット点)。基本オプション変更で再構築
 const _mwConstLayers = { fig: null, bounds: null };   // 星座線/星座領域のオーバーレイ球(遅延生成)
+let _mwBodiesObjGrp = null;  // 表示天体オブジェクト群(軌跡・マーカー・方位線)。_mwGlobeの子(EQJ系で天球と共に回転)
+let _mwLabelItems = [];      // 名称ラベル対象 [{name, color, pos(THREE.Vector3 グローブ座標)}]
+let _mwBodiesKey = '';       // 再構築判定キー
 const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
 const _MW_DIST0 = 3.4;                     // 初期カメラ距離
 let _mwDist = _MW_DIST0;                    // ホイールズーム用
@@ -7571,7 +7574,116 @@ function _mwUpdateBaseOptions() {
     _mwEnsureConstLayer('bounds');
     if (_mwConstLayers.fig) _mwConstLayers.fig.visible = !!appState.mwShowConstFig;
     if (_mwConstLayers.bounds) _mwConstLayers.bounds.visible = !!appState.mwShowConstBounds;
+    _mwBodiesKey = '';   // 表示天体オブジェクトも再構築
+    _mwUpdateBodies();
     _mwRender();
+}
+
+/** 表示天体のオブジェクト群(軌跡=等赤緯の日周円・視半径マーカー/十字・中心からの方位線)を再構築。
+ *  基本オプションの「表示天体」チェックでまとめて表示/非表示。名称ラベルは _mwUpdateLabels が描く。 */
+function _mwUpdateBodies() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    const date = appState.currentDate;
+    const visKey = appState.bodies.filter(b => b.visible).map(b => `${b.id}:${b.color}`).join(',');
+    const key = `${Math.floor(date.getTime() / 60000)}|${appState.start.lat},${appState.start.lng}|${visKey}|${appState.mwShowBodies}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
+    if (key === _mwBodiesKey && _mwBodiesObjGrp) return;
+    _mwBodiesKey = key;
+    if (_mwBodiesObjGrp) {
+        _mwGlobe.remove(_mwBodiesObjGrp);
+        _mwBodiesObjGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _mwBodiesObjGrp = new THREE.Group();
+    _mwGlobe.add(_mwBodiesObjGrp);
+    _mwLabelItems = [];
+    if (!appState.mwShowBodies) { return; }
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const R = _MW_R * 1.006;
+    appState.bodies.forEach(body => {
+        if (!body.visible) return;
+        let ra, dec;
+        if (body.id === 'MilkyWay' || isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id); ra = rd.ra; dec = rd.dec;
+        } else {
+            try { const eq = Astronomy.Equator(body.id, date, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { return; }
+        }
+        const v = _mwEquVec(ra, dec);
+        const pos = new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R);
+        const col = new THREE.Color(body.color || '#DDA0DD');
+        // 軌跡: 日周運動=EQJ系の等赤緯円(中心座標を0°として±180°=全周を常に描画)
+        const circPts = [];
+        for (let a = 0; a <= 360; a += 4) {
+            const cv = _mwEquVec(ra + a / 15, dec);
+            circPts.push(new THREE.Vector3(cv[0] * R, cv[1] * R, cv[2] * R));
+        }
+        _mwBodiesObjGrp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(circPts),
+            new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.55 })));
+        _mwLabelItems.push({ name: body.name, color: body.color || '#DDA0DD', pos });
+        if (body.id === 'MilkyWay') return;   // 天の川のマーカー/方位線は _mwBuildMilkyWayRing 側で表現(基準点の軌跡とラベルのみここで)
+        const mat = new THREE.MeshBasicMaterial({ color: col });
+        // 方位線: 中心→天体
+        _mwBodiesObjGrp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), pos), 1, 0.0025 * _MW_R, 6, false), mat));
+        const angR = getBodyAngularRadius(body.id, date, observer);
+        if (angR > 0) {
+            // 惑星/太陽/月: 視半径を反映した球マーカー(小さすぎる場合は見やすい最小径にクランプ)
+            const r = Math.max(_MW_R * Math.tan(angR * Math.PI / 180), 0.012 * _MW_R);
+            const mk = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), mat);
+            mk.position.copy(pos);
+            _mwBodiesObjGrp.add(mk);
+        } else {
+            // 恒星: 天体色のマーカー(+) — 位置の接平面上に細い十字
+            const n = pos.clone().normalize();
+            let t1 = new THREE.Vector3(0, 1, 0).cross(n);
+            if (t1.lengthSq() < 1e-6) t1 = new THREE.Vector3(1, 0, 0).cross(n);
+            t1.normalize();
+            const t2 = n.clone().cross(t1).normalize();
+            const L = 0.025 * _MW_R;
+            [t1, t2].forEach(t => {
+                const a = pos.clone().addScaledVector(t, -L), b = pos.clone().addScaledVector(t, L);
+                _mwBodiesObjGrp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(a, b), 1, 0.003 * _MW_R, 6, false), mat));
+            });
+        }
+    });
+}
+
+/** 表示天体の名称を全天儀の左右に並べ、引き出し線で天体位置を指し示す(SVGオーバーレイ)。
+ *  ドラッグ回転にも追従するよう _mwRender の度に呼ばれる。 */
+function _mwUpdateLabels() {
+    const svg = document.getElementById('milkyway-labels');
+    if (!svg || !_mwInited || _mwFailed || !_mwCamera || !_mwGlobe) return;
+    if (!appState.mwShowBodies || !appState.isMilkyWayActive || _mwLabelItems.length === 0) {
+        if (svg.firstChild) svg.innerHTML = '';
+        return;
+    }
+    const cv = document.getElementById('milkyway-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    _mwGlobe.updateMatrixWorld(true);
+    // 投影して左右に振り分け
+    const left = [], right = [];
+    _mwLabelItems.forEach(it => {
+        const p = it.pos.clone().applyMatrix4(_mwGlobe.matrixWorld).project(_mwCamera);
+        const x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
+        (x < w / 2 ? left : right).push({ ...it, x, y });
+    });
+    const place = (list) => {
+        list.sort((a, b) => a.y - b.y);
+        let prev = -Infinity;
+        list.forEach(it => { it.ly = Math.max(Math.min(Math.max(it.y, 14), h - 8), prev + 14); prev = it.ly; });
+    };
+    place(left); place(right);
+    let html = '';
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    left.forEach(it => {
+        html += `<line x1="6" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(it.color)}" stroke-width="1" opacity="0.75"></line>`;
+        html += `<text x="6" y="${(it.ly - 3).toFixed(1)}" fill="${esc(it.color)}">${esc(it.name)}</text>`;
+    });
+    right.forEach(it => {
+        html += `<line x1="${w - 6}" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(it.color)}" stroke-width="1" opacity="0.75"></line>`;
+        html += `<text x="${w - 6}" y="${(it.ly - 3).toFixed(1)}" fill="${esc(it.color)}" text-anchor="end">${esc(it.name)}</text>`;
+    });
+    svg.innerHTML = html;
 }
 
 /** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
@@ -7657,7 +7769,10 @@ function _mwUpdateCamera() {
     _mwCamera.lookAt(0, 0, 0);
 }
 
-function _mwRender() { if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera); }
+function _mwRender() {
+    if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera);
+    _mwUpdateLabels();   // 名称ラベル/引き出し線をドラッグ・ズームに追従
+}
 
 /** ドラッグでマスターGroup(_mwWorld)をトラックボール回転、ホイールでズーム */
 function _mwAttachDrag(cv) {
@@ -7743,6 +7858,7 @@ function updateMilkyWayGlobe() {
     const m = new THREE.Matrix4();
     m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
     _mwGlobe.quaternion.setFromRotationMatrix(m);
+    _mwUpdateBodies();   // 表示天体(惑星は日時で移動)を追従(キャッシュ付き)
     _mwRender();
 }
 
