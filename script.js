@@ -7725,6 +7725,7 @@ function _mwTryLoadRealImage() {
         if (_mwTexture) _mwTexture.dispose();
         _mwTexture = tex;
         _mwMaterial.map = appState.mwShowBodies ? tex : null;   // 表示天体OFF中は貼らない(ONで復帰)
+        _mwMaterial.color.set(appState.mwShowBodies ? 0xffffff : 0x000000);   // OFF中は黒球(枠組みだけ見える)
         _mwMaterial.needsUpdate = true;
         const cr = document.getElementById('milkyway-credit');
         if (cr) cr.textContent = '天体写真: NASA/Goddard SVS（Deep Star Maps 2020, パブリックドメイン; Gaia: ESA/Gaia/DPAC）';
@@ -7911,6 +7912,7 @@ function _mwUpdateBaseOptions() {
     _mwMwObjGrp.visible = !!appState.mwShowBodies;
     if (_mwMaterial) {
         _mwMaterial.map = appState.mwShowBodies ? _mwTexture : null;
+        _mwMaterial.color.set(appState.mwShowBodies ? 0xffffff : 0x000000);   // OFF中は黒球(地平線や格子などの枠組みだけが見える)
         _mwMaterial.needsUpdate = true;
     }
     // 星座線/星座領域のオーバーレイ
@@ -7960,8 +7962,7 @@ function _mwUpdateBodies() {
             const cv = _mwEquVec(ra + a / 15, dec);
             circPts.push(new THREE.Vector3(cv[0] * R, cv[1] * R, cv[2] * R));
         }
-        _mwBodiesObjGrp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(circPts),
-            new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.55 })));
+        _mwBodiesObjGrp.add(_mwFrontBackLine(circPts, col, 0.55, false));   // 前面=実線/背面=破線(回転に追従)
         _mwLabelItems.push({ name: body.name, color: body.color || '#DDA0DD', pos });
         if (body.id === 'MilkyWay') return;   // 天の川のマーカー/方位線は _mwBuildMilkyWayRing 側で表現(基準点の軌跡とラベルのみここで)
         const mat = new THREE.MeshBasicMaterial({ color: col });
@@ -8040,12 +8041,17 @@ function _mwUpdateLabels() {
     };
     const L = place(left), Rr = place(right);
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    // 文字幅の概算(全角=フォントサイズ、半角=0.55倍)。引き出し線の始点計算に使用
+    const estTextW = (s, fs) => { let sum = 0; for (const ch of s) sum += (ch.charCodeAt(0) > 0xFF ? 1 : 0.55) * fs; return sum; };
     const rowHtml = (it, isLeft) => {
         const hl = it.cls === 'const-label' && _mwConstHighlight === it.name;
         const col = hl ? (_mwBlinkPhase ? '#ffee00' : '#ff3333') : it.color;
         const lw = hl ? 2 : 1;
         const ax = isLeft ? 6 : w - 6;
-        return `<line x1="${ax}" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>` +
+        // 引き出し線は文字の内側端(左列=名称の末尾、右列=名称の先頭)から天体位置へ引く
+        const tw = estTextW(it.name, it.cls === 'const-label' ? 10 : 11);
+        const lx = isLeft ? ax + tw + 3 : ax - tw - 3;
+        return `<line x1="${lx.toFixed(1)}" y1="${(it.ly - 4).toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>` +
                `<text x="${ax}" y="${(it.ly - 3 + rowH - 9).toFixed(1)}" fill="${esc(col)}" ${isLeft ? '' : 'text-anchor="end"'} class="${it.cls}" data-name="${esc(it.name)}">${esc(it.name)}</text>`;
     };
     let html = '';
@@ -8132,6 +8138,32 @@ function _mwAttachLabelEvents() {
     });
 }
 
+/** 球面上の線/メッシュを「前面(カメラ側)のみ」または「背面のみ」描くようにマテリアルへシェーダーを注入する。
+ *  ビュー空間で頂点が球中心より手前(z大)なら前面。回転(モデル行列)に自動追従する。 */
+function _mwPatchFrontBack(mat, frontOnly) {
+    mat.onBeforeCompile = (sh) => {
+        sh.vertexShader = sh.vertexShader
+            .replace('void main() {', 'varying float vMwFront;\nvoid main() {')
+            .replace('#include <project_vertex>', '#include <project_vertex>\n\tvMwFront = mvPosition.z - (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).z;');
+        sh.fragmentShader = sh.fragmentShader
+            .replace('void main() {', 'varying float vMwFront;\nvoid main() {')
+            .replace('#include <clipping_planes_fragment>', '\tif (vMwFront ' + (frontOnly ? '< 0.0' : '>= 0.0') + ') discard;\n#include <clipping_planes_fragment>');
+    };
+    return mat;
+}
+
+/** 球面上のポリラインを「前面=実線/背面=破線」の2本組(Group)で作る。globe/world中心が原点にあるオブジェクト用 */
+function _mwFrontBackLine(points, color, opacity, loop) {
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const Ctor = loop ? THREE.LineLoop : THREE.Line;
+    const solid = new Ctor(geo, _mwPatchFrontBack(new THREE.LineBasicMaterial({ color, transparent: true, opacity }), true));
+    const dashed = new Ctor(geo, _mwPatchFrontBack(new THREE.LineDashedMaterial({ color, transparent: true, opacity: opacity * 0.75, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
+    dashed.computeLineDistances();
+    const grp = new THREE.Group();
+    grp.add(solid); grp.add(dashed);
+    return grp;
+}
+
 /** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
 function _mwBuildHorizon() {
     const grp = new THREE.Group();
@@ -8143,10 +8175,20 @@ function _mwBuildHorizon() {
         const seg = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(v[0] * _MW_R, 0, v[2] * _MW_R)];
         grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), (az % 90 === 0) ? matSpokeMain : matSpoke));
     }
-    // 地平線円(地平面と外側の枠が交わる水平線): 緑
-    const pts = [];
-    for (let az = 0; az <= 360; az += 2) { const v = _mwWorldVec(az, 0); pts.push(new THREE.Vector3(v[0] * _MW_R * 1.004, 0, v[2] * _MW_R * 1.004)); }
-    grp.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.9 })));
+    // 地平線円: 緑の太線。前面(カメラ側)=実線のトーラス、背面=破線(少しずらした3本重ねで太めに)。回転しても常に前面/背面で切り替わる
+    const horizonTorus = new THREE.Mesh(
+        new THREE.TorusGeometry(_MW_R * 1.004, 0.006 * _MW_R, 8, 128),
+        _mwPatchFrontBack(new THREE.MeshBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.95 }), true));
+    horizonTorus.rotation.x = Math.PI / 2;   // XZ平面(地平面)へ
+    grp.add(horizonTorus);
+    for (const rr of [0.998, 1.004, 1.010]) {
+        const pts = [];
+        for (let az = 0; az < 360; az += 2) { const v = _mwWorldVec(az, 0); pts.push(new THREE.Vector3(v[0] * _MW_R * rr, 0, v[2] * _MW_R * rr)); }
+        const dashed = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+            _mwPatchFrontBack(new THREE.LineDashedMaterial({ color: 0x33dd88, transparent: true, opacity: 0.8, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
+        dashed.computeLineDistances();
+        grp.add(dashed);
+    }
     // 方位マーカー: 北=赤、東/南/西=水色
     for (const [label, az] of [['北', 0], ['東', 90], ['南', 180], ['西', 270]]) {
         const v = _mwWorldVec(az, 0);
@@ -8839,6 +8881,7 @@ function setupBaseOptionControls() {
             let v = parseFloat(el.value);
             if (isNaN(v)) v = 0;
             appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+            appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ(編集が即反映されるように)
             applyMilkyWayBaseChange();
         });
     };
@@ -8851,6 +8894,7 @@ function setupBaseOptionControls() {
         let v = parseFloat(e.target.value);
         if (isNaN(v)) v = 0;
         appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+        appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ
         applyMilkyWayBaseChange();
     });
     const chkHandler = (id, key) => {
