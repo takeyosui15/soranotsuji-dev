@@ -893,6 +893,21 @@ input[type="radio"] {
 }
 
 /* 時間フィルタ: 開始(薄青)/終了(薄赤)グループ */
+/* 基本オプションメニュー */
+.baseopt-group-label {
+    font-weight: bold;
+}
+.baseopt-radio {
+    font-size: 12px;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+.baseopt-hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 6px 0;
+}
+
 /* 時間フィルタのグループ見出し(開始時刻/終了時刻) */
 .tsuji-time-group-label {
     font-size: 11px;

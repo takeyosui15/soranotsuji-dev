@@ -178,6 +178,44 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-baseoption')">
+                    <span>基本オプション</span>
+                    <span id="icon-sec-baseoption">▼</span>
+                </div>
+                <div id="sec-baseoption" class="section-content closed">
+                    <div class="control-row left-row"><label class="input-label baseopt-group-label">辻ライン</label></div>
+                    <div class="control-row left-row"><label class="input-label">天の川の基準点:</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="center" checked>天の川の中心座標(いて座付近)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="offset">中心座標からのオフセット点</label>
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row"><label class="input-label baseopt-group-label">全天儀</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-mw-bodies" checked>表示天体</label>
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-fig">星座線</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-bounds">星座領域</label>
+                        <label class="baseopt-radio" title="全天儀の表示オブジェクト拡張の実装時に有効になります"><input type="checkbox" id="chk-baseopt-const-names" disabled>星座名称</label>
+                    </div>
+                    <div class="control-row left-row"><label class="input-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角">オフセット中心角(°):</label>
+                        <input type="number" id="input-baseopt-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row"><label class="input-label baseopt-group-label">標高グラフ</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点の半径○m以内は可視判定のNGを無視する">除外範囲(半径,m):</label>
+                        <input type="number" id="input-baseopt-elev-exclude" placeholder="0〜10000m" step="1" min="0" max="10000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-tsujisearch')">
                     <span>辻検索</span>
                     <span id="icon-sec-tsujisearch">▼</span>
@@ -226,6 +264,12 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">許容範囲視高度(°): ±</label>
                         <input type="number" id="input-tsuji-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="input-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <input type="number" id="input-tsuji-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">

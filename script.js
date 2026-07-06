@@ -261,6 +261,15 @@ let appState = {
     soraTraj: true,
     soraCenterCross: true,
 
+    // 基本オプション (全てlocalStorage保存)
+    baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
+    mwOffsetAngle: 0,            // オフセット中心角(°) -360〜+360。基本オプションと辻検索メニューで連動
+    mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
+    mwShowConstFig: false,       // 全天儀: 星座線の表示
+    mwShowConstBounds: false,    // 全天儀: 星座領域の表示
+    mwShowConstNames: false,     // 全天儀: 星座名称の表示(表示オブジェクト拡張で有効化予定)
+    elevExcludeRadius: 0,        // 標高グラフ: 目的点の半径○m以内は可視判定のNGを無視 (0〜10000)
+
     // 辻検索パラメータ (全てlocalStorage保存)
     tsujiSearchBaseAz: 0,
     tsujiSearchOffsetAz: 0,
@@ -607,6 +616,7 @@ function setupUI() {
     document.getElementById('btn-milkyway').onclick = toggleMilkyWayInstrument;
     document.getElementById('btn-soramado').onclick = toggleSoramado;
     setupSoramadoControls();
+    setupBaseOptionControls();
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
@@ -976,6 +986,10 @@ function saveAppState() {
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
         tsujiSearchDays: appState.tsujiSearchDays,
+        baseOptMwBase: appState.baseOptMwBase, mwOffsetAngle: appState.mwOffsetAngle,
+        mwShowBodies: appState.mwShowBodies, mwShowConstFig: appState.mwShowConstFig,
+        mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
+        elevExcludeRadius: appState.elevExcludeRadius,
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
         tsujiMoonTolerance: appState.tsujiMoonTolerance,
@@ -1050,7 +1064,8 @@ function loadAppState() {
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
-            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross',
+             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1105,6 +1120,12 @@ function normalizeAppState() {
     appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
     ['soraFisheye', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
     if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
+    // 基本オプション
+    if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
+    appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
+    appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
+    appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
+    ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
     // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
     // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
 }
@@ -2303,6 +2324,15 @@ function getBodyAngularRadius(bodyId, date, observer) {
     return Math.atan(radiusKm / distKm) * 180 / Math.PI;
 }
 
+/** 天の川の基準点(基本オプション)のRA/Dec。
+ *  基準点が「オフセット点」のときは、銀河赤道(b=0)上を中心座標からオフセット中心角(°)ズラした点を返す。 */
+function getMilkyWayBaseRaDec() {
+    const ang = Number(appState.mwOffsetAngle) || 0;
+    if (appState.baseOptMwBase !== 'offset' || ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
+    const eq = galacticToEquatorial(ang, 0);
+    return { ra: eq.ra, dec: eq.dec };
+}
+
 // 固定RA/Decの恒星のRA/Decを返すヘルパー
 function getFixedStarRaDec(bodyId) {
     switch (bodyId) {
@@ -2317,7 +2347,7 @@ function getFixedStarRaDec(bodyId) {
         case 'Betelgeuse': return { ra: BETELGEUSE_RA, dec: BETELGEUSE_DEC };
         case 'Sirius':     return { ra: SIRIUS_RA, dec: SIRIUS_DEC };
         case 'Procyon':    return { ra: PROCYON_RA, dec: PROCYON_DEC };
-        case 'MilkyWay':   return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
+        case 'MilkyWay':   return getMilkyWayBaseRaDec();   // 基本オプションの基準点(中心座標/オフセット点)に追従
         default: {
             // My天体から検索
             const myStar = appState.myStars.find(s => String(s.id) === bodyId);
@@ -5654,6 +5684,12 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.1" min="0" max="360" data-id="${t.id}">
             </div>
             <hr class="tsujisearch-separator">
+            <div class="control-row left-row"><label class="mytsuji-label">天の川オプション</label></div>
+            <div class="control-row">
+                <label class="mytsuji-label" title="天の川の基準点のオフセット中心角(基本オプション・辻検索と連動)">オフセット中心角(°):</label>
+                <input type="number" class="mytsuji-mw-offset" value="${Number(appState.mwOffsetAngle) || 0}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}">
+            </div>
+            <hr class="tsujisearch-separator">
             <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-moon-filter" data-id="${t.id}" ${t.moonFilter ? 'checked' : ''}>
                 <label>月齢フィルタ</label>
@@ -6015,6 +6051,7 @@ function toggleMilkyWayInstrument() {
         document.getElementById('btn-milkyway').classList.add('active');
         document.getElementById('milkyway-panel').classList.remove('hidden');
         startMilkyWayGlobe();
+        _mwUpdateBaseOptions();   // 閉じている間の基本オプション変更を反映
     }
     syncBottomPanels();
 }
@@ -6750,10 +6787,12 @@ function computeVisibility() {
     const totalDist = pts[pts.length - 1].dist;
     if (totalDist <= 0) return { visible: true };
     // 両端は除外 (スタート/ゴール地点自体は判定対象外)
+    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;   // 基本オプション: 目的点の半径○m以内のNGは無視
     for (let i = 1; i < pts.length - 1; i++) {
         const pt = pts[i];
         const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
         if (pt.elev > lineElev) {
+            if (totalDist - pt.dist <= exclKm) continue;
             return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
         }
     }
@@ -6777,10 +6816,12 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
     if (fetched.length < 2) return { visible: true };
     const totalDist = fetched[fetched.length - 1].dist;
     if (totalDist <= 0) return { visible: true };
+    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;   // 基本オプション: 目的点の半径○m以内のNGは無視
     for (let i = 1; i < fetched.length - 1; i++) {
         const pt = fetched[i];
         const lineElev = startTotalElev + (endTotalElev - startTotalElev) * (pt.dist / totalDist);
         if (pt.elev > lineElev) {
+            if (totalDist - pt.dist <= exclKm) continue;
             return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
         }
     }
@@ -7257,6 +7298,8 @@ let _mwRenderer = null, _mwScene = null, _mwCamera = null;
 let _mwWorld = null;         // マスターGroup(ドラッグで回転。初期=北が上)
 let _mwGlobe = null;         // テクスチャ球+赤道格子(EQJ系; 観測者へ回転)
 let _mwTexture = null, _mwMaterial = null;
+let _mwMwObjGrp = null;      // 天の川オブジェクト群(環・方位線・マーカー・オフセット点)。基本オプション変更で再構築
+const _mwConstLayers = { fig: null, bounds: null };   // 星座線/星座領域のオーバーレイ球(遅延生成)
 const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
 const _MW_DIST0 = 3.4;                     // 初期カメラ距離
 let _mwDist = _MW_DIST0;                    // ホイールズーム用
@@ -7358,7 +7401,8 @@ function _mwTryLoadRealImage() {
         tex.needsUpdate = true;
         if (_mwTexture) _mwTexture.dispose();
         _mwTexture = tex;
-        _mwMaterial.map = tex; _mwMaterial.needsUpdate = true;
+        _mwMaterial.map = appState.mwShowBodies ? tex : null;   // 表示天体OFF中は貼らない(ONで復帰)
+        _mwMaterial.needsUpdate = true;
         const cr = document.getElementById('milkyway-credit');
         if (cr) cr.textContent = '天体写真: NASA/Goddard SVS（Deep Star Maps 2020, パブリックドメイン; Gaia: ESA/Gaia/DPAC）';
         _mwRender();
@@ -7414,7 +7458,8 @@ function _mwBuildGlobe() {
     const globe = new THREE.Group();
     globe.add(new THREE.Mesh(geo, _mwMaterial));
     globe.add(_mwBuildGraticule());
-    globe.add(_mwBuildMilkyWayRing());
+    _mwMwObjGrp = _mwBuildMilkyWayRing();
+    globe.add(_mwMwObjGrp);
     return globe;
 }
 
@@ -7444,7 +7489,89 @@ function _mwBuildMilkyWayRing() {
     const marker = new THREE.Mesh(new THREE.SphereGeometry(0.018 * _MW_R, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
     marker.position.copy(gcPos);
     grp.add(marker);
+    // オフセット点(基本オプション): 中心座標からのオフセット中心角の点を天体色マーカー＋天体色方位線で表示。
+    // 中心と重なる場合(角度が360の倍数)は中心の赤マーカーを優先して表示しない。
+    const ang = Number(appState.mwOffsetAngle) || 0;
+    if (appState.baseOptMwBase === 'offset' && ang % 360 !== 0) {
+        const mwBody = appState.bodies.find(b => b.id === 'MilkyWay');
+        const col = new THREE.Color((mwBody && mwBody.color) || '#800080');
+        const op = galacticToEquatorial(ang, 0);
+        const ov = _mwEquVec(op.ra, op.dec);
+        const opPos = new THREE.Vector3(ov[0] * RR, ov[1] * RR, ov[2] * RR);
+        const matBody = new THREE.MeshBasicMaterial({ color: col });
+        grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), opPos), 1, 0.0035 * _MW_R, 8, false), matBody));
+        const opMarker = new THREE.Mesh(new THREE.SphereGeometry(0.018 * _MW_R, 16, 12), matBody);
+        opMarker.position.copy(opPos);
+        grp.add(opMarker);
+    }
     return grp;
+}
+
+/** 星座線/星座領域のオーバーレイ球を(必要時に)生成する。kind='fig'|'bounds' */
+function _mwEnsureConstLayer(kind) {
+    if (_mwConstLayers[kind] || !_mwGlobe) return;
+    const on = kind === 'fig' ? appState.mwShowConstFig : appState.mwShowConstBounds;
+    if (!on) return;   // ONになるまで生成しない(画像を無駄に読まない)
+    const file = kind === 'fig' ? 'constellation_figures_skymap.webp' : 'constellation_bounds_skymap.webp';
+    const R = _MW_R * (kind === 'fig' ? 1.002 : 1.004);
+    const slices = 96, stacks = 48, positions = [], uvs = [], indices = [];
+    for (let j = 0; j <= stacks; j++) {
+        const dec = -90 + 180 * j / stacks;
+        for (let i = 0; i <= slices; i++) {
+            const v = _mwEquVec(24 * i / slices, dec);
+            positions.push(v[0] * R, v[1] * R, v[2] * R);
+            uvs.push(i / slices, j / stacks);
+        }
+    }
+    const row = slices + 1;
+    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
+        const a = j * row + i, b = a + row;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = false;
+    _mwConstLayers[kind] = mesh;
+    _mwGlobe.add(mesh);
+    const img = new Image();
+    img.onload = () => {
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 0.5;   // NASA赤道座標版に整合(天の川写真と同じ)
+        tex.needsUpdate = true;
+        mat.map = tex; mat.needsUpdate = true;
+        _mwRender();
+    };
+    img.onerror = () => { /* 取得不可: 何も重ねない */ };
+    img.src = file;
+}
+
+/** 基本オプション(天の川の基準点/オフセット中心角・表示天体・星座線/領域)を全天儀へ反映 */
+function _mwUpdateBaseOptions() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    // 天の川オブジェクト群を再構築(オフセット点マーカー/方位線の反映)
+    if (_mwMwObjGrp) {
+        _mwGlobe.remove(_mwMwObjGrp);
+        _mwMwObjGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _mwMwObjGrp = _mwBuildMilkyWayRing();
+    _mwGlobe.add(_mwMwObjGrp);
+    // 表示天体チェック: 天の川の写真・環・マーカー等の表示/非表示
+    _mwMwObjGrp.visible = !!appState.mwShowBodies;
+    if (_mwMaterial) {
+        _mwMaterial.map = appState.mwShowBodies ? _mwTexture : null;
+        _mwMaterial.needsUpdate = true;
+    }
+    // 星座線/星座領域のオーバーレイ
+    _mwEnsureConstLayer('fig');
+    _mwEnsureConstLayer('bounds');
+    if (_mwConstLayers.fig) _mwConstLayers.fig.visible = !!appState.mwShowConstFig;
+    if (_mwConstLayers.bounds) _mwConstLayers.bounds.visible = !!appState.mwShowConstBounds;
+    _mwRender();
 }
 
 /** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
@@ -7595,6 +7722,7 @@ function _mwInit() {
     if (cr) cr.textContent = '天の川: 模式図（生成）';
     _mwTryLoadRealImage();
     _mwInited = true;
+    _mwUpdateBaseOptions();   // 基本オプション(表示天体・星座線/領域・オフセット点)を初期反映
 }
 
 /** パネルを開いた時の起動。毎回「北が上」にリセット */
@@ -7744,6 +7872,75 @@ function soraUpdateBaseFromPoints() {
 }
 
 /** 各コントロールのイベント登録 */
+// --- 基本オプションメニュー ---
+/** 基本オプションのUI同期(状態→フォーム)。オフセット中心角は辻検索メニュー・My辻検索行とも連動 */
+function syncBaseOptionUI() {
+    const r = document.querySelector(`input[name="baseopt-mw-base"][value="${appState.baseOptMwBase}"]`);
+    if (r) r.checked = true;
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    set('input-baseopt-mw-offset', appState.mwOffsetAngle);
+    set('input-tsuji-mw-offset', appState.mwOffsetAngle);
+    set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
+    chk('chk-baseopt-const-fig', appState.mwShowConstFig);
+    chk('chk-baseopt-const-bounds', appState.mwShowConstBounds);
+    chk('chk-baseopt-const-names', appState.mwShowConstNames);
+    document.querySelectorAll('.mytsuji-mw-offset').forEach(el => { if (document.activeElement !== el) el.value = appState.mwOffsetAngle; });
+}
+
+/** 天の川の基準点/オフセット中心角の変更を全機能へ反映(天体詳細・辻ライン・辻検索・全天儀・宙の窓) */
+function applyMilkyWayBaseChange() {
+    saveAppState();
+    syncBaseOptionUI();
+    updateAll();
+    _mwUpdateBaseOptions();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+function setupBaseOptionControls() {
+    document.querySelectorAll('input[name="baseopt-mw-base"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.baseOptMwBase = r.value; applyMilkyWayBaseChange(); } });
+    });
+    const offsetHandler = (el) => {
+        if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (isNaN(v)) v = 0;
+            appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+            applyMilkyWayBaseChange();
+        });
+    };
+    offsetHandler(document.getElementById('input-baseopt-mw-offset'));
+    offsetHandler(document.getElementById('input-tsuji-mw-offset'));
+    // My辻検索行のオフセット中心角(連動): 行は再描画されるためコンテナへ委譲
+    const myList = document.getElementById('mytsuji-list');
+    if (myList) myList.addEventListener('change', (e) => {
+        if (!e.target.classList || !e.target.classList.contains('mytsuji-mw-offset')) return;
+        let v = parseFloat(e.target.value);
+        if (isNaN(v)) v = 0;
+        appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+        applyMilkyWayBaseChange();
+    });
+    const chkHandler = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState[key] = el.checked; saveAppState(); _mwUpdateBaseOptions(); });
+    };
+    chkHandler('chk-baseopt-mw-bodies', 'mwShowBodies');
+    chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
+    chkHandler('chk-baseopt-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-baseopt-const-names', 'mwShowConstNames');
+    const excl = document.getElementById('input-baseopt-elev-exclude');
+    if (excl) excl.addEventListener('change', () => {
+        let v = parseFloat(excl.value);
+        if (isNaN(v)) v = 0;
+        appState.elevExcludeRadius = Math.max(0, Math.min(10000, Math.round(v)));
+        saveAppState();
+        syncBaseOptionUI();
+    });
+    syncBaseOptionUI();
+}
+
 function setupSoramadoControls() {
     soraPopulateSelects();
     const after = () => { soraSyncUI(); saveAppState(); if (appState.isSoramadoActive) drawSoramado(); };
@@ -8083,8 +8280,8 @@ function _smBuildBodies() {
     appState.bodies.forEach(body => {
         if (!body.visible) return;
         if (body.id === 'MilkyWay') {
-            // 天の川の中心(銀河中心 l=0,b=0)に、他天体と同じ天体色の固定画面サイズ十字
-            const gc = galacticToEquatorial(0, 0);
+            // 天の川の基準点(中心座標/オフセット点=基本オプション)に、他天体と同じ天体色の固定画面サイズ十字
+            const gc = getFixedStarRaDec('MilkyWay');
             const ghor = Astronomy.Horizon(date, observer, gc.ra, gc.dec, refr);
             const gpos = _smDir(ghor.azimuth, ghor.altitude).multiplyScalar(_SM_BODY_R);
             const gfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
@@ -8134,7 +8331,7 @@ function _smBuildTraj() {
     const dayStart = new Date(appState.currentDate); dayStart.setHours(0, 0, 0, 0);
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
     const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
-    const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}`;
+    const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
     if (key === _smTrajKey) return;
     _smTrajKey = key;
     while (_smTrajGrp.children.length) { const c = _smTrajGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
@@ -8144,11 +8341,10 @@ function _smBuildTraj() {
     const dayStartMs = dayStart.getTime(), N = 96;
     appState.bodies.forEach(body => {
         if (!body.visible) return;
-        // 天の川は「銀河中心(銀河座標 l=0,b=0)」を固定点として軌跡を描く。それ以外は通常天体。
+        // 天の川は「基準点(中心座標/オフセット点=基本オプション)」を固定点として軌跡を描く。それ以外は通常天体。
         let isFixed, rd;
         if (body.id === 'MilkyWay') {
-            const gc = galacticToEquatorial(0, 0);
-            isFixed = true; rd = { ra: gc.ra, dec: gc.dec };
+            isFixed = true; rd = getFixedStarRaDec('MilkyWay');
         } else {
             isFixed = isFixedStar(body.id);
             rd = isFixed ? getFixedStarRaDec(body.id) : null;
