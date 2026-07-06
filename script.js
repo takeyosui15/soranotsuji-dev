@@ -7535,50 +7535,50 @@ let _mwConstHlMarker = null;    // ハイライト中の星座中心を示す3D�
 
 // 88星座の日本語名と中心座標(RA時, Dec度; 概略値。名称ラベルの指し示し用)
 const MW_CONSTELLATIONS = [
-    { n: 'アンドロメダ座', ra: 0.8, dec: 37 }, { n: 'いっかくじゅう座', ra: 7.1, dec: -3 },
-    { n: 'いて座', ra: 19.1, dec: -28 }, { n: 'いるか座', ra: 20.7, dec: 12 },
-    { n: 'インディアン座', ra: 21.0, dec: -58 }, { n: 'うお座', ra: 0.5, dec: 14 },
-    { n: 'うさぎ座', ra: 5.5, dec: -19 }, { n: 'うしかい座', ra: 14.7, dec: 31 },
-    { n: 'うみへび座', ra: 11.6, dec: -14 }, { n: 'エリダヌス座', ra: 3.3, dec: -28 },
-    { n: 'おうし座', ra: 4.7, dec: 15 }, { n: 'おおいぬ座', ra: 6.8, dec: -22 },
-    { n: 'おおかみ座', ra: 15.2, dec: -43 }, { n: 'おおぐま座', ra: 11.3, dec: 51 },
-    { n: 'おとめ座', ra: 13.4, dec: -4 }, { n: 'おひつじ座', ra: 2.6, dec: 20 },
-    { n: 'オリオン座', ra: 5.6, dec: 6 }, { n: 'がか座', ra: 5.7, dec: -53 },
-    { n: 'カシオペヤ座', ra: 1.0, dec: 62 }, { n: 'かじき座', ra: 5.2, dec: -59 },
-    { n: 'かに座', ra: 8.6, dec: 20 }, { n: 'かみのけ座', ra: 12.8, dec: 23 },
-    { n: 'カメレオン座', ra: 10.7, dec: -79 }, { n: 'からす座', ra: 12.4, dec: -18 },
-    { n: 'かんむり座', ra: 15.8, dec: 33 }, { n: 'きょしちょう座', ra: 23.8, dec: -66 },
-    { n: 'ぎょしゃ座', ra: 6.1, dec: 42 }, { n: 'きりん座', ra: 8.9, dec: 69 },
-    { n: 'くじゃく座', ra: 19.6, dec: -65 }, { n: 'くじら座', ra: 1.7, dec: -7 },
-    { n: 'ケフェウス座', ra: 22.0, dec: 71 }, { n: 'ケンタウルス座', ra: 13.1, dec: -47 },
-    { n: 'けんびきょう座', ra: 21.0, dec: -36 }, { n: 'こいぬ座', ra: 7.7, dec: 6 },
-    { n: 'こうま座', ra: 21.2, dec: 8 }, { n: 'こぎつね座', ra: 20.2, dec: 24 },
-    { n: 'こぐま座', ra: 15.0, dec: 78 }, { n: 'こじし座', ra: 10.2, dec: 32 },
-    { n: 'コップ座', ra: 11.4, dec: -16 }, { n: 'こと座', ra: 18.9, dec: 37 },
-    { n: 'コンパス座', ra: 14.6, dec: -63 }, { n: 'さいだん座', ra: 17.4, dec: -56 },
-    { n: 'さそり座', ra: 16.9, dec: -27 }, { n: 'さんかく座', ra: 2.2, dec: 31 },
-    { n: 'しし座', ra: 10.7, dec: 13 }, { n: 'じょうぎ座', ra: 16.1, dec: -51 },
-    { n: 'たて座', ra: 18.7, dec: -10 }, { n: 'ちょうこくぐ座', ra: 4.7, dec: -38 },
-    { n: 'ちょうこくしつ座', ra: 0.4, dec: -32 }, { n: 'つる座', ra: 22.5, dec: -46 },
-    { n: 'テーブルさん座', ra: 5.4, dec: -77 }, { n: 'てんびん座', ra: 15.2, dec: -15 },
-    { n: 'とかげ座', ra: 22.5, dec: 46 }, { n: 'とけい座', ra: 3.3, dec: -53 },
-    { n: 'とびうお座', ra: 7.8, dec: -69 }, { n: 'とも座', ra: 7.3, dec: -31 },
-    { n: 'はえ座', ra: 12.6, dec: -70 }, { n: 'はくちょう座', ra: 20.6, dec: 45 },
-    { n: 'はちぶんぎ座', ra: 23.0, dec: -82 }, { n: 'はと座', ra: 5.9, dec: -35 },
-    { n: 'ふうちょう座', ra: 16.1, dec: -76 }, { n: 'ふたご座', ra: 7.1, dec: 23 },
-    { n: 'ペガスス座', ra: 22.7, dec: 19 }, { n: 'へび座', ra: 16.9, dec: 6 },
-    { n: 'へびつかい座', ra: 17.4, dec: -8 }, { n: 'ヘルクレス座', ra: 17.4, dec: 27 },
-    { n: 'ペルセウス座', ra: 3.2, dec: 45 }, { n: 'ほ座', ra: 9.6, dec: -47 },
-    { n: 'ぼうえんきょう座', ra: 19.3, dec: -51 }, { n: 'ほうおう座', ra: 0.9, dec: -48 },
-    { n: 'ポンプ座', ra: 10.3, dec: -32 }, { n: 'みずがめ座', ra: 22.3, dec: -10 },
-    { n: 'みずへび座', ra: 2.3, dec: -70 }, { n: 'みなみじゅうじ座', ra: 12.4, dec: -60 },
-    { n: 'みなみのうお座', ra: 22.3, dec: -30 }, { n: 'みなみのかんむり座', ra: 18.6, dec: -41 },
-    { n: 'みなみのさんかく座', ra: 16.1, dec: -65 }, { n: 'や座', ra: 19.7, dec: 19 },
-    { n: 'やぎ座', ra: 21.0, dec: -18 }, { n: 'やまねこ座', ra: 8.0, dec: 47 },
-    { n: 'らしんばん座', ra: 8.9, dec: -27 }, { n: 'りゅう座', ra: 17.0, dec: 65 },
-    { n: 'りゅうこつ座', ra: 8.7, dec: -63 }, { n: 'りょうけん座', ra: 13.1, dec: 40 },
-    { n: 'レチクル座', ra: 3.9, dec: -60 }, { n: 'ろ座', ra: 2.8, dec: -30 },
-    { n: 'ろくぶんぎ座', ra: 10.3, dec: -2 }, { n: 'わし座', ra: 19.7, dec: 3 },
+    { n: 'アンドロメダ座', a: 'And', ra: 0.8, dec: 37 }, { n: 'いっかくじゅう座', a: 'Mon', ra: 7.1, dec: -3 },
+    { n: 'いて座', a: 'Sgr', ra: 19.1, dec: -28 }, { n: 'いるか座', a: 'Del', ra: 20.7, dec: 12 },
+    { n: 'インディアン座', a: 'Ind', ra: 21.0, dec: -58 }, { n: 'うお座', a: 'Psc', ra: 0.5, dec: 14 },
+    { n: 'うさぎ座', a: 'Lep', ra: 5.5, dec: -19 }, { n: 'うしかい座', a: 'Boo', ra: 14.7, dec: 31 },
+    { n: 'うみへび座', a: 'Hya', ra: 11.6, dec: -14 }, { n: 'エリダヌス座', a: 'Eri', ra: 3.3, dec: -28 },
+    { n: 'おうし座', a: 'Tau', ra: 4.7, dec: 15 }, { n: 'おおいぬ座', a: 'CMa', ra: 6.8, dec: -22 },
+    { n: 'おおかみ座', a: 'Lup', ra: 15.2, dec: -43 }, { n: 'おおぐま座', a: 'UMa', ra: 11.3, dec: 51 },
+    { n: 'おとめ座', a: 'Vir', ra: 13.4, dec: -4 }, { n: 'おひつじ座', a: 'Ari', ra: 2.6, dec: 20 },
+    { n: 'オリオン座', a: 'Ori', ra: 5.6, dec: 6 }, { n: 'がか座', a: 'Pic', ra: 5.7, dec: -53 },
+    { n: 'カシオペヤ座', a: 'Cas', ra: 1.0, dec: 62 }, { n: 'かじき座', a: 'Dor', ra: 5.2, dec: -59 },
+    { n: 'かに座', a: 'Cnc', ra: 8.6, dec: 20 }, { n: 'かみのけ座', a: 'Com', ra: 12.8, dec: 23 },
+    { n: 'カメレオン座', a: 'Cha', ra: 10.7, dec: -79 }, { n: 'からす座', a: 'Crv', ra: 12.4, dec: -18 },
+    { n: 'かんむり座', a: 'CrB', ra: 15.8, dec: 33 }, { n: 'きょしちょう座', a: 'Tuc', ra: 23.8, dec: -66 },
+    { n: 'ぎょしゃ座', a: 'Aur', ra: 6.1, dec: 42 }, { n: 'きりん座', a: 'Cam', ra: 8.9, dec: 69 },
+    { n: 'くじゃく座', a: 'Pav', ra: 19.6, dec: -65 }, { n: 'くじら座', a: 'Cet', ra: 1.7, dec: -7 },
+    { n: 'ケフェウス座', a: 'Cep', ra: 22.0, dec: 71 }, { n: 'ケンタウルス座', a: 'Cen', ra: 13.1, dec: -47 },
+    { n: 'けんびきょう座', a: 'Mic', ra: 21.0, dec: -36 }, { n: 'こいぬ座', a: 'CMi', ra: 7.7, dec: 6 },
+    { n: 'こうま座', a: 'Equ', ra: 21.2, dec: 8 }, { n: 'こぎつね座', a: 'Vul', ra: 20.2, dec: 24 },
+    { n: 'こぐま座', a: 'UMi', ra: 15.0, dec: 78 }, { n: 'こじし座', a: 'LMi', ra: 10.2, dec: 32 },
+    { n: 'コップ座', a: 'Crt', ra: 11.4, dec: -16 }, { n: 'こと座', a: 'Lyr', ra: 18.9, dec: 37 },
+    { n: 'コンパス座', a: 'Cir', ra: 14.6, dec: -63 }, { n: 'さいだん座', a: 'Ara', ra: 17.4, dec: -56 },
+    { n: 'さそり座', a: 'Sco', ra: 16.9, dec: -27 }, { n: 'さんかく座', a: 'Tri', ra: 2.2, dec: 31 },
+    { n: 'しし座', a: 'Leo', ra: 10.7, dec: 13 }, { n: 'じょうぎ座', a: 'Nor', ra: 16.1, dec: -51 },
+    { n: 'たて座', a: 'Sct', ra: 18.7, dec: -10 }, { n: 'ちょうこくぐ座', a: 'Cae', ra: 4.7, dec: -38 },
+    { n: 'ちょうこくしつ座', a: 'Scl', ra: 0.4, dec: -32 }, { n: 'つる座', a: 'Gru', ra: 22.5, dec: -46 },
+    { n: 'テーブルさん座', a: 'Men', ra: 5.4, dec: -77 }, { n: 'てんびん座', a: 'Lib', ra: 15.2, dec: -15 },
+    { n: 'とかげ座', a: 'Lac', ra: 22.5, dec: 46 }, { n: 'とけい座', a: 'Hor', ra: 3.3, dec: -53 },
+    { n: 'とびうお座', a: 'Vol', ra: 7.8, dec: -69 }, { n: 'とも座', a: 'Pup', ra: 7.3, dec: -31 },
+    { n: 'はえ座', a: 'Mus', ra: 12.6, dec: -70 }, { n: 'はくちょう座', a: 'Cyg', ra: 20.6, dec: 45 },
+    { n: 'はちぶんぎ座', a: 'Oct', ra: 23.0, dec: -82 }, { n: 'はと座', a: 'Col', ra: 5.9, dec: -35 },
+    { n: 'ふうちょう座', a: 'Aps', ra: 16.1, dec: -76 }, { n: 'ふたご座', a: 'Gem', ra: 7.1, dec: 23 },
+    { n: 'ペガスス座', a: 'Peg', ra: 22.7, dec: 19 }, { n: 'へび座', a: 'Ser', ra: 16.9, dec: 6 },
+    { n: 'へびつかい座', a: 'Oph', ra: 17.4, dec: -8 }, { n: 'ヘルクレス座', a: 'Her', ra: 17.4, dec: 27 },
+    { n: 'ペルセウス座', a: 'Per', ra: 3.2, dec: 45 }, { n: 'ほ座', a: 'Vel', ra: 9.6, dec: -47 },
+    { n: 'ぼうえんきょう座', a: 'Tel', ra: 19.3, dec: -51 }, { n: 'ほうおう座', a: 'Phe', ra: 0.9, dec: -48 },
+    { n: 'ポンプ座', a: 'Ant', ra: 10.3, dec: -32 }, { n: 'みずがめ座', a: 'Aqr', ra: 22.3, dec: -10 },
+    { n: 'みずへび座', a: 'Hyi', ra: 2.3, dec: -70 }, { n: 'みなみじゅうじ座', a: 'Cru', ra: 12.4, dec: -60 },
+    { n: 'みなみのうお座', a: 'PsA', ra: 22.3, dec: -30 }, { n: 'みなみのかんむり座', a: 'CrA', ra: 18.6, dec: -41 },
+    { n: 'みなみのさんかく座', a: 'TrA', ra: 16.1, dec: -65 }, { n: 'や座', a: 'Sge', ra: 19.7, dec: 19 },
+    { n: 'やぎ座', a: 'Cap', ra: 21.0, dec: -18 }, { n: 'やまねこ座', a: 'Lyn', ra: 8.0, dec: 47 },
+    { n: 'らしんばん座', a: 'Pyx', ra: 8.9, dec: -27 }, { n: 'りゅう座', a: 'Dra', ra: 17.0, dec: 65 },
+    { n: 'りゅうこつ座', a: 'Car', ra: 8.7, dec: -63 }, { n: 'りょうけん座', a: 'CVn', ra: 13.1, dec: 40 },
+    { n: 'レチクル座', a: 'Ret', ra: 3.9, dec: -60 }, { n: 'ろ座', a: 'For', ra: 2.8, dec: -30 },
+    { n: 'ろくぶんぎ座', a: 'Sex', ra: 10.3, dec: -2 }, { n: 'わし座', a: 'Aql', ra: 19.7, dec: 3 },
 ];
 const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
 const _MW_DIST0 = 3.4;                     // 初期カメラ距離
@@ -7788,46 +7788,70 @@ function _mwBuildMilkyWayRing() {
 }
 
 /** 星座線/星座領域のオーバーレイ球を(必要時に)生成する。kind='fig'|'bounds' */
-function _mwEnsureConstLayer(kind) {
-    if (_mwConstLayers[kind] || !_mwGlobe) return;
-    const on = kind === 'fig' ? appState.mwShowConstFig : appState.mwShowConstBounds;
-    if (!on) return;   // ONになるまで生成しない(画像を無駄に読まない)
-    const file = kind === 'fig' ? 'constellation_figures_skymap.webp' : 'constellation_bounds_skymap.webp';
-    const R = _MW_R * (kind === 'fig' ? 1.002 : 1.004);
-    const slices = 96, stacks = 48, positions = [], uvs = [], indices = [];
-    for (let j = 0; j <= stacks; j++) {
-        const dec = -90 + 180 * j / stacks;
-        for (let i = 0; i <= slices; i++) {
-            const v = _mwEquVec(24 * i / slices, dec);
-            positions.push(v[0] * R, v[1] * R, v[2] * R);
-            uvs.push(i / slices, j / stacks);
+// 星座線/星座領域: IAU境界ベクトルデータ(d3-celestial, BSD-3ライセンス)を線で描画。
+// 星座別レジストリ(略符→Line配列)でハイライト(黄⇄赤点滅)に対応
+const _MW_CONST_STYLE = {
+    fig:    { file: 'constellations.lines.json',   r: 1.002, color: 0x6ec6ff, opacity: 0.8 },   // 星座線=淡い水色
+    bounds: { file: 'constellations.borders.json', r: 1.004, color: 0xd9b64e, opacity: 0.55 },  // 星座領域=淡い金
+};
+const _mwConstSegs = { fig: new Map(), bounds: new Map() };   // 略符 → [THREE.Line]
+const _mwConstLoading = { fig: false, bounds: false };
+
+/** 大円スラープで約2°間隔に細分した頂点列(EQJ球面上)を返す。coords=[ [lonDeg, decDeg], ... ] */
+function _mwConstPolyline(coords, R) {
+    const pts = [];
+    const toVec = (c) => {
+        const raH = (((c[0] % 360) + 360) % 360) / 15;
+        const v = _mwEquVec(raH, c[1]);
+        return new THREE.Vector3(v[0], v[1], v[2]);
+    };
+    for (let i = 0; i < coords.length; i++) {
+        const a = toVec(coords[i]);
+        if (i === 0) { pts.push(a.clone().multiplyScalar(R)); continue; }
+        const prev = toVec(coords[i - 1]);
+        const ang = prev.angleTo(a);
+        const n = Math.max(1, Math.ceil(ang / (2 * Math.PI / 180)));   // ≦2°/分割
+        for (let k = 1; k <= n; k++) {
+            const p = prev.clone().lerp(a, k / n).normalize().multiplyScalar(R);   // 単位球へ正規化=大円近似
+            pts.push(p);
         }
     }
-    const row = slices + 1;
-    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
-        const a = j * row + i, b = a + row;
-        indices.push(a, b, a + 1, a + 1, b, b + 1);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geo.setIndex(indices);
-    const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.visible = false;
-    _mwConstLayers[kind] = mesh;
-    _mwGlobe.add(mesh);
-    const img = new Image();
-    img.onload = () => {
-        const tex = new THREE.Texture(img);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 0.5;   // NASA赤道座標版に整合(天の川写真と同じ)
-        tex.needsUpdate = true;
-        mat.map = tex; mat.needsUpdate = true;
+    return pts;
+}
+
+function _mwEnsureConstLayer(kind) {
+    if (_mwConstLayers[kind] || !_mwGlobe || _mwConstLoading[kind]) return;
+    const on = kind === 'fig' ? appState.mwShowConstFig : appState.mwShowConstBounds;
+    if (!on) return;   // ONになるまで生成しない(データを無駄に読まない)
+    const st = _MW_CONST_STYLE[kind];
+    _mwConstLoading[kind] = true;
+    fetch(st.file).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(gj => {
+        if (!_mwGlobe || _mwConstLayers[kind]) return;
+        const group = new THREE.Group();
+        const R = _MW_R * st.r;
+        for (const f of gj.features) {
+            // 所属星座: lines は id(1星座)、borders は ids="And,Lac"(隣接2星座の共有辺)
+            const abbrs = (f.ids || f.id || '').split(',').filter(Boolean);
+            const geom = f.geometry;
+            const polys = geom.type === 'MultiLineString' ? geom.coordinates : [geom.coordinates];
+            for (const poly of polys) {
+                const pts = _mwConstPolyline(poly, R);
+                if (pts.length < 2) continue;
+                const g = new THREE.BufferGeometry().setFromPoints(pts);
+                const m = new THREE.LineBasicMaterial({ color: st.color, transparent: true, opacity: st.opacity, depthWrite: false });
+                const line = new THREE.Line(g, m);
+                group.add(line);
+                for (const ab of abbrs) {
+                    if (!_mwConstSegs[kind].has(ab)) _mwConstSegs[kind].set(ab, []);
+                    _mwConstSegs[kind].get(ab).push(line);
+                }
+            }
+        }
+        group.visible = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+        _mwConstLayers[kind] = group;
+        _mwGlobe.add(group);
         _mwRender();
-    };
-    img.onerror = () => { /* 取得不可: 何も重ねない */ };
-    img.src = file;
+    }).catch(() => { /* 取得不可: 何も重ねない(次回ONで再試行) */ _mwConstLoading[kind] = false; });
 }
 
 /** 基本オプション(天の川の基準点/オフセット中心角・表示天体・星座線/領域)を全天儀へ反映 */
@@ -7988,8 +8012,27 @@ function _mwUpdateLabels() {
 }
 
 /** 星座名称のハイライト設定(黄⇄赤の点滅＋中心リングマーカー)。name=null で解除 */
+/** ハイライト中の星座の線/領域Line群を取得(レイヤー表示中のもののみ) */
+function _mwHlLines(abbr) {
+    const out = [];
+    if (!abbr) return out;
+    if (_mwConstLayers.fig && _mwConstLayers.fig.visible) out.push(...(_mwConstSegs.fig.get(abbr) || []));
+    if (_mwConstLayers.bounds && _mwConstLayers.bounds.visible) out.push(...(_mwConstSegs.bounds.get(abbr) || []));
+    return out;
+}
+
+/** ハイライト対象の線色/不透明度を基準スタイルへ戻す */
+function _mwResetHlLines(abbr) {
+    if (!abbr) return;
+    (_mwConstSegs.fig.get(abbr) || []).forEach(l => { l.material.color.set(_MW_CONST_STYLE.fig.color); l.material.opacity = _MW_CONST_STYLE.fig.opacity; });
+    (_mwConstSegs.bounds.get(abbr) || []).forEach(l => { l.material.color.set(_MW_CONST_STYLE.bounds.color); l.material.opacity = _MW_CONST_STYLE.bounds.opacity; });
+}
+
 function _mwSetConstHighlight(name) {
     if (_mwConstHighlight === name) return;
+    // 直前のハイライト星座の線/領域を基準色へ復元
+    const prev = MW_CONSTELLATIONS.find(x => x.n === _mwConstHighlight);
+    if (prev) _mwResetHlLines(prev.a);
     _mwConstHighlight = name;
     if (_mwBlinkTimer) { clearInterval(_mwBlinkTimer); _mwBlinkTimer = null; }
     // 3Dリングマーカーの撤去
@@ -8000,7 +8043,9 @@ function _mwSetConstHighlight(name) {
     }
     if (name && _mwGlobe) {
         const c = MW_CONSTELLATIONS.find(x => x.n === name);
-        if (c) {
+        // 星座線/領域が表示中ならベクトル線そのものを点滅ハイライト。非表示時は中心リングでフォールバック
+        const hlLines = c ? _mwHlLines(c.a) : [];
+        if (c && hlLines.length === 0) {
             const v = _mwEquVec(c.ra, c.dec);
             const pos = new THREE.Vector3(v[0], v[1], v[2]).multiplyScalar(_MW_R * 1.006);
             _mwConstHlMarker = new THREE.Mesh(
@@ -8010,11 +8055,15 @@ function _mwSetConstHighlight(name) {
             _mwConstHlMarker.lookAt(new THREE.Vector3(0, 0, 0));   // 球面に沿わせる
             _mwGlobe.add(_mwConstHlMarker);
         }
-        _mwBlinkTimer = setInterval(() => {
+        const blink = () => {
             _mwBlinkPhase = !_mwBlinkPhase;
-            if (_mwConstHlMarker) _mwConstHlMarker.material.color.set(_mwBlinkPhase ? 0xffee00 : 0xff3333);
+            const col = _mwBlinkPhase ? 0xffee00 : 0xff3333;
+            if (_mwConstHlMarker) _mwConstHlMarker.material.color.set(col);
+            for (const l of hlLines) { l.material.color.set(col); l.material.opacity = 1.0; }
             _mwRender();
-        }, 350);
+        };
+        blink();   // 即時に1回反映
+        _mwBlinkTimer = setInterval(blink, 350);
     }
     _mwRender();
 }
@@ -8249,6 +8298,23 @@ const SORA_SENSORS = [
     { key: 'type255',      name: '1/2.55型 (5.7×4.3)',           w: 5.7,  h: 4.3 },
     { key: 'type30',       name: '1/3.0型 (4.8×3.6)',            w: 4.8,  h: 3.6 },
     { key: 'type36',       name: '1/3.6型 (4.0×3.0)',            w: 4.0,  h: 3.0 },
+    // スマートフォン(主カメラ・広角)。寸法は公開情報ベースの概算(4:3)
+    { key: 'ip_x_11',      name: 'iPhone X/XS/XR/11 (1/2.55型)',            w: 5.7,  h: 4.3 },
+    { key: 'ip_12',        name: 'iPhone 12/12 mini/12 Pro (1/2.55型)',     w: 5.7,  h: 4.3 },
+    { key: 'ip_12pm',      name: 'iPhone 12 Pro Max (1/1.7型)',             w: 7.6,  h: 5.7 },
+    { key: 'ip_13',        name: 'iPhone 13/13 mini (1/1.9型)',             w: 6.8,  h: 5.1 },
+    { key: 'ip_13p_14',    name: 'iPhone 13 Pro/Pro Max・14/14 Plus (1/1.65型)', w: 7.8, h: 5.9 },
+    { key: 'ip_pro48',     name: 'iPhone 14 Pro/15 Pro/16 Pro 系 (1/1.28型)',    w: 9.8, h: 7.3 },
+    { key: 'ip_15_16',     name: 'iPhone 15/15 Plus・16/16 Plus (1/1.56型)',     w: 8.2, h: 6.2 },
+    { key: 'ip_se',        name: 'iPhone SE(第2/3世代) (1/3.0型)',          w: 4.8,  h: 3.6 },
+    { key: 'ipod7',        name: 'iPod touch(第7世代) (1/3.2型)',           w: 4.5,  h: 3.4 },
+    { key: 'px_4a_6a',     name: 'Pixel 4a/5/5a/6a (1/2.55型)',             w: 5.7,  h: 4.3 },
+    { key: 'px_6_7',       name: 'Pixel 6/6 Pro・7/7 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
+    { key: 'px_7a_8a',     name: 'Pixel 7a/8a (1/1.73型)',                  w: 7.4,  h: 5.6 },
+    { key: 'px_8_9',       name: 'Pixel 8/8 Pro・9/9 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
+    { key: 'xp_1ii_iv',    name: 'Xperia 1/5 (II〜IV) (1/1.7型)',           w: 7.6,  h: 5.7 },
+    { key: 'xp_1v',        name: 'Xperia 1 V/5 V・1 VI (1/1.35型)',         w: 9.6,  h: 7.2 },
+    { key: 'xp_10',        name: 'Xperia 10 (II〜VI) (1/2.8型)',            w: 5.1,  h: 3.8 },
 ];
 const SORA_FOCALS = [6,7.5,8,10,11,12,13,14,15,16,17,18,20,21,24,25,26,28,30,35,36,40,43,45,50,55,58,60,70,72,75,80,85,86,100,105,120,135,140,150,180,200,210,250,300,360,400,500,600,800,1000,1200,1700,2000];
 const SORA_FNUMBERS = [0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.2,3.5,4.0,4.5,5.0,5.6,6.3,7.1,8.0,9.0,10,11,13,14,16,18,20,22];
