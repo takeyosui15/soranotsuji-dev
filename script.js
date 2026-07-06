@@ -267,7 +267,8 @@ let appState = {
     mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
     mwShowConstFig: false,       // 全天儀: 星座線の表示
     mwShowConstBounds: false,    // 全天儀: 星座領域の表示
-    mwShowConstNames: false,     // 全天儀: 星座名称の表示(表示オブジェクト拡張で有効化予定)
+    mwShowConstNames: false,     // 全天儀: 星座名称の表示
+    mwConstNameSort: 'aiueo',    // 星座名称の表示順: 'aiueo'=50音順(左上から右下へ) / 'pos'=座標順(天頂+90°→-90°)
     elevExcludeRadius: 0,        // 標高グラフ: 目的点の半径○m以内は可視判定のNGを無視 (0〜10000)
 
     // 辻検索パラメータ (全てlocalStorage保存)
@@ -989,6 +990,7 @@ function saveAppState() {
         baseOptMwBase: appState.baseOptMwBase, mwOffsetAngle: appState.mwOffsetAngle,
         mwShowBodies: appState.mwShowBodies, mwShowConstFig: appState.mwShowConstFig,
         mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
+        mwConstNameSort: appState.mwConstNameSort,
         elevExcludeRadius: appState.elevExcludeRadius,
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
@@ -1065,7 +1067,7 @@ function loadAppState() {
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross',
-             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1126,6 +1128,7 @@ function normalizeAppState() {
     appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
+    if (appState.mwConstNameSort !== 'aiueo' && appState.mwConstNameSort !== 'pos') appState.mwConstNameSort = 'aiueo';
     // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
     // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
 }
@@ -7303,6 +7306,58 @@ const _mwConstLayers = { fig: null, bounds: null };   // 星座線/星座領域�
 let _mwBodiesObjGrp = null;  // 表示天体オブジェクト群(軌跡・マーカー・方位線)。_mwGlobeの子(EQJ系で天球と共に回転)
 let _mwLabelItems = [];      // 名称ラベル対象 [{name, color, pos(THREE.Vector3 グローブ座標)}]
 let _mwBodiesKey = '';       // 再構築判定キー
+let _mwConstHighlight = null;   // ハイライト中の星座名(null=なし)
+let _mwBlinkPhase = false;      // 点滅位相(黄⇄赤)
+let _mwBlinkTimer = null;       // 点滅タイマー
+let _mwConstHlMarker = null;    // ハイライト中の星座中心を示す3Dリング
+
+// 88星座の日本語名と中心座標(RA時, Dec度; 概略値。名称ラベルの指し示し用)
+const MW_CONSTELLATIONS = [
+    { n: 'アンドロメダ座', ra: 0.8, dec: 37 }, { n: 'いっかくじゅう座', ra: 7.1, dec: -3 },
+    { n: 'いて座', ra: 19.1, dec: -28 }, { n: 'いるか座', ra: 20.7, dec: 12 },
+    { n: 'インディアン座', ra: 21.0, dec: -58 }, { n: 'うお座', ra: 0.5, dec: 14 },
+    { n: 'うさぎ座', ra: 5.5, dec: -19 }, { n: 'うしかい座', ra: 14.7, dec: 31 },
+    { n: 'うみへび座', ra: 11.6, dec: -14 }, { n: 'エリダヌス座', ra: 3.3, dec: -28 },
+    { n: 'おうし座', ra: 4.7, dec: 15 }, { n: 'おおいぬ座', ra: 6.8, dec: -22 },
+    { n: 'おおかみ座', ra: 15.2, dec: -43 }, { n: 'おおぐま座', ra: 11.3, dec: 51 },
+    { n: 'おとめ座', ra: 13.4, dec: -4 }, { n: 'おひつじ座', ra: 2.6, dec: 20 },
+    { n: 'オリオン座', ra: 5.6, dec: 6 }, { n: 'がか座', ra: 5.7, dec: -53 },
+    { n: 'カシオペヤ座', ra: 1.0, dec: 62 }, { n: 'かじき座', ra: 5.2, dec: -59 },
+    { n: 'かに座', ra: 8.6, dec: 20 }, { n: 'かみのけ座', ra: 12.8, dec: 23 },
+    { n: 'カメレオン座', ra: 10.7, dec: -79 }, { n: 'からす座', ra: 12.4, dec: -18 },
+    { n: 'かんむり座', ra: 15.8, dec: 33 }, { n: 'きょしちょう座', ra: 23.8, dec: -66 },
+    { n: 'ぎょしゃ座', ra: 6.1, dec: 42 }, { n: 'きりん座', ra: 8.9, dec: 69 },
+    { n: 'くじゃく座', ra: 19.6, dec: -65 }, { n: 'くじら座', ra: 1.7, dec: -7 },
+    { n: 'ケフェウス座', ra: 22.0, dec: 71 }, { n: 'ケンタウルス座', ra: 13.1, dec: -47 },
+    { n: 'けんびきょう座', ra: 21.0, dec: -36 }, { n: 'こいぬ座', ra: 7.7, dec: 6 },
+    { n: 'こうま座', ra: 21.2, dec: 8 }, { n: 'こぎつね座', ra: 20.2, dec: 24 },
+    { n: 'こぐま座', ra: 15.0, dec: 78 }, { n: 'こじし座', ra: 10.2, dec: 32 },
+    { n: 'コップ座', ra: 11.4, dec: -16 }, { n: 'こと座', ra: 18.9, dec: 37 },
+    { n: 'コンパス座', ra: 14.6, dec: -63 }, { n: 'さいだん座', ra: 17.4, dec: -56 },
+    { n: 'さそり座', ra: 16.9, dec: -27 }, { n: 'さんかく座', ra: 2.2, dec: 31 },
+    { n: 'しし座', ra: 10.7, dec: 13 }, { n: 'じょうぎ座', ra: 16.1, dec: -51 },
+    { n: 'たて座', ra: 18.7, dec: -10 }, { n: 'ちょうこくぐ座', ra: 4.7, dec: -38 },
+    { n: 'ちょうこくしつ座', ra: 0.4, dec: -32 }, { n: 'つる座', ra: 22.5, dec: -46 },
+    { n: 'テーブルさん座', ra: 5.4, dec: -77 }, { n: 'てんびん座', ra: 15.2, dec: -15 },
+    { n: 'とかげ座', ra: 22.5, dec: 46 }, { n: 'とけい座', ra: 3.3, dec: -53 },
+    { n: 'とびうお座', ra: 7.8, dec: -69 }, { n: 'とも座', ra: 7.3, dec: -31 },
+    { n: 'はえ座', ra: 12.6, dec: -70 }, { n: 'はくちょう座', ra: 20.6, dec: 45 },
+    { n: 'はちぶんぎ座', ra: 23.0, dec: -82 }, { n: 'はと座', ra: 5.9, dec: -35 },
+    { n: 'ふうちょう座', ra: 16.1, dec: -76 }, { n: 'ふたご座', ra: 7.1, dec: 23 },
+    { n: 'ペガスス座', ra: 22.7, dec: 19 }, { n: 'へび座', ra: 16.9, dec: 6 },
+    { n: 'へびつかい座', ra: 17.4, dec: -8 }, { n: 'ヘルクレス座', ra: 17.4, dec: 27 },
+    { n: 'ペルセウス座', ra: 3.2, dec: 45 }, { n: 'ほ座', ra: 9.6, dec: -47 },
+    { n: 'ぼうえんきょう座', ra: 19.3, dec: -51 }, { n: 'ほうおう座', ra: 0.9, dec: -48 },
+    { n: 'ポンプ座', ra: 10.3, dec: -32 }, { n: 'みずがめ座', ra: 22.3, dec: -10 },
+    { n: 'みずへび座', ra: 2.3, dec: -70 }, { n: 'みなみじゅうじ座', ra: 12.4, dec: -60 },
+    { n: 'みなみのうお座', ra: 22.3, dec: -30 }, { n: 'みなみのかんむり座', ra: 18.6, dec: -41 },
+    { n: 'みなみのさんかく座', ra: 16.1, dec: -65 }, { n: 'や座', ra: 19.7, dec: 19 },
+    { n: 'やぎ座', ra: 21.0, dec: -18 }, { n: 'やまねこ座', ra: 8.0, dec: 47 },
+    { n: 'らしんばん座', ra: 8.9, dec: -27 }, { n: 'りゅう座', ra: 17.0, dec: 65 },
+    { n: 'りゅうこつ座', ra: 8.7, dec: -63 }, { n: 'りょうけん座', ra: 13.1, dec: 40 },
+    { n: 'レチクル座', ra: 3.9, dec: -60 }, { n: 'ろ座', ra: 2.8, dec: -30 },
+    { n: 'ろくぶんぎ座', ra: 10.3, dec: -2 }, { n: 'わし座', ra: 19.7, dec: 3 },
+];
 const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
 const _MW_DIST0 = 3.4;                     // 初期カメラ距離
 let _mwDist = _MW_DIST0;                    // ホイールズーム用
@@ -7646,44 +7701,121 @@ function _mwUpdateBodies() {
     });
 }
 
-/** 表示天体の名称を全天儀の左右に並べ、引き出し線で天体位置を指し示す(SVGオーバーレイ)。
- *  ドラッグ回転にも追従するよう _mwRender の度に呼ばれる。 */
+/** 表示天体・星座の名称を全天儀の左右に並べ、引き出し線で位置を指し示す(SVGオーバーレイ)。
+ *  ドラッグ回転にも追従するよう _mwRender の度に呼ばれる。星座名称はホバー/タップで黄赤点滅ハイライト。 */
 function _mwUpdateLabels() {
     const svg = document.getElementById('milkyway-labels');
     if (!svg || !_mwInited || _mwFailed || !_mwCamera || !_mwGlobe) return;
-    if (!appState.mwShowBodies || !appState.isMilkyWayActive || _mwLabelItems.length === 0) {
-        if (svg.firstChild) svg.innerHTML = '';
-        return;
-    }
     const cv = document.getElementById('milkyway-canvas');
     const w = cv.clientWidth, h = cv.clientHeight;
-    if (!w || !h) return;
+    if (!w || !h || !appState.isMilkyWayActive) { if (svg.firstChild) svg.innerHTML = ''; return; }
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     _mwGlobe.updateMatrixWorld(true);
-    // 投影して左右に振り分け
-    const left = [], right = [];
-    _mwLabelItems.forEach(it => {
-        const p = it.pos.clone().applyMatrix4(_mwGlobe.matrixWorld).project(_mwCamera);
-        const x = (p.x + 1) / 2 * w, y = (1 - p.y) / 2 * h;
-        (x < w / 2 ? left : right).push({ ...it, x, y });
-    });
-    const place = (list) => {
-        list.sort((a, b) => a.y - b.y);
-        let prev = -Infinity;
-        list.forEach(it => { it.ly = Math.max(Math.min(Math.max(it.y, 14), h - 8), prev + 14); prev = it.ly; });
+    const camDir = _mwCamera.position.clone().normalize();
+    const proj = (pos) => {
+        const wp = pos.clone().applyMatrix4(_mwGlobe.matrixWorld);
+        const front = wp.clone().normalize().dot(camDir) > 0.1;   // 前面(カメラ側)半球のみ
+        const p = wp.project(_mwCamera);
+        return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, front };
     };
-    place(left); place(right);
-    let html = '';
+    const left = [], right = [];
+    // 表示天体: 投影位置の左右へ振り分け
+    if (appState.mwShowBodies) {
+        _mwLabelItems.forEach(it => {
+            const pr = proj(it.pos);
+            (pr.x < w / 2 ? left : right).push({ name: it.name, color: it.color, x: pr.x, y: pr.y, cls: 'body-label' });
+        });
+        left.sort((a, b) => a.y - b.y); right.sort((a, b) => a.y - b.y);
+    }
+    // 星座名称: 前面半球のみ。50音順=左上から右下(左列→右列)、座標順=Dec+90°→-90°
+    if (appState.mwShowConstNames) {
+        const items = [];
+        const R = _MW_R * 1.006;
+        MW_CONSTELLATIONS.forEach(c => {
+            const v = _mwEquVec(c.ra, c.dec);
+            const pr = proj(new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R));
+            if (pr.front) items.push({ name: c.n, dec: c.dec, x: pr.x, y: pr.y });
+        });
+        if (appState.mwConstNameSort === 'pos') items.sort((a, b) => b.dec - a.dec);
+        else items.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+        const halve = Math.ceil(items.length / 2);
+        items.forEach((it, i) => {
+            (i < halve ? left : right).push({ name: it.name, color: '#9ab', x: it.x, y: it.y, cls: 'const-label' });
+        });
+    }
+    const rowH = 12;
+    const place = (list) => {
+        let y = 12;
+        list.forEach(it => { it.ly = y; y += rowH; });
+        return list.filter(it => it.ly < h - 4);   // パネル高さに収まる分のみ(回転で入れ替わる)
+    };
+    const L = place(left), Rr = place(right);
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    left.forEach(it => {
-        html += `<line x1="6" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(it.color)}" stroke-width="1" opacity="0.75"></line>`;
-        html += `<text x="6" y="${(it.ly - 3).toFixed(1)}" fill="${esc(it.color)}">${esc(it.name)}</text>`;
-    });
-    right.forEach(it => {
-        html += `<line x1="${w - 6}" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(it.color)}" stroke-width="1" opacity="0.75"></line>`;
-        html += `<text x="${w - 6}" y="${(it.ly - 3).toFixed(1)}" fill="${esc(it.color)}" text-anchor="end">${esc(it.name)}</text>`;
-    });
+    const rowHtml = (it, isLeft) => {
+        const hl = it.cls === 'const-label' && _mwConstHighlight === it.name;
+        const col = hl ? (_mwBlinkPhase ? '#ffee00' : '#ff3333') : it.color;
+        const lw = hl ? 2 : 1;
+        const ax = isLeft ? 6 : w - 6;
+        return `<line x1="${ax}" y1="${it.ly.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>` +
+               `<text x="${ax}" y="${(it.ly - 3 + rowH - 9).toFixed(1)}" fill="${esc(col)}" ${isLeft ? '' : 'text-anchor="end"'} class="${it.cls}" data-name="${esc(it.name)}">${esc(it.name)}</text>`;
+    };
+    let html = '';
+    L.forEach(it => { html += rowHtml(it, true); });
+    Rr.forEach(it => { html += rowHtml(it, false); });
     svg.innerHTML = html;
+}
+
+/** 星座名称のハイライト設定(黄⇄赤の点滅＋中心リングマーカー)。name=null で解除 */
+function _mwSetConstHighlight(name) {
+    if (_mwConstHighlight === name) return;
+    _mwConstHighlight = name;
+    if (_mwBlinkTimer) { clearInterval(_mwBlinkTimer); _mwBlinkTimer = null; }
+    // 3Dリングマーカーの撤去
+    if (_mwConstHlMarker && _mwGlobe) {
+        _mwGlobe.remove(_mwConstHlMarker);
+        _mwConstHlMarker.geometry.dispose(); _mwConstHlMarker.material.dispose();
+        _mwConstHlMarker = null;
+    }
+    if (name && _mwGlobe) {
+        const c = MW_CONSTELLATIONS.find(x => x.n === name);
+        if (c) {
+            const v = _mwEquVec(c.ra, c.dec);
+            const pos = new THREE.Vector3(v[0], v[1], v[2]).multiplyScalar(_MW_R * 1.006);
+            _mwConstHlMarker = new THREE.Mesh(
+                new THREE.TorusGeometry(0.06 * _MW_R, 0.006 * _MW_R, 8, 32),
+                new THREE.MeshBasicMaterial({ color: 0xffee00 }));
+            _mwConstHlMarker.position.copy(pos);
+            _mwConstHlMarker.lookAt(new THREE.Vector3(0, 0, 0));   // 球面に沿わせる
+            _mwGlobe.add(_mwConstHlMarker);
+        }
+        _mwBlinkTimer = setInterval(() => {
+            _mwBlinkPhase = !_mwBlinkPhase;
+            if (_mwConstHlMarker) _mwConstHlMarker.material.color.set(_mwBlinkPhase ? 0xffee00 : 0xff3333);
+            _mwRender();
+        }, 350);
+    }
+    _mwRender();
+}
+
+/** 星座名称のホバー/タップのイベント委譲。
+ *  SVGラベルは毎フレーム再構築されるため、パネルレベルで委譲し「ラベル外に出たら解除」で取りこぼしを防ぐ。 */
+function _mwAttachLabelEvents() {
+    const panel = document.getElementById('milkyway-panel');
+    if (!panel || panel._mwEventsAttached) return;
+    panel._mwEventsAttached = true;
+    let tapClearTimer = null;
+    const isConstLabel = t => t && t.classList && t.classList.contains('const-label');
+    panel.addEventListener('mouseover', e => {
+        if (isConstLabel(e.target)) _mwSetConstHighlight(e.target.getAttribute('data-name'));
+        else if (_mwConstHighlight && !tapClearTimer) _mwSetConstHighlight(null);   // ラベル外に出たら解除(タップ中は維持)
+    });
+    panel.addEventListener('mouseleave', () => { if (!tapClearTimer) _mwSetConstHighlight(null); });
+    panel.addEventListener('click', e => {
+        if (!isConstLabel(e.target)) return;
+        _mwSetConstHighlight(e.target.getAttribute('data-name'));
+        if (tapClearTimer) clearTimeout(tapClearTimer);
+        tapClearTimer = setTimeout(() => { tapClearTimer = null; _mwSetConstHighlight(null); }, 4000);   // タップは4秒で自動解除
+    });
 }
 
 /** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
@@ -7836,6 +7968,7 @@ function _mwInit() {
     const cr = document.getElementById('milkyway-credit');
     if (cr) cr.textContent = '天の川: 模式図（生成）';
     _mwTryLoadRealImage();
+    _mwAttachLabelEvents();
     _mwInited = true;
     _mwUpdateBaseOptions();   // 基本オプション(表示天体・星座線/領域・オフセット点)を初期反映
 }
@@ -8002,6 +8135,8 @@ function syncBaseOptionUI() {
     chk('chk-baseopt-const-fig', appState.mwShowConstFig);
     chk('chk-baseopt-const-bounds', appState.mwShowConstBounds);
     chk('chk-baseopt-const-names', appState.mwShowConstNames);
+    const sortSel = document.getElementById('sel-baseopt-const-sort');
+    if (sortSel) sortSel.value = appState.mwConstNameSort;
     document.querySelectorAll('.mytsuji-mw-offset').forEach(el => { if (document.activeElement !== el) el.value = appState.mwOffsetAngle; });
 }
 
@@ -8046,6 +8181,12 @@ function setupBaseOptionControls() {
     chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
     chkHandler('chk-baseopt-const-bounds', 'mwShowConstBounds');
     chkHandler('chk-baseopt-const-names', 'mwShowConstNames');
+    const sortSel = document.getElementById('sel-baseopt-const-sort');
+    if (sortSel) sortSel.addEventListener('change', () => {
+        appState.mwConstNameSort = sortSel.value === 'pos' ? 'pos' : 'aiueo';
+        saveAppState();
+        _mwRender();   // ラベルの並び順を即時反映
+    });
     const excl = document.getElementById('input-baseopt-elev-exclude');
     if (excl) excl.addEventListener('change', () => {
         let v = parseFloat(excl.value);

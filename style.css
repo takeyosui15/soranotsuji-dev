@@ -214,6 +214,11 @@ html {
     stroke: rgba(0, 0, 0, 0.75);
     stroke-width: 2px;
 }
+#milkyway-labels text.const-label {
+    pointer-events: auto;
+    cursor: pointer;
+    font-size: 10px;
+}
 
 #milkyway-credit {
     position: absolute;
