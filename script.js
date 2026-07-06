@@ -1143,7 +1143,7 @@ function normalizeAppState() {
     // 宙の窓: 数値の範囲・型
     appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
     appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
-    appState.soraFocal = num(appState.soraFocal, 35, 6, 3000);
+    appState.soraFocal = num(appState.soraFocal, 35, 1, 3000);
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
     appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 10000);
     appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
@@ -8250,7 +8250,7 @@ const SORA_SENSORS = [
     { key: 'type30',       name: '1/3.0型 (4.8×3.6)',            w: 4.8,  h: 3.6 },
     { key: 'type36',       name: '1/3.6型 (4.0×3.0)',            w: 4.0,  h: 3.0 },
 ];
-const SORA_FOCALS = [10,11,12,13,14,15,16,17,18,20,24,26,28,30,35,40,50,58,70,75,85,105,120,135,140,180,200,250,400,500,600,800,1000];
+const SORA_FOCALS = [6,7.5,8,10,11,12,13,14,15,16,17,18,20,21,24,25,26,28,30,35,36,40,43,45,50,55,58,60,70,72,75,80,85,86,100,105,120,135,140,150,180,200,210,250,300,360,400,500,600,800,1000,1200,1700,2000];
 const SORA_FNUMBERS = [0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.2,3.5,4.0,4.5,5.0,5.6,6.3,7.1,8.0,9.0,10,11,13,14,16,18,20,22];
 
 function soraSensor() { return SORA_SENSORS.find(s => s.key === appState.soraSensorKey) || SORA_SENSORS[1]; }
@@ -8323,6 +8323,8 @@ function soraPopulateSelects() {
     if (ss && !ss.options.length) SORA_SENSORS.forEach(s => { const o = document.createElement('option'); o.value = s.key; o.textContent = s.name; ss.appendChild(o); });
     const fs = document.getElementById('input-sora-focal-select');
     if (fs && !fs.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fs.appendChild(o); });
+    const fn = document.getElementById('input-sora-fnum-select');
+    if (fn && !fn.options.length) SORA_FNUMBERS.forEach((f, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = 'F' + f; fn.appendChild(o); });
 }
 
 /** appState → フォーム値・算出表示を反映 (フォーカス中の入力は保護) */
@@ -8333,11 +8335,13 @@ function soraSyncUI() {
     set('input-sora-sensor', appState.soraSensorKey);
     set('input-sora-aspect-w', appState.soraAspectW);
     set('input-sora-aspect-h', appState.soraAspectH);
+    set('input-sora-focal-text', appState.soraFocal);
     set('input-sora-focal-select', String(appState.soraFocal));
     set('input-sora-focal-slider', appState.soraFocal);
     txt('sora-focal-label', appState.soraFocal + 'mm');
     set('input-sora-ctrl-focal', appState.soraFocal);
     txt('sora-ctrl-focal-label', appState.soraFocal + 'mm');
+    set('input-sora-fnum-select', String(appState.soraFNumberIdx));
     set('input-sora-fnum-slider', appState.soraFNumberIdx);
     txt('sora-fnum-label', 'F' + soraFNumber());
     set('input-sora-focus-slider', appState.soraFocusDist);
@@ -8780,7 +8784,15 @@ function setupSoramadoControls() {
     numH('input-sora-range', 'soraViewRange', 1, 300, true);
     const selH = (id, key, parse) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = parse(el.value); after(); }); };
     selH('input-sora-sensor', 'soraSensorKey', v => v);
-    selH('input-sora-focal-select', 'soraFocal', v => parseInt(v));
+    selH('input-sora-focal-select', 'soraFocal', v => parseFloat(v));   // 7.5mm等の小数焦点距離に対応
+    selH('input-sora-fnum-select', 'soraFNumberIdx', v => parseInt(v));
+    // 焦点距離(mm)テキストボックス: 手入力(0.5刻み)。リスト・スライダーと連動
+    const focalText = document.getElementById('input-sora-focal-text');
+    if (focalText) focalText.addEventListener('change', () => {
+        const v = parseFloat(focalText.value);
+        if (!isNaN(v)) appState.soraFocal = Math.max(1, Math.min(3000, Math.round(v * 2) / 2));
+        after();
+    });
     const sliderH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { appState[key] = parseInt(el.value); after(); }); };
     sliderH('input-sora-focal-slider', 'soraFocal');
     sliderH('input-sora-fnum-slider', 'soraFNumberIdx');

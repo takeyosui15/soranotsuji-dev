@@ -450,21 +450,25 @@ GNU General Public License for more details.
                         <label class="baseopt-radio"><input type="radio" name="sora-orient" value="portrait">縦</label>
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">焦点距離:</label>
-                        <span id="sora-focal-label" class="sora-val">35mm</span>
+                        <label class="input-label tsujisearch-label">焦点距離(mm):</label>
+                        <input type="number" id="input-sora-focal-text" class="sora-mov-num" placeholder="0〜3000mm" step="0.5" min="1" max="3000" title="レンズの焦点距離(手入力可。リスト・スライダーと連動)">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">焦点距離(選択):</label>
                         <select id="input-sora-focal-select" title="レンズの焦点距離"></select>
                     </div>
                     <div class="control-row">
-                        <input type="range" id="input-sora-focal-slider" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離">
+                        <input type="range" id="input-sora-focal-slider" class="sora-slider" min="1" max="1000" step="1" title="レンズの焦点距離(1〜1000mm。1000mm超はテキスト/リストで指定)">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">画角:</label><span id="sora-aov" class="sora-val">H:--° V:--° D:--°</span>
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">F値:</label><span id="sora-fnum-label" class="sora-val">2.8</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">F値(選択):</label>
+                        <select id="input-sora-fnum-select" title="レンズのF値(絞り)"></select>
                     </div>
                     <div class="control-row">
                         <input type="range" id="input-sora-fnum-slider" class="sora-slider" min="0" max="28" step="1" title="レンズのF値(絞り)">
