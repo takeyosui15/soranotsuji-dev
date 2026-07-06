@@ -94,6 +94,7 @@ GNU General Public License for more details.
         <div id="soramado-center" class="soramado-cross"></div>
         <div id="soramado-info"></div>
         <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
+        <button id="btn-soramado-max" title="プレビューを画面いっぱいに最大化">⛶</button>
     </div>
 
     <div id="control-panel" class="control-panel minimized">
@@ -382,6 +383,17 @@ GNU General Public License for more details.
                         <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="rect" checked>四角</label>
                         <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="circle">円形</label>
                     </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-panorama" class="body-checkbox"><label for="chk-sora-panorama">:パノラマ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">パノラマ:</label><span id="sora-pano-label" class="sora-val">H:V=--:1 H:--°</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-pano-slider" class="sora-slider" min="0" max="360" step="1" title="パノラマ撮影の水平画角(0〜360°)">
+                    </div>
+                    <hr class="baseopt-hr">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
                     </div>

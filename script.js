@@ -263,6 +263,8 @@ let appState = {
     soraOrient: 'landscape',     // カメラ位置: 'landscape'=横位置 / 'portrait'=縦位置(アスペクトを回転)
     soraFisheyeStrength: 50,     // フィッシュアイの歪み(%) 0〜100 (50=従来の見た目)
     soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
+    soraPanorama: false,         // パノラマ撮影モード(アスペクト比可変・水平画角0〜360°)
+    soraPanoAov: 0,              // パノラマの水平画角(°) 0=レンズの水平画角(自動追従) / 1〜360=指定値
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1016,6 +1018,7 @@ function saveAppState() {
         soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt, soraOffsetAz: appState.soraOffsetAz, soraOffsetAlt: appState.soraOffsetAlt,
         soraViewRange: appState.soraViewRange, soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
         soraOrient: appState.soraOrient, soraFisheyeStrength: appState.soraFisheyeStrength, soraFisheyeShape: appState.soraFisheyeShape,
+        soraPanorama: appState.soraPanorama, soraPanoAov: appState.soraPanoAov,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1070,7 +1073,7 @@ function loadAppState() {
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
-            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape',
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1129,6 +1132,8 @@ function normalizeAppState() {
     if (appState.soraOrient !== 'landscape' && appState.soraOrient !== 'portrait') appState.soraOrient = 'landscape';
     appState.soraFisheyeStrength = num(appState.soraFisheyeStrength, 50, 0, 100);
     if (appState.soraFisheyeShape !== 'rect' && appState.soraFisheyeShape !== 'circle') appState.soraFisheyeShape = 'rect';
+    appState.soraPanorama = !!appState.soraPanorama;
+    appState.soraPanoAov = num(appState.soraPanoAov, 0, 0, 360);
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -8184,6 +8189,19 @@ function soraFisheyeParams() {
     return { uK: 0.7 * s / 100, fovScale: 1 + 0.8 * s / 100 };
 }
 
+/** パノラマの実効水平画角(°)。soraPanoAov=0はレンズの水平画角に自動追従 */
+function soraPanoEffAov(o) {
+    const v = Number(appState.soraPanoAov) || 0;
+    return Math.max(1, Math.min(360, v > 0 ? v : (o || soraComputeOptics()).aovH));
+}
+
+/** パノラマの画面アスペクト比 H:V。横=水平画角の弧長(円筒投影)、縦=垂直画角の透視投影 */
+function soraPanoAspect(o) {
+    const oo = o || soraComputeOptics();
+    const vHalf = Math.min(89, oo.aovV / 2) * Math.PI / 180;
+    return (soraPanoEffAov(oo) * Math.PI / 180) / (2 * Math.tan(vHalf));
+}
+
 /** 光学計算: 画角(水平/垂直/対角°)・過焦点距離・合焦近遠・被写界深度(m) */
 function soraComputeOptics() {
     const f = appState.soraFocal, N = soraFNumber(), s = soraSensor();
@@ -8251,6 +8269,11 @@ function soraSyncUI() {
     const aov = x => Math.min(180, x * fe).toFixed(1);
     txt('sora-aov', 'H:' + aov(o.aovH) + '° V:' + aov(o.aovV) + '° D:' + aov(o.aovD) + '°');
     txt('sora-fisheye-label', (Number(appState.soraFisheyeStrength) || 0) + '%');
+    chk('chk-sora-panorama', appState.soraPanorama);
+    const panoAov = soraPanoEffAov(o);
+    set('input-sora-pano-slider', Math.round(panoAov));
+    const panoAsp = soraPanoAspect(o);
+    txt('sora-pano-label', 'H:V=' + (panoAsp >= 9.95 ? String(Math.round(panoAsp)) : panoAsp.toFixed(1)) + ':1 H:' + Math.round(panoAov) + '°');
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
@@ -8382,6 +8405,17 @@ function setupSoramadoControls() {
     document.querySelectorAll('input[name="sora-fisheye-shape"]').forEach(r => {
         r.addEventListener('change', () => { if (r.checked) { appState.soraFisheyeShape = r.value; after(); } });
     });
+    chkH('chk-sora-panorama', 'soraPanorama');
+    sliderH('input-sora-pano-slider', 'soraPanoAov');
+    // プレビュー最大化トグル(画面下1/3 ⇄ 全面)。状態は保存しない(初期値オフ)
+    const maxBtn = document.getElementById('btn-soramado-max');
+    if (maxBtn) maxBtn.addEventListener('click', () => {
+        const panel = document.getElementById('soramado-panel');
+        const on = panel.classList.toggle('maximized');
+        maxBtn.classList.toggle('active', on);
+        maxBtn.title = on ? 'プレビューを元のサイズ(下1/3)に戻す' : 'プレビューを画面いっぱいに最大化';
+        if (appState.isSoramadoActive) drawSoramado();
+    });
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
@@ -8464,7 +8498,8 @@ function _smAttachDrag(cv) {
         if (!dx && !dy) return;
         // px→角度: ファインダー実寸と画角から換算。内容が指に追従(右へドラッグ=視線は左へ=Az減、下へドラッグ=視線は上へ=Alt増)
         const o = soraComputeOptics();
-        const dAz = -dx * o.aovH / _smFinderW;
+        const hAov = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は画面幅=パノラマ水平画角
+        const dAz = -dx * hAov / _smFinderW;
         const dAlt = dy * o.aovV / _smFinderH;
         appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
         appState.soraOffsetAlt = Math.max(-360, Math.min(360, Number(appState.soraOffsetAlt) + dAlt));
@@ -8504,13 +8539,16 @@ function drawSoramado() {
     const o = soraComputeOptics();
     const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
+    const pano = appState.soraPanorama;
+    const panoAov = pano ? soraPanoEffAov(o) : 0;
     const { aw: _oaw, ah: _oah } = soraOrientedAspect();
-    const finderAspect = _oaw / _oah;
+    // パノラマON時はアスペクト比を水平画角に応じて可変(円筒投影)。通常時はアスペクト比設定どおり
+    const finderAspect = pano ? soraPanoAspect(o) : _oaw / _oah;
     // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズやドラッグ換算に使う(_smBuildBodiesより前)
     const cr = _smFitRect(w, h, finderAspect, 0.94);
     _smFinderH = cr.h || 1;
     _smFinderW = cr.w || 1;
-    const _fe = appState.soraFisheye ? soraFisheyeParams() : null;
+    const _fe = (!pano && appState.soraFisheye) ? soraFisheyeParams() : null;   // パノラマ中はフィッシュアイ無効
     _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));   // フィッシュアイON時は歪みに連動して画角を拡大
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
@@ -8534,7 +8572,30 @@ function drawSoramado() {
     _smRenderer.setScissorTest(false);
     _smRenderer.setClearColor(0x000000, 1);
     _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
-    if (appState.soraFisheye && _smPostMat) {
+    if (pano) {
+        // パノラマ: 垂直ストリップ毎にカメラ方位を回して透視投影し、横に並べる(円筒投影の近似)。
+        // ストリップ幅は角度に比例(viewport px は丸め累積で隙間なし)。カメラは fov=垂直画角のまま、
+        // aspect=tan(ストリップ角/2)/tan(垂直画角/2) で各ストリップの水平角範囲を切り出す。
+        const nStrips = Math.max(1, Math.ceil(panoAov / 10));   // 1ストリップ≦10°で円筒近似
+        const stripDeg = panoAov / nStrips;
+        const stripAspect = Math.tan(stripDeg * Math.PI / 360) / Math.tan(_smCamera.fov * Math.PI / 360);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        for (let i = 0; i < nStrips; i++) {
+            const px0 = Math.round(cr.x + cr.w * i / nStrips);
+            const px1 = Math.round(cr.x + cr.w * (i + 1) / nStrips);
+            if (px1 <= px0) continue;
+            const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
+            _smCamera.aspect = stripAspect;
+            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.updateProjectionMatrix();
+            _smRenderer.setViewport(px0, glY, px1 - px0, cr.h);
+            _smRenderer.setScissor(px0, glY, px1 - px0, cr.h);
+            _smRenderer.clear(true, true, true);
+            _smRenderer.render(_smScene, _smCamera);
+        }
+        _smRenderer.setScissorTest(false);
+    } else if (appState.soraFisheye && _smPostMat) {
         // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
         // RTは鮮鋭さのためデバイスpxで確保。RTバインド中は RT 自身のviewportが使われるため setViewport は不要。
         _smPostMat.uniforms.uK.value = _fe.uK;
@@ -8850,13 +8911,14 @@ function _smTerrainZoom(rangeKm, latDeg) {
 function _smUpdateTerrain() {
     if (!_smTerrainGrp) return;
     const o = soraComputeOptics();
+    const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は扇をパノラマ水平画角へ
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const range = Math.max(1, Number(appState.soraViewRange) || 1);
     const zoom = _smTerrainZoom(range, appState.start.lat);
-    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${o.aovH.toFixed(1)}|${range}|${zoom}`;
+    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${range}|${zoom}`;
     if (geomKey !== _smGeomKey) {
         _smGeomKey = geomKey;
-        _smFetchTerrain(centerAz, o.aovH, range, zoom);
+        _smFetchTerrain(centerAz, aovH, range, zoom);
     }
     _smApplyShading();
 }
@@ -8911,7 +8973,7 @@ function _smSetTerrainProgress(done, total) {
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
     _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
-    const nA = 140, nR = 100, nearKm = 0.01;   // 0km近傍から
+    const nA = aovH > 180 ? 280 : 140, nR = 100, nearKm = 0.01;   // 0km近傍から。広角パノラマは方位分解能を倍に
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
     const samples = new Array((nA + 1) * (nR + 1));
