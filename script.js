@@ -251,7 +251,7 @@ let appState = {
     soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
     soraFocusDist: 1000,
     soraFisheye: false,
-    soraPeaking: true,
+    soraPeaking: false,   // フォーカスピーキング(デッサン38段目: 初期値オフ)
     soraGrayscale: true,
     soraBaseAz: 0,
     soraBaseAlt: 0,
@@ -274,8 +274,8 @@ let appState = {
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
-    soraExpW: 100,               // 書き出し画像サイズ 横(px) 1〜4096 (縦とアスペクト連動)
-    soraExpH: 67,                // 書き出し画像サイズ 縦(px) 1〜4096
+    soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜4096 (縦とアスペクト連動)
+    soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜4096
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1145,9 +1145,10 @@ function normalizeAppState() {
     appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
     appState.soraFocal = num(appState.soraFocal, 35, 1, 3000);
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
-    appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 10000);
+    appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 300000);
     appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
-    ['soraFisheye', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
+    ['soraFisheye', 'soraPeaking', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
+    appState.soraGrayscale = true;   // 標高グレースケールは常時オン(適用度は標高ヒルシェードスライダーで調整; チェックは廃止)
     if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
     if (appState.soraOrient !== 'landscape' && appState.soraOrient !== 'portrait') appState.soraOrient = 'landscape';
     appState.soraFisheyeStrength = num(appState.soraFisheyeStrength, 50, 0, 100);
@@ -1164,8 +1165,8 @@ function normalizeAppState() {
     appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
     if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
     if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
-    appState.soraExpW = Math.round(num(appState.soraExpW, 100, 1, 4096));
-    appState.soraExpH = Math.round(num(appState.soraExpH, 67, 1, 4096));
+    appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 4096));
+    appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 4096));
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -7040,13 +7041,20 @@ function toggleHelp() {
 
 // URL短縮(queryキー)用の可逆圧縮コーデック: LZW(可変コード幅) + Base64URL。
 // 依存なし・同期処理。encodeQueryParam(str) → URL安全文字列、decodeQueryParam(s) → 元文字列(失敗時 null)。
+//
+// 【辞書のバージョン運用】共有シード辞書はエンコード結果のコード割当を決めるため、
+// 一度発行したURLを読み続けるには「その版の辞書」が必要になる。そこで:
+//  - 辞書は _QP_SEED_VERSIONS に版ごとに保持し、既存の版は絶対に変更しない。
+//  - エンコードは常に最新版を使い、出力の先頭に「~版数~」を付ける(v1のみ無印=レガシー)。
+//  - デコードは先頭の「~版数~」で辞書を選ぶ(無印はv1)。
+//  - パラメータキーを追加/変更したら、新しい配列(_QP_SEEDS_V3, ...)を追加して
+//    _QP_SEED_VERSIONS に積み、エンコーダが自動で最新版を使う。古いURLはそのまま読める。
 const _QP_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-// 本アプリのURLに頻出する断片を初期辞書に共有シードとして登録(圧縮率向上・完全可逆のまま)
 // LZWの貪欲一致は接頭辞を辿るため、シードは全接頭辞(2文字以上)に展開して登録する
-function _qpSeedEntries() {
+function _qpSeedEntries(seeds) {
     const set = [];
     const seen = new Set();
-    for (const seed of _QP_SEEDS) {
+    for (const seed of seeds) {
         for (let n = 2; n <= seed.length; n++) {
             const pre = seed.slice(0, n);
             if (!seen.has(pre)) { seen.add(pre); set.push(pre); }
@@ -7054,16 +7062,39 @@ function _qpSeedEntries() {
     }
     return set;
 }
+// v1: 初版の頻出断片(変更禁止: 発行済みURLの復号に使用)
 const _QP_SEEDS = ['tsuji','Start','End','Mode=','Offset=','Offset','Tolerance=','Time=','Filter=','PrePost','Dir=before','Dir=after','=false&','=true&','&tsuji','&star','starId=','startL','endL','startApiElv=','endApiElv=','startElv=','endElv=','Lat=3','Lng=13','sunset','sunrise','00%3A00','Acc','DblCircle','Circle','Triangle','Dash','elevation','milkyway','soramado','mode=preview','mode=tsujisearch','&date=20','&time=','timeZone=%2B0900','Search','Days=365','Moon','Base=','&dp=','Elev','ilkyWay','starName=','starRa=','starDec=','starColor=%23','starIsDashed='];
+// v2: v1の全シード + 現行の全URLパラメータキー(&key=形式)。キー追加時はV3を作って_QP_SEED_VERSIONSへ
+const _QP_SEEDS_V2 = _QP_SEEDS.concat(
+    ['date', 'time', 'timeZone', 'startLat', 'startLng', 'startApiElv', 'startElv', 'endLat', 'endLng', 'endApiElv', 'endElv',
+     'starId', 'starName', 'starRa', 'starDec', 'starColor', 'starIsDashed',
+     'dp', 'elevation', 'milkyway', 'soramado', 'tsujisearch', 'mode',
+     'soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
+     'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
+     'soraPeaking', 'soraTraj', 'soraCenterCross',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH',
+     'tsujiSearchDays', 'tsujiAz', 'tsujiAlt', 'tsujiAzOffset', 'tsujiAltOffset', 'tsujiAzTolerance', 'tsujiAltTolerance',
+     'tsujiMoonFilter', 'tsujiMoonBase', 'tsujiMoonTolerance',
+     'tsujiAccuracyFilter', 'tsujiAccDblCircle', 'tsujiAccCircle', 'tsujiAccTriangle', 'tsujiAccDash',
+     'tsujiElevationOption', 'tsujiElevOK', 'tsujiElevNG',
+     'tsujiTimeFilter', 'tsujiStartMode', 'tsujiStartTime', 'tsujiStartPrePost', 'tsujiStartPrePostDir', 'tsujiStartOffset',
+     'tsujiEndMode', 'tsujiEndTime', 'tsujiEndPrePost', 'tsujiEndPrePostDir', 'tsujiEndOffset']
+        .map(k => '&' + k + '='),
+    ['=landscape&', '=portrait&', '=fullframe&', '=jpeg&', '=png&', '=h264&', '=webm&', '=rect&', '=circle&']
+);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
     if (bytes.length === 0) return '';
+    const version = _QP_SEED_VERSIONS.length;   // 常に最新版の辞書で圧縮
     // LZW圧縮 (初期辞書=1バイト256種, コード幅9bit開始で辞書拡大に応じて広げる)
     const dict = new Map();
     for (let i = 0; i < 256; i++) dict.set(String.fromCharCode(i), i);
     let nextCode = 256;
-    for (const e of _qpSeedEntries()) { if (!dict.has(e)) dict.set(e, nextCode++); }
+    for (const e of _qpSeedEntries(_QP_SEED_VERSIONS[version - 1])) { if (!dict.has(e)) dict.set(e, nextCode++); }
     let width = 9;
     while ((1 << width) < nextCode) width++;   // 初期辞書が512を超える場合は幅を拡げて開始
     const out = [];   // {code, width}
@@ -7090,12 +7121,22 @@ function encodeQueryParam(str) {
         }
     }
     if (nbits > 0) s += _QP_B64[(acc << (6 - nbits)) & 63];
-    return s;
+    return (version >= 2 ? `~${version}~` : '') + s;   // v2以降は辞書版数プレフィックス(v1=無印)
 }
 
 function decodeQueryParam(s) {
     try {
         if (!s) return '';
+        // 辞書版数プレフィックス(~N~)。無印はv1(レガシーURL)
+        let seeds = _QP_SEEDS;
+        const vm = /^~(\d+)~/.exec(s);
+        if (vm) {
+            const v = parseInt(vm[1]);
+            if (v < 2 || v > _QP_SEED_VERSIONS.length) return null;   // 未知の版(将来の新版URL)は復号不可
+            seeds = _QP_SEED_VERSIONS[v - 1];
+            s = s.slice(vm[0].length);
+            if (!s) return '';
+        }
         // Base64URL → ビット列リーダー
         const vals = [];
         for (const ch of s) {
@@ -7119,7 +7160,7 @@ function decodeQueryParam(s) {
         // LZW展開
         const dict = [];
         for (let i = 0; i < 256; i++) dict.push(String.fromCharCode(i));
-        for (const e of _qpSeedEntries()) dict.push(e);
+        for (const e of _qpSeedEntries(seeds)) dict.push(e);
         let nextCode = dict.length, width = 9;
         while ((1 << width) < nextCode) width++;   // エンコーダと同一の初期幅
         let code = readBits(width);
@@ -7234,7 +7275,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
     // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
     ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
      'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
-     'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross',
+     'soraPeaking', 'soraTraj', 'soraCenterCross',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH'].forEach(k => {
@@ -7337,10 +7378,11 @@ function copyTsujiSearchUrl(includeDateTime) {
 
 function restoreFromUrl() {
     let params = new URLSearchParams(window.location.search);
-    // 短縮URL(queryキー)なら展開して通常のパラメータ群に戻す(復号失敗時は無視)
+    // 短縮URL(queryキー)なら展開して通常のパラメータ群に戻す(復号失敗時はユーザーへ通知して既定状態で続行)
     if (params.has('query')) {
         const decoded = decodeQueryParam(params.get('query'));
         if (decoded) params = new URLSearchParams(decoded);
+        else alert('短縮URLの復元に失敗しました。URLが途中で欠けているか、壊れている可能性があります。既定の状態で開きます。');
     }
     if (!params.has('mode')) return;
 
@@ -7482,7 +7524,7 @@ function restoreFromUrl() {
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpW', 'soraExpH'].forEach(soraNum);
-    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraGrayscale', 'soraTraj', 'soraCenterCross'].forEach(soraBool);
+    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross'].forEach(soraBool);
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
 
     // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
@@ -8420,7 +8462,6 @@ function soraSyncUI() {
     const shapeR = document.querySelector(`input[name="sora-fisheye-shape"][value="${appState.soraFisheyeShape}"]`);
     if (shapeR) shapeR.checked = true;
     chk('chk-sora-peaking', appState.soraPeaking);
-    chk('chk-sora-grayscale', appState.soraGrayscale);
     chk('chk-sora-traj', appState.soraTraj);
     chk('chk-sora-center', appState.soraCenterCross);
     set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(4));
@@ -8472,6 +8513,7 @@ function soraUpdateBaseFromPoints() {
     appState.soraBaseAz = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     appState.soraBaseAlt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
     appState.soraViewRange = Math.max(1, Math.min(300, Math.ceil(dist / 1000)));   // 相手距離kmを切り上げ(0km〜この範囲)
+    appState.soraFocusDist = Math.max(0, Math.min(300000, Math.ceil(dist / 1000) * 1000));   // 合焦距離の初期値=相手距離(km切り上げ→m)
     saveAppState();
     soraSyncUI();
 }
@@ -8964,7 +9006,6 @@ function setupSoramadoControls() {
     });
     btnH('btn-sora-export', soraExportRun);
     chkH('chk-sora-peaking', 'soraPeaking');
-    chkH('chk-sora-grayscale', 'soraGrayscale');
     chkH('chk-sora-traj', 'soraTraj');
     chkH('chk-sora-center', 'soraCenterCross');
     soraSyncUI();
@@ -8979,6 +9020,10 @@ function toggleSoramado() {
         if (appState.isElevationActive) toggleElevation();
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         appState.isSoramadoActive = true;
+        // 焦点距離は開くたびに初期値へリセット(広画角のままだとDEM標高タイルを過剰に取得するため; デッサン5段目の制約)
+        appState.soraFocal = 35;
+        saveAppState();
+        soraSyncUI();
         document.getElementById('btn-soramado').classList.add('active');
         document.getElementById('soramado-panel').classList.remove('hidden');
         drawSoramado();

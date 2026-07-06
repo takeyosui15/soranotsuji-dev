@@ -291,7 +291,7 @@ GNU General Public License for more details.
                     <span id="icon-sec-baseoption">▼</span>
                 </div>
                 <div id="sec-baseoption" class="section-content closed">
-                    <div class="control-row left-row"><label class="input-label baseopt-group-label">辻ライン</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">辻ライン</label></div>
                     <div class="control-row left-row"><label class="input-label">天の川の基準点:</label></div>
                     <div class="control-row left-row">
                         <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="center" checked>天の川の中心座標(いて座付近)</label>
@@ -300,7 +300,7 @@ GNU General Public License for more details.
                         <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="offset">中心座標からのオフセット点</label>
                     </div>
                     <hr class="baseopt-hr">
-                    <div class="control-row left-row"><label class="input-label baseopt-group-label">全天儀</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">全天儀</label></div>
                     <div class="control-row left-row">
                         <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-mw-bodies" checked>表示天体</label>
                         <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-fig">星座線</label>
@@ -313,13 +313,13 @@ GNU General Public License for more details.
                             <option value="pos">座標順</option>
                         </select>
                     </div>
-                    <div class="control-row left-row"><label class="input-label">天の川オプション</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角">オフセット中心角(°):</label>
                         <input type="number" id="input-baseopt-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="baseopt-hr">
-                    <div class="control-row left-row"><label class="input-label baseopt-group-label">標高グラフ</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">標高グラフ</label></div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="目的点の半径○m以内は可視判定のNGを無視する">除外範囲(半径,m):</label>
                         <input type="number" id="input-baseopt-elev-exclude" placeholder="0〜10000m" step="1" min="0" max="10000">
@@ -378,7 +378,7 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
-                    <div class="control-row left-row"><label class="input-label">天の川オプション</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
                         <input type="number" id="input-tsuji-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
@@ -474,11 +474,21 @@ GNU General Public License for more details.
                         <input type="range" id="input-sora-fnum-slider" class="sora-slider" min="0" max="28" step="1" title="レンズのF値(絞り)">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">ピント距離:</label><span id="sora-focus-label" class="sora-val">1000m</span>
+                        <label class="input-label tsujisearch-label">合焦距離:</label><span id="sora-focus-label" class="sora-val">1000m</span>
                     </div>
                     <div class="control-row">
-                        <input type="range" id="input-sora-focus-slider" class="sora-slider" min="0" max="10000" step="1" title="フォーカスピーキングのピント距離">
+                        <input type="range" id="input-sora-focus-slider" class="sora-slider" min="0" max="300000" step="1" title="フォーカスピーキングを表示する合焦距離(m)">
                     </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">過焦点距離:</label><span id="sora-hyperfocal" class="sora-val">--m</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">合焦範囲:</label><span id="sora-focus-range" class="sora-val">--</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">被写界深度:</label><span id="sora-dof" class="sora-val">--m</span>
+                    </div>
+                    <hr class="baseopt-hr">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-fisheye" class="body-checkbox"><label for="chk-sora-fisheye">:フィッシュアイ</label>
                     </div>
@@ -504,21 +514,6 @@ GNU General Public License for more details.
                         <input type="range" id="input-sora-pano-slider" class="sora-slider" min="0" max="360" step="1" title="パノラマ撮影の水平画角(0〜360°)">
                     </div>
                     <hr class="baseopt-hr">
-                    <div class="control-row left-row">
-                        <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
-                    </div>
-                    <div class="control-row left-row">
-                        <input type="checkbox" id="chk-sora-grayscale" class="body-checkbox"><label for="chk-sora-grayscale">:グレースケール</label>
-                    </div>
-                    <div class="control-row">
-                        <label class="input-label tsujisearch-label">過焦点距離:</label><span id="sora-hyperfocal" class="sora-val">--m</span>
-                    </div>
-                    <div class="control-row">
-                        <label class="input-label tsujisearch-label">合焦範囲:</label><span id="sora-focus-range" class="sora-val">--</span>
-                    </div>
-                    <div class="control-row">
-                        <label class="input-label tsujisearch-label">被写界深度:</label><span id="sora-dof" class="sora-val">--m</span>
-                    </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準方位角(°):</label>
@@ -564,6 +559,9 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <input type="range" id="input-sora-sunshade" class="sora-slider" min="0" max="100" step="1" title="太陽光ヒルシェードの適用度合い(50%=従来)">
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
                     </div>
                     <hr class="baseopt-hr">
                     <div class="control-row left-row">

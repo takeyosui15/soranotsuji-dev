@@ -425,7 +425,8 @@ html {
 /* 宙の窓メニューのフォーム小物 */
 .sora-val {
     color: #555;
-    font-size: 12px;
+    font-size: 14px;     /* ラベルと同じ文字サイズ */
+    font-weight: normal; /* 太字にはしない */
     margin-right: 8px;
 }
 .sora-aspect { width: 3.2em; }
@@ -1016,6 +1017,14 @@ input[type="radio"] {
     margin-right: 10px;
     white-space: nowrap;
 }
+
+/* ラジオ/チェックボックスと右側テキストの垂直センタリング(全メニュー共通) */
+.control-row input[type="checkbox"],
+.control-row input[type="radio"] { vertical-align: middle; }
+label:has(> input[type="radio"]),
+label:has(> input[type="checkbox"]) { display: inline-flex; align-items: center; gap: 3px; }
+label > input[type="radio"],
+label > input[type="checkbox"] { margin-top: 0; margin-bottom: 0; }
 .baseopt-hr {
     border: none;
     border-top: 1px solid #ccc;
@@ -1024,7 +1033,7 @@ input[type="radio"] {
 
 /* 時間フィルタのグループ見出し(開始時刻/終了時刻) */
 .tsuji-time-group-label {
-    font-size: 11px;
+    font-size: 14px;   /* 時間フィルタラベルと同じ文字サイズ */
     font-weight: bold;
     color: #333;
 }
