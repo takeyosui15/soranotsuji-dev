@@ -271,7 +271,7 @@ let appState = {
     soraMovShots: 1,             // インターバルMov: 撮影回数 1〜99999
     soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
     soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
-    soraMovImgMb: 8,             // インターバルMov: 画像サイズ(MB) 1〜100
+    soraMovImgMb: 140,           // インターバルMov: 画像サイズ(MB) 1〜102400
     soraMovPlayMode: 'anim',     // 再生オプション: 'anim'=表示間隔サンプリングのアニメ / 'video'=MP4/WebM生成→動画再生
     soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
@@ -1366,7 +1366,7 @@ function normalizeAppState() {
     appState.soraMovShots = Math.round(num(appState.soraMovShots, 1, 1, 99999));
     if (![24, 25, 30, 50, 60].includes(Number(appState.soraMovFps))) appState.soraMovFps = 30; else appState.soraMovFps = Number(appState.soraMovFps);
     if (![0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1].includes(Number(appState.soraMovDispStep))) appState.soraMovDispStep = 0.3; else appState.soraMovDispStep = Number(appState.soraMovDispStep);
-    appState.soraMovImgMb = num(appState.soraMovImgMb, 8, 1, 100);
+    appState.soraMovImgMb = num(appState.soraMovImgMb, 140, 1, 102400);
     appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
     appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
     appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
@@ -9773,7 +9773,7 @@ function soraMovSyncUI() {
     document.getElementById('sora-mov-end').textContent =
         `${e.getFullYear()}/${p2(e.getMonth() + 1)}/${p2(e.getDate())} ${p2(e.getHours())}:${p2(e.getMinutes())}:${p2(e.getSeconds())}`;
     document.getElementById('sora-mov-playtime').textContent = soraMovFmtHMS(n / (Number(appState.soraMovFps) || 30));
-    const gb = n * (Number(appState.soraMovImgMb) || 8) / 1024;
+    const gb = n * (Number(appState.soraMovImgMb) || 140) / 1024;
     document.getElementById('sora-mov-total').value = gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2);   // 単位はラベル(GB)側に表示
 }
 
@@ -10397,7 +10397,7 @@ function setupSoramadoControls() {
     // インターバルMov: パラメータ入力と再生トグル
     numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
     numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
-    numH('input-sora-mov-mb', 'soraMovImgMb', 1, 100, false);
+    numH('input-sora-mov-mb', 'soraMovImgMb', 1, 102400, false);
     selH('sel-sora-mov-fps', 'soraMovFps', v => parseInt(v));
     selH('sel-sora-mov-step', 'soraMovDispStep', v => parseFloat(v));
     btnH('btn-sora-mov-play', soraMovTogglePlay);
