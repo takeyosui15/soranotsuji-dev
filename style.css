@@ -343,6 +343,24 @@ html {
     color: #ffd700;
 }
 #soramado-ctrl-body .sora-mov-num { width: 90px; }
+/* ctrlの日時コントロール: 日時情報メニューと同じボタンサイズ(34px)に統一し、
+   日付/時刻ピッカーを行いっぱいに伸ばして両行の縦のラインを揃える */
+#btn-sora-ctrl-month-prev, #btn-sora-ctrl-date-prev, #btn-sora-ctrl-date-next, #btn-sora-ctrl-month-next,
+#btn-sora-ctrl-hour-prev, #btn-sora-ctrl-time-prev, #btn-sora-ctrl-time-next, #btn-sora-ctrl-hour-next {
+    width: 34px;
+    min-width: 34px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+}
+#sora-ctrl-date, #sora-ctrl-time {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    padding: 0 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
 #sora-mov-total { background: #555; color: #eee; border: 1px solid #666; }
 #btn-sora-mov-play { min-width: 72px; }
 #btn-sora-mov-play.active { background: #b8860b; color: #fff; border-color: #ffd700; }
