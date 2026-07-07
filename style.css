@@ -170,6 +170,7 @@ html {
     border-top: 1px solid #4a4a4a;
 }
 #tsujimesh-ctrl-body .control-row { max-width: 360px; margin: 4px auto; }
+#tsujimesh-ctrl-body label { color: #eee; }
 #tsujimesh-ctrl-body .control-row.center-row { justify-content: center; }
 .tsujimesh-ctrl-label { color: #ffd700; font-size: 13px; font-weight: bold; margin: 0 8px; }
 #tsujimesh-row-slider { flex: 1 1 auto; min-width: 0; }

@@ -6707,6 +6707,7 @@ let _tsujiMeshSelIdx = -1;     // 選択中の行index
 let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array } (プレフィルタ後)
 let _tsujiMeshMarkerOverflow = false;
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
+let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 
 // 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
 const tsujiMeshPool = (() => {
@@ -6783,7 +6784,18 @@ function ensureTsujiMeshLayers() {
         _tsujiMeshCanvasRenderer = L.canvas({ padding: 0.3 });   // 多数の小マーカー用にCanvas描画
         tsujiMeshLayer = L.layerGroup().addTo(map);
         _tsujiMeshGoldLayer = L.layerGroup().addTo(map);
+        applyTsujiMeshLayerVisibility();
     }
+}
+
+/** マーカーレイヤー(白/金)の表示/非表示をチェックボックスの状態に合わせる */
+function applyTsujiMeshLayerVisibility() {
+    if (typeof map === 'undefined' || !map) return;
+    [tsujiMeshLayer, _tsujiMeshGoldLayer].forEach(l => {
+        if (!l) return;
+        if (_tsujiMeshLayerVisible) { if (!map.hasLayer(l)) l.addTo(map); }
+        else if (map.hasLayer(l)) { map.removeLayer(l); }
+    });
 }
 function clearTsujiMeshMarkers() {
     if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
@@ -7297,6 +7309,10 @@ function setupTsujiMeshPanelControls() {
     });
     document.getElementById('btn-tsujimesh-next').addEventListener('click', () => {
         selectTsujiMeshRow(_tsujiMeshSelIdx + 1);
+    });
+    document.getElementById('chk-tsujimesh-marker-layer').addEventListener('change', (e) => {
+        _tsujiMeshLayerVisible = e.target.checked;
+        applyTsujiMeshLayerVisibility();
     });
 }
 

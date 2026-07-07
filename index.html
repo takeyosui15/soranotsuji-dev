@@ -91,6 +91,9 @@ GNU General Public License for more details.
                     <input type="range" id="tsujimesh-row-slider" min="1" max="1" value="1" step="1" title="結果リストの選択行を変更">
                     <button id="btn-tsujimesh-next" class="nav-btn" title="1つ後の結果を選択">▶</button>
                 </div>
+                <div class="control-row center-row">
+                    <input type="checkbox" id="chk-tsujimesh-marker-layer" class="body-checkbox" checked><label for="chk-tsujimesh-marker-layer" title="地図のマーカーレイヤー(白/金)の表示/非表示を切り替え">:マーカーレイヤー</label>
+                </div>
             </div>
         </div>
     </div>
@@ -768,14 +771,10 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-traj" class="body-checkbox"><label for="chk-sora-traj">:天体軌跡</label>
-                    </div>
-                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-center" class="body-checkbox"><label for="chk-sora-center">:画面中心(+)</label>
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-target" class="body-checkbox"><label for="chk-sora-target" title="目的点の中心座標の十字記号(+)マーカーを表示/非表示">:目的点(+)</label>
-                    </div>
-                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-sora-search-center" class="body-checkbox"><label for="chk-sora-search-center" title="検索中心のX字記号(×)マーカーを表示/非表示(検索中心オプションが線の場合は目的点からオフセット点までの線も表示)">:検索中心(×)</label>
                     </div>
                     <div class="control-row">
