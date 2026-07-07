@@ -350,10 +350,10 @@ html {
 #btn-sora-export { min-width: 96px; }
 #btn-sora-export.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 
-/* 書き出しの進捗表示(パネル中央上部のオーバーレイ) */
+/* 書き出し・再生の進捗表示(プレビュー画面の中央下部のオーバーレイ。空に文字が被らないよう下部に置く) */
 #soramado-export-progress {
     position: absolute;
-    top: 10px;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 940;

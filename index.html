@@ -95,6 +95,7 @@ GNU General Public License for more details.
             <div id="soramado-center" class="soramado-cross"></div>
             <div id="soramado-info"></div>
             <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
+            <div id="soramado-export-progress" class="hidden"></div>
             <button id="btn-soramado-max" title="プレビューを画面いっぱいに最大化">⛶</button>
         </div>
         <div id="soramado-ctrl">
@@ -213,7 +214,6 @@ GNU General Public License for more details.
                 </div>
             </div>
         </div>
-        <div id="soramado-export-progress" class="hidden"></div>
     </div>
 
     <div id="control-panel" class="control-panel minimized">
@@ -389,6 +389,14 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">許容範囲視高度(°): ±</label>
                         <input type="number" id="input-tsuji-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心をオフセット点の「点」で検索します"><input type="radio" name="tsuji-center-mode" value="point" checked>:オフセット点</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を基準点からオフセット点までの「線」の範囲で検索します"><input type="radio" name="tsuji-center-mode" value="line">:基準点からオフセット点までの線</label>
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>

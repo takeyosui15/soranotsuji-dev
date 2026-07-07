@@ -47,6 +47,45 @@ function angularDistance(az1, alt1, az2, alt2) {
     return Math.acos(clamped) * 180 / Math.PI;
 }
 
+// ±180°への方位角差の正規化
+function wrap180(deg) {
+    return ((deg + 540) % 360) - 180;
+}
+
+// 検索中心オプション「線」: 基準点(az0,alt0)からオフセット点(az1,alt1)までの線分に対する判定。
+// ヒット判定は「線分上のいずれかの点から許容範囲(方位角/視高度の矩形)内」(媒介変数sの1次不等式区間の交差)。
+// 精度角距離は、度数平面での線分への最近点(sをクランプした射影)との球面角距離。
+function segmentMatch(az, alt, az0, alt0, az1, alt1, toleranceAz, toleranceAlt) {
+    const dAz = wrap180(az1 - az0);       // 線分の方位角の広がり(短い側で連続化)
+    const dAlt = alt1 - alt0;
+    const pAz = wrap180(az - az0);        // 判定点(基準点相対)
+    const pAlt = alt - alt0;
+    // |pAz - s*dAz| <= tolAz を満たす s の区間
+    let azLo = -Infinity, azHi = Infinity;
+    if (Math.abs(dAz) < 1e-12) {
+        if (Math.abs(pAz) > toleranceAz) return null;
+    } else {
+        azLo = (pAz - toleranceAz) / dAz; azHi = (pAz + toleranceAz) / dAz;
+        if (azLo > azHi) { const t = azLo; azLo = azHi; azHi = t; }
+    }
+    // |pAlt - s*dAlt| <= tolAlt を満たす s の区間
+    let altLo = -Infinity, altHi = Infinity;
+    if (Math.abs(dAlt) < 1e-12) {
+        if (Math.abs(pAlt) > toleranceAlt) return null;
+    } else {
+        altLo = (pAlt - toleranceAlt) / dAlt; altHi = (pAlt + toleranceAlt) / dAlt;
+        if (altLo > altHi) { const t = altLo; altLo = altHi; altHi = t; }
+    }
+    const lo = Math.max(0, azLo, altLo), hi = Math.min(1, azHi, altHi);
+    if (lo > hi) return null;
+    // 精度角距離: 線分への最近点(度数平面の射影をクランプ)からの角距離
+    const len2 = dAz * dAz + dAlt * dAlt;
+    let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+    s = Math.max(0, Math.min(1, s));
+    const nAz = az0 + s * dAz, nAlt = alt0 + s * dAlt;
+    return { dist: angularDistance(az, alt, nAz, nAlt) };
+}
+
 // 1ステップ計算: 指定時刻での body の方位角・視高度を返す
 function calcAzAlt(body, time, observer, refractionEnabled) {
     let ra, dec;
@@ -75,6 +114,8 @@ self.onmessage = (e) => {
         refractionEnabled,
         targetAz, targetAlt,
         toleranceAz, toleranceAlt,
+        centerMode,               // 検索中心オプション: 'point'(既定)=オフセット点 / 'line'=基準点からオフセット点までの線
+        centerAz0, centerAlt0,    // 'line'のときの基準点(線分の始点。終点は targetAz/targetAlt)
         searchStartMs,
         dayStart,
         dayEnd,
@@ -82,6 +123,18 @@ self.onmessage = (e) => {
     } = e.data;
 
     const observer = new A.Observer(observerData.lat, observerData.lng, observerData.elev);
+    const isLine = centerMode === 'line';
+    // 判定: 許容範囲内なら精度角距離(dist)を返し、範囲外なら null
+    const matchDist = (az, alt) => {
+        if (isLine) {
+            const m = segmentMatch(az, alt, centerAz0, centerAlt0, targetAz, targetAlt, toleranceAz, toleranceAlt);
+            return m ? m.dist : null;
+        }
+        if (isAzimuthInRange(az, targetAz, toleranceAz) && Math.abs(alt - targetAlt) <= toleranceAlt) {
+            return angularDistance(az, alt, targetAz, targetAlt);
+        }
+        return null;
+    };
     const stepsPerDay = 1440;  // 1分単位
     const results = [];
 
@@ -95,12 +148,10 @@ self.onmessage = (e) => {
         for (let s = 0; s < stepsPerDay; s++) {
             const time = new Date(dayBase + s * 60000);
             const { az, alt } = calcAzAlt(body, time, observer, refractionEnabled);
-            if (isAzimuthInRange(az, targetAz, toleranceAz) && Math.abs(alt - targetAlt) <= toleranceAlt) {
-                const dist = angularDistance(az, alt, targetAz, targetAlt);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
-                }
+            const dist = matchDist(az, alt);
+            if (dist !== null && dist < bestDist) {
+                bestDist = dist;
+                bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
             }
         }
 
@@ -111,12 +162,10 @@ self.onmessage = (e) => {
                 if (dsec === 0) continue;  // すでに計算済み
                 const time = new Date(refineCenter + dsec * 1000);
                 const { az, alt } = calcAzAlt(body, time, observer, refractionEnabled);
-                if (isAzimuthInRange(az, targetAz, toleranceAz) && Math.abs(alt - targetAlt) <= toleranceAlt) {
-                    const dist = angularDistance(az, alt, targetAz, targetAlt);
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
-                    }
+                const dist = matchDist(az, alt);
+                if (dist !== null && dist < bestDist) {
+                    bestDist = dist;
+                    bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
                 }
             }
             // リファイン後の最良時刻が当日 [dayBase, dayEndMs) に属する場合のみ採用。
