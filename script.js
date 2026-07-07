@@ -314,6 +314,18 @@ let appState = {
 
     // 標高オプション
     tsujiElevationOption: false,
+    // 辻メッシュ検索パラメータ (全てlocalStorage保存。isTsujiMeshActiveのみセッション/URL)
+    tsujiMeshDays: 365,
+    tsujiMeshBaseAz: 0, tsujiMeshOffsetAz: 0, tsujiMeshToleranceAz: 15,
+    tsujiMeshBaseAlt: 0, tsujiMeshOffsetAlt: 0, tsujiMeshToleranceAlt: 15,
+    tsujiMeshCenterMode: 'point',   // 検索中心オプション: 'point'|'line'
+    tsujiMeshAccuracy: 'x1',        // 精度フィルタ: 'x1'=◎(±0.125) 'x2'(±0.0625) 'x4'(±0.03125) 'x8'(±0.015625)
+    tsujiMeshMoonFilterEnabled: false, tsujiMeshMoonBase: 14.8, tsujiMeshMoonTolerance: 2,
+    tsujiMeshTimeFilter: false,
+    tsujiMeshStartMode: 'sunset', tsujiMeshStartTime: '00:00', tsujiMeshStartPrePost: false, tsujiMeshStartPrePostDir: 'before', tsujiMeshStartOffset: '00:00',
+    tsujiMeshEndMode: 'sunrise', tsujiMeshEndTime: '00:00', tsujiMeshEndPrePost: false, tsujiMeshEndPrePostDir: 'before', tsujiMeshEndOffset: '00:00',
+    tsujiMeshElevationOption: false, tsujiMeshElevOK: false, tsujiMeshElevNG: false,
+    isTsujiMeshActive: false,       // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
     tsujiElevOK: false,
     tsujiElevNG: false,
 
@@ -424,6 +436,26 @@ window.onload = function() {
     document.getElementById('chk-tsuji-elev-option').checked = appState.tsujiElevationOption;
     document.getElementById('chk-tsuji-elev-ok').checked = appState.tsujiElevOK;
     document.getElementById('chk-tsuji-elev-ng').checked = appState.tsujiElevNG;
+    // 辻メッシュ検索: localStorage復元値をセット
+    document.getElementById('input-tsujimesh-days').value = appState.tsujiMeshDays;
+    document.getElementById('input-tsujimesh-az').value = appState.tsujiMeshBaseAz;
+    document.getElementById('input-tsujimesh-alt').value = appState.tsujiMeshBaseAlt;
+    document.getElementById('input-tsujimesh-az-tolerance').value = appState.tsujiMeshToleranceAz;
+    document.getElementById('input-tsujimesh-alt-tolerance').value = appState.tsujiMeshToleranceAlt;
+    const tmcmR = document.querySelector(`input[name="tsujimesh-center-mode"][value="${appState.tsujiMeshCenterMode}"]`);
+    if (tmcmR) tmcmR.checked = true;
+    const tmaR = document.querySelector(`input[name="tsujimesh-accuracy"][value="${appState.tsujiMeshAccuracy}"]`);
+    if (tmaR) tmaR.checked = true;
+    document.getElementById('input-tsujimesh-mw-offset').value = appState.mwOffsetAngle;
+    document.getElementById('chk-tsujimesh-moon-filter').checked = appState.tsujiMeshMoonFilterEnabled;
+    document.getElementById('input-tsujimesh-moon-base').value = appState.tsujiMeshMoonBase;
+    document.getElementById('input-tsujimesh-moon-tolerance').value = appState.tsujiMeshMoonTolerance;
+    document.getElementById('chk-tsujimesh-elev-option').checked = appState.tsujiMeshElevationOption;
+    document.getElementById('chk-tsujimesh-elev-ok').checked = appState.tsujiMeshElevOK;
+    document.getElementById('chk-tsujimesh-elev-ng').checked = appState.tsujiMeshElevNG;
+    updateTsujiMeshMoonFilterUI();
+    updateTsujiMeshElevationOptionUI();
+    updateTsujiMeshOffsetDistances();
     updateTsujiAccuracyFilterUI();
     updateTsujiMoonFilterUI();
     updateTsujiElevationOptionUI();
@@ -481,6 +513,14 @@ window.onload = function() {
             document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
             syncBottomPanels();
             startTsujiSearch();
+        }, 500);
+    }
+
+    // URLパラメータで辻メッシュ検索が指定されていた場合、自動実行
+    if (appState._pendingTsujiMesh) {
+        delete appState._pendingTsujiMesh;
+        setTimeout(() => {
+            if (!appState.isTsujiMeshActive) toggleTsujiMesh();
         }, 500);
     }
 
@@ -644,6 +684,8 @@ function setupUI() {
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
+    document.getElementById('btn-tsujimesh').onclick = toggleTsujiMesh;
+    setupTsujiMeshPanelControls();
 
     // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
     document.querySelectorAll('input[name="loc-mode"]').forEach(radio => {
@@ -780,6 +822,102 @@ function setupUI() {
         });
     }
 
+    // 辻メッシュ検索: メニューの変更をlocalStorage保存
+    document.getElementById('input-tsujimesh-days').addEventListener('change', (e) => {
+        let v = parseInt(e.target.value);
+        if (isNaN(v)) v = 365;
+        appState.tsujiMeshDays = Math.min(Math.max(v, 1), 36500);
+        e.target.value = appState.tsujiMeshDays;
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-az').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiMeshBaseAz = val;
+        e.target.value = appState.tsujiMeshBaseAz;
+        saveAppState();
+        updateTsujiMeshOffsetDistances();
+    });
+    document.getElementById('input-tsujimesh-alt').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiMeshBaseAlt = val;
+        e.target.value = appState.tsujiMeshBaseAlt;
+        saveAppState();
+        updateTsujiMeshOffsetDistances();
+    });
+    [['input-tsujimesh-az-offset', 'tsujiMeshOffsetAz'], ['input-tsujimesh-alt-offset', 'tsujiMeshOffsetAlt']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            appState[key] = Math.max(-360, Math.min(360, parseFloat(e.target.value) || 0));
+            e.target.value = appState[key];
+            saveAppState();
+            updateTsujiMeshOffsetDistances();
+        });
+    });
+    [['input-tsujimesh-az-tolerance', 'tsujiMeshToleranceAz'], ['input-tsujimesh-alt-tolerance', 'tsujiMeshToleranceAlt']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            appState[key] = parseFloat(e.target.value) || 15;
+            e.target.value = appState[key];
+            saveAppState();
+        });
+    });
+    document.querySelectorAll('input[name="tsujimesh-center-mode"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiMeshCenterMode = r.value; saveAppState(); } });
+    });
+    document.querySelectorAll('input[name="tsujimesh-accuracy"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiMeshAccuracy = r.value; saveAppState(); } });
+    });
+    document.getElementById('chk-tsujimesh-moon-filter').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonFilterEnabled = e.target.checked;
+        updateTsujiMeshMoonFilterUI();
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-moon-base').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonBase = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 30);
+        e.target.value = appState.tsujiMeshMoonBase;
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-moon-tolerance').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonTolerance = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 15);
+        e.target.value = appState.tsujiMeshMoonTolerance;
+        saveAppState();
+    });
+    document.getElementById('chk-tsujimesh-elev-option').addEventListener('change', (e) => {
+        appState.tsujiMeshElevationOption = e.target.checked;
+        updateTsujiMeshElevationOptionUI();
+        saveAppState();
+    });
+    document.getElementById('chk-tsujimesh-elev-ok').addEventListener('change', (e) => {
+        appState.tsujiMeshElevOK = e.target.checked;
+        saveAppState();
+    });
+    document.getElementById('chk-tsujimesh-elev-ng').addEventListener('change', (e) => {
+        appState.tsujiMeshElevNG = e.target.checked;
+        saveAppState();
+    });
+    // 辻メッシュ: 時間フィルタ(グループHTML生成+結線)
+    const tmfContainer = document.getElementById('tsujimesh-time-filter-groups');
+    if (tmfContainer) {
+        tmfContainer.innerHTML = buildTimeGroupHtmlFor('tsujimesh', 'tsujiMesh', 'start') + buildTimeGroupHtmlFor('tsujimesh', 'tsujiMesh', 'end');
+        document.getElementById('chk-tsujimesh-time-filter').addEventListener('change', (e) => {
+            appState.tsujiMeshTimeFilter = e.target.checked;
+            updateTsujiMeshTimeFilterUI();
+            saveAppState();
+        });
+        ['start', 'end'].forEach(group => {
+            const G = group === 'start' ? 'Start' : 'End';
+            document.querySelectorAll(`input[name="tsujimesh-${group}-mode"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Mode'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsujimesh-${group}-time`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Time'] = e.target.value; saveAppState(); });
+            document.getElementById(`chk-tsujimesh-${group}-prepost`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'PrePost'] = e.target.checked; updateTsujiMeshTimeFilterUI(); saveAppState(); });
+            document.querySelectorAll(`input[name="tsujimesh-${group}-prepost-dir"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsujiMesh' + G + 'PrePostDir'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsujimesh-${group}-offset`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Offset'] = e.target.value; saveAppState(); });
+        });
+        syncTsujiMeshTimeFilter();
+    }
+    document.getElementById('btn-url-tsujimesh').onclick = () => toggleUrlPanel('tsujimesh');
+
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
     document.getElementById('btn-reg-end').onclick = () => registerLocation('end');
@@ -795,6 +933,7 @@ function setupUI() {
         else if (mode === 'tsuji') copyTsujiSearchUrl('fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('fixed');
         else if (mode === 'soramado') copySoramadoUrl('fixed');
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl('fixed');
     });
     document.getElementById('url-picker-semi-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -803,6 +942,7 @@ function setupUI() {
         else if (mode === 'tsuji') copyTsujiSearchUrl('semi-fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('semi-fixed');
         else if (mode === 'soramado') copySoramadoUrl('semi-fixed');
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl('semi-fixed');
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -811,6 +951,7 @@ function setupUI() {
         else if (mode === 'tsuji') copyTsujiSearchUrl(false);
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl(false);
         else if (mode === 'soramado') copySoramadoUrl(false);
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl(false);
     });
 
     // 座標入力 (changeイベント)
@@ -1050,6 +1191,16 @@ function saveAppState() {
         tsujiTimeFilter: appState.tsujiTimeFilter,
         tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
         tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
+        // 辻メッシュ検索パラメータ
+        tsujiMeshDays: appState.tsujiMeshDays,
+        tsujiMeshBaseAz: appState.tsujiMeshBaseAz, tsujiMeshOffsetAz: appState.tsujiMeshOffsetAz, tsujiMeshToleranceAz: appState.tsujiMeshToleranceAz,
+        tsujiMeshBaseAlt: appState.tsujiMeshBaseAlt, tsujiMeshOffsetAlt: appState.tsujiMeshOffsetAlt, tsujiMeshToleranceAlt: appState.tsujiMeshToleranceAlt,
+        tsujiMeshCenterMode: appState.tsujiMeshCenterMode, tsujiMeshAccuracy: appState.tsujiMeshAccuracy,
+        tsujiMeshMoonFilterEnabled: appState.tsujiMeshMoonFilterEnabled, tsujiMeshMoonBase: appState.tsujiMeshMoonBase, tsujiMeshMoonTolerance: appState.tsujiMeshMoonTolerance,
+        tsujiMeshTimeFilter: appState.tsujiMeshTimeFilter,
+        tsujiMeshStartMode: appState.tsujiMeshStartMode, tsujiMeshStartTime: appState.tsujiMeshStartTime, tsujiMeshStartPrePost: appState.tsujiMeshStartPrePost, tsujiMeshStartPrePostDir: appState.tsujiMeshStartPrePostDir, tsujiMeshStartOffset: appState.tsujiMeshStartOffset,
+        tsujiMeshEndMode: appState.tsujiMeshEndMode, tsujiMeshEndTime: appState.tsujiMeshEndTime, tsujiMeshEndPrePost: appState.tsujiMeshEndPrePost, tsujiMeshEndPrePostDir: appState.tsujiMeshEndPrePostDir, tsujiMeshEndOffset: appState.tsujiMeshEndOffset,
+        tsujiMeshElevationOption: appState.tsujiMeshElevationOption, tsujiMeshElevOK: appState.tsujiMeshElevOK, tsujiMeshElevNG: appState.tsujiMeshElevNG,
         // 宙の窓パラメータ
         // 焦点距離・合焦距離・フィッシュアイ強度・パノラマ画角・カメラオフセット・視界範囲は保存しない
         // (毎アクセスで初期値を適用。URLからは復元される。広画角のまま再訪してDEMタイルを過剰取得するのを防ぐ)
@@ -1109,6 +1260,17 @@ function loadAppState() {
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
             if(saved.tsujiCenterMode !== undefined) appState.tsujiCenterMode = saved.tsujiCenterMode;
+            // 辻メッシュ検索パラメータ
+            ['tsujiMeshDays', 'tsujiMeshBaseAz', 'tsujiMeshOffsetAz', 'tsujiMeshToleranceAz',
+             'tsujiMeshBaseAlt', 'tsujiMeshOffsetAlt', 'tsujiMeshToleranceAlt',
+             'tsujiMeshCenterMode', 'tsujiMeshAccuracy',
+             'tsujiMeshMoonFilterEnabled', 'tsujiMeshMoonBase', 'tsujiMeshMoonTolerance',
+             'tsujiMeshTimeFilter',
+             'tsujiMeshStartMode', 'tsujiMeshStartTime', 'tsujiMeshStartPrePost', 'tsujiMeshStartPrePostDir', 'tsujiMeshStartOffset',
+             'tsujiMeshEndMode', 'tsujiMeshEndTime', 'tsujiMeshEndPrePost', 'tsujiMeshEndPrePostDir', 'tsujiMeshEndOffset',
+             'tsujiMeshElevationOption', 'tsujiMeshElevOK', 'tsujiMeshElevNG'].forEach(k => {
+                if (saved[k] !== undefined) appState[k] = saved[k];
+            });
             if(saved.tsujiMoonFilterEnabled !== undefined) appState.tsujiMoonFilterEnabled = saved.tsujiMoonFilterEnabled;
             if(saved.tsujiMoonBase !== undefined) appState.tsujiMoonBase = saved.tsujiMoonBase;
             if(saved.tsujiMoonTolerance !== undefined) appState.tsujiMoonTolerance = saved.tsujiMoonTolerance;
@@ -1171,6 +1333,18 @@ function normalizeAppState() {
         appState['tsuji' + G + 'PrePost'] = !!appState['tsuji' + G + 'PrePost'];
     });
     appState.tsujiTimeFilter = !!appState.tsujiTimeFilter;
+    // 辻メッシュ検索
+    ['Start', 'End'].forEach(G => {
+        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
+        if (!validModes.includes(appState['tsujiMesh' + G + 'Mode'])) appState['tsujiMesh' + G + 'Mode'] = defMode;
+        if (appState['tsujiMesh' + G + 'PrePostDir'] !== 'before' && appState['tsujiMesh' + G + 'PrePostDir'] !== 'after') appState['tsujiMesh' + G + 'PrePostDir'] = 'before';
+        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsujiMesh' + G + k])) appState['tsujiMesh' + G + k] = '00:00'; });
+        appState['tsujiMesh' + G + 'PrePost'] = !!appState['tsujiMesh' + G + 'PrePost'];
+    });
+    appState.tsujiMeshTimeFilter = !!appState.tsujiMeshTimeFilter;
+    if (!['point', 'line'].includes(appState.tsujiMeshCenterMode)) appState.tsujiMeshCenterMode = 'point';
+    if (!['x1', 'x2', 'x4', 'x8'].includes(appState.tsujiMeshAccuracy)) appState.tsujiMeshAccuracy = 'x1';
+    appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
     if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
     // 宙の窓: 数値の範囲・型
@@ -1366,6 +1540,8 @@ function updateAll() {
     }
 
     updateTsujiSearchInputs();
+
+    updateTsujiMeshSearchInputs();
 
     // 全天儀: 観測者の位置・日時が変わったら向きを更新
     if (appState.isMilkyWayActive) {
@@ -3246,26 +3422,33 @@ function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr, disabledAttr 
     ).join('');
 }
 
-/** 辻検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成 */
-function buildTsujiTimeGroupHtml(group) {
+/** 辻検索/辻メッシュ検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成。
+ *  prefix: id/name接頭辞('tsuji'|'tsujimesh')、statePrefix: appStateキー接頭辞('tsuji'|'tsujiMesh') */
+function buildTimeGroupHtmlFor(prefix, statePrefix, group) {
     const G = group === 'start' ? 'Start' : 'End';
-    const name = `tsuji-${group}-mode`, ppName = `tsuji-${group}-prepost-dir`;
-    const mode = appState['tsuji' + G + 'Mode'];
+    const name = `${prefix}-${group}-mode`, ppName = `${prefix}-${group}-prepost-dir`;
+    const mode = appState[statePrefix + G + 'Mode'];
+    const ctlCls = `${prefix}-time-control`, ppCls = `${prefix}-${group}-prepost-control`;
     const groupLabel = group === 'start' ? '開始時刻' : '終了時刻';
     return `<div class="tsuji-time-group tsuji-time-${group}">
         <div class="control-row left-row"><span class="tsuji-time-group-label">${groupLabel}</span></div>
         <div class="control-row left-row">
-            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="tsuji-time-control" ${mode === 'fixed' ? 'checked' : ''} disabled>時刻指定</label>
-            <input type="time" id="input-tsuji-${group}-time" class="tsuji-time-control" value="${appState['tsuji' + G + 'Time']}" disabled>
+            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="${ctlCls}" ${mode === 'fixed' ? 'checked' : ''} disabled>時刻指定</label>
+            <input type="time" id="input-${prefix}-${group}-time" class="${ctlCls}" value="${appState[statePrefix + G + 'Time']}" disabled>
         </div>
-        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, 'tsuji-time-control', '')}</div>
+        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, ctlCls, '')}</div>
         <div class="control-row left-row">
-            <label class="tsuji-time-mode"><input type="checkbox" id="chk-tsuji-${group}-prepost" class="body-checkbox tsuji-time-control" ${appState['tsuji' + G + 'PrePost'] ? 'checked' : ''} disabled>前後時刻指定</label>
-            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="tsuji-${group}-prepost-control" ${appState['tsuji' + G + 'PrePostDir'] === 'before' ? 'checked' : ''} disabled>前</label>
-            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="tsuji-${group}-prepost-control" ${appState['tsuji' + G + 'PrePostDir'] === 'after' ? 'checked' : ''} disabled>後</label>
-            <input type="time" id="input-tsuji-${group}-offset" class="tsuji-${group}-prepost-control" value="${appState['tsuji' + G + 'Offset']}" disabled>
+            <label class="tsuji-time-mode"><input type="checkbox" id="chk-${prefix}-${group}-prepost" class="body-checkbox ${ctlCls}" ${appState[statePrefix + G + 'PrePost'] ? 'checked' : ''} disabled>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'before' ? 'checked' : ''} disabled>前</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'after' ? 'checked' : ''} disabled>後</label>
+            <input type="time" id="input-${prefix}-${group}-offset" class="${ppCls}" value="${appState[statePrefix + G + 'Offset']}" disabled>
         </div>
     </div>`;
+}
+
+/** 辻検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成 */
+function buildTsujiTimeGroupHtml(group) {
+    return buildTimeGroupHtmlFor('tsuji', 'tsuji', group);
 }
 
 /** My辻検索の1行の時間フィルタ1グループ(開始/終了)のHTMLを生成 (per-row、クラス+data-id) */
@@ -6386,6 +6569,91 @@ function syncTsujiTimeFilter() {
     updateTsujiTimeFilterUI();
 }
 
+// --- 辻メッシュ検索 入力連動/UIヘルパー ---
+/** 位置が変わった場合のみ辻メッシュの基準方位角/視高度を再計算（手動入力値を保護） */
+function updateTsujiMeshSearchInputs() {
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    if (posKey === appState._lastTsujiMeshPosKey) return;
+    appState._lastTsujiMeshPosKey = posKey;
+    const dist = L.latLng(appState.start.lat, appState.start.lng)
+                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
+    appState.tsujiMeshBaseAz = az;
+    appState.tsujiMeshBaseAlt = alt;
+    const azEl = document.getElementById('input-tsujimesh-az');
+    const altEl = document.getElementById('input-tsujimesh-alt');
+    if (azEl) azEl.value = az.toFixed(4);
+    if (altEl) altEl.value = alt.toFixed(4);
+    saveAppState();
+    updateTsujiMeshOffsetDistances();
+}
+
+/** 辻メッシュの辻オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
+function updateTsujiMeshOffsetDistances() {
+    const dist = L.latLng(appState.start.lat, appState.start.lng)
+                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const offsetAz = appState.tsujiMeshOffsetAz;
+    const offsetAlt = appState.tsujiMeshOffsetAlt;
+    const baseAz = appState.tsujiMeshBaseAz;
+    const baseAlt = appState.tsujiMeshBaseAlt;
+    const valid = !isNaN(baseAz) && !isNaN(baseAlt) && !isNaN(offsetAz) && !isNaN(offsetAlt);
+    const setV = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    setV('input-tsujimesh-az-offset', offsetAz);
+    setV('input-tsujimesh-alt-offset', offsetAlt);
+    setV('input-tsujimesh-az-offset-dist', parseFloat((dist * Math.tan(offsetAz * Math.PI / 180)).toFixed(1)));
+    setV('input-tsujimesh-alt-offset-dist', parseFloat((dist * Math.tan(offsetAlt * Math.PI / 180)).toFixed(1)));
+    setV('input-tsujimesh-rot', parseFloat((valid ? calcOffsetRotation(offsetAz, offsetAlt) : 0).toFixed(4)));
+    setV('input-tsujimesh-rot-alt', parseFloat((valid ? angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt) : 0).toFixed(4)));
+}
+
+/** 辻メッシュ: 月齢フィルタのUI状態(入力可否)を更新 */
+function updateTsujiMeshMoonFilterUI() {
+    const enabled = appState.tsujiMeshMoonFilterEnabled;
+    const b = document.getElementById('input-tsujimesh-moon-base');
+    const t = document.getElementById('input-tsujimesh-moon-tolerance');
+    if (b) b.disabled = !enabled;
+    if (t) t.disabled = !enabled;
+}
+
+/** 辻メッシュ: 標高オプションのUI状態(OK/NGチェックの入力可否)を更新 */
+function updateTsujiMeshElevationOptionUI() {
+    const enabled = appState.tsujiMeshElevationOption;
+    const ok = document.getElementById('chk-tsujimesh-elev-ok');
+    const ng = document.getElementById('chk-tsujimesh-elev-ng');
+    if (ok) ok.disabled = !enabled;
+    if (ng) ng.disabled = !enabled;
+}
+
+/** 辻メッシュ: 時間フィルタのUI状態(活性/非活性)を更新 */
+function updateTsujiMeshTimeFilterUI() {
+    const on = appState.tsujiMeshTimeFilter;
+    document.querySelectorAll('#tsujimesh-time-filter-groups .tsujimesh-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const pp = on && appState['tsujiMesh' + G + 'PrePost'];
+        document.querySelectorAll('.tsujimesh-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
+}
+
+/** 辻メッシュ: 時間フィルタのフォーム値をappStateから反映 */
+function syncTsujiMeshTimeFilter() {
+    const chk = document.getElementById('chk-tsujimesh-time-filter');
+    if (!chk) return;
+    chk.checked = appState.tsujiMeshTimeFilter;
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const mr = document.querySelector(`input[name="tsujimesh-${group}-mode"][value="${appState['tsujiMesh' + G + 'Mode']}"]`);
+        if (mr) mr.checked = true;
+        document.getElementById(`input-tsujimesh-${group}-time`).value = appState['tsujiMesh' + G + 'Time'];
+        document.getElementById(`chk-tsujimesh-${group}-prepost`).checked = appState['tsujiMesh' + G + 'PrePost'];
+        const dr = document.querySelector(`input[name="tsujimesh-${group}-prepost-dir"][value="${appState['tsujiMesh' + G + 'PrePostDir']}"]`);
+        if (dr) dr.checked = true;
+        document.getElementById(`input-tsujimesh-${group}-offset`).value = appState['tsujiMesh' + G + 'Offset'];
+    });
+    updateTsujiMeshTimeFilterUI();
+}
+
 /** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
 function isMoonAgeInRange(moonAge, base, tolerance) {
     const S = SYNODIC_MONTH;
@@ -6398,6 +6666,7 @@ function isMoonAgeInRange(moonAge, base, tolerance) {
 // --- 辻検索 ---
 /** 辻検索パネルをMy辻検索結果表示用に開く (startTsujiSearchを呼ばず、ヘッダーテキストを差し替える) */
 function showTsujiPanelForMyTsuji(titleText) {
+    if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
     appState.isTsujiSearchActive = true;
     document.getElementById('btn-tsuji-search').classList.add('active');
     document.getElementById('tsujisearch-panel').classList.remove('hidden');
@@ -6412,6 +6681,7 @@ function toggleTsujiSearch() {
     const pnl = document.getElementById('tsujisearch-panel');
 
     if (appState.isTsujiSearchActive) {
+        if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
@@ -6428,6 +6698,570 @@ function toggleTsujiSearch() {
     syncBottomPanels();
 }
 
+// --- 辻メッシュ検索 パネル ---
+let tsujiMeshGeneration = 0;   // キャンセル用世代カウンタ
+const TSUJIMESH_ZOOM = 14;     // DEM標高タイルのズーム (dem_png の最大)
+const TSUJIMESH_EPS = { x1: 0.125, x2: 0.0625, x4: 0.03125, x8: 0.015625 };   // 精度フィルタ→角距離ε(°)
+let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
+let _tsujiMeshSelIdx = -1;     // 選択中の行index
+let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array } (プレフィルタ後)
+let _tsujiMeshMarkerOverflow = false;
+let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
+
+// 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
+const tsujiMeshPool = (() => {
+    let workers = [];
+    let idle = [];
+    const queue = [];
+    const active = new Map();
+    function ensure() {
+        while (workers.length < TSUJI_NUM_WORKERS) {
+            const w = new Worker('tsujimesh-search-worker.js');
+            workers.push(w);
+            idle.push(w);
+        }
+    }
+    function dispatch() {
+        while (idle.length && queue.length) {
+            const w = idle.shift();
+            const task = queue.shift();
+            run(w, task);
+        }
+    }
+    function run(worker, task) {
+        active.set(worker, task);
+        worker.onmessage = (e) => {
+            active.delete(worker);
+            if (e.data && e.data.error) task.reject(new Error(e.data.error));
+            else task.resolve(e.data);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.onerror = (err) => {
+            active.delete(worker);
+            task.reject(err);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.postMessage(task.taskData);
+    }
+    return {
+        /** 全ワーカーを生成し、画素データ(基準方位角/視高度+ビン索引)を配布して応答を待つ */
+        async init(initData) {
+            ensure();
+            await Promise.all(workers.map(w => new Promise((resolve, reject) => {
+                w.onmessage = (e) => {
+                    if (e.data && e.data.type === 'inited') resolve();
+                    else if (e.data && e.data.error) reject(new Error(e.data.error));
+                };
+                w.onerror = reject;
+                w.postMessage(initData);
+            })));
+        },
+        runTask(taskData) {
+            return new Promise((resolve, reject) => {
+                ensure();
+                queue.push({ taskData, resolve, reject });
+                dispatch();
+            });
+        },
+        terminateAll() {
+            workers.forEach(w => { try { w.terminate(); } catch(_) {} });
+            const err = new Error('canceled');
+            active.forEach(t => t.reject(err));
+            active.clear();
+            queue.forEach(t => t.reject(err));
+            queue.length = 0;
+            workers = [];
+            idle = [];
+        }
+    };
+})();
+
+function ensureTsujiMeshLayers() {
+    if (!tsujiMeshLayer && typeof map !== 'undefined' && map) {
+        _tsujiMeshCanvasRenderer = L.canvas({ padding: 0.3 });   // 多数の小マーカー用にCanvas描画
+        tsujiMeshLayer = L.layerGroup().addTo(map);
+        _tsujiMeshGoldLayer = L.layerGroup().addTo(map);
+    }
+}
+function clearTsujiMeshMarkers() {
+    if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
+    if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
+}
+
+/** 全結果行のヒット画素の和集合を白マーカーで描画(上限あり) */
+function drawTsujiMeshMarkers() {
+    ensureTsujiMeshLayers();
+    if (!tsujiMeshLayer || !_tsujiMeshPix) return;
+    tsujiMeshLayer.clearLayers();
+    const CAP = 20000;
+    const seen = new Set();
+    _tsujiMeshMarkerOverflow = false;
+    outer:
+    for (const row of _tsujiMeshRows) {
+        const idxArr = row.pixIdx;
+        for (let i = 0; i < idxArr.length; i++) {
+            const pix = idxArr[i];
+            if (seen.has(pix)) continue;
+            if (seen.size >= CAP) { _tsujiMeshMarkerOverflow = true; break outer; }
+            seen.add(pix);
+            L.circleMarker([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]], {
+                renderer: _tsujiMeshCanvasRenderer,
+                radius: 2.5, color: '#888', weight: 1, fillColor: '#ffffff', fillOpacity: 0.9,
+            }).addTo(tsujiMeshLayer);
+        }
+    }
+}
+
+/** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
+function updateTsujiMeshGoldMarkers() {
+    ensureTsujiMeshLayers();
+    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
+    _tsujiMeshGoldLayer.clearLayers();
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    if (!row) return;
+    const n = Math.min(row.pixIdx.length, 5000);
+    for (let i = 0; i < n; i++) {
+        const pix = row.pixIdx[i];
+        const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
+        L.circleMarker([lat, lng], {
+            renderer: _tsujiMeshCanvasRenderer,
+            radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
+        }).on('click', () => {
+            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得)
+            appState.start = { lat, lng, elev };
+            appState.startApiElev = elev;
+            appState.startHeight = 0;
+            saveAppState();
+            updateAll();
+        }).bindTooltip(`精度角距離 ${row.pixDist[i].toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
+          .addTo(_tsujiMeshGoldLayer);
+    }
+}
+
+/** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
+function selectTsujiMeshRow(idx) {
+    if (!_tsujiMeshRows.length) return;
+    // ソートで並びが変わっている可能性があるため、フラグから現在indexを再同期
+    const cur = _tsujiMeshRows.findIndex(r => r.__sel);
+    if (cur >= 0) _tsujiMeshSelIdx = cur;
+    idx = Math.max(0, Math.min(_tsujiMeshRows.length - 1, idx));
+    _tsujiMeshRows.forEach(r => { r.__sel = false; if (r.__tr) r.__tr.classList.remove('selected'); });
+    const row = _tsujiMeshRows[idx];
+    row.__sel = true;
+    _tsujiMeshSelIdx = idx;
+    if (row.__tr) {
+        row.__tr.classList.add('selected');
+        row.__tr.scrollIntoView({ block: 'nearest' });
+    }
+    // コントロール表示 (No.N / 日時 / 辻時刻)
+    const no = document.getElementById('tsujimesh-sel-no');
+    const dt = document.getElementById('tsujimesh-sel-date');
+    const tm = document.getElementById('tsujimesh-sel-time');
+    if (no) no.textContent = `No.${idx + 1}`;
+    if (dt) dt.textContent = `${row.dateStr}${row.dowStr}`;
+    if (tm) tm.textContent = row.timeStr;
+    const slider = document.getElementById('tsujimesh-row-slider');
+    if (slider) { slider.max = _tsujiMeshRows.length; slider.value = idx + 1; }
+    updateTsujiMeshGoldMarkers();
+}
+
+/** 辻メッシュ検索の実行 (トグルON/URL自動実行から) */
+async function startTsujiMeshSearch() {
+    const generation = ++tsujiMeshGeneration;
+    tsujiMeshPool.terminateAll();
+    hideTsujiMeshProgress();
+    clearTsujiMeshMarkers();
+    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null;
+
+    const contentEl = document.getElementById('tsujimesh-content');
+    const statusEl = document.getElementById('tsujimesh-status');
+    const setStatus = (t) => { if (statusEl) statusEl.textContent = t; };
+    contentEl.innerHTML = '<div style="padding:8px;color:#999;">DEM標高タイルを取得しています…</div>';
+    setStatus('(DEM標高タイル取得中…)');
+
+    const start = appState.start, end = appState.end;
+    const endElev = end.elev;
+    const menuBaseAz = appState.tsujiMeshBaseAz, menuBaseAlt = appState.tsujiMeshBaseAlt;
+    const tolAz = appState.tsujiMeshToleranceAz, tolAlt = appState.tsujiMeshToleranceAlt;
+    if (isNaN(menuBaseAz) || isNaN(menuBaseAlt) || isNaN(tolAz) || isNaN(tolAlt)) {
+        setStatus('(入力値エラー)');
+        contentEl.innerHTML = '<div style="padding:8px;color:#f99;">基準方位角・基準視高度・許容範囲を正しく入力してください</div>';
+        return;
+    }
+
+    // 1) 観測点を含むタイル+8近傍(3×3)のDEM標高タイルを取得
+    const ti = _getTileInfo(start.lat, start.lng, TSUJIMESH_ZOOM);
+    const dem = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+    const tiles = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) tiles.push({ x: ti.x + dx, y: ti.y + dy });
+    const tileData = [];
+    for (let i = 0; i < tiles.length; i++) {
+        if (generation !== tsujiMeshGeneration) return;
+        let img = null;
+        if (typeof window._tmSyntheticElev === 'function') {
+            img = '_synthetic_';   // テスト用: 取得せず合成標高を使う
+        } else {
+            const url = dem.url.replace('{z}', TSUJIMESH_ZOOM).replace('{x}', tiles[i].x).replace('{y}', tiles[i].y);
+            try { img = await _getTileImageData(url); } catch (_) { img = null; }   // 海上等でタイルが無い場合はスキップ
+        }
+        tileData.push(img);
+        setTsujiMeshProgress(i + 1, 18);
+    }
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 2) 全画素の前計算: 画素→目的点の基準方位角/基準視高度(WGS84測地線+見かけ高度)
+    //    許容範囲(メニューの基準方位角/視高度から±)内の画素だけを検索対象にする
+    setStatus('(画素の前計算中…)');
+    const maxCount = tiles.length * 65536;
+    const baseAzA = new Float32Array(maxCount), baseAltA = new Float32Array(maxCount);
+    const latA = new Float64Array(maxCount), lngA = new Float64Array(maxCount), elevA = new Float32Array(maxCount);
+    const dEA = new Float32Array(maxCount), dNA = new Float32Array(maxCount);   // 領域中心からの変位角(rad)。地平座標系の画素位置補正用
+    const EARTH_R = 6371000;
+    const mPerDegLat = Math.PI * EARTH_R / 180;
+    const mPerDegLng = mPerDegLat * Math.cos(start.lat * Math.PI / 180);
+    const geod = geodesic.Geodesic.WGS84;
+    let kept = 0, minAlt = Infinity, maxAlt = -Infinity;
+    for (let t = 0; t < tiles.length; t++) {
+        const img = tileData[t];
+        if (!img) { setTsujiMeshProgress(10 + t, 18); continue; }
+        const gx0 = tiles[t].x * 256, gy0 = tiles[t].y * 256;
+        const px = (img === '_synthetic_') ? null : img.data;
+        for (let py = 0; py < 256; py++) {
+            for (let pxx = 0; pxx < 256; pxx++) {
+                let elev;
+                if (px) {
+                    const o = (py * 256 + pxx) * 4;
+                    elev = _elevFromRGB(px[o], px[o + 1], px[o + 2]);
+                    if (elev === null) continue;   // 無効値(海など)は対象外
+                } else {
+                    elev = window._tmSyntheticElev(gx0 + pxx, gy0 + py);
+                    if (elev === null) continue;
+                }
+                const ll = _globalPixelToLatLng(gx0 + pxx, gy0 + py, TSUJIMESH_ZOOM);
+                const inv = geod.Inverse(ll.lat, ll.lng, end.lat, end.lng);
+                const az = (inv.azi1 + 360) % 360;
+                if (Math.abs(((az - menuBaseAz + 540) % 360) - 180) > tolAz) continue;
+                const alt = calculateApparentAltitude(inv.s12, elev, endElev, ll.lat, end.lat);
+                if (Math.abs(alt - menuBaseAlt) > tolAlt) continue;
+                baseAzA[kept] = az; baseAltA[kept] = alt;
+                latA[kept] = ll.lat; lngA[kept] = ll.lng; elevA[kept] = elev;
+                dEA[kept] = (ll.lng - start.lng) * mPerDegLng / EARTH_R;
+                dNA[kept] = (ll.lat - start.lat) * mPerDegLat / EARTH_R;
+                if (alt < minAlt) minAlt = alt;
+                if (alt > maxAlt) maxAlt = alt;
+                kept++;
+            }
+        }
+        setTsujiMeshProgress(10 + t, 18);
+        await new Promise(r => setTimeout(r, 0));   // UIへ制御を返す
+        if (generation !== tsujiMeshGeneration) return;
+    }
+    if (kept === 0) {
+        setStatus('(対象画素なし)');
+        hideTsujiMeshProgress();
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内の画素がありません(許容範囲方位角/視高度を広げてください)</div>';
+        return;
+    }
+    const baseAz = baseAzA.slice(0, kept), baseAlt = baseAltA.slice(0, kept);
+    _tsujiMeshPix = { lat: latA.slice(0, kept), lng: lngA.slice(0, kept), elev: elevA.slice(0, kept) };
+
+    // 3) 方位角ビン索引(0.1°)を構築してワーカーへ配布
+    const binSize = 0.1, nBins = 3600;
+    const counts = new Uint32Array(nBins);
+    for (let i = 0; i < kept; i++) counts[Math.min(nBins - 1, Math.floor(baseAz[i] / binSize))]++;
+    const binIndex = new Uint32Array(nBins + 1);
+    for (let b = 0; b < nBins; b++) binIndex[b + 1] = binIndex[b] + counts[b];
+    const binPixels = new Uint32Array(kept);
+    const cursor = binIndex.slice(0, nBins);
+    for (let i = 0; i < kept; i++) {
+        const b = Math.min(nBins - 1, Math.floor(baseAz[i] / binSize));
+        binPixels[cursor[b]++] = i;
+    }
+    setStatus(`(対象${kept.toLocaleString()}画素 / ワーカー準備中…)`);
+    await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE: dEA.slice(0, kept), dN: dNA.slice(0, kept), tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 4) 表示天体 × 日チャンク(30日)をプールへ投入
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    if (visibleBodies.length === 0) {
+        setStatus('(表示天体なし)');
+        hideTsujiMeshProgress();
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">表示天体メニューで検索する天体をオンにしてください</div>';
+        return;
+    }
+    const days = appState.tsujiMeshDays;
+    const CHUNK = 30;
+    const numChunks = Math.ceil(days / CHUNK);
+    const totalTasks = visibleBodies.length * numChunks;
+    let doneTasks = 0;
+    const searchStart = new Date(appState.currentDate);
+    searchStart.setHours(0, 0, 0, 0);
+    const searchStartMs = searchStart.getTime();
+    const epsilon = TSUJIMESH_EPS[appState.tsujiMeshAccuracy] || TSUJIMESH_EPS.x1;
+    const observerData = { lat: start.lat, lng: start.lng, elev: start.elev };
+    setStatus(`(検索中… 対象${kept.toLocaleString()}画素 / ${visibleBodies.length}天体 / ${totalTasks}タスク)`);
+    setTsujiMeshProgress(0, totalTasks);
+    contentEl.innerHTML = '<div style="padding:8px;color:#999;">検索しています…</div>';
+
+    const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
+        let bodyMsg;
+        if (isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        } else {
+            bodyMsg = { id: body.id, fixed: false };
+        }
+        const events = [];
+        for (let c = 0; c < numChunks; c++) {
+            const dayStart = c * CHUNK, dayEnd = Math.min(dayStart + CHUNK, days);
+            try {
+                const res = await tsujiMeshPool.runTask({
+                    type: 'search', reqId: `${body.id}_${c}`, body: bodyMsg,
+                    observerData, refractionEnabled: appState.refractionEnabled,
+                    offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
+                    centerMode: appState.tsujiMeshCenterMode, epsilon,
+                    searchStartMs, dayStart, dayEnd,
+                });
+                events.push(...res.events);
+            } catch (_) { /* キャンセル/エラーはスキップ */ }
+            doneTasks++;
+            setTsujiMeshProgress(doneTasks, totalTasks);
+        }
+        events.sort((a, b) => a.dayIdx - b.dayIdx);
+        return { body, events };
+    }));
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
+    const observer = new Astronomy.Observer(start.lat, start.lng, start.elev);
+    const timeFs = {
+        startMode: appState.tsujiMeshStartMode, startTime: appState.tsujiMeshStartTime, startPrePost: appState.tsujiMeshStartPrePost, startPrePostDir: appState.tsujiMeshStartPrePostDir, startOffset: appState.tsujiMeshStartOffset,
+        endMode: appState.tsujiMeshEndMode, endTime: appState.tsujiMeshEndTime, endPrePost: appState.tsujiMeshEndPrePost, endPrePostDir: appState.tsujiMeshEndPrePostDir, endOffset: appState.tsujiMeshEndOffset,
+    };
+    const riseSetCache = {};
+    const getRiseSetForDay = (dateObj) => {
+        const key = dateObj.toDateString();
+        if (riseSetCache[key]) return riseSetCache[key];
+        const startOfDay = new Date(dateObj);
+        startOfDay.setHours(0, 0, 0, 0);
+        let sr, ss, mr, ms;
+        try {
+            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+        } catch (_) {}
+        const tw = computeDayTwilight(startOfDay, observer);
+        return riseSetCache[key] = { sr, ss, mr, ms, tw, startOfDay };
+    };
+
+    const rows = [];
+    let totalPix = 0;
+    allBodyEvents.forEach(({ body, events }) => {
+        events.forEach(ev => {
+            const dt = new Date(ev.bestTimeMs);
+            const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+            const rs = getRiseSetForDay(dt);
+            const phase = Astronomy.MoonPhase(dt);
+            const moonAge = (phase / 360) * SYNODIC_MONTH;
+            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+            // 月齢フィルタ
+            if (appState.tsujiMeshMoonFilterEnabled &&
+                !isMoonAgeInRange(moonAge, appState.tsujiMeshMoonBase, appState.tsujiMeshMoonTolerance)) return;
+            // 時間フィルタ
+            if (appState.tsujiMeshTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
+            const bestPixBaseAz = baseAz[ev.bestPix], bestPixBaseAlt = baseAlt[ev.bestPix];
+            totalPix += ev.total;
+            rows.push({
+                body, dateObj: dt,
+                symbol: '◎',   // 精度フィルタ(ε≤0.125°)以内のみを検索するため常に◎
+                dist: ev.bestDist, azimuth: ev.bestAz, altitude: ev.bestAlt,
+                azDiff: azDiffDeg(ev.bestAz, bestPixBaseAz),
+                altDiff: ev.bestAlt - bestPixBaseAlt,
+                mwOffAngle: Number(appState.mwOffsetAngle) || 0,
+                angularRadius: getBodyAngularRadius(body.id, dt, observer),
+                moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
+                timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
+                elevationStatus: '-',
+                sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
+                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
+                dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
+                dowStr: `(${dow})`,
+                timeStr: `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`,
+                bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
+                capped: ev.capped,
+            });
+        });
+    });
+    // 表示天体順 → 日時順
+    const bodyOrder = new Map(visibleBodies.map((b, i) => [b.id, i]));
+    rows.sort((a, b) => (bodyOrder.get(a.body.id) - bodyOrder.get(b.body.id)) || (a.dateObj - b.dateObj));
+
+    // 6) 標高オプション: 行の最良画素→目的点の可視判定(OK/NG)。DEMタイルはキャッシュを使い回す
+    const ELEV_JUDGE_MAX = 300;
+    if (appState.tsujiMeshElevationOption) {
+        setStatus(`(標高オプション判定中… ${Math.min(rows.length, ELEV_JUDGE_MAX)}件)`);
+        for (let i = 0; i < Math.min(rows.length, ELEV_JUDGE_MAX); i++) {
+            if (generation !== tsujiMeshGeneration) return;
+            const r = rows[i];
+            try {
+                const vis = await computePathVisibility(
+                    _tsujiMeshPix.lat[r.bestPix], _tsujiMeshPix.lng[r.bestPix], _tsujiMeshPix.elev[r.bestPix],
+                    end.lat, end.lng, endElev);
+                r.elevationStatus = vis.visible ? 'OK' : 'NG';
+            } catch (_) { r.elevationStatus = '-'; }
+        }
+        // OK/NGフィルタ
+        if (appState.tsujiMeshElevOK || appState.tsujiMeshElevNG) {
+            const allowed = [];
+            if (appState.tsujiMeshElevOK) allowed.push('OK');
+            if (appState.tsujiMeshElevNG) allowed.push('NG');
+            for (let i = rows.length - 1; i >= 0; i--) {
+                if (rows[i].elevationStatus !== '-' && !allowed.includes(rows[i].elevationStatus)) rows.splice(i, 1);
+            }
+        }
+    }
+    if (generation !== tsujiMeshGeneration) return;
+
+    _tsujiMeshRows = rows;
+    hideTsujiMeshProgress();
+    const capNote = rows.some(r => r.capped) ? '・一部の日で画素2万件超を省略' : '';
+    const judgeNote = (appState.tsujiMeshElevationOption && rows.length > ELEV_JUDGE_MAX) ? `・標高判定は先頭${ELEV_JUDGE_MAX}件のみ` : '';
+    setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}${capNote}${judgeNote})`);
+    renderTsujiMeshResults();
+    drawTsujiMeshMarkers();
+    if (_tsujiMeshMarkerOverflow) setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}・マーカーは上限2万で省略${capNote}${judgeNote})`);
+    if (rows.length) selectTsujiMeshRow(0);
+}
+
+/** 辻メッシュ検索の結果リスト(21列・ソート可)を描画 */
+function renderTsujiMeshResults() {
+    const contentEl = document.getElementById('tsujimesh-content');
+    contentEl.innerHTML = '';
+    if (_tsujiMeshRows.length === 0) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません(精度フィルタ/許容範囲/検索期間を見直してください)</div>';
+        return;
+    }
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row' + (r.__sel ? ' selected' : '');
+        tr.style.color = r.body.color;
+        const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dateObj);
+            syncUIFromState();
+            updateAll();
+            selectTsujiMeshRow(_tsujiMeshRows.indexOf(r));
+        });
+        r.__tr = tr;
+        return tr;
+    };
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>天体方位角差</th><th>天体視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
+    const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
+    setupTableSort(table, _tsujiMeshRows, [
+        { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
+        { label: '天体名', compare: (a, b) => {
+            const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
+            const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
+            return ia - ib;
+        }},
+        { label: '精度記号', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
+        { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '曜日', compare: (a, b) => a.dateObj.getDay() - b.dateObj.getDay() },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
+        { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
+        { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
+        { label: '月の出時刻', compare: (a, b) => a.moonriseStr.localeCompare(b.moonriseStr) },
+        { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
+        { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
+        { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '天体方位角差', compare: (a, b) => a.azDiff - b.azDiff },
+        { label: '天体視高度差', compare: (a, b) => a.altDiff - b.altDiff },
+        { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
+    ], renderRow, []);
+}
+
+function setTsujiMeshProgress(current, total) {
+    const bar = document.getElementById('tsujimesh-progress');
+    if (!bar || !total) return;
+    bar.classList.remove('hidden');
+    document.getElementById('tsujimesh-progress-fill').style.width = `${Math.round(current / total * 100)}%`;
+}
+function hideTsujiMeshProgress() {
+    const bar = document.getElementById('tsujimesh-progress');
+    if (bar) bar.classList.add('hidden');
+}
+
+function toggleTsujiMesh() {
+    appState.isTsujiMeshActive = !appState.isTsujiMeshActive;
+    const btn = document.getElementById('btn-tsujimesh');
+    const pnl = document.getElementById('tsujimesh-panel');
+    if (appState.isTsujiMeshActive) {
+        if (appState.isTsujiSearchActive) toggleTsujiSearch();   // 辻検索とは同時表示不可
+        btn.classList.add('active');
+        pnl.classList.remove('hidden');
+        startTsujiMeshSearch();
+    } else {
+        closeTsujiMesh(true);
+    }
+    syncBottomPanels();
+}
+
+/** 辻メッシュ検索パネルを閉じる(alreadyFlagged=trueならフラグ反転済み) */
+function closeTsujiMesh(alreadyFlagged = false) {
+    if (!alreadyFlagged && !appState.isTsujiMeshActive) return;
+    appState.isTsujiMeshActive = false;
+    document.getElementById('btn-tsujimesh').classList.remove('active');
+    document.getElementById('tsujimesh-panel').classList.add('hidden');
+    tsujiMeshGeneration++;                       // 実行中の検索をキャンセル
+    if (typeof tsujiMeshPool !== 'undefined') tsujiMeshPool.terminateAll();
+    hideTsujiMeshProgress();
+    if (typeof clearTsujiMeshMarkers === 'function') clearTsujiMeshMarkers();
+    syncBottomPanels();
+}
+
+/** 辻メッシュ検索パネルのコントロール(最大化・開閉・スライダー・◀▶)の結線 */
+function setupTsujiMeshPanelControls() {
+    document.getElementById('btn-tsujimesh-max').addEventListener('click', () => {
+        const pnl = document.getElementById('tsujimesh-panel');
+        const on = pnl.classList.toggle('maximized');
+        document.getElementById('btn-tsujimesh-max').classList.toggle('active', on);
+        syncBottomPanels();
+    });
+    document.getElementById('tsujimesh-ctrl-header').addEventListener('click', () => {
+        const body = document.getElementById('tsujimesh-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('tsujimesh-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('tsujimesh-ctrl').classList.toggle('open', open);
+    });
+    document.getElementById('tsujimesh-row-slider').addEventListener('input', (e) => {
+        selectTsujiMeshRow(parseInt(e.target.value) - 1);
+    });
+    document.getElementById('btn-tsujimesh-prev').addEventListener('click', () => {
+        selectTsujiMeshRow(_tsujiMeshSelIdx - 1);
+    });
+    document.getElementById('btn-tsujimesh-next').addEventListener('click', () => {
+        selectTsujiMeshRow(_tsujiMeshSelIdx + 1);
+    });
+}
+
 function syncBottomPanels() {
     const tdPnl = document.getElementById('tsujisearch-panel');
     // 辻検索パネルは、標高グラフ/全天儀が下にあるとき1段上へ押し上げる
@@ -6436,11 +7270,20 @@ function syncBottomPanels() {
     tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
     // 宙の窓プレビュー領域: 辻検索の有無で高さが変わる(通常2/3⇄1/3、最大化100%⇄66.67%)。
     // 最大化中に辻検索がONなら辻検索結果を上1/3へ
+    // 辻メッシュ検索パネル(辻検索と同じ積み上げ規則。辻検索とは排他)
+    const tmPnl = document.getElementById('tsujimesh-panel');
+    if (tmPnl) {
+        tmPnl.classList.toggle('with-elevation', appState.isTsujiMeshActive && appState.isElevationActive);
+        tmPnl.classList.toggle('with-milkyway', appState.isTsujiMeshActive && appState.isMilkyWayActive);
+        tmPnl.classList.toggle('with-soramado', appState.isTsujiMeshActive && appState.isSoramadoActive);
+    }
     const smPnl = document.getElementById('soramado-panel');
     if (smPnl) {
-        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive);
+        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive);
         tdPnl.classList.toggle('with-soramado-max',
             appState.isTsujiSearchActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
+        if (tmPnl) tmPnl.classList.toggle('with-soramado-max',
+            appState.isTsujiMeshActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
         resizeSoramado();   // 高さ変更に合わせてプレビューを再描画
     }
     // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
@@ -6460,7 +7303,7 @@ function recenterObserverInView(animate = true) {
         // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
         // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
         let coveredPx = 0;
-        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel']) {
+        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
             const el = document.getElementById(id);
             if (!el || el.classList.contains('hidden')) continue;
             coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
@@ -7272,7 +8115,9 @@ const _QP_SEEDS_V3 = _QP_SEEDS_V2.concat(['&soraMovPlayMode=', '=anim&', '=video
 const _QP_SEEDS_V4 = _QP_SEEDS_V3.concat(['&tsujiCenterMode=', '=point&', '=line&']);
 // v5: v4の全シード + 目的点/検索中心チェックボックス
 const _QP_SEEDS_V5 = _QP_SEEDS_V4.concat(['&soraTargetCross=', '&soraSearchCenter=']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5];   // 添字+1=版数。最新版でエンコードする
+// v6: v5の全シード + 辻メッシュ検索
+const _QP_SEEDS_V6 = _QP_SEEDS_V5.concat(['&tsujiMesh', 'tsujiMesh', '&tsujimesh=', '=x1&', '=x2&', '=x4&', '=x8&', 'MeshStart', 'MeshEnd', '=tsujimesh&']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
@@ -7459,6 +8304,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
     params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
     params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
     params.set('tsujisearch', appState.isTsujiSearchActive ? 'true' : 'false');
+    params.set('tsujimesh', appState.isTsujiMeshActive ? 'true' : 'false');
 
     // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
     ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
@@ -7562,6 +8408,43 @@ function copyTsujiSearchUrl(includeDateTime) {
     const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
+    });
+}
+
+function copyTsujiMeshUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
+    params.set('mode', 'tsujimesh');
+
+    params.set('tsujiMeshDays', String(appState.tsujiMeshDays));
+    params.set('tsujiMeshAz', String(appState.tsujiMeshBaseAz));
+    params.set('tsujiMeshAlt', String(appState.tsujiMeshBaseAlt));
+    params.set('tsujiMeshAzOffset', String(appState.tsujiMeshOffsetAz));
+    params.set('tsujiMeshAltOffset', String(appState.tsujiMeshOffsetAlt));
+    params.set('tsujiMeshAzTolerance', String(appState.tsujiMeshToleranceAz));
+    params.set('tsujiMeshAltTolerance', String(appState.tsujiMeshToleranceAlt));
+    params.set('tsujiMeshCenterMode', appState.tsujiMeshCenterMode || 'point');
+    params.set('tsujiMeshAccuracy', appState.tsujiMeshAccuracy || 'x1');
+    params.set('tsujiMeshMoonFilter', appState.tsujiMeshMoonFilterEnabled ? 'true' : 'false');
+    params.set('tsujiMeshMoonBase', String(appState.tsujiMeshMoonBase));
+    params.set('tsujiMeshMoonTolerance', String(appState.tsujiMeshMoonTolerance));
+    params.set('tsujiMeshElevationOption', appState.tsujiMeshElevationOption ? 'true' : 'false');
+    params.set('tsujiMeshElevOK', appState.tsujiMeshElevOK ? 'true' : 'false');
+    params.set('tsujiMeshElevNG', appState.tsujiMeshElevNG ? 'true' : 'false');
+    params.set('tsujiMeshTimeFilter', appState.tsujiMeshTimeFilter ? 'true' : 'false');
+    params.set('tsujiMeshStartMode', appState.tsujiMeshStartMode);
+    params.set('tsujiMeshStartTime', appState.tsujiMeshStartTime);
+    params.set('tsujiMeshStartPrePost', appState.tsujiMeshStartPrePost ? 'true' : 'false');
+    params.set('tsujiMeshStartPrePostDir', appState.tsujiMeshStartPrePostDir);
+    params.set('tsujiMeshStartOffset', appState.tsujiMeshStartOffset);
+    params.set('tsujiMeshEndMode', appState.tsujiMeshEndMode);
+    params.set('tsujiMeshEndTime', appState.tsujiMeshEndTime);
+    params.set('tsujiMeshEndPrePost', appState.tsujiMeshEndPrePost ? 'true' : 'false');
+    params.set('tsujiMeshEndPrePostDir', appState.tsujiMeshEndPrePostDir);
+    params.set('tsujiMeshEndOffset', appState.tsujiMeshEndOffset);
+
+    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の辻メッシュ検索を開くURLをクリップボードにコピーしました。');
     });
 }
 
@@ -7704,6 +8587,30 @@ function restoreFromUrl() {
         if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
 
+    // 辻メッシュ検索パラメータ (mode=tsujimeshの時のみ)
+    if (mode === 'tsujimesh') {
+        const meshNum = (pk, sk) => { if (params.has(pk)) { const v = parseFloat(params.get(pk)); if (!isNaN(v)) appState[sk] = v; } };
+        const meshBool = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk) === 'true'; };
+        const meshStr = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk); };
+        if (params.has('tsujiMeshDays')) { const v = parseInt(params.get('tsujiMeshDays')); if (!isNaN(v)) appState.tsujiMeshDays = v; }
+        meshNum('tsujiMeshAz', 'tsujiMeshBaseAz'); meshNum('tsujiMeshAlt', 'tsujiMeshBaseAlt');
+        meshNum('tsujiMeshAzOffset', 'tsujiMeshOffsetAz'); meshNum('tsujiMeshAltOffset', 'tsujiMeshOffsetAlt');
+        meshNum('tsujiMeshAzTolerance', 'tsujiMeshToleranceAz'); meshNum('tsujiMeshAltTolerance', 'tsujiMeshToleranceAlt');
+        meshStr('tsujiMeshCenterMode', 'tsujiMeshCenterMode'); meshStr('tsujiMeshAccuracy', 'tsujiMeshAccuracy');
+        meshBool('tsujiMeshMoonFilter', 'tsujiMeshMoonFilterEnabled');
+        meshNum('tsujiMeshMoonBase', 'tsujiMeshMoonBase'); meshNum('tsujiMeshMoonTolerance', 'tsujiMeshMoonTolerance');
+        meshBool('tsujiMeshElevationOption', 'tsujiMeshElevationOption');
+        meshBool('tsujiMeshElevOK', 'tsujiMeshElevOK'); meshBool('tsujiMeshElevNG', 'tsujiMeshElevNG');
+        meshBool('tsujiMeshTimeFilter', 'tsujiMeshTimeFilter');
+        ['Start', 'End'].forEach(G => {
+            meshStr('tsujiMesh' + G + 'Mode', 'tsujiMesh' + G + 'Mode');
+            meshStr('tsujiMesh' + G + 'Time', 'tsujiMesh' + G + 'Time');
+            meshBool('tsujiMesh' + G + 'PrePost', 'tsujiMesh' + G + 'PrePost');
+            meshStr('tsujiMesh' + G + 'PrePostDir', 'tsujiMesh' + G + 'PrePostDir');
+            meshStr('tsujiMesh' + G + 'Offset', 'tsujiMesh' + G + 'Offset');
+        });
+    }
+
     // 宙の窓メニュー＋コントロールメニューの全項目を復元(preview/tsujisearch の両モード共通)。
     // 範囲・選択肢の妥当性は直後の normalizeAppState 相当の既定値で担保するため、型変換＋NaNガードのみ行う
     const soraNum = (key) => { if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState[key] = v; } };
@@ -7726,6 +8633,8 @@ function restoreFromUrl() {
     else if (params.get('soramado') === 'true') appState._pendingPanel = 'soramado';
     // 辻検索: ONなら遅延オープン(他パネルと共存可)
     if (params.get('tsujisearch') === 'true') appState._pendingTsujiSearch = true;
+    // 辻メッシュ検索: ONなら遅延オープン(辻検索と排他のため、両方ONなら辻メッシュを優先)
+    if (params.get('tsujimesh') === 'true') { appState._pendingTsujiMesh = true; delete appState._pendingTsujiSearch; }
 
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
@@ -7739,6 +8648,15 @@ function restoreFromUrl() {
     // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に）
     if (mode === 'tsujisearch') {
         appState._pendingTsujiSearch = true;
+    }
+    // mode=tsujimeshの場合は辻メッシュ検索を自動実行（UIが準備できた後に）
+    if (mode === 'tsujimesh') {
+        appState._pendingTsujiMesh = true;
+        delete appState._pendingTsujiSearch;
+        // URLの基準方位角/視高度を自動再計算で上書きしない
+        if (params.has('tsujiMeshAz') || params.has('tsujiMeshAlt')) {
+            appState._lastTsujiMeshPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+        }
     }
 }
 
@@ -9255,6 +10173,7 @@ function syncBaseOptionUI() {
     const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
     set('input-baseopt-mw-offset', appState.mwOffsetAngle);
     set('input-tsuji-mw-offset', appState.mwOffsetAngle);
+    set('input-tsujimesh-mw-offset', appState.mwOffsetAngle);
     set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
     chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
@@ -9291,6 +10210,7 @@ function setupBaseOptionControls() {
     };
     offsetHandler(document.getElementById('input-baseopt-mw-offset'));
     offsetHandler(document.getElementById('input-tsuji-mw-offset'));
+    offsetHandler(document.getElementById('input-tsujimesh-mw-offset'));
     // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しない)。行内のonChangeで登録する
     const chkHandler = (id, key) => {
         const el = document.getElementById(id);

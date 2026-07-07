@@ -70,6 +70,110 @@ html {
     bottom: 66.67%;
 }
 
+/* --- 辻メッシュ検索パネル (辻検索と排他・全天儀/標高グラフ/宙の窓とは併用可) --- */
+#tsujimesh-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-top: 1px solid #8a7a2a;
+    z-index: 910;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+    color: #eee;
+}
+#tsujimesh-panel.hidden { display: none; }
+/* 下に別パネル(1/3)があるときは1段上へ */
+#tsujimesh-panel.with-elevation,
+#tsujimesh-panel.with-milkyway,
+#tsujimesh-panel.with-soramado { bottom: 33.33%; }
+/* 宙の窓が最大化中: 上1/3=辻メッシュ結果、下2/3=プレビュー領域 */
+#tsujimesh-panel.with-soramado-max { bottom: 66.67%; }
+/* 最大化: 下に別パネルが無ければ2/3、あれば1/3のまま(地図1/3は常に確保) */
+#tsujimesh-panel.maximized { height: 66.67%; }
+#tsujimesh-panel.maximized.with-elevation,
+#tsujimesh-panel.maximized.with-milkyway,
+#tsujimesh-panel.maximized.with-soramado { height: 33.33%; }
+
+#tsujimesh-header {
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #ffd700;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+}
+#btn-tsujimesh-max {
+    padding: 0 6px;
+    margin-right: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#btn-tsujimesh-max.active { background: #b8860b; border-color: #ffd700; }
+
+#tsujimesh-content {
+    flex: 1;
+    overflow: auto;
+    padding: 4px 10px;
+    font-size: 14px;
+}
+#tsujimesh-content .td-table { width: 100%; border-collapse: collapse; }
+#tsujimesh-content .td-table th,
+#tsujimesh-content .td-table td { padding: 3px 6px; text-align: left; white-space: nowrap; }
+#tsujimesh-content .td-table th {
+    color: #aaa; font-weight: normal; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky; top: 0; background: #2a2416; z-index: 1; cursor: pointer;
+}
+#tsujimesh-content .td-table th:hover { color: #fff; }
+#tsujimesh-content .td-table tr.td-data-row { cursor: pointer; }
+#tsujimesh-content .td-table tr.td-data-row:hover { background: rgba(255, 255, 255, 0.12); }
+#tsujimesh-content .td-table tr.td-data-row.selected { background: rgba(255, 215, 0, 0.22); }
+
+/* 開閉式コントロール領域 (宙の窓ctrlと同型) */
+#tsujimesh-ctrl {
+    flex: 0 0 auto;
+    width: 100%;
+    background: #3a3a3a;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+#tsujimesh-ctrl.open { height: 50%; }
+#tsujimesh-ctrl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #eee;
+    border-top: 1px solid #555;
+    cursor: pointer;
+    user-select: none;
+    flex: 0 0 auto;
+}
+#tsujimesh-ctrl-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 8px 6px;
+    border-top: 1px solid #4a4a4a;
+}
+#tsujimesh-ctrl-body .control-row { max-width: 360px; margin: 4px auto; }
+#tsujimesh-ctrl-body .control-row.center-row { justify-content: center; }
+.tsujimesh-ctrl-label { color: #ffd700; font-size: 13px; font-weight: bold; margin: 0 8px; }
+#tsujimesh-row-slider { flex: 1 1 auto; min-width: 0; }
+
 #tsujisearch-header {
     padding: 4px 10px;
     font-size: 13px;
@@ -879,6 +983,8 @@ html {
 #sec-myobs { background-color: rgba(144, 238, 144, 0.15); }
 #sec-mytgt { background-color: rgba(255, 165, 0, 0.15); }
 #sec-mytsuji { background-color: rgba(186, 85, 211, 0.15); }
+/* 辻メッシュ検索は辻検索とフォームが似ているため、間違わないように薄い金色の背景にする */
+#sec-tsujimesh { background-color: rgba(255, 215, 0, 0.12); }
 
 .control-row {
     display: flex;

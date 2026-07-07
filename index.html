@@ -71,6 +71,27 @@ GNU General Public License for more details.
         <div id="tsujisearch-content"></div>
     </div>
 
+    <div id="tsujimesh-panel" class="hidden">
+        <div id="tsujimesh-header"><button id="btn-tsujimesh-max" title="検索結果表示領域を最大化">⛶</button> 辻メッシュ検索結果 <span id="tsujimesh-status"></span></div>
+        <div id="tsujimesh-progress" class="tsuji-progress-bar hidden"><div id="tsujimesh-progress-fill"></div></div>
+        <div id="tsujimesh-content"></div>
+        <div id="tsujimesh-ctrl">
+            <div id="tsujimesh-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="tsujimesh-ctrl-arrow">▼</span></div>
+            <div id="tsujimesh-ctrl-body" class="hidden">
+                <div class="control-row center-row">
+                    <span id="tsujimesh-sel-no" class="tsujimesh-ctrl-label">No.-</span>
+                    <span id="tsujimesh-sel-date" class="tsujimesh-ctrl-label">-</span>
+                    <span id="tsujimesh-sel-time" class="tsujimesh-ctrl-label">-</span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-tsujimesh-prev" class="nav-btn" title="1つ前の結果を選択">◀</button>
+                    <input type="range" id="tsujimesh-row-slider" min="1" max="1" value="1" step="1" title="結果リストの選択行を変更">
+                    <button id="btn-tsujimesh-next" class="nav-btn" title="1つ後の結果を選択">▶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
 
@@ -317,6 +338,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row main-buttons-row">
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
+                        <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
                         <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
                     </div>
                 </div>
@@ -469,6 +491,112 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-tsujimesh')">
+                    <span>辻メッシュ検索</span>
+                    <span id="icon-sec-tsujimesh">▼</span>
+                </div>
+                <div id="sec-tsujimesh" class="section-content closed">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">検索期間(日):</label>
+                        <input type="number" id="input-tsujimesh-days" placeholder="最大36500日(100年間)" step="1" min="1" max="36500">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準方位角(°):</label>
+                        <input type="number" id="input-tsujimesh-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準視高度(°):</label>
+                        <input type="number" id="input-tsujimesh-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット方位角(°):</label>
+                        <input type="number" id="input-tsujimesh-az-offset" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット視高度(°):</label>
+                        <input type="number" id="input-tsujimesh-alt-offset" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                        <input type="number" id="input-tsujimesh-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                        <input type="number" id="input-tsujimesh-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                        <input type="number" id="input-tsujimesh-rot" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                        <input type="number" id="input-tsujimesh-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="この範囲内の画素だけを検索対象にします">許容範囲方位角(°): ±</label>
+                        <input type="number" id="input-tsujimesh-az-tolerance" placeholder="検索中心から時計回り(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="この範囲内の画素だけを検索対象にします">許容範囲視高度(°): ±</label>
+                        <input type="number" id="input-tsujimesh-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心をオフセット点の「点」で検索します"><input type="radio" name="tsujimesh-center-mode" value="point" checked>:オフセット点</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を基準点からオフセット点までの「線」の範囲で検索します"><input type="radio" name="tsujimesh-center-mode" value="line">:基準点からオフセット点までの線</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <input type="number" id="input-tsujimesh-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-moon-filter" class="body-checkbox">
+                        <label for="chk-tsujimesh-moon-filter">月齢フィルタ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準月齢:</label>
+                        <input type="number" id="input-tsujimesh-moon-base" placeholder="0〜30" step="0.1" min="0" max="30">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">許容範囲月齢: ±</label>
+                        <input type="number" id="input-tsujimesh-moon-tolerance" placeholder="0〜15" step="0.1" min="0" max="15">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-time-filter" class="body-checkbox">
+                        <label for="chk-tsujimesh-time-filter">時間フィルタ</label>
+                    </div>
+                    <div id="tsujimesh-time-filter-groups"></div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="精度記号がこの精度以内の画素・日時だけを検索します">精度フィルタ</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="±0.125°(誤差範囲0.25°)以内"><input type="radio" name="tsujimesh-accuracy" value="x1" checked>:◎</label>
+                        <label class="baseopt-radio" title="±0.0625°(誤差範囲0.125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x2">:◎×2</label>
+                        <label class="baseopt-radio" title="±0.03125°(誤差範囲0.0625°)以内"><input type="radio" name="tsujimesh-accuracy" value="x4">:◎×4</label>
+                        <label class="baseopt-radio" title="±0.015625°(誤差範囲0.03125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x8">:◎×8</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-elev-option" class="body-checkbox">
+                        <label for="chk-tsujimesh-elev-option">標高オプション</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                        <input type="checkbox" id="chk-tsujimesh-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-url-tsujimesh" class="nav-btn main-btn" title="現在の辻メッシュ検索を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
                 </div>
             </div>
