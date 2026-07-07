@@ -123,11 +123,35 @@ GNU General Public License for more details.
                     <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                    <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット方位角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-az-offset" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360" title="基準方位角からの検索中心のズレ量(辻検索メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット視高度(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-alt-offset" class="sora-mov-num" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360" title="基準視高度からの検索中心のズレ量(辻検索メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-az-offset-dist" class="sora-mov-num elev-readonly" readonly value="0" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-alt-offset-dist" class="sora-mov-num elev-readonly" readonly value="0" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-rot" class="sora-mov-num elev-readonly" readonly value="0" step="0.0001">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-rot-alt" class="sora-mov-num elev-readonly" readonly value="0" step="0.0001">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
                     <input type="number" id="input-sora-ctrl-offset-az" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360" title="基準方位角からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
                 </div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                    <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット視高度(°):</label>
                     <input type="number" id="input-sora-ctrl-offset-alt" class="sora-mov-num" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360" title="基準視高度からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
                 </div>
                 <hr class="baseopt-hr">
@@ -359,27 +383,27 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット方位角(°):</label>
                         <input type="number" id="input-tsuji-az-offset" placeholder="基準から時計回り(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット視高度(°):</label>
                         <input type="number" id="input-tsuji-alt-offset" placeholder="基準から上向き(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="目的点基準">オフセット方位距離(m):</label>
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
                         <input type="number" id="input-tsuji-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="目的点基準">オフセット視高距離(m):</label>
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
                         <input type="number" id="input-tsuji-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット回転角(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
                         <input type="number" id="input-tsuji-rot" class="elev-readonly" readonly value="0" step="0.0001">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット回転仰角(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
                         <input type="number" id="input-tsuji-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
                     </div>
                     <div class="control-row">
@@ -544,11 +568,35 @@ GNU General Public License for more details.
                         <input type="number" id="input-sora-base-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット方位角(°):</label>
+                        <input type="number" id="input-sora-tsuji-az-offset" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360" title="基準方位角からの検索中心のズレ量(辻検索メニューと連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット視高度(°):</label>
+                        <input type="number" id="input-sora-tsuji-alt-offset" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360" title="基準視高度からの検索中心のズレ量(辻検索メニューと連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                        <input type="number" id="input-sora-tsuji-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                        <input type="number" id="input-sora-tsuji-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                        <input type="number" id="input-sora-tsuji-rot" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                        <input type="number" id="input-sora-tsuji-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
                         <input type="number" id="input-sora-offset-az" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット視高度(°):</label>
                         <input type="number" id="input-sora-offset-alt" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360">
                     </div>
                     <div class="control-row">
@@ -1196,9 +1244,9 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>検索期間</strong>: 検索する日数 (最大36500日 = 100年間)。日時情報メニューの日付が起点。</li>
                         <li><strong>基準方位角・基準視高度</strong>: 観測点→目的点の方位角・視高度 (自動計算)。</li>
-                        <li><strong>オフセット方位角/視高度</strong>: 基準値からのズレ (度)。</li>
-                        <li><strong>オフセット方位距離/視高距離</strong>: 上記オフセットを目的点での横/縦の距離 (m) に換算した参考値。</li>
-                        <li><strong>オフセット回転角/回転仰角</strong>: 目的点方向を向いて0時(上)から時計回りの角度と、中心からの球面角距離 (参考値・読取専用)。</li>
+                        <li><strong>辻オフセット方位角/視高度</strong>: 基準値からのズレ (度)。</li>
+                        <li><strong>辻オフセット方位距離/視高距離</strong>: 上記オフセットを目的点での横/縦の距離 (m) に換算した参考値。</li>
+                        <li><strong>辻オフセット回転角/回転仰角</strong>: 目的点方向を向いて0時(上)から時計回りの角度と、中心からの球面角距離 (参考値・読取専用)。</li>
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
                         <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/各薄明から選べ、前後オフセットも指定可。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。</li>

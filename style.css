@@ -1803,7 +1803,7 @@ input[type="range"] {
 }
 
 .mytsuji-label {
-    width: 73px;
+    width: 80px;   /* 「辻オフセット…」の1文字増に対応(入力側を同量狭めて合計幅は維持) */
     white-space: wrap;
     margin-right: 2px;
 }
@@ -1822,7 +1822,7 @@ input[type="range"] {
 .mytsuji-tol-alt,
 .mytsuji-moon-base,
 .mytsuji-moon-tol {
-    width: 75px;
+    width: 68px;   /* ラベル+入力の合計148pxを維持し、全入力を同幅にして縦のラインを揃える */
 }
 
 /* 「全て登録」ボタンの dirty 状態 */

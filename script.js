@@ -681,6 +681,17 @@ function setupUI() {
         saveAppState();
         updateOffsetDistances();
     });
+    // 宙の窓メニュー/コントロールメニューの辻オフセット方位角・視高度(辻検索メニューと連動)
+    [['input-sora-tsuji-az-offset', 'tsujiSearchOffsetAz'], ['input-sora-ctrl-tsuji-az-offset', 'tsujiSearchOffsetAz'],
+     ['input-sora-tsuji-alt-offset', 'tsujiSearchOffsetAlt'], ['input-sora-ctrl-tsuji-alt-offset', 'tsujiSearchOffsetAlt']].forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', (e) => {
+            appState[key] = Math.max(-360, Math.min(360, parseFloat(e.target.value) || 0));
+            e.target.value = appState[key];
+            saveAppState();
+            updateOffsetDistances();
+        });
+    });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 15;
         e.target.value = appState.tsujiSearchToleranceAlt;
@@ -5767,8 +5778,8 @@ async function fileBatchMyTsujiSearch() {
         '精度記号','精度角距離',
         '方位角','視高度','視半径','天体方位角差','天体視高度差',
         '相手距離','相手方位','相手高度',
-        'オフセット方位角','オフセット視高度','オフセット方位距離','オフセット視高距離',
-        'オフセット回転角','オフセット回転仰角','オフセット中心角','標高グラフ',
+        '辻オフセット方位角','辻オフセット視高度','辻オフセット方位距離','辻オフセット視高距離',
+        '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','標高グラフ',
         'プレビューURL'
     ];
     const esc = v => {
@@ -5838,21 +5849,21 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt.toFixed(4) : ''}" placeholder="基準視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
-                <label class="mytsuji-label">オフセット方位角(°):</label>
+                <label class="mytsuji-label">辻オフセット方位角(°):</label>
                 <input type="number" class="mytsuji-offset-az" value="${t.offsetAz !== undefined && t.offsetAz !== null ? t.offsetAz : 0}" placeholder="オフセット方位角(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
-                <label class="mytsuji-label">オフセット視高度(°):</label>
+                <label class="mytsuji-label">辻オフセット視高度(°):</label>
                 <input type="number" class="mytsuji-offset-alt" value="${t.offsetAlt !== undefined && t.offsetAlt !== null ? t.offsetAlt : 0}" placeholder="オフセット視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
-                <label class="mytsuji-label">オフセット方位距離(m):</label>
+                <label class="mytsuji-label">辻オフセット方位距離(m):</label>
                 <input type="number" class="mytsuji-offset-az-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
-                <label class="mytsuji-label">オフセット視高距離(m):</label>
+                <label class="mytsuji-label">辻オフセット視高距離(m):</label>
                 <input type="number" class="mytsuji-offset-alt-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
             </div>
             <div class="control-row">
-                <label class="mytsuji-label">オフセット回転角(°):</label>
+                <label class="mytsuji-label">辻オフセット回転角(°):</label>
                 <input type="number" class="mytsuji-offset-rot elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
-                <label class="mytsuji-label">オフセット回転仰角(°):</label>
+                <label class="mytsuji-label">辻オフセット回転仰角(°):</label>
                 <input type="number" class="mytsuji-offset-rot-alt elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
             </div>
             <div class="control-row">
@@ -6298,16 +6309,20 @@ function updateOffsetDistances() {
     const offsetAlt = appState.tsujiSearchOffsetAlt;
     const azDist = dist * Math.tan(offsetAz * Math.PI / 180);
     const altDist = dist * Math.tan(offsetAlt * Math.PI / 180);
-    document.getElementById('input-tsuji-az-offset-dist').value = parseFloat(azDist.toFixed(1));
-    document.getElementById('input-tsuji-alt-offset-dist').value = parseFloat(altDist.toFixed(1));
     // 回転角 (上=0°・時計回り) / 回転仰角 (中心方向とオフセット適用方向の球面角距離)
     const baseAz = appState.tsujiSearchBaseAz;
     const baseAlt = appState.tsujiSearchBaseAlt;
     const valid = !isNaN(baseAz) && !isNaN(baseAlt) && !isNaN(offsetAz) && !isNaN(offsetAlt);
     const rot = valid ? calcOffsetRotation(offsetAz, offsetAlt) : 0;
     const rotAlt = valid ? angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt) : 0;
-    document.getElementById('input-tsuji-rot').value = parseFloat(rot.toFixed(4));
-    document.getElementById('input-tsuji-rot-alt').value = parseFloat(rotAlt.toFixed(4));
+    // 辻検索メニュー・宙の窓メニュー・宙の窓コントロールメニューの全コピーへ反映(編集中の入力欄は上書きしない)
+    const setV = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    ['input-tsuji-az-offset', 'input-sora-tsuji-az-offset', 'input-sora-ctrl-tsuji-az-offset'].forEach(id => setV(id, offsetAz));
+    ['input-tsuji-alt-offset', 'input-sora-tsuji-alt-offset', 'input-sora-ctrl-tsuji-alt-offset'].forEach(id => setV(id, offsetAlt));
+    ['input-tsuji-az-offset-dist', 'input-sora-tsuji-az-offset-dist', 'input-sora-ctrl-tsuji-az-offset-dist'].forEach(id => setV(id, parseFloat(azDist.toFixed(1))));
+    ['input-tsuji-alt-offset-dist', 'input-sora-tsuji-alt-offset-dist', 'input-sora-ctrl-tsuji-alt-offset-dist'].forEach(id => setV(id, parseFloat(altDist.toFixed(1))));
+    ['input-tsuji-rot', 'input-sora-tsuji-rot', 'input-sora-ctrl-tsuji-rot'].forEach(id => setV(id, parseFloat(rot.toFixed(4))));
+    ['input-tsuji-rot-alt', 'input-sora-tsuji-rot-alt', 'input-sora-ctrl-tsuji-rot-alt'].forEach(id => setV(id, parseFloat(rotAlt.toFixed(4))));
 }
 
 /** 月齢フィルタのUI状態を更新 (入力可否) */
@@ -8688,6 +8703,7 @@ function soraSyncUI() {
     set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(4));
     set('input-sora-offset-az', Number(appState.soraOffsetAz).toFixed(4));
     set('input-sora-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
+    updateOffsetDistances();   // 辻オフセット群(宙の窓/ctrlのコピー含む)を反映
     set('input-sora-range', appState.soraViewRange);
     set('input-sora-range-slider', appState.soraViewRange);
     const o = soraComputeOptics();
