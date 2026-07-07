@@ -387,6 +387,17 @@ html {
     pointer-events: none;
 }
 
+/* 再生オプション②: 生成した動画をファインダー矩形に重ねて再生するオーバーレイ */
+#soramado-movplay-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    object-fit: fill;
+    background: #000;
+    pointer-events: none;
+}
+
 /* 地形取得の進捗バー(パネル上端) */
 #soramado-progress {
     position: absolute;

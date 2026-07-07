@@ -173,8 +173,15 @@ GNU General Public License for more details.
                     <label class="input-label tsujisearch-label">総画像容量(GB):</label>
                     <input type="text" id="sora-mov-total" class="sora-mov-num" readonly title="撮影回数×画像サイズの概算容量">
                 </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="再生の方式を選択します">再生オプション:</span>
+                </div>
+                <div class="control-row">
+                    <label class="baseopt-radio" title="再生時間を表示間隔で間引いたコマだけをアニメーションで再生します"><input type="radio" name="sora-mov-playmode" value="anim" checked>:アニメーション</label>
+                    <label class="baseopt-radio" title="MP4(非対応ブラウザはWebM)の動画を生成して、プレビュー画面上で再生します"><input type="radio" name="sora-mov-playmode" value="video">:動画(MP4/WebM)</label>
+                </div>
                 <div class="control-row center-row">
-                    <button id="btn-sora-mov-play" class="nav-btn" title="撮影開始日時から撮影終了日時まで、表示間隔毎に日時を進めて再生します">再生</button>
+                    <button id="btn-sora-mov-play" class="nav-btn" title="再生オプションの方式で、撮影開始日時から撮影終了日時までのシミュレーションを再生します">再生</button>
                 </div>
                 <hr class="baseopt-hr">
                 <div class="control-row left-row">

@@ -270,6 +270,7 @@ let appState = {
     soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
     soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
     soraMovImgMb: 8,             // インターバルMov: 画像サイズ(MB) 1〜100
+    soraMovPlayMode: 'anim',     // 再生オプション: 'anim'=表示間隔サンプリングのアニメ / 'video'=MP4/WebM生成→動画再生
     soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
@@ -1034,7 +1035,7 @@ function saveAppState() {
         soraOrient: appState.soraOrient, soraFisheyeStrength: appState.soraFisheyeStrength, soraFisheyeShape: appState.soraFisheyeShape,
         soraPanorama: appState.soraPanorama, soraPanoAov: appState.soraPanoAov,
         soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
-        soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb,
+        soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb, soraMovPlayMode: appState.soraMovPlayMode,
         soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
         soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH,
         // 標高関連（API標高とユーザー入力高）
@@ -1062,6 +1063,8 @@ function loadAppState() {
             if(saved.myObservations) appState.myObservations = saved.myObservations;
             if(saved.myTargets) appState.myTargets = saved.myTargets;
             if(saved.myTsujiSearches) appState.myTsujiSearches = saved.myTsujiSearches;
+            // 旧保存データ(オフセット中心角が行独立になる前)は基本オプションの値で補完
+            appState.myTsujiSearches.forEach(t => { if (t.mwOffsetAngle === undefined) t.mwOffsetAngle = Number(saved.mwOffsetAngle ?? appState.mwOffsetAngle) || 0; });
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -1092,7 +1095,7 @@ function loadAppState() {
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
-             'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb',
+             'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
@@ -1165,6 +1168,7 @@ function normalizeAppState() {
     appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
     if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
     if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
+    if (!['anim', 'video'].includes(appState.soraMovPlayMode)) appState.soraMovPlayMode = 'anim';
     appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 4096));
     appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 4096));
     // 基本オプション
@@ -2390,6 +2394,14 @@ function getBodyAngularRadius(bodyId, date, observer) {
 function getMilkyWayBaseRaDec() {
     const ang = Number(appState.mwOffsetAngle) || 0;
     if (appState.baseOptMwBase !== 'offset' || ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
+    const eq = galacticToEquatorial(ang, 0);
+    return { ra: eq.ra, dec: eq.dec };
+}
+
+/** My辻検索の行が使う天の川の基準点のRA/Dec。行ごとのオフセット中心角に従う(基本オプションとは連動しない。0°=中心座標) */
+function _myTsujiMwRaDec(t) {
+    const ang = Number(t && t.mwOffsetAngle) || 0;
+    if (ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
     const eq = galacticToEquatorial(ang, 0);
     return { ra: eq.ra, dec: eq.dec };
 }
@@ -4579,6 +4591,7 @@ function addMyTsujiRow() {
         baseAz: null, baseAlt: null,
         offsetAz: 0, offsetAlt: 0,
         toleranceAz: 15, toleranceAlt: 15,
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 天の川オプション: 初期値は基本オプションの値(以後は行ごとに独立)
         moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
         elevationOption: false, elevOK: false, elevNG: false,
@@ -4658,6 +4671,7 @@ function getMyTsujiFromTsujiSearch() {
         offsetAlt: appState.tsujiSearchOffsetAlt,
         toleranceAz: appState.tsujiSearchToleranceAz,
         toleranceAlt: appState.tsujiSearchToleranceAlt,
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 登録時点の基本オプション値を初期値に(以後は行ごとに独立)
         moonFilter: appState.tsujiMoonFilterEnabled,
         moonBase: appState.tsujiMoonBase,
         moonTolerance: appState.tsujiMoonTolerance,
@@ -4804,35 +4818,75 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const offsetAlt = parseNumOr(cols[9], 0);
     const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
     const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
-    // 13-15列目: 月齢フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
-    let moonFilter = false;
-    if (cols[12] != null) {
-        const v = toHalfWidth(cols[12].trim()).toUpperCase();
-        moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
-    }
-    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 14.8), 0), 30);
-    const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
-    // 16-20列目: 精度フィルタ (省略時はfalse)
     const parseBoolOr = (v) => {
         if (v == null) return false;
         const s = toHalfWidth(v.trim()).toUpperCase();
         return (s === 'ON' || s === '1' || s === 'TRUE');
     };
-    const accuracyFilter = parseBoolOr(cols[15]);
-    const accDblCircle = parseBoolOr(cols[16]);
-    const accCircle = parseBoolOr(cols[17]);
-    const accTriangle = parseBoolOr(cols[18]);
-    const accDash = parseBoolOr(cols[19]);
-    // 21列目: メモ (省略時は空文字)
-    const memo = (cols[20] ?? '').trim();
+    // 旧21列形式(オフセット中心角・時間フィルタ・標高オプションの列がない)は列数で判別して読み替える
+    const legacy = cols.length <= 21;
+    // 13列目: オフセット中心角 (旧形式は基本オプションの現在値で補完)
+    const mwOffsetAngle = legacy ? (Number(appState.mwOffsetAngle) || 0)
+                                 : Math.min(Math.max(parseNumOr(cols[12], 0), -360), 360);
+    // 月齢フィルタ/基準月齢/許容範囲月齢 (旧:13-15列目 / 新:14-16列目)
+    const mi = legacy ? 12 : 13;
+    const moonFilter = parseBoolOr(cols[mi]);
+    const moonBase = Math.min(Math.max(parseNumOr(cols[mi + 1], 14.8), 0), 30);
+    const moonTolerance = Math.min(Math.max(parseNumOr(cols[mi + 2], 2), 0), 15);
+    // 時間フィルタ (新形式のみ: 17-27列目。モードは TSUJI_TIME_MODES の値か fixed)
+    const modeOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim());
+        return (s === 'fixed' || TSUJI_TIME_MODES.some(m => m.v === s)) ? s : def;
+    };
+    const hhmmOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim());
+        return /^\d{1,2}:\d{2}$/.test(s) ? s : def;
+    };
+    const dirOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim()).toLowerCase();
+        if (s === 'after' || s === '後') return 'after';
+        if (s === 'before' || s === '前') return 'before';
+        return def;
+    };
+    let timeFilter = false, startMode = 'sunset', startTime = '00:00', startPrePost = false, startPrePostDir = 'before', startOffset = '00:00';
+    let endMode = 'sunrise', endTime = '00:00', endPrePost = false, endPrePostDir = 'before', endOffset = '00:00';
+    if (!legacy) {
+        timeFilter = parseBoolOr(cols[16]);
+        startMode = modeOr(cols[17], 'sunset');
+        startTime = hhmmOr(cols[18], '00:00');
+        startPrePost = parseBoolOr(cols[19]);
+        startPrePostDir = dirOr(cols[20], 'before');
+        startOffset = hhmmOr(cols[21], '00:00');
+        endMode = modeOr(cols[22], 'sunrise');
+        endTime = hhmmOr(cols[23], '00:00');
+        endPrePost = parseBoolOr(cols[24]);
+        endPrePostDir = dirOr(cols[25], 'before');
+        endOffset = hhmmOr(cols[26], '00:00');
+    }
+    // 精度フィルタ (旧:16-20列目 / 新:28-32列目)
+    const ai = legacy ? 15 : 27;
+    const accuracyFilter = parseBoolOr(cols[ai]);
+    const accDblCircle = parseBoolOr(cols[ai + 1]);
+    const accCircle = parseBoolOr(cols[ai + 2]);
+    const accTriangle = parseBoolOr(cols[ai + 3]);
+    const accDash = parseBoolOr(cols[ai + 4]);
+    // 標高オプション (新形式のみ: 33-35列目)
+    const elevationOption = legacy ? false : parseBoolOr(cols[32]);
+    const elevOK = legacy ? false : parseBoolOr(cols[33]);
+    const elevNG = legacy ? false : parseBoolOr(cols[34]);
+    // メモ (旧:21列目 / 新:36列目)
+    const memo = ((legacy ? cols[20] : cols[35]) ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
         baseAz, baseAlt,
         offsetAz, offsetAlt,
         toleranceAz, toleranceAlt,
+        mwOffsetAngle,
         moonFilter, moonBase, moonTolerance,
+        timeFilter, startMode, startTime, startPrePost, startPrePostDir, startOffset, endMode, endTime, endPrePost, endPrePostDir, endOffset,
         accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
+        elevationOption, elevOK, elevNG,
         checked: false, memo
     };
 }
@@ -4958,14 +5012,9 @@ function appendMyTsujiCsv() {
     input.click();
 }
 
-/** CSV出力 */
-function exportMyTsujiCsv() {
-    if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
-    const targets = appState.myTsujiSearches.filter(t => t.checked);
-    if (targets.length === 0) return alert('CSV出力するMy辻検索が選択されていません');
-    if (!confirm('チェックボックスで選択されたMy辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
-    const bom = '\uFEFF';
-    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,月齢フィルタ,基準月齢,許容範囲月齢,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,メモ\r\n';
+/** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
+function _buildMyTsujiCsv(targets) {
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高オプション,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
     targets.forEach(t => {
         csv += [
             t.id,
@@ -4980,17 +5029,42 @@ function exportMyTsujiCsv() {
             t.offsetAlt ?? 0,
             t.toleranceAz ?? 15,
             t.toleranceAlt ?? 15,
+            t.mwOffsetAngle ?? 0,
             t.moonFilter ? 'ON' : 'OFF',
             t.moonBase ?? 14.8,
             t.moonTolerance ?? 2,
+            t.timeFilter ? 'ON' : 'OFF',
+            t.startMode ?? 'sunset',
+            t.startTime ?? '00:00',
+            t.startPrePost ? 'ON' : 'OFF',
+            t.startPrePostDir ?? 'before',
+            t.startOffset ?? '00:00',
+            t.endMode ?? 'sunrise',
+            t.endTime ?? '00:00',
+            t.endPrePost ? 'ON' : 'OFF',
+            t.endPrePostDir ?? 'before',
+            t.endOffset ?? '00:00',
             t.accuracyFilter ? 'ON' : 'OFF',
             t.accDblCircle ? 'ON' : 'OFF',
             t.accCircle ? 'ON' : 'OFF',
             t.accTriangle ? 'ON' : 'OFF',
             t.accDash ? 'ON' : 'OFF',
+            t.elevationOption ? 'ON' : 'OFF',
+            t.elevOK ? 'ON' : 'OFF',
+            t.elevNG ? 'ON' : 'OFF',
             t.memo ?? ''
         ].join(',') + '\r\n';
     });
+    return csv;
+}
+
+/** CSV出力 */
+function exportMyTsujiCsv() {
+    if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
+    const targets = appState.myTsujiSearches.filter(t => t.checked);
+    if (targets.length === 0) return alert('CSV出力するMy辻検索が選択されていません');
+    if (!confirm('チェックボックスで選択されたMy辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
+    const csv = '\uFEFF' + _buildMyTsujiCsv(targets);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -5118,7 +5192,10 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
     // 全天体・全チャンクをプールに一括投入し、並列処理する
     const perBodyChunks = bodies.map(body => {
         let bodyMsg;
-        if (isFixedStar(body.id)) {
+        if (body.id === 'MilkyWay') {
+            const rd = _myTsujiMwRaDec(t);   // 天の川はこの行のオフセット中心角を使う(基本オプションとは連動しない)
+            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        } else if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
             bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
         } else {
@@ -5746,8 +5823,8 @@ function renderMyTsujiSearches() {
             <hr class="tsujisearch-separator">
             <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
             <div class="control-row">
-                <label class="mytsuji-label" title="天の川の基準点のオフセット中心角(基本オプション・辻検索と連動)">オフセット中心角(°):</label>
-                <input type="number" class="mytsuji-mw-offset" value="${Number(appState.mwOffsetAngle) || 0}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}">
+                <label class="mytsuji-label" title="この行の辻検索だけに反映する天の川の基準点のオフセット中心角(基本オプションとは連動しない)">オフセット中心角(°):</label>
+                <input type="number" class="mytsuji-mw-offset" value="${t.mwOffsetAngle !== undefined && t.mwOffsetAngle !== null ? t.mwOffsetAngle : (Number(appState.mwOffsetAngle) || 0)}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}">
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
@@ -5861,6 +5938,11 @@ function renderMyTsujiSearches() {
         onChange('mytsuji-tol-alt', e => {
             t.toleranceAlt = Math.min(Math.max(parseFloat(e.target.value) || 15, 0), 360);
             e.target.value = t.toleranceAlt;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-mw-offset', e => {   // 行ごとに独立(基本オプションとは連動しない)
+            t.mwOffsetAngle = Math.min(Math.max(parseFloat(e.target.value) || 0, -360), 360);
+            e.target.value = t.mwOffsetAngle;
             saveAppState(); setMyTsujiDirty(true);
         });
         onChange('mytsuji-moon-filter', e => {
@@ -7089,7 +7171,9 @@ const _QP_SEEDS_V2 = _QP_SEEDS.concat(
         .map(k => '&' + k + '='),
     ['=landscape&', '=portrait&', '=fullframe&', '=jpeg&', '=png&', '=h264&', '=webm&', '=rect&', '=circle&']
 );
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2];   // 添字+1=版数。最新版でエンコードする
+// v3: v2の全シード + 再生オプション(キー追加時は新版を作って_QP_SEED_VERSIONSへ)
+const _QP_SEEDS_V3 = _QP_SEEDS_V2.concat(['&soraMovPlayMode=', '=anim&', '=video&']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
@@ -7282,7 +7366,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
      'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
      'soraPeaking', 'soraTraj', 'soraCenterCross',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
-     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb', 'soraMovPlayMode',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
@@ -7524,7 +7608,7 @@ function restoreFromUrl() {
     const soraNum = (key) => { if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState[key] = v; } };
     const soraBool = (key) => { if (params.has(key)) appState[key] = params.get(key) === 'true'; };
     const soraStr = (key) => { if (params.has(key)) appState[key] = params.get(key); };
-    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape'); soraStr('soraExpFormat');
+    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape'); soraStr('soraExpFormat'); soraStr('soraMovPlayMode');
     ['soraAspectW', 'soraAspectH', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist', 'soraFisheyeStrength', 'soraPanoAov',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
@@ -8554,6 +8638,8 @@ function soraSyncUI() {
     set('sel-sora-mov-step', String(appState.soraMovDispStep));
     set('input-sora-mov-mb', appState.soraMovImgMb);
     soraMovSyncUI();
+    const pmR = document.querySelector(`input[name="sora-mov-playmode"][value="${appState.soraMovPlayMode}"]`);
+    if (pmR) pmR.checked = true;
     const expR = document.querySelector(`input[name="sora-exp-format"][value="${appState.soraExpFormat}"]`);
     if (expR) expR.checked = true;
     // 出力サイズはプレビューのアスペクト比に常時追従(縦は横から再計算)
@@ -8710,14 +8796,23 @@ function _smMovRingTeardown() {
     if (_smMwRingGrp) _smMwRingGrp.visible = true;
 }
 
-/** 再生トグル: ワーカーで事前計算したキューをデキューして、プレビュー内の①天体②軌跡③空・星座線/領域だけを動かす */
+/** 再生トグル: 再生オプションで ①アニメーション(表示間隔サンプリング) / ②動画(MP4/WebM)生成→プレビュー上で再生 を切替。
+ *  ①はワーカーで事前計算したキューをデキューして、プレビュー内の①天体②軌跡③空・星座線/領域だけを動かす */
 function soraMovTogglePlay() {
-    if (_movTimer) { soraMovStop(); return; }
+    if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) { soraMovStop(); return; }
     if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから再生してください。'); return; }
+    if (appState.soraMovPlayMode === 'video') { soraMovPlayVideo(); return; }
     const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
-    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const shots = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const dispStep = Number(appState.soraMovDispStep) || 0.3;
+    // 再生コマ数は「再生時間(=撮影回数÷fps)÷表示間隔」だけ。全撮影コマは再生しない(動画を表示間隔で間引いたプレビュー)。
+    const playSec = shots / fps;
+    const n = Math.max(1, Math.ceil(playSec / dispStep - 1e-9));
+    const shotIdx = [];   // 表示コマk → 撮影コマ番号(動画時刻 k×表示間隔 のフレーム)
+    for (let k = 0; k < n; k++) shotIdx.push(Math.min(shots - 1, Math.round(k * dispStep * fps)));
     const startMs = appState.currentDate.getTime();
-    _movEndMs = startMs + iv * n * 1000;
+    _movEndMs = startMs + iv * shots * 1000;
     const gen = ++_movGen;
     // 表示天体のメタ情報(固定天体はRA/Dec、惑星等は半径kmを渡してワーカー側で視半径まで計算)
     const metas = appState.bodies.filter(b => b.visible).map(b => {
@@ -8727,7 +8822,7 @@ function soraMovTogglePlay() {
         else m.radiusKm = BODY_RADIUS_KM[b.id] || 0;
         return m;
     });
-    // 全フレームをチャンクに分けてワーカープールへ事前計算を依頼(結果はフレーム順のキューへ)
+    // サンプリングした再生コマだけをチャンクに分けてワーカープールへ事前計算を依頼(結果はコマ順のキューへ)
     _movQueue = new Array(n);
     _movFilled = 0;
     _movPlayIdx = 0;
@@ -8736,7 +8831,7 @@ function soraMovTogglePlay() {
     const CH = 120;
     for (let off = 0; off < n; off += CH) {
         const frames = [];
-        for (let f = off; f < Math.min(n, off + CH); f++) frames.push(startMs + f * iv * 1000);
+        for (let f = off; f < Math.min(n, off + CH); f++) frames.push(startMs + shotIdx[f] * iv * 1000);
         _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.refractionEnabled })
             .then(res => {
                 if (gen !== _movGen) return;   // 停止済みの世代は破棄
@@ -8771,6 +8866,12 @@ function soraMovTogglePlay() {
 
 function soraMovStop() {
     if (_movTimer) { clearInterval(_movTimer); _movTimer = null; }
+    if (_expVideo && _expVideo.owner === 'play') soraExportCancel();   // 再生用の動画生成中なら中止
+    if (_movVideo) {   // 動画再生のオーバーレイを片付け
+        if (_movVideo.el && _movVideo.el.parentElement) _movVideo.el.parentElement.removeChild(_movVideo.el);
+        if (_movVideo.url) { try { URL.revokeObjectURL(_movVideo.url); } catch (_) {} }
+        _movVideo = null;
+    }
     _movGen++;            // 事前計算の未着チャンクを破棄
     _movPlaying = false;
     _movQueue = [];
@@ -8905,7 +9006,8 @@ function soraExportDownload(blob, ext) {
 
 /** ファイル出力ボタン: 形式ラジオで静止画/動画に振り分け。動画実行中は中止 */
 function soraExportRun() {
-    if (_expVideo) { soraExportCancel(); return; }
+    if (_expVideo && _expVideo.owner === 'export') { soraExportCancel(); return; }
+    if (_expVideo) { alert('再生用の動画を生成中です。停止してから実行してください。'); return; }
     if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから実行してください。'); return; }
     const fmt = appState.soraExpFormat;
     if (fmt === 'jpeg' || fmt === 'png') soraExportStill(fmt);
@@ -8939,49 +9041,32 @@ function soraExpPickMime(fmt) {
     return null;
 }
 
-/** 動画書き出し: インターバルMovの全コマをフレームレートで実時間録画(キャンバスストリーム+MediaRecorder) */
-function soraExportVideo(fmt) {
-    const picked = soraExpPickMime(fmt);
-    if (!picked) { alert('このブラウザは動画の書き出しに対応していません。'); return; }
-    const w = appState.soraExpW, h = appState.soraExpH;
+/** インターバルMovの全コマをフレームレートで実時間録画する共通部(書き出し/再生オプション②で共用)。
+ *  完了(または中止)で onDone(blob|null) を呼ぶ。中止は soraExportCancel。開始できなければ false を返す */
+function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
     const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
     const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
     const fps = Number(appState.soraMovFps) || 30;
-    const durSec = Math.ceil(n / fps);
-    const codecName = fmt === 'webm' ? 'H.264(WebM)' : 'H.264(MP4)';
-    const msg = (picked.fellBack
-        ? (fmt === 'webm' ? 'お使いのブラウザはH.264のWebM書き出しに対応していないため、VP9等のWebM形式で出力します。\n'
-                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n`)
-        : '') +
-        `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
-    if (!confirm(msg)) return;
-    if (_movTimer) soraMovStop();   // 再生中なら停止してから
     const cv2 = document.createElement('canvas');
     cv2.width = w; cv2.height = h;
     const stream = cv2.captureStream();
     let recorder;
     try {
         recorder = new MediaRecorder(stream, { mimeType: picked.mime, videoBitsPerSecond: Math.min(5e7, Math.max(1e6, w * h * fps * 0.15)) });
-    } catch (e) { alert('動画の書き出しを開始できませんでした: ' + e.message); return; }
+    } catch (e) { alert('動画の生成を開始できませんでした: ' + e.message); return false; }
     const chunks = [];
     recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
     const startDate = new Date(appState.currentDate.getTime());
-    const btn = document.getElementById('btn-sora-export');
-    if (btn) { btn.classList.add('active'); btn.textContent = '中止'; }
-    _expVideo = { recorder, timer: null, canceled: false, startDate };
+    _expVideo = { recorder, timer: null, canceled: false, startDate, owner };
     recorder.onstop = () => {
         const st = _expVideo;
         _expVideo = null;
         soraExpProgress(null);
-        if (btn) { btn.classList.remove('active'); btn.textContent = 'ファイル出力'; }
         // 日時をシミュレーション開始時点へ復元
         appState.currentDate = new Date(startDate.getTime());
         syncUIFromState();
         updateAll();
-        if (st && st.canceled) return;   // 中止時は破棄
-        const blob = new Blob(chunks, { type: picked.mime.split(';')[0] });
-        if (blob.size > 0) soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
-        else alert('動画の生成に失敗しました。');
+        onDone(st && st.canceled ? null : new Blob(chunks, { type: picked.mime.split(';')[0] }));
     };
     let f = 0;
     recorder.start();
@@ -8994,9 +9079,61 @@ function soraExportVideo(fmt) {
         }
         appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
         _smComposeFrame(w, h, cv2);
-        soraExpProgress(`書き出し中 ${f + 1}/${n}`);
+        soraExpProgress(`${label} ${f + 1}/${n}`);
         f++;
     }, 1000 / fps);
+    return true;
+}
+
+/** 動画書き出し: インターバルMovの全コマをフレームレートで実時間録画(キャンバスストリーム+MediaRecorder) */
+function soraExportVideo(fmt) {
+    const picked = soraExpPickMime(fmt);
+    if (!picked) { alert('このブラウザは動画の書き出しに対応していません。'); return; }
+    const w = appState.soraExpW, h = appState.soraExpH;
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const durSec = Math.ceil(n / fps);
+    const codecName = fmt === 'webm' ? 'H.264(WebM)' : 'H.264(MP4)';
+    const msg = (picked.fellBack
+        ? (fmt === 'webm' ? 'お使いのブラウザはH.264のWebM書き出しに対応していないため、VP9等のWebM形式で出力します。\n'
+                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n`)
+        : '') +
+        `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
+    if (!confirm(msg)) return;
+    if (_movTimer || _movVideo) soraMovStop();   // 再生中なら停止してから
+    const btn = document.getElementById('btn-sora-export');
+    const ok = _soraRecordMovVideo(picked, w, h, 'export', '書き出し中', blob => {
+        if (btn) { btn.classList.remove('active'); btn.textContent = 'ファイル出力'; }
+        if (!blob) return;   // 中止時は破棄
+        if (blob.size > 0) soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
+        else alert('動画の生成に失敗しました。');
+    });
+    if (ok && btn) { btn.classList.add('active'); btn.textContent = '中止'; }
+}
+
+/** 再生オプション②: インターバルMovをMP4(非対応はWebM)で生成し、プレビュー画面の上に重ねて動画再生する */
+let _movVideo = null;   // 再生中のオーバーレイ {el, url}
+function soraMovPlayVideo() {
+    const picked = soraExpPickMime('h264');   // MP4優先→非対応ブラウザはWebMへ自動フォールバック(確認なし)
+    if (!picked) { alert('このブラウザは動画の生成に対応していません。'); return; }
+    if (_expVideo) { alert('動画の書き出し中です。完了または中止してから再生してください。'); return; }
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(2, Math.round(_smFinderW * dpr)), h = Math.max(2, Math.round(_smFinderH * dpr));
+    const btn = document.getElementById('btn-sora-mov-play');
+    const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', blob => {
+        if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
+        const el = document.createElement('video');
+        el.id = 'soramado-movplay-video';
+        el.muted = true; el.playsInline = true; el.autoplay = true;
+        el.src = URL.createObjectURL(blob);
+        el.addEventListener('ended', () => soraMovStop());   // 再生し終えたら自動停止(プレビュー表示へ復帰)
+        const view = document.getElementById('soramado-view');
+        if (view) view.appendChild(el);
+        _movVideo = { el, url: el.src };
+        drawSoramado();   // ファインダー矩形と同サイズに追従させる
+        el.play().catch(() => {});
+    });
+    if (ok && btn) { btn.classList.add('active'); btn.textContent = '停止'; }
 }
 
 /** 動画書き出しの中止(出力は破棄)。パネルクローズ時も呼ばれる */
@@ -9024,7 +9161,7 @@ function syncBaseOptionUI() {
     chk('chk-baseopt-const-names', appState.mwShowConstNames);
     const sortSel = document.getElementById('sel-baseopt-const-sort');
     if (sortSel) sortSel.value = appState.mwConstNameSort;
-    document.querySelectorAll('.mytsuji-mw-offset').forEach(el => { if (document.activeElement !== el) el.value = appState.mwOffsetAngle; });
+    // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しないため、ここでは上書きしない)
 }
 
 /** 天の川の基準点/オフセット中心角の変更を全機能へ反映(天体詳細・辻ライン・辻検索・全天儀・宙の窓) */
@@ -9052,16 +9189,7 @@ function setupBaseOptionControls() {
     };
     offsetHandler(document.getElementById('input-baseopt-mw-offset'));
     offsetHandler(document.getElementById('input-tsuji-mw-offset'));
-    // My辻検索行のオフセット中心角(連動): 行は再描画されるためコンテナへ委譲
-    const myList = document.getElementById('mytsuji-list');
-    if (myList) myList.addEventListener('change', (e) => {
-        if (!e.target.classList || !e.target.classList.contains('mytsuji-mw-offset')) return;
-        let v = parseFloat(e.target.value);
-        if (isNaN(v)) v = 0;
-        appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
-        appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ
-        applyMilkyWayBaseChange();
-    });
+    // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しない)。行内のonChangeで登録する
     const chkHandler = (id, key) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => {
@@ -9201,6 +9329,10 @@ function setupSoramadoControls() {
     sliderH('input-sora-elevshade', 'soraElevShade');
     sliderH('input-sora-sunshade', 'soraSunShade');
     btnH('btn-sora-url', () => toggleUrlPanel('soramado'));
+    // 再生オプション: アニメーション/動画のラジオ(切替時は再生中のものを停止)
+    document.querySelectorAll('input[name="sora-mov-playmode"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) soraMovStop(); appState.soraMovPlayMode = r.value; soraSyncUI(); saveAppState(); } });
+    });
     // 書き出し: 形式ラジオ・出力サイズ(アスペクト連動)・ファイル出力
     document.querySelectorAll('input[name="sora-exp-format"]').forEach(r => {
         r.addEventListener('change', () => { if (r.checked) { appState.soraExpFormat = r.value; soraSyncUI(); saveAppState(); } });
@@ -9251,7 +9383,7 @@ function toggleSoramado() {
     syncBottomPanels();
 }
 function closeSoramado() {
-    if (_movTimer) soraMovStop();   // インターバルMov再生中なら停止
+    if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) soraMovStop();   // インターバルMov再生中なら停止(動画再生・生成中含む)
     if (_expVideo) soraExportCancel();   // 動画書き出し中なら中止(破棄)
     appState.isSoramadoActive = false;
     document.getElementById('btn-soramado').classList.remove('active');
@@ -9452,6 +9584,7 @@ function drawSoramado() {
     // HTMLオーバーレイ (CSS px で配置)
     const frame = document.getElementById('soramado-frame');
     if (frame) { frame.style.width = cr.w + 'px'; frame.style.height = cr.h + 'px'; }
+    if (_movVideo && _movVideo.el) { _movVideo.el.style.width = cr.w + 'px'; _movVideo.el.style.height = cr.h + 'px'; }   // 再生オプション②の動画をファインダー矩形に重ねる
     const cross = document.getElementById('soramado-center');
     if (cross) cross.classList.toggle('hidden', !appState.soraCenterCross);
     // 左下の中心・画角キャプションは表示しない(依頼により削除)。#soramado-info は three.js読込失敗時のエラー表示にのみ使用。
