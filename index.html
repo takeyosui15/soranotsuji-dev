@@ -139,12 +139,10 @@ GNU General Public License for more details.
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">撮影間隔(s):</label>
                     <input type="number" id="input-sora-mov-interval" class="sora-mov-num" min="0.5" max="86400" step="0.5" title="シャッター間隔(秒) 0.5, 1〜86400">
-                    <span class="sora-val">秒</span>
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">撮影回数(回):</label>
                     <input type="number" id="input-sora-mov-shots" class="sora-mov-num" min="1" max="99999" step="1" title="撮影間隔でシャッターを切る回数(1〜99999)">
-                    <span class="sora-val">回</span>
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">撮影時間:</label><span id="sora-mov-duration" class="sora-val">--:--:--</span>
@@ -166,7 +164,6 @@ GNU General Public License for more details.
                     <select id="sel-sora-mov-step" title="シミュレーション再生で1コマを表示する間隔(秒)">
                         <option value="0.12">0.12</option><option value="0.24">0.24</option><option value="0.25">0.25</option><option value="0.3" selected>0.3</option><option value="0.5">0.5</option><option value="0.6">0.6</option><option value="1">1</option>
                     </select>
-                    <span class="sora-val">秒</span>
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">画像サイズ(手動:MB):</label>
@@ -184,6 +181,17 @@ GNU General Public License for more details.
                     <span class="soramado-ctrl-group" title="現在のプレビュー(静止画)またはインターバルMovのシミュレーション(動画)をファイル出力します">書き出し</span>
                 </div>
                 <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="プレビューのアスペクト比を保って出力する画像サイズ(ピクセル)を指定します">出力画像サイズ:</span>
+                </div>
+                <div class="control-row">
+                    <input type="number" id="input-sora-exp-w" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの横(px) 1〜4096。縦と自動連動">
+                    <span class="sora-val">×</span>
+                    <input type="number" id="input-sora-exp-h" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの縦(px) 1〜4096。横と自動連動">
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="ファイル出力の形式を選択します">出力フォーマット:</span>
+                </div>
+                <div class="control-row left-row">
                     <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="jpeg" checked>:JPEG</label>
                     <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="png">:PNG</label>
                 </div>
@@ -192,14 +200,6 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row left-row">
                     <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="webm">:H.264 8-bit(WebM)</label>
-                </div>
-                <div class="control-row left-row">
-                    <span class="soramado-ctrl-group" title="プレビューのアスペクト比を保って出力する画像サイズ(ピクセル)を指定します">出力画像サイズ</span>
-                </div>
-                <div class="control-row">
-                    <input type="number" id="input-sora-exp-w" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの横(px) 1〜4096。縦と自動連動">
-                    <span class="sora-val">×</span>
-                    <input type="number" id="input-sora-exp-h" class="sora-mov-num" min="1" max="4096" step="1" title="出力サイズの縦(px) 1〜4096。横と自動連動">
                 </div>
                 <div class="control-row center-row">
                     <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>

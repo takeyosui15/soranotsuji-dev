@@ -7839,6 +7839,17 @@ function _mwBuildMilkyWayRing() {
 /** 星座線/星座領域のオーバーレイ球を(必要時に)生成する。kind='fig'|'bounds' */
 // 星座線/星座領域: IAU境界ベクトルデータ(d3-celestial, BSD-3ライセンス)を線で描画。
 // 星座別レジストリ(略符→Line配列)でハイライト(黄⇄赤点滅)に対応
+// データ取得は全天儀と宙の窓プレビューで共通(1回だけfetchしてキャッシュ)
+const _constDataCache = {};
+function _constFetch(kind) {
+    if (!_constDataCache[kind]) {
+        const file = kind === 'fig' ? 'constellations.lines.json' : 'constellations.borders.json';
+        _constDataCache[kind] = fetch(file)
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .catch(err => { delete _constDataCache[kind]; throw err; });
+    }
+    return _constDataCache[kind];
+}
 const _MW_CONST_STYLE = {
     fig:    { file: 'constellations.lines.json',   r: 1.002, color: 0x6ec6ff, opacity: 0.8 },   // 星座線=淡い水色
     bounds: { file: 'constellations.borders.json', r: 1.004, color: 0xd9b64e, opacity: 0.55 },  // 星座領域=淡い金
@@ -7874,7 +7885,7 @@ function _mwEnsureConstLayer(kind) {
     if (!on) return;   // ONになるまで生成しない(データを無駄に読まない)
     const st = _MW_CONST_STYLE[kind];
     _mwConstLoading[kind] = true;
-    fetch(st.file).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(gj => {
+    _constFetch(kind).then(gj => {
         if (!_mwGlobe || _mwConstLayers[kind]) return;
         const group = new THREE.Group();
         const R = _MW_R * st.r;
@@ -8604,32 +8615,171 @@ function soraMovSyncUI() {
     document.getElementById('sora-mov-total').value = gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2);   // 単位はラベル(GB)側に表示
 }
 
-/** 再生トグル: 撮影開始日時(=現在の日時情報)から撮影終了日時まで、表示間隔毎に日時を撮影間隔ぶん進めて再生 */
+// --- 再生(インターバルMov): 日時情報メニューと切り離した別処理 ---
+// ワーカープールでフレーム毎の天体位置・空の基底を事前計算してキューに積み、
+// 再生タイマーはデキューして ①天体(位置/視半径/月相) ②軌跡(日替わりのみ) ③空・星座線/領域(回転) を動かすだけ。
+// appState.currentDate は再生中も変更しない(辻ライン・地図・メニューの再計算は発生しない)。
+let _movQueue = [], _movFilled = 0, _movPlayIdx = 0, _movGen = 0, _movPlaying = false;
+let _smMovPool = null;
+function _smMovPoolEnsure() {
+    if (_smMovPool) return _smMovPool;
+    const n = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 4));
+    const workers = [];
+    for (let i = 0; i < n; i++) workers.push(new Worker('sora-mov-worker.js'));
+    _smMovPool = { workers, idle: [...workers], queue: [] };
+    return _smMovPool;
+}
+function _smMovRunOnWorker(worker, task) {
+    const handler = (e) => {
+        worker.removeEventListener('message', handler);
+        task.resolve(e.data || { frames: [] });
+        if (_smMovPool.queue.length > 0) _smMovRunOnWorker(worker, _smMovPool.queue.shift());
+        else _smMovPool.idle.push(worker);
+    };
+    worker.addEventListener('message', handler);
+    worker.postMessage(task.message);
+}
+function _smMovPoolRun(message) {
+    const pool = _smMovPoolEnsure();
+    return new Promise(resolve => {
+        const task = { message, resolve };
+        if (pool.idle.length > 0) _smMovRunOnWorker(pool.idle.pop(), task);
+        else pool.queue.push(task);
+    });
+}
+
+/** キューのフレームデータから表示天体スプライト群を再構築(メインスレッドでの天文計算なし) */
+function _smApplyMovBodies(frame, metas) {
+    if (!_smBodiesGrp) return;
+    while (_smBodiesGrp.children.length) { const c = _smBodiesGrp.children.pop(); if (c.material) c.material.dispose(); }
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+    metas.forEach((m, i) => {
+        const fb = frame.bodies[i];
+        if (!fb) return;
+        const pos = _smDir(fb.az, fb.alt).multiplyScalar(_SM_BODY_R);
+        if (m.id === 'Moon' && fb.phase !== undefined) {
+            const tex = _smCanvasTex(`moon_${fb.phase.toFixed(2)}_${fb.waxing}`, (c2, s) => _smDrawMoon(c2, s, fb.phase, fb.waxing), 128);
+            const r = _SM_BODY_R * Math.tan(Math.max(fb.angR, 0.08) * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        } else if (fb.angR > 0) {
+            const r = _SM_BODY_R * Math.tan(fb.angR * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(m.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        }
+        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(m.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+        cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+    });
+    // 目的点マーカー(赤十字)は固定方向なので毎フレーム同じ
+    const tpos = _smDir(Number(appState.soraBaseAz), Number(appState.soraBaseAlt)).multiplyScalar(_SM_BODY_R);
+    const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+    tcross.scale.set(cs, cs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999; _smBodiesGrp.add(tcross);
+}
+
+/** 再生中の天の川の環: EQJ座標の等価な環+基準点方位線を空と同回転のグループに置き、毎フレームの再計算なしで追従させる。
+ *  (環と写真は表示天体「天の川」の表現そのものなので、表示天体オンの間は再生中も表示し続ける) */
+let _smMovRingGrp = null;
+function _smMovRingSetup() {
+    _smMovRingTeardown();
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    if (!(mw && mw.visible) || !_smEqjGrp) return;
+    const R = _SM_SKY_R * 0.99;
+    const grp = new THREE.Group();
+    const pts = [];
+    for (let l = 0; l <= 360; l += 4) {
+        const eq = galacticToEquatorial(l, 0);
+        const v = _mwEquVec(eq.ra, eq.dec);
+        pts.push(new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R));
+    }
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 })));
+    const rd = getFixedStarRaDec('MilkyWay');
+    const bv = _mwEquVec(rd.ra, rd.dec);
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(bv[0] * R, bv[1] * R, bv[2] * R)]),
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })));
+    _smMovRingGrp = grp;
+    _smEqjGrp.add(grp);
+    if (_smMwRingGrp) _smMwRingGrp.visible = false;   // ENU版と入れ替え(停止時に復元)
+}
+function _smMovRingTeardown() {
+    if (_smMovRingGrp && _smEqjGrp) {
+        _smEqjGrp.remove(_smMovRingGrp);
+        _smMovRingGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _smMovRingGrp = null;
+    if (_smMwRingGrp) _smMwRingGrp.visible = true;
+}
+
+/** 再生トグル: ワーカーで事前計算したキューをデキューして、プレビュー内の①天体②軌跡③空・星座線/領域だけを動かす */
 function soraMovTogglePlay() {
     if (_movTimer) { soraMovStop(); return; }
+    if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから再生してください。'); return; }
     const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
     const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
-    _movEndMs = appState.currentDate.getTime() + iv * n * 1000;
+    const startMs = appState.currentDate.getTime();
+    _movEndMs = startMs + iv * n * 1000;
+    const gen = ++_movGen;
+    // 表示天体のメタ情報(固定天体はRA/Dec、惑星等は半径kmを渡してワーカー側で視半径まで計算)
+    const metas = appState.bodies.filter(b => b.visible).map(b => {
+        const m = { id: b.id, color: b.color || '#DDA0DD' };
+        if (b.id === 'MilkyWay') { const rd = getFixedStarRaDec('MilkyWay'); m.fixed = true; m.ra = rd.ra; m.dec = rd.dec; }
+        else if (isFixedStar(b.id)) { const rd = getFixedStarRaDec(b.id); m.fixed = true; m.ra = rd.ra; m.dec = rd.dec; }
+        else m.radiusKm = BODY_RADIUS_KM[b.id] || 0;
+        return m;
+    });
+    // 全フレームをチャンクに分けてワーカープールへ事前計算を依頼(結果はフレーム順のキューへ)
+    _movQueue = new Array(n);
+    _movFilled = 0;
+    _movPlayIdx = 0;
+    const wBodies = metas.map(m => ({ id: m.id, fixed: !!m.fixed, ra: m.ra, dec: m.dec, radiusKm: m.radiusKm || 0 }));
+    const obs = { lat: appState.start.lat, lng: appState.start.lng, elev: appState.start.elev };
+    const CH = 120;
+    for (let off = 0; off < n; off += CH) {
+        const frames = [];
+        for (let f = off; f < Math.min(n, off + CH); f++) frames.push(startMs + f * iv * 1000);
+        _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.refractionEnabled })
+            .then(res => {
+                if (gen !== _movGen) return;   // 停止済みの世代は破棄
+                (res.frames || []).forEach((fr, i) => { _movQueue[res.off + i] = fr; });
+                _movFilled += (res.frames || []).length;
+            });
+    }
+    _movPlaying = true;
+    _smMovRingSetup();
     const btn = document.getElementById('btn-sora-mov-play');
     if (btn) { btn.classList.add('active'); btn.textContent = '停止'; }
+    const p2 = v => ('00' + v).slice(-2);
     const stepMs = Math.max(50, (Number(appState.soraMovDispStep) || 0.3) * 1000);
     _movTimer = setInterval(() => {
-        const nextMs = appState.currentDate.getTime() + Math.max(0.5, Number(appState.soraMovInterval) || 15) * 1000;
-        uncheckTimeShortcuts();
-        appState.currentDate = new Date(Math.min(nextMs, _movEndMs));
-        syncUIFromState();
-        updateAll();
-        if (nextMs >= _movEndMs) soraMovStop();
+        if (gen !== _movGen) return;
+        if (_movPlayIdx >= n) { soraMovStop(); return; }
+        const fr = _movQueue[_movPlayIdx];
+        if (!fr) { soraExpProgress(`再生準備中… (${_movFilled}/${n}コマ計算済み)`); return; }   // 未計算フレームは待つ
+        _movPlayIdx++;
+        if (fr.sky) {
+            const ra = _smDir(fr.sky.rx.az, fr.sky.rx.alt), rb = _smDir(fr.sky.rz.az, fr.sky.rz.alt);
+            _smSetSkyBasis([ra.x, ra.y, ra.z], [rb.x, rb.y, rb.z]);   // 空・星座線/領域・環が一括で回転
+        }
+        _smApplyMovBodies(fr, metas);        // 天体(位置・視半径・月相)
+        _smBuildTraj(new Date(fr.t));        // 軌跡は日替わり時のみ内部キャッシュで再構築
+        const d = new Date(fr.t);
+        soraExpProgress(`再生中 ${_movPlayIdx}/${n} (${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())})`);
+        drawSoramado();   // 再生中はレンダリングのみ(シーン更新はキュー側で完了済み)
     }, stepMs);
     soraMovSyncUI();
 }
 
 function soraMovStop() {
     if (_movTimer) { clearInterval(_movTimer); _movTimer = null; }
+    _movGen++;            // 事前計算の未着チャンクを破棄
+    _movPlaying = false;
+    _movQueue = [];
+    _smMovRingTeardown();
+    soraExpProgress(null);
     const btn = document.getElementById('btn-sora-mov-play');
     if (btn) { btn.classList.remove('active'); btn.textContent = '再生'; }
-    saveAppState();
     soraMovSyncUI();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 現在の日時情報の表示へ復帰
 }
 
 // --- 書き出し (静止画JPEG/PNG・動画H.265/H.264) ---
@@ -8914,7 +9064,12 @@ function setupBaseOptionControls() {
     });
     const chkHandler = (id, key) => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener('change', () => { appState[key] = el.checked; saveAppState(); _mwUpdateBaseOptions(); });
+        if (el) el.addEventListener('change', () => {
+            appState[key] = el.checked;
+            saveAppState();
+            _mwUpdateBaseOptions();
+            if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 星座線/領域・表示天体は宙の窓にも反映
+        });
     };
     chkHandler('chk-baseopt-mw-bodies', 'mwShowBodies');
     chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
@@ -9105,6 +9260,7 @@ function closeSoramado() {
 
 // --- three.js プレビュー (F1: カメラ枠・ファインダー・中心十字) ---
 let _smRenderer = null, _smScene = null, _smCamera = null, _smInited = false, _smFailed = false;
+let _smEqjGrp = null;   // EQJ座標のオーバーレイ群(星座線/領域・再生中の天の川の環)。空と同じ回転を適用
 
 function _smInit() {
     if (typeof THREE === 'undefined') {
@@ -9127,6 +9283,7 @@ function _smInit() {
     _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
     _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
     _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
+    _smEqjGrp = new THREE.Group(); _smScene.add(_smEqjGrp);   // 星座線/領域・再生中の環(EQJ→地平回転を共有)
     _smTryLoadRealImage();
     _smInitPost();
     _smAttachDrag(cv);
@@ -9220,13 +9377,18 @@ function drawSoramado() {
         const mwb = Number(appState.soraMwBrightness);
         _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
     }
-    // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新
-    _smUpdateSky();
-    _smBuildBodies();
-    _smBuildTraj();
-    _smUpdateMilkyWayRing();
-    // F3: DEM地形(扇が変わった時のみ再取得)
-    _smUpdateTerrain();
+    if (!_movPlaying) {
+        // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新(再生中はキュー側が更新するのでスキップ)
+        _smUpdateSky();
+        _smBuildBodies();
+        _smBuildTraj();
+        _smUpdateMilkyWayRing();
+        // F3: DEM地形(扇が変わった時のみ再取得)
+        _smUpdateTerrain();
+    }
+    // 星座線/星座領域(基本オプション連動): チェックオンなら宙の窓のプレビューにも表示
+    _smEnsureConstLayer('fig');
+    _smEnsureConstLayer('bounds');
 
     // ファインダー矩形: HTML枠(#soramado-frame)と一致させるため CSS px(論理px)で指定する。
     // three.js は setViewport/setScissor の座標を内部で devicePixelRatio 倍する(three.js WebGLRenderer)。
@@ -9360,16 +9522,9 @@ function _smTryLoadRealImage() {
 }
 
 /** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
-function _smUpdateSky() {
-    if (!_smSky) return;
-    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
-    _smSky.visible = !!(mw && mw.visible);
-    if (!_smSky.visible) return;
-    let observer;
-    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
-    const date = appState.currentDate;
-    const toW = (raH, decD) => { const hor = Astronomy.Horizon(date, observer, raH, decD, null); const d = _smDir(hor.azimuth, hor.altitude); return [d.x, d.y, d.z]; };
-    const Rx = toW(0, 0), Rz = toW(0, 90);
+/** EQJ→地平の回転基底(RA0h/Dec0°とDec+90°の地平方向)を空とEQJオーバーレイ群へ適用。
+ *  再生(インターバルMov)ではワーカーが事前計算した基底をここへ流し込む。 */
+function _smSetSkyBasis(Rx, Rz) {
     const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const norm = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
     const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -9378,7 +9533,51 @@ function _smUpdateSky() {
     const ry = cross(rz, rx);
     const m = new THREE.Matrix4();
     m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
-    _smSky.quaternion.setFromRotationMatrix(m);
+    if (_smSky) _smSky.quaternion.setFromRotationMatrix(m);
+    if (_smEqjGrp && _smSky) _smEqjGrp.quaternion.copy(_smSky.quaternion);
+}
+
+function _smUpdateSky() {
+    if (!_smSky) return;
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    _smSky.visible = !!(mw && mw.visible);
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const toW = (raH, decD) => { const hor = Astronomy.Horizon(date, observer, raH, decD, null); const d = _smDir(hor.azimuth, hor.altitude); return [d.x, d.y, d.z]; };
+    // 星座線/領域(EQJオーバーレイ)は天の川の表示に依らず回転させるため、可視でなくても基底は更新する
+    _smSetSkyBasis(toW(0, 0), toW(0, 90));
+}
+
+// 宙の窓プレビューの星座線/星座領域(基本オプションのチェックと連動)。EQJ群(_smEqjGrp)の子として空と一緒に回転
+const _smConstLayers2 = { fig: null, bounds: null };
+const _smConstLoading2 = { fig: false, bounds: false };
+function _smEnsureConstLayer(kind) {
+    if (!_smEqjGrp) return;
+    const on = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+    if (_smConstLayers2[kind]) { _smConstLayers2[kind].visible = on; return; }
+    if (!on || _smConstLoading2[kind]) return;
+    _smConstLoading2[kind] = true;
+    const st = _MW_CONST_STYLE[kind];
+    _constFetch(kind).then(gj => {
+        if (!_smEqjGrp || _smConstLayers2[kind]) return;
+        const group = new THREE.Group();
+        const R = _SM_SKY_R * 0.995;   // 天球のわずか内側(地形より外側なので山で隠れる)
+        for (const f of gj.features) {
+            const geom = f.geometry;
+            const polys = geom.type === 'MultiLineString' ? geom.coordinates : [geom.coordinates];
+            for (const poly of polys) {
+                const pts = _mwConstPolyline(poly, R);
+                if (pts.length < 2) continue;
+                const g = new THREE.BufferGeometry().setFromPoints(pts);
+                group.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: st.color, transparent: true, opacity: st.opacity * 0.85, depthWrite: false })));
+            }
+        }
+        group.visible = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+        _smConstLayers2[kind] = group;
+        _smEqjGrp.add(group);
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    }).catch(() => { _smConstLoading2[kind] = false; });
 }
 
 /** 64px キャンバスを描いて CanvasTexture をキャッシュ */
@@ -9478,9 +9677,9 @@ function _smBuildBodies() {
 }
 
 /** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
-function _smBuildTraj() {
+function _smBuildTraj(dateOverride) {
     if (!_smTrajGrp) return;
-    const dayStart = new Date(appState.currentDate); dayStart.setHours(0, 0, 0, 0);
+    const dayStart = new Date(dateOverride || appState.currentDate); dayStart.setHours(0, 0, 0, 0);
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
     const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
     const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
