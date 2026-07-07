@@ -9856,12 +9856,13 @@ function _smAddTargetMarkers(cs) {
         xcross.scale.set(cs, cs, 1); xcross.position.copy(spos); xcross.renderOrder = 999;
         xcross.userData.kind = 'searchCenter'; _smBodiesGrp.add(xcross);
         if (appState.tsujiCenterMode === 'line') {
-            // 目的点方向→検索中心方向を球面補間した線(検索中心の線分)
-            const a = _smDir(baseAz, baseAlt), b = _smDir(sAz, sAlt);
+            // 検索中心の線分: 検索(ワーカーのsegmentMatch)と同じ「方位角/視高度平面の直線」を描く。
+            // 大円(球面補間)で描くと検索の判定線と中間で数°ズレるため、az/altの線形補間で一致させる。
+            const dAz = ((sAz - baseAz + 540) % 360) - 180;   // ワーカーと同じ±180正規化
+            const dAlt = sAlt - baseAlt;
             const pts = [];
-            for (let i = 0; i <= 24; i++) {
-                const v = a.clone().lerp(b, i / 24).normalize().multiplyScalar(_SM_BODY_R * 0.9999);
-                pts.push(v);
+            for (let i = 0; i <= 48; i++) {
+                pts.push(_smDir(baseAz + dAz * i / 48, baseAlt + dAlt * i / 48).multiplyScalar(_SM_BODY_R * 0.9999));
             }
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
                 new THREE.LineBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false }));
