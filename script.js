@@ -6790,27 +6790,37 @@ function clearTsujiMeshMarkers() {
     if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
 }
 
-/** 全結果行のヒット画素の和集合を白マーカーで描画(上限あり) */
+/** 全結果行のヒット画素の和集合を白マーカーで描画。
+ *  上限(計20,000)は行ごとの均等割り当てで消費する(先頭の行だけで使い切ると
+ *  後半の行の白マーカーが1つも地図に出なくなるため)。各行の最良画素は必ず含める。 */
 function drawTsujiMeshMarkers() {
     ensureTsujiMeshLayers();
     if (!tsujiMeshLayer || !_tsujiMeshPix) return;
     tsujiMeshLayer.clearLayers();
     const CAP = 20000;
+    const quota = Math.max(1, Math.floor(CAP / Math.max(1, _tsujiMeshRows.length)));
     const seen = new Set();
     _tsujiMeshMarkerOverflow = false;
-    outer:
+    const addPix = (pix) => {
+        if (seen.has(pix)) return true;
+        if (seen.size >= CAP) { _tsujiMeshMarkerOverflow = true; return false; }
+        seen.add(pix);
+        L.circleMarker([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]], {
+            renderer: _tsujiMeshCanvasRenderer,
+            radius: 2.5, color: '#888', weight: 1, fillColor: '#ffffff', fillOpacity: 0.9,
+        }).addTo(tsujiMeshLayer);
+        return true;
+    };
     for (const row of _tsujiMeshRows) {
+        addPix(row.bestPix);   // 最良画素は必ず表示
         const idxArr = row.pixIdx;
-        for (let i = 0; i < idxArr.length; i++) {
-            const pix = idxArr[i];
-            if (seen.has(pix)) continue;
-            if (seen.size >= CAP) { _tsujiMeshMarkerOverflow = true; break outer; }
-            seen.add(pix);
-            L.circleMarker([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]], {
-                renderer: _tsujiMeshCanvasRenderer,
-                radius: 2.5, color: '#888', weight: 1, fillColor: '#ffffff', fillOpacity: 0.9,
-            }).addTo(tsujiMeshLayer);
+        const step = Math.max(1, Math.ceil(idxArr.length / quota));   // 行内から均等に間引く
+        let used = 1;
+        for (let i = 0; i < idxArr.length && used < quota; i += step) {
+            if (!addPix(idxArr[i])) return;
+            used++;
         }
+        if (idxArr.length > quota) _tsujiMeshMarkerOverflow = true;
     }
 }
 
@@ -6862,9 +6872,37 @@ function selectTsujiMeshRow(idx) {
     if (no) no.textContent = `No.${idx + 1}`;
     if (dt) dt.textContent = `${row.dateStr}${row.dowStr}`;
     if (tm) tm.textContent = row.timeStr;
+    const cnt = document.getElementById('tsujimesh-sel-count');
+    if (cnt) cnt.textContent = row.capped
+        ? 'マーカー数:20,000以上(省略中)'
+        : `マーカー数:${(row.total ?? row.pixIdx.length).toLocaleString()}`;
     const slider = document.getElementById('tsujimesh-row-slider');
     if (slider) { slider.max = _tsujiMeshRows.length; slider.value = idx + 1; }
     updateTsujiMeshGoldMarkers();
+    zoomToTsujiMeshRow(row);
+}
+
+/** 選択行のヒット画素集合が収まる最大ズームで、集合の重心あたりを画面中心へ移動する。
+ *  下部パネルに隠れないよう、パネルの被覆高さをパディングとして与える。 */
+function zoomToTsujiMeshRow(row) {
+    if (!row || !_tsujiMeshPix || typeof map === 'undefined' || !map) return;
+    const n = row.pixIdx.length;
+    const step = Math.max(1, Math.ceil(n / 500));   // 最大500点のサンプルで範囲を求める
+    const bounds = L.latLngBounds([]);
+    for (let i = 0; i < n; i += step) {
+        const pix = row.pixIdx[i];
+        bounds.extend([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]]);
+    }
+    bounds.extend([_tsujiMeshPix.lat[row.bestPix], _tsujiMeshPix.lng[row.bestPix]]);
+    if (!bounds.isValid()) return;
+    // 表示中の下部パネルの被覆高さ(px)を実測(recenterObserverInViewと同じ)
+    let coveredPx = 0;
+    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+        const el = document.getElementById(id);
+        if (!el || el.classList.contains('hidden')) continue;
+        coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+    }
+    map.fitBounds(bounds.pad(0.15), { paddingTopLeft: [20, 20], paddingBottomRight: [20, coveredPx + 20], maxZoom: 15 });
 }
 
 /** 辻メッシュ検索の実行 (トグルON/URL自動実行から) */
@@ -7091,7 +7129,7 @@ async function startTsujiMeshSearch() {
                 dowStr: `(${dow})`,
                 timeStr: `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`,
                 bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
-                capped: ev.capped,
+                total: ev.total, capped: ev.capped,
             });
         });
     });
@@ -7127,12 +7165,12 @@ async function startTsujiMeshSearch() {
 
     _tsujiMeshRows = rows;
     hideTsujiMeshProgress();
-    const capNote = rows.some(r => r.capped) ? '・一部の日で画素2万件超を省略' : '';
+    const capNote = rows.some(r => r.capped) ? '・単位日当たりのマーカー数:20,000以上の日あり(省略中)' : '';
     const judgeNote = (appState.tsujiMeshElevationOption && rows.length > ELEV_JUDGE_MAX) ? `・標高判定は先頭${ELEV_JUDGE_MAX}件のみ` : '';
     setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}${capNote}${judgeNote})`);
     renderTsujiMeshResults();
     drawTsujiMeshMarkers();
-    if (_tsujiMeshMarkerOverflow) setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}・マーカーは上限2万で省略${capNote}${judgeNote})`);
+    if (_tsujiMeshMarkerOverflow) setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}・白マーカーは計20,000画素まで各行から均等表示${capNote}${judgeNote})`);
     if (rows.length) selectTsujiMeshRow(0);
 }
 
