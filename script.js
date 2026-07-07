@@ -260,6 +260,8 @@ let appState = {
     soraViewRange: 10,
     soraTraj: true,
     soraCenterCross: true,
+    soraTargetCross: true,       // 目的点(+)マーカーの表示
+    soraSearchCenter: true,      // 検索中心(×)マーカー(検索中心オプションが線なら目的点→オフセット点の線も)の表示
     soraOrient: 'landscape',     // カメラ位置: 'landscape'=横位置 / 'portrait'=縦位置(アスペクトを回転)
     soraFisheyeStrength: 50,     // フィッシュアイの歪み(%) 0〜100 (50=従来の見た目)
     soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
@@ -663,6 +665,7 @@ function setupUI() {
         e.target.value = appState.tsujiSearchOffsetAz;
         saveAppState();
         updateOffsetDistances();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
@@ -680,6 +683,7 @@ function setupUI() {
         e.target.value = appState.tsujiSearchOffsetAlt;
         saveAppState();
         updateOffsetDistances();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
     });
     // 宙の窓メニュー/コントロールメニューの辻オフセット方位角・視高度(辻検索メニューと連動)
     [['input-sora-tsuji-az-offset', 'tsujiSearchOffsetAz'], ['input-sora-ctrl-tsuji-az-offset', 'tsujiSearchOffsetAz'],
@@ -690,6 +694,7 @@ function setupUI() {
             e.target.value = appState[key];
             saveAppState();
             updateOffsetDistances();
+            if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
         });
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
@@ -707,7 +712,7 @@ function setupUI() {
     });
     // 検索中心オプション(点/線)
     document.querySelectorAll('input[name="tsuji-center-mode"]').forEach(r => {
-        r.addEventListener('change', () => { if (r.checked) { appState.tsujiCenterMode = r.value; saveAppState(); } });
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiCenterMode = r.value; saveAppState(); if (appState.isSoramadoActive && !_smFailed) drawSoramado(); } });   // 検索中心(×)の線表示の切替
     });
     // 月齢フィルタ
     document.getElementById('chk-tsuji-moon-filter').addEventListener('change', (e) => {
@@ -1046,13 +1051,16 @@ function saveAppState() {
         tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
         tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
         // 宙の窓パラメータ
+        // 焦点距離・合焦距離・フィッシュアイ強度・パノラマ画角・カメラオフセット・視界範囲は保存しない
+        // (毎アクセスで初期値を適用。URLからは復元される。広画角のまま再訪してDEMタイルを過剰取得するのを防ぐ)
         soraSensorKey: appState.soraSensorKey, soraAspectW: appState.soraAspectW, soraAspectH: appState.soraAspectH,
-        soraFocal: appState.soraFocal, soraFNumberIdx: appState.soraFNumberIdx, soraFocusDist: appState.soraFocusDist,
+        soraFNumberIdx: appState.soraFNumberIdx,
         soraFisheye: appState.soraFisheye, soraPeaking: appState.soraPeaking, soraGrayscale: appState.soraGrayscale,
-        soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt, soraOffsetAz: appState.soraOffsetAz, soraOffsetAlt: appState.soraOffsetAlt,
-        soraViewRange: appState.soraViewRange, soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
-        soraOrient: appState.soraOrient, soraFisheyeStrength: appState.soraFisheyeStrength, soraFisheyeShape: appState.soraFisheyeShape,
-        soraPanorama: appState.soraPanorama, soraPanoAov: appState.soraPanoAov,
+        soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt,
+        soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
+        soraTargetCross: appState.soraTargetCross, soraSearchCenter: appState.soraSearchCenter,
+        soraOrient: appState.soraOrient, soraFisheyeShape: appState.soraFisheyeShape,
+        soraPanorama: appState.soraPanorama,
         soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
         soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb, soraMovPlayMode: appState.soraMovPlayMode,
         soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
@@ -1114,7 +1122,7 @@ function loadAppState() {
             if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
             ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 宙の窓パラメータ復元
-            ['soraSensorKey','soraAspectW','soraAspectH','soraFocal','soraFNumberIdx','soraFocusDist','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraOffsetAz','soraOffsetAlt','soraViewRange','soraTraj','soraCenterCross','soraOrient','soraFisheyeStrength','soraFisheyeShape','soraPanorama','soraPanoAov',
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
@@ -1199,6 +1207,8 @@ function normalizeAppState() {
     appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
+    appState.soraTargetCross = appState.soraTargetCross !== false;
+    appState.soraSearchCenter = appState.soraSearchCenter !== false;
     if (appState.mwConstNameSort !== 'aiueo' && appState.mwConstNameSort !== 'pos') appState.mwConstNameSort = 'aiueo';
     // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
     // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
@@ -5046,7 +5056,7 @@ function appendMyTsujiCsv() {
 
 /** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
 function _buildMyTsujiCsv(targets) {
-    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高オプション,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高オプション,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
     targets.forEach(t => {
         csv += [
             t.id,
@@ -7260,7 +7270,9 @@ const _QP_SEEDS_V2 = _QP_SEEDS.concat(
 const _QP_SEEDS_V3 = _QP_SEEDS_V2.concat(['&soraMovPlayMode=', '=anim&', '=video&']);
 // v4: v3の全シード + 検索中心オプション
 const _QP_SEEDS_V4 = _QP_SEEDS_V3.concat(['&tsujiCenterMode=', '=point&', '=line&']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4];   // 添字+1=版数。最新版でエンコードする
+// v5: v4の全シード + 目的点/検索中心チェックボックス
+const _QP_SEEDS_V5 = _QP_SEEDS_V4.concat(['&soraTargetCross=', '&soraSearchCenter=']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
@@ -7451,7 +7463,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
     // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
     ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
      'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
-     'soraPeaking', 'soraTraj', 'soraCenterCross',
+     'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter',
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb', 'soraMovPlayMode',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH'].forEach(k => {
@@ -7702,7 +7714,7 @@ function restoreFromUrl() {
      'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpW', 'soraExpH'].forEach(soraNum);
-    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross'].forEach(soraBool);
+    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter'].forEach(soraBool);
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
 
     // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
@@ -8699,6 +8711,8 @@ function soraSyncUI() {
     chk('chk-sora-peaking', appState.soraPeaking);
     chk('chk-sora-traj', appState.soraTraj);
     chk('chk-sora-center', appState.soraCenterCross);
+    chk('chk-sora-target', appState.soraTargetCross);
+    chk('chk-sora-search-center', appState.soraSearchCenter);
     set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(4));
     set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(4));
     set('input-sora-offset-az', Number(appState.soraOffsetAz).toFixed(4));
@@ -8848,9 +8862,7 @@ function _smApplyMovBodies(frame, metas) {
         cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
     });
     // 目的点マーカー(赤十字)は固定方向なので毎フレーム同じ
-    const tpos = _smDir(Number(appState.soraBaseAz), Number(appState.soraBaseAlt)).multiplyScalar(_SM_BODY_R);
-    const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
-    tcross.scale.set(cs, cs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999; _smBodiesGrp.add(tcross);
+    _smAddTargetMarkers(cs);
 }
 
 /** 再生中の天の川の環: EQJ座標の等価な環+基準点方位線を空と同回転のグループに置き、毎フレームの再計算なしで追従させる。
@@ -9450,6 +9462,8 @@ function setupSoramadoControls() {
     chkH('chk-sora-peaking', 'soraPeaking');
     chkH('chk-sora-traj', 'soraTraj');
     chkH('chk-sora-center', 'soraCenterCross');
+    chkH('chk-sora-target', 'soraTargetCross');
+    chkH('chk-sora-search-center', 'soraSearchCenter');
     soraSyncUI();
 }
 
@@ -9462,8 +9476,6 @@ function toggleSoramado() {
         if (appState.isElevationActive) toggleElevation();
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         appState.isSoramadoActive = true;
-        // 焦点距離は開くたびに初期値へリセット(広画角のままだとDEM標高タイルを過剰に取得するため; デッサン5段目の制約)
-        appState.soraFocal = 35;
         saveAppState();
         soraSyncUI();
         document.getElementById('btn-soramado').classList.add('active');
@@ -9817,6 +9829,46 @@ function _smCrossTex(color) {
         c.beginPath(); c.moveTo(s / 2, 10); c.lineTo(s / 2, s - 10); c.moveTo(10, s / 2); c.lineTo(s - 10, s / 2); c.stroke();
     });
 }
+
+/** X字(×)記号のテクスチャ(検索中心マーカー用) */
+function _smCrossTexX(color) {
+    return _smCanvasTex('crossx_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.strokeStyle = color; c.lineWidth = 3; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(14, 14); c.lineTo(s - 14, s - 14); c.moveTo(s - 14, 14); c.lineTo(14, s - 14); c.stroke();
+    });
+}
+
+/** 目的点(+)・検索中心(×)マーカーを _smBodiesGrp へ追加(通常描画/再生の両パスで共用)。
+ *  検索中心 = 基準(目的点)方向 + 辻オフセット。検索中心オプションが線なら目的点→オフセット点の線も描く */
+function _smAddTargetMarkers(cs) {
+    const baseAz = Number(appState.soraBaseAz) || 0, baseAlt = Number(appState.soraBaseAlt) || 0;
+    if (appState.soraTargetCross) {
+        const tpos = _smDir(baseAz, baseAlt).multiplyScalar(_SM_BODY_R);
+        const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        tcross.scale.set(cs, cs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999;
+        tcross.userData.kind = 'targetCross'; _smBodiesGrp.add(tcross);
+    }
+    if (appState.soraSearchCenter) {
+        const sAz = baseAz + (Number(appState.tsujiSearchOffsetAz) || 0);
+        const sAlt = baseAlt + (Number(appState.tsujiSearchOffsetAlt) || 0);
+        const spos = _smDir(sAz, sAlt).multiplyScalar(_SM_BODY_R * 0.9999);
+        const xcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTexX('#FFD700'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        xcross.scale.set(cs, cs, 1); xcross.position.copy(spos); xcross.renderOrder = 999;
+        xcross.userData.kind = 'searchCenter'; _smBodiesGrp.add(xcross);
+        if (appState.tsujiCenterMode === 'line') {
+            // 目的点方向→検索中心方向を球面補間した線(検索中心の線分)
+            const a = _smDir(baseAz, baseAlt), b = _smDir(sAz, sAlt);
+            const pts = [];
+            for (let i = 0; i <= 24; i++) {
+                const v = a.clone().lerp(b, i / 24).normalize().multiplyScalar(_SM_BODY_R * 0.9999);
+                pts.push(v);
+            }
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+                new THREE.LineBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false }));
+            line.renderOrder = 998; line.userData.kind = 'searchCenterLine'; _smBodiesGrp.add(line);
+        }
+    }
+}
 function _smDiskTex(color) {
     return _smCanvasTex('disk_' + color, (c, s) => {
         c.clearRect(0, 0, s, s); c.fillStyle = color;
@@ -9892,11 +9944,9 @@ function _smBuildBodies() {
 
     // 目的点マーカー: 基準方位角・基準視高度(=観測点→目的点方向, オフセット無し)に赤い十字を画面固定サイズで表示。
     // depthTest:false＋高renderOrderで地形に隠れず常に見える。オフセット0なら白い中心十字と重なる。
-    const tpos = _smDir(Number(appState.soraBaseAz), Number(appState.soraBaseAlt)).multiplyScalar(_SM_BODY_R);
     const tfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
     const tcs = _SM_CROSS_PX * 2 * Math.tan(tfov / 2) / _smFinderH;
-    const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
-    tcross.scale.set(tcs, tcs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999; _smBodiesGrp.add(tcross);
+    _smAddTargetMarkers(tcs);
 }
 
 /** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
