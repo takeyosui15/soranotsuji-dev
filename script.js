@@ -6718,6 +6718,11 @@ let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った「観測点画素の
 let _tsujiMeshMarkerOverflow = false;
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
+let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
+let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + ピッカー(時分) + スライダー(秒)
+let _tmCtrlWidth = 1;          // 辻時刻の幅(±秒) 1〜30
+let _tmCtrlEps = 0.125;        // 精度フィルタ(角距離ε°) ◎〜◎×128
+let _tmCtrlPickerPrev = '';    // 辻時刻タイムピッカーの直前値(未入力時の復元用)
 
 // 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
 const tsujiMeshPool = (() => {
@@ -6872,6 +6877,138 @@ function updateTsujiMeshGoldMarkers() {
     }
 }
 
+/** 辻時刻コントロールの実効辻時刻(ms)。ピッカー(時分) + スライダー(秒 -300〜300) から求める */
+function _tmCtrlEffectiveMs() {
+    if (_tmCtrlDay0 === null) return null;
+    const pk = document.getElementById('tsujimesh-time-picker');
+    const sl = document.getElementById('tsujimesh-time-slider');
+    if (!pk || !sl || !pk.value) return null;
+    const m = pk.value.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return _tmCtrlDay0 + (parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(sl.value)) * 1000;
+}
+
+/** 指定した辻時刻(±幅s)の各秒で全画素を再評価し、精度フィルタ(ε)以内の画素を金色マーカーで表示する。
+ *  判定はワーカー(tsujimesh-search-worker.js)と同一: 天体位置は領域中心で1回計算し、
+ *  方位角ビン索引で候補画素を引き、ENU一次回転補正した検索中心(点/線)への角距離で判定する。
+ *  検索条件(オフセット/検索中心/大気差)は検索時のスナップショット(_tsujiMeshCalc)に凍結。 */
+function recalcTsujiMeshGoldAtTime() {
+    const C = _tsujiMeshCalc;
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const t = _tmCtrlEffectiveMs();
+    if (!C || !row || t === null) { updateTsujiMeshGoldMarkers(); return; }
+    const lbl = document.getElementById('tsujimesh-time-label');
+    if (lbl) {
+        const dt = new Date(t);
+        lbl.textContent = `辻時刻: ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
+    }
+    const eps = _tmCtrlEps, w = _tmCtrlWidth;
+    const D2R = Math.PI / 180;
+    const wrap180 = (deg) => ((deg + 540) % 360) - 180;
+    const angDist = (az1, alt1, az2, alt2) => {
+        const s = Math.sin(alt1 * D2R) * Math.sin(alt2 * D2R) +
+                  Math.cos(alt1 * D2R) * Math.cos(alt2 * D2R) * Math.cos((az1 - az2) * D2R);
+        return Math.acos(Math.max(-1, Math.min(1, s))) / D2R;
+    };
+    const isLine = C.centerMode === 'line';
+    const dAz = wrap180(C.offsetAz), dAlt = C.offsetAlt;
+    const len2 = dAz * dAz + dAlt * dAlt;
+    const altLo = (isLine ? Math.min(0, dAlt) : C.offsetAlt) - eps;
+    const altHi = (isLine ? Math.max(0, dAlt) : C.offsetAlt) + eps;
+    const azLo = isLine ? Math.min(0, dAz) : dAz;
+    const azHi = isLine ? Math.max(0, dAz) : dAz;
+    const evalDist = (pix, ex, ny, uz) => {
+        const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
+        const cx = ex - (wN * uz - wU * ny);
+        const cy = ny - (wU * ex - wE * uz);
+        const cz = uz - (wE * ny - wN * ex);
+        const altPd = Math.asin(Math.max(-1, Math.min(1, cz))) / D2R;
+        const azP = Math.atan2(cx, cy) / D2R;
+        const bAz = C.baseAz[pix], bAlt = C.baseAlt[pix];
+        if (isLine) {
+            const pAz = wrap180(azP - bAz), pAlt = altPd - bAlt;
+            let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+            s = Math.max(0, Math.min(1, s));
+            return angDist(azP, altPd, bAz + s * dAz, bAlt + s * dAlt);
+        }
+        return angDist(azP, altPd, bAz + C.offsetAz, bAlt + C.offsetAlt);
+    };
+    const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    let fixedRaDec = null;
+    if (isFixedStar(row.body.id)) fixedRaDec = getFixedStarRaDec(row.body.id);
+    const perPix = new Map();   // pix -> 最小dist
+    for (let s = -w; s <= w; s++) {
+        const time = new Date(t + s * 1000);
+        let ra, dec;
+        if (fixedRaDec) {
+            ra = fixedRaDec.ra; dec = fixedRaDec.dec;
+        } else {
+            const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
+            ra = eq.ra; dec = eq.dec;
+        }
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const az = hor.azimuth, alt = hor.altitude;
+        if (alt < C.minAlt + altLo - 0.05 || alt > C.maxAlt + altHi + 0.05) continue;
+        const ca = Math.cos(alt * D2R);
+        const ex = Math.sin(az * D2R) * ca, ny = Math.cos(az * D2R) * ca, uz = Math.sin(alt * D2R);
+        const cosAlt = Math.max(ca, 0.02);
+        let half = (azHi - azLo) / 2 + eps / cosAlt + C.binSize + 0.08;
+        if (half > 15) half = 15;
+        const center = az - (azLo + azHi) / 2;
+        const b0 = Math.floor((((center - half) % 360 + 360) % 360) / C.binSize);
+        const b1 = Math.floor((((center + half) % 360 + 360) % 360) / C.binSize);
+        const scanBin = (b) => {
+            const st = C.binIndex[b], en = C.binIndex[b + 1];
+            for (let i = st; i < en; i++) {
+                const pix = C.binPixels[i];
+                const relAlt = alt - C.baseAlt[pix];
+                if (relAlt < altLo - 0.05 || relAlt > altHi + 0.05) continue;
+                const dist = evalDist(pix, ex, ny, uz);
+                if (dist > eps) continue;
+                const rec = perPix.get(pix);
+                if (rec === undefined || dist < rec) perPix.set(pix, dist);
+            }
+        };
+        if (b0 <= b1) {
+            for (let b = b0; b <= b1; b++) scanBin(b);
+        } else {   // 0°をまたぐ
+            for (let b = b0; b < C.nBins; b++) scanBin(b);
+            for (let b = 0; b <= b1; b++) scanBin(b);
+        }
+    }
+    drawTsujiMeshGoldSet(perPix);
+}
+
+/** 再計算した画素集合(pix→精度角距離)を金色マーカーで描画し、「マーカー数:」を表示中の集合数に更新する */
+function drawTsujiMeshGoldSet(perPix) {
+    ensureTsujiMeshLayers();
+    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
+    _tsujiMeshGoldLayer.clearLayers();
+    const cnt = document.getElementById('tsujimesh-sel-count');
+    if (cnt) cnt.textContent = perPix.size > 5000
+        ? `マーカー数:${perPix.size.toLocaleString()}(表示5,000まで)`
+        : `マーカー数:${perPix.size.toLocaleString()}`;
+    let n = 0;
+    for (const [pix, dist] of perPix) {
+        if (n >= 5000) break;
+        n++;
+        const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
+        L.circleMarker([lat, lng], {
+            renderer: _tsujiMeshCanvasRenderer,
+            radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
+        }).on('click', () => {
+            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点画素の高さ)
+            appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
+            appState.startApiElev = elev;
+            appState.startHeight = _tsujiMeshPixHeightUsed;
+            saveAppState();
+            updateAll();
+        }).bindTooltip(`精度角距離 ${dist.toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
+          .addTo(_tsujiMeshGoldLayer);
+    }
+    applyTsujiMeshLayerVisibility();
+}
+
 /** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
 function selectTsujiMeshRow(idx) {
     if (!_tsujiMeshRows.length) return;
@@ -6900,7 +7037,18 @@ function selectTsujiMeshRow(idx) {
         : `マーカー数:${(row.total ?? row.pixIdx.length).toLocaleString()}`;
     const slider = document.getElementById('tsujimesh-row-slider');
     if (slider) { slider.max = _tsujiMeshRows.length; slider.value = idx + 1; }
-    updateTsujiMeshGoldMarkers();
+    // 辻時刻コントロールを行の辻時刻で初期化(ピッカー=時分・スライダー=秒)し、その時刻の再計算集合を金色表示
+    const d0 = new Date(row.dateObj);
+    d0.setHours(0, 0, 0, 0);
+    _tmCtrlDay0 = d0.getTime();
+    const pk = document.getElementById('tsujimesh-time-picker');
+    const tsl = document.getElementById('tsujimesh-time-slider');
+    if (pk) {
+        pk.value = `${String(row.dateObj.getHours()).padStart(2, '0')}:${String(row.dateObj.getMinutes()).padStart(2, '0')}`;
+        _tmCtrlPickerPrev = pk.value;
+    }
+    if (tsl) tsl.value = String(row.dateObj.getSeconds());
+    recalcTsujiMeshGoldAtTime();
     zoomToTsujiMeshRow(row);
 }
 
@@ -6933,7 +7081,7 @@ async function startTsujiMeshSearch() {
     tsujiMeshPool.terminateAll();
     hideTsujiMeshProgress();
     clearTsujiMeshMarkers();
-    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null;
+    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null;
 
     const contentEl = document.getElementById('tsujimesh-content');
     const statusEl = document.getElementById('tsujimesh-status');
@@ -7042,7 +7190,17 @@ async function startTsujiMeshSearch() {
         binPixels[cursor[b]++] = i;
     }
     setStatus(`(対象${kept.toLocaleString()}画素 / ワーカー準備中…)`);
-    await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE: dEA.slice(0, kept), dN: dNA.slice(0, kept), tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
+    const dE = dEA.slice(0, kept), dN = dNA.slice(0, kept);
+    // 辻時刻コントロールの再計算(案B)用に、画素索引と検索条件をスナップショット(検索条件の凍結)
+    _tsujiMeshCalc = {
+        baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180),
+        minAlt, maxAlt, binSize, nBins, binIndex, binPixels,
+        observerData: { lat: start.lat, lng: start.lng, elev: start.elev },
+        refractionEnabled: appState.refractionEnabled,
+        offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
+        centerMode: appState.tsujiMeshCenterMode,
+    };
+    await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
     if (generation !== tsujiMeshGeneration) return;
 
     // 4) 表示天体 × 日チャンク(30日)をプールへ投入
@@ -7325,6 +7483,26 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('chk-tsujimesh-marker-layer').addEventListener('change', (e) => {
         _tsujiMeshLayerVisible = e.target.checked;
         applyTsujiMeshLayerVisibility();
+    });
+    // 辻時刻コントロール: スライダーに追従してライブ再計算(ピッカーは動かさない=連動しない)
+    document.getElementById('tsujimesh-time-slider').addEventListener('input', () => {
+        recalcTsujiMeshGoldAtTime();
+    });
+    document.getElementById('tsujimesh-time-picker').addEventListener('change', (e) => {
+        if (!e.target.value) { e.target.value = _tmCtrlPickerPrev; return; }   // 未入力は元の値を復元
+        _tmCtrlPickerPrev = e.target.value;
+        recalcTsujiMeshGoldAtTime();
+    });
+    document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (isNaN(v)) { e.target.value = _tmCtrlWidth; return; }   // 未入力は元の値を復元
+        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 1), 30);
+        e.target.value = _tmCtrlWidth;
+        recalcTsujiMeshGoldAtTime();
+    });
+    document.getElementById('select-tsujimesh-time-eps').addEventListener('change', (e) => {
+        _tmCtrlEps = parseFloat(e.target.value) || 0.125;
+        recalcTsujiMeshGoldAtTime();
     });
 }
 
