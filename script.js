@@ -315,7 +315,7 @@ let appState = {
     // 標高オプション
     tsujiElevationOption: false,
     // 辻メッシュ検索パラメータ (全てlocalStorage保存。isTsujiMeshActiveのみセッション/URL)
-    tsujiMeshPixHeight: 0,          // 画素の高さ(m): 全画素の観測点に一律加算(0〜10000)
+    tsujiMeshPixHeight: 0,          // 観測点画素の高さ(m): 全画素の観測点に一律加算(0〜10000)
     tsujiMeshDays: 365,
     tsujiMeshBaseAz: 0, tsujiMeshOffsetAz: 0, tsujiMeshToleranceAz: 15,
     tsujiMeshBaseAlt: 0, tsujiMeshOffsetAlt: 0, tsujiMeshToleranceAlt: 15,
@@ -6714,7 +6714,7 @@ const TSUJIMESH_EPS = { x1: 0.125, x2: 0.0625, x4: 0.03125, x8: 0.015625 };   //
 let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
 let _tsujiMeshSelIdx = -1;     // 選択中の行index
 let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array(DEM標高) } (プレフィルタ後)
-let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った「画素の高さ」(金色マーカーの観測点設定・標高判定に使用)
+let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った「観測点画素の高さ」(金色マーカーの観測点設定・標高判定に使用)
 let _tsujiMeshMarkerOverflow = false;
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
@@ -6861,7 +6861,7 @@ function updateTsujiMeshGoldMarkers() {
             renderer: _tsujiMeshCanvasRenderer,
             radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
         }).on('click', () => {
-            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の画素の高さ)
+            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点画素の高さ)
             appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
             appState.startApiElev = elev;
             appState.startHeight = _tsujiMeshPixHeightUsed;
@@ -6943,7 +6943,7 @@ async function startTsujiMeshSearch() {
 
     const start = appState.start, end = appState.end;
     const endElev = end.elev;
-    const pixHeight = Math.min(Math.max(Number(appState.tsujiMeshPixHeight) || 0, 0), 10000);   // 画素の高さ(全画素に一律加算)
+    const pixHeight = Math.min(Math.max(Number(appState.tsujiMeshPixHeight) || 0, 0), 10000);   // 観測点画素の高さ(全画素に一律加算)
     _tsujiMeshPixHeightUsed = pixHeight;
     const menuBaseAz = appState.tsujiMeshBaseAz, menuBaseAlt = appState.tsujiMeshBaseAlt;
     const tolAz = appState.tsujiMeshToleranceAz, tolAlt = appState.tsujiMeshToleranceAlt;
@@ -8183,7 +8183,7 @@ const _QP_SEEDS_V4 = _QP_SEEDS_V3.concat(['&tsujiCenterMode=', '=point&', '=line
 const _QP_SEEDS_V5 = _QP_SEEDS_V4.concat(['&soraTargetCross=', '&soraSearchCenter=']);
 // v6: v5の全シード + 辻メッシュ検索
 const _QP_SEEDS_V6 = _QP_SEEDS_V5.concat(['&tsujiMesh', 'tsujiMesh', '&tsujimesh=', '=x1&', '=x2&', '=x4&', '=x8&', 'MeshStart', 'MeshEnd', '=tsujimesh&']);
-// v7: v6の全シード + 画素の高さ
+// v7: v6の全シード + 観測点画素の高さ
 const _QP_SEEDS_V7 = _QP_SEEDS_V6.concat(['&tsujiMeshPixHeight=']);
 const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7];   // 添字+1=版数。最新版でエンコードする
 
