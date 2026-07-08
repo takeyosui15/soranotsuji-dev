@@ -101,11 +101,13 @@ GNU General Public License for more details.
                     <input type="time" id="tsujimesh-time-picker" title="辻時刻を時分で選択(秒はスライダーで指定)">
                 </div>
                 <div class="control-row">
+                    <button id="btn-tsujimesh-time-prev" class="nav-btn" title="辻時刻を1秒前へ">◀</button>
                     <input type="range" id="tsujimesh-time-slider" min="-300" max="300" value="0" step="1" title="辻時刻の秒を±5分の範囲で調整(追従して再計算)">
+                    <button id="btn-tsujimesh-time-next" class="nav-btn" title="辻時刻を1秒後へ">▶</button>
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujimesh-time-label2" for="input-tsujimesh-time-width">辻時刻の幅(s)±:</label>
-                    <input type="number" id="input-tsujimesh-time-width" value="1" min="1" max="30" step="1" title="辻時刻の幅(±秒)。この範囲の各秒で再計算する">
+                    <input type="number" id="input-tsujimesh-time-width" value="0" min="0" max="30" step="1" title="辻時刻の幅(±秒)。この範囲の各秒で再計算する">
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujimesh-time-label2" for="select-tsujimesh-time-eps">精度フィルタ:</label>
@@ -1441,7 +1443,7 @@ GNU General Public License for more details.
                         <li><strong>観測点画素の高さ(m)</strong>: 全画素の観測点に一律に加算する高さ (0〜10000m。展望台の階の高さなどを想定)。金色マーカーで観測点に設定するときも、この値が観測点高に入ります。</li>
                         <li><strong>白マーカー</strong>: 全結果行のヒット画素 (表示上限 計20,000画素。各行から均等に表示し、超過分は省略)。</li>
                         <li><strong>金色マーカー</strong>: コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算して表示します (行選択時はその行の辻時刻で初期化。表示上限 5,000画素)。<strong>クリックでその画素を観測点に設定</strong>できます。</li>
-                        <li><strong>辻時刻コントロール</strong>: タイムピッカー(時分)+秒スライダー(±5分・1秒刻み)で辻時刻を指定。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(1〜30秒)で前後の秒も含めた集合に、「精度フィルタ」(◎〜◎×128)で判定の厳しさを変えられます。「マーカー数:」は表示中の金色マーカー集合の画素数です。</li>
+                        <li><strong>辻時刻コントロール</strong>: タイムピッカー(時分)+秒スライダー(±5分・1秒刻み・◀▶で1秒ずつ)で辻時刻を指定。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜30秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合に、「精度フィルタ」(◎〜◎×128)で判定の厳しさを変えられます。「マーカー数:」は表示中の金色マーカー集合の画素数です。</li>
                         <li><strong>行の選択</strong>: 行クリック/コントロールのスライダー・◀▶で選択。選択のたびに辻時刻コントロールがその行の辻時刻にリセットされ、地図がヒット画素集合の中心へ移動します。</li>
                         <li><strong>1日あたりのヒット画素</strong>: 20,000画素を超えた日は距離の近い順に20,000件へ省略し、「20,000以上(省略中)」と表示します。</li>
                         <li><strong>標高オプション</strong>: 行の最良画素→目的点の可視判定 (OK/NG)。判定は先頭300行まで (超過分は「-」)。</li>

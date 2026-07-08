@@ -6720,7 +6720,7 @@ let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer 
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
 let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + ピッカー(時分) + スライダー(秒)
-let _tmCtrlWidth = 1;          // 辻時刻の幅(±秒) 1〜30
+let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
 let _tmCtrlEps = 0.125;        // 精度フィルタ(角距離ε°) ◎〜◎×128
 let _tmCtrlPickerPrev = '';    // 辻時刻タイムピッカーの直前値(未入力時の復元用)
 
@@ -7496,10 +7496,19 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
         if (isNaN(v)) { e.target.value = _tmCtrlWidth; return; }   // 未入力は元の値を復元
-        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 1), 30);
+        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 0), 30);
         e.target.value = _tmCtrlWidth;
         recalcTsujiMeshGoldAtTime();
     });
+    // 辻時刻スライダーの◀/▶: 1秒ずつ前/後へ(min/maxでクランプ)して再計算
+    const stepTimeSlider = (delta) => {
+        const sl = document.getElementById('tsujimesh-time-slider');
+        const v = Math.min(Math.max(parseInt(sl.value) + delta, parseInt(sl.min)), parseInt(sl.max));
+        sl.value = String(v);
+        recalcTsujiMeshGoldAtTime();
+    };
+    document.getElementById('btn-tsujimesh-time-prev').addEventListener('click', () => stepTimeSlider(-1));
+    document.getElementById('btn-tsujimesh-time-next').addEventListener('click', () => stepTimeSlider(1));
     document.getElementById('select-tsujimesh-time-eps').addEventListener('change', (e) => {
         _tmCtrlEps = parseFloat(e.target.value) || 0.125;
         recalcTsujiMeshGoldAtTime();
