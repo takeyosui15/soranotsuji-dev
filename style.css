@@ -1751,6 +1751,9 @@ input[type="range"] {
 .location-marker-observer {
     background-color: #2196F3;
 }
+.location-marker-tsujigold {
+    background-color: #ffd700;
+}
 .location-marker-target {
     background-color: #F44336;
 }

@@ -6976,11 +6976,34 @@ function recalcTsujiMeshGoldAtTime() {
             for (let b = 0; b <= b1; b++) scanBin(b);
         }
     }
-    drawTsujiMeshGoldSet(perPix);
+    // 指定した辻時刻(実効時刻t)での最良精度の画素: εに関係なく全画素の最小距離(argmin)を1回のスイープで求める
+    let big = null;
+    {
+        const time = new Date(t);
+        let ra, dec;
+        if (fixedRaDec) {
+            ra = fixedRaDec.ra; dec = fixedRaDec.dec;
+        } else {
+            const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
+            ra = eq.ra; dec = eq.dec;
+        }
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const ca = Math.cos(hor.altitude * D2R);
+        const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
+        let bestPix = -1, bestDist = Infinity;
+        const n = C.baseAz.length;
+        for (let pix = 0; pix < n; pix++) {
+            const dist = evalDist(pix, ex, ny, uz);
+            if (dist < bestDist) { bestDist = dist; bestPix = pix; }
+        }
+        if (bestPix >= 0) big = { pix: bestPix, dist: bestDist };
+    }
+    drawTsujiMeshGoldSet(perPix, big);
 }
 
-/** 再計算した画素集合(pix→精度角距離)を金色マーカーで描画し、「マーカー数:」を表示中の集合数に更新する */
-function drawTsujiMeshGoldSet(perPix) {
+/** 再計算した画素集合(pix→精度角距離)を金色マーカーで描画し、「マーカー数:」を表示中の集合数に更新する。
+ *  big={pix,dist}(指定した辻時刻での最良精度の画素)には、観測点マーカーと同じ大きさの金色ピンを立てる。 */
+function drawTsujiMeshGoldSet(perPix, big) {
     ensureTsujiMeshLayers();
     if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
     _tsujiMeshGoldLayer.clearLayers();
@@ -7005,6 +7028,21 @@ function drawTsujiMeshGoldSet(perPix) {
             updateAll();
         }).bindTooltip(`精度角距離 ${dist.toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
           .addTo(_tsujiMeshGoldLayer);
+    }
+    // 指定した辻時刻での最良精度の画素: 観測点マーカーと同じ大きさの金色ピンで指し示す
+    if (big && big.pix >= 0) {
+        const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix], elev = _tsujiMeshPix.elev[big.pix];
+        const goldIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-tsujigold"></div>', iconSize: [24, 24], iconAnchor: [12, 24] });
+        L.marker([lat, lng], { icon: goldIcon, zIndexOffset: 900 })
+            .on('click', () => {
+                appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
+                appState.startApiElev = elev;
+                appState.startHeight = _tsujiMeshPixHeightUsed;
+                saveAppState();
+                updateAll();
+            })
+            .bindTooltip(`この辻時刻の最良画素<br>精度角距離 ${big.dist.toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
+            .addTo(_tsujiMeshGoldLayer);
     }
     applyTsujiMeshLayerVisibility();
 }
@@ -7214,7 +7252,8 @@ async function startTsujiMeshSearch() {
     const days = appState.tsujiMeshDays;
     const CHUNK = 30;
     const numChunks = Math.ceil(days / CHUNK);
-    const totalTasks = visibleBodies.length * numChunks;
+    const anchorChunks = Math.ceil(days / TSUJI_CHUNK_DAYS);
+    const totalTasks = visibleBodies.length * (numChunks + anchorChunks);
     let doneTasks = 0;
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
@@ -7225,14 +7264,38 @@ async function startTsujiMeshSearch() {
     setTsujiMeshProgress(0, totalTasks);
     contentEl.innerHTML = '<div style="padding:8px;color:#999;">検索しています…</div>';
 
-    const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
-        let bodyMsg;
+    const buildBodyMsg = (body) => {
         if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
-            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
-        } else {
-            bodyMsg = { id: body.id, fixed: false };
+            return { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
         }
+        return { id: body.id, fixed: false };
+    };
+    const bumpProgress = () => { doneTasks++; setTsujiMeshProgress(doneTasks, totalTasks); };
+
+    // 4a) 観測点アンカー検索(並行): 現在の観測点でその日に最高精度が出る辻時刻を毎日求める。
+    //     行の辻時刻・精度はこの観測点基準の値を表示する(a案)。tolerance=180で毎日必ず最小距離が返る。
+    const anchorPromise = Promise.all(visibleBodies.map(body =>
+        runTsujiChunks({
+            bodyMsg: buildBodyMsg(body), observerData, refractionEnabled: appState.refractionEnabled,
+            targetAz: (menuBaseAz + appState.tsujiMeshOffsetAz + 360) % 360,
+            targetAlt: menuBaseAlt + appState.tsujiMeshOffsetAlt,
+            toleranceAz: 180, toleranceAlt: 180,
+            centerMode: appState.tsujiMeshCenterMode,
+            centerAz0: (menuBaseAz + 360) % 360, centerAlt0: menuBaseAlt,
+            searchStartMs, days, maxResults: days,
+            onChunkDone: bumpProgress,
+        }).then(chunkResults => {
+            const byDay = new Map();
+            chunkResults.forEach(cr => (cr.results || []).forEach(r => {
+                byDay.set(Math.floor((r.timeMs - searchStartMs) / 86400000), r);
+            }));
+            return [body.id, byDay];
+        })
+    )).then(entries => new Map(entries));
+
+    const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
+        const bodyMsg = buildBodyMsg(body);
         const events = [];
         for (let c = 0; c < numChunks; c++) {
             const dayStart = c * CHUNK, dayEnd = Math.min(dayStart + CHUNK, days);
@@ -7246,12 +7309,12 @@ async function startTsujiMeshSearch() {
                 });
                 events.push(...res.events);
             } catch (_) { /* キャンセル/エラーはスキップ */ }
-            doneTasks++;
-            setTsujiMeshProgress(doneTasks, totalTasks);
+            bumpProgress();
         }
         events.sort((a, b) => a.dayIdx - b.dayIdx);
         return { body, events };
     }));
+    const anchorByBody = await anchorPromise;
     if (generation !== tsujiMeshGeneration) return;
 
     // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
@@ -7280,8 +7343,17 @@ async function startTsujiMeshSearch() {
     const rows = [];
     let totalPix = 0;
     allBodyEvents.forEach(({ body, events }) => {
+        const anchorByDay = anchorByBody.get(body.id);
         events.forEach(ev => {
-            const dt = new Date(ev.bestTimeMs);
+            // 行の辻時刻・精度は「現在の観測点でその日に最高精度が出る時刻とその時の値」(観測点基準・a案)。
+            // 観測点で精度が出ない日は◎より大きい精度角距離をそのまま表示する。
+            // アンカーが取れない日(日境界の稀ケース)のみ従来の最良画素の値へフォールバック。
+            const anchor = anchorByDay ? anchorByDay.get(ev.dayIdx) : null;
+            const rowTimeMs = anchor ? anchor.timeMs : ev.bestTimeMs;
+            const rowDist = anchor ? anchor.dist : ev.bestDist;
+            const rowAz = anchor ? anchor.azimuth : ev.bestAz;
+            const rowAlt = anchor ? anchor.altitude : ev.bestAlt;
+            const dt = new Date(rowTimeMs);
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
             const rs = getRiseSetForDay(dt);
             const phase = Astronomy.MoonPhase(dt);
@@ -7292,14 +7364,20 @@ async function startTsujiMeshSearch() {
                 !isMoonAgeInRange(moonAge, appState.tsujiMeshMoonBase, appState.tsujiMeshMoonTolerance)) return;
             // 時間フィルタ
             if (appState.tsujiMeshTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
-            const bestPixBaseAz = baseAz[ev.bestPix], bestPixBaseAlt = baseAlt[ev.bestPix];
+            let symbol;
+            if (rowDist <= 0.125) symbol = '◎';
+            else if (rowDist <= 0.25) symbol = '○';
+            else if (rowDist <= 1.0) symbol = '△';
+            else symbol = '-';
+            const diffBaseAz = anchor ? menuBaseAz : baseAz[ev.bestPix];
+            const diffBaseAlt = anchor ? menuBaseAlt : baseAlt[ev.bestPix];
             totalPix += ev.total;
             rows.push({
                 body, dateObj: dt,
-                symbol: '◎',   // 精度フィルタ(ε≤0.125°)以内のみを検索するため常に◎
-                dist: ev.bestDist, azimuth: ev.bestAz, altitude: ev.bestAlt,
-                azDiff: azDiffDeg(ev.bestAz, bestPixBaseAz),
-                altDiff: ev.bestAlt - bestPixBaseAlt,
+                symbol,
+                dist: rowDist, azimuth: rowAz, altitude: rowAlt,
+                azDiff: azDiffDeg(rowAz, diffBaseAz),
+                altDiff: rowAlt - diffBaseAlt,
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
