@@ -7702,9 +7702,12 @@ async function startTsujiMeshSearch() {
     // 6) 標高オプション: 行の最良画素→目的点の可視判定(OK/NG)。DEMタイルはキャッシュを使い回す
     const ELEV_JUDGE_MAX = 300;
     if (appState.tsujiMeshElevationOption) {
-        setStatus(`(標高オプション判定中… ${Math.min(rows.length, ELEV_JUDGE_MAX)}件)`);
-        for (let i = 0; i < Math.min(rows.length, ELEV_JUDGE_MAX); i++) {
+        const judgeTotal = Math.min(rows.length, ELEV_JUDGE_MAX);
+        setTsujiMeshProgress(0, judgeTotal);
+        for (let i = 0; i < judgeTotal; i++) {
             if (generation !== tsujiMeshGeneration) return;
+            setStatus(`(標高オプション判定中… ${i + 1}/${judgeTotal}件)`);
+            setTsujiMeshProgress(i + 1, judgeTotal);
             const r = rows[i];
             try {
                 const vis = await computePathVisibility(
