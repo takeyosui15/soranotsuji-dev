@@ -166,6 +166,7 @@ html {
 #tsujimesh-ctrl-header { max-width: 360px; width: 100%; margin: 0 auto; box-sizing: border-box; }   /* 宙の窓ctrlと同じ中央寄せ */
 
 /* 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールする(左上・ズームコントロールの下) */
+.map-pan-control { display: flex; flex-direction: column; align-items: flex-start; }   /* ▲▼の枠がボタン幅(1×2)になるようシュリンク */
 .map-pan-control .map-pan-h { display: flex; flex-direction: row; margin-bottom: 5px; }
 .map-pan-control .map-pan-h a { width: 26px; height: 26px; line-height: 26px; display: inline-block; text-align: center; }
 .map-pan-control .map-pan-h a:first-child { border-radius: 4px 0 0 4px; border-bottom: none; border-right: 1px solid #ccc; }
@@ -187,7 +188,6 @@ html {
 #tsujimesh-ctrl-body .tsujimesh-time-label2 { width: 175px; flex-shrink: 0; text-align: right; margin-right: 5px; }   /* メニューの縦並びラベルと同幅(.input-labelの105pxより優先) */
 #tsujimesh-mesh-gray { flex: 1 1 auto; min-width: 0; }
 /* コントロール領域の入力はメニューの縦並びテキストボックスと同幅(155px)に揃える */
-#tsujimesh-time-picker,
 #input-tsujimesh-time-width,
 #select-tsujimesh-time-eps { width: 155px; flex: 0 0 auto; box-sizing: border-box; }
 
