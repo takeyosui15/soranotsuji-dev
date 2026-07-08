@@ -124,7 +124,7 @@ const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, 
 // 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
 // ここが全組込天体の既定値の唯一の定義。appState.bodies はこれから派生する。
 const DEFAULT_BODIES = [
-    { id: 'MilkyWay', name: '天の川',   color: '#800080', isDashed: false, visible: true },
+    { id: 'MilkyWay', name: '天の川',   color: '#DDA0DD', isDashed: false, visible: true },
     { id: 'Sun',     name: '太陽',     color: '#FF0000', isDashed: false, visible: true },
     { id: 'Moon',    name: '月',       color: '#FFFF00', isDashed: false, visible: true },
     { id: 'Mercury', name: '水星',     color: '#00BFFF', isDashed: false, visible: false },
@@ -139,7 +139,7 @@ const DEFAULT_BODIES = [
     { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
     { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
     { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
-    { id: 'M42',     name: 'オリオン大星雲M42', color: '#DDA0DD', isDashed: false, visible: false },
+    { id: 'M42',     name: 'オリオン大星雲M42', color: '#800080', isDashed: false, visible: false },
     { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
     { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
     { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
@@ -627,12 +627,10 @@ function initMap() {
     dpLayer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
-    // PC(マウス操作)ではドラッグ中の誤クリックで観測点が動かないよう、
-    // 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリックで行う(スマホは従来どおりタップ)
-    if (_mapDblClickMode) {
-        map.doubleClickZoom.disable();
-        map.on('dblclick', onMapDblClick);
-    }
+    // PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)で観測点が動かないよう、
+    // 観測点/目的点の移動はダブルクリック(ダブルタップ)で行う(ダブルクリックズームは無効化)
+    map.doubleClickZoom.disable();
+    map.on('dblclick', onMapDblClick);
     map.on('mousemove', (e) => handleTsujiMeshGoldHover(e.latlng));   // 辻メッシュ金色オーバーレイのツールチップ
 }
 
@@ -1362,8 +1360,16 @@ function loadAppState() {
 }
 
 /** 読み込んだ appState を安全な値に正規化（冪等）。旧バージョン/不整合データの自己修復。 */
-const APP_SCHEMA = 1;
+const APP_SCHEMA = 2;
 function normalizeAppState() {
+    // スキーマ1→2: 既定色の変更(天の川:紫→薄紫 / M42:薄紫→紫)。
+    // 旧既定色のまま使っていた保存データだけ新既定色へ追従する(カスタム色は保持)。
+    if ((appState._loadedSchema || 0) < 2) {
+        const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+        if (mw && typeof mw.color === 'string' && mw.color.toUpperCase() === '#800080') mw.color = '#DDA0DD';
+        const m42 = appState.bodies.find(b => b.id === 'M42');
+        if (m42 && typeof m42.color === 'string' && m42.color.toUpperCase() === '#DDA0DD') m42.color = '#800080';
+    }
     const validModes = TSUJI_TIME_MODES.map(m => m.v).concat('fixed');
     const num = (v, def, min, max) => {
         const n = parseFloat(v);
@@ -2915,18 +2921,18 @@ function calculateKFromMeteo(p, tCel, l) {
 // ------------------------------------------------------
 
 // 地図クリック時の処理
-// PC(マウス)ではドラッグ中の誤クリックによる観測点移動を防ぐため、
-// 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリックで行う(スマホはタップのまま)
+// PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)による観測点移動を防ぐため、
+// 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリック(ダブルタップ)で行う
 async function onMapClick(e) {
     // アニメーション中は地図クリック/タップで停止(PC/スマホ共通・シングルで有効)
     if (appState.isMoving) {
         stopMove();
         return;
     }
-    if (_mapDblClickMode) return;   // PC: 移動/選択はダブルクリック(onMapDblClick)で行う
-    // スマホ: メッシュ/辻マーカーの画素はタップでまずポップアップを表示(ポップアップのタップで観測点に設定)
-    if (_tmShowPixelPopup(e.latlng)) return;
-    await applyMapPointAction(e.latlng);
+    if (_mapDblClickMode) return;   // PC: ホバーで内容確認・移動/選択はダブルクリック(onMapDblClick)
+    // スマホ: メッシュ/辻マーカーの画素はタップでポップアップを表示(ポップアップのタップで観測点に設定)。
+    // 何もない地図のタップでは移動しない(移動はダブルタップ)
+    _tmShowPixelPopup(e.latlng);
 }
 
 async function onMapDblClick(e) {
