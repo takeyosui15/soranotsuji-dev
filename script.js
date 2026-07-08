@@ -1820,7 +1820,9 @@ async function updateDPLines() {
     const DP_DIST_LIMIT = 300000;
     const allComputed = await Promise.all(visibleBodies.map(async body => {
         const t0 = findBodyTransitMs(body, observer, baseDate.getTime());
-        const currStart = t0 - 43200000;
+        // 窓の起点は分単位にスナップする。サンプル時刻は「起点+5秒刻み」のため、
+        // 南中時刻の秒端数をそのまま使うと毎分00秒に乗らず、5分毎の時刻マーカーが表示されない。
+        const currStart = Math.floor((t0 - 43200000) / 60000) * 60000;
         const [pPrev, pNext, pCurr] = await Promise.all([
             calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart - 86400000, distLimit: DP_DIST_LIMIT }),
             calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart + 86400000, distLimit: DP_DIST_LIMIT }),
@@ -4756,6 +4758,10 @@ function updateMyPointMarkers() {
             appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
             appState.startApiElev = pt.elev || 0;
             appState.startHeight = pt.height || 0;
+            // 位置情報メニューのラジオボタンも観測点選択へ移動する
+            appState.locMode = 'start';
+            const rs = document.getElementById('radio-start');
+            if (rs) rs.checked = true;
             saveAppState();
             updateAll();
         });
@@ -4782,6 +4788,10 @@ function updateMyPointMarkers() {
             appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
             appState.endApiElev = pt.elev || 0;
             appState.endHeight = pt.height || 0;
+            // 位置情報メニューのラジオボタンも目的点選択へ移動する
+            appState.locMode = 'end';
+            const re = document.getElementById('radio-end');
+            if (re) re.checked = true;
             saveAppState();
             updateAll();
         });
