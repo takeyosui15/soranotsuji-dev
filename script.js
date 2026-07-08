@@ -6733,6 +6733,10 @@ let _tmCtrlPickerPrev = '';    // 辻時刻タイムピッカーの直前値(未
 let _tmPostMode = 'near';      // 検索後オプション: 'near'=近傍の最高精度点(≠辻時刻) / 'attime'=辻時刻での最高精度点
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
+let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
+let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
+let _tsujiMeshWhiteDist = null;  // 白マーカー索引: 画素→その行での最良精度角距離(°)
+let _tsujiMeshWhiteRows = null;  // 索引構築時の行スナップショット(結果リストのソートに影響されない参照)
 
 // 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
 const tsujiMeshPool = (() => {
@@ -6829,6 +6833,7 @@ function clearTsujiMeshMarkers() {
     if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
     if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
     _tsujiMeshGoldSet = null;
+    _tsujiMeshWhiteRow = null; _tsujiMeshWhiteTime = null; _tsujiMeshWhiteDist = null; _tsujiMeshWhiteRows = null;
     if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
 }
 
@@ -6865,20 +6870,33 @@ function _tmPixAtLatLng(latlng) {
     return C.grid[y * 768 + x] - 1;
 }
 
-/** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし) */
+/** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし)。
+ *  あわせて「画素→最良の行(最小dist)とその辻時刻・精度角距離」の索引を構築する(ホバー/クリック用)。 */
 function drawTsujiMeshMarkers() {
     ensureTsujiMeshLayers();
     if (!tsujiMeshLayer || !_tsujiMeshPix) return;
     tsujiMeshLayer.clearLayers();
+    const n = _tsujiMeshPix.lat.length;
+    _tsujiMeshWhiteRow = new Int32Array(n).fill(-1);
+    _tsujiMeshWhiteTime = new Float64Array(n);
+    _tsujiMeshWhiteDist = new Float32Array(n);
+    _tsujiMeshWhiteRows = _tsujiMeshRows.slice();
     const overlay = _tmBuildOverlay((put) => {
-        const seen = new Set();
-        for (const row of _tsujiMeshRows) {
+        for (let r = 0; r < _tsujiMeshWhiteRows.length; r++) {
+            const row = _tsujiMeshWhiteRows[r];
             const idxArr = row.pixIdx;
             for (let i = 0; i < idxArr.length; i++) {
                 const pix = idxArr[i];
-                if (seen.has(pix)) continue;
-                seen.add(pix);
-                put(pix);
+                if (_tsujiMeshWhiteRow[pix] < 0) {
+                    put(pix);
+                    _tsujiMeshWhiteRow[pix] = r;
+                    _tsujiMeshWhiteTime[pix] = row.pixTime[i];
+                    _tsujiMeshWhiteDist[pix] = row.pixDist[i];
+                } else if (row.pixDist[i] < _tsujiMeshWhiteDist[pix]) {
+                    _tsujiMeshWhiteRow[pix] = r;
+                    _tsujiMeshWhiteTime[pix] = row.pixTime[i];
+                    _tsujiMeshWhiteDist[pix] = row.pixDist[i];
+                }
             }
         }
     }, [255, 255, 255, 230]);
@@ -7110,6 +7128,11 @@ function _tmCssColorToRGB(c) {
     }
     return rgb;
 }
+function _tmFmtDateMs(ms) {
+    const d = new Date(ms);
+    const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+    return `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日(${dow})`;
+}
 function _tmFmtTimeMs2(ms) {
     const d = new Date(ms);
     const sec = d.getSeconds() + d.getMilliseconds() / 1000;
@@ -7136,31 +7159,46 @@ function drawTsujiMeshGoldSet(perPix, big) {
         // ツールチップは開いた時に画素の最良辻時刻(0.01秒精度)を精細化して表示する
         marker.on('tooltipopen', () => {
             const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
-            marker.setTooltipContent(`最良画素(優辻マーカー)<br>辻時刻 ${_tmFmtTimeMs2(ref.timeMs)}<br>精度角距離 ${ref.dist.toFixed(5)}°<br>クリックで観測点に設定`);
+            marker.setTooltipContent(_tmTooltipHtml('優辻マーカー(最優良画素)', ref.timeMs, ref.dist));
         });
     }
     applyTsujiMeshLayerVisibility();
 }
 
-/** 金色オーバーレイ上のクリックを観測点設定として処理する(onMapClickの冒頭から呼ばれる)。処理したらtrue */
+/** 辻マーカー/白マーカーのクリックを処理する(onMapClickの冒頭から呼ばれる)。処理したらtrue。
+ *  辻マーカー(表示中の集合)= その画素を観測点に設定。
+ *  白マーカー(集合外)= その画素を観測点に設定し、さらに最良の行を選択して
+ *  辻時刻コントロールをその画素の辻時刻へ移動(優辻マーカーをその画素に配置・画面中央へ)。 */
 function handleTsujiMeshGoldClick(latlng) {
-    if (!_tsujiMeshGoldSet || !_tsujiMeshLayerVisible) return false;
-    if (typeof map === 'undefined' || !map || !map.hasLayer(_tsujiMeshGoldLayer)) return false;
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
     const pix = _tmPixAtLatLng(latlng);
-    if (pix < 0 || !_tsujiMeshGoldSet.has(pix)) return false;
-    _tmSetObserverToPix(pix);
-    return true;
+    if (pix < 0) return false;
+    if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+        _tmSetObserverToPix(pix);
+        return true;
+    }
+    if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
+        _tmSetObserverToPix(pix);
+        const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
+        const idx = _tsujiMeshRows.indexOf(row);
+        if (idx >= 0) {
+            selectTsujiMeshRow(idx, { pix, timeMs: _tsujiMeshWhiteTime[pix], dist: _tsujiMeshWhiteDist[pix] });
+        }
+        return true;
+    }
+    return false;
 }
 
-/** 画素の最良辻時刻を、実効時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
- *  判定は検索本体と同一(回転補正+点/線の検索中心)。結果は画素+実効時刻でキャッシュする。 */
+/** 画素の最良辻時刻を、中心時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
+ *  判定は検索本体と同一(回転補正+点/線の検索中心)。centerMs/body省略時は表示中の辻時刻と選択行の天体。 */
 let _tmRefineCache = { key: null, val: null };
-function _tmRefinePixelTime(pix) {
+function _tmRefinePixelTime(pix, centerMs, body) {
     const C = _tsujiMeshCalc;
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
-    const t = _tmCtrlEffectiveMs();
-    if (!C || !row || t === null) return null;
-    const key = `${pix}_${t}`;
+    const t = (centerMs !== undefined) ? centerMs : _tmCtrlEffectiveMs();
+    if (body === undefined) body = row ? row.body : null;
+    if (!C || !body || t === null) return null;
+    const key = `${pix}_${t}_${body.id}`;
     if (_tmRefineCache.key === key) return _tmRefineCache.val;
     const D2R = Math.PI / 180;
     const wrap180 = (deg) => ((deg + 540) % 360) - 180;
@@ -7174,12 +7212,12 @@ function _tmRefinePixelTime(pix) {
     const len2 = dAz * dAz + dAlt * dAlt;
     const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     let fixedRaDec = null;
-    if (isFixedStar(row.body.id)) fixedRaDec = getFixedStarRaDec(row.body.id);
+    if (isFixedStar(body.id)) fixedRaDec = getFixedStarRaDec(body.id);
     const distAt = (ms) => {
         const time = new Date(ms);
         let ra, dec;
         if (fixedRaDec) { ra = fixedRaDec.ra; dec = fixedRaDec.dec; }
-        else { const eq = Astronomy.Equator(row.body.id, time, observer, true, true); ra = eq.ra; dec = eq.dec; }
+        else { const eq = Astronomy.Equator(body.id, time, observer, true, true); ra = eq.ra; dec = eq.dec; }
         const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
         const ca = Math.cos(hor.altitude * D2R);
         const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
@@ -7218,18 +7256,30 @@ function _tmRefinePixelTime(pix) {
     return val;
 }
 
-/** 辻マーカー上のホバーで辻時刻(0.01秒精度)と精度角距離のツールチップを表示する(地図のmousemoveから) */
+/** ポップアップ本文(タイトル太字/辻日付/辻時刻(0.01秒)/精度角距離/クリック説明)を組み立てる */
+function _tmTooltipHtml(title, timeMs, dist) {
+    return `<strong>${title}</strong><br>辻日付: ${_tmFmtDateMs(timeMs)}<br>辻時刻: ${_tmFmtTimeMs2(timeMs)}<br>精度角距離: ${dist.toFixed(5)}°<br>クリックで観測点に設定`;
+}
+
+/** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
+ *  辻マーカー(表示中の集合)を優先し、集合外の白マーカー画素は最良の行の値を表示する。 */
 let _tmHoverTooltip = null;
 function handleTsujiMeshGoldHover(latlng) {
     const hide = () => { if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; } };
-    if (!_tsujiMeshGoldSet || !_tsujiMeshLayerVisible ||
-        typeof map === 'undefined' || !map || !map.hasLayer(_tsujiMeshGoldLayer)) { hide(); return; }
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
     const pix = _tmPixAtLatLng(latlng);
-    if (pix < 0 || !_tsujiMeshGoldSet.has(pix)) { hide(); return; }
-    const ref = _tmRefinePixelTime(pix);
-    const content = ref
-        ? `辻時刻 ${_tmFmtTimeMs2(ref.timeMs)}<br>精度角距離 ${ref.dist.toFixed(5)}°<br>クリックで観測点に設定`
-        : `精度角距離 ${_tsujiMeshGoldSet.get(pix).toFixed(5)}°<br>クリックで観測点に設定`;
+    if (pix < 0) { hide(); return; }
+    let content = null;
+    if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+        const ref = _tmRefinePixelTime(pix);
+        if (ref) content = _tmTooltipHtml('辻マーカー', ref.timeMs, ref.dist);
+    } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
+        const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
+        const ref = _tmRefinePixelTime(pix, _tsujiMeshWhiteTime[pix], row.body);
+        if (ref) content = _tmTooltipHtml('白マーカー', ref.timeMs, ref.dist);
+        else content = _tmTooltipHtml('白マーカー', _tsujiMeshWhiteTime[pix], _tsujiMeshWhiteDist[pix]);
+    }
+    if (!content) { hide(); return; }
     const at = L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]);
     if (!_tmHoverTooltip) {
         _tmHoverTooltip = L.tooltip({ direction: 'top' }).setLatLng(at).setContent(content).addTo(map);
@@ -7239,7 +7289,7 @@ function handleTsujiMeshGoldHover(latlng) {
 }
 
 /** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
-function selectTsujiMeshRow(idx) {
+function selectTsujiMeshRow(idx, jump) {
     if (!_tsujiMeshRows.length) return;
     // ソートで並びが変わっている可能性があるため、フラグから現在indexを再同期
     const cur = _tsujiMeshRows.findIndex(r => r.__sel);
@@ -7253,10 +7303,15 @@ function selectTsujiMeshRow(idx) {
         row.__tr.classList.add('selected');
         row.__tr.scrollIntoView({ block: 'nearest' });
     }
-    // 検索後オプションに従って、辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
+    // 検索後オプション(白マーカークリック時はその画素)に従って、
+    // 辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
     let initDt = row.dateObj;
     _tmForcedPin = null;
-    if (_tmPostMode === 'near') {
+    if (jump) {
+        // 白マーカークリック: その画素の辻時刻へジャンプし、優辻マーカーをその画素に配置
+        initDt = new Date(jump.timeMs);
+        _tmForcedPin = { pix: jump.pix, dist: jump.dist, timeMs: jump.timeMs };
+    } else if (_tmPostMode === 'near') {
         // 近傍の最高精度点(≠辻時刻): 最高精度(◎×128以内、なければその行の最小距離)の画素のうち、
         // 現在の観測点に地上距離が最も近い画素。辻時刻コントロールはその画素の辻時刻に移動する。
         let minD = Infinity;
@@ -7288,7 +7343,23 @@ function selectTsujiMeshRow(idx) {
         pk.value = `${String(initDt.getHours()).padStart(2, '0')}:${String(initDt.getMinutes()).padStart(2, '0')}`;
         _tmCtrlPickerPrev = pk.value;
     }
-    if (tsl) tsl.value = String(initDt.getSeconds());
+    if (tsl) {
+        // 提案2: スライダー範囲は「その行の全ヒット画素の辻時刻の範囲」(±5分固定を廃止)
+        let minT = Infinity, maxT = -Infinity;
+        for (let i = 0; i < row.pixTime.length; i++) {
+            if (row.pixTime[i] < minT) minT = row.pixTime[i];
+            if (row.pixTime[i] > maxT) maxT = row.pixTime[i];
+        }
+        const baseMs = _tmCtrlDay0 + (initDt.getHours() * 3600 + initDt.getMinutes() * 60) * 1000;
+        const val = initDt.getSeconds();
+        if (minT <= maxT) {
+            tsl.min = String(Math.min(Math.floor((minT - baseMs) / 1000), val));
+            tsl.max = String(Math.max(Math.ceil((maxT - baseMs) / 1000), val));
+        } else {
+            tsl.min = '-300'; tsl.max = '300';
+        }
+        tsl.value = String(val);
+    }
     recalcTsujiMeshGoldAtTime();
     // 優辻マーカー(ピン)が可視領域(下部パネルを除く)の中央に来るよう表示する
     zoomToTsujiMeshRow(row, _tmLastBig ? _tmLastBig.pix : row.bestPix);
