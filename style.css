@@ -148,7 +148,8 @@ html {
     flex-direction: column;
     min-height: 0;
 }
-#tsujimesh-ctrl.open { height: 50%; }
+#tsujimesh-ctrl.open { flex: 0 0 50%; }   /* 開いている時は最大化の有無に関わらず結果リストと2分する */
+#tsujimesh-ctrl-body.hidden { display: none; }
 #tsujimesh-ctrl-header {
     display: flex;
     justify-content: space-between;
