@@ -597,6 +597,7 @@ function initMap() {
     dpLayer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
+    map.on('mousemove', (e) => handleTsujiMeshGoldHover(e.latlng));   // 辻メッシュ金色オーバーレイのツールチップ
 }
 
 
@@ -2851,6 +2852,8 @@ async function onMapClick(e) {
         stopMove();
         return;
     }
+    // 辻メッシュ検索の金色オーバーレイの画素なら、その画素を観測点に設定(DEM標高+観測点画素の高さ)
+    if (handleTsujiMeshGoldClick(e.latlng)) return;
     const isStart = appState.locMode === 'start';
     const elev = await getElevation(e.latlng.lat, e.latlng.lng);
     const val = (elev !== null) ? elev : 0;
@@ -6715,7 +6718,6 @@ let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
 let _tsujiMeshSelIdx = -1;     // 選択中の行index
 let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array(DEM標高) } (プレフィルタ後)
 let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った「観測点画素の高さ」(金色マーカーの観測点設定・標高判定に使用)
-let _tsujiMeshMarkerOverflow = false;
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
@@ -6815,40 +6817,61 @@ function applyTsujiMeshLayerVisibility() {
 function clearTsujiMeshMarkers() {
     if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
     if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
+    _tsujiMeshGoldSet = null;
+    if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
 }
 
-/** 全結果行のヒット画素の和集合を白マーカーで描画。
- *  上限(計20,000)は行ごとの均等割り当てで消費する(先頭の行だけで使い切ると
- *  後半の行の白マーカーが1つも地図に出なくなるため)。各行の最良画素は必ず含める。 */
+/** ヒット画素集合を9タイル領域(768×768)のオーバーレイ画像に描いて返す(1画像画素=DEM1画素の実寸表示)。
+ *  paint(put) の put(pix) で画素を塗る。rgba=[r,g,b,a(0..255)] */
+function _tmBuildOverlay(paint, rgba) {
+    const C = _tsujiMeshCalc;
+    if (!C || !C.grid) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 768; canvas.height = 768;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(768, 768);
+    const data = img.data;
+    const [r, g, b, a] = rgba;
+    paint((pix) => {
+        const o = C.gridPos[pix] * 4;
+        data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
+    });
+    ctx.putImageData(img, 0, 0);
+    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false });
+}
+
+/** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
+function _tmPixAtLatLng(latlng) {
+    const C = _tsujiMeshCalc;
+    if (!C || !C.grid) return -1;
+    const scale = Math.pow(2, TSUJIMESH_ZOOM);
+    const R = 128 / Math.PI;
+    const gpx = Math.floor(128 * (latlng.lng / 180 + 1) * scale);
+    const sinLat = Math.sin(latlng.lat * Math.PI / 180);
+    const gpy = Math.floor((128 - R * Math.atanh(Math.max(-0.9999999, Math.min(0.9999999, sinLat)))) * scale);
+    const x = gpx - C.gxBase, y = gpy - C.gyBase;
+    if (x < 0 || x >= 768 || y < 0 || y >= 768) return -1;
+    return C.grid[y * 768 + x] - 1;
+}
+
+/** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし) */
 function drawTsujiMeshMarkers() {
     ensureTsujiMeshLayers();
     if (!tsujiMeshLayer || !_tsujiMeshPix) return;
     tsujiMeshLayer.clearLayers();
-    const CAP = 20000;
-    const quota = Math.max(1, Math.floor(CAP / Math.max(1, _tsujiMeshRows.length)));
-    const seen = new Set();
-    _tsujiMeshMarkerOverflow = false;
-    const addPix = (pix) => {
-        if (seen.has(pix)) return true;
-        if (seen.size >= CAP) { _tsujiMeshMarkerOverflow = true; return false; }
-        seen.add(pix);
-        L.circleMarker([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]], {
-            renderer: _tsujiMeshCanvasRenderer,
-            radius: 2.5, color: '#888', weight: 1, fillColor: '#ffffff', fillOpacity: 0.9,
-        }).addTo(tsujiMeshLayer);
-        return true;
-    };
-    for (const row of _tsujiMeshRows) {
-        addPix(row.bestPix);   // 最良画素は必ず表示
-        const idxArr = row.pixIdx;
-        const step = Math.max(1, Math.ceil(idxArr.length / quota));   // 行内から均等に間引く
-        let used = 1;
-        for (let i = 0; i < idxArr.length && used < quota; i += step) {
-            if (!addPix(idxArr[i])) return;
-            used++;
+    const overlay = _tmBuildOverlay((put) => {
+        const seen = new Set();
+        for (const row of _tsujiMeshRows) {
+            const idxArr = row.pixIdx;
+            for (let i = 0; i < idxArr.length; i++) {
+                const pix = idxArr[i];
+                if (seen.has(pix)) continue;
+                seen.add(pix);
+                put(pix);
+            }
         }
-        if (idxArr.length > quota) _tsujiMeshMarkerOverflow = true;
-    }
+    }, [255, 255, 255, 230]);
+    if (overlay) overlay.addTo(tsujiMeshLayer);
 }
 
 /** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
@@ -6936,7 +6959,32 @@ function recalcTsujiMeshGoldAtTime() {
     const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     let fixedRaDec = null;
     if (isFixedStar(row.body.id)) fixedRaDec = getFixedStarRaDec(row.body.id);
-    const perPix = new Map();   // pix -> 最小dist
+    // 点モードの高速路: 画素ごとの検索中心(基準+オフセット)の単位ベクトルを一度だけ前計算し、
+    // 弦距離の2乗(角距離と厳密に単調)で判定する(三角関数はヒット分の角度変換のみ)。
+    if (!isLine && !C.tx) {
+        const n = C.baseAz.length;
+        C.tx = new Float32Array(n); C.ty = new Float32Array(n); C.tz = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const taz = (C.baseAz[i] + C.offsetAz) * D2R, talt = (C.baseAlt[i] + C.offsetAlt) * D2R;
+            const c2 = Math.cos(talt);
+            C.tx[i] = Math.sin(taz) * c2; C.ty[i] = Math.cos(taz) * c2; C.tz[i] = Math.sin(talt);
+        }
+    }
+    const chord2 = (pix, ex, ny, uz) => {
+        const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
+        const cx = ex - (wN * uz - wU * ny);
+        const cy = ny - (wU * ex - wE * uz);
+        const cz = uz - (wE * ny - wN * ex);
+        const dx = cx - C.tx[pix], dy = cy - C.ty[pix], dz = cz - C.tz[pix];
+        return dx * dx + dy * dy + dz * dz;
+    };
+    const chordToDeg = (q) => Math.asin(Math.min(1, Math.sqrt(q) / 2)) * 2 / D2R;
+    const thr2 = Math.pow(2 * Math.sin(eps * D2R / 2), 2);
+    // 集合の最小distは型付き配列で持つ(幅が広い時に数百万回のget/setになるMapより速い)
+    if (!C.distBuf) C.distBuf = new Float32Array(C.baseAz.length);
+    const distBuf = C.distBuf;
+    distBuf.fill(Infinity);
+    const hits = [];
     for (let s = -w; s <= w; s++) {
         const time = new Date(t + s * 1000);
         let ra, dec;
@@ -6963,10 +7011,17 @@ function recalcTsujiMeshGoldAtTime() {
                 const pix = C.binPixels[i];
                 const relAlt = alt - C.baseAlt[pix];
                 if (relAlt < altLo - 0.05 || relAlt > altHi + 0.05) continue;
-                const dist = evalDist(pix, ex, ny, uz);
-                if (dist > eps) continue;
-                const rec = perPix.get(pix);
-                if (rec === undefined || dist < rec) perPix.set(pix, dist);
+                let dist;
+                if (isLine) {
+                    dist = evalDist(pix, ex, ny, uz);
+                    if (dist > eps) continue;
+                } else {
+                    const q = chord2(pix, ex, ny, uz);
+                    if (q > thr2) continue;
+                    dist = chordToDeg(q);
+                }
+                if (distBuf[pix] === Infinity) hits.push(pix);
+                if (dist < distBuf[pix]) distBuf[pix] = dist;
             }
         };
         if (b0 <= b1) {
@@ -6976,6 +7031,8 @@ function recalcTsujiMeshGoldAtTime() {
             for (let b = 0; b <= b1; b++) scanBin(b);
         }
     }
+    const perPix = new Map();   // pix -> 最小dist (クリック/ホバー判定と描画に使用)
+    for (let i = 0; i < hits.length; i++) perPix.set(hits[i], distBuf[hits[i]]);
     // 指定した辻時刻(実効時刻t)での最良精度の画素: εに関係なく全画素の最小距離(argmin)を1回のスイープで求める
     let big = null;
     {
@@ -6992,59 +7049,83 @@ function recalcTsujiMeshGoldAtTime() {
         const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
         let bestPix = -1, bestDist = Infinity;
         const n = C.baseAz.length;
-        for (let pix = 0; pix < n; pix++) {
-            const dist = evalDist(pix, ex, ny, uz);
-            if (dist < bestDist) { bestDist = dist; bestPix = pix; }
+        if (isLine) {
+            for (let pix = 0; pix < n; pix++) {
+                const dist = evalDist(pix, ex, ny, uz);
+                if (dist < bestDist) { bestDist = dist; bestPix = pix; }
+            }
+        } else {
+            let bestQ = Infinity;
+            for (let pix = 0; pix < n; pix++) {
+                const q = chord2(pix, ex, ny, uz);
+                if (q < bestQ) { bestQ = q; bestPix = pix; }
+            }
+            bestDist = chordToDeg(bestQ);
         }
         if (bestPix >= 0) big = { pix: bestPix, dist: bestDist };
     }
     drawTsujiMeshGoldSet(perPix, big);
 }
 
-/** 再計算した画素集合(pix→精度角距離)を金色マーカーで描画し、「マーカー数:」を表示中の集合数に更新する。
+/** 金色マーカーの画素をクリックした時と同じ観測点設定(観測点高=検索時の観測点画素の高さ) */
+function _tmSetObserverToPix(pix) {
+    const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
+    appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
+    appState.startApiElev = elev;
+    appState.startHeight = _tsujiMeshPixHeightUsed;
+    saveAppState();
+    updateAll();
+}
+
+/** 再計算した画素集合(pix→精度角距離)を金色のオーバーレイで描画し(全画素表示・上限なし)、
+ *  「マーカー数:」を集合の全数に更新する。クリック/ホバーは地図側のハンドラで _tsujiMeshGoldSet を参照。
  *  big={pix,dist}(指定した辻時刻での最良精度の画素)には、観測点マーカーと同じ大きさの金色ピンを立てる。 */
+let _tsujiMeshGoldSet = null;   // 表示中の金色集合(pix→精度角距離)。クリック/ホバー判定に使用
 function drawTsujiMeshGoldSet(perPix, big) {
     ensureTsujiMeshLayers();
     if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
     _tsujiMeshGoldLayer.clearLayers();
+    _tsujiMeshGoldSet = perPix;
     const cnt = document.getElementById('tsujimesh-sel-count');
-    if (cnt) cnt.textContent = perPix.size > 5000
-        ? `マーカー数:${perPix.size.toLocaleString()}(表示5,000まで)`
-        : `マーカー数:${perPix.size.toLocaleString()}`;
-    let n = 0;
-    for (const [pix, dist] of perPix) {
-        if (n >= 5000) break;
-        n++;
-        const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
-        L.circleMarker([lat, lng], {
-            renderer: _tsujiMeshCanvasRenderer,
-            radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
-        }).on('click', () => {
-            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点画素の高さ)
-            appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
-            appState.startApiElev = elev;
-            appState.startHeight = _tsujiMeshPixHeightUsed;
-            saveAppState();
-            updateAll();
-        }).bindTooltip(`精度角距離 ${dist.toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
-          .addTo(_tsujiMeshGoldLayer);
-    }
+    if (cnt) cnt.textContent = `マーカー数:${perPix.size.toLocaleString()}`;
+    const overlay = _tmBuildOverlay((put) => { for (const pix of perPix.keys()) put(pix); }, [255, 215, 0, 235]);
+    if (overlay) overlay.addTo(_tsujiMeshGoldLayer);
     // 指定した辻時刻での最良精度の画素: 観測点マーカーと同じ大きさの金色ピンで指し示す
     if (big && big.pix >= 0) {
-        const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix], elev = _tsujiMeshPix.elev[big.pix];
         const goldIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-tsujigold"></div>', iconSize: [24, 24], iconAnchor: [12, 24] });
-        L.marker([lat, lng], { icon: goldIcon, zIndexOffset: 900 })
-            .on('click', () => {
-                appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
-                appState.startApiElev = elev;
-                appState.startHeight = _tsujiMeshPixHeightUsed;
-                saveAppState();
-                updateAll();
-            })
+        L.marker([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]], { icon: goldIcon, zIndexOffset: 900 })
+            .on('click', () => _tmSetObserverToPix(big.pix))
             .bindTooltip(`この辻時刻の最良画素<br>精度角距離 ${big.dist.toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
             .addTo(_tsujiMeshGoldLayer);
     }
     applyTsujiMeshLayerVisibility();
+}
+
+/** 金色オーバーレイ上のクリックを観測点設定として処理する(onMapClickの冒頭から呼ばれる)。処理したらtrue */
+function handleTsujiMeshGoldClick(latlng) {
+    if (!_tsujiMeshGoldSet || !_tsujiMeshLayerVisible) return false;
+    if (typeof map === 'undefined' || !map || !map.hasLayer(_tsujiMeshGoldLayer)) return false;
+    const pix = _tmPixAtLatLng(latlng);
+    if (pix < 0 || !_tsujiMeshGoldSet.has(pix)) return false;
+    _tmSetObserverToPix(pix);
+    return true;
+}
+
+/** 金色オーバーレイ上のホバーで精度角距離のツールチップを表示する(地図のmousemoveから) */
+let _tmHoverTooltip = null;
+function handleTsujiMeshGoldHover(latlng) {
+    const hide = () => { if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; } };
+    if (!_tsujiMeshGoldSet || !_tsujiMeshLayerVisible ||
+        typeof map === 'undefined' || !map || !map.hasLayer(_tsujiMeshGoldLayer)) { hide(); return; }
+    const pix = _tmPixAtLatLng(latlng);
+    if (pix < 0 || !_tsujiMeshGoldSet.has(pix)) { hide(); return; }
+    const content = `精度角距離 ${_tsujiMeshGoldSet.get(pix).toFixed(5)}°<br>クリックで観測点に設定`;
+    const at = L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]);
+    if (!_tmHoverTooltip) {
+        _tmHoverTooltip = L.tooltip({ direction: 'top' }).setLatLng(at).setContent(content).addTo(map);
+    } else {
+        _tmHoverTooltip.setLatLng(at).setContent(content);
+    }
 }
 
 /** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
@@ -7070,9 +7151,7 @@ function selectTsujiMeshRow(idx) {
     if (dt) dt.textContent = `${row.dateStr}${row.dowStr}`;
     if (tm) tm.textContent = row.timeStr;
     const cnt = document.getElementById('tsujimesh-sel-count');
-    if (cnt) cnt.textContent = row.capped
-        ? 'マーカー数:20,000以上(省略中)'
-        : `マーカー数:${(row.total ?? row.pixIdx.length).toLocaleString()}`;
+    if (cnt) cnt.textContent = `マーカー数:${(row.total ?? row.pixIdx.length).toLocaleString()}`;
     const slider = document.getElementById('tsujimesh-row-slider');
     if (slider) { slider.max = _tsujiMeshRows.length; slider.value = idx + 1; }
     // 辻時刻コントロールを行の辻時刻で初期化(ピッカー=時分・スライダー=秒)し、その時刻の再計算集合を金色表示
@@ -7170,6 +7249,10 @@ async function startTsujiMeshSearch() {
     const mPerDegLat = Math.PI * EARTH_R / 180;
     const mPerDegLng = mPerDegLat * Math.cos(start.lat * Math.PI / 180);
     const geod = geodesic.Geodesic.WGS84;
+    // マーカーのオーバーレイ描画用: 9タイル領域(768×768)のグローバル画素→対象画素index+1(0=対象外)
+    const gxBase = (ti.x - 1) * 256, gyBase = (ti.y - 1) * 256;
+    const grid = new Uint32Array(768 * 768);
+    const gridPosA = new Uint32Array(maxCount);   // 対象画素index→グリッド位置(オーバーレイ描画用の逆引き)
     let kept = 0, minAlt = Infinity, maxAlt = -Infinity;
     for (let t = 0; t < tiles.length; t++) {
         const img = tileData[t];
@@ -7197,6 +7280,9 @@ async function startTsujiMeshSearch() {
                 latA[kept] = ll.lat; lngA[kept] = ll.lng; elevA[kept] = elev;
                 dEA[kept] = (ll.lng - start.lng) * mPerDegLng / EARTH_R;
                 dNA[kept] = (ll.lat - start.lat) * mPerDegLat / EARTH_R;
+                const gpos = (gy0 + py - gyBase) * 768 + (gx0 + pxx - gxBase);
+                grid[gpos] = kept + 1;
+                gridPosA[kept] = gpos;
                 if (alt < minAlt) minAlt = alt;
                 if (alt > maxAlt) maxAlt = alt;
                 kept++;
@@ -7229,6 +7315,16 @@ async function startTsujiMeshSearch() {
     }
     setStatus(`(対象${kept.toLocaleString()}画素 / ワーカー準備中…)`);
     const dE = dEA.slice(0, kept), dN = dNA.slice(0, kept);
+    // 領域のコーナー基準バウンズ(_globalPixelToLatLngは画素中心+0.5基準なのでコーナーはインライン計算)
+    const cornerLL = (gpx, gpy) => {
+        const scale = Math.pow(2, TSUJIMESH_ZOOM);
+        const R = 128 / Math.PI;
+        const lng = ((gpx / scale) / R - Math.PI) * 180 / Math.PI;
+        const eL = Math.exp((128 - gpy / scale) * 2 / R);
+        const lat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+        return { lat, lng };
+    };
+    const nw = cornerLL(gxBase, gyBase), se = cornerLL(gxBase + 768, gyBase + 768);
     // 辻時刻コントロールの再計算(案B)用に、画素索引と検索条件をスナップショット(検索条件の凍結)
     _tsujiMeshCalc = {
         baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180),
@@ -7237,6 +7333,8 @@ async function startTsujiMeshSearch() {
         refractionEnabled: appState.refractionEnabled,
         offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
         centerMode: appState.tsujiMeshCenterMode,
+        grid, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
+        bounds: L.latLngBounds([se.lat, nw.lng], [nw.lat, se.lng]),
     };
     await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
     if (generation !== tsujiMeshGeneration) return;
@@ -7425,12 +7523,10 @@ async function startTsujiMeshSearch() {
 
     _tsujiMeshRows = rows;
     hideTsujiMeshProgress();
-    const capNote = rows.some(r => r.capped) ? '・単位日当たりのマーカー数:20,000以上の日あり(省略中)' : '';
     const judgeNote = (appState.tsujiMeshElevationOption && rows.length > ELEV_JUDGE_MAX) ? `・標高判定は先頭${ELEV_JUDGE_MAX}件のみ` : '';
-    setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}${capNote}${judgeNote})`);
+    setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}${judgeNote})`);
     renderTsujiMeshResults();
     drawTsujiMeshMarkers();
-    if (_tsujiMeshMarkerOverflow) setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}・白マーカーは計20,000画素まで各行から均等表示${capNote}${judgeNote})`);
     if (rows.length) selectTsujiMeshRow(0);
 }
 
