@@ -171,10 +171,14 @@ const COLOR_MAP = [
 // 2. グローバル変数 & アプリケーション状態 (appState)
 // ============================================================
 
-let map; 
+let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
+// PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
+// (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
+let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
+    ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : false;
 // 辻ライン365 — 天体ごとに L.layerGroup を保持し、表示天体メニューの切替に高速応答する
 let dp365LayerByBody = {}; // body.id -> L.layerGroup (mapに追加されている時のみ表示中)
 let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
@@ -593,12 +597,42 @@ function initMap() {
 
     L.control.zoom({ position: 'topleft' }).addTo(map);
     L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
-    
+
+    // 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールできる(左上・ズームコントロールの下)
+    const panControl = L.control({ position: 'topleft' });
+    panControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'map-pan-control');
+        div.innerHTML =
+            '<div class="leaflet-bar map-pan-h">' +
+            '<a href="#" id="map-pan-left" title="地図を左へ移動(半画面)">◀</a>' +
+            '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
+            '<div class="leaflet-bar map-pan-v">' +
+            '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
+            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
+        const pan = (dx, dy) => {
+            const s = map.getSize();
+            map.panBy([dx * s.x / 2, dy * s.y / 2]);
+        };
+        [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
+            L.DomEvent.on(div.querySelector('#' + id), 'click', (ev) => { L.DomEvent.preventDefault(ev); pan(dx, dy); });
+        });
+        return div;
+    };
+    panControl.addTo(map);
+
     linesLayer = L.layerGroup().addTo(map);
     locationLayer = L.layerGroup().addTo(map);
     dpLayer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
+    // PC(マウス操作)ではドラッグ中の誤クリックで観測点が動かないよう、
+    // 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリックで行う(スマホは従来どおりタップ)
+    if (_mapDblClickMode) {
+        map.doubleClickZoom.disable();
+        map.on('dblclick', onMapDblClick);
+    }
     map.on('mousemove', (e) => handleTsujiMeshGoldHover(e.latlng));   // 辻メッシュ金色オーバーレイのツールチップ
 }
 
@@ -2849,25 +2883,42 @@ function calculateKFromMeteo(p, tCel, l) {
 // 計算・描画ヘルパー (イベントハンドラ)
 // ------------------------------------------------------
 
-// 地図クリック時の処理 
+// 地図クリック時の処理
+// PC(マウス)ではドラッグ中の誤クリックによる観測点移動を防ぐため、
+// 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリックで行う(スマホはタップのまま)
 async function onMapClick(e) {
-    // アニメーション中は地図クリック/タップで停止
+    // アニメーション中は地図クリック/タップで停止(PC/スマホ共通・シングルで有効)
     if (appState.isMoving) {
         stopMove();
         return;
     }
+    if (_mapDblClickMode) return;   // PC: 移動/選択はダブルクリック(onMapDblClick)で行う
+    await applyMapPointAction(e.latlng);
+}
+
+async function onMapDblClick(e) {
+    if (appState.isMoving) {
+        stopMove();
+        return;
+    }
+    await applyMapPointAction(e.latlng);
+}
+
+/** 地図の点操作: メッシュ/辻マーカーの画素ならその画素を観測点に設定(+行選択)。
+ *  それ以外は位置情報メニューのモードに従って観測点/目的点を移動する。 */
+async function applyMapPointAction(latlng) {
     // 辻メッシュ検索の金色オーバーレイの画素なら、その画素を観測点に設定(DEM標高+観測点高)
-    if (handleTsujiMeshGoldClick(e.latlng)) return;
+    if (handleTsujiMeshGoldClick(latlng)) return;
     const isStart = appState.locMode === 'start';
-    const elev = await getElevation(e.latlng.lat, e.latlng.lng);
+    const elev = await getElevation(latlng.lat, latlng.lng);
     const val = (elev !== null) ? elev : 0;
-    
+
     if (isStart) {
-        appState.start = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.start = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.startApiElev = val;
         appState.startHeight = 0;
     } else {
-        appState.end = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.end = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.endApiElev = val;
         appState.endHeight = 0;
     }

@@ -79,12 +79,13 @@ GNU General Public License for more details.
             <div id="tsujimesh-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="tsujimesh-ctrl-arrow">▼</span></div>
             <div id="tsujimesh-ctrl-body" class="hidden">
                 <div class="control-row center-row">
-                    <input type="checkbox" id="chk-tsujimesh-marker-layer" class="body-checkbox" checked><label for="chk-tsujimesh-marker-layer" title="地図のマーカーレイヤー(白/辻)の表示/非表示を切り替え">:マーカーレイヤー</label>
+                    <input type="checkbox" id="chk-tsujimesh-marker-layer" class="body-checkbox" checked><label for="chk-tsujimesh-marker-layer" title="地図のメッシュマーカーレイヤー(メッシュ/辻)の表示/非表示を切り替え">:メッシュマーカーレイヤー</label>
                 </div>
                 <div class="control-row center-row">
                     <span id="tsujimesh-time-label" class="tsujimesh-ctrl-label" title="再計算する基準となる辻時刻(タイムピッカーとスライダーに連動)">辻時刻: -</span>
                 </div>
                 <div class="control-row center-row">
+                    <span class="input-label tsujimesh-time-label2"></span>
                     <input type="time" id="tsujimesh-time-picker" title="辻時刻を時分で選択(秒はスライダーで指定)">
                 </div>
                 <div class="control-row">
@@ -92,12 +93,12 @@ GNU General Public License for more details.
                     <input type="range" id="tsujimesh-time-slider" min="-300" max="300" value="0" step="1" title="辻時刻の秒を調整(範囲=その行の全ヒット画素の辻時刻の範囲。追従して再計算)">
                     <button id="btn-tsujimesh-time-next" class="nav-btn" title="辻時刻を1秒後へ">▶</button>
                 </div>
-                <div class="control-row">
+                <div class="control-row center-row">
                     <label class="input-label tsujimesh-time-label2" for="input-tsujimesh-time-width">辻時刻の幅(s)±:</label>
                     <input type="number" id="input-tsujimesh-time-width" value="0" min="0" max="30" step="1" title="辻時刻の幅(±秒)。この範囲の各秒で再計算する">
                 </div>
-                <div class="control-row">
-                    <label class="input-label tsujimesh-time-label2" for="select-tsujimesh-time-eps">精度フィルタ:</label>
+                <div class="control-row center-row">
+                    <label class="input-label tsujimesh-time-label2" for="select-tsujimesh-time-eps">精度フィルタオプション:</label>
                     <select id="select-tsujimesh-time-eps" title="再計算で辻マーカー表示する精度(角距離ε)">
                         <option value="0.125" selected>◎(±0.125°)</option>
                         <option value="0.0625">◎×2(±0.0625°)</option>
@@ -1383,7 +1384,8 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>位置情報メニュー</h3>
                     <ul class="help-list">
-                        <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。</li>
+                        <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。<strong>PC(マウス操作)では誤操作防止のためダブルクリック</strong>で移動します (メッシュ/辻マーカーの選択も同様。ダブルクリックズームは無効化されます)。スマホはタップのままです。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
+                        <li><strong>地図パンボタン (◀▶/▲▼)</strong>: 地図左上のボタンで、ドラッグせずに半画面ずつ地図をスクロールできます。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
@@ -1465,11 +1467,11 @@ GNU General Public License for more details.
                         <li><strong>精度フィルタオプション ◎/◎×2/◎×4/◎×8</strong>: 検索 (画素側) の当たり判定 (±0.125°/±0.0625°/±0.03125°/±0.015625°)。</li>
                         <li><strong>許容範囲方位角/視高度</strong>: 基準方位角/視高度から±この範囲にある画素だけを検索対象にします。</li>
                         <li><strong>画素の高さ基準</strong>: 全画素は観測点と同じ高さ基準「DEM標高 + 観測点高 (位置情報メニューの値)」で計算します (通常の辻検索と同じ)。辻マーカーで観測点に設定しても観測点高は維持されます。</li>
-                        <li><strong>メッシュマーカー (旧: 白マーカー)</strong>: 全結果行のヒット画素を<strong>全て表示</strong>します (上限 = 検索エリアの全画素)。色は「メッシュマーカー色」スライダーで白〜黒のグレースケールに変えられます。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong> (複数の日にヒットする画素は最良の日) を表示し、<strong>クリックでその画素を観測点に設定</strong>し、あわせてその行が選択されて辻時刻コントロールがその画素の辻時刻へ移動します (優辻マーカーがそこに立ちます)。地図上のどの帯でもクリック一発で「そこに立った時の辻」へ飛べます。</li>
-                        <li><strong>辻マーカー (旧: 金色マーカー)</strong>: コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>を表示し、<strong>クリックでその画素を観測点に設定</strong>できます。</li>
+                        <li><strong>メッシュマーカー(白色領域)</strong>: 全結果行のヒット画素(精度フィルタオプションで指定した精度以上の画素)を<strong>全て表示</strong>します (上限 = 検索エリアの全画素)。色は「メッシュマーカー色」スライダーで白〜黒のグレースケールに変えられます。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong> (複数の日にヒットする画素は最良の日) を表示し、<strong>クリックでその画素を観測点に設定</strong>し、あわせてその行が選択されて辻時刻コントロールがその画素の辻時刻へ移動します (優辻マーカーがそこに立ちます)。地図上のどの帯でもクリック一発で「そこに立った時の辻」へ飛べます。</li>
+                        <li><strong>辻マーカー (天体色領域)</strong>: メッシュマーカーのうち、コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>を表示し、<strong>クリックでその画素を観測点に設定</strong>できます。</li>
                         <li><strong>優辻マーカー (金色のピン)</strong>: 最良精度の画素に、観測点マーカーと同じ大きさの金色のピンを立てます。カーソルで辻時刻・精度角距離を表示、クリックで観測点に設定できます。表示天体メニューで選択行の天体をオフにすると、辻マーカーとピンは非表示になります。</li>
                         <li><strong>検索後オプション</strong>: 行選択直後のピンの位置を選べます。<strong>「近傍の最高精度点(≠辻時刻)」(初期値)</strong> = 観測点に最も近い最高精度の画素にピンを立て、辻時刻コントロールもその画素の辻時刻に移動して画面中央に表示。<strong>「表示辻時刻での最高精度点」</strong> = 行の辻時刻でのその瞬間の最良画素にピンを立てます。</li>
-                        <li><strong>辻時刻コントロール</strong>: タイムピッカー(時分)+秒スライダー(範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ)で辻時刻を指定。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜30秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます。<strong>精度フィルタは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
+                        <li><strong>辻時刻コントロール</strong>: タイムピッカー(時分)+秒スライダー(範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ)で辻時刻を指定。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜30秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます。<strong>精度フィルタオプションは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
                         <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに検索後オプションに従って辻時刻コントロールが初期化され、優辻マーカーが画面中央に表示されます。検索直後は<strong>全表示天体を含めて最も精度角距離が優良な行</strong>が自動選択され、日時も移動します (辻ラインがオンなら辻ラインも移動)。画面ズームの初期値は最大ズーム値-3です。</li>
                         <li><strong>標高オプション</strong>: ONにすると、検索前に標高グラフと同じ直線見通し判定 (地球曲率・屈折なし。基本オプションの除外範囲も反映) で<strong>検索エリアの全画素の可視 (OK) / 不可視 (NG) を判定</strong>し、チェックで選んだ対象の画素だけを辻メッシュ検索します: <strong>OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素</strong>。判定は目的点から方位レイを引いて行い、レイ本数は「2×方位スパン×最大距離÷画素サイズ」で<strong>検索エリアの広さ・距離に自動追従</strong>します (判定中は「標高タイル取得中…」「可視判定中… i/Nレイ」の進捗を表示)。結果リストの「標高グラフ」列は、その行の表示値 (観測点基準) を出した地点=<strong>観測点の位置の可視判定</strong>を表示します (そのため全行同じ値になります)。</li>
                     </ul>

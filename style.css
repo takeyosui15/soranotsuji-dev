@@ -164,6 +164,13 @@ html {
     flex: 0 0 auto;
 }
 #tsujimesh-ctrl-header { max-width: 360px; width: 100%; margin: 0 auto; box-sizing: border-box; }   /* 宙の窓ctrlと同じ中央寄せ */
+
+/* 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールする(左上・ズームコントロールの下) */
+.map-pan-control .map-pan-h { display: flex; flex-direction: row; margin-bottom: 5px; }
+.map-pan-control .map-pan-h a { width: 26px; height: 26px; line-height: 26px; display: inline-block; text-align: center; }
+.map-pan-control .map-pan-h a:first-child { border-radius: 4px 0 0 4px; border-bottom: none; border-right: 1px solid #ccc; }
+.map-pan-control .map-pan-h a:last-child { border-radius: 0 4px 4px 0; }
+.map-pan-control a { font-size: 12px; color: black; text-decoration: none; }
 #tsujimesh-ctrl-body {
     flex: 1 1 auto;
     min-height: 0;
