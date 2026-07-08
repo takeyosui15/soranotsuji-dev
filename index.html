@@ -109,14 +109,32 @@ GNU General Public License for more details.
                         <option value="0.0009765625">◎×128(±0.0009765625°)</option>
                     </select>
                 </div>
-                <div class="control-row">
-                    <label class="input-label tsujimesh-time-label2">検索後オプション:</label>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="辻メッシュ検索後の画面初期表示での優辻マーカー(ピン)の位置">検索後オプション</label>
                 </div>
-                <div class="control-row">
+                <div class="control-row left-row">
                     <label class="baseopt-radio" title="現在の観測点に最も近い最高精度の画素に優辻マーカー(ピン)を立て、その画素の辻時刻に移動します"><input type="radio" name="tsujimesh-post-mode" value="near" checked>:近傍の最高精度点(≠辻時刻)</label>
                 </div>
-                <div class="control-row">
+                <div class="control-row left-row">
                     <label class="baseopt-radio" title="表示中の辻時刻での最高精度の画素に優辻マーカー(ピン)を立てます"><input type="radio" name="tsujimesh-post-mode" value="attime">:表示辻時刻での最高精度点</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="辻メッシュ検索のDEM標高タイルの範囲。変更すると再検索します">検索エリア</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="3×3=9タイル(約12km四方)"><input type="radio" name="tsujimesh-area" value="3" checked>:3×3</label>
+                    <label class="baseopt-radio" title="4×4=16タイル(約16km四方)"><input type="radio" name="tsujimesh-area" value="4">:4×4</label>
+                    <label class="baseopt-radio" title="5×5=25タイル(約20km四方)"><input type="radio" name="tsujimesh-area" value="5">:5×5</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="メッシュマーカーの色を白から黒のグレースケールで指定">メッシュマーカー色</label>
+                </div>
+                <div class="control-row center-row">
+                    <span id="tsujimesh-mesh-gray-label" class="tsujimesh-ctrl-label">0%</span>
+                    <span id="tsujimesh-mesh-gray-sample" style="color:#ffffff;">■</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="tsujimesh-mesh-gray" min="0" max="100" value="0" step="1" title="メッシュマーカーのグレースケール(0%=白〜100%=黒)">
                 </div>
             </div>
         </div>
@@ -615,9 +633,9 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsujimesh-sym-maru2" class="body-checkbox" checked disabled> <label class="tsuji-acc-label" title="精度記号◎(±0.125°)の行を表示(常時オン)">:◎</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-maru" class="body-checkbox"> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-maru" title="精度記号○(±0.25°)の行も表示">:○</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-tri" class="body-checkbox"> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-tri" title="精度記号△(±1°)の行も表示">:△</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox"> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-dash" title="精度記号-の行も表示">:-</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-maru" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-maru" title="精度記号○(±0.25°)の行も表示">:○</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-tri" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-tri" title="精度記号△(±1°)の行も表示">:△</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-dash" title="精度記号-の行も表示">:-</label>
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row"><label class="baseopt-group-label" title="精度フィルタ◎の当たり判定の精度(検索の判定ε)を指定します">精度フィルタオプション</label></div>
@@ -1438,7 +1456,7 @@ GNU General Public License for more details.
 
                 <section class="help-section">
                     <h3>辻メッシュ検索</h3>
-                    <p>「辻メッシュ」ボタンON時に、観測点付近の9枚(3×3)のDEM標高タイルの<strong>全画素を観測点</strong>として辻検索し、精度フィルタ以内になる日時と場所を網羅します。どの位置なら高い精度の日時が存在するかが地図のマーカーで分かります。</p>
+                    <p>「辻メッシュ」ボタンON時に、観測点付近のDEM標高タイル (検索エリア: 3×3/4×4/5×5) の<strong>全画素を観測点</strong>として辻検索し、精度フィルタ以内になる日時と場所を網羅します。どの位置なら高い精度の日時が存在するかが地図のマーカーで分かります。</p>
                     <ul class="help-list">
                         <li><strong>結果リストの1行</strong>: 「天体×日」のイベント。行の辻時刻・精度記号・精度角距離・方位角・視高度は、<strong>現在の観測点でその日に最高精度が出る辻時刻と、その時の値</strong>です (観測点基準)。観測点で精度が出ない日は ◎ より大きい精度角距離になります (精度記号は ◎/○/△/- )。行になる条件 (領域内のどこかの画素で精度フィルタオプション以内) は画素側で判定します。</li>
                         <li><strong>行の辻時刻と優辻マーカーの関係</strong>: <strong>行の辻時刻は「自分の場所 (観測点)」の最良の「瞬間」</strong>、<strong>優辻マーカー (金色のピン) は「その瞬間 (近傍モードでは観測点近傍)」の最良の「場所」</strong>を指します。観測点が辻ラインの真上に乗る日 (精度角距離≈0) には両者が一致し、残差がある日は数十秒〜数分ずれるのが正常です。</li>
@@ -1446,12 +1464,12 @@ GNU General Public License for more details.
                         <li><strong>精度フィルタオプション ◎/◎×2/◎×4/◎×8</strong>: 検索 (画素側) の当たり判定 (±0.125°/±0.0625°/±0.03125°/±0.015625°)。</li>
                         <li><strong>許容範囲方位角/視高度</strong>: 基準方位角/視高度から±この範囲にある画素だけを検索対象にします。</li>
                         <li><strong>画素の高さ基準</strong>: 全画素は観測点と同じ高さ基準「DEM標高 + 観測点高 (位置情報メニューの値)」で計算します (通常の辻検索と同じ)。辻マーカーで観測点に設定しても観測点高は維持されます。</li>
-                        <li><strong>白マーカー</strong>: 全結果行のヒット画素を<strong>全て表示</strong>します (上限 256×256×9 = 全画素)。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong> (複数の日にヒットする画素は最良の日) を表示し、<strong>クリックでその画素を観測点に設定</strong>し、あわせてその行が選択されて辻時刻コントロールがその画素の辻時刻へ移動します (優辻マーカーがそこに立ちます)。地図上のどの帯でもクリック一発で「そこに立った時の辻」へ飛べます。</li>
-                        <li><strong>辻マーカー (旧: 金色マーカー)</strong>: コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 256×256×9 = 全て表示)。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>を表示し、<strong>クリックでその画素を観測点に設定</strong>できます。</li>
+                        <li><strong>メッシュマーカー (旧: 白マーカー)</strong>: 全結果行のヒット画素を<strong>全て表示</strong>します (上限 = 検索エリアの全画素)。色は「メッシュマーカー色」スライダーで白〜黒のグレースケールに変えられます。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong> (複数の日にヒットする画素は最良の日) を表示し、<strong>クリックでその画素を観測点に設定</strong>し、あわせてその行が選択されて辻時刻コントロールがその画素の辻時刻へ移動します (優辻マーカーがそこに立ちます)。地図上のどの帯でもクリック一発で「そこに立った時の辻」へ飛べます。</li>
+                        <li><strong>辻マーカー (旧: 金色マーカー)</strong>: コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせるとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>を表示し、<strong>クリックでその画素を観測点に設定</strong>できます。</li>
                         <li><strong>優辻マーカー (金色のピン)</strong>: 最良精度の画素に、観測点マーカーと同じ大きさの金色のピンを立てます。カーソルで辻時刻・精度角距離を表示、クリックで観測点に設定できます。表示天体メニューで選択行の天体をオフにすると、辻マーカーとピンは非表示になります。</li>
                         <li><strong>検索後オプション</strong>: 行選択直後のピンの位置を選べます。<strong>「近傍の最高精度点(≠辻時刻)」(初期値)</strong> = 観測点に最も近い最高精度の画素にピンを立て、辻時刻コントロールもその画素の辻時刻に移動して画面中央に表示。<strong>「表示辻時刻での最高精度点」</strong> = 行の辻時刻でのその瞬間の最良画素にピンを立てます。</li>
                         <li><strong>辻時刻コントロール</strong>: タイムピッカー(時分)+秒スライダー(範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ)で辻時刻を指定。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜30秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます。<strong>精度フィルタは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
-                        <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに検索後オプションに従って辻時刻コントロールが初期化され、優辻マーカーが画面中央に表示されます。</li>
+                        <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに検索後オプションに従って辻時刻コントロールが初期化され、優辻マーカーが画面中央に表示されます。検索直後は<strong>全表示天体を含めて最も精度角距離が優良な行</strong>が自動選択され、日時も移動します (辻ラインがオンなら辻ラインも移動)。画面ズームの初期値は最大ズーム値-3です。</li>
                         <li><strong>標高オプション</strong>: 行の最良画素→目的点の可視判定 (OK/NG)。判定は先頭300行まで (超過分は「-」)。</li>
                     </ul>
                 </section>

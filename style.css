@@ -176,7 +176,8 @@ html {
 .tsujimesh-ctrl-label { color: #ffd700; font-size: 13px; font-weight: bold; margin: 0 8px; }
 #tsujimesh-row-slider { flex: 1 1 auto; min-width: 0; }
 #tsujimesh-time-slider { flex: 1 1 auto; min-width: 0; }
-.tsujimesh-time-label2 { width: 120px; flex-shrink: 0; text-align: right; margin-right: 5px; }
+#tsujimesh-ctrl-body .tsujimesh-time-label2 { width: 175px; flex-shrink: 0; text-align: right; margin-right: 5px; }   /* メニューの縦並びラベルと同幅(.input-labelの105pxより優先) */
+#tsujimesh-mesh-gray { flex: 1 1 auto; min-width: 0; }
 /* コントロール領域の入力はメニューの縦並びテキストボックスと同幅(155px)に揃える */
 #tsujimesh-time-picker,
 #input-tsujimesh-time-width,

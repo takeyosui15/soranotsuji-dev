@@ -152,7 +152,7 @@ self.onmessage = (e) => {
     };
 
     const events = [];
-    const MAX_PIX_PER_DAY = 589824;   // 256×256×9 = 領域の全画素(実質上限なし)
+    const MAX_PIX_PER_DAY = 1638400;   // 256×256×25 = 検索エリア最大(5×5)の全画素(実質上限なし)
 
     for (let day = dayStart; day < dayEnd; day++) {
         const dayBase = searchStartMs + day * 86400000;

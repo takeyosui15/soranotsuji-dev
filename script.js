@@ -324,7 +324,7 @@ let appState = {
     tsujiMeshTimeFilter: false,
     tsujiMeshStartMode: 'sunset', tsujiMeshStartTime: '00:00', tsujiMeshStartPrePost: false, tsujiMeshStartPrePostDir: 'before', tsujiMeshStartOffset: '00:00',
     tsujiMeshEndMode: 'sunrise', tsujiMeshEndTime: '00:00', tsujiMeshEndPrePost: false, tsujiMeshEndPrePostDir: 'before', tsujiMeshEndOffset: '00:00',
-    tsujiMeshSymO: false, tsujiMeshSymTri: false, tsujiMeshSymDash: false,   // 精度フィルタ(◎は常時オン・○△-の表示可否)
+    tsujiMeshSymO: true, tsujiMeshSymTri: true, tsujiMeshSymDash: true,   // 精度フィルタ(◎は常時オン・○△-の表示可否。初期値オン)
     tsujiMeshElevationOption: false, tsujiMeshElevOK: false, tsujiMeshElevNG: false,
     isTsujiMeshActive: false,       // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
     tsujiElevOK: false,
@@ -6730,7 +6730,9 @@ let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = da
 let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
 let _tmCtrlEps = 0.125;        // 精度フィルタ(角距離ε°) ◎〜◎×128
 let _tmCtrlPickerPrev = '';    // 辻時刻タイムピッカーの直前値(未入力時の復元用)
-let _tmPostMode = 'near';      // 検索後オプション: 'near'=近傍の最高精度点(≠辻時刻) / 'attime'=辻時刻での最高精度点
+let _tmPostMode = 'near';      // 検索後オプション: 'near'=近傍の最高精度点(≠辻時刻) / 'attime'=表示辻時刻での最高精度点
+let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5)
+let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
 let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
@@ -6837,15 +6839,16 @@ function clearTsujiMeshMarkers() {
     if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
 }
 
-/** ヒット画素集合を9タイル領域(768×768)のオーバーレイ画像に描いて返す(1画像画素=DEM1画素の実寸表示)。
+/** ヒット画素集合を検索エリア(N×256四方)のオーバーレイ画像に描いて返す(1画像画素=DEM1画素の実寸表示)。
  *  paint(put) の put(pix) で画素を塗る。rgba=[r,g,b,a(0..255)] */
 function _tmBuildOverlay(paint, rgba) {
     const C = _tsujiMeshCalc;
     if (!C || !C.grid) return null;
+    const W = C.gridW;
     const canvas = document.createElement('canvas');
-    canvas.width = 768; canvas.height = 768;
+    canvas.width = W; canvas.height = W;
     const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(768, 768);
+    const img = ctx.createImageData(W, W);
     const data = img.data;
     const [r, g, b, a] = rgba;
     paint((pix) => {
@@ -6866,8 +6869,8 @@ function _tmPixAtLatLng(latlng) {
     const sinLat = Math.sin(latlng.lat * Math.PI / 180);
     const gpy = Math.floor((128 - R * Math.atanh(Math.max(-0.9999999, Math.min(0.9999999, sinLat)))) * scale);
     const x = gpx - C.gxBase, y = gpy - C.gyBase;
-    if (x < 0 || x >= 768 || y < 0 || y >= 768) return -1;
-    return C.grid[y * 768 + x] - 1;
+    if (x < 0 || x >= C.gridW || y < 0 || y >= C.gridW) return -1;
+    return C.grid[y * C.gridW + x] - 1;
 }
 
 /** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし)。
@@ -6899,7 +6902,7 @@ function drawTsujiMeshMarkers() {
                 }
             }
         }
-    }, [255, 255, 255, 230]);
+    }, (() => { const v = Math.round(255 * (1 - _tmMeshGray / 100)); return [v, v, v, 230]; })());
     if (overlay) overlay.addTo(tsujiMeshLayer);
 }
 
@@ -7276,8 +7279,8 @@ function handleTsujiMeshGoldHover(latlng) {
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
         const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
         const ref = _tmRefinePixelTime(pix, _tsujiMeshWhiteTime[pix], row.body);
-        if (ref) content = _tmTooltipHtml('白マーカー', ref.timeMs, ref.dist);
-        else content = _tmTooltipHtml('白マーカー', _tsujiMeshWhiteTime[pix], _tsujiMeshWhiteDist[pix]);
+        if (ref) content = _tmTooltipHtml('メッシュマーカー', ref.timeMs, ref.dist);
+        else content = _tmTooltipHtml('メッシュマーカー', _tsujiMeshWhiteTime[pix], _tsujiMeshWhiteDist[pix]);
     }
     if (!content) { hide(); return; }
     const at = L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]);
@@ -7365,19 +7368,10 @@ function selectTsujiMeshRow(idx, jump) {
     zoomToTsujiMeshRow(row, _tmLastBig ? _tmLastBig.pix : row.bestPix);
 }
 
-/** 選択行のヒット画素集合が収まるズームで、優辻マーカー(centerPix)が
+/** ズーム=地図の最大ズーム値-3で、優辻マーカー(centerPix)が
  *  可視領域(下部パネルを除く)の中央に来るよう表示する。 */
 function zoomToTsujiMeshRow(row, centerPix) {
     if (!row || !_tsujiMeshPix || typeof map === 'undefined' || !map) return;
-    const n = row.pixIdx.length;
-    const step = Math.max(1, Math.ceil(n / 500));   // 最大500点のサンプルで範囲を求める
-    const bounds = L.latLngBounds([]);
-    for (let i = 0; i < n; i += step) {
-        const pix = row.pixIdx[i];
-        bounds.extend([_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]]);
-    }
-    bounds.extend([_tsujiMeshPix.lat[row.bestPix], _tsujiMeshPix.lng[row.bestPix]]);
-    if (!bounds.isValid()) return;
     // 表示中の下部パネルの被覆高さ(px)を実測(recenterObserverInViewと同じ)
     let coveredPx = 0;
     for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
@@ -7385,7 +7379,7 @@ function zoomToTsujiMeshRow(row, centerPix) {
         if (!el || el.classList.contains('hidden')) continue;
         coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
     }
-    const zoom = Math.min(15, map.getBoundsZoom(bounds.pad(0.15)));
+    const zoom = (map.getMaxZoom ? map.getMaxZoom() : 18) - 3;
     const pinPix = (centerPix !== undefined && centerPix >= 0) ? centerPix : row.bestPix;
     // ピンが「パネルに隠れない領域の中央」に来るよう、地図中心をピンから下へ被覆高さの半分だけずらす
     const pinPt = map.project([_tsujiMeshPix.lat[pinPix], _tsujiMeshPix.lng[pinPix]], zoom);
@@ -7419,11 +7413,15 @@ async function startTsujiMeshSearch() {
         return;
     }
 
-    // 1) 観測点を含むタイル+8近傍(3×3)のDEM標高タイルを取得
+    // 1) 観測点を含むタイルの近傍(検索エリア: N×N)のDEM標高タイルを取得
+    const areaN = _tmSearchArea;
+    const areaHalf = Math.floor((areaN - 1) / 2);
+    const progTotal = 2 * areaN * areaN;   // 取得N²+前計算N²
     const ti = _getTileInfo(start.lat, start.lng, TSUJIMESH_ZOOM);
     const dem = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
     const tiles = [];
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) tiles.push({ x: ti.x + dx, y: ti.y + dy });
+    for (let dy = -areaHalf; dy <= areaN - 1 - areaHalf; dy++)
+        for (let dx = -areaHalf; dx <= areaN - 1 - areaHalf; dx++) tiles.push({ x: ti.x + dx, y: ti.y + dy });
     const tileData = [];
     for (let i = 0; i < tiles.length; i++) {
         if (generation !== tsujiMeshGeneration) return;
@@ -7435,7 +7433,7 @@ async function startTsujiMeshSearch() {
             try { img = await _getTileImageData(url); } catch (_) { img = null; }   // 海上等でタイルが無い場合はスキップ
         }
         tileData.push(img);
-        setTsujiMeshProgress(i + 1, 18);
+        setTsujiMeshProgress(i + 1, progTotal);
     }
     if (generation !== tsujiMeshGeneration) return;
 
@@ -7450,14 +7448,15 @@ async function startTsujiMeshSearch() {
     const mPerDegLat = Math.PI * EARTH_R / 180;
     const mPerDegLng = mPerDegLat * Math.cos(start.lat * Math.PI / 180);
     const geod = geodesic.Geodesic.WGS84;
-    // マーカーのオーバーレイ描画用: 9タイル領域(768×768)のグローバル画素→対象画素index+1(0=対象外)
-    const gxBase = (ti.x - 1) * 256, gyBase = (ti.y - 1) * 256;
-    const grid = new Uint32Array(768 * 768);
+    // マーカーのオーバーレイ描画用: 検索エリア(N*256四方)のグローバル画素→対象画素index+1(0=対象外)
+    const gridW = areaN * 256;
+    const gxBase = (ti.x - areaHalf) * 256, gyBase = (ti.y - areaHalf) * 256;
+    const grid = new Uint32Array(gridW * gridW);
     const gridPosA = new Uint32Array(maxCount);   // 対象画素index→グリッド位置(オーバーレイ描画用の逆引き)
     let kept = 0, minAlt = Infinity, maxAlt = -Infinity;
     for (let t = 0; t < tiles.length; t++) {
         const img = tileData[t];
-        if (!img) { setTsujiMeshProgress(10 + t, 18); continue; }
+        if (!img) { setTsujiMeshProgress(tiles.length + t + 1, progTotal); continue; }
         const gx0 = tiles[t].x * 256, gy0 = tiles[t].y * 256;
         const px = (img === '_synthetic_') ? null : img.data;
         for (let py = 0; py < 256; py++) {
@@ -7481,7 +7480,7 @@ async function startTsujiMeshSearch() {
                 latA[kept] = ll.lat; lngA[kept] = ll.lng; elevA[kept] = elev;
                 dEA[kept] = (ll.lng - start.lng) * mPerDegLng / EARTH_R;
                 dNA[kept] = (ll.lat - start.lat) * mPerDegLat / EARTH_R;
-                const gpos = (gy0 + py - gyBase) * 768 + (gx0 + pxx - gxBase);
+                const gpos = (gy0 + py - gyBase) * gridW + (gx0 + pxx - gxBase);
                 grid[gpos] = kept + 1;
                 gridPosA[kept] = gpos;
                 if (alt < minAlt) minAlt = alt;
@@ -7489,7 +7488,7 @@ async function startTsujiMeshSearch() {
                 kept++;
             }
         }
-        setTsujiMeshProgress(10 + t, 18);
+        setTsujiMeshProgress(tiles.length + t + 1, progTotal);
         await new Promise(r => setTimeout(r, 0));   // UIへ制御を返す
         if (generation !== tsujiMeshGeneration) return;
     }
@@ -7525,7 +7524,7 @@ async function startTsujiMeshSearch() {
         const lat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
         return { lat, lng };
     };
-    const nw = cornerLL(gxBase, gyBase), se = cornerLL(gxBase + 768, gyBase + 768);
+    const nw = cornerLL(gxBase, gyBase), se = cornerLL(gxBase + gridW, gyBase + gridW);
     // 辻時刻コントロールの再計算(案B)用に、画素索引と検索条件をスナップショット(検索条件の凍結)
     _tsujiMeshCalc = {
         baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180),
@@ -7534,7 +7533,7 @@ async function startTsujiMeshSearch() {
         refractionEnabled: appState.refractionEnabled,
         offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
         centerMode: appState.tsujiMeshCenterMode,
-        grid, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
+        grid, gridW, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
         bounds: L.latLngBounds([se.lat, nw.lng], [nw.lat, se.lng]),
     };
     await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
@@ -7732,7 +7731,16 @@ async function startTsujiMeshSearch() {
     setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()}${judgeNote})`);
     renderTsujiMeshResults();
     drawTsujiMeshMarkers();
-    if (rows.length) selectTsujiMeshRow(0);
+    if (rows.length) {
+        // 検索後は、複数の表示天体を含めて最も精度角距離が優良な行を自動選択する。
+        // 日時も移動する(辻ラインがオンの場合は updateAll で辻ラインも移動する)
+        let bestIdx = 0;
+        rows.forEach((r, i) => { if (r.dist < rows[bestIdx].dist) bestIdx = i; });
+        appState.currentDate = new Date(rows[bestIdx].dateObj);
+        syncUIFromState();
+        updateAll();
+        selectTsujiMeshRow(bestIdx);
+    }
 }
 
 /** 辻メッシュ検索の結果リスト(21列・ソート可)を描画 */
@@ -7890,6 +7898,23 @@ function setupTsujiMeshPanelControls() {
             _tmPostMode = r.value;
             if (_tsujiMeshSelIdx >= 0) selectTsujiMeshRow(_tsujiMeshSelIdx);
         });
+    });
+    // 検索エリア: N×Nタイル。変更で再検索(世代カウンタが実行中の前の処理をキャンセルする)
+    document.querySelectorAll('input[name="tsujimesh-area"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            _tmSearchArea = parseInt(r.value) || 3;
+            if (appState.isTsujiMeshActive) startTsujiMeshSearch();
+        });
+    });
+    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール。追従して再描画
+    document.getElementById('tsujimesh-mesh-gray').addEventListener('input', (e) => {
+        _tmMeshGray = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 100);
+        const lbl = document.getElementById('tsujimesh-mesh-gray-label');
+        if (lbl) lbl.textContent = `${_tmMeshGray}%`;
+        const smp = document.getElementById('tsujimesh-mesh-gray-sample');
+        if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
+        if (_tsujiMeshRows.length) drawTsujiMeshMarkers();
     });
 }
 
