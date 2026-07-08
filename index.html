@@ -536,10 +536,6 @@ GNU General Public License for more details.
                 </div>
                 <div id="sec-tsujimesh" class="section-content closed">
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="全画素の観測点に一律に加算する高さ(展望台の階の高さなど)">観測点画素の高さ(m):</label>
-                        <input type="number" id="input-tsujimesh-pix-height" placeholder="0〜10000m" step="1" min="0" max="10000">
-                    </div>
-                    <div class="control-row">
                         <label class="input-label tsujisearch-label">検索期間(日):</label>
                         <input type="number" id="input-tsujimesh-days" placeholder="最大36500日(100年間)" step="1" min="1" max="36500">
                     </div>
@@ -1440,7 +1436,7 @@ GNU General Public License for more details.
                         <li><strong>結果リストの1行</strong>: 「天体×日」のイベント。行の辻時刻・精度記号・精度角距離・方位角・視高度は、<strong>現在の観測点でその日に最高精度が出る辻時刻と、その時の値</strong>です (観測点基準)。観測点で精度が出ない日は ◎ より大きい精度角距離になります (精度記号は ◎/○/△/- )。行になる条件 (領域内のどこかの画素で精度フィルタ以内) は画素側で判定します。</li>
                         <li><strong>精度フィルタ ◎/◎×2/◎×4/◎×8</strong>: 検索の当たり判定 (±0.125°/±0.0625°/±0.03125°/±0.015625°)。</li>
                         <li><strong>許容範囲方位角/視高度</strong>: 基準方位角/視高度から±この範囲にある画素だけを検索対象にします。</li>
-                        <li><strong>観測点画素の高さ(m)</strong>: 全画素の観測点に一律に加算する高さ (0〜10000m。展望台の階の高さなどを想定)。金色マーカーで観測点に設定するときも、この値が観測点高に入ります。</li>
+                        <li><strong>画素の高さ基準</strong>: 全画素は観測点と同じ高さ基準「DEM標高 + 観測点高 (位置情報メニューの値)」で計算します (通常の辻検索と同じ)。金色マーカーで観測点に設定しても観測点高は維持されます。</li>
                         <li><strong>白マーカー</strong>: 全結果行のヒット画素を<strong>全て表示</strong>します (上限 256×256×9 = 全画素)。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。</li>
                         <li><strong>金色マーカー</strong>: コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算して表示します (行選択時はその行の辻時刻で初期化。上限 256×256×9 = <strong>全て表示</strong>)。マーカーは画素の実寸で描き、カーソルを合わせると精度角距離を表示、<strong>クリックでその画素を観測点に設定</strong>できます。</li>
                         <li><strong>最良画素のピン</strong>: 指定した辻時刻で<strong>最良精度の画素</strong>に、観測点マーカーと同じ大きさの金色のピンを立てます (精度フィルタに関係なく、その時刻の全画素の最小距離)。クリックで観測点に設定できます。</li>

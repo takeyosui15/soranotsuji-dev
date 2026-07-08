@@ -315,7 +315,6 @@ let appState = {
     // 標高オプション
     tsujiElevationOption: false,
     // 辻メッシュ検索パラメータ (全てlocalStorage保存。isTsujiMeshActiveのみセッション/URL)
-    tsujiMeshPixHeight: 0,          // 観測点画素の高さ(m): 全画素の観測点に一律加算(0〜10000)
     tsujiMeshDays: 365,
     tsujiMeshBaseAz: 0, tsujiMeshOffsetAz: 0, tsujiMeshToleranceAz: 15,
     tsujiMeshBaseAlt: 0, tsujiMeshOffsetAlt: 0, tsujiMeshToleranceAlt: 15,
@@ -438,7 +437,6 @@ window.onload = function() {
     document.getElementById('chk-tsuji-elev-ok').checked = appState.tsujiElevOK;
     document.getElementById('chk-tsuji-elev-ng').checked = appState.tsujiElevNG;
     // 辻メッシュ検索: localStorage復元値をセット
-    document.getElementById('input-tsujimesh-pix-height').value = appState.tsujiMeshPixHeight;
     document.getElementById('input-tsujimesh-days').value = appState.tsujiMeshDays;
     document.getElementById('input-tsujimesh-az').value = appState.tsujiMeshBaseAz;
     document.getElementById('input-tsujimesh-alt').value = appState.tsujiMeshBaseAlt;
@@ -826,11 +824,6 @@ function setupUI() {
     }
 
     // 辻メッシュ検索: メニューの変更をlocalStorage保存
-    document.getElementById('input-tsujimesh-pix-height').addEventListener('change', (e) => {
-        appState.tsujiMeshPixHeight = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 10000);
-        e.target.value = appState.tsujiMeshPixHeight;
-        saveAppState();
-    });
     document.getElementById('input-tsujimesh-days').addEventListener('change', (e) => {
         let v = parseInt(e.target.value);
         if (isNaN(v)) v = 365;
@@ -1200,7 +1193,6 @@ function saveAppState() {
         tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
         tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
         // 辻メッシュ検索パラメータ
-        tsujiMeshPixHeight: appState.tsujiMeshPixHeight,
         tsujiMeshDays: appState.tsujiMeshDays,
         tsujiMeshBaseAz: appState.tsujiMeshBaseAz, tsujiMeshOffsetAz: appState.tsujiMeshOffsetAz, tsujiMeshToleranceAz: appState.tsujiMeshToleranceAz,
         tsujiMeshBaseAlt: appState.tsujiMeshBaseAlt, tsujiMeshOffsetAlt: appState.tsujiMeshOffsetAlt, tsujiMeshToleranceAlt: appState.tsujiMeshToleranceAlt,
@@ -1270,7 +1262,7 @@ function loadAppState() {
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
             if(saved.tsujiCenterMode !== undefined) appState.tsujiCenterMode = saved.tsujiCenterMode;
             // 辻メッシュ検索パラメータ
-            ['tsujiMeshPixHeight', 'tsujiMeshDays', 'tsujiMeshBaseAz', 'tsujiMeshOffsetAz', 'tsujiMeshToleranceAz',
+            ['tsujiMeshDays', 'tsujiMeshBaseAz', 'tsujiMeshOffsetAz', 'tsujiMeshToleranceAz',
              'tsujiMeshBaseAlt', 'tsujiMeshOffsetAlt', 'tsujiMeshToleranceAlt',
              'tsujiMeshCenterMode', 'tsujiMeshAccuracy',
              'tsujiMeshMoonFilterEnabled', 'tsujiMeshMoonBase', 'tsujiMeshMoonTolerance',
@@ -1354,7 +1346,6 @@ function normalizeAppState() {
     if (!['point', 'line'].includes(appState.tsujiMeshCenterMode)) appState.tsujiMeshCenterMode = 'point';
     if (!['x1', 'x2', 'x4', 'x8'].includes(appState.tsujiMeshAccuracy)) appState.tsujiMeshAccuracy = 'x1';
     appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
-    appState.tsujiMeshPixHeight = Math.min(Math.max(Number(appState.tsujiMeshPixHeight) || 0, 0), 10000);
     if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
     // 宙の窓: 数値の範囲・型
@@ -2852,7 +2843,7 @@ async function onMapClick(e) {
         stopMove();
         return;
     }
-    // 辻メッシュ検索の金色オーバーレイの画素なら、その画素を観測点に設定(DEM標高+観測点画素の高さ)
+    // 辻メッシュ検索の金色オーバーレイの画素なら、その画素を観測点に設定(DEM標高+観測点高)
     if (handleTsujiMeshGoldClick(e.latlng)) return;
     const isStart = appState.locMode === 'start';
     const elev = await getElevation(e.latlng.lat, e.latlng.lng);
@@ -6717,7 +6708,7 @@ const TSUJIMESH_EPS = { x1: 0.125, x2: 0.0625, x4: 0.03125, x8: 0.015625 };   //
 let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
 let _tsujiMeshSelIdx = -1;     // 選択中の行index
 let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array(DEM標高) } (プレフィルタ後)
-let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った「観測点画素の高さ」(金色マーカーの観測点設定・標高判定に使用)
+let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った観測点高(金色マーカーの観測点設定・標高判定に使用)
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
@@ -6889,7 +6880,7 @@ function updateTsujiMeshGoldMarkers() {
             renderer: _tsujiMeshCanvasRenderer,
             radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
         }).on('click', () => {
-            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点画素の高さ)
+            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点高)
             appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
             appState.startApiElev = elev;
             appState.startHeight = _tsujiMeshPixHeightUsed;
@@ -7067,7 +7058,7 @@ function recalcTsujiMeshGoldAtTime() {
     drawTsujiMeshGoldSet(perPix, big);
 }
 
-/** 金色マーカーの画素をクリックした時と同じ観測点設定(観測点高=検索時の観測点画素の高さ) */
+/** 金色マーカーの画素をクリックした時と同じ観測点設定(観測点高=検索時の観測点高) */
 function _tmSetObserverToPix(pix) {
     const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
     appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
@@ -7208,7 +7199,7 @@ async function startTsujiMeshSearch() {
 
     const start = appState.start, end = appState.end;
     const endElev = end.elev;
-    const pixHeight = Math.min(Math.max(Number(appState.tsujiMeshPixHeight) || 0, 0), 10000);   // 観測点画素の高さ(全画素に一律加算)
+    const pixHeight = Number(appState.startHeight) || 0;   // 観測点高を全画素に自動適用(辻検索と同じ「標高+観測点高」基準)
     _tsujiMeshPixHeightUsed = pixHeight;
     const menuBaseAz = appState.tsujiMeshBaseAz, menuBaseAlt = appState.tsujiMeshBaseAlt;
     const tolAz = appState.tsujiMeshToleranceAz, tolAlt = appState.tsujiMeshToleranceAlt;
@@ -8544,7 +8535,7 @@ const _QP_SEEDS_V4 = _QP_SEEDS_V3.concat(['&tsujiCenterMode=', '=point&', '=line
 const _QP_SEEDS_V5 = _QP_SEEDS_V4.concat(['&soraTargetCross=', '&soraSearchCenter=']);
 // v6: v5の全シード + 辻メッシュ検索
 const _QP_SEEDS_V6 = _QP_SEEDS_V5.concat(['&tsujiMesh', 'tsujiMesh', '&tsujimesh=', '=x1&', '=x2&', '=x4&', '=x8&', 'MeshStart', 'MeshEnd', '=tsujimesh&']);
-// v7: v6の全シード + 観測点画素の高さ
+// v7: v6の全シード + 観測点画素の高さ(項目は廃止済み。辞書は凍結のため残す)
 const _QP_SEEDS_V7 = _QP_SEEDS_V6.concat(['&tsujiMeshPixHeight=']);
 const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7];   // 添字+1=版数。最新版でエンコードする
 
@@ -8844,7 +8835,6 @@ function copyTsujiMeshUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'tsujimesh');
 
-    params.set('tsujiMeshPixHeight', String(appState.tsujiMeshPixHeight));
     params.set('tsujiMeshDays', String(appState.tsujiMeshDays));
     params.set('tsujiMeshAz', String(appState.tsujiMeshBaseAz));
     params.set('tsujiMeshAlt', String(appState.tsujiMeshBaseAlt));
@@ -9023,7 +9013,6 @@ function restoreFromUrl() {
         const meshBool = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk) === 'true'; };
         const meshStr = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk); };
         if (params.has('tsujiMeshDays')) { const v = parseInt(params.get('tsujiMeshDays')); if (!isNaN(v)) appState.tsujiMeshDays = v; }
-        meshNum('tsujiMeshPixHeight', 'tsujiMeshPixHeight');
         meshNum('tsujiMeshAz', 'tsujiMeshBaseAz'); meshNum('tsujiMeshAlt', 'tsujiMeshBaseAlt');
         meshNum('tsujiMeshAzOffset', 'tsujiMeshOffsetAz'); meshNum('tsujiMeshAltOffset', 'tsujiMeshOffsetAlt');
         meshNum('tsujiMeshAzTolerance', 'tsujiMeshToleranceAz'); meshNum('tsujiMeshAltTolerance', 'tsujiMeshToleranceAlt');
