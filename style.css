@@ -177,8 +177,10 @@ html {
 #tsujimesh-row-slider { flex: 1 1 auto; min-width: 0; }
 #tsujimesh-time-slider { flex: 1 1 auto; min-width: 0; }
 .tsujimesh-time-label2 { width: 120px; flex-shrink: 0; text-align: right; margin-right: 5px; }
-#tsujimesh-time-picker { width: 110px; }
-#input-tsujimesh-time-width { width: 68px; }
+/* コントロール領域の入力はメニューの縦並びテキストボックスと同幅(155px)に揃える */
+#tsujimesh-time-picker,
+#input-tsujimesh-time-width,
+#select-tsujimesh-time-eps { width: 155px; flex: 0 0 auto; box-sizing: border-box; }
 
 #tsujisearch-header {
     padding: 4px 10px;
