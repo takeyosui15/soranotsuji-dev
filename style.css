@@ -163,6 +163,7 @@ html {
     user-select: none;
     flex: 0 0 auto;
 }
+#tsujimesh-ctrl-header { max-width: 360px; width: 100%; margin: 0 auto; box-sizing: border-box; }   /* 宙の窓ctrlと同じ中央寄せ */
 #tsujimesh-ctrl-body {
     flex: 1 1 auto;
     min-height: 0;
