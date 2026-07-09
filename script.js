@@ -7815,13 +7815,26 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     // (グローバル画素Yは256歩ごとに厳密計算し区間内は線形補間。誤差は0.01画素未満)
     const band = new Float32Array(nLines * bandLen);
     const gpxPerDegLng = 128 * scale / 180;
+    // 目的点自身の画素の遮蔽正接(全レイ共通の初期値): 標高グラフは目的点の直近(サンプル間隔分)まで
+    // 判定に含めるため、除外範囲がその距離(0.25画素≒2m)未満の時は目的点の画素の標高も遮蔽として
+    // 評価する。高さ0なら 標高−目的点標高=0 → 正接0 となり、可視直線が下る観測点(目的点より低い
+    // 全画素)は標高グラフと同じくNGになる(除外範囲を約2m以上にすると無視される=標高グラフと同挙動)。
+    let selfG = -Infinity;
+    {
+        const s0 = 0.25 * h;
+        if (s0 > exclM) {
+            const e15 = elevAtHi(tgx, tgy);
+            const e = (e15 !== null) ? e15 : elevAt(tgx | 0, tgy | 0);
+            if (e !== null) selfG = (e - endElev) / s0;
+        }
+    }
     for (let j = 0; j < nLines; j++) {
         const theta = azMin + j * dAz;
         const latStep = Math.cos(theta) * h / mPerDegLat;
         const lngStep = Math.sin(theta) * h / mPerDegLng;
         const gpxStep = lngStep * gpxPerDegLng;
         const rayOff = j * bandLen;
-        let m = -Infinity;
+        let m = selfG;   // 目的点自身の画素の遮蔽から開始(標高グラフの直近サンプル相当)
         let gpx = tgx + gpxStep;   // k=1 の位置
         let k = 1;
         while (k <= nSteps) {
@@ -7831,13 +7844,16 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
             for (let kk = k; kk <= kEnd; kk++, gpx += gpxStep) {
                 const gpyK = gpyA + dgpy * (kk - k);
                 if (kk <= hiK) {
-                    // 高分解能ゾーン: z15(5mメッシュ)を半画素刻み(kk-0.5, kk)で参照(無ければz14)。
+                    // 高分解能ゾーン: z15(5mメッシュ)を参照(標高グラフと同じ。無ければz14)。
+                    // 最初の2歩(目的点〜約15m)は1/4刻み(約1.9m)で標高グラフ並みに密へ、以降は半画素刻み。
                     // 除外範囲は従来どおり「目的点からの距離が除外半径以内のサンプルを無視」(実在の
                     // 近傍遮蔽(お鉢の縁など)を意図的に無視するための機能。分解能とは独立)。
-                    for (let half = 1; half >= 0; half--) {
-                        const s = (kk - half * 0.5) * h;
+                    const div = (kk <= 2) ? 4 : 2;
+                    for (let q = div - 1; q >= 0; q--) {
+                        const back = q / div;
+                        const s = (kk - back) * h;
                         if (s <= exclM) continue;
-                        const gpxS = gpx - gpxStep * half * 0.5, gpyS = gpyK - dgpy * half * 0.5;
+                        const gpxS = gpx - gpxStep * back, gpyS = gpyK - dgpy * back;
                         const e15 = elevAtHi(gpxS, gpyS);
                         const e = (e15 !== null) ? e15 : elevAt(gpxS | 0, gpyS | 0);
                         if (e !== null) {
