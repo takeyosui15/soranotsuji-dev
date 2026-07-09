@@ -11485,9 +11485,11 @@ function drawSoramado() {
         // F3: DEM地形(扇が変わった時のみ再取得)
         _smUpdateTerrain();
     }
-    // 星座線/星座領域(基本オプション連動): チェックオンなら宙の窓のプレビューにも表示
+    // 星座線/星座領域/星座名称(基本オプション連動): チェックオンなら宙の窓のプレビューにも表示
     _smEnsureConstLayer('fig');
     _smEnsureConstLayer('bounds');
+    _smEnsureConstNames();
+    _smUpdateConstNames(cr);
 
     // ファインダー矩形: HTML枠(#soramado-frame)と一致させるため CSS px(論理px)で指定する。
     // three.js は setViewport/setScissor の座標を内部で devicePixelRatio 倍する(three.js WebGLRenderer)。
@@ -11678,6 +11680,69 @@ function _smEnsureConstLayer(kind) {
         _smEqjGrp.add(group);
         if (appState.isSoramadoActive && !_smFailed) drawSoramado();
     }).catch(() => { _smConstLoading2[kind] = false; });
+}
+
+// 宙の窓プレビューの星座名称(基本オプションの「:星座名称」チェックと連動)。
+// 88星座の概略中心(MW_CONSTELLATIONS)にテキストスプライトを置き、EQJ群(_smEqjGrp)の子として空と一緒に回転させる。
+// フィッシュアイのポストプロセスでも星座線と一緒に歪む。テクスチャは初回のみ生成し、
+// 向き(四角=水平/円形=同心円状)とスクリーン固定サイズは毎描画(_smUpdateConstNames)で更新する。
+let _smConstNamesGrp = null;
+function _smEnsureConstNames() {
+    if (!_smEqjGrp || _smConstNamesGrp || !appState.mwShowConstNames) return;
+    const grp = new THREE.Group();
+    const R = _SM_SKY_R * 0.995;
+    MW_CONSTELLATIONS.forEach(c => {
+        // 名称テクスチャ(白文字+黒縁取り)。幅は文字数に応じて可変、アスペクト比はスケール側で維持する
+        const H = 48, font = 'bold 30px sans-serif';
+        const cv = document.createElement('canvas');
+        let ctx = cv.getContext('2d');
+        ctx.font = font;
+        const w = Math.ceil(ctx.measureText(c.n).width) + 16;
+        cv.width = w; cv.height = H;
+        ctx = cv.getContext('2d');
+        ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.strokeText(c.n, w / 2, H / 2);
+        ctx.fillStyle = '#ffffff'; ctx.fillText(c.n, w / 2, H / 2);
+        const tex = new THREE.CanvasTexture(cv);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: tex, transparent: true, opacity: 0.85,
+            depthTest: false, depthWrite: false, sizeAttenuation: false,
+        }));
+        sp.renderOrder = 998;   // 地形・星座線の上に描く(目的点マーカーの999より下)
+        sp.userData.aspect = w / H;
+        const v = _mwEquVec(c.ra, c.dec);
+        sp.position.set(v[0] * R, v[1] * R, v[2] * R);
+        grp.add(sp);
+    });
+    _smConstNamesGrp = grp;
+    _smEqjGrp.add(grp);
+}
+
+/** 星座名称スプライトの毎描画更新: 表示/画面固定サイズ/向き。
+ *  向きは画面形状=四角(またはフィッシュアイオフ・パノラマ中)なら水平、円形なら画面中心から同心円状
+ *  (接線方向・文字の天が中心向き=星座盤の慣例)。バレル歪みは中心からの放射方向を保つため、
+ *  ポストプロセス後も接線方向は維持される。 */
+function _smUpdateConstNames(cr) {
+    if (!_smConstNamesGrp) return;
+    _smConstNamesGrp.visible = !!appState.mwShowConstNames;
+    if (!_smConstNamesGrp.visible) return;
+    const NAME_PX = 13;   // 画面上の文字高さ(px)
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const sy = NAME_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+    const circular = !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama;
+    const wp = new THREE.Vector3();
+    _smConstNamesGrp.children.forEach(sp => {
+        sp.scale.set(sy * sp.userData.aspect, sy, 1);
+        if (circular) {
+            sp.getWorldPosition(wp);
+            const ndc = wp.project(_smCamera);
+            const phi = Math.atan2(ndc.y * cr.h, ndc.x * cr.w);
+            sp.material.rotation = phi + Math.PI / 2;
+        } else if (sp.material.rotation !== 0) {
+            sp.material.rotation = 0;
+        }
+    });
 }
 
 /** 64px キャンバスを描いて CanvasTexture をキャッシュ */
