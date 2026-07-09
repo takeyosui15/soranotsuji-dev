@@ -444,12 +444,12 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-search-days" placeholder="最大36500日(100年間)" step="365" min="0" max="36500">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">基準方位角(°):</label>
-                        <input type="number" id="input-tsuji-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(宙の窓メニューの基準方位角と連動)">基準方位角(°):</label>
+                        <input type="number" id="input-tsuji-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360" title="宙の窓メニューの基準方位角と連動">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label">基準視高度(°):</label>
-                        <input type="number" id="input-tsuji-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(宙の窓メニューの基準視高度と連動)">基準視高度(°):</label>
+                        <input type="number" id="input-tsuji-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360" title="宙の窓メニューの基準視高度と連動">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット方位角(°):</label>
@@ -746,12 +746,12 @@ GNU General Public License for more details.
                     </div>
                     <hr class="baseopt-hr">
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準方位角(°):</label>
-                        <input type="number" id="input-sora-base-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索メニューの基準方位角と連動)">基準方位角(°):</label>
+                        <input type="number" id="input-sora-base-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360" title="辻検索メニューの基準方位角と連動">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準視高度(°):</label>
-                        <input type="number" id="input-sora-base-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索メニューの基準視高度と連動)">基準視高度(°):</label>
+                        <input type="number" id="input-sora-base-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360" title="辻検索メニューの基準視高度と連動">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット方位角(°):</label>
@@ -1499,7 +1499,7 @@ GNU General Public License for more details.
                     <h3>宙の窓</h3>
                     <p>「宙の窓」ボタンON時に、観測点から目的点方向を撮影するカメラのファインダーをシミュレーションします。センサー(機種名リストから選択可)・焦点距離・F値・アスペクト比から画角(水平/垂直/対角)を計算し、実際の星景写真の構図をプレビューできます。</p>
                     <ul class="help-list">
-                        <li><strong>カメラの向き</strong>: 基準方位角・基準視高度 (初期値=観測点→目的点の方向)。<strong>カメラオフセット方位角/視高度</strong>で向きをずらせます (プレビューのドラッグパンと連動)。<strong>辻オフセット6項目</strong>は辻検索メニューと双方向連動します。</li>
+                        <li><strong>カメラの向き</strong>: 基準方位角・基準視高度 (初期値=観測点→目的点の方向)。基準方位角・基準視高度は辻検索メニューの同名項目と双方向連動します。<strong>カメラオフセット方位角/視高度</strong>で向きをずらせます (プレビューのドラッグパンと連動)。<strong>辻オフセット6項目</strong>は辻検索メニューと双方向連動します。</li>
                         <li><strong>プレビューの内容</strong>: 天の川の写真 (明るさスライダー)・表示天体のマーカーと中心十字・軌跡 (前日/当日/翌日)・DEM標高タイルの3D地形 (ヒルシェード適用度スライダー)・目的点の赤十字・検索中心の×。基本オプションのチェックで<strong>表示天体名・星座線・星座領域・星座名称</strong>もプレビューに表示されます (宙の窓メニューにも同じチェックがあり双方向連動。星座名称・表示天体名の文字の向き: 通常・四角=水平、円形フィッシュアイ=画面中心から同心円状。<strong>文字サイズスライダー</strong> (0〜1000%・プレビュー基準100%) で大きさを調整できます)。</li>
                         <li><strong>フィッシュアイ</strong>: 歪みスライダー0〜99%は魚眼風の樽歪み (近似・画角も連動して拡大)。<strong>歪み100%+画面形状:円形のときは「等距離射影の全天表示」</strong>に切り替わります — 画面中心=基準方位角+基準視高度 (カメラの向き)、円周=中心から90°、像高は中心からの角度に比例 (実際の魚眼レンズ・星座盤と同じ投影)。<strong>基準視高度を90°にすると天頂中心の星座盤の見え方</strong>になります (そのとき円の下方向=基準方位角)。全天表示の視野は焦点距離・センサーに依らず常に直径180°です。</li>
                         <li><strong>パノラマ</strong>: 水平画角を最大360°までアスペクト比可変でシミュレーション (円筒投影。フィッシュアイとは併用不可)。</li>
