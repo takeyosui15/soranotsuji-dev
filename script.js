@@ -2923,6 +2923,9 @@ function calculateKFromMeteo(p, tCel, l) {
 // 地図クリック時の処理
 // PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)による観測点移動を防ぐため、
 // 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリック(ダブルタップ)で行う
+// スマホのダブルタップはLeafletの合成dblclick(2タップの間隔200ms以内でしか発火しない)に
+// 依存せず、click(タップ)2回から自前で判定する(400ms以内・40px以内)
+let _mapLastTapMs = 0, _mapLastTapPt = null;
 async function onMapClick(e) {
     // アニメーション中は地図クリック/タップで停止(PC/スマホ共通・シングルで有効)
     if (appState.isMoving) {
@@ -2930,12 +2933,25 @@ async function onMapClick(e) {
         return;
     }
     if (_mapDblClickMode) return;   // PC: ホバーで内容確認・移動/選択はダブルクリック(onMapDblClick)
-    // スマホ: メッシュ/辻マーカーの画素はタップでポップアップを表示(ポップアップのタップで観測点に設定)。
+    // スマホ: 自前のダブルタップ判定(前回タップから400ms以内かつ40px以内)
+    const now = Date.now();
+    const pt = map.latLngToContainerPoint(e.latlng);
+    if (_mapLastTapPt && (now - _mapLastTapMs) <= 400 && pt.distanceTo(_mapLastTapPt) <= 40) {
+        _mapLastTapMs = 0; _mapLastTapPt = null;
+        map.closePopup();
+        await applyMapPointAction(e.latlng);
+        return;
+    }
+    _mapLastTapMs = now; _mapLastTapPt = pt;
+    // シングルタップ: メッシュ/辻マーカーの画素ならポップアップを表示(ポップアップのタップで観測点に設定)。
     // 何もない地図のタップでは移動しない(移動はダブルタップ)
     _tmShowPixelPopup(e.latlng);
 }
 
 async function onMapDblClick(e) {
+    // スマホはclick経路の自前判定で処理済み(タップ間隔が偶然200ms以内で
+    // Leafletの合成dblclickも発火した場合の二重実行を防ぐ)
+    if (!_mapDblClickMode) return;
     if (appState.isMoving) {
         stopMove();
         return;
