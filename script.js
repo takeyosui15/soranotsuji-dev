@@ -7414,12 +7414,13 @@ function _tmPixDistFn(pix, body) {
     const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     let fixedRaDec = null;
     if (isFixedStar(body.id)) fixedRaDec = getFixedStarRaDec(body.id);
-    return (ms) => {
+    return (ms, out) => {
         const time = new Date(ms);
         let ra, dec;
         if (fixedRaDec) { ra = fixedRaDec.ra; dec = fixedRaDec.dec; }
         else { const eq = Astronomy.Equator(body.id, time, observer, true, true); ra = eq.ra; dec = eq.dec; }
         const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        if (out) { out.az = hor.azimuth; out.alt = hor.altitude; }   // 観測点中心の天体位置(ワーカーのbestAz/bestAltと同義)
         const ca = Math.cos(hor.altitude * D2R);
         const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
         const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
@@ -7440,7 +7441,8 @@ function _tmPixDistFn(pix, body) {
 }
 
 /** 画素の辻時刻の軽量精細化: 秒精度の最小時刻(ワーカーの1秒格子)の前後1秒の3点放物線補間で0.01秒化。
- *  ポップアップの行毎の表示用(±120秒スキャンの_tmRefinePixelTimeより約80倍軽い)。 */
+ *  ポップアップの行毎の表示・結果行の値用(±120秒スキャンの_tmRefinePixelTimeより約80倍軽い)。
+ *  戻り値の az/alt は精細化時刻での観測点中心の天体位置(結果行の方位角/視高度と同義)。 */
 function _tmRefinePixelTimeFast(pix, centerMs, body) {
     const distAt = _tmPixDistFn(pix, body);
     if (!distAt) return null;
@@ -7449,7 +7451,9 @@ function _tmRefinePixelTimeFast(pix, centerMs, body) {
     const denom = a - 2 * b + c;
     if (denom > 1e-18) frac = Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / denom));
     const bestMs = centerMs + frac * 1000;
-    return { timeMs: bestMs, dist: distAt(bestMs) };
+    const out = {};
+    const dist = distAt(bestMs, out);
+    return { timeMs: bestMs, dist, az: out.az, alt: out.alt };
 }
 
 /** 画素の最良辻時刻を、中心時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
@@ -8067,10 +8071,14 @@ async function startTsujiMeshSearch() {
             // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
             // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
             // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
+            // 検索本体は1秒格子なので、精度角距離・方位角・視高度は優辻マーカーのポップアップと同じ
+            // 0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
+            // 辻時刻(表示・スライダー)は秒単位のまま(精細化時刻を秒に丸めた値と同一)。
+            const ref = _tmRefinePixelTimeFast(ev.bestPix, ev.bestTimeMs, body);
             const rowTimeMs = ev.bestTimeMs;
-            const rowDist = ev.bestDist;
-            const rowAz = ev.bestAz;
-            const rowAlt = ev.bestAlt;
+            const rowDist = ref ? ref.dist : ev.bestDist;
+            const rowAz = ref ? ref.az : ev.bestAz;
+            const rowAlt = ref ? ref.alt : ev.bestAlt;
             const dt = new Date(rowTimeMs);
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
             const rs = getRiseSetForDay(dt);
