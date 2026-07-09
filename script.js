@@ -288,6 +288,7 @@ let appState = {
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
     mwOffsetAngle: 0,            // オフセット中心角(°) -360〜+360。基本オプションと辻検索メニューで連動
     mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
+    mwShowBodyNames: true,       // 全天儀の表示天体名+引き出し線、宙の窓プレビューの表示天体名の表示
     mwShowConstFig: false,       // 全天儀: 星座線の表示
     mwShowConstBounds: false,    // 全天儀: 星座領域の表示
     mwShowConstNames: false,     // 全天儀: 星座名称の表示
@@ -1216,7 +1217,7 @@ function saveAppState() {
         tsujiSearchDays: appState.tsujiSearchDays,
         tsujiCenterMode: appState.tsujiCenterMode,
         baseOptMwBase: appState.baseOptMwBase, mwOffsetAngle: appState.mwOffsetAngle,
-        mwShowBodies: appState.mwShowBodies, mwShowConstFig: appState.mwShowConstFig,
+        mwShowBodies: appState.mwShowBodies, mwShowBodyNames: appState.mwShowBodyNames, mwShowConstFig: appState.mwShowConstFig,
         mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
         mwConstNameSort: appState.mwConstNameSort,
         elevExcludeRadius: appState.elevExcludeRadius,
@@ -1332,7 +1333,7 @@ function loadAppState() {
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH',
-             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1434,6 +1435,7 @@ function normalizeAppState() {
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
     appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
+    appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? true : !!appState.mwShowBodyNames;
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
     appState.soraTargetCross = appState.soraTargetCross !== false;
     appState.soraSearchCenter = appState.soraSearchCenter !== false;
@@ -10073,8 +10075,8 @@ function _mwUpdateLabels() {
         return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, front };
     };
     const left = [], right = [];
-    // 表示天体: 投影位置の左右へ振り分け
-    if (appState.mwShowBodies) {
+    // 表示天体名: 投影位置の左右へ振り分け(「:表示天体名」チェックで名称+引き出し線を表示/非表示)
+    if (appState.mwShowBodies && appState.mwShowBodyNames) {
         _mwLabelItems.forEach(it => {
             const pr = proj(it.pos);
             (pr.x < w / 2 ? left : right).push({ name: it.name, color: it.color, x: pr.x, y: pr.y, cls: 'body-label' });
@@ -10877,6 +10879,7 @@ function _smComposeFrame(w, h, canvas2d) {
     }
     const allsky = !!_fe && _smAllSkyOn();   // 歪み100%+円形: 等距離射影の全天表示
     if (allsky) {
+        _smSetAllSkyBasis(az, alt);   // 画面中心=カメラの向き
         // 画面固定サイズのスプライトが出力でも同じ見た目になるよう実効fovを設定(プレビューと同式)
         const allskyR = Math.min(w, h) / 2;
         _smCamera.fov = 2 * Math.atan(Math.PI * h / (4 * allskyR)) * 180 / Math.PI;
@@ -10915,7 +10918,7 @@ function _smComposeFrame(w, h, canvas2d) {
             _smRenderer.render(_smScene, _smCamera);
         }
         _smRenderer.setScissorTest(false);
-    } else if (allsky && _smRenderAllSkyCube(az, w / h, Math.min(w, h) / 2)) {
+    } else if (allsky && _smRenderAllSkyCube(w / h, Math.min(w, h) / 2)) {
         // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドを出力RTへ
         _smRenderer.setRenderTarget(rt);
         _smRenderer.clear(true, true, true);
@@ -11136,6 +11139,7 @@ function syncBaseOptionUI() {
     set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
     chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
+    chk('chk-baseopt-mw-body-names', appState.mwShowBodyNames);
     chk('chk-baseopt-const-fig', appState.mwShowConstFig);
     chk('chk-baseopt-const-bounds', appState.mwShowConstBounds);
     chk('chk-baseopt-const-names', appState.mwShowConstNames);
@@ -11181,6 +11185,7 @@ function setupBaseOptionControls() {
         });
     };
     chkHandler('chk-baseopt-mw-bodies', 'mwShowBodies');
+    chkHandler('chk-baseopt-mw-body-names', 'mwShowBodyNames');
     chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
     chkHandler('chk-baseopt-const-bounds', 'mwShowConstBounds');
     chkHandler('chk-baseopt-const-names', 'mwShowConstNames');
@@ -11481,6 +11486,7 @@ function drawSoramado() {
     const allsky = !!_fe && _smAllSkyOn();                    // 歪み100%+円形: 等距離射影の全天表示
     const allskyR = allsky ? Math.min(cr.w, cr.h) / 2 : 0;    // 円の半径(CSS px)
     if (allsky) {
+        _smSetAllSkyBasis(az, alt);   // 画面中心=カメラの向き(基準方位角+基準視高度+オフセット)
         // 画面固定サイズのスプライト(十字/星座名称)の既存スケール式が全天表示でも同じ見た目になるよう、
         // 等距離射影の中心倍率(最終px = 2·scale·R/π)から逆算した実効fovを設定する(キューブ面90°描画の中心近似)
         _smCamera.fov = 2 * Math.atan(Math.PI * _smFinderH / (4 * allskyR)) * 180 / Math.PI;
@@ -11544,7 +11550,7 @@ function drawSoramado() {
             _smRenderer.render(_smScene, _smCamera);
         }
         _smRenderer.setScissorTest(false);
-    } else if (allsky && _smRenderAllSkyCube(az, finderAspect, allskyR * dpr)) {
+    } else if (allsky && _smRenderAllSkyCube(finderAspect, allskyR * dpr)) {
         // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドをファインダーへ
         _smRenderer.setRenderTarget(null);
         _smRenderer.setScissorTest(true);
@@ -11760,23 +11766,24 @@ function _smUpdateConstNames(cr) {
     const NAME_PX = 13;   // 画面上の文字高さ(px)
     const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
     const sy = NAME_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
-    const allsky = _smAllSkyOn();   // 全天表示: 同心円状の基準は最終画像の中心=天頂
-    const circular = !allsky && !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama;
     const wp = new THREE.Vector3();
     _smConstNamesGrp.children.forEach(sp => {
         sp.scale.set(sy * sp.userData.aspect, sy, 1);
-        if (allsky) {
-            sp.getWorldPosition(wp);
-            sp.material.rotation = _smAllSkyLabelRot(wp);
-        } else if (circular) {
-            sp.getWorldPosition(wp);
-            const ndc = wp.project(_smCamera);
-            const phi = Math.atan2(ndc.y * cr.h, ndc.x * cr.w);
-            sp.material.rotation = phi + Math.PI / 2;
-        } else if (sp.material.rotation !== 0) {
-            sp.material.rotation = 0;
-        }
+        sp.getWorldPosition(wp);
+        sp.material.rotation = _smLabelRotFor(wp, cr.w, cr.h);
     });
+}
+
+/** ラベルスプライトの回転角(現在の投影モードに応じて):
+ *  全天表示=画面中心(カメラ方向)まわりの同心円状 / 樽円形=ファインダー中心からの同心円状 / それ以外=0(水平) */
+function _smLabelRotFor(wp, crW, crH) {
+    if (_smAllSkyOn()) return _smAllSkyLabelRot(wp);
+    if (!!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama) {
+        const ndc = wp.clone().project(_smCamera);
+        const phi = Math.atan2(ndc.y * crH, ndc.x * crW);
+        return phi + Math.PI / 2;
+    }
+    return 0;
 }
 
 /** 64px キャンバスを描いて CanvasTexture をキャッシュ */
@@ -11861,6 +11868,42 @@ function _smDrawMoon(c, s, fraction, waxing) {
 }
 
 /** 表示天体のマーカー(中心十字・視半径円・月相)を毎回再構築 */
+// 表示天体名のテクスチャ(天体色文字+黒縁取り)。天体ごとに1回だけ生成してキャッシュ
+const _smBodyNameTexCache = {};
+function _smBodyNameTex(body) {
+    const key = `${body.id}_${body.color}_${body.name}`;
+    if (_smBodyNameTexCache[key]) return _smBodyNameTexCache[key];
+    const H = 44, font = 'bold 28px sans-serif';
+    const cv = document.createElement('canvas');
+    let ctx = cv.getContext('2d');
+    ctx.font = font;
+    const w = Math.ceil(ctx.measureText(body.name).width) + 14;
+    cv.width = w; cv.height = H;
+    ctx = cv.getContext('2d');
+    ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.strokeText(body.name, w / 2, H / 2);
+    ctx.fillStyle = body.color; ctx.fillText(body.name, w / 2, H / 2);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return _smBodyNameTexCache[key] = { tex, aspect: w / H };
+}
+
+/** 表示天体名スプライトをマーカーの右横に追加(基本オプション「:表示天体名」オン時)。
+ *  向きは星座名称と同じ規則(全天/樽円形=同心円状・それ以外=水平)。 */
+function _smAddBodyName(body, pos) {
+    if (!appState.mwShowBodyNames) return;
+    const t = _smBodyNameTex(body);
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const sy = 12 * 2 * Math.tan(fovV / 2) / _smFinderH;   // 画面上約12px
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+    sp.renderOrder = 998;
+    sp.scale.set(sy * t.aspect, sy, 1);
+    sp.center.set(-0.12, 0.5);   // マーカーの右横に表示(アンカー位置の右側に文字)
+    sp.material.rotation = _smLabelRotFor(pos, _smFinderW, _smFinderH);
+    sp.position.copy(pos.clone().multiplyScalar(0.9998));
+    _smBodiesGrp.add(sp);
+}
+
 function _smBuildBodies() {
     if (!_smBodiesGrp) return;
     while (_smBodiesGrp.children.length) { const c = _smBodiesGrp.children.pop(); if (c.material) c.material.dispose(); }
@@ -11879,6 +11922,7 @@ function _smBuildBodies() {
             const gcs = _SM_CROSS_PX * 2 * Math.tan(gfov / 2) / _smFinderH;
             const gcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
             gcross.scale.set(gcs, gcs, 1); gcross.position.copy(gpos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(gcross);
+            _smAddBodyName(body, gpos);
             return;   // 帯本体は背景球の写真＋天の川の環(線)で表現
         }
         let ra, dec;
@@ -11905,6 +11949,7 @@ function _smBuildBodies() {
         const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
         const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
         cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        _smAddBodyName(body, pos);
     });
 
     // 目的点マーカー: 基準方位角・基準視高度(=観測点→目的点方向, オフセット無し)に赤い十字を画面固定サイズで表示。
@@ -12271,13 +12316,29 @@ function _smInitPost() {
 
 // --- 真の魚眼(等距離射影)の全天表示 ---
 // フィッシュアイ「歪み100%+円形」のとき、シーンをキューブカメラで全方位レンダリングし、
-// シェーダで等距離射影(像高∝天頂角: r = f·θ)に合成する。透視投影+樽歪みの近似と異なり、
-// 天頂を中心に地平線までの全天(180°)を円形に均等に描く(星座盤と同じ投影)。
-// 円の中心=天頂・円周=地平線・円の下方向=カメラ方位(基準方位角+カメラオフセット方位角)。
+// シェーダで等距離射影(像高∝中心からの角度: r = f·θ)に合成する。透視投影+樽歪みの近似と異なり、
+// 画面中心(基準方位角+基準視高度=カメラの向き)から90°までの全天(直径180°)を円形に均等に描く。
+// 基準視高度を90°にすると天頂中心の星座盤の見え方になる(そのとき円の下方向=基準方位角)。
 let _smCubeRT = null, _smCubeCam = null, _smAllSkyMat = null, _smAllSkyScene = null, _smAllSkyCam = null;
+let _smAllSkyBasis = null;   // {f,r,u}: 画面中心方向・画像右・画像上の正規直交基底(THREE.Vector3)
 function _smAllSkyOn() {
     return !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' &&
            Number(appState.soraFisheyeStrength) >= 100 && !appState.soraPanorama;
+}
+/** 全天表示の基底を設定: f̂=カメラ方向(画面中心)、r̂=画像右、û=画像上。
+ *  ほぼ天頂/天底では上方向が定義できないため、û=基準方位角の反対(円の下=基準方位角)に固定する */
+function _smSetAllSkyBasis(azDeg, altDeg) {
+    const f = _smDir(azDeg, altDeg);
+    let r, u;
+    if (Math.abs(altDeg) >= 89.9) {
+        r = _smDir(azDeg + 90, 0);
+        u = _smDir(azDeg + 180, 0);
+        if (altDeg < 0) u.negate();
+    } else {
+        r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 0, 1)).normalize();
+        u = new THREE.Vector3().crossVectors(r, f).normalize();
+    }
+    _smAllSkyBasis = { f, r, u };
 }
 function _smEnsureAllSky() {
     if (_smAllSkyMat || typeof THREE === 'undefined') return;
@@ -12287,19 +12348,23 @@ function _smEnsureAllSky() {
     _smAllSkyCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     _smAllSkyMat = new THREE.ShaderMaterial({
         depthTest: false, depthWrite: false,
-        uniforms: { uCube: { value: _smCubeRT.texture }, uAspect: { value: 1.5 }, uAz0: { value: 0.0 } },
+        uniforms: {
+            uCube: { value: _smCubeRT.texture }, uAspect: { value: 1.5 },
+            uF: { value: new THREE.Vector3(0, 1, 0) }, uR: { value: new THREE.Vector3(1, 0, 0) }, uU: { value: new THREE.Vector3(0, 0, 1) },
+        },
         vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
         fragmentShader: [
-            'varying vec2 vUv; uniform samplerCube uCube; uniform float uAspect; uniform float uAz0;',
+            'varying vec2 vUv; uniform samplerCube uCube; uniform float uAspect;',
+            'uniform vec3 uF; uniform vec3 uR; uniform vec3 uU;',
             'void main(){',
             '  vec2 c = vUv - 0.5;',
             '  vec2 p = vec2(c.x * uAspect, c.y);',            // 高さ基準の等方座標
             '  float rlim = 0.5 * min(uAspect, 1.0);',         // 内接円
             '  float r = length(p);',
             '  if (r > rlim) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
-            '  float theta = (r / rlim) * 1.5707963;',         // 天頂角 0..90° (等距離射影)
-            '  float az = uAz0 + atan(p.x, -p.y);',            // 円の下=カメラ方位
-            '  vec3 dir = vec3(sin(az) * sin(theta), cos(az) * sin(theta), cos(theta));',   // X=東,Y=北,Z=上
+            '  float theta = (r / rlim) * 1.5707963;',         // 中心からの角度 0..90° (等距離射影)
+            '  float phi = atan(p.x, p.y);',                   // 画像上方向基準の方位角
+            '  vec3 dir = cos(theta) * uF + sin(theta) * (sin(phi) * uR + cos(phi) * uU);',
             '  gl_FragColor = textureCube(uCube, dir);',
             '}'
         ].join('\n')
@@ -12308,29 +12373,31 @@ function _smEnsureAllSky() {
     _smAllSkyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smAllSkyMat));
 }
 /** 全天表示のキューブレンダリング+uniform設定(プレビュー/書き出し共通)。成功でtrue */
-function _smRenderAllSkyCube(azDeg, aspect, radiusPx) {
+function _smRenderAllSkyCube(aspect, radiusPx) {
     _smEnsureAllSky();
-    if (!_smAllSkyMat) return false;
+    if (!_smAllSkyMat || !_smAllSkyBasis) return false;
     const F = Math.max(512, Math.min(2048, Math.round(radiusPx * 2)));
     if (_smCubeRT.width !== F) _smCubeRT.setSize(F, F);
     _smCubeCam.position.set(0, 0, 0);
     _smCubeCam.update(_smRenderer, _smScene);
     _smAllSkyMat.uniforms.uAspect.value = aspect;
-    _smAllSkyMat.uniforms.uAz0.value = azDeg * Math.PI / 180;
+    _smAllSkyMat.uniforms.uF.value.copy(_smAllSkyBasis.f);
+    _smAllSkyMat.uniforms.uR.value.copy(_smAllSkyBasis.r);
+    _smAllSkyMat.uniforms.uU.value.copy(_smAllSkyBasis.u);
     return true;
 }
-/** 全天表示での星座名称の回転角: 最終画像(天頂中心)で同心円状になるよう、
- *  ラベルが載るキューブ面のスクリーン空間での水平接線方向の画面角を求める。
- *  文字の天が天頂(画像中心)側を向くよう±180°を選ぶ(星座盤の慣例)。 */
+/** 全天表示での星座名称等の回転角: 最終画像(中心=カメラ方向)で同心円状になるよう、
+ *  ラベルが載るキューブ面のスクリーン空間での接線方向の画面角を求める。
+ *  文字の天が画像中心側を向くよう±180°を選ぶ(星座盤の慣例)。 */
 function _smAllSkyLabelRot(wp) {
     _smEnsureAllSky();
     if (!_smCubeCam) return 0;
     const d = wp.clone().normalize();
-    const up = new THREE.Vector3(0, 0, 1);
+    const up = _smAllSkyBasis ? _smAllSkyBasis.f : new THREE.Vector3(0, 0, 1);   // 画像中心方向まわりの同心円
     const t = new THREE.Vector3().crossVectors(up, d);
-    if (t.lengthSq() < 1e-9) return 0;   // 天頂/天底の直上は水平接線が定義できない
+    if (t.lengthSq() < 1e-9) return 0;   // 画像中心の直上は接線が定義できない
     t.normalize();
-    const u = new THREE.Vector3().crossVectors(d, t).normalize();   // 天頂側(天頂角が減る向き)
+    const u = new THREE.Vector3().crossVectors(d, t).normalize();   // 画像中心側(中心角が減る向き)
     // 支配軸のキューブ面カメラ(children順: +X,-X,+Y,-Y,+Z,-Z)へ射影して画面角を得る
     const ax = Math.abs(d.x), ay = Math.abs(d.y), az2 = Math.abs(d.z);
     let idx;

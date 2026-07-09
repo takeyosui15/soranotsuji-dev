@@ -408,6 +408,7 @@ GNU General Public License for more details.
                     <div class="control-row left-row"><label class="baseopt-group-label">全天儀</label></div>
                     <div class="control-row left-row">
                         <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-mw-bodies" checked>表示天体</label>
+                        <label class="baseopt-radio" title="全天儀の表示天体名と引き出し線、宙の窓のプレビューの表示天体名を表示/非表示"><input type="checkbox" id="chk-baseopt-mw-body-names" checked>表示天体名</label>
                         <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-fig">星座線</label>
                     </div>
                     <div class="control-row left-row">
@@ -1477,6 +1478,20 @@ GNU General Public License for more details.
                     <h3>標高グラフ</h3>
                     <p>「標高グラフ」ボタンON時に、観測点〜目的点の地形断面を表示。国土地理院のDEM標高タイルから2000地点で標高を取得します。縦軸=標高・横軸=直線距離の目盛を表示します。</p>
                     <p>取得完了後、観測点高・目的点高を加えた可視直線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。屈折・地球曲率は考慮していない単純な直線判定なので、遠距離見通しでは精度に注意してください。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>宙の窓</h3>
+                    <p>「宙の窓」ボタンON時に、観測点から目的点方向を撮影するカメラのファインダーをシミュレーションします。センサー(機種名リストから選択可)・焦点距離・F値・アスペクト比から画角(水平/垂直/対角)を計算し、実際の星景写真の構図をプレビューできます。</p>
+                    <ul class="help-list">
+                        <li><strong>カメラの向き</strong>: 基準方位角・基準視高度 (初期値=観測点→目的点の方向)。<strong>カメラオフセット方位角/視高度</strong>で向きをずらせます (プレビューのドラッグパンと連動)。<strong>辻オフセット6項目</strong>は辻検索メニューと双方向連動します。</li>
+                        <li><strong>プレビューの内容</strong>: 天の川の写真 (明るさスライダー)・表示天体のマーカーと中心十字・軌跡 (前日/当日/翌日)・DEM標高タイルの3D地形 (ヒルシェード適用度スライダー)・目的点の赤十字・検索中心の×。基本オプションのチェックで<strong>表示天体名・星座線・星座領域・星座名称</strong>もプレビューに表示されます (星座名称・表示天体名の文字の向き: 通常・四角=水平、円形フィッシュアイ=画面中心から同心円状)。</li>
+                        <li><strong>フィッシュアイ</strong>: 歪みスライダー0〜99%は魚眼風の樽歪み (近似・画角も連動して拡大)。<strong>歪み100%+画面形状:円形のときは「等距離射影の全天表示」</strong>に切り替わります — 画面中心=基準方位角+基準視高度 (カメラの向き)、円周=中心から90°、像高は中心からの角度に比例 (実際の魚眼レンズ・星座盤と同じ投影)。<strong>基準視高度を90°にすると天頂中心の星座盤の見え方</strong>になります (そのとき円の下方向=基準方位角)。全天表示の視野は焦点距離・センサーに依らず常に直径180°です。</li>
+                        <li><strong>パノラマ</strong>: 水平画角を最大360°までアスペクト比可変でシミュレーション (円筒投影。フィッシュアイとは併用不可)。</li>
+                        <li><strong>コントロールメニュー</strong>: プレビュー内下部の「コントロール」から焦点距離・日付/時刻・インターバルMov (タイムラプス再生: アニメ/動画) を操作できます。</li>
+                        <li><strong>書き出し</strong>: 静止画 (JPEG/PNG)・動画 (MP4/WebM) をファイル出力。出力画像サイズ (pixel) を指定でき、右下に日時+クレジットが入ります。全天表示・パノラマ・フィッシュアイもそのまま出力されます。</li>
+                        <li><strong>URL/最大化</strong>: 「URL取得」で現在の宙の窓の状態を開くURLをコピー。⛶ボタンでプレビューを最大化できます。</li>
+                    </ul>
                 </section>
 
                 <section class="help-section">
