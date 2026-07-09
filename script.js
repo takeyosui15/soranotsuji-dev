@@ -6859,7 +6859,8 @@ let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った観測点高(金色�
 let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
-let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + スライダー(その日の通算秒)
+let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + スライダー(その日の通算秒) + サブ秒
+let _tmCtrlFracMs = 0;         // 実効辻時刻のサブ秒(ms)。行選択/ジャンプ時は精細化時刻の端数、スライダー手動操作で0にリセット
 let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
 let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
 let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
@@ -7099,12 +7100,12 @@ function updateTsujiMeshGoldMarkers() {
     }
 }
 
-/** 辻時刻コントロールの実効辻時刻(ms)。スライダー(選択行の日0:00からの通算秒) から求める */
+/** 辻時刻コントロールの実効辻時刻(ms)。スライダー(選択行の日0:00からの通算秒)+サブ秒 から求める */
 function _tmCtrlEffectiveMs() {
     if (_tmCtrlDay0 === null) return null;
     const sl = document.getElementById('tsujimesh-time-slider');
     if (!sl) return null;
-    return _tmCtrlDay0 + parseInt(sl.value) * 1000;
+    return _tmCtrlDay0 + parseInt(sl.value) * 1000 + _tmCtrlFracMs;
 }
 
 /** 指定した辻時刻(±幅s)の各秒で全画素を再評価し、精度フィルタ(ε)以内の画素を金色マーカーで表示する。
@@ -7117,10 +7118,7 @@ function recalcTsujiMeshGoldAtTime() {
     const t = _tmCtrlEffectiveMs();
     if (!C || !row || t === null) { updateTsujiMeshGoldMarkers(); return; }
     const lbl = document.getElementById('tsujimesh-time-label');
-    if (lbl) {
-        const dt = new Date(t);
-        lbl.textContent = `辻日時: ${_tmFmtDateMs(t)} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`;
-    }
+    if (lbl) lbl.textContent = `辻日時: ${_tmFmtDateMs(t)} ${_tmFmtTimeMs2(t)}`;   // 0.01秒表示
     const eps = _tmCtrlEps, w = _tmCtrlWidth;
     const D2R = Math.PI / 180;
     const wrap180 = (deg) => ((deg + 540) % 360) - 180;
@@ -7365,7 +7363,11 @@ function _tmShowPixelPopup(latlng) {
                 map.closePopup();
                 _tmSetObserverToPix(pix);
                 const idx = _tsujiMeshRows.indexOf(h.row);
-                if (idx >= 0) selectTsujiMeshRow(idx, { pix, timeMs: h.timeMs, dist: h.dist });
+                if (idx >= 0) {
+                    // ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)
+                    const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+                    selectTsujiMeshRow(idx, { pix, timeMs: ref ? ref.timeMs : h.timeMs, dist: ref ? ref.dist : h.dist });
+                }
             });
         });
     } else return false;
@@ -7610,8 +7612,11 @@ function selectTsujiMeshRow(idx, jump) {
             if (g < bestG) { bestG = g; bestI = i; }
         }
         if (bestI >= 0) {
-            initDt = new Date(row.pixTime[bestI]);
-            _tmForcedPin = { pix: row.pixIdx[bestI], dist: row.pixDist[bestI], timeMs: row.pixTime[bestI] };
+            // 表示は0.01秒精細化後の時刻に合わせる(結果行・優辻マーカーのポップアップと同じ)
+            const refN = _tmRefinePixelTimeFast(row.pixIdx[bestI], row.pixTime[bestI], row.body);
+            const tN = refN ? refN.timeMs : row.pixTime[bestI];
+            initDt = new Date(tN);
+            _tmForcedPin = { pix: row.pixIdx[bestI], dist: refN ? refN.dist : row.pixDist[bestI], timeMs: tN };
         }
     }
     // 辻時刻コントロールを初期化(スライダー=選択行の日0:00からの通算秒)し、その時刻の再計算集合を辻マーカー表示
@@ -7626,7 +7631,10 @@ function selectTsujiMeshRow(idx, jump) {
             if (row.pixTime[i] < minT) minT = row.pixTime[i];
             if (row.pixTime[i] > maxT) maxT = row.pixTime[i];
         }
-        const val = Math.round((initDt.getTime() - _tmCtrlDay0) / 1000);
+        // スライダーは秒単位・サブ秒(0.01秒精細化の端数)は_tmCtrlFracMsで保持して表示・再計算に反映
+        const totalMs = initDt.getTime() - _tmCtrlDay0;
+        const val = Math.floor(totalMs / 1000);
+        _tmCtrlFracMs = totalMs - val * 1000;
         if (minT <= maxT) {
             tsl.min = String(Math.min(Math.floor((minT - _tmCtrlDay0) / 1000), val));
             tsl.max = String(Math.max(Math.ceil((maxT - _tmCtrlDay0) / 1000), val));
@@ -7824,7 +7832,7 @@ async function startTsujiMeshSearch() {
     tsujiMeshPool.terminateAll();
     hideTsujiMeshProgress();
     clearTsujiMeshMarkers();
-    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null;
+    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null; _tmCtrlFracMs = 0;
 
     const contentEl = document.getElementById('tsujimesh-content');
     const statusEl = document.getElementById('tsujimesh-status');
@@ -8071,11 +8079,10 @@ async function startTsujiMeshSearch() {
             // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
             // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
             // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
-            // 検索本体は1秒格子なので、精度角距離・方位角・視高度は優辻マーカーのポップアップと同じ
-            // 0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
-            // 辻時刻(表示・スライダー)は秒単位のまま(精細化時刻を秒に丸めた値と同一)。
+            // 検索本体は1秒格子なので、辻時刻・精度角距離・方位角・視高度は優辻マーカーのポップアップと
+            // 同じ0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
             const ref = _tmRefinePixelTimeFast(ev.bestPix, ev.bestTimeMs, body);
-            const rowTimeMs = ev.bestTimeMs;
+            const rowTimeMs = ref ? ref.timeMs : ev.bestTimeMs;
             const rowDist = ref ? ref.dist : ev.bestDist;
             const rowAz = ref ? ref.az : ev.bestAz;
             const rowAlt = ref ? ref.alt : ev.bestAlt;
@@ -8120,7 +8127,7 @@ async function startTsujiMeshSearch() {
                 moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
                 dowStr: `(${dow})`,
-                timeStr: `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}:${String(dt.getSeconds()).padStart(2, '0')}`,
+                timeStr: _tmFmtTimeMs2(rowTimeMs),   // 0.01秒表示(優辻マーカーのポップアップと同じ)
                 bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
                 total: ev.total, capped: ev.capped,
             });
@@ -8260,8 +8267,9 @@ function setupTsujiMeshPanelControls() {
         _tsujiMeshLayerVisible = e.target.checked;
         applyTsujiMeshLayerVisibility();
     });
-    // 辻時刻コントロール: スライダーに追従してライブ再計算
+    // 辻時刻コントロール: スライダーに追従してライブ再計算(手動操作はサブ秒を0にリセット=秒単位)
     document.getElementById('tsujimesh-time-slider').addEventListener('input', () => {
+        _tmCtrlFracMs = 0;
         recalcTsujiMeshGoldAtTime();
     });
     document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
@@ -8271,11 +8279,12 @@ function setupTsujiMeshPanelControls() {
         e.target.value = _tmCtrlWidth;
         recalcTsujiMeshGoldAtTime();
     });
-    // 辻時刻スライダーの◀/▶: 1秒ずつ前/後へ(min/maxでクランプ)して再計算
+    // 辻時刻スライダーの◀/▶: 1秒ずつ前/後へ(min/maxでクランプ)して再計算(サブ秒は0にリセット)
     const stepTimeSlider = (delta) => {
         const sl = document.getElementById('tsujimesh-time-slider');
         const v = Math.min(Math.max(parseInt(sl.value) + delta, parseInt(sl.min)), parseInt(sl.max));
         sl.value = String(v);
+        _tmCtrlFracMs = 0;
         recalcTsujiMeshGoldAtTime();
     };
     document.getElementById('btn-tsujimesh-time-prev').addEventListener('click', () => stepTimeSlider(-1));
