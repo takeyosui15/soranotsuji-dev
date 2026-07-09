@@ -7355,7 +7355,7 @@ function _tmShowPixelPopup(latlng) {
         // メッシュマーカー: 天体×日付毎の行をホバーでハイライト・クリックで該当行を選択+観測点移動
         const r = _tmMeshPopupLinesHtml(pix, true);
         if (!r) return false;
-        div.innerHTML = `${r.html}<div class="tm-popup-note">${action}</div>`;
+        div.innerHTML = `<strong>メッシュマーカー(${r.hits.length}件)</strong>${r.html}<div class="tm-popup-note">${action}</div>`;
         div.querySelectorAll('.tm-popup-line').forEach(el => {
             el.addEventListener('click', () => {
                 const h = r.hits[parseInt(el.dataset.j)];
@@ -7515,12 +7515,12 @@ function _tmMeshPopupHits(pix) {
 }
 
 /** メッシュマーカーのポップアップ本文の行リスト(1行=マーク+天体名 精度角距離° 辻日付 辻時刻(0.01秒))。
- *  表示上限24件、超える場合は末尾に「...25件以上」。interactive=true は各行をクリック可能なdivにする。
+ *  表示上限35件、超える場合は末尾に「...36件以上」。interactive=true は各行をクリック可能なdivにする。
  *  戻り値 { hits, html }(表示順のヒット配列と本文HTML)。ヒットなしは null。 */
 function _tmMeshPopupLinesHtml(pix, interactive) {
     const hits = _tmMeshPopupHits(pix);
     if (!hits.length) return null;
-    const MAX_LINES = 24;
+    const MAX_LINES = 35;
     const parts = [];
     for (let j = 0; j < hits.length && j < MAX_LINES; j++) {
         const h = hits[j];
@@ -7529,7 +7529,7 @@ function _tmMeshPopupLinesHtml(pix, interactive) {
         const text = `${h.star ? '★' : '・'}${escapeHtml(h.row.body.name)} ${dist.toFixed(5)}° ${_tmFmtDateMs(timeMs)} ${_tmFmtTimeMs2(timeMs)}`;
         parts.push(interactive ? `<div class="tm-popup-line" data-j="${j}">${text}</div>` : `${text}<br>`);
     }
-    if (hits.length > MAX_LINES) parts.push(interactive ? '<div>...25件以上</div>' : '...25件以上<br>');
+    if (hits.length > MAX_LINES) parts.push(interactive ? '<div>...36件以上</div>' : '...36件以上<br>');
     return { hits, html: parts.join('') };
 }
 
@@ -7539,7 +7539,7 @@ function _tmMeshTooltipHtml(pix, action) {
     if (_tmMeshTipCache.pix === pix && _tmMeshTipCache.rows === _tsujiMeshWhiteRows &&
         _tmMeshTipCache.action === action) return _tmMeshTipCache.html;
     const r = _tmMeshPopupLinesHtml(pix, false);
-    const html = r ? `${r.html}${action}` : null;
+    const html = r ? `<strong>メッシュマーカー(${r.hits.length}件)</strong><br>${r.html}${action}` : null;
     _tmMeshTipCache = { pix, rows: _tsujiMeshWhiteRows, action, html };
     return html;
 }
@@ -8286,7 +8286,7 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
         if (isNaN(v)) { e.target.value = _tmCtrlWidth; return; }   // 未入力は元の値を復元
-        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 0), 30);
+        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 0), 86400);
         e.target.value = _tmCtrlWidth;
         recalcTsujiMeshGoldAtTime();
     });
