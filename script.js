@@ -281,8 +281,9 @@ let appState = {
     soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
     soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
-    soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜4096 (縦とアスペクト連動)
-    soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜4096
+    soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜8192 (縦とアスペクト連動)
+    soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜8192
+    soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜200 (プレビュー基準100)
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1260,7 +1261,7 @@ function saveAppState() {
         soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
         soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb, soraMovPlayMode: appState.soraMovPlayMode,
         soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
-        soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH,
+        soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH, soraLabelScale: appState.soraLabelScale,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1332,7 +1333,7 @@ function loadAppState() {
             // 宙の窓パラメータ復元
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
-             'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH',
+             'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale',
              'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
@@ -1428,8 +1429,9 @@ function normalizeAppState() {
     if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
     if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
     if (!['anim', 'video'].includes(appState.soraMovPlayMode)) appState.soraMovPlayMode = 'anim';
-    appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 4096));
-    appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 4096));
+    appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 8192));
+    appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 8192));
+    appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 200));
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -10613,7 +10615,7 @@ function soraSyncUI() {
     if (expR) expR.checked = true;
     // 出力サイズはプレビューのアスペクト比に常時追従(縦は横から再計算)
     const expAsp = appState.soraPanorama ? soraPanoAspect(o) : soraOrientedAspect().aw / soraOrientedAspect().ah;
-    appState.soraExpH = Math.max(1, Math.min(4096, Math.round(appState.soraExpW / expAsp)));
+    appState.soraExpH = Math.max(1, Math.min(8192, Math.round(appState.soraExpW / expAsp)));
     set('input-sora-exp-w', appState.soraExpW);
     set('input-sora-exp-h', appState.soraExpH);
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
@@ -10873,6 +10875,8 @@ function _smComposeFrame(w, h, canvas2d) {
     // 画面固定pxの十字などが出力解像度に合うよう、ファインダー寸法を一時差し替えてシーンを再構築
     const savedW = _smFinderW, savedH = _smFinderH;
     _smFinderW = w; _smFinderH = h;
+    // 文字(表示天体名・星座名称)が出力サイズに比例してプレビューと同じ相対サイズになるよう倍率を設定
+    _smLabelScaleX = h / Math.max(1, savedH);
     if (_smSkyMat && _smSkyMat.userData.uMwBlack) {
         const mwb = Number(appState.soraMwBrightness);
         _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
@@ -10948,6 +10952,7 @@ function _smComposeFrame(w, h, canvas2d) {
     _smRenderer.setRenderTarget(null);
     rt.dispose();
     _smFinderW = savedW; _smFinderH = savedH;
+    _smLabelScaleX = 1;
     // 上下反転(WebGLは下原点)して2Dキャンバスへ → 右下クレジット
     const cv2 = canvas2d || document.createElement('canvas');
     if (cv2.width !== w) cv2.width = w;
@@ -11143,6 +11148,15 @@ function syncBaseOptionUI() {
     chk('chk-baseopt-const-fig', appState.mwShowConstFig);
     chk('chk-baseopt-const-bounds', appState.mwShowConstBounds);
     chk('chk-baseopt-const-names', appState.mwShowConstNames);
+    // 宙の窓メニュー側のチェックボックス(基本オプションと連動・同じ状態を共有)
+    chk('chk-sora-mw-body-names', appState.mwShowBodyNames);
+    chk('chk-sora-const-fig', appState.mwShowConstFig);
+    chk('chk-sora-const-bounds', appState.mwShowConstBounds);
+    chk('chk-sora-const-names', appState.mwShowConstNames);
+    const lsSlider = document.getElementById('input-sora-label-scale');
+    if (lsSlider) lsSlider.value = appState.soraLabelScale;
+    const lsVal = document.getElementById('sora-label-scale-val');
+    if (lsVal) lsVal.textContent = `${appState.soraLabelScale}%`;
     const sortSel = document.getElementById('sel-baseopt-const-sort');
     if (sortSel) sortSel.value = appState.mwConstNameSort;
     // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しないため、ここでは上書きしない)
@@ -11180,6 +11194,7 @@ function setupBaseOptionControls() {
         if (el) el.addEventListener('change', () => {
             appState[key] = el.checked;
             saveAppState();
+            syncBaseOptionUI();   // 基本オプションと宙の窓メニューの両方のチェック状態を再同期(双方向連動)
             _mwUpdateBaseOptions();
             if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 星座線/領域・表示天体は宙の窓にも反映
         });
@@ -11189,6 +11204,20 @@ function setupBaseOptionControls() {
     chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
     chkHandler('chk-baseopt-const-bounds', 'mwShowConstBounds');
     chkHandler('chk-baseopt-const-names', 'mwShowConstNames');
+    // 宙の窓メニュー側のチェックボックス(基本オプションと同じキーを共有=双方向連動)
+    chkHandler('chk-sora-mw-body-names', 'mwShowBodyNames');
+    chkHandler('chk-sora-const-fig', 'mwShowConstFig');
+    chkHandler('chk-sora-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-sora-const-names', 'mwShowConstNames');
+    // 文字サイズスライダー(表示天体名・星座名称・プレビュー基準100%)
+    const lsSlider = document.getElementById('input-sora-label-scale');
+    if (lsSlider) lsSlider.addEventListener('input', () => {
+        appState.soraLabelScale = Math.max(0, Math.min(200, Math.round(Number(lsSlider.value) || 0)));
+        const lsVal = document.getElementById('sora-label-scale-val');
+        if (lsVal) lsVal.textContent = `${appState.soraLabelScale}%`;
+        saveAppState();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    });
     const sortSel = document.getElementById('sel-baseopt-const-sort');
     if (sortSel) sortSel.addEventListener('change', () => {
         appState.mwConstNameSort = sortSel.value === 'pos' ? 'pos' : 'aiueo';
@@ -11328,8 +11357,8 @@ function setupSoramadoControls() {
     if (expWEl) expWEl.addEventListener('change', () => {
         const v = Math.round(parseFloat(expWEl.value));
         if (!isNaN(v)) {
-            appState.soraExpW = Math.max(1, Math.min(4096, v));
-            appState.soraExpH = Math.max(1, Math.min(4096, Math.round(appState.soraExpW / expAspect())));
+            appState.soraExpW = Math.max(1, Math.min(8192, v));
+            appState.soraExpH = Math.max(1, Math.min(8192, Math.round(appState.soraExpW / expAspect())));
         }
         soraSyncUI(); saveAppState();
     });
@@ -11337,8 +11366,8 @@ function setupSoramadoControls() {
     if (expHEl) expHEl.addEventListener('change', () => {
         const v = Math.round(parseFloat(expHEl.value));
         if (!isNaN(v)) {
-            appState.soraExpH = Math.max(1, Math.min(4096, v));
-            appState.soraExpW = Math.max(1, Math.min(4096, Math.round(appState.soraExpH * expAspect())));
+            appState.soraExpH = Math.max(1, Math.min(8192, v));
+            appState.soraExpW = Math.max(1, Math.min(8192, Math.round(appState.soraExpH * expAspect())));
         }
         soraSyncUI(); saveAppState();
     });
@@ -11722,6 +11751,14 @@ function _smEnsureConstLayer(kind) {
 // 88星座の概略中心(MW_CONSTELLATIONS)にテキストスプライトを置き、EQJ群(_smEqjGrp)の子として空と一緒に回転させる。
 // フィッシュアイのポストプロセスでも星座線と一緒に歪む。テクスチャは初回のみ生成し、
 // 向き(四角=水平/円形=同心円状)とスクリーン固定サイズは毎描画(_smUpdateConstNames)で更新する。
+// 表示天体名・星座名称の文字サイズ: メニューのスライダー(%・プレビュー基準100)×書き出し時の出力倍率。
+// 書き出しでは _smLabelScaleX = 出力高さ÷プレビューのファインダー高さ を掛けて、
+// 出力サイズを変えてもプレビューと同じ相対サイズの文字になるようにする
+let _smLabelScaleX = 1;
+function _smLabelScale() {
+    const v = Number(appState.soraLabelScale);
+    return (isNaN(v) ? 100 : Math.max(0, Math.min(200, v))) / 100 * _smLabelScaleX;
+}
 let _smConstNamesGrp = null;
 function _smEnsureConstNames() {
     if (!_smEqjGrp || _smConstNamesGrp || !appState.mwShowConstNames) return;
@@ -11763,7 +11800,7 @@ function _smUpdateConstNames(cr) {
     if (!_smConstNamesGrp) return;
     _smConstNamesGrp.visible = !!appState.mwShowConstNames;
     if (!_smConstNamesGrp.visible) return;
-    const NAME_PX = 13;   // 画面上の文字高さ(px)
+    const NAME_PX = 13 * _smLabelScale();   // 画面上の文字高さ(px・文字サイズスライダーと書き出し倍率を反映)
     const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
     const sy = NAME_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
     const wp = new THREE.Vector3();
@@ -11894,7 +11931,7 @@ function _smAddBodyName(body, pos) {
     if (!appState.mwShowBodyNames) return;
     const t = _smBodyNameTex(body);
     const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
-    const sy = 12 * 2 * Math.tan(fovV / 2) / _smFinderH;   // 画面上約12px
+    const sy = 12 * _smLabelScale() * 2 * Math.tan(fovV / 2) / _smFinderH;   // 画面上約12px(文字サイズスライダーと書き出し倍率を反映)
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false, sizeAttenuation: false }));
     sp.renderOrder = 998;
     sp.scale.set(sy * t.aspect, sy, 1);
