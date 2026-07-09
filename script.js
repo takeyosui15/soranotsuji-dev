@@ -10875,7 +10875,14 @@ function _smComposeFrame(w, h, canvas2d) {
         const mwb = Number(appState.soraMwBrightness);
         _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
     }
-    _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
+    const allsky = !!_fe && _smAllSkyOn();   // 歪み100%+円形: 等距離射影の全天表示
+    if (allsky) {
+        // 画面固定サイズのスプライトが出力でも同じ見た目になるよう実効fovを設定(プレビューと同式)
+        const allskyR = Math.min(w, h) / 2;
+        _smCamera.fov = 2 * Math.atan(Math.PI * h / (4 * allskyR)) * 180 / Math.PI;
+    } else {
+        _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
+    }
     _smCamera.up.set(0, 0, 1);
     _smCamera.position.set(0, 0, 0);
     _smCamera.lookAt(_smDir(az, alt));
@@ -10884,6 +10891,8 @@ function _smComposeFrame(w, h, canvas2d) {
     _smBuildTraj();
     _smUpdateMilkyWayRing();
     _smUpdateTerrain();
+    _smEnsureConstNames();
+    _smUpdateConstNames({ w, h });   // 星座名称のサイズ/向きを出力解像度・投影に合わせて更新
     const rt = new THREE.WebGLRenderTarget(w, h);
     rt.texture.colorSpace = THREE.SRGBColorSpace;
     _smRenderer.setRenderTarget(rt);
@@ -10906,6 +10915,11 @@ function _smComposeFrame(w, h, canvas2d) {
             _smRenderer.render(_smScene, _smCamera);
         }
         _smRenderer.setScissorTest(false);
+    } else if (allsky && _smRenderAllSkyCube(az, w / h, Math.min(w, h) / 2)) {
+        // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドを出力RTへ
+        _smRenderer.setRenderTarget(rt);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smAllSkyScene, _smAllSkyCam);
     } else if (_fe && _smPostMat) {
         _smCamera.aspect = w / h;
         _smCamera.updateProjectionMatrix();
@@ -11464,7 +11478,15 @@ function drawSoramado() {
     _smFinderH = cr.h || 1;
     _smFinderW = cr.w || 1;
     const _fe = (!pano && appState.soraFisheye) ? soraFisheyeParams() : null;   // パノラマ中はフィッシュアイ無効
-    _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));   // フィッシュアイON時は歪みに連動して画角を拡大
+    const allsky = !!_fe && _smAllSkyOn();                    // 歪み100%+円形: 等距離射影の全天表示
+    const allskyR = allsky ? Math.min(cr.w, cr.h) / 2 : 0;    // 円の半径(CSS px)
+    if (allsky) {
+        // 画面固定サイズのスプライト(十字/星座名称)の既存スケール式が全天表示でも同じ見た目になるよう、
+        // 等距離射影の中心倍率(最終px = 2·scale·R/π)から逆算した実効fovを設定する(キューブ面90°描画の中心近似)
+        _smCamera.fov = 2 * Math.atan(Math.PI * _smFinderH / (4 * allskyR)) * 180 / Math.PI;
+    } else {
+        _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));   // フィッシュアイON時は歪みに連動して画角を拡大
+    }
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
     _smCamera.position.set(0, 0, 0);
@@ -11521,6 +11543,14 @@ function drawSoramado() {
             _smRenderer.clear(true, true, true);
             _smRenderer.render(_smScene, _smCamera);
         }
+        _smRenderer.setScissorTest(false);
+    } else if (allsky && _smRenderAllSkyCube(az, finderAspect, allskyR * dpr)) {
+        // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドをファインダーへ
+        _smRenderer.setRenderTarget(null);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
+        _smRenderer.render(_smAllSkyScene, _smAllSkyCam);
         _smRenderer.setScissorTest(false);
     } else if (appState.soraFisheye && _smPostMat) {
         // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
@@ -11730,11 +11760,15 @@ function _smUpdateConstNames(cr) {
     const NAME_PX = 13;   // 画面上の文字高さ(px)
     const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
     const sy = NAME_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
-    const circular = !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama;
+    const allsky = _smAllSkyOn();   // 全天表示: 同心円状の基準は最終画像の中心=天頂
+    const circular = !allsky && !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama;
     const wp = new THREE.Vector3();
     _smConstNamesGrp.children.forEach(sp => {
         sp.scale.set(sy * sp.userData.aspect, sy, 1);
-        if (circular) {
+        if (allsky) {
+            sp.getWorldPosition(wp);
+            sp.material.rotation = _smAllSkyLabelRot(wp);
+        } else if (circular) {
             sp.getWorldPosition(wp);
             const ndc = wp.project(_smCamera);
             const phi = Math.atan2(ndc.y * cr.h, ndc.x * cr.w);
@@ -12233,4 +12267,85 @@ function _smInitPost() {
     });
     _smPostScene = new THREE.Scene();
     _smPostScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smPostMat));
+}
+
+// --- 真の魚眼(等距離射影)の全天表示 ---
+// フィッシュアイ「歪み100%+円形」のとき、シーンをキューブカメラで全方位レンダリングし、
+// シェーダで等距離射影(像高∝天頂角: r = f·θ)に合成する。透視投影+樽歪みの近似と異なり、
+// 天頂を中心に地平線までの全天(180°)を円形に均等に描く(星座盤と同じ投影)。
+// 円の中心=天頂・円周=地平線・円の下方向=カメラ方位(基準方位角+カメラオフセット方位角)。
+let _smCubeRT = null, _smCubeCam = null, _smAllSkyMat = null, _smAllSkyScene = null, _smAllSkyCam = null;
+function _smAllSkyOn() {
+    return !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' &&
+           Number(appState.soraFisheyeStrength) >= 100 && !appState.soraPanorama;
+}
+function _smEnsureAllSky() {
+    if (_smAllSkyMat || typeof THREE === 'undefined') return;
+    _smCubeRT = new THREE.WebGLCubeRenderTarget(1024);
+    _smCubeRT.texture.colorSpace = THREE.SRGBColorSpace;
+    _smCubeCam = new THREE.CubeCamera(0.1, _SM_SKY_R * 4, _smCubeRT);
+    _smAllSkyCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    _smAllSkyMat = new THREE.ShaderMaterial({
+        depthTest: false, depthWrite: false,
+        uniforms: { uCube: { value: _smCubeRT.texture }, uAspect: { value: 1.5 }, uAz0: { value: 0.0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+        fragmentShader: [
+            'varying vec2 vUv; uniform samplerCube uCube; uniform float uAspect; uniform float uAz0;',
+            'void main(){',
+            '  vec2 c = vUv - 0.5;',
+            '  vec2 p = vec2(c.x * uAspect, c.y);',            // 高さ基準の等方座標
+            '  float rlim = 0.5 * min(uAspect, 1.0);',         // 内接円
+            '  float r = length(p);',
+            '  if (r > rlim) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
+            '  float theta = (r / rlim) * 1.5707963;',         // 天頂角 0..90° (等距離射影)
+            '  float az = uAz0 + atan(p.x, -p.y);',            // 円の下=カメラ方位
+            '  vec3 dir = vec3(sin(az) * sin(theta), cos(az) * sin(theta), cos(theta));',   // X=東,Y=北,Z=上
+            '  gl_FragColor = textureCube(uCube, dir);',
+            '}'
+        ].join('\n')
+    });
+    _smAllSkyScene = new THREE.Scene();
+    _smAllSkyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smAllSkyMat));
+}
+/** 全天表示のキューブレンダリング+uniform設定(プレビュー/書き出し共通)。成功でtrue */
+function _smRenderAllSkyCube(azDeg, aspect, radiusPx) {
+    _smEnsureAllSky();
+    if (!_smAllSkyMat) return false;
+    const F = Math.max(512, Math.min(2048, Math.round(radiusPx * 2)));
+    if (_smCubeRT.width !== F) _smCubeRT.setSize(F, F);
+    _smCubeCam.position.set(0, 0, 0);
+    _smCubeCam.update(_smRenderer, _smScene);
+    _smAllSkyMat.uniforms.uAspect.value = aspect;
+    _smAllSkyMat.uniforms.uAz0.value = azDeg * Math.PI / 180;
+    return true;
+}
+/** 全天表示での星座名称の回転角: 最終画像(天頂中心)で同心円状になるよう、
+ *  ラベルが載るキューブ面のスクリーン空間での水平接線方向の画面角を求める。
+ *  文字の天が天頂(画像中心)側を向くよう±180°を選ぶ(星座盤の慣例)。 */
+function _smAllSkyLabelRot(wp) {
+    _smEnsureAllSky();
+    if (!_smCubeCam) return 0;
+    const d = wp.clone().normalize();
+    const up = new THREE.Vector3(0, 0, 1);
+    const t = new THREE.Vector3().crossVectors(up, d);
+    if (t.lengthSq() < 1e-9) return 0;   // 天頂/天底の直上は水平接線が定義できない
+    t.normalize();
+    const u = new THREE.Vector3().crossVectors(d, t).normalize();   // 天頂側(天頂角が減る向き)
+    // 支配軸のキューブ面カメラ(children順: +X,-X,+Y,-Y,+Z,-Z)へ射影して画面角を得る
+    const ax = Math.abs(d.x), ay = Math.abs(d.y), az2 = Math.abs(d.z);
+    let idx;
+    if (ax >= ay && ax >= az2) idx = d.x >= 0 ? 0 : 1;
+    else if (ay >= ax && ay >= az2) idx = d.y >= 0 ? 2 : 3;
+    else idx = d.z >= 0 ? 4 : 5;
+    const cam = _smCubeCam.children[idx];
+    if (!cam) return 0;
+    _smCubeCam.updateMatrixWorld(true);
+    const e = 0.01;
+    const p0 = d.clone().multiplyScalar(_SM_SKY_R).project(cam);
+    const pt = d.clone().multiplyScalar(_SM_SKY_R).addScaledVector(t, _SM_SKY_R * e).project(cam);
+    const pu = d.clone().multiplyScalar(_SM_SKY_R).addScaledVector(u, _SM_SKY_R * e).project(cam);
+    const aT = Math.atan2(pt.y - p0.y, pt.x - p0.x);
+    const aU = Math.atan2(pu.y - p0.y, pu.x - p0.x);
+    const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+    return Math.abs(wrap(aU - (aT + Math.PI / 2))) <= Math.PI / 2 ? aT : aT + Math.PI;
 }
