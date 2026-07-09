@@ -1986,3 +1986,20 @@ input[type="range"] {
     background-color: #FF9800;
 }
 
+
+/* 辻メッシュ: マーカーのポップアップの行(メッシュ)/内容ブロック(辻・優辻)。
+   ホバーでハイライトし、クリック/タップで該当行の表示+観測点に設定する */
+.tm-popup-line,
+.tm-popup-block {
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+.tm-popup-line:hover,
+.tm-popup-block:hover {
+    background-color: #dbeafe;
+}
+.tm-popup-note {
+    color: #666;
+    margin-top: 3px;
+}

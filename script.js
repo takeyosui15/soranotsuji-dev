@@ -2936,7 +2936,12 @@ async function onMapClick(e) {
         stopMove();
         return;
     }
-    if (_mapDblClickMode) return;   // PC: ホバーで内容確認・移動/選択はダブルクリック(onMapDblClick)
+    if (_mapDblClickMode) {
+        // PC: メッシュ/辻マーカーの画素のクリックで位置を確定してポップアップを表示(観測点は移動しない)。
+        // 観測点/目的点の移動はダブルクリック(onMapDblClick)
+        _tmShowPixelPopup(e.latlng);
+        return;
+    }
     // スマホ: 自前のダブルタップ判定(前回タップから400ms以内かつ40px以内)
     const now = Date.now();
     const pt = map.latLngToContainerPoint(e.latlng);
@@ -2947,7 +2952,8 @@ async function onMapClick(e) {
         return;
     }
     _mapLastTapMs = now; _mapLastTapPt = pt;
-    // シングルタップ: メッシュ/辻マーカーの画素ならポップアップを表示(ポップアップのタップで観測点に設定)。
+    // シングルタップ: メッシュ/辻マーカーの画素ならポップアップを表示(観測点は移動しない。
+    // ポップアップの行/内容のタップで該当行を表示して観測点に設定)。
     // 何もない地図のタップでは移動しない(移動はダブルタップ)
     _tmShowPixelPopup(e.latlng);
 }
@@ -2963,11 +2969,11 @@ async function onMapDblClick(e) {
     await applyMapPointAction(e.latlng);
 }
 
-/** 地図の点操作: メッシュ/辻マーカーの画素ならその画素を観測点に設定(+行選択)。
+/** 地図の点操作: メッシュ/辻マーカーの画素ならポップアップを表示するだけ(観測点は移動しない。
+ *  観測点の移動はポップアップの行/内容のクリック/タップで行う)。
  *  それ以外は位置情報メニューのモードに従って観測点/目的点を移動する。 */
 async function applyMapPointAction(latlng) {
-    // 辻メッシュ検索の金色オーバーレイの画素なら、その画素を観測点に設定(DEM標高+観測点高)
-    if (handleTsujiMeshGoldClick(latlng)) return;
+    if (_tmShowPixelPopup(latlng)) return;
     const isStart = appState.locMode === 'start';
     const elev = await getElevation(latlng.lat, latlng.lng);
     const val = (elev !== null) ? elev : 0;
@@ -7314,7 +7320,7 @@ function drawTsujiMeshGoldSet(perPix, big) {
     if (big && big.pix >= 0) {
         const goldIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-tsujigold"></div>', iconSize: [24, 24], iconAnchor: [12, 24] });
         const marker = L.marker([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]], { icon: goldIcon, zIndexOffset: 900 })
-            .on('click', () => _tmSetObserverToPix(big.pix))
+            .on('click', () => _tmShowPinPopup(big))   // クリック/タップでポップアップ(観測点は移動しない)
             .bindTooltip('…', { direction: 'top' })
             .addTo(_tsujiMeshGoldLayer);
         // ツールチップは開いた時に画素の最良辻時刻(0.01秒精度)を精細化して表示する
@@ -7326,52 +7332,43 @@ function drawTsujiMeshGoldSet(perPix, big) {
     applyTsujiMeshLayerVisibility();
 }
 
-/** 辻マーカー/白マーカーのクリックを処理する(onMapClickの冒頭から呼ばれる)。処理したらtrue。
- *  辻マーカー(表示中の集合)= その画素を観測点に設定。
- *  白マーカー(集合外)= その画素を観測点に設定し、さらに最良の行を選択して
- *  辻時刻コントロールをその画素の辻時刻へ移動(優辻マーカーをその画素に配置・画面中央へ)。 */
-function handleTsujiMeshGoldClick(latlng) {
-    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
-    const pix = _tmPixAtLatLng(latlng);
-    if (pix < 0) return false;
-    if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
-        _tmSetObserverToPix(pix);
-        return true;
-    }
-    if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
-        _tmSetObserverToPix(pix);
-        const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
-        const idx = _tsujiMeshRows.indexOf(row);
-        if (idx >= 0) {
-            selectTsujiMeshRow(idx, { pix, timeMs: _tsujiMeshWhiteTime[pix], dist: _tsujiMeshWhiteDist[pix] });
-        }
-        return true;
-    }
-    return false;
-}
-
-/** スマホ(タップ操作)用: メッシュ/辻マーカーの画素をタップした時にポップアップを表示する。
- *  内容はホバーと同じ(精細化した辻日時+精度角距離)で、ポップアップをタップすると観測点に設定する
- *  (メッシュマーカーは行選択も行う)。画素ヒットなしは false を返す(通常の地図タップとして処理)。 */
+/** メッシュ/辻マーカーの画素のポップアップを開く(PC=クリック・スマホ=タップ共通)。
+ *  マーカーのクリック/タップでは位置を確定してポップアップを表示するだけで、観測点は移動しない。
+ *  ポップアップの行(メッシュ)/内容(辻)をクリック/タップすると、該当行のデータを結果リストで
+ *  表示して観測点をその画素に移動する。画素ヒットなしは false(通常の地図操作として処理)。 */
 function _tmShowPixelPopup(latlng) {
     if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
     const pix = _tmPixAtLatLng(latlng);
     if (pix < 0) return false;
-    let content = null;
-    if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
-        const ref = _tmRefinePixelTime(pix);
-        if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'タップで観測点に設定');
-    } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
-        content = _tmMeshTooltipHtml(pix, 'タップで観測点に設定');
-    }
-    if (!content) return false;
+    const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
     const div = document.createElement('div');
-    div.innerHTML = content;
-    div.style.cursor = 'pointer';
-    div.addEventListener('click', () => {
-        map.closePopup();
-        handleTsujiMeshGoldClick(latlng);
-    });
+    if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+        // 辻マーカー: 内容(1ブロック)をクリック→観測点をこの画素に移動+選択中の行をリストで表示
+        const ref = _tmRefinePixelTime(pix);
+        if (!ref) return false;
+        div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, action)}</div>`;
+        div.querySelector('.tm-popup-block').addEventListener('click', () => {
+            map.closePopup();
+            _tmSetObserverToPix(pix);
+            const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+            if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
+        });
+    } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
+        // メッシュマーカー: 天体×日付毎の行をホバーでハイライト・クリックで該当行を選択+観測点移動
+        const r = _tmMeshPopupLinesHtml(pix, true);
+        if (!r) return false;
+        div.innerHTML = `${r.html}<div class="tm-popup-note">${action}</div>`;
+        div.querySelectorAll('.tm-popup-line').forEach(el => {
+            el.addEventListener('click', () => {
+                const h = r.hits[parseInt(el.dataset.j)];
+                if (!h) return;
+                map.closePopup();
+                _tmSetObserverToPix(pix);
+                const idx = _tsujiMeshRows.indexOf(h.row);
+                if (idx >= 0) selectTsujiMeshRow(idx, { pix, timeMs: h.timeMs, dist: h.dist });
+            });
+        });
+    } else return false;
     L.popup({ offset: [0, -4] })
         .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
         .setContent(div)
@@ -7379,17 +7376,31 @@ function _tmShowPixelPopup(latlng) {
     return true;
 }
 
-/** 画素の最良辻時刻を、中心時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
- *  判定は検索本体と同一(回転補正+点/線の検索中心)。centerMs/body省略時は表示中の辻時刻と選択行の天体。 */
-let _tmRefineCache = { key: null, val: null };
-function _tmRefinePixelTime(pix, centerMs, body) {
+/** 優辻マーカー(金色ピン)のポップアップ(クリック/タップで開く。観測点は移動しない)。
+ *  内容をクリック/タップすると観測点をその画素に移動し、選択中の行をリストで表示する。 */
+function _tmShowPinPopup(big) {
+    if (typeof map === 'undefined' || !map) return;
+    const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
+    const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist, action)}</div>`;
+    div.querySelector('.tm-popup-block').addEventListener('click', () => {
+        map.closePopup();
+        _tmSetObserverToPix(big.pix);
+        const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+        if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
+    });
+    L.popup({ offset: [0, -20] })
+        .setLatLng([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]])
+        .setContent(div)
+        .openOn(map);
+}
+
+/** 画素×天体の角距離評価関数(ms→°)を作る。判定は検索本体と同一(回転補正+点/線の検索中心)。
+ *  検索条件は検索時のスナップショット(_tsujiMeshCalc)に凍結。条件不足ならnull。 */
+function _tmPixDistFn(pix, body) {
     const C = _tsujiMeshCalc;
-    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
-    const t = (centerMs !== undefined) ? centerMs : _tmCtrlEffectiveMs();
-    if (body === undefined) body = row ? row.body : null;
-    if (!C || !body || t === null) return null;
-    const key = `${pix}_${t}_${body.id}`;
-    if (_tmRefineCache.key === key) return _tmRefineCache.val;
+    if (!C || !body) return null;
     const D2R = Math.PI / 180;
     const wrap180 = (deg) => ((deg + 540) % 360) - 180;
     const angDist = (az1, alt1, az2, alt2) => {
@@ -7403,7 +7414,7 @@ function _tmRefinePixelTime(pix, centerMs, body) {
     const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     let fixedRaDec = null;
     if (isFixedStar(body.id)) fixedRaDec = getFixedStarRaDec(body.id);
-    const distAt = (ms) => {
+    return (ms) => {
         const time = new Date(ms);
         let ra, dec;
         if (fixedRaDec) { ra = fixedRaDec.ra; dec = fixedRaDec.dec; }
@@ -7426,6 +7437,33 @@ function _tmRefinePixelTime(pix, centerMs, body) {
         }
         return angDist(azP, altPd, bAz + C.offsetAz, bAlt + C.offsetAlt);
     };
+}
+
+/** 画素の辻時刻の軽量精細化: 秒精度の最小時刻(ワーカーの1秒格子)の前後1秒の3点放物線補間で0.01秒化。
+ *  ポップアップの行毎の表示用(±120秒スキャンの_tmRefinePixelTimeより約80倍軽い)。 */
+function _tmRefinePixelTimeFast(pix, centerMs, body) {
+    const distAt = _tmPixDistFn(pix, body);
+    if (!distAt) return null;
+    const a = distAt(centerMs - 1000) ** 2, b = distAt(centerMs) ** 2, c = distAt(centerMs + 1000) ** 2;
+    let frac = 0;
+    const denom = a - 2 * b + c;
+    if (denom > 1e-18) frac = Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / denom));
+    const bestMs = centerMs + frac * 1000;
+    return { timeMs: bestMs, dist: distAt(bestMs) };
+}
+
+/** 画素の最良辻時刻を、中心時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
+ *  判定は検索本体と同一(回転補正+点/線の検索中心)。centerMs/body省略時は表示中の辻時刻と選択行の天体。 */
+let _tmRefineCache = { key: null, val: null };
+function _tmRefinePixelTime(pix, centerMs, body) {
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const t = (centerMs !== undefined) ? centerMs : _tmCtrlEffectiveMs();
+    if (body === undefined) body = row ? row.body : null;
+    if (t === null) return null;
+    const distAt = _tmPixDistFn(pix, body);
+    if (!distAt) return null;
+    const key = `${pix}_${t}_${body.id}`;
+    if (_tmRefineCache.key === key) return _tmRefineCache.val;
     const R = 120;
     const ds = new Float64Array(2 * R + 1);
     let bi = 0;
@@ -7451,27 +7489,53 @@ function _tmTooltipHtml(title, timeMs, dist, action) {
     return `<strong>${title}</strong><br>辻日付: ${_tmFmtDateMs(timeMs)}<br>辻時刻: ${_tmFmtTimeMs2(timeMs)}<br>精度角距離: ${dist.toFixed(5)}°<br>${action || 'クリックで観測点に設定'}`;
 }
 
-/** メッシュマーカーのポップアップ本文: その画素の全ヒット(表示天体毎→日付順)をリスト表示する。
- *  1画素は表示天体毎に複数日の最良辻日時を保持する(公転で同方向を年2回以上通る日を取りこぼさない)。
- *  最良の日(★)は秒未満(0.01秒)まで精細化して表示し、クリック時のジャンプ先になる。 */
-function _tmMeshTooltipHtml(pix, action) {
+/** メッシュマーカーのポップアップに表示する画素の全ヒットを、表示天体毎にグルーピングして
+ *  天体内は精度角距離の昇順(最良が先頭)で並べる。天体内で複数ある場合は最良に★(star=true)。
+ *  1画素は表示天体毎に複数日の最良辻日時を保持する(公転で同方向を年2回以上通る日を取りこぼさない)。 */
+function _tmMeshPopupHits(pix) {
     const hits = _tmPixAllHits(pix);
-    if (!hits.length) return null;
-    const MAX_LINES = 12;
-    const multiBody = new Set(hits.map(h => h.row.body.id)).size > 1;
-    const lines = [];
-    for (let j = 0; j < hits.length && lines.length < MAX_LINES; j++) {
-        const h = hits[j];
-        let timeMs = h.timeMs, dist = h.dist;
-        if (h.best) {
-            const ref = _tmRefinePixelTime(pix, h.timeMs, h.row.body);
-            if (ref) { timeMs = ref.timeMs; dist = ref.dist; }
-        }
-        const name = multiBody ? `${escapeHtml(h.row.body.name)} ` : '';
-        lines.push(`${h.best ? '★' : '・'}${name}${_tmFmtDateMs(timeMs)} ${_tmFmtTimeMs2(timeMs)} ${dist.toFixed(5)}°`);
+    const groups = new Map();   // 天体ID→ヒット配列(挿入順=表示天体順)
+    for (const h of hits) {
+        if (!groups.has(h.row.body.id)) groups.set(h.row.body.id, []);
+        groups.get(h.row.body.id).push(h);
     }
-    if (hits.length > MAX_LINES) lines.push(`…他${hits.length - MAX_LINES}件`);
-    return `<strong>メッシュマーカー</strong><br>${lines.join('<br>')}<br>${action}(★の日へ)`;
+    const out = [];
+    for (const arr of groups.values()) {
+        arr.sort((a, b) => a.dist - b.dist);
+        arr.forEach((h, i) => { h.star = (arr.length >= 2 && i === 0); });
+        out.push(...arr);
+    }
+    return out;
+}
+
+/** メッシュマーカーのポップアップ本文の行リスト(1行=マーク+天体名 精度角距離° 辻日付 辻時刻(0.01秒))。
+ *  表示上限24件、超える場合は末尾に「...25件以上」。interactive=true は各行をクリック可能なdivにする。
+ *  戻り値 { hits, html }(表示順のヒット配列と本文HTML)。ヒットなしは null。 */
+function _tmMeshPopupLinesHtml(pix, interactive) {
+    const hits = _tmMeshPopupHits(pix);
+    if (!hits.length) return null;
+    const MAX_LINES = 24;
+    const parts = [];
+    for (let j = 0; j < hits.length && j < MAX_LINES; j++) {
+        const h = hits[j];
+        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+        const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
+        const text = `${h.star ? '★' : '・'}${escapeHtml(h.row.body.name)} ${dist.toFixed(5)}° ${_tmFmtDateMs(timeMs)} ${_tmFmtTimeMs2(timeMs)}`;
+        parts.push(interactive ? `<div class="tm-popup-line" data-j="${j}">${text}</div>` : `${text}<br>`);
+    }
+    if (hits.length > MAX_LINES) parts.push(interactive ? '<div>...25件以上</div>' : '...25件以上<br>');
+    return { hits, html: parts.join('') };
+}
+
+/** メッシュマーカーのホバー用本文(非インタラクティブ)。1画素分は再計算不要なのでキャッシュする。 */
+let _tmMeshTipCache = { pix: -1, rows: null, action: '', html: null };
+function _tmMeshTooltipHtml(pix, action) {
+    if (_tmMeshTipCache.pix === pix && _tmMeshTipCache.rows === _tsujiMeshWhiteRows &&
+        _tmMeshTipCache.action === action) return _tmMeshTipCache.html;
+    const r = _tmMeshPopupLinesHtml(pix, false);
+    const html = r ? `${r.html}${action}` : null;
+    _tmMeshTipCache = { pix, rows: _tsujiMeshWhiteRows, action, html };
+    return html;
 }
 
 /** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
@@ -7485,9 +7549,9 @@ function handleTsujiMeshGoldHover(latlng) {
     let content = null;
     if (_tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
         const ref = _tmRefinePixelTime(pix);
-        if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'Dblクリックで観測点に設定');
+        if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
-        content = _tmMeshTooltipHtml(pix, 'Dblクリックで観測点に設定');
+        content = _tmMeshTooltipHtml(pix, 'クリックで観測点に設定');
     }
     if (!content) { hide(); return; }
     const at = L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]);
