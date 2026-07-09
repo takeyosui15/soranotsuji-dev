@@ -7717,11 +7717,8 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     const nLines = inside ? nRays : nRays + 1;   // 扇形は両端のレイを含む(round索引用)
     const dAz = span / nRays;
     const exclM = Number(appState.elevExcludeRadius) || 0;   // 基本オプション: 目的点の除外範囲(m)
-    // 除外はDEM画素のフットプリントを考慮する: レイのサンプル(1画素サイズ刻み)が表す画素の地面は
-    // 目的点側へ最大で画素対角(√2×h≒11m)食い込むため、除外半径+√2×hまでのサンプルを無視する。
-    // (z14=10mメッシュでは山頂の岩などの遮蔽が隣接画素に平滑化されて写り込み、除外半径の外の
-    //  サンプル距離に現れるため。標高グラフのDEM5A(5mメッシュ)との判定差の主因。除外範囲0は従来どおり)
-    const exclEff = exclM > 0 ? exclM + h * Math.SQRT2 : 0;
+    const HI_R = 500;                    // 高分解能ゾーン: 目的点からこの距離までは標高グラフと同じz15(5mメッシュ)を参照する
+    const hiK = Math.ceil(HI_R / h);     // 高分解能ゾーンのレイ歩数
 
     // 標高参照: 合成標高(テスト)またはローカルのタイルキャッシュ
     const synthetic = (typeof window._tmSyntheticElev === 'function');
@@ -7776,6 +7773,44 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
         if (generation !== tsujiMeshGeneration) return null;
     }
 
+    // 高分解能ゾーン(目的点〜HI_R)のタイル先取り: 標高グラフと同じ DEM5A→5B→5C(z15・5mメッシュ) を
+    // 優先して参照し、取得できない画素はz14へフォールバックする。剣ヶ峯や槍ヶ岳の穂先のような
+    // 目的点近傍の鋭い地形は、10mメッシュ(z14)では隣接画素に平滑化されて写るため、近傍だけは
+    // 標高グラフと同じ分解能で判定して両者の判定を一致させる(遠方はz14で十分)。
+    const hiSources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+    const hiMaps = hiSources.map(() => new Map());
+    if (!synthetic) {
+        const degLatR15 = (HI_R + 800) / mPerDegLat, degLngR15 = (HI_R + 800) / mPerDegLng;
+        const tNW15 = _getTileInfo(end.lat + degLatR15, end.lng - degLngR15, 15);
+        const tSE15 = _getTileInfo(end.lat - degLatR15, end.lng + degLngR15, 15);
+        const jobs = [];
+        for (let ty = tNW15.y; ty <= tSE15.y; ty++) {
+            for (let tx = tNW15.x; tx <= tSE15.x; tx++) {
+                hiSources.forEach((dem15, i) => jobs.push((async () => {
+                    let img = null;
+                    try { img = await _getTileImageData(_makeTileUrl(dem15, tx, ty)); } catch (_) {}
+                    hiMaps[i].set(tx * 32768 + ty, img);
+                })()));
+            }
+        }
+        await Promise.all(jobs);
+        if (generation !== tsujiMeshGeneration) return null;
+    }
+    /** z14グローバル画素座標(実数)の地点をz15(5A→5B→5C)で参照する。無ければnull(z14へフォールバック) */
+    const elevAtHi = (gpx14, gpy14) => {
+        if (synthetic) return (typeof window._tmSyntheticElev15 === 'function') ? window._tmSyntheticElev15(gpx14 * 2, gpy14 * 2) : null;
+        const gx = (gpx14 * 2) | 0, gy = (gpy14 * 2) | 0;
+        const key = (gx >> 8) * 32768 + (gy >> 8);
+        for (const m15 of hiMaps) {
+            const t = m15.get(key);
+            if (!t) continue;
+            const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+            const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+            if (e !== null) return e;
+        }
+        return null;
+    };
+
     // 各レイを画素サイズ刻みで歩き、遮蔽正接の累積最大を検索エリアの距離帯へ前計算
     // (グローバル画素Yは256歩ごとに厳密計算し区間内は線形補間。誤差は0.01画素未満)
     const band = new Float32Array(nLines * bandLen);
@@ -7794,11 +7829,29 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
             const gpyA = gpyAt(end.lat + latStep * k);
             const dgpy = (kEnd > k) ? (gpyAt(end.lat + latStep * kEnd) - gpyA) / (kEnd - k) : 0;
             for (let kk = k; kk <= kEnd; kk++, gpx += gpxStep) {
-                const e = elevAt(gpx | 0, (gpyA + dgpy * (kk - k)) | 0);
-                const s = kk * h;
-                if (e !== null && s > exclEff) {
-                    const g = (e - endElev) / s;
-                    if (g > m) m = g;
+                const gpyK = gpyA + dgpy * (kk - k);
+                if (kk <= hiK) {
+                    // 高分解能ゾーン: z15(5mメッシュ)を半画素刻み(kk-0.5, kk)で参照(無ければz14)。
+                    // 除外範囲は従来どおり「目的点からの距離が除外半径以内のサンプルを無視」(実在の
+                    // 近傍遮蔽(お鉢の縁など)を意図的に無視するための機能。分解能とは独立)。
+                    for (let half = 1; half >= 0; half--) {
+                        const s = (kk - half * 0.5) * h;
+                        if (s <= exclM) continue;
+                        const gpxS = gpx - gpxStep * half * 0.5, gpyS = gpyK - dgpy * half * 0.5;
+                        const e15 = elevAtHi(gpxS, gpyS);
+                        const e = (e15 !== null) ? e15 : elevAt(gpxS | 0, gpyS | 0);
+                        if (e !== null) {
+                            const g = (e - endElev) / s;
+                            if (g > m) m = g;
+                        }
+                    }
+                } else {
+                    const e = elevAt(gpx | 0, gpyK | 0);
+                    const s = kk * h;
+                    if (e !== null && s > exclM) {
+                        const g = (e - endElev) / s;
+                        if (g > m) m = g;
+                    }
                 }
                 if (kk >= bandK0) band[rayOff + kk - bandK0] = m;
             }
@@ -7816,7 +7869,7 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     const visAt = (lat, lng, elevTotal) => {
         const x = (lng - end.lng) * mPerDegLng, y = (lat - end.lat) * mPerDegLat;
         const D = Math.hypot(x, y);
-        if (D <= exclEff || D < 2 * h) return true;   // 除外範囲内(画素フットプリント考慮)・目的点近傍は可視扱い
+        if (D <= exclM || D < 2 * h) return true;   // 除外範囲内・目的点近傍は可視扱い
         let j;
         if (inside) {
             j = Math.round((((Math.atan2(x, y) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / dAz) % nRays;
