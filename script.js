@@ -283,7 +283,7 @@ let appState = {
     soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
     soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜8192 (縦とアスペクト連動)
     soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜8192
-    soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜200 (プレビュー基準100)
+    soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜1000 (プレビュー基準100)
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1431,7 +1431,7 @@ function normalizeAppState() {
     if (!['anim', 'video'].includes(appState.soraMovPlayMode)) appState.soraMovPlayMode = 'anim';
     appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 8192));
     appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 8192));
-    appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 200));
+    appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 1000));
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -11212,7 +11212,7 @@ function setupBaseOptionControls() {
     // 文字サイズスライダー(表示天体名・星座名称・プレビュー基準100%)
     const lsSlider = document.getElementById('input-sora-label-scale');
     if (lsSlider) lsSlider.addEventListener('input', () => {
-        appState.soraLabelScale = Math.max(0, Math.min(200, Math.round(Number(lsSlider.value) || 0)));
+        appState.soraLabelScale = Math.max(0, Math.min(1000, Math.round(Number(lsSlider.value) || 0)));
         const lsVal = document.getElementById('sora-label-scale-val');
         if (lsVal) lsVal.textContent = `${appState.soraLabelScale}%`;
         saveAppState();
@@ -11757,7 +11757,7 @@ function _smEnsureConstLayer(kind) {
 let _smLabelScaleX = 1;
 function _smLabelScale() {
     const v = Number(appState.soraLabelScale);
-    return (isNaN(v) ? 100 : Math.max(0, Math.min(200, v))) / 100 * _smLabelScaleX;
+    return (isNaN(v) ? 100 : Math.max(0, Math.min(1000, v))) / 100 * _smLabelScaleX;
 }
 let _smConstNamesGrp = null;
 function _smEnsureConstNames() {
@@ -11780,9 +11780,9 @@ function _smEnsureConstNames() {
         tex.colorSpace = THREE.SRGBColorSpace;
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({
             map: tex, transparent: true, opacity: 0.85,
-            depthTest: false, depthWrite: false, sizeAttenuation: false,
+            depthTest: true, depthWrite: false, sizeAttenuation: false,
         }));
-        sp.renderOrder = 998;   // 地形・星座線の上に描く(目的点マーカーの999より下)
+        sp.renderOrder = 998;   // 描画順は後段(半透明の重なり用)。depthTestで前景の山並みの奥では隠れる
         sp.userData.aspect = w / H;
         const v = _mwEquVec(c.ra, c.dec);
         sp.position.set(v[0] * R, v[1] * R, v[2] * R);
@@ -11932,8 +11932,8 @@ function _smAddBodyName(body, pos) {
     const t = _smBodyNameTex(body);
     const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
     const sy = 12 * _smLabelScale() * 2 * Math.tan(fovV / 2) / _smFinderH;   // 画面上約12px(文字サイズスライダーと書き出し倍率を反映)
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false, sizeAttenuation: false }));
-    sp.renderOrder = 998;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, opacity: 0.95, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+    sp.renderOrder = 998;   // depthTestで前景の山並みの奥では隠れる
     sp.scale.set(sy * t.aspect, sy, 1);
     sp.center.set(-0.12, 0.5);   // マーカーの右横に表示(アンカー位置の右側に文字)
     sp.material.rotation = _smLabelRotFor(pos, _smFinderW, _smFinderH);
