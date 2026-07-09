@@ -2004,21 +2004,36 @@ input[type="range"] {
     margin-top: 3px;
 }
 
-/* 辻メッシュ: 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間・同じ幅) */
+/* 辻メッシュ: 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間・同じ幅)。
+   背景・表のスタイルは結果リスト(#tsujimesh-content)と同じ(パネルの暗色背景に透過) */
 #tsujimesh-detail {
-    border-top: 1px solid #b8860b;
-    background: rgba(255, 250, 235, 0.95);
+    border-top: 1px solid #8a7a2a;
     flex-shrink: 0;
+    padding: 0 10px 4px;
+    font-size: 14px;
 }
 #tsujimesh-detail-header {
     font-weight: bold;
     font-size: 12px;
-    padding: 2px 6px;
+    color: #ffd700;
+    padding: 3px 0;
 }
 #tsujimesh-detail-body {
     max-height: 110px;
     overflow: auto;
 }
-#tsujimesh-detail-body .td-data-row {
-    cursor: pointer;
+#tsujimesh-detail-body .td-table { width: 100%; border-collapse: collapse; }
+#tsujimesh-detail-body .td-table th,
+#tsujimesh-detail-body .td-table td { padding: 2px 6px; text-align: left; white-space: nowrap; }
+#tsujimesh-detail-body .td-table th {
+    color: #aaa; font-weight: normal; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky; top: 0; background: #2a2416; z-index: 1;
+}
+#tsujimesh-detail-body .td-data-row { cursor: pointer; }
+#tsujimesh-detail-body .td-data-row:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* 辻メッシュ: 3Dバーのオーバーレイは拡大時もシャープに(バーの区切りが滲まないように) */
+.tm-3d-overlay {
+    image-rendering: pixelated;
 }

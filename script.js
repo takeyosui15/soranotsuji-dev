@@ -7002,38 +7002,49 @@ function _tmBuildOverlay(paint, rgba) {
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
 /** メッシュマーカーの3Dヒストグラム表示: 画素毎のヒット件数に比例した高さの疑似3Dバーを
  *  奥(北)→手前(南)の順に描く(手前のバーが奥を覆う)。高さ=件数×単位高(バー単位高さ%×1画素)・
- *  上限20件分。最上段は明るいキャップ・最下段はやや暗い縁で立体感を出す。
+ *  上限20件分。DEM1画素をS×Sサブピクセルで高精細に描き(最大ズームでも隣接バーを区別できるように)、
+ *  右端1サブピクセル=暗い側面(隣との区切り)・上端=明るいキャップで立体感を出す。
  *  バーは画面上方(北)へ立ち上がるため、キャンバスとオーバーレイ境界を北へ拡張する。
- *  描画は検索/設定変更時の1回のみで、ズームには自動追従する。 */
+ *  描画は検索/設定変更時の1回のみで、ズームには自動追従する(拡大時はpixelatedでシャープに保つ)。 */
 function _tmBuild3DOverlay() {
     const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
     if (!C || !C.grid || !E) return null;
     const W = C.gridW;
+    // 高精細化のスーパーサンプル倍率(キャンバスのメモリ上限に合わせ、検索エリアが広いほど下げる)
+    const S = W <= 768 ? 4 : (W <= 1280 ? 3 : 2);
     const unit = _tm3dUnit / 100;
-    const maxH = Math.max(1, Math.ceil(20 * unit));
+    const maxH = Math.max(1, Math.ceil(20 * unit));   // ヘッドルーム(DEM画素単位)
     const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = W + maxH;
+    canvas.width = W * S; canvas.height = (W + maxH) * S;
     const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(W, W + maxH);
+    const img = ctx.createImageData(canvas.width, canvas.height);
     const data = img.data;
     const v = Math.round(255 * (1 - _tmMeshGray / 100));   // タイル表示と同じ基準色
-    const vTop = Math.min(255, v + 50), vEdge = Math.max(0, v - 60);
+    const vTop = Math.min(255, v + 50), vSide = Math.max(0, v - 70);
+    const capH = Math.max(1, S >> 1);   // 明るいトップキャップの厚み(サブピクセル)
+    const CW = canvas.width;
     for (let gy = 0; gy < W; gy++) {
         for (let gx = 0; gx < W; gx++) {
             const idx = C.grid[gy * W + gx];
             if (!idx) continue;
             const cnt = E.start[idx] - E.start[idx - 1];
-            const h = Math.max(1, Math.round(Math.min(cnt, 20) * unit));
-            const yBase = gy + maxH;
-            for (let k = 0; k <= h; k++) {
-                const o = ((yBase - k) * W + gx) * 4;
-                const c = (k === h) ? vTop : (k === 0 ? vEdge : v);
-                data[o] = c; data[o + 1] = c; data[o + 2] = c; data[o + 3] = 230;
+            const hSub = Math.max(S, Math.round(Math.min(cnt, 20) * unit * S));
+            const x0 = gx * S;
+            const yBase = (gy + maxH) * S + (S - 1);
+            for (let dy = 0; dy <= hSub; dy++) {
+                const y = yBase - dy;
+                if (y < 0) break;
+                const isCap = dy > hSub - capH;
+                for (let sx = 0; sx < S; sx++) {
+                    const c = (sx === S - 1) ? vSide : (isCap ? vTop : v);
+                    const o = (y * CW + x0 + sx) * 4;
+                    data[o] = c; data[o + 1] = c; data[o + 2] = c; data[o + 3] = 230;
+                }
             }
         }
     }
     ctx.putImageData(img, 0, 0);
-    // 北へ maxH 画素ぶん拡張した境界
+    // 北へ maxH 画素ぶん拡張した境界(サブピクセル化しても地理範囲は同じ)
     const scale = Math.pow(2, TSUJIMESH_ZOOM);
     const R128 = 128 / Math.PI;
     const cornerLL = (gpx, gpy) => {
@@ -7043,7 +7054,7 @@ function _tmBuild3DOverlay() {
     };
     return L.imageOverlay(canvas.toDataURL(),
         L.latLngBounds([cornerLL(C.gxBase, C.gyBase - maxH), cornerLL(C.gxBase + W, C.gyBase + W)]),
-        { interactive: false });
+        { interactive: false, className: 'tm-3d-overlay' });
 }
 
 /** 3D表示時のヒットテスト: 画素そのもの(バーの根元)に加えて、カーソルから南(画面下)方向の
