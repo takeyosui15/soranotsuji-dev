@@ -7719,6 +7719,11 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     const exclM = Number(appState.elevExcludeRadius) || 0;   // 基本オプション: 目的点の除外範囲(m)
     const HI_R = 500;                    // 高分解能ゾーン: 目的点からこの距離までは標高グラフと同じz15(5mメッシュ)を参照する
     const hiK = Math.ceil(HI_R / h);     // 高分解能ゾーンのレイ歩数
+    // レイのサンプリング刻み: 標高グラフの「経路を2000等分」と同じ基準(レイ長maxDist÷2000)。
+    // ただし現行より粗くならないようz14の1画素(h)以下に、DEMの分解能を超えて無駄に細かく
+    // ならないようz15の半画素(h/4)以上にクランプする。1画素(h)あたりのサブサンプル数に換算して使う。
+    const rayStep = Math.min(h, Math.max(h / 4, maxDist / 2000));
+    const baseDiv = Math.max(1, Math.ceil(h / rayStep));   // 1画素あたりのサブサンプル数(1〜4)
 
     // 標高参照: 合成標高(テスト)またはローカルのタイルキャッシュ
     const synthetic = (typeof window._tmSyntheticElev === 'function');
@@ -7821,7 +7826,7 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     // 全画素)は標高グラフと同じくNGになる(除外範囲を約2m以上にすると無視される=標高グラフと同挙動)。
     let selfG = -Infinity;
     {
-        const s0 = 0.25 * h;
+        const s0 = rayStep;   // 標高グラフの「目的点に最も近いサンプル」相当の距離
         if (s0 > exclM) {
             const e15 = elevAtHi(tgx, tgy);
             const e = (e15 !== null) ? e15 : elevAt(tgx | 0, tgy | 0);
@@ -7843,28 +7848,26 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
             const dgpy = (kEnd > k) ? (gpyAt(end.lat + latStep * kEnd) - gpyA) / (kEnd - k) : 0;
             for (let kk = k; kk <= kEnd; kk++, gpx += gpxStep) {
                 const gpyK = gpyA + dgpy * (kk - k);
-                if (kk <= hiK) {
-                    // 高分解能ゾーン: z15(5mメッシュ)を参照(標高グラフと同じ。無ければz14)。
-                    // 最初の2歩(目的点〜約15m)は1/4刻み(約1.9m)で標高グラフ並みに密へ、以降は半画素刻み。
-                    // 除外範囲は従来どおり「目的点からの距離が除外半径以内のサンプルを無視」(実在の
-                    // 近傍遮蔽(お鉢の縁など)を意図的に無視するための機能。分解能とは独立)。
-                    const div = (kk <= 2) ? 4 : 2;
-                    for (let q = div - 1; q >= 0; q--) {
-                        const back = q / div;
-                        const s = (kk - back) * h;
-                        if (s <= exclM) continue;
-                        const gpxS = gpx - gpxStep * back, gpyS = gpyK - dgpy * back;
+                // サブサンプル数: 標高グラフの2000等分基準(baseDiv)を全域に適用し、
+                // 目的点近傍はさらに密にする(最初の2歩=1/4刻み・高分解能ゾーン=半画素刻み以上)。
+                // 高分解能ゾーン(〜HI_R)はz15(5mメッシュ・標高グラフと同じ)を参照し、無ければz14。
+                // 除外範囲は従来どおり「目的点からの距離が除外半径以内のサンプルを無視」(実在の
+                // 近傍遮蔽(お鉢の縁など)を意図的に無視するための機能。分解能とは独立)。
+                const inHi = kk <= hiK;
+                const div = (kk <= 2) ? Math.max(4, baseDiv) : inHi ? Math.max(2, baseDiv) : baseDiv;
+                for (let q = div - 1; q >= 0; q--) {
+                    const back = q / div;
+                    const s = (kk - back) * h;
+                    if (s <= exclM) continue;
+                    const gpxS = gpx - gpxStep * back, gpyS = gpyK - dgpy * back;
+                    let e = null;
+                    if (inHi) {
                         const e15 = elevAtHi(gpxS, gpyS);
-                        const e = (e15 !== null) ? e15 : elevAt(gpxS | 0, gpyS | 0);
-                        if (e !== null) {
-                            const g = (e - endElev) / s;
-                            if (g > m) m = g;
-                        }
+                        e = (e15 !== null) ? e15 : elevAt(gpxS | 0, gpyS | 0);
+                    } else {
+                        e = elevAt(gpxS | 0, gpyS | 0);
                     }
-                } else {
-                    const e = elevAt(gpx | 0, gpyK | 0);
-                    const s = kk * h;
-                    if (e !== null && s > exclM) {
+                    if (e !== null) {
                         const g = (e - endElev) / s;
                         if (g > m) m = g;
                     }
