@@ -7667,19 +7667,16 @@ function zoomToTsujiMeshRow(row, centerPix) {
     map.setView(center, zoom);
 }
 
-/** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、標高グラフ(computePathVisibility)と
- *  同一のアルゴリズムで可視判定する。
- *  - 経路(画素→目的点)を2000等分し、内部の各点の標高を DEM5A→5B→5C(z15)→DEM10B(z14) の順で参照
- *    (標高グラフの getElevation と同じフォールバック・同じ丸め(z15系=0.1m・z14=1m))
+/** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、統一可視判定コア(_visJudgeCore)で
+ *  可視判定する(標高グラフの可視判定・辻検索/My辻検索の標高オプションと完全に同じベース)。
+ *  - サンプリングはDEM分解能固定(z15の半画素≒約2m)・標高は DEM5A→5B→5C(z15)→DEM10B(z14)
  *  - 可視直線(画素のDEM5A系標高+観測点高 → 目的点標高)を上回る点があればNG
- *  - 除外範囲(目的点の半径○m以内)のNGは標高グラフと同じく無視する
+ *  - 除外範囲(目的点の半径○m以内)のNGは無視
  *  タイルは対象領域〜目的点のコリドー(扇形)を先取りする(5B/5Cは前段で取得できなかった座標のみ)。
- *  サンプル位置はz15グローバル画素の線形歩行+64サンプル毎のメルカトルY厳密補正(誤差はサブピクセル)。
  *  戻り値: Uint8Array(kept) 1=OK / 中断(世代交代)は null */
 async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
     const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;
     const synthetic = (typeof window._tmSyntheticElev === 'function');
-    const steps = 2000;
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
@@ -7799,39 +7796,16 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
         };
     }
 
-    // 各対象画素: 標高グラフと同一の2000等分判定(NGが出たら打ち切り)。
-    // サンプル位置はz15グローバル画素で線形歩行し、メルカトルYは64サンプル毎に厳密再計算して補間する
+    // 各対象画素: 統一可視判定コアで判定(NGが出た時点で打ち切られる)
+    const exclM = exclKm * 1000;
     const flags = new Uint8Array(kept);
-    const endLL = L.latLng(end.lat, end.lng);
-    const SEG = 64;
     for (let i = 0; i < kept; i++) {
         const sLat = latA[i], sLng = lngA[i];
+        // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照する(無ければ検索用のz14標高)
         const sx15 = 128 * (sLng / 180 + 1) * scale15;
-        const sy15 = gpy15At(sLat);
-        // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照(無ければ検索用のz14標高)
-        const s0 = elevAtPix15(sx15 | 0, sy15 | 0);
+        const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
         const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
-        const totalDistKm = L.latLng(sLat, sLng).distanceTo(endLL) / 1000;
-        const dx = (tgx15 - sx15) / steps;
-        const dLat = end.lat - sLat;
-        let visible = 1;
-        for (let j0 = 1; j0 < steps && visible; j0 += SEG) {
-            const j1 = Math.min(j0 + SEG - 1, steps - 1);
-            const gyA = gpy15At(sLat + dLat * (j0 / steps));
-            const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
-            for (let j = j0; j <= j1; j++) {
-                const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
-                if (e === null || e === undefined) continue;   // 標高グラフと同じ: データ無し点は判定対象外
-                const r = j / steps;
-                const lineElev = startTotal + (endElev - startTotal) * r;
-                if (e > lineElev) {
-                    if (totalDistKm * (1 - r) <= exclKm) continue;   // 除外範囲(目的点側)のNGは無視
-                    visible = 0;
-                    break;
-                }
-            }
-        }
-        flags[i] = visible;
+        flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, elevAtPix15).visible ? 1 : 0;
         if ((i & 255) === 0 || i === kept - 1) {
             setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
             setTsujiMeshProgress(i + 1, kept);
@@ -8965,61 +8939,135 @@ function drawProfileGraph() {
     }
 }
 
-/** 標高プロファイルから可視判定を計算する。
- *  各点が可視直線(スタート(API標高+観測点高) → ゴール(API標高+目的点高))より下なら可視 (OK)。
- *  返り値: { visible: boolean, blockingDist?: number, blockingElev?: number, lineElevAtBlocking?: number } */
-function computeVisibility() {
-    const pts = appState.elevationData.points.filter(p => p.fetched);
-    if (pts.length < 2) return { visible: true };
-    const startElev = appState.startApiElev + appState.startHeight;
-    const endElev = appState.endApiElev + appState.endHeight;
-    const totalDist = pts[pts.length - 1].dist;
-    if (totalDist <= 0) return { visible: true };
-    // 両端は除外 (スタート/ゴール地点自体は判定対象外)
-    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;   // 基本オプション: 目的点の半径○m以内のNGは無視
-    for (let i = 1; i < pts.length - 1; i++) {
-        const pt = pts[i];
-        const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
-        if (pt.elev > lineElev) {
-            if (totalDist - pt.dist <= exclKm) continue;
-            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+/** 統一可視判定のコア(標高グラフ・辻検索/My辻検索・辻メッシュ検索の標高オプション共通)。
+ *  観測点(sLat,sLng, 標高+高さ=startTotal)→目的点(endLat,endLng, endTotal)の直線(緯度経度線形)を、
+ *  点数固定(2000等分)ではなく「DEM分解能固定」の刻み(z15の半画素≒約2m)で歩き、
+ *  内部のサンプルが可視直線を上回ったらNG(地球曲率・屈折なし)。
+ *  経路長に関わらず全てのDEM画素を取りこぼさない(グラフ描画の2000点とは独立)。
+ *  標高は elevAtPix15(z15グローバル画素→DEM5A→5B→5C→z14チェーン。呼び出し側で構成)で参照する。
+ *  除外範囲(目的点の半径exclM m以内)のNGは無視。端点そのものは判定しない。
+ *  メルカトルYは64サンプル毎に厳密再計算して区間内は線形補間する(誤差はサブピクセル)。 */
+function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, elevAtPix15) {
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    const distM = L.latLng(sLat, sLng).distanceTo(L.latLng(endLat, endLng));
+    const stepM = 40075016.686 * Math.cos(sLat * Math.PI / 180) / (scale15 * 256) / 2;   // z15の半画素(≒2m)
+    const steps = Math.max(2, Math.ceil(distM / stepM));
+    const sx15 = 128 * (sLng / 180 + 1) * scale15;
+    const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
+    const dLat = endLat - sLat;
+    const SEG = 64;
+    for (let j0 = 1; j0 < steps; j0 += SEG) {
+        const j1 = Math.min(j0 + SEG - 1, steps - 1);
+        const gyA = gpy15At(sLat + dLat * (j0 / steps));
+        const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+        for (let j = j0; j <= j1; j++) {
+            const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
+            if (e === null || e === undefined) continue;   // データ無し点は判定対象外
+            const r = j / steps;
+            const lineElev = startTotal + (endTotal - startTotal) * r;
+            if (e > lineElev) {
+                if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                return { visible: false, blockingDist: distM * r / 1000, blockingElev: e, lineElevAtBlocking: lineElev };
+            }
         }
     }
     return { visible: true };
 }
 
-/** 任意のパス start→end の可視判定 (標高オプション用)。appState/DOM非依存、DEMタイルキャッシュ再利用。
- *  startTotalElev/endTotalElev は (API標高+高さ)[m]。返り値は computeVisibility と同形式。 */
+/** 任意のパス start→end の統一可視判定 (標高グラフの可視判定・辻検索/My辻検索の標高オプション用)。
+ *  サンプリングは _visJudgeCore(DEM分解能固定・z15半画素≒2m)で、各点の標高は
+ *  DEM5A→5B→5C(z15)→DEM10B(z14) の順(getElevationと同じフォールバック・丸め)。
+ *  経路上のタイルだけを取得し(_getTileImageDataの共有キャッシュを再利用)、5B/5Cは前段で
+ *  取得できなかったタイルのみ取得する。startTotalElev/endTotalElev は (API標高+高さ)[m]。
+ *  返り値: { visible, blockingDist?(観測点からkm), blockingElev?, lineElevAtBlocking? } */
 async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev) {
-    const s = L.latLng(startLat, startLng);
-    const e = L.latLng(endLat, endLng);
-    const dist = s.distanceTo(e);
-    const steps = 2000;
-    const pts = [];
-    for (let i = 0; i <= steps; i++) {
-        const r = i / steps;
-        pts.push({ lat: s.lat + (e.lat - s.lat) * r, lng: s.lng + (e.lng - s.lng) * r, dist: (dist * r) / 1000, elev: null, fetched: false });
-    }
-    await fetchAllElevations(pts, null);
-    const fetched = pts.filter(p => p.fetched);
-    if (fetched.length < 2) return { visible: true };
-    const totalDist = fetched[fetched.length - 1].dist;
-    if (totalDist <= 0) return { visible: true };
-    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;   // 基本オプション: 目的点の半径○m以内のNGは無視
-    for (let i = 1; i < fetched.length - 1; i++) {
-        const pt = fetched[i];
-        const lineElev = startTotalElev + (endTotalElev - startTotalElev) * (pt.dist / totalDist);
-        if (pt.elev > lineElev) {
-            if (totalDist - pt.dist <= exclKm) continue;
-            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+    const exclM = Number(appState.elevExcludeRadius) || 0;
+    const synthetic = (typeof window._tmSyntheticElev === 'function');
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    let elevAtPix15;
+    if (synthetic) {
+        // テスト用: z15合成(あれば)→z14合成
+        elevAtPix15 = (gx, gy) => {
+            if (typeof window._tmSyntheticElev15 === 'function') {
+                const e = window._tmSyntheticElev15(gx, gy);
+                if (e !== null && e !== undefined) return e;
+            }
+            return window._tmSyntheticElev(gx >> 1, gy >> 1);
+        };
+    } else {
+        // 経路が通るタイル座標を判定と同じ歩きで列挙し、必要なタイルだけ取得する
+        const distM = L.latLng(startLat, startLng).distanceTo(L.latLng(endLat, endLng));
+        const stepM = 40075016.686 * Math.cos(startLat * Math.PI / 180) / (scale15 * 256) / 2;
+        const steps = Math.max(2, Math.ceil(distM / stepM));
+        const sx15 = 128 * (startLng / 180 + 1) * scale15;
+        const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
+        const dLat = endLat - startLat;
+        const keys15 = new Set();
+        const SEG = 64;
+        for (let j0 = 0; j0 <= steps; j0 += SEG) {
+            const j1 = Math.min(j0 + SEG - 1, steps);
+            const gyA = gpy15At(startLat + dLat * (j0 / steps));
+            const dgy = (j1 > j0) ? (gpy15At(startLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+            for (let j = j0; j <= j1; j++) {
+                const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+                keys15.add((gx >> 8) * 32768 + (gy >> 8));
+            }
         }
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+        const maps15 = z15Sources.map(() => new Map());
+        const map14 = new Map();
+        let pend = [...keys15];
+        for (let si = 0; si < z15Sources.length && pend.length; si++) {
+            const next = [];
+            await Promise.all(pend.map(async (key) => {
+                const tx = Math.floor(key / 32768), ty = key % 32768;
+                let img = null;
+                try { img = await _getTileImageData(_makeTileUrl(z15Sources[si], tx, ty)); } catch (_) {}
+                maps15[si].set(key, img);
+                if (!img) next.push(key);
+            }));
+            pend = next;
+        }
+        await Promise.all([...new Set([...keys15].map(key => {
+            const tx = Math.floor(key / 32768), ty = key % 32768;
+            return (tx >> 1) * 32768 + (ty >> 1);
+        }))].map(async (key14) => {
+            const tx = Math.floor(key14 / 32768), ty = key14 % 32768;
+            let img = null;
+            try { img = await _getTileImageData(_makeTileUrl(dem14, tx, ty)); } catch (_) {}
+            map14.set(key14, img);
+        }));
+        elevAtPix15 = (gx, gy) => {
+            const key = (gx >> 8) * 32768 + (gy >> 8);
+            for (let si = 0; si < maps15.length; si++) {
+                const t = maps15[si].get(key);
+                if (!t) continue;
+                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: 0.1m丸め
+            }
+            const gx14 = gx >> 1, gy14 = gy >> 1;
+            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
+            if (!t14) return null;
+            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+        };
     }
-    return { visible: true };
+    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, elevAtPix15);
 }
 
-/** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ) */
-function showVisibilityResult() {
-    const r = computeVisibility();
+/** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ)。
+ *  判定はグラフ描画用の2000点とは独立に、統一可視判定(computePathVisibility)で行う */
+async function showVisibilityResult() {
+    const r = await computePathVisibility(
+        appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
+        appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
     const note = '\n\n※ 屈折・地球曲率は考慮していない単純な直線判定です(遠距離見通しでは精度に注意)';
     if (r.visible) {
         alert('可視判定: OK\n観測点から目的点が見通せます' + note);
