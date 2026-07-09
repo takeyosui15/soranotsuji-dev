@@ -7667,240 +7667,179 @@ function zoomToTsujiMeshRow(row, centerPix) {
     map.setView(center, zoom);
 }
 
-/** 辻メッシュ標高オプション(案B): 目的点からの放射状ビューシェッドを構築する。
- *  判定モデルは computePathVisibility と同一(直線見通し・地球曲率/屈折なし・
- *  基本オプションの除外範囲=目的点近傍の遮蔽は無視)。
- *  目的点から検索エリアへ向かう方位レイを画素サイズ刻みで歩き、遮蔽正接
- *  (標高-目的点標高)/距離 の累積最大を検索エリアの距離帯だけ前計算しておく。
- *  レイ本数 = 2×方位スパン×最大距離÷画素サイズ(検索エリアの広さ・距離に自動追従)。
- *  戻り値の visAt(lat, lng, 標高+高さ) で任意地点の可視可否をO(1)判定できる。
- *  中断(世代交代)時は null を返す。 */
-async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
-    // 局所平面座標(m): 目的点原点・x=東・y=北。レイは緯度経度に線形(computePathVisibilityの直線と同じ)
-    const EARTH_R = 6371000;
-    const mPerDegLat = Math.PI * EARTH_R / 180;
-    const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
-    const scale = Math.pow(2, TSUJIMESH_ZOOM);
-    const R128 = 128 / Math.PI;
-    const pixLL = (gpx, gpy) => {   // グローバル画素コーナー→緯度経度
-        const lng = ((gpx / scale) / R128 - Math.PI) * 180 / Math.PI;
-        const eL = Math.exp((128 - gpy / scale) * 2 / R128);
-        return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
-    };
-    const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
-    const gpyAt = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale;
-    // 目的点のグローバル画素座標(実数)と検索エリア内外の判定
-    const tgx = 128 * (end.lng / 180 + 1) * scale;
-    const tgy = gpyAt(end.lat);
-    const inside = tgx >= gxBase && tgx <= gxBase + gridW && tgy >= gyBase && tgy <= gyBase + gridW;
-    const h = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale * 256);   // 検索エリアの1画素サイズ(m)
-    // 検索エリア4隅の方位・距離(凸領域なので方位スパンと最大距離は隅で決まる)
-    const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
-        .map(([gx, gy]) => toXY(pixLL(gx, gy)));
-    const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h;
-    // 帯開始距離: 目的点に最も近い領域点(矩形へのクランプ)までの距離から余裕を引く
-    const nearPt = toXY(pixLL(Math.min(Math.max(tgx, gxBase), gxBase + gridW), Math.min(Math.max(tgy, gyBase), gyBase + gridW)));
-    const bandStart = inside ? 0 : Math.max(0, Math.hypot(nearPt.x, nearPt.y) - 16 * h);
-    const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
-    let azMin = 0, span = 2 * Math.PI;
-    if (!inside) {   // 領域外からは4隅の方位の最小包含弧(凸領域なので<180°)
-        const azs = corners.map(c => Math.atan2(c.x, c.y));
-        const ds = azs.map(a => wrapPi(a - azs[0]));
-        azMin = azs[0] + Math.min(...ds);
-        span = Math.max(...ds) - Math.min(...ds);
-    }
-    const nSteps = Math.ceil(maxDist / h);
-    const bandK0 = Math.max(1, Math.floor(bandStart / h));
-    const bandLen = nSteps - bandK0 + 1;
-    let nRays = Math.max(720, Math.min(9000, Math.ceil(2 * span * maxDist / h)));
-    nRays = Math.max(720, Math.min(nRays, Math.floor(16e6 / bandLen)));   // 帯配列(Float32)を最大64MBに抑える
-    const nLines = inside ? nRays : nRays + 1;   // 扇形は両端のレイを含む(round索引用)
-    const dAz = span / nRays;
-    const exclM = Number(appState.elevExcludeRadius) || 0;   // 基本オプション: 目的点の除外範囲(m)
-    const HI_R = 500;                    // 高分解能ゾーン: 目的点からこの距離までは標高グラフと同じz15(5mメッシュ)を参照する
-    const hiK = Math.ceil(HI_R / h);     // 高分解能ゾーンのレイ歩数
-    // レイのサンプリング刻み: 標高グラフの「経路を2000等分」と同じ基準(レイ長maxDist÷2000)。
-    // ただし現行より粗くならないようz14の1画素(h)以下に、DEMの分解能を超えて無駄に細かく
-    // ならないようz15の半画素(h/4)以上にクランプする。1画素(h)あたりのサブサンプル数に換算して使う。
-    const rayStep = Math.min(h, Math.max(h / 4, maxDist / 2000));
-    const baseDiv = Math.max(1, Math.ceil(h / rayStep));   // 1画素あたりのサブサンプル数(1〜4)
-
-    // 標高参照: 合成標高(テスト)またはローカルのタイルキャッシュ
+/** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、標高グラフ(computePathVisibility)と
+ *  同一のアルゴリズムで可視判定する。
+ *  - 経路(画素→目的点)を2000等分し、内部の各点の標高を DEM5A→5B→5C(z15)→DEM10B(z14) の順で参照
+ *    (標高グラフの getElevation と同じフォールバック・同じ丸め(z15系=0.1m・z14=1m))
+ *  - 可視直線(画素のDEM5A系標高+観測点高 → 目的点標高)を上回る点があればNG
+ *  - 除外範囲(目的点の半径○m以内)のNGは標高グラフと同じく無視する
+ *  タイルは対象領域〜目的点のコリドー(扇形)を先取りする(5B/5Cは前段で取得できなかった座標のみ)。
+ *  サンプル位置はz15グローバル画素の線形歩行+64サンプル毎のメルカトルY厳密補正(誤差はサブピクセル)。
+ *  戻り値: Uint8Array(kept) 1=OK / 中断(世代交代)は null */
+async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
+    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;
     const synthetic = (typeof window._tmSyntheticElev === 'function');
-    const tileMap = new Map();   // タイルキー(tx*32768+ty) → ImageData|null
-    const elevAt = synthetic
-        ? (gpx, gpy) => window._tmSyntheticElev(gpx, gpy)
-        : (gpx, gpy) => {
-            const t = tileMap.get((gpx >> 8) * 32768 + (gpy >> 8));
-            if (!t) return null;
-            const o = ((gpy & 255) * 256 + (gpx & 255)) << 2;
-            return _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
-        };
+    const steps = 2000;
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    const tgx15 = 128 * (end.lng / 180 + 1) * scale15;
 
-    // タイル先取り: 目的点±maxDistのbbox内のタイルをセクター(方位スパン+タイル半径の余裕)で絞って取得
-    if (!synthetic) {
-        const dem = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
-        const tileR = 256 * h * 0.75;   // タイル半径(半対角+余裕)
-        const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
-        const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, TSUJIMESH_ZOOM);
-        const tSE = _getTileInfo(end.lat - degLatR, end.lng + degLngR, TSUJIMESH_ZOOM);
-        const azC = azMin + span / 2;
-        const need = [];
-        for (let ty = tNW.y; ty <= tSE.y; ty++) {
-            for (let tx = tNW.x; tx <= tSE.x; tx++) {
-                const c = toXY(pixLL(tx * 256 + 128, ty * 256 + 128));
-                const d = Math.hypot(c.x, c.y);
-                if (d > maxDist + tileR) continue;
-                if (!inside && d > tileR) {
-                    const pad = Math.asin(Math.min(1, tileR / d));
-                    if (Math.abs(wrapPi(Math.atan2(c.x, c.y) - azC)) > span / 2 + pad) continue;
-                }
-                need.push({ tx, ty });
+    let elevAtPix15;   // (z15グローバル画素int) → 標高 or null (標高グラフのgetElevationと同じチェーン)
+    if (synthetic) {
+        // テスト用: z15合成(あれば)→z14合成
+        elevAtPix15 = (gx, gy) => {
+            if (typeof window._tmSyntheticElev15 === 'function') {
+                const e = window._tmSyntheticElev15(gx, gy);
+                if (e !== null && e !== undefined) return e;
             }
+            return window._tmSyntheticElev(gx >> 1, gy >> 1);
+        };
+    } else {
+        // コリドー(対象領域〜目的点の扇形)のタイル先取り。z14と、z15は5A→5B→5Cの順に未取得座標のみ
+        const EARTH_R = 6371000;
+        const mPerDegLat = Math.PI * EARTH_R / 180;
+        const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
+        const scale14 = Math.pow(2, TSUJIMESH_ZOOM);
+        const pixLL14 = (gpx, gpy) => {
+            const lng = ((gpx / scale14) / R128 - Math.PI) * 180 / Math.PI;
+            const eL = Math.exp((128 - gpy / scale14) * 2 / R128);
+            return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
+        };
+        const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
+        const h14 = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale14 * 256);
+        const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
+            .map(([gx, gy]) => toXY(pixLL14(gx, gy)));
+        const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
+        const tgx14 = tgx15 / 2, tgy14 = gpy15At(end.lat) / 2;
+        const inside = tgx14 >= gxBase && tgx14 <= gxBase + gridW && tgy14 >= gyBase && tgy14 <= gyBase + gridW;
+        const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+        let azC = 0, span = 2 * Math.PI;
+        if (!inside) {
+            const azs = corners.map(c => Math.atan2(c.x, c.y));
+            const ds = azs.map(a => wrapPi(a - azs[0]));
+            azC = azs[0] + (Math.min(...ds) + Math.max(...ds)) / 2;
+            span = Math.max(...ds) - Math.min(...ds);
         }
-        let done = 0, qi = 0;
-        const fetchLoop = async () => {
-            while (qi < need.length) {
-                if (generation !== tsujiMeshGeneration) return;
-                const { tx, ty } = need[qi++];
-                const url = dem.url.replace('{z}', TSUJIMESH_ZOOM).replace('{x}', tx).replace('{y}', ty);
-                let img = null;
-                try { img = await _getTileImageData(url); } catch (_) {}   // 海上等でタイルが無ければ標高なし扱い
-                tileMap.set(tx * 32768 + ty, img);
-                done++;
-                if ((done & 7) === 0 || done === need.length) {
-                    setStatus(`(標高オプション 標高タイル取得中… ${done}/${need.length})`);
-                    setTsujiMeshProgress(done, need.length);
+        // コリドー内のタイル座標を列挙(タイル中心の方位/距離でセクター絞り込み)
+        const listTiles = (zoom) => {
+            const tileSizeM = 40075016.686 * Math.cos(refLat * Math.PI / 180) / Math.pow(2, zoom);
+            const tileR = tileSizeM * 0.75;
+            const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
+            const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, zoom);
+            const tSE = _getTileInfo(end.lat - degLatR, end.lng + degLngR, zoom);
+            const out = [];
+            const scaleZ = Math.pow(2, zoom);
+            for (let ty = tNW.y; ty <= tSE.y; ty++) {
+                for (let tx = tNW.x; tx <= tSE.x; tx++) {
+                    const cLng = (((tx * 256 + 128) / scaleZ) / R128 - Math.PI) * 180 / Math.PI;
+                    const eL = Math.exp((128 - (ty * 256 + 128) / scaleZ) * 2 / R128);
+                    const cLat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+                    const c = toXY({ lat: cLat, lng: cLng });
+                    const d = Math.hypot(c.x, c.y);
+                    if (d > maxDist + tileR) continue;
+                    if (!inside && d > tileR) {
+                        const pad = Math.asin(Math.min(1, tileR / d));
+                        if (Math.abs(wrapPi(Math.atan2(c.x, c.y) - azC)) > span / 2 + pad) continue;
+                    }
+                    out.push({ tx, ty });
                 }
             }
+            return out;
         };
-        await Promise.all(Array.from({ length: 8 }, fetchLoop));
-        if (generation !== tsujiMeshGeneration) return null;
-    }
-
-    // 高分解能ゾーン(目的点〜HI_R)のタイル先取り: 標高グラフと同じ DEM5A→5B→5C(z15・5mメッシュ) を
-    // 優先して参照し、取得できない画素はz14へフォールバックする。剣ヶ峯や槍ヶ岳の穂先のような
-    // 目的点近傍の鋭い地形は、10mメッシュ(z14)では隣接画素に平滑化されて写るため、近傍だけは
-    // 標高グラフと同じ分解能で判定して両者の判定を一致させる(遠方はz14で十分)。
-    const hiSources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
-    const hiMaps = hiSources.map(() => new Map());
-    if (!synthetic) {
-        const degLatR15 = (HI_R + 800) / mPerDegLat, degLngR15 = (HI_R + 800) / mPerDegLng;
-        const tNW15 = _getTileInfo(end.lat + degLatR15, end.lng - degLngR15, 15);
-        const tSE15 = _getTileInfo(end.lat - degLatR15, end.lng + degLngR15, 15);
-        const jobs = [];
-        for (let ty = tNW15.y; ty <= tSE15.y; ty++) {
-            for (let tx = tNW15.x; tx <= tSE15.x; tx++) {
-                hiSources.forEach((dem15, i) => jobs.push((async () => {
+        const fetchInto = async (map, dem, coords, label) => {
+            let done = 0, qi = 0;
+            const loop = async () => {
+                while (qi < coords.length) {
+                    if (generation !== tsujiMeshGeneration) return;
+                    const { tx, ty } = coords[qi++];
                     let img = null;
-                    try { img = await _getTileImageData(_makeTileUrl(dem15, tx, ty)); } catch (_) {}
-                    hiMaps[i].set(tx * 32768 + ty, img);
-                })()));
-            }
-        }
-        await Promise.all(jobs);
-        if (generation !== tsujiMeshGeneration) return null;
-    }
-    /** z14グローバル画素座標(実数)の地点をz15(5A→5B→5C)で参照する。無ければnull(z14へフォールバック) */
-    const elevAtHi = (gpx14, gpy14) => {
-        if (synthetic) return (typeof window._tmSyntheticElev15 === 'function') ? window._tmSyntheticElev15(gpx14 * 2, gpy14 * 2) : null;
-        const gx = (gpx14 * 2) | 0, gy = (gpy14 * 2) | 0;
-        const key = (gx >> 8) * 32768 + (gy >> 8);
-        for (const m15 of hiMaps) {
-            const t = m15.get(key);
-            if (!t) continue;
-            const o = ((gy & 255) * 256 + (gx & 255)) << 2;
-            const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
-            if (e !== null) return e;
-        }
-        return null;
-    };
-
-    // 各レイを画素サイズ刻みで歩き、遮蔽正接の累積最大を検索エリアの距離帯へ前計算
-    // (グローバル画素Yは256歩ごとに厳密計算し区間内は線形補間。誤差は0.01画素未満)
-    const band = new Float32Array(nLines * bandLen);
-    const gpxPerDegLng = 128 * scale / 180;
-    // 目的点自身の画素の遮蔽正接(全レイ共通の初期値): 標高グラフは目的点の直近(サンプル間隔分)まで
-    // 判定に含めるため、除外範囲がその距離(0.25画素≒2m)未満の時は目的点の画素の標高も遮蔽として
-    // 評価する。高さ0なら 標高−目的点標高=0 → 正接0 となり、可視直線が下る観測点(目的点より低い
-    // 全画素)は標高グラフと同じくNGになる(除外範囲を約2m以上にすると無視される=標高グラフと同挙動)。
-    let selfG = -Infinity;
-    {
-        const s0 = rayStep;   // 標高グラフの「目的点に最も近いサンプル」相当の距離
-        if (s0 > exclM) {
-            const e15 = elevAtHi(tgx, tgy);
-            const e = (e15 !== null) ? e15 : elevAt(tgx | 0, tgy | 0);
-            if (e !== null) selfG = (e - endElev) / s0;
-        }
-    }
-    for (let j = 0; j < nLines; j++) {
-        const theta = azMin + j * dAz;
-        const latStep = Math.cos(theta) * h / mPerDegLat;
-        const lngStep = Math.sin(theta) * h / mPerDegLng;
-        const gpxStep = lngStep * gpxPerDegLng;
-        const rayOff = j * bandLen;
-        let m = selfG;   // 目的点自身の画素の遮蔽から開始(標高グラフの直近サンプル相当)
-        let gpx = tgx + gpxStep;   // k=1 の位置
-        let k = 1;
-        while (k <= nSteps) {
-            const kEnd = Math.min(k + 255, nSteps);
-            const gpyA = gpyAt(end.lat + latStep * k);
-            const dgpy = (kEnd > k) ? (gpyAt(end.lat + latStep * kEnd) - gpyA) / (kEnd - k) : 0;
-            for (let kk = k; kk <= kEnd; kk++, gpx += gpxStep) {
-                const gpyK = gpyA + dgpy * (kk - k);
-                // サブサンプル数: 標高グラフの2000等分基準(baseDiv)を全域に適用し、
-                // 目的点近傍はさらに密にする(最初の2歩=1/4刻み・高分解能ゾーン=半画素刻み以上)。
-                // 高分解能ゾーン(〜HI_R)はz15(5mメッシュ・標高グラフと同じ)を参照し、無ければz14。
-                // 除外範囲は従来どおり「目的点からの距離が除外半径以内のサンプルを無視」(実在の
-                // 近傍遮蔽(お鉢の縁など)を意図的に無視するための機能。分解能とは独立)。
-                const inHi = kk <= hiK;
-                const div = (kk <= 2) ? Math.max(4, baseDiv) : inHi ? Math.max(2, baseDiv) : baseDiv;
-                for (let q = div - 1; q >= 0; q--) {
-                    const back = q / div;
-                    const s = (kk - back) * h;
-                    if (s <= exclM) continue;
-                    const gpxS = gpx - gpxStep * back, gpyS = gpyK - dgpy * back;
-                    let e = null;
-                    if (inHi) {
-                        const e15 = elevAtHi(gpxS, gpyS);
-                        e = (e15 !== null) ? e15 : elevAt(gpxS | 0, gpyS | 0);
-                    } else {
-                        e = elevAt(gpxS | 0, gpyS | 0);
-                    }
-                    if (e !== null) {
-                        const g = (e - endElev) / s;
-                        if (g > m) m = g;
+                    try { img = await _getTileImageData(_makeTileUrl(dem, tx, ty)); } catch (_) {}
+                    map.set(tx * 32768 + ty, img);
+                    done++;
+                    if ((done & 7) === 0 || done === coords.length) {
+                        setStatus(`(標高オプション 標高タイル取得中(${label})… ${done}/${coords.length})`);
+                        setTsujiMeshProgress(done, coords.length);
                     }
                 }
-                if (kk >= bandK0) band[rayOff + kk - bandK0] = m;
-            }
-            k = kEnd + 1;
+            };
+            await Promise.all(Array.from({ length: 8 }, loop));
+        };
+        const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        const map14 = new Map();
+        const maps15 = z15Sources.map(() => new Map());
+        await fetchInto(map14, dem14, listTiles(TSUJIMESH_ZOOM), dem14.title);
+        if (generation !== tsujiMeshGeneration) return null;
+        const coords15 = listTiles(15);
+        for (let si = 0; si < z15Sources.length; si++) {
+            const need = coords15.filter(({ tx, ty }) => {
+                for (let p = 0; p < si; p++) if (maps15[p].get(tx * 32768 + ty)) return false;
+                return true;
+            });
+            if (need.length === 0) break;
+            await fetchInto(maps15[si], z15Sources[si], need, z15Sources[si].title);
+            if (generation !== tsujiMeshGeneration) return null;
         }
-        if ((j & 127) === 0 || j === nLines - 1) {
-            setStatus(`(標高オプション可視判定中… ${j + 1}/${nLines}レイ)`);
-            setTsujiMeshProgress(j + 1, nLines);
-            await new Promise(r => setTimeout(r, 0));   // UIへ制御を返す
+        elevAtPix15 = (gx, gy) => {
+            const key = (gx >> 8) * 32768 + (gy >> 8);
+            for (let si = 0; si < maps15.length; si++) {
+                const t = maps15[si].get(key);
+                if (!t) continue;
+                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: getElevationと同じ0.1m丸め
+            }
+            const gx14 = gx >> 1, gy14 = gy >> 1;
+            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
+            if (!t14) return null;
+            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+        };
+    }
+
+    // 各対象画素: 標高グラフと同一の2000等分判定(NGが出たら打ち切り)。
+    // サンプル位置はz15グローバル画素で線形歩行し、メルカトルYは64サンプル毎に厳密再計算して補間する
+    const flags = new Uint8Array(kept);
+    const endLL = L.latLng(end.lat, end.lng);
+    const SEG = 64;
+    for (let i = 0; i < kept; i++) {
+        const sLat = latA[i], sLng = lngA[i];
+        const sx15 = 128 * (sLng / 180 + 1) * scale15;
+        const sy15 = gpy15At(sLat);
+        // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照(無ければ検索用のz14標高)
+        const s0 = elevAtPix15(sx15 | 0, sy15 | 0);
+        const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
+        const totalDistKm = L.latLng(sLat, sLng).distanceTo(endLL) / 1000;
+        const dx = (tgx15 - sx15) / steps;
+        const dLat = end.lat - sLat;
+        let visible = 1;
+        for (let j0 = 1; j0 < steps && visible; j0 += SEG) {
+            const j1 = Math.min(j0 + SEG - 1, steps - 1);
+            const gyA = gpy15At(sLat + dLat * (j0 / steps));
+            const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+            for (let j = j0; j <= j1; j++) {
+                const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
+                if (e === null || e === undefined) continue;   // 標高グラフと同じ: データ無し点は判定対象外
+                const r = j / steps;
+                const lineElev = startTotal + (endElev - startTotal) * r;
+                if (e > lineElev) {
+                    if (totalDistKm * (1 - r) <= exclKm) continue;   // 除外範囲(目的点側)のNGは無視
+                    visible = 0;
+                    break;
+                }
+            }
+        }
+        flags[i] = visible;
+        if ((i & 255) === 0 || i === kept - 1) {
+            setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
+            setTsujiMeshProgress(i + 1, kept);
+            if ((i & 2047) === 0) await new Promise(r2 => setTimeout(r2, 0));   // UIへ制御を返す
             if (generation !== tsujiMeshGeneration) return null;
         }
     }
-
-    /** 任意地点(標高+高さ=elevTotal)の可視判定。手前(目的点寄り)の遮蔽正接の累積最大と比較する */
-    const visAt = (lat, lng, elevTotal) => {
-        const x = (lng - end.lng) * mPerDegLng, y = (lat - end.lat) * mPerDegLat;
-        const D = Math.hypot(x, y);
-        if (D <= exclM || D < 2 * h) return true;   // 除外範囲内・目的点近傍は可視扱い
-        let j;
-        if (inside) {
-            j = Math.round((((Math.atan2(x, y) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / dAz) % nRays;
-        } else {
-            j = Math.round(wrapPi(Math.atan2(x, y) - azMin) / dAz);
-            if (j < 0) j = 0; else if (j > nRays) j = nRays;
-        }
-        const kBlock = Math.min(Math.floor(D / h) - 1, nSteps);   // 遮蔽はその地点のセルより手前のみ(内点判定)
-        if (kBlock < bandK0) return true;
-        return band[j * bandLen + (kBlock - bandK0)] <= (elevTotal - endElev) / D;
-    };
-    return { visAt, nRays: nLines, maxDist, span, h };
+    return flags;
 }
 
 /** 辻メッシュ検索の実行 (トグルON/URL自動実行から) */
@@ -7956,16 +7895,13 @@ async function startTsujiMeshSearch() {
     }
     if (generation !== tsujiMeshGeneration) return;
 
-    // 1b) 標高オプション(案B): 検索前に目的点からのビューシェッドで全画素の可視を判定し、
-    //     OK/NGチェックで選んだ対象(OK=可視画素/NG=不可視画素/両方または未選択=全画素)だけを検索する。
+    // 1b) 標高オプション: 許容範囲で絞った対象画素それぞれに、標高グラフと同一のアルゴリズムで
+    //     可視(OK)/不可視(NG)を判定し、OK/NGチェックで選んだ対象だけを検索する(判定は前計算の後)。
     //     結果行の標高グラフ列は「行の表示値を出した地点=その日の最良画素」の可視判定を表示する。
-    let viewshed = null, viewshedMode = 'all';
-    if (appState.tsujiMeshElevationOption) {
-        viewshed = await computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus);
-        if (generation !== tsujiMeshGeneration) return;
-        if (viewshed && appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
-            viewshedMode = appState.tsujiMeshElevOK ? 'visible' : 'invisible';
-    }
+    const elevOptOn = appState.tsujiMeshElevationOption;
+    let viewshedMode = 'all';
+    if (elevOptOn && appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
+        viewshedMode = appState.tsujiMeshElevOK ? 'visible' : 'invisible';
 
     // 2) 全画素の前計算: 画素→目的点の基準方位角/基準視高度(WGS84測地線+見かけ高度)
     //    許容範囲(メニューの基準方位角/視高度から±)内の画素だけを検索対象にする
@@ -7999,10 +7935,6 @@ async function startTsujiMeshSearch() {
                     if (elev === null) continue;
                 }
                 const ll = _globalPixelToLatLng(gx0 + pxx, gy0 + py, TSUJIMESH_ZOOM);
-                if (viewshedMode !== 'all') {   // 標高オプション: 可視/不可視の対象画素だけを検索する
-                    const v = viewshed.visAt(ll.lat, ll.lng, elev + pixHeight);
-                    if (viewshedMode === 'visible' ? !v : v) continue;
-                }
                 const inv = geod.Inverse(ll.lat, ll.lng, end.lat, end.lng);
                 const az = (inv.azi1 + 360) % 360;
                 if (Math.abs(((az - menuBaseAz + 540) % 360) - 180) > tolAz) continue;
@@ -8027,10 +7959,39 @@ async function startTsujiMeshSearch() {
     if (kept === 0) {
         setStatus('(対象画素なし)');
         hideTsujiMeshProgress();
-        contentEl.innerHTML = (viewshedMode !== 'all')
-            ? '<div style="padding:8px;color:#999;">許容範囲内かつ標高オプション対象の画素がありません(OK/NGチェックや許容範囲を見直してください)</div>'
-            : '<div style="padding:8px;color:#999;">許容範囲内の画素がありません(許容範囲方位角/視高度を広げてください)</div>';
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内の画素がありません(許容範囲方位角/視高度を広げてください)</div>';
         return;
+    }
+
+    // 標高オプション: 許容範囲内の対象画素それぞれを、標高グラフと同一のアルゴリズムで可視判定する
+    let visFlags = null;   // Uint8Array(kept) 1=OK(可視)
+    if (elevOptOn) {
+        visFlags = await computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus);
+        if (generation !== tsujiMeshGeneration || !visFlags) return;
+        if (viewshedMode !== 'all') {
+            // OK/NGチェックで選んだ対象だけへ圧縮(グリッド索引も再構築)
+            let w = 0;
+            minAlt = Infinity; maxAlt = -Infinity;
+            for (let i = 0; i < kept; i++) {
+                const keep = (viewshedMode === 'visible') ? visFlags[i] === 1 : visFlags[i] === 0;
+                if (!keep) { grid[gridPosA[i]] = 0; continue; }
+                baseAzA[w] = baseAzA[i]; baseAltA[w] = baseAltA[i];
+                latA[w] = latA[i]; lngA[w] = lngA[i]; elevA[w] = elevA[i];
+                dEA[w] = dEA[i]; dNA[w] = dNA[i];
+                gridPosA[w] = gridPosA[i]; visFlags[w] = visFlags[i];
+                grid[gridPosA[w]] = w + 1;
+                if (baseAltA[w] < minAlt) minAlt = baseAltA[w];
+                if (baseAltA[w] > maxAlt) maxAlt = baseAltA[w];
+                w++;
+            }
+            kept = w;
+            if (kept === 0) {
+                setStatus('(対象画素なし)');
+                hideTsujiMeshProgress();
+                contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内かつ標高オプション対象の画素がありません(OK/NGチェックや許容範囲を見直してください)</div>';
+                return;
+            }
+        }
     }
     const baseAz = baseAzA.slice(0, kept), baseAlt = baseAltA.slice(0, kept);
     _tsujiMeshPix = { lat: latA.slice(0, kept), lng: lngA.slice(0, kept), elev: elevA.slice(0, kept) };
@@ -8196,10 +8157,9 @@ async function startTsujiMeshSearch() {
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
-                elevationStatus: viewshed
-                    ? (viewshed.visAt(_tsujiMeshPix.lat[ev.bestPix], _tsujiMeshPix.lng[ev.bestPix],
-                                      _tsujiMeshPix.elev[ev.bestPix] + pixHeight) ? 'OK' : 'NG')
-                    : '-',   // 行の表示値を出した地点=最良画素の可視判定
+                elevationStatus: (elevOptOn && visFlags)
+                    ? (visFlags[ev.bestPix] ? 'OK' : 'NG')
+                    : '-',   // 行の表示値を出した地点=最良画素の可視判定(標高グラフと同一アルゴリズム)
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
                 moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
