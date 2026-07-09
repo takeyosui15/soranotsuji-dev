@@ -6472,7 +6472,15 @@ function applyColor(code) {
         renderCelestialList();
         renderMyStarsList();
         updateAll();
+        _tmApplyBodyStyleChange();
     }
+}
+
+/** 辻メッシュの辻/優辻マーカーは焼き込み画像のため、天体色の変更時はここで再描画する(結果行の文字色も追従) */
+function _tmApplyBodyStyleChange() {
+    if (!_tsujiMeshRows.length) return;
+    _tsujiMeshRows.forEach(r => { if (r.__tr) r.__tr.style.color = r.body.color; });
+    recalcTsujiMeshGoldAtTime();
 }
 
 function applyLineStyle(type) {
@@ -6543,6 +6551,7 @@ function resetBodyStyle() {
     renderCelestialList();
     renderMyStarsList();
     updateAll();
+    _tmApplyBodyStyleChange();
 }
 
 function closePalette() {
@@ -6856,6 +6865,10 @@ let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行
 let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
 let _tsujiMeshWhiteDist = null;  // 白マーカー索引: 画素→その行での最良精度角距離(°)
 let _tsujiMeshWhiteRows = null;  // 索引構築時の行スナップショット(結果リストのソートに影響されない参照)
+// 全件索引(CSR): 1画素×表示天体毎に複数日の最良辻日時を全て保持する(取りこぼしなし)。
+// 画素pの全ヒットは k = start[p]〜start[p+1]-1 で、行= rows[row[k]]・行内位置= pos[k]
+// (辻時刻= 行.pixTime[pos[k]]・精度角距離= 行.pixDist[pos[k]]。値は行の配列を参照し重複保持しない)
+let _tsujiMeshPixEntries = null; // { start: Uint32Array(n+1), row: Int32Array(m), pos: Uint32Array(m) }
 
 // 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
 const tsujiMeshPool = (() => {
@@ -7001,12 +7014,26 @@ function drawTsujiMeshMarkers() {
     _tsujiMeshWhiteTime = new Float64Array(n);
     _tsujiMeshWhiteDist = new Float32Array(n);
     _tsujiMeshWhiteRows = _tsujiMeshRows.slice();
+    // 全件索引(CSR)の構築: 1パス目=画素毎のヒット数を数え、2パス目=行/行内位置を充填する
+    let m = 0;
+    for (const row of _tsujiMeshWhiteRows) m += row.pixIdx.length;
+    const csrStart = new Uint32Array(n + 1);
+    for (const row of _tsujiMeshWhiteRows) {
+        const idxArr = row.pixIdx;
+        for (let i = 0; i < idxArr.length; i++) csrStart[idxArr[i] + 1]++;
+    }
+    for (let p = 0; p < n; p++) csrStart[p + 1] += csrStart[p];
+    const csrRow = new Int32Array(m), csrPos = new Uint32Array(m);
+    const fill = csrStart.slice(0, n);   // 画素毎の書き込み位置(進行カーソル)
     const overlay = _tmBuildOverlay((put) => {
         for (let r = 0; r < _tsujiMeshWhiteRows.length; r++) {
             const row = _tsujiMeshWhiteRows[r];
             const idxArr = row.pixIdx;
             for (let i = 0; i < idxArr.length; i++) {
                 const pix = idxArr[i];
+                const k = fill[pix]++;
+                csrRow[k] = r;
+                csrPos[k] = i;
                 if (_tsujiMeshWhiteRow[pix] < 0) {
                     put(pix);
                     _tsujiMeshWhiteRow[pix] = r;
@@ -7020,7 +7047,24 @@ function drawTsujiMeshMarkers() {
             }
         }
     }, (() => { const v = Math.round(255 * (1 - _tmMeshGray / 100)); return [v, v, v, 230]; })());
+    _tsujiMeshPixEntries = { start: csrStart, row: csrRow, pos: csrPos };
     if (overlay) overlay.addTo(tsujiMeshLayer);
+}
+
+/** 全件索引から画素の全ヒット(表示天体毎→日付順)を取り出す。各要素 {row, timeMs, dist, best}。
+ *  CSRの2パス目は行indexの昇順に充填するため、取り出し順=行の構築順(表示天体順→日時順)。 */
+function _tmPixAllHits(pix) {
+    const E = _tsujiMeshPixEntries;
+    if (!E || !_tsujiMeshWhiteRows) return [];
+    const out = [];
+    for (let k = E.start[pix]; k < E.start[pix + 1]; k++) {
+        const row = _tsujiMeshWhiteRows[E.row[k]], i = E.pos[k];
+        out.push({ row, timeMs: row.pixTime[i], dist: row.pixDist[i], best: false });
+    }
+    let bi = -1;
+    for (let j = 0; j < out.length; j++) if (bi < 0 || out[j].dist < out[bi].dist) bi = j;
+    if (bi >= 0) out[bi].best = true;
+    return out;
 }
 
 /** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
@@ -7318,10 +7362,7 @@ function _tmShowPixelPopup(latlng) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'タップで観測点に設定');
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
-        const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
-        const ref = _tmRefinePixelTime(pix, _tsujiMeshWhiteTime[pix], row.body);
-        if (ref) content = _tmTooltipHtml('メッシュマーカー', ref.timeMs, ref.dist, 'タップで観測点に設定');
-        else content = _tmTooltipHtml('メッシュマーカー', _tsujiMeshWhiteTime[pix], _tsujiMeshWhiteDist[pix], 'タップで観測点に設定');
+        content = _tmMeshTooltipHtml(pix, 'タップで観測点に設定');
     }
     if (!content) return false;
     const div = document.createElement('div');
@@ -7410,6 +7451,29 @@ function _tmTooltipHtml(title, timeMs, dist, action) {
     return `<strong>${title}</strong><br>辻日付: ${_tmFmtDateMs(timeMs)}<br>辻時刻: ${_tmFmtTimeMs2(timeMs)}<br>精度角距離: ${dist.toFixed(5)}°<br>${action || 'クリックで観測点に設定'}`;
 }
 
+/** メッシュマーカーのポップアップ本文: その画素の全ヒット(表示天体毎→日付順)をリスト表示する。
+ *  1画素は表示天体毎に複数日の最良辻日時を保持する(公転で同方向を年2回以上通る日を取りこぼさない)。
+ *  最良の日(★)は秒未満(0.01秒)まで精細化して表示し、クリック時のジャンプ先になる。 */
+function _tmMeshTooltipHtml(pix, action) {
+    const hits = _tmPixAllHits(pix);
+    if (!hits.length) return null;
+    const MAX_LINES = 12;
+    const multiBody = new Set(hits.map(h => h.row.body.id)).size > 1;
+    const lines = [];
+    for (let j = 0; j < hits.length && lines.length < MAX_LINES; j++) {
+        const h = hits[j];
+        let timeMs = h.timeMs, dist = h.dist;
+        if (h.best) {
+            const ref = _tmRefinePixelTime(pix, h.timeMs, h.row.body);
+            if (ref) { timeMs = ref.timeMs; dist = ref.dist; }
+        }
+        const name = multiBody ? `${escapeHtml(h.row.body.name)} ` : '';
+        lines.push(`${h.best ? '★' : '・'}${name}${_tmFmtDateMs(timeMs)} ${_tmFmtTimeMs2(timeMs)} ${dist.toFixed(5)}°`);
+    }
+    if (hits.length > MAX_LINES) lines.push(`…他${hits.length - MAX_LINES}件`);
+    return `<strong>メッシュマーカー</strong><br>${lines.join('<br>')}<br>${action}(★の日へ)`;
+}
+
 /** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
  *  辻マーカー(表示中の集合)を優先し、集合外の白マーカー画素は最良の行の値を表示する。 */
 let _tmHoverTooltip = null;
@@ -7423,10 +7487,7 @@ function handleTsujiMeshGoldHover(latlng) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'Dblクリックで観測点に設定');
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer) && _tsujiMeshWhiteRow[pix] >= 0) {
-        const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
-        const ref = _tmRefinePixelTime(pix, _tsujiMeshWhiteTime[pix], row.body);
-        if (ref) content = _tmTooltipHtml('メッシュマーカー', ref.timeMs, ref.dist, 'Dblクリックで観測点に設定');
-        else content = _tmTooltipHtml('メッシュマーカー', _tsujiMeshWhiteTime[pix], _tsujiMeshWhiteDist[pix], 'Dblクリックで観測点に設定');
+        content = _tmMeshTooltipHtml(pix, 'Dblクリックで観測点に設定');
     }
     if (!content) { hide(); return; }
     const at = L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]);
@@ -7744,16 +7805,13 @@ async function startTsujiMeshSearch() {
 
     // 1b) 標高オプション(案B): 検索前に目的点からのビューシェッドで全画素の可視を判定し、
     //     OK/NGチェックで選んだ対象(OK=可視画素/NG=不可視画素/両方または未選択=全画素)だけを検索する。
-    //     結果行の標高グラフ列は「行の表示値(観測点基準)を出した地点=観測点」の可視判定を表示する。
-    let viewshed = null, viewshedMode = 'all', obsElevStatus = '-';
+    //     結果行の標高グラフ列は「行の表示値を出した地点=その日の最良画素」の可視判定を表示する。
+    let viewshed = null, viewshedMode = 'all';
     if (appState.tsujiMeshElevationOption) {
         viewshed = await computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus);
         if (generation !== tsujiMeshGeneration) return;
-        if (viewshed) {
-            if (appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
-                viewshedMode = appState.tsujiMeshElevOK ? 'visible' : 'invisible';
-            obsElevStatus = viewshed.visAt(start.lat, start.lng, start.elev) ? 'OK' : 'NG';
-        }
+        if (viewshed && appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
+            viewshedMode = appState.tsujiMeshElevOK ? 'visible' : 'invisible';
     }
 
     // 2) 全画素の前計算: 画素→目的点の基準方位角/基準視高度(WGS84測地線+見かけ高度)
@@ -7873,8 +7931,7 @@ async function startTsujiMeshSearch() {
     const days = appState.tsujiMeshDays;
     const CHUNK = 30;
     const numChunks = Math.ceil(days / CHUNK);
-    const anchorChunks = Math.ceil(days / TSUJI_CHUNK_DAYS);
-    const totalTasks = visibleBodies.length * (numChunks + anchorChunks);
+    const totalTasks = visibleBodies.length * numChunks;
     let doneTasks = 0;
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
@@ -7893,27 +7950,6 @@ async function startTsujiMeshSearch() {
         return { id: body.id, fixed: false };
     };
     const bumpProgress = () => { doneTasks++; setTsujiMeshProgress(doneTasks, totalTasks); };
-
-    // 4a) 観測点アンカー検索(並行): 現在の観測点でその日に最高精度が出る辻時刻を毎日求める。
-    //     行の辻時刻・精度はこの観測点基準の値を表示する(a案)。tolerance=180で毎日必ず最小距離が返る。
-    const anchorPromise = Promise.all(visibleBodies.map(body =>
-        runTsujiChunks({
-            bodyMsg: buildBodyMsg(body), observerData, refractionEnabled: appState.refractionEnabled,
-            targetAz: (menuBaseAz + appState.tsujiMeshOffsetAz + 360) % 360,
-            targetAlt: menuBaseAlt + appState.tsujiMeshOffsetAlt,
-            toleranceAz: 180, toleranceAlt: 180,
-            centerMode: appState.tsujiMeshCenterMode,
-            centerAz0: (menuBaseAz + 360) % 360, centerAlt0: menuBaseAlt,
-            searchStartMs, days, maxResults: days,
-            onChunkDone: bumpProgress,
-        }).then(chunkResults => {
-            const byDay = new Map();
-            chunkResults.forEach(cr => (cr.results || []).forEach(r => {
-                byDay.set(Math.floor((r.timeMs - searchStartMs) / 86400000), r);
-            }));
-            return [body.id, byDay];
-        })
-    )).then(entries => new Map(entries));
 
     const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
         const bodyMsg = buildBodyMsg(body);
@@ -7935,7 +7971,6 @@ async function startTsujiMeshSearch() {
         events.sort((a, b) => a.dayIdx - b.dayIdx);
         return { body, events };
     }));
-    const anchorByBody = await anchorPromise;
     if (generation !== tsujiMeshGeneration) return;
 
     // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
@@ -7964,16 +7999,14 @@ async function startTsujiMeshSearch() {
     const rows = [];
     let totalPix = 0;
     allBodyEvents.forEach(({ body, events }) => {
-        const anchorByDay = anchorByBody.get(body.id);
         events.forEach(ev => {
-            // 行の辻時刻・精度は「現在の観測点でその日に最高精度が出る時刻とその時の値」(観測点基準・a案)。
-            // 観測点で精度が出ない日は◎より大きい精度角距離をそのまま表示する。
-            // アンカーが取れない日(日境界の稀ケース)のみ従来の最良画素の値へフォールバック。
-            const anchor = anchorByDay ? anchorByDay.get(ev.dayIdx) : null;
-            const rowTimeMs = anchor ? anchor.timeMs : ev.bestTimeMs;
-            const rowDist = anchor ? anchor.dist : ev.bestDist;
-            const rowAz = anchor ? anchor.azimuth : ev.bestAz;
-            const rowAlt = anchor ? anchor.altitude : ev.bestAlt;
+            // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
+            // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
+            // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
+            const rowTimeMs = ev.bestTimeMs;
+            const rowDist = ev.bestDist;
+            const rowAz = ev.bestAz;
+            const rowAlt = ev.bestAlt;
             const dt = new Date(rowTimeMs);
             const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
             const rs = getRiseSetForDay(dt);
@@ -7994,8 +8027,8 @@ async function startTsujiMeshSearch() {
             if ((symbol === '○' && !appState.tsujiMeshSymO) ||
                 (symbol === '△' && !appState.tsujiMeshSymTri) ||
                 (symbol === '-' && !appState.tsujiMeshSymDash)) return;
-            const diffBaseAz = anchor ? menuBaseAz : baseAz[ev.bestPix];
-            const diffBaseAlt = anchor ? menuBaseAlt : baseAlt[ev.bestPix];
+            const diffBaseAz = baseAz[ev.bestPix];
+            const diffBaseAlt = baseAlt[ev.bestPix];
             totalPix += ev.total;
             rows.push({
                 body, dateObj: dt,
@@ -8007,7 +8040,10 @@ async function startTsujiMeshSearch() {
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
-                elevationStatus: obsElevStatus,   // 行の表示値(観測点基準)を出した地点=観測点の可視判定
+                elevationStatus: viewshed
+                    ? (viewshed.visAt(_tsujiMeshPix.lat[ev.bestPix], _tsujiMeshPix.lng[ev.bestPix],
+                                      _tsujiMeshPix.elev[ev.bestPix] + pixHeight) ? 'OK' : 'NG')
+                    : '-',   // 行の表示値を出した地点=最良画素の可視判定
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
                 moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
