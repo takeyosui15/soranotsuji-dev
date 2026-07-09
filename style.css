@@ -1000,6 +1000,7 @@ html {
 #sec-myobs { background-color: rgba(144, 238, 144, 0.15); }
 #sec-mytgt { background-color: rgba(255, 165, 0, 0.15); }
 #sec-mytsuji { background-color: rgba(186, 85, 211, 0.15); }
+#sec-soramado { background-color: rgba(30, 144, 255, 0.15); }
 /* 辻メッシュ検索は辻検索とフォームが似ているため、間違わないように薄い金色の背景にする */
 #sec-tsujimesh { background-color: rgba(255, 215, 0, 0.12); }
 
