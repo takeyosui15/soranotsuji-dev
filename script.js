@@ -7717,6 +7717,11 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     const nLines = inside ? nRays : nRays + 1;   // 扇形は両端のレイを含む(round索引用)
     const dAz = span / nRays;
     const exclM = Number(appState.elevExcludeRadius) || 0;   // 基本オプション: 目的点の除外範囲(m)
+    // 除外はDEM画素のフットプリントを考慮する: レイのサンプル(1画素サイズ刻み)が表す画素の地面は
+    // 目的点側へ最大で画素対角(√2×h≒11m)食い込むため、除外半径+√2×hまでのサンプルを無視する。
+    // (z14=10mメッシュでは山頂の岩などの遮蔽が隣接画素に平滑化されて写り込み、除外半径の外の
+    //  サンプル距離に現れるため。標高グラフのDEM5A(5mメッシュ)との判定差の主因。除外範囲0は従来どおり)
+    const exclEff = exclM > 0 ? exclM + h * Math.SQRT2 : 0;
 
     // 標高参照: 合成標高(テスト)またはローカルのタイルキャッシュ
     const synthetic = (typeof window._tmSyntheticElev === 'function');
@@ -7791,7 +7796,7 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
             for (let kk = k; kk <= kEnd; kk++, gpx += gpxStep) {
                 const e = elevAt(gpx | 0, (gpyA + dgpy * (kk - k)) | 0);
                 const s = kk * h;
-                if (e !== null && s > exclM) {
+                if (e !== null && s > exclEff) {
                     const g = (e - endElev) / s;
                     if (g > m) m = g;
                 }
@@ -7811,7 +7816,7 @@ async function computeTsujiMeshViewshed(end, endElev, gxBase, gyBase, gridW, ref
     const visAt = (lat, lng, elevTotal) => {
         const x = (lng - end.lng) * mPerDegLng, y = (lat - end.lat) * mPerDegLat;
         const D = Math.hypot(x, y);
-        if (D <= exclM || D < 2 * h) return true;   // 除外範囲内・目的点近傍は可視扱い
+        if (D <= exclEff || D < 2 * h) return true;   // 除外範囲内(画素フットプリント考慮)・目的点近傍は可視扱い
         let j;
         if (inside) {
             j = Math.round((((Math.atan2(x, y) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / dAz) % nRays;
