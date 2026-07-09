@@ -12379,7 +12379,14 @@ function _smRenderAllSkyCube(aspect, radiusPx) {
     const F = Math.max(512, Math.min(2048, Math.round(radiusPx * 2)));
     if (_smCubeRT.width !== F) _smCubeRT.setSize(F, F);
     _smCubeCam.position.set(0, 0, 0);
+    // CubeCamera.update は各面をクリアしないため、autoClear=false(宙の窓の既定)のままだと
+    // 前フレームの内容がキューブ面に蓄積して残像になる(天体切替・日時変更で軌跡が残る)。
+    // update の間だけ autoClear を有効にして各面を空色でクリアする
+    const savedAutoClear = _smRenderer.autoClear;
+    _smRenderer.autoClear = true;
+    _smRenderer.setClearColor(0x0a0e1a, 1);
     _smCubeCam.update(_smRenderer, _smScene);
+    _smRenderer.autoClear = savedAutoClear;
     _smAllSkyMat.uniforms.uAspect.value = aspect;
     _smAllSkyMat.uniforms.uF.value.copy(_smAllSkyBasis.f);
     _smAllSkyMat.uniforms.uR.value.copy(_smAllSkyBasis.r);
