@@ -739,10 +739,7 @@ function setupUI() {
         const val = parseFloat(e.target.value);
         if (!isNaN(val)) appState.tsujiSearchBaseAz = val;
         e.target.value = appState.tsujiSearchBaseAz;
-        appState.soraBaseAz = appState.tsujiSearchBaseAz;   // 宙の窓の基準方位角と連動
-        soraSyncUI();
         saveAppState();
-        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
     });
     document.getElementById('input-tsuji-az-offset').addEventListener('change', (e) => {
         appState.tsujiSearchOffsetAz = parseFloat(e.target.value) || 0;
@@ -760,10 +757,7 @@ function setupUI() {
         const val = parseFloat(e.target.value);
         if (!isNaN(val)) appState.tsujiSearchBaseAlt = val;
         e.target.value = appState.tsujiSearchBaseAlt;
-        appState.soraBaseAlt = appState.tsujiSearchBaseAlt;   // 宙の窓の基準視高度と連動
-        soraSyncUI();
         saveAppState();
-        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
     });
     document.getElementById('input-tsuji-alt-offset').addEventListener('change', (e) => {
         appState.tsujiSearchOffsetAlt = parseFloat(e.target.value) || 0;
@@ -6616,11 +6610,8 @@ function updateTsujiSearchInputs() {
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
     appState.tsujiSearchBaseAz = az;
     appState.tsujiSearchBaseAlt = alt;
-    appState.soraBaseAz = az;     // 宙の窓の基準方位角/視高度と連動
-    appState.soraBaseAlt = alt;
     document.getElementById('input-tsuji-az').value = az.toFixed(4);
     document.getElementById('input-tsuji-alt').value = alt.toFixed(4);
-    soraSyncUI();
     saveAppState();
     updateOffsetDistances();
 }
@@ -10632,29 +10623,18 @@ function soraSyncUI() {
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
 }
 
-/** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (基準方位角/視高度は辻検索と連動)。位置変化時のみ */
+/** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
 function soraUpdateBaseFromPoints() {
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
     if (posKey === appState._soraLastPosKey) return;
     appState._soraLastPosKey = posKey;
-    // 基準方位角/視高度は辻検索(updateTsujiSearchInputs)と同一式(球面距離)で算出し、両状態を同値にする
-    const distSph = L.latLng(appState.start.lat, appState.start.lng)
-                     .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
-    const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
-    const alt = calculateApparentAltitude(distSph, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
-    appState.soraBaseAz = az;
-    appState.soraBaseAlt = alt;
-    appState.tsujiSearchBaseAz = az;
-    appState.tsujiSearchBaseAlt = alt;
-    appState._lastTsujiPosKey = posKey;
-    document.getElementById('input-tsuji-az').value = az.toFixed(4);
-    document.getElementById('input-tsuji-alt').value = alt.toFixed(4);
     const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAz = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAlt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
     appState.soraViewRange = Math.max(1, Math.min(300, Math.ceil(dist / 1000)));   // 相手距離kmを切り上げ(0km〜この範囲)
     appState.soraFocusDist = Math.max(0, Math.min(300000, Math.ceil(dist / 1000) * 1000));   // 合焦距離の初期値=相手距離(km切り上げ→m)
     saveAppState();
     soraSyncUI();
-    updateOffsetDistances();
 }
 
 // --- インターバルMov (タイムラプス再生シミュレーション) ---
@@ -11270,18 +11250,6 @@ function setupSoramadoControls() {
     numH('input-sora-aspect-h', 'soraAspectH', 1, 100, true);
     numH('input-sora-base-az', 'soraBaseAz', 0, 360, false);
     numH('input-sora-base-alt', 'soraBaseAlt', -360, 360, false);
-    // 基準方位角・基準視高度は辻検索メニューと双方向連動 (numHのクランプ・保存の後に実行)
-    [['input-sora-base-az', 'soraBaseAz', 'tsujiSearchBaseAz', 'input-tsuji-az'],
-     ['input-sora-base-alt', 'soraBaseAlt', 'tsujiSearchBaseAlt', 'input-tsuji-alt']].forEach(([id, sKey, tKey, tId]) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', () => {
-            appState[tKey] = appState[sKey];
-            const tEl = document.getElementById(tId);
-            if (tEl) tEl.value = appState[tKey];
-            updateOffsetDistances();
-            saveAppState();
-        });
-    });
     numH('input-sora-offset-az', 'soraOffsetAz', -360, 360, false);
     numH('input-sora-offset-alt', 'soraOffsetAlt', -360, 360, false);
     numH('input-sora-range', 'soraViewRange', 1, 300, true);
