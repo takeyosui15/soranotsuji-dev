@@ -6486,7 +6486,6 @@ function applyColor(code) {
 function _tmApplyBodyStyleChange() {
     if (!_tsujiMeshRows.length) return;
     _tsujiMeshRows.forEach(r => { if (r.__tr) r.__tr.style.color = r.body.color; });
-    drawTsujiMeshMarkers();   // メッシュのグラデーションタイル(1件=天体色)も天体色を使うため再描画
     recalcTsujiMeshGoldAtTime();
 }
 
@@ -6866,6 +6865,7 @@ let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1
 let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
 let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
+let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
@@ -6999,17 +6999,18 @@ function _tmBuildOverlay(paint, rgba) {
 
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
 /** メッシュマーカーのグラデーションタイル表示: ヒット件数の度合いを色で表す。
- *  1件=その画素の最良ヒットの天体色(辻マーカーと同じ色)、最大件数=最も金色(#FFD700)へ
- *  件数比で線形補間する。最大件数(2件以上ある時)のタイルは金色と赤色の斜め縞模様
- *  (縞はグローバル座標基準で、隣接する最大値タイル同士で連続する)。0件の画素は対象外(無色)。
- *  DEM1画素をS×Sサブピクセルで高精細に描き(縞を精細に)、pixelatedでシャープに保つ。
- *  描画は検索/表示変更時の1回のみで、ズームには自動追従する。 */
+ *  1件=メッシュマーカー色(スライダーのグレースケール・既定は白)、最大件数=最も金色(#FFD700)へ
+ *  件数比で線形補間する(既定では白→金のグラデーション)。最大件数=1タイルに含まれる全表示天体での
+ *  合計件数をタイル間で比べた最大値。最大件数(2件以上ある時)のタイルは金色と赤色の斜め縞模様
+ *  (縞はグローバル座標基準で、隣接する最大値タイル同士で連続する)。0件の画素は無色(描かない)。
+ *  1タイル=8×8ピクセルで高精細に描く(検索エリアが広い場合はキャンバス上限のため4×4/2×2へ自動縮小)。
+ *  pixelatedで拡大してもシャープに保ち、描画は検索/表示変更時の1回のみでズームには自動追従する。 */
 function _tmBuildGradientOverlay() {
     const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
-    if (!C || !C.grid || !E || !_tsujiMeshWhiteRows) return null;
+    if (!C || !C.grid || !E) return null;
     const W = C.gridW;
-    // 高精細化のスーパーサンプル倍率(キャンバスのメモリ上限に合わせ、検索エリアが広いほど下げる)
-    const S = W <= 768 ? 4 : (W <= 1280 ? 3 : 2);
+    // 1タイルあたりのピクセル数(3×3=8、4×4/5×5=4、6×6=2。キャンバスのメモリ上限のため)
+    const S = W <= 768 ? 8 : (W <= 1280 ? 4 : 2);
     const n = _tsujiMeshPix.lat.length;
     let maxCnt = 1;
     for (let p2 = 0; p2 < n; p2++) {
@@ -7017,20 +7018,14 @@ function _tmBuildGradientOverlay() {
         if (c > maxCnt) maxCnt = c;
     }
     const GOLD = [255, 215, 0], RED = [255, 0, 0];
-    const STRIPE = 2 * S;   // 斜め縞の周期(半分ずつ金/赤)
+    const STRIPE = 4;   // 斜め縞の周期(2px金+2px赤)
+    const v = Math.round(255 * (1 - _tmMeshGray / 100));   // メッシュマーカー色(1件の色)
     const canvas = document.createElement('canvas');
     canvas.width = W * S; canvas.height = W * S;
     const ctx = canvas.getContext('2d');
     const img = ctx.createImageData(canvas.width, canvas.height);
     const data = img.data;
     const CW = canvas.width;
-    // 天体色→RGBのキャッシュ(行スナップショットの天体毎)
-    const colorCache = new Map();
-    const bodyRGB = (body) => {
-        let c = colorCache.get(body.id);
-        if (!c) { c = _tmCssColorToRGB(body.color || '#ffd700'); colorCache.set(body.id, c); }
-        return c;
-    };
     for (let gy = 0; gy < W; gy++) {
         for (let gx = 0; gx < W; gx++) {
             const idx = C.grid[gy * W + gx];
@@ -7038,12 +7033,10 @@ function _tmBuildGradientOverlay() {
             const pix = idx - 1;
             const cnt = E.start[pix + 1] - E.start[pix];
             if (cnt === 0) continue;   // 0件(許容範囲内だがヒットなし)の画素は無色=描かない
-            const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
-            const base = bodyRGB(row.body);
             const t = maxCnt > 1 ? (cnt - 1) / (maxCnt - 1) : 0;
-            const cr = Math.round(base[0] + (GOLD[0] - base[0]) * t);
-            const cg = Math.round(base[1] + (GOLD[1] - base[1]) * t);
-            const cb = Math.round(base[2] + (GOLD[2] - base[2]) * t);
+            const cr = Math.round(v + (GOLD[0] - v) * t);
+            const cg = Math.round(v + (GOLD[1] - v) * t);
+            const cb = Math.round(v + (GOLD[2] - v) * t);
             const isMax = maxCnt > 1 && cnt === maxCnt;
             const x0 = gx * S, y0 = gy * S;
             for (let sy = 0; sy < S; sy++) {
@@ -8270,6 +8263,18 @@ async function startTsujiMeshSearch() {
     drawTsujiMeshMarkers();
     // 検索直後は行を自動選択せず、日時も移動しない
     // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
+    // 初期画面: 最大ズーム-3で観測点を(下部パネルに隠れない領域の)中央に表示する
+    if (typeof map !== 'undefined' && map) {
+        let coveredPx = 0;
+        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+            const el = document.getElementById(id);
+            if (!el || el.classList.contains('hidden')) continue;
+            coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+        }
+        const zoom = (map.getMaxZoom ? map.getMaxZoom() : 18) - 3;
+        const obsPt = map.project([start.lat, start.lng], zoom);
+        map.setView(map.unproject(obsPt.add(L.point(0, coveredPx / 2)), zoom), zoom);
+    }
 }
 
 /** 辻メッシュ検索の結果リスト(21列・ソート可)を描画 */
@@ -8416,6 +8421,15 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('select-tsujimesh-time-eps').addEventListener('change', (e) => {
         _tmCtrlEps = parseFloat(e.target.value) || 0.125;
         recalcTsujiMeshGoldAtTime();
+    });
+    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール(グラデーションの基準色=1件の色)。追従して再描画
+    document.getElementById('tsujimesh-mesh-gray').addEventListener('input', (e) => {
+        _tmMeshGray = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 100);
+        const lbl = document.getElementById('tsujimesh-mesh-gray-label');
+        if (lbl) lbl.textContent = `${_tmMeshGray}%`;
+        const smp = document.getElementById('tsujimesh-mesh-gray-sample');
+        if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
+        if (_tsujiMeshRows.length) drawTsujiMeshMarkers();
     });
     // 行選択後オプション: 優辻マーカー(ピン)の初期位置。切替時は現在の選択行に即適用する
     document.querySelectorAll('input[name="tsujimesh-post-mode"]').forEach(r => {
