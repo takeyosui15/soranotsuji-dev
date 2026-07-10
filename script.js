@@ -1644,7 +1644,9 @@ function updateLocationDisplay() {
     // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
     // 観測点の位置を含むメッシュ画素の情報を表示詳細結果リストに表示する
     obsMarker.on('mouseover', _tmShowDetailForObserver);
-    obsMarker.on('click', () => setTimeout(_tmShowDetailForObserver, 0));   // タップ用(ポップアップ開閉処理の後に実行)
+    // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
+    // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
+    obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
     L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
@@ -6875,7 +6877,6 @@ let _tmMeshGray = 0;           // メッシュマーカー色: グレースケ�
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
 let _tmDetailLockPopup = null; // メッシュマーカーの確定ポップアップ(開いている間は詳細リストを確定画素に固定)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
-let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
 let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
 let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
 let _tsujiMeshWhiteDist = null;  // 白マーカー索引: 画素→その行での最良精度角距離(°)
@@ -7372,7 +7373,6 @@ function drawTsujiMeshGoldSet(perPix, big) {
     if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
     _tsujiMeshGoldLayer.clearLayers();
     _tsujiMeshGoldSet = perPix;
-    _tmLastBig = (big && big.pix >= 0) ? big : null;
     // 辻マーカーは選択行の天体色で描く(複数天体の検索でどの天体の集合か分かるように)
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
     const [cr, cg, cb] = _tmCssColorToRGB(row && row.body ? row.body.color : '#ffd700');
@@ -7620,8 +7620,9 @@ function _tmUpdateDetailList(pix) {
     if (!hits.length) return;
     _tmDetailPix = pix;
     box.classList.remove('hidden');
+    // 緯度経度はラベル付き・生値で表示する(表示の基準を他の生値表示と揃えるため)
     document.getElementById('tsujimesh-detail-header').textContent =
-        `表示詳細結果リスト(${hits.length}件) ${_tsujiMeshPix.lat[pix].toFixed(6)}, ${_tsujiMeshPix.lng[pix].toFixed(6)}`;
+        `表示詳細結果リスト(${hits.length}件) 緯度経度: ${_tsujiMeshPix.lat[pix]}, ${_tsujiMeshPix.lng[pix]}`;
     const body = document.getElementById('tsujimesh-detail-body');
     body.innerHTML = '';
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
@@ -7674,14 +7675,16 @@ function _tmResetDetailList() {
 
 /** 観測点マーカーのホバー(PC)/タップ(スマホ)時: 観測点の位置を含むメッシュ画素の全ヒットを
  *  表示詳細結果リストに表示する(メッシュマーカーをホバーした時と同じ内容)。
- *  メッシュ外・ヒットなしの画素は何もしない。確定ポップアップ表示中は固定を優先する。 */
+ *  メッシュ外・ヒットなしの画素は何もしない。確定ポップアップ表示中は固定を優先する。
+ *  戻り値: 観測点の画素の情報を表示できたか(観測点ポップアップ表示中の固定の判定に使用)。 */
 function _tmShowDetailForObserver() {
-    if (_tmDetailLockPopup) return;
-    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return;
-    if (!_tsujiMeshWhiteRow || !tsujiMeshLayer || !map.hasLayer(tsujiMeshLayer)) return;
+    if (_tmDetailLockPopup) return false;
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
+    if (!_tsujiMeshWhiteRow || !tsujiMeshLayer || !map.hasLayer(tsujiMeshLayer)) return false;
     const pix = _tmPixAtLatLng(L.latLng(appState.start.lat, appState.start.lng));
-    if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return;
+    if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return false;
     _tmUpdateDetailList(pix);
+    return _tmDetailPix === pix;
 }
 
 /** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
@@ -7791,27 +7794,8 @@ function selectTsujiMeshRow(idx, jump) {
         tsl.value = String(val);
     }
     recalcTsujiMeshGoldAtTime();
-    // 優辻マーカー(ピン)が可視領域(下部パネルを除く)の中央に来るよう表示する
-    zoomToTsujiMeshRow(row, _tmLastBig ? _tmLastBig.pix : row.bestPix);
-}
-
-/** ズーム=地図の最大ズーム値-3で、優辻マーカー(centerPix)が
- *  可視領域(下部パネルを除く)の中央に来るよう表示する。 */
-function zoomToTsujiMeshRow(row, centerPix) {
-    if (!row || !_tsujiMeshPix || typeof map === 'undefined' || !map) return;
-    // 表示中の下部パネルの被覆高さ(px)を実測(recenterObserverInViewと同じ)
-    let coveredPx = 0;
-    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
-        const el = document.getElementById(id);
-        if (!el || el.classList.contains('hidden')) continue;
-        coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
-    }
-    const zoom = (map.getMaxZoom ? map.getMaxZoom() : 18) - 3;
-    const pinPix = (centerPix !== undefined && centerPix >= 0) ? centerPix : row.bestPix;
-    // ピンが「パネルに隠れない領域の中央」に来るよう、地図中心をピンから下へ被覆高さの半分だけずらす
-    const pinPt = map.project([_tsujiMeshPix.lat[pinPix], _tsujiMeshPix.lng[pinPix]], zoom);
-    const center = map.unproject(pinPt.add(L.point(0, coveredPx / 2)), zoom);
-    map.setView(center, zoom);
+    // 行選択後のズーム・センタリングは行わない(検索直後に一度ズーム済みのため、画面は現在の表示のまま。
+    // 結果リストの行クリック・表示詳細結果リストの行クリックとも同様)
 }
 
 /** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、統一可視判定コア(_visJudgeCore)で
