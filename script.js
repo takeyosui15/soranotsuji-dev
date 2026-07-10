@@ -289,7 +289,7 @@ let appState = {
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
     mwOffsetAngle: 0,            // オフセット中心角(°) -360〜+360。基本オプションと辻検索メニューで連動
     mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
-    mwShowBodyNames: true,       // 全天儀の表示天体名+引き出し線、宙の窓プレビューの表示天体名の表示
+    mwShowBodyNames: false,      // 全天儀の表示天体名+引き出し線、宙の窓プレビューの表示天体名の表示(初期値オフ)
     mwShowConstFig: false,       // 全天儀: 星座線の表示
     mwShowConstBounds: false,    // 全天儀: 星座領域の表示
     mwShowConstNames: false,     // 全天儀: 星座名称の表示
@@ -1478,7 +1478,7 @@ function normalizeAppState() {
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
     appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
-    appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? true : !!appState.mwShowBodyNames;
+    appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? false : !!appState.mwShowBodyNames;   // 初期値オフ(保存済みの設定は維持)
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
     appState.soraTargetCross = appState.soraTargetCross !== false;
     appState.soraSearchCenter = appState.soraSearchCenter !== false;
