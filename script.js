@@ -1647,6 +1647,7 @@ function updateLocationDisplay() {
     // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
     // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
     obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
+    _tmObsMarker = obsMarker;
     L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
@@ -6875,7 +6876,8 @@ let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示�
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
-let _tmDetailLockPopup = null; // メッシュマーカーの確定ポップアップ(開いている間は詳細リストを確定画素に固定)
+let _tmDetailLockPopup = null; // 確定ポップアップ(メッシュマーカー/観測点。開いている間は詳細リストを固定)
+let _tmObsMarker = null;       // 観測点マーカー(位置情報ポップアップ。表示詳細結果リストの連動に使用)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
 let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
@@ -7595,8 +7597,10 @@ function _tmAccSymbolRank(sym) {
     return m ? -(m[1] ? parseInt(m[1]) : 1) : 9;
 }
 
-/** 詳細リスト/確定ポップアップの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
- *  ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)。 */
+/** 表示詳細結果リストの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
+ *  ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)。
+ *  移動後は観測点マーカーのポップアップ(位置情報)を開き、表示詳細結果リストを
+ *  観測点(=選択した画素)の情報のまま固定する(ポップアップを閉じると解除)。 */
 function _tmJumpToHit(pix, h) {
     if (typeof map !== 'undefined' && map) map.closePopup();
     _tmSetObserverToPix(pix);
@@ -7605,6 +7609,7 @@ function _tmJumpToHit(pix, h) {
         const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
         selectTsujiMeshRow(idx, { pix, timeMs: ref ? ref.timeMs : h.timeMs, dist: ref ? ref.dist : h.dist });
     }
+    if (_tmObsMarker) _tmObsMarker.openPopup();
 }
 
 /** 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
