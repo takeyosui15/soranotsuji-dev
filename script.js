@@ -330,7 +330,7 @@ let appState = {
     tsujiMeshTimeFilter: false,
     tsujiMeshStartMode: 'sunset', tsujiMeshStartTime: '00:00', tsujiMeshStartPrePost: false, tsujiMeshStartPrePostDir: 'before', tsujiMeshStartOffset: '00:00',
     tsujiMeshEndMode: 'sunrise', tsujiMeshEndTime: '00:00', tsujiMeshEndPrePost: false, tsujiMeshEndPrePostDir: 'before', tsujiMeshEndOffset: '00:00',
-    tsujiMeshSymO: true, tsujiMeshSymTri: true, tsujiMeshSymDash: true,   // 精度フィルタ(◎は常時オン・○△-の表示可否。初期値オン)
+    tsujiMeshSymO: false, tsujiMeshSymTri: false, tsujiMeshSymDash: false,   // 精度フィルタ(◎は常時オン・○△-は読み取り専用で常時オフ: メッシュは◎精度以上のヒットのみ保持するため対象データが無い)
     tsujiMeshElevationOption: false, tsujiMeshElevOK: false, tsujiMeshElevNG: false,
     isTsujiMeshActive: false,       // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
     tsujiElevOK: false,
@@ -1438,7 +1438,9 @@ function normalizeAppState() {
     appState.tsujiMeshTimeFilter = !!appState.tsujiMeshTimeFilter;
     if (!['point', 'line'].includes(appState.tsujiMeshCenterMode)) appState.tsujiMeshCenterMode = 'point';
     if (!['x1', 'x2', 'x4', 'x8'].includes(appState.tsujiMeshAccuracy)) appState.tsujiMeshAccuracy = 'x1';
-    appState.tsujiMeshSymO = !!appState.tsujiMeshSymO; appState.tsujiMeshSymTri = !!appState.tsujiMeshSymTri; appState.tsujiMeshSymDash = !!appState.tsujiMeshSymDash;
+    // 精度フィルタ○△-は読み取り専用・常時オフ(メッシュマーカーは精度フィルタオプション以内=◎クラスの
+    // ヒットのみ保持するため○△-のデータが存在せず、オン/オフに意味が無い)。保存値・URL値も無視する
+    appState.tsujiMeshSymO = false; appState.tsujiMeshSymTri = false; appState.tsujiMeshSymDash = false;
     appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
     if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
@@ -9991,7 +9993,7 @@ function restoreFromUrl() {
         meshNum('tsujiMeshAzOffset', 'tsujiMeshOffsetAz'); meshNum('tsujiMeshAltOffset', 'tsujiMeshOffsetAlt');
         meshNum('tsujiMeshAzTolerance', 'tsujiMeshToleranceAz'); meshNum('tsujiMeshAltTolerance', 'tsujiMeshToleranceAlt');
         meshStr('tsujiMeshCenterMode', 'tsujiMeshCenterMode'); meshStr('tsujiMeshAccuracy', 'tsujiMeshAccuracy');
-        meshBool('tsujiMeshSymO', 'tsujiMeshSymO'); meshBool('tsujiMeshSymTri', 'tsujiMeshSymTri'); meshBool('tsujiMeshSymDash', 'tsujiMeshSymDash');
+        // 精度フィルタ○△-は読み取り専用・常時オフのため、URLの値は適用しない(過去のURLとの互換のため読み飛ばすだけ)
         meshBool('tsujiMeshMoonFilter', 'tsujiMeshMoonFilterEnabled');
         meshNum('tsujiMeshMoonBase', 'tsujiMeshMoonBase'); meshNum('tsujiMeshMoonTolerance', 'tsujiMeshMoonTolerance');
         meshBool('tsujiMeshElevationOption', 'tsujiMeshElevationOption');

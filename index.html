@@ -636,9 +636,9 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsujimesh-sym-maru2" class="body-checkbox" checked disabled> <label class="tsuji-acc-label" title="精度記号◎〜◎×128(±0.125°以内)の行を表示(常時オン)">:◎</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-maru" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-maru" title="精度記号○(±0.25°)の行も表示">:○</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-tri" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-tri" title="精度記号△(±1°)の行も表示">:△</label>
-                        <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox" checked> <label class="tsuji-acc-label" for="chk-tsujimesh-sym-dash" title="精度記号-の行も表示">:-</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-maru" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、○精度のデータはありません">:○</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-tri" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、△精度のデータはありません">:△</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、-精度のデータはありません">:-</label>
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row"><label class="baseopt-group-label" title="精度フィルタ◎の当たり判定の精度(検索の判定ε)を指定します">精度フィルタオプション</label></div>
@@ -1462,7 +1462,7 @@ GNU General Public License for more details.
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
                         <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
-                        <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。</li>
+                        <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。My辻検索の結果リストは同じパネルを共有するため、同じボタンで最大化できます。</li>
                     </ul>
                     <p>精度記号:</p>
                     <ul class="help-list">
@@ -1481,7 +1481,7 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>結果リストの1行</strong>: 「天体×日」のイベント。全メッシュマーカー (ヒット画素) を日付毎にグルーピングし、行の辻時刻・精度記号・精度角距離・方位角・視高度は、<strong>その日に領域内で最高精度が出る画素 (最良画素) の辻時刻と、その時の値</strong>です (最良画素基準)。辻時刻・精度角距離・方位角・視高度は<strong>0.01秒精細化後の値 (優辻マーカーのポップアップと同じ値)</strong> で、辻時刻は hh:mm:ss.ff (0.01秒) で表示します。行になる条件は、領域内のどこかの画素で精度フィルタオプション以内になる日です。観測点マーカーは検索エリアを指定するための基準で、行の表示値の基準ではありません。精度記号は<strong>◎〜◎×128</strong> (精度フィルタオプションと同じ2倍刻みのスケール。◎=±0.125°、×2毎に許容が半分で◎×128=±0.0009765625°。該当する最も高い精度の記号を表示し、◎より粗い行は○ (±0.25°)/△ (±1°)/-) です。</li>
                         <li><strong>行の辻時刻と優辻マーカーの関係</strong>: 行の辻時刻は<strong>その日の最良画素の最良の「瞬間」</strong>、優辻マーカー (金色のピン) は<strong>指定した瞬間の最良の「場所」</strong>を指します。行選択直後は両者が同じ画素を指し、辻時刻スライダーを動かすと、その時刻での最良の場所へピンが移動します。</li>
-                        <li><strong>精度フィルタ ◎/○/△/-</strong>: 結果リストの行を精度記号で絞り込みます。◎〜◎×128 (±0.125°以内) は常時オン、○ (±0.25°)・△ (±1°)・- は任意で追加できます (初期値は◎クラスのみ)。行の値は最良画素基準 (常に精度フィルタオプション以内) のため、通常はすべて◎〜◎×128になります。</li>
+                        <li><strong>精度フィルタ ◎/○/△/-</strong>: 結果リストの行を精度記号で絞り込みます。◎〜◎×128 (±0.125°以内) は常時オン、<strong>○ (±0.25°)・△ (±1°)・- は読み取り専用で常時オフ</strong>です (メッシュマーカーは精度フィルタオプション以内=◎クラスのヒットのみ保持するため、○△-のデータは存在しません)。行の値は最良画素基準のため、すべて◎〜◎×128になります。</li>
                         <li><strong>精度フィルタオプション ◎/◎×2/◎×4/◎×8</strong>: 検索 (画素側) の当たり判定 (±0.125°/±0.0625°/±0.03125°/±0.015625°)。</li>
                         <li><strong>許容範囲方位角/視高度</strong>: 基準方位角/視高度から±この範囲にある画素だけを検索対象にします。</li>
                         <li><strong>画素の高さ基準</strong>: 全画素は観測点と同じ高さ基準「DEM標高 + 観測点高 (位置情報メニューの値)」で計算します (通常の辻検索と同じ)。辻マーカーで観測点に設定しても観測点高は維持されます。</li>
