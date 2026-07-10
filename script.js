@@ -520,7 +520,8 @@ window.onload = function() {
             const pnl = document.getElementById('tsujisearch-panel');
             btn.classList.add('active');
             pnl.classList.remove('hidden');
-            document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
+            // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+            document.getElementById('tsujisearch-title').textContent = '辻検索結果';
             syncBottomPanels();
             startTsujiSearch();
         }, 500);
@@ -6888,8 +6889,8 @@ function showTsujiPanelForMyTsuji(titleText) {
     appState.isTsujiSearchActive = true;
     document.getElementById('btn-tsuji-search').classList.add('active');
     document.getElementById('tsujisearch-panel').classList.remove('hidden');
-    document.getElementById('tsujisearch-header').innerHTML =
-        `${titleText} <span id="tsujisearch-status"></span>`;
+    // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+    document.getElementById('tsujisearch-title').textContent = titleText;
     syncBottomPanels();
 }
 
@@ -6902,7 +6903,8 @@ function toggleTsujiSearch() {
         if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
         btn.classList.add('active');
         pnl.classList.remove('hidden');
-        document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
+        // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+        document.getElementById('tsujisearch-title').textContent = '辻検索結果';
         startTsujiSearch();
     } else {
         btn.classList.remove('active');
