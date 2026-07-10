@@ -175,9 +175,11 @@ html {
 .map-pan-control .map-pan-h a:first-child { border-radius: 4px 0 0 4px; border-bottom: none; border-right: 1px solid #ccc; }
 .map-pan-control .map-pan-h a:last-child { border-radius: 0 4px 4px 0; }
 .map-pan-control a { font-size: 12px; color: black; text-decoration: none; }
-/* ⌖: 選択中のマーカー(観測点/目的点)を画面中心に表示 */
+/* ⌖(照準): 選択中のマーカー(観測点/目的点)を画面中心に表示。
+   アイコンはSVGをflexで中央配置(フォント依存の縦ズレを避ける) */
 .map-pan-control .map-pan-c { margin-top: 5px; }
-.map-pan-control .map-pan-c a { font-size: 18px; }
+.map-pan-control .map-pan-c a { display: flex; align-items: center; justify-content: center; }
+.map-pan-control .map-pan-c a svg { display: block; }
 #tsujimesh-ctrl-body {
     flex: 1 1 auto;
     min-height: 0;

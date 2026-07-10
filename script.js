@@ -612,7 +612,16 @@ function initMap() {
             '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
             '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>' +
             '<div class="leaflet-bar map-pan-c">' +
-            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">⌖</a></div>';
+            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
+            // ⌖(照準)の文字はフォント依存で描画位置が下にずれる端末があるため、SVGで描いてflexで正確に中央配置する
+            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
+            '</svg></a></div>';
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
         const pan = (dx, dy) => {
@@ -650,7 +659,7 @@ function initMap() {
         const t = e.originalEvent ? e.originalEvent.target : null;
         handleTsujiMeshGoldHover((t && t.closest && t.closest('.leaflet-control')) ? null : e.latlng);
     });
-    // メッシュマーカーの確定ポップアップが閉じたら、表示詳細結果リストの固定を解除する
+    // メッシュマーカーの確定ポップアップが閉じたら、詳細リストの固定を解除する
     map.on('popupclose', (e) => { if (e.popup === _tmDetailLockPopup) _tmDetailLockPopup = null; });
 }
 
@@ -1658,13 +1667,19 @@ function updateLocationDisplay() {
     const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
     const obsMarker = L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
     // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
-    // 観測点の位置を含むメッシュ画素の情報を表示詳細結果リストに表示する
+    // 観測点の位置を含むメッシュ画素の情報を詳細リストに表示する
     // ホバーでの更新はPCのみ(スマホのタップはpopupopen経路で処理する。タップ時に合成される
     // mouseoverでDOMを変化させると、iOSがホバー扱いにしてポップアップを開くクリックを飲み込むため)
     obsMarker.on('mouseover', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
     // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
     // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
     obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
+    // クリック(タップ)では常にポップアップを開く: Leaflet既定のトグルだと、既に開いている時
+    // (行選択後の自動表示中など)にマーカーを押すと閉じてしまい、機能が無効に見えるため。
+    // 既定のトグル(click)が閉じた後に開き直す(閉じていた場合は既定の動作で開くので何もしない)
+    obsMarker.on('click', () => { setTimeout(() => {
+        if (_tmObsMarker === obsMarker && !obsMarker.isPopupOpen()) obsMarker.openPopup();
+    }, 0); });
     _tmObsMarker = obsMarker;
     L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
@@ -6908,10 +6923,10 @@ let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε�
 let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
-let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
-let _tmDetailSort = { col: -1, asc: true };   // 表示詳細結果リストのソート順(列index/昇順)。別画素のホバーでも維持する
+let _tmDetailPix = -1;         // 詳細リストに表示中の画素(-1=なし)
+let _tmDetailSort = { col: -1, asc: true };   // 詳細リストのソート順(列index/昇順)。別画素のホバーでも維持する
 let _tmDetailLockPopup = null; // 確定ポップアップ(メッシュマーカー/観測点。開いている間は詳細リストを固定)
-let _tmObsMarker = null;       // 観測点マーカー(位置情報ポップアップ。表示詳細結果リストの連動に使用)
+let _tmObsMarker = null;       // 観測点マーカー(位置情報ポップアップ。詳細リストの連動に使用)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
 let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
@@ -7432,7 +7447,7 @@ function drawTsujiMeshGoldSet(perPix, big) {
 
 /** メッシュ/辻マーカーの画素のポップアップを開く(PC=クリック・スマホ=タップ共通)。
  *  マーカーのクリック/タップでは位置を確定してポップアップを表示するだけで、観測点は移動しない。
- *  メッシュマーカーのポップアップは件数のみ(ホバー中と同じ)で、確定中は表示詳細結果リストを
+ *  メッシュマーカーのポップアップは件数のみ(ホバー中と同じ)で、確定中は詳細リストを
  *  確定した画素の内容に固定する(行の選択+観測点移動は詳細リストの行クリックで行う)。
  *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
  *  画素ヒットなしは false(通常の地図操作として処理)。 */
@@ -7454,7 +7469,7 @@ function _tmShowPixelPopup(latlng) {
             if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
         });
     } else {
-        // メッシュマーカー: ポップアップは件数のみ(ホバー中と同じ。全ヒットの詳細は表示詳細結果リストと重複するため)
+        // メッシュマーカー: ポップアップは件数のみ(ホバー中と同じ。全ヒットの詳細は詳細リストと重複するため)
         const wpix = pix;
         if (wpix < 0 || !_tsujiMeshWhiteRow || !map.hasLayer(tsujiMeshLayer) || _tsujiMeshWhiteRow[wpix] < 0) return false;
         pix = wpix;
@@ -7469,7 +7484,7 @@ function _tmShowPixelPopup(latlng) {
         .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
         .setContent(div)
         .openOn(map);
-    // 確定中は他の画素をホバーしても表示詳細結果リストを更新しない(ポップアップを閉じると解除)。
+    // 確定中は他の画素をホバーしても詳細リストを更新しない(ポップアップを閉じると解除)。
     // openOn が先に旧ポップアップを閉じて popupclose で固定を解くため、固定は openOn の後に設定する。
     if (meshPin) _tmDetailLockPopup = popup;
     return true;
@@ -7631,10 +7646,10 @@ function _tmAccSymbolRank(sym) {
     return m ? -(m[1] ? parseInt(m[1]) : 1) : 9;
 }
 
-/** 表示詳細結果リストの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
+/** 詳細リストの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
  *  ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)。
  *  日時情報メニューの日時も行の辻日時に更新する(結果リストの行クリックと同じ。辻ラインも一緒に移動する)。
- *  移動後は観測点マーカーのポップアップ(位置情報)を開き、表示詳細結果リストを
+ *  移動後は観測点マーカーのポップアップ(位置情報)を開き、詳細リストを
  *  観測点(=選択した画素)の情報のまま固定する(ポップアップを閉じると解除)。 */
 function _tmJumpToHit(pix, h) {
     if (typeof map !== 'undefined' && map) map.closePopup();
@@ -7648,7 +7663,7 @@ function _tmJumpToHit(pix, h) {
     if (_tmObsMarker) _tmObsMarker.openPopup();
 }
 
-/** 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
+/** 詳細リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
  *  メッシュマーカーの画素の全ヒットを表形式で全件表示する(縦スクロール)。
  *  見出し(列名)クリックで列毎にソートできる(結果リストと同じ▲▼トグル)。
  *  行クリック(タップ)で該当行を結果リストで選択して観測点をその画素に移動する。
@@ -7666,7 +7681,7 @@ function _tmUpdateDetailList(pix) {
     if (panel) panel.classList.add('with-detail');
     // 緯度経度はラベル付き・生値で表示する(表示の基準を他の生値表示と揃えるため)
     document.getElementById('tsujimesh-detail-header').textContent =
-        `表示詳細結果リスト(${hits.length}件) 緯度経度: ${_tsujiMeshPix.lat[pix]}, ${_tsujiMeshPix.lng[pix]}`;
+        `詳細リスト(${hits.length}件) 緯度経度: ${_tsujiMeshPix.lat[pix]}, ${_tsujiMeshPix.lng[pix]}`;
     const body = document.getElementById('tsujimesh-detail-body');
     body.innerHTML = '';
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
@@ -7715,7 +7730,7 @@ function _tmUpdateDetailList(pix) {
     });
 }
 
-/** 表示詳細結果リストを初期化して隠す(再検索時) */
+/** 詳細リストを初期化して隠す(再検索時) */
 function _tmResetDetailList() {
     _tmDetailPix = -1;
     _tmDetailLockPopup = null;
@@ -7727,7 +7742,7 @@ function _tmResetDetailList() {
 }
 
 /** 観測点マーカーのホバー(PC)/タップ(スマホ)時: 観測点の位置を含むメッシュ画素の全ヒットを
- *  表示詳細結果リストに表示する(メッシュマーカーをホバーした時と同じ内容)。
+ *  詳細リストに表示する(メッシュマーカーをホバーした時と同じ内容)。
  *  メッシュ外・ヒットなしの画素は何もしない。確定ポップアップ表示中は固定を優先する。
  *  戻り値: 観測点の画素の情報を表示できたか(観測点ポップアップ表示中の固定の判定に使用)。 */
 function _tmShowDetailForObserver() {
@@ -7752,7 +7767,7 @@ function handleTsujiMeshGoldHover(latlng) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer)) {
-        // ポップアップは件数のみ(詳細は表示詳細結果リストへ)
+        // ポップアップは件数のみ(詳細は詳細リストへ)
         const wpix = pix;
         if (wpix >= 0 && _tsujiMeshWhiteRow[wpix] >= 0) {
             const E = _tsujiMeshPixEntries;
@@ -7848,7 +7863,7 @@ function selectTsujiMeshRow(idx, jump) {
     }
     recalcTsujiMeshGoldAtTime();
     // 行選択後のズーム・センタリングは行わない(検索直後に一度ズーム済みのため、画面は現在の表示のまま。
-    // 結果リストの行クリック・表示詳細結果リストの行クリックとも同様)
+    // 結果リストの行クリック・詳細リストの行クリックとも同様)
 }
 
 /** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、統一可視判定コア(_visJudgeCore)で
