@@ -120,7 +120,8 @@ html {
 #btn-tsujimesh-max.active { background: #b8860b; border-color: #ffd700; }
 
 #tsujimesh-content {
-    flex: 1;
+    flex: 1 1 0;
+    min-height: 0;
     overflow: auto;
     padding: 4px 10px;
     font-size: 14px;
@@ -148,7 +149,9 @@ html {
     flex-direction: column;
     min-height: 0;
 }
-#tsujimesh-ctrl.open { flex: 0 0 50%; }   /* 開いている時は最大化の有無に関わらず結果リストと2分する */
+#tsujimesh-ctrl.open { flex: 0 0 50%; }   /* 開いている時は最大化の有無に関わらず結果リストと2分する(表示詳細結果リスト非表示時) */
+/* 表示詳細結果リスト表示中: コントロール開は結果リスト・表示詳細結果リスト・コントロールで3分割 */
+#tsujimesh-panel.with-detail #tsujimesh-ctrl.open { flex: 0 0 33.33%; }
 #tsujimesh-ctrl-body.hidden { display: none; }
 #tsujimesh-ctrl-header {
     display: flex;
@@ -2001,20 +2004,28 @@ input[type="range"] {
 
 /* 辻メッシュ: 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間・同じ幅)。
    背景・表のスタイルは結果リスト(#tsujimesh-content)と同じ(パネルの暗色背景に透過) */
+/* 表示中は結果リストと同じ flex 配分(コントロール閉=2分割・開=3分割)で均等に高さを分け合う */
 #tsujimesh-detail {
     border-top: 1px solid #8a7a2a;
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     padding: 0 10px 4px;
     font-size: 14px;
+    box-sizing: border-box;
 }
+#tsujimesh-detail.hidden { display: none; }
 #tsujimesh-detail-header {
     font-weight: bold;
     font-size: 12px;
     color: #ffd700;
     padding: 3px 0;
+    flex-shrink: 0;
 }
 #tsujimesh-detail-body {
-    max-height: 110px;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
 }
 #tsujimesh-detail-body .td-table { width: 100%; border-collapse: collapse; }

@@ -1820,6 +1820,19 @@ function findBodyTransitMs(body, observer, dayStartMs) {
     } catch (_) { return dayStartMs + 43200000; }
 }
 
+/** 当日線(実線)のアンカーにする南中時刻: 前日/当日/翌日を起点とした南中の候補から、
+ *  現在日時に最も近いものを選ぶ。「当日0:00以降で最初の南中」を常に使うと、
+ *  月のように南中が毎日約50分遅れる天体で、0時をまたいだ辻(例: 南中が前日23時頃で
+ *  辻時刻が当日未明5時)が前日窓=点線側に落ちて1日ずれて見えるため。 */
+function _dpAnchorTransitMs(body, observer, dayStartMs, nowMs) {
+    let t0 = findBodyTransitMs(body, observer, dayStartMs);
+    for (const off of [-86400000, 86400000]) {
+        const t = findBodyTransitMs(body, observer, dayStartMs + off);
+        if (Math.abs(t - nowMs) < Math.abs(t0 - nowMs)) t0 = t;
+    }
+    return t0;
+}
+
 async function updateDPLines() {
     // 新しい世代を発番し、既存キューにある古い世代の通常辻ラインタスクをキャンセル(辻ライン365は巻き添えにしない)
     const generation = ++dpCurrentGeneration;
@@ -1833,12 +1846,14 @@ async function updateDPLines() {
 
     // 各天体について 前日/当日/翌日 3本の計算をプールで並列実行
     // stepSeconds=5 (方位角の精度は同等、線分刻みが粗くなるだけ。負荷 1/5)
-    // 当日線 = 目的点から300km以内 かつ その天体の当日の南中時±12時間。
-    // 翌日線/前日線 = 南中時±24時間を起点とした±12時間(3窓で連続72時間をタイル)。
-    // 月のように南中が毎日約50分ずれる天体でも、辻ラインが日付を跨いで連続する。
+    // 当日線 = 目的点から300km以内 かつ その天体の「現在日時に最も近い南中」±12時間。
+    // 翌日線/前日線 = その南中±24時間を起点とした±12時間(3窓で連続72時間をタイル)。
+    // 月のように南中が毎日約50分ずれる天体でも、辻ラインが日付を跨いで連続し、
+    // 0時をまたいだ辻時刻(南中23時頃→翌未明5時など)も当日線=実線側に乗る。
     const DP_DIST_LIMIT = 300000;
+    const nowMs = appState.currentDate.getTime();
     const allComputed = await Promise.all(visibleBodies.map(async body => {
-        const t0 = findBodyTransitMs(body, observer, baseDate.getTime());
+        const t0 = _dpAnchorTransitMs(body, observer, baseDate.getTime(), nowMs);
         // 窓の起点は分単位にスナップする。サンプル時刻は「起点+5秒刻み」のため、
         // 南中時刻の秒端数をそのまま使うと毎分00秒に乗らず、5分毎の時刻マーカーが表示されない。
         const currStart = Math.floor((t0 - 43200000) / 60000) * 60000;
@@ -7627,6 +7642,9 @@ function _tmUpdateDetailList(pix) {
     if (!hits.length) return;
     _tmDetailPix = pix;
     box.classList.remove('hidden');
+    // 表示中はパネルを2分割(コントロール閉)/3分割(開)レイアウトにする
+    const panel = document.getElementById('tsujimesh-panel');
+    if (panel) panel.classList.add('with-detail');
     // 緯度経度はラベル付き・生値で表示する(表示の基準を他の生値表示と揃えるため)
     document.getElementById('tsujimesh-detail-header').textContent =
         `表示詳細結果リスト(${hits.length}件) 緯度経度: ${_tsujiMeshPix.lat[pix]}, ${_tsujiMeshPix.lng[pix]}`;
@@ -7678,6 +7696,8 @@ function _tmResetDetailList() {
     _tmDetailLockPopup = null;
     const box = document.getElementById('tsujimesh-detail');
     if (box) box.classList.add('hidden');
+    const panel = document.getElementById('tsujimesh-panel');
+    if (panel) panel.classList.remove('with-detail');
 }
 
 /** 観測点マーカーのホバー(PC)/タップ(スマホ)時: 観測点の位置を含むメッシュ画素の全ヒットを
