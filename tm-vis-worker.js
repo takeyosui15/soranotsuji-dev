@@ -31,17 +31,21 @@ self.onmessage = (ev) => {
     const tiles14 = new Map();
     for (let i = 0; i < m.tiles14.length; i++) tiles14.set(m.tiles14[i].key, m.tiles14[i].dm);
 
-    // メインスレッドの elevAtPix15 チェーンと同値(z15マージ済み→z14)。範囲外・データ無しは null
+    // メインスレッドの elevAtPix15 チェーンと同値(z15マージ済み→z14)。範囲外・データ無しは null。
+    // 連続サンプルは同じタイルに当たることが多いため、直前のタイルをキャッシュする(結果は不変)
+    let lk15 = NaN, lt15 = null, lk14 = NaN, lt14 = null;
     const elevAtPix15 = (gx, gy) => {
-        const t = tiles15.get((gx >> 8) * 32768 + (gy >> 8));
-        if (t) {
-            const dm = t[(gy & 255) * 256 + (gx & 255)];
+        const k15 = (gx >> 8) * 32768 + (gy >> 8);
+        if (k15 !== lk15) { lk15 = k15; lt15 = tiles15.get(k15) || null; }
+        if (lt15) {
+            const dm = lt15[(gy & 255) * 256 + (gx & 255)];
             if (dm !== SENTINEL) return dm / 10;
         }
         const gx14 = gx >> 1, gy14 = gy >> 1;
-        const t14 = tiles14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
-        if (!t14) return null;
-        const dm14 = t14[(gy14 & 255) * 256 + (gx14 & 255)];
+        const k14 = (gx14 >> 8) * 32768 + (gy14 >> 8);
+        if (k14 !== lk14) { lk14 = k14; lt14 = tiles14.get(k14) || null; }
+        if (!lt14) return null;
+        const dm14 = lt14[(gy14 & 255) * 256 + (gx14 & 255)];
         return (dm14 === SENTINEL) ? null : dm14 / 10;
     };
 
