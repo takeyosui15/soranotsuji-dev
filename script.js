@@ -633,7 +633,16 @@ function initMap() {
     // 観測点/目的点の移動はダブルクリック(ダブルタップ)で行う(ダブルクリックズームは無効化)
     map.doubleClickZoom.disable();
     map.on('dblclick', onMapDblClick);
-    map.on('mousemove', (e) => handleTsujiMeshGoldHover(e.latlng));   // 辻メッシュ金色オーバーレイのツールチップ
+    // 辻メッシュのメッシュ/辻マーカーのホバーツールチップ(PCのみ)。
+    // スマホはタップ経路(_tmShowPixelPopup)で処理する: タップ時に合成されるmousemoveで
+    // ツールチップを出すと、iOSが「ホバーでDOMが変化した」とみなしてズームボタン等への
+    // クリックを飲み込み、ズームできなくなるため(合成mousemoveはボタンから地図へバブリングする)。
+    // PCでもズームボタン等のコントロール上ではホバーを反応させない(ボタン越しの誤反応防止)。
+    map.on('mousemove', (e) => {
+        if (!_mapDblClickMode) return;
+        const t = e.originalEvent ? e.originalEvent.target : null;
+        handleTsujiMeshGoldHover((t && t.closest && t.closest('.leaflet-control')) ? null : e.latlng);
+    });
     // メッシュマーカーの確定ポップアップが閉じたら、表示詳細結果リストの固定を解除する
     map.on('popupclose', (e) => { if (e.popup === _tmDetailLockPopup) _tmDetailLockPopup = null; });
 }
@@ -1643,7 +1652,9 @@ function updateLocationDisplay() {
     const obsMarker = L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
     // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
     // 観測点の位置を含むメッシュ画素の情報を表示詳細結果リストに表示する
-    obsMarker.on('mouseover', _tmShowDetailForObserver);
+    // ホバーでの更新はPCのみ(スマホのタップはpopupopen経路で処理する。タップ時に合成される
+    // mouseoverでDOMを変化させると、iOSがホバー扱いにしてポップアップを開くクリックを飲み込むため)
+    obsMarker.on('mouseover', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
     // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
     // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
     obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
@@ -7719,7 +7730,7 @@ function _tmShowDetailForObserver() {
 let _tmHoverTooltip = null;
 function handleTsujiMeshGoldHover(latlng) {
     const hide = () => { if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; } };
-    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
+    if (!latlng || !_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
     const pix = _tmPixAtLatLng(latlng);
     let content = null, atPix = pix;
     if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
