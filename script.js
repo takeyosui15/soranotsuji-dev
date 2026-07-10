@@ -7599,16 +7599,18 @@ function _tmAccSymbolRank(sym) {
 
 /** 表示詳細結果リストの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
  *  ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)。
+ *  日時情報メニューの日時も行の辻日時に更新する(結果リストの行クリックと同じ。辻ラインも一緒に移動する)。
  *  移動後は観測点マーカーのポップアップ(位置情報)を開き、表示詳細結果リストを
  *  観測点(=選択した画素)の情報のまま固定する(ポップアップを閉じると解除)。 */
 function _tmJumpToHit(pix, h) {
     if (typeof map !== 'undefined' && map) map.closePopup();
-    _tmSetObserverToPix(pix);
+    const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+    const timeMs = ref ? ref.timeMs : h.timeMs;
+    appState.currentDate = new Date(timeMs);
+    syncUIFromState();
+    _tmSetObserverToPix(pix);   // saveAppState+updateAll(日時・観測点の変更をまとめて反映)
     const idx = _tsujiMeshRows.indexOf(h.row);
-    if (idx >= 0) {
-        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
-        selectTsujiMeshRow(idx, { pix, timeMs: ref ? ref.timeMs : h.timeMs, dist: ref ? ref.dist : h.dist });
-    }
+    if (idx >= 0) selectTsujiMeshRow(idx, { pix, timeMs, dist: ref ? ref.dist : h.dist });
     if (_tmObsMarker) _tmObsMarker.openPopup();
 }
 
