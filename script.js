@@ -7022,6 +7022,69 @@ const tsujiMeshPool = (() => {
     };
 })();
 
+// --- 標高オプション可視判定ワーカープール ---
+// プールサイズ=CPU数+1(上限31)。メッセージキューでタスクを配布し、
+// キャンセル(terminateAll)はキューの破棄+実行中ワーカーの終了で行う
+// (実行中のワーカーはループ中でメッセージを受信できないため、terminateが確実)。
+// キャンセルされたタスクの結果は null で解決する(呼び出し側は世代チェックで破棄)。
+const tmVisPool = (() => {
+    const POOL = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+    let idle = [];
+    const busy = new Map();   // worker -> task
+    const queue = [];
+    function dispatch() {
+        while (queue.length && (idle.length + busy.size) <= POOL && busy.size < POOL) {
+            const task = queue.shift();
+            const w = idle.pop() || new Worker('tm-vis-worker.js');
+            busy.set(w, task);
+            w.onmessage = (ev) => {
+                if (ev.data && ev.data.type === 'progress') { if (task.onProgress) task.onProgress(ev.data); return; }
+                busy.delete(w);
+                idle.push(w);
+                task.resolve(ev.data);
+                dispatch();
+            };
+            w.onerror = (err) => {
+                busy.delete(w);
+                try { w.terminate(); } catch (_) {}
+                task.reject(err instanceof Error ? err : new Error((err && err.message) || 'tm-vis-worker error'));
+                dispatch();
+            };
+            w.postMessage(task.payload, task.transfer || []);
+        }
+    }
+    return {
+        size: POOL,
+        run(payload, transfer, onProgress) {
+            return new Promise((resolve, reject) => {
+                queue.push({ payload, transfer, onProgress, resolve, reject });
+                dispatch();
+            });
+        },
+        terminateAll() {
+            queue.splice(0).forEach(t => t.resolve(null));
+            busy.forEach((task, w) => { try { w.terminate(); } catch (_) {} task.resolve(null); });
+            busy.clear();
+            idle.splice(0).forEach(w => { try { w.terminate(); } catch (_) {} });
+        },
+    };
+})();
+
+/** DEMタイルのImageDataを dm(0.1m単位)のInt32Arrayへ符号化する(可視判定ワーカーへの転送用)。
+ *  out の未確定画素(SENTINEL)のみ書き込む(5A→5B→5Cの画素毎フォールバックのマージと同値)。
+ *  round1=true はz14用の1m丸め(逐次判定の Math.round(e) と同値になるよう dm=Math.round(e)*10)。 */
+function _tmPackTileDm(img, out, round1) {
+    const SENT = -2147483648;
+    const d = img.data;
+    for (let p = 0; p < 65536; p++) {
+        if (out[p] !== SENT) continue;
+        const o = p << 2;
+        const e = _elevFromRGB(d[o], d[o + 1], d[o + 2]);
+        if (e === null) continue;
+        out[p] = round1 ? Math.round(e) * 10 : Math.round(e * 10);
+    }
+}
+
 function ensureTsujiMeshLayers() {
     if (!tsujiMeshLayer && typeof map !== 'undefined' && map) {
         _tsujiMeshCanvasRenderer = L.canvas({ padding: 0.3 });   // 多数の小マーカー用にCanvas描画
@@ -7896,7 +7959,62 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
     const tgx15 = 128 * (end.lng / 180 + 1) * scale15;
 
+    // コリドー(対象領域〜目的点の扇形)の幾何とタイル列挙(実DEMの先取りと、ワーカーへの帯域割り当ての両方で使う)
+    const EARTH_R = 6371000;
+    const mPerDegLat = Math.PI * EARTH_R / 180;
+    const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
+    const scale14 = Math.pow(2, TSUJIMESH_ZOOM);
+    const pixLL14 = (gpx, gpy) => {
+        const lng = ((gpx / scale14) / R128 - Math.PI) * 180 / Math.PI;
+        const eL = Math.exp((128 - gpy / scale14) * 2 / R128);
+        return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
+    };
+    const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
+    const h14 = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale14 * 256);
+    const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
+        .map(([gx, gy]) => toXY(pixLL14(gx, gy)));
+    const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
+    const tgx14 = tgx15 / 2, tgy14 = gpy15At(end.lat) / 2;
+    const inside = tgx14 >= gxBase && tgx14 <= gxBase + gridW && tgy14 >= gyBase && tgy14 <= gyBase + gridW;
+    const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+    let azC = 0, span = 2 * Math.PI;
+    if (!inside) {
+        const azs = corners.map(c => Math.atan2(c.x, c.y));
+        const ds = azs.map(a => wrapPi(a - azs[0]));
+        azC = azs[0] + (Math.min(...ds) + Math.max(...ds)) / 2;
+        span = Math.max(...ds) - Math.min(...ds);
+    }
+    // コリドー内のタイル座標を列挙(タイル中心の方位/距離でセクター絞り込み)。d=目的点からの平面距離(帯域割り当て用)
+    const listTiles = (zoom) => {
+        const tileSizeM = 40075016.686 * Math.cos(refLat * Math.PI / 180) / Math.pow(2, zoom);
+        const tileR = tileSizeM * 0.75;
+        const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
+        const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, zoom);
+        const tSE = _getTileInfo(end.lat - degLatR, end.lng + degLngR, zoom);
+        const out = [];
+        const scaleZ = Math.pow(2, zoom);
+        for (let ty = tNW.y; ty <= tSE.y; ty++) {
+            for (let tx = tNW.x; tx <= tSE.x; tx++) {
+                const cLng = (((tx * 256 + 128) / scaleZ) / R128 - Math.PI) * 180 / Math.PI;
+                const eL = Math.exp((128 - (ty * 256 + 128) / scaleZ) * 2 / R128);
+                const cLat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+                const c = toXY({ lat: cLat, lng: cLng });
+                const d = Math.hypot(c.x, c.y);
+                if (d > maxDist + tileR) continue;
+                if (!inside && d > tileR) {
+                    const pad = Math.asin(Math.min(1, tileR / d));
+                    if (Math.abs(wrapPi(Math.atan2(c.x, c.y) - azC)) > span / 2 + pad) continue;
+                }
+                out.push({ tx, ty, d });
+            }
+        }
+        return out;
+    };
+    const coords14 = listTiles(TSUJIMESH_ZOOM);
+    const coords15 = listTiles(15);
+
     let elevAtPix15;   // (z15グローバル画素int) → 標高 or null (標高グラフのgetElevationと同じチェーン)
+    let maps15 = null, map14 = null;   // 実DEM時のタイルキャッシュ(ワーカーへの符号化にも使う)
     if (synthetic) {
         // テスト用: z15合成(あれば)→z14合成
         elevAtPix15 = (gx, gy) => {
@@ -7907,57 +8025,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             return window._tmSyntheticElev(gx >> 1, gy >> 1);
         };
     } else {
-        // コリドー(対象領域〜目的点の扇形)のタイル先取り。z14と、z15は5A→5B→5Cの順に未取得座標のみ
-        const EARTH_R = 6371000;
-        const mPerDegLat = Math.PI * EARTH_R / 180;
-        const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
-        const scale14 = Math.pow(2, TSUJIMESH_ZOOM);
-        const pixLL14 = (gpx, gpy) => {
-            const lng = ((gpx / scale14) / R128 - Math.PI) * 180 / Math.PI;
-            const eL = Math.exp((128 - gpy / scale14) * 2 / R128);
-            return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
-        };
-        const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
-        const h14 = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale14 * 256);
-        const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
-            .map(([gx, gy]) => toXY(pixLL14(gx, gy)));
-        const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
-        const tgx14 = tgx15 / 2, tgy14 = gpy15At(end.lat) / 2;
-        const inside = tgx14 >= gxBase && tgx14 <= gxBase + gridW && tgy14 >= gyBase && tgy14 <= gyBase + gridW;
-        const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
-        let azC = 0, span = 2 * Math.PI;
-        if (!inside) {
-            const azs = corners.map(c => Math.atan2(c.x, c.y));
-            const ds = azs.map(a => wrapPi(a - azs[0]));
-            azC = azs[0] + (Math.min(...ds) + Math.max(...ds)) / 2;
-            span = Math.max(...ds) - Math.min(...ds);
-        }
-        // コリドー内のタイル座標を列挙(タイル中心の方位/距離でセクター絞り込み)
-        const listTiles = (zoom) => {
-            const tileSizeM = 40075016.686 * Math.cos(refLat * Math.PI / 180) / Math.pow(2, zoom);
-            const tileR = tileSizeM * 0.75;
-            const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
-            const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, zoom);
-            const tSE = _getTileInfo(end.lat - degLatR, end.lng + degLngR, zoom);
-            const out = [];
-            const scaleZ = Math.pow(2, zoom);
-            for (let ty = tNW.y; ty <= tSE.y; ty++) {
-                for (let tx = tNW.x; tx <= tSE.x; tx++) {
-                    const cLng = (((tx * 256 + 128) / scaleZ) / R128 - Math.PI) * 180 / Math.PI;
-                    const eL = Math.exp((128 - (ty * 256 + 128) / scaleZ) * 2 / R128);
-                    const cLat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
-                    const c = toXY({ lat: cLat, lng: cLng });
-                    const d = Math.hypot(c.x, c.y);
-                    if (d > maxDist + tileR) continue;
-                    if (!inside && d > tileR) {
-                        const pad = Math.asin(Math.min(1, tileR / d));
-                        if (Math.abs(wrapPi(Math.atan2(c.x, c.y) - azC)) > span / 2 + pad) continue;
-                    }
-                    out.push({ tx, ty });
-                }
-            }
-            return out;
-        };
+        // タイル先取り。z14と、z15は5A→5B→5Cの順に未取得座標のみ
         const fetchInto = async (map, dem, coords, label) => {
             let done = 0, qi = 0;
             const loop = async () => {
@@ -7978,11 +8046,10 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
         };
         const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
         const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
-        const map14 = new Map();
-        const maps15 = z15Sources.map(() => new Map());
-        await fetchInto(map14, dem14, listTiles(TSUJIMESH_ZOOM), dem14.title);
+        map14 = new Map();
+        maps15 = z15Sources.map(() => new Map());
+        await fetchInto(map14, dem14, coords14, dem14.title);
         if (generation !== tsujiMeshGeneration) return null;
-        const coords15 = listTiles(15);
         for (let si = 0; si < z15Sources.length; si++) {
             const need = coords15.filter(({ tx, ty }) => {
                 for (let p = 0; p < si; p++) if (maps15[p].get(tx * 32768 + ty)) return false;
@@ -8010,30 +8077,158 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
         };
     }
 
-    // 各対象画素: 統一可視判定コアで判定(NGが出た時点で打ち切られる)
     const exclM = exclKm * 1000;
     const flags = new Uint8Array(kept);
-    for (let i = 0; i < kept; i++) {
-        const sLat = latA[i], sLng = lngA[i];
-        // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照する(無ければ検索用のz14標高)
-        const sx15 = 128 * (sLng / 180 + 1) * scale15;
-        const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
-        const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
-        flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, elevAtPix15).visible ? 1 : 0;
-        if ((i & 255) === 0 || i === kept - 1) {
-            setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
-            setTsujiMeshProgress(i + 1, kept);
-            if ((i & 2047) === 0) await new Promise(r2 => setTimeout(r2, 0));   // UIへ制御を返す
-            if (generation !== tsujiMeshGeneration) return null;
+    if (kept === 0) { window._tmLastVisFlags = flags; return flags; }
+
+    // 逐次判定(合成標高の既定経路・ワーカー失敗時のフォールバック)。結果はワーカー並列判定と同一
+    const judgeSequential = async () => {
+        for (let i = 0; i < kept; i++) {
+            const sLat = latA[i], sLng = lngA[i];
+            // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照する(無ければ検索用のz14標高)
+            const sx15 = 128 * (sLng / 180 + 1) * scale15;
+            const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
+            const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
+            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, elevAtPix15).visible ? 1 : 0;
+            if ((i & 255) === 0 || i === kept - 1) {
+                setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
+                setTsujiMeshProgress(i + 1, kept);
+                if ((i & 2047) === 0) await new Promise(r2 => setTimeout(r2, 0));   // UIへ制御を返す
+                if (generation !== tsujiMeshGeneration) return null;
+            }
         }
+        window._tmLastVisFlags = flags;
+        return flags;
+    };
+
+    // 合成標高は既定で逐次(テストの互換)。_tmSyntheticWorkerVis=true でワーカー経路を検証できる
+    const useWorkers = !synthetic || window._tmSyntheticWorkerVis === true;
+    if (!useWorkers) return judgeSequential();
+
+    // --- ワーカープール並列判定(結果は逐次判定とビット一致) ---
+    // 経路を統一コアのSEG=64チャンク境界で帯域分割し、各ワーカーが全画素の担当帯域のみ判定する。
+    // タイルは帯域毎に必要な環帯(目的点からの距離レンジ+余白)分だけをdm(0.1m)のInt32に符号化して転送する
+    // (総転送量≒コリドー1式。ワーカー毎の複製を持たないため、長距離でもメモリが増えない)。
+    try {
+        // 観測点側の標高と、帯域計算のための距離レンジを先に求める
+        setStatus('(標高オプション 判定データ準備中…)');
+        const latArr = new Float64Array(kept), lngArr = new Float64Array(kept), startTotals = new Float64Array(kept);
+        let minDistM = Infinity, maxDistM = 0, minAbsLat = 90, maxAbsLat = 0;
+        const endLL = L.latLng(end.lat, end.lng);
+        for (let i = 0; i < kept; i++) {
+            const sLat = latA[i], sLng = lngA[i];
+            latArr[i] = sLat; lngArr[i] = sLng;
+            const sx15 = 128 * (sLng / 180 + 1) * scale15;
+            const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
+            startTotals[i] = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
+            const d = L.latLng(sLat, sLng).distanceTo(endLL);
+            if (d < minDistM) minDistM = d;
+            if (d > maxDistM) maxDistM = d;
+            const al = Math.abs(sLat);
+            if (al < minAbsLat) minAbsLat = al;
+            if (al > maxAbsLat) maxAbsLat = al;
+        }
+        const Kc = 40075016.686 / (scale15 * 256) / 2;   // stepM = Kc*cos(lat)
+        const maxSteps = Math.max(2, Math.ceil(maxDistM / (Kc * Math.cos(maxAbsLat * Math.PI / 180))));
+        const minSteps = Math.max(2, Math.ceil(minDistM / (Kc * Math.cos(minAbsLat * Math.PI / 180))));
+        const Cmax = Math.max(1, Math.ceil((maxSteps - 1) / 64));
+        const W = Math.max(1, Math.min(tmVisPool.size, Cmax));
+        const chunkPer = Math.ceil(Cmax / W);
+        const tileSize15M = 40075016.686 * Math.cos(refLat * Math.PI / 180) / scale15;
+        const tileSize14M = tileSize15M * 2;
+        const distMargin = Math.max(500, maxDistM * 0.005);
+        const SENT = -2147483648;
+        const syn15 = (synthetic && typeof window._tmSyntheticElev15 === 'function') ? window._tmSyntheticElev15 : null;
+        const packz15 = ({ tx, ty }) => {
+            const out = new Int32Array(65536).fill(SENT);
+            if (synthetic) {
+                for (let p = 0; p < 65536; p++) {
+                    const v = syn15(tx * 256 + (p & 255), ty * 256 + (p >> 8));
+                    if (v !== null && v !== undefined) out[p] = Math.round(v * 10);
+                }
+            } else {
+                for (let si = 0; si < maps15.length; si++) {
+                    const img = maps15[si].get(tx * 32768 + ty);
+                    if (img) _tmPackTileDm(img, out, false);
+                }
+            }
+            return { key: tx * 32768 + ty, dm: out };
+        };
+        const packz14 = ({ tx, ty }) => {
+            const out = new Int32Array(65536).fill(SENT);
+            if (synthetic) {
+                for (let p = 0; p < 65536; p++) {
+                    const v = window._tmSyntheticElev(tx * 256 + (p & 255), ty * 256 + (p >> 8));
+                    if (v !== null && v !== undefined) out[p] = Math.round(v * 10);
+                }
+            } else {
+                const img = map14.get(tx * 32768 + ty);
+                if (img) _tmPackTileDm(img, out, true);
+            }
+            return { key: tx * 32768 + ty, dm: out };
+        };
+        const doneCounts = [];
+        const jobs = [];
+        for (let w = 0; w < W; w++) {
+            const c0 = w * chunkPer, c1 = Math.min(Cmax, c0 + chunkPer);
+            if (c0 >= c1) continue;
+            // 帯域のサンプルが取り得る「目的点からの距離」レンジ(保守的)でタイルを割り当てる
+            const jS = 1 + c0 * 64, jE = c1 * 64;
+            const rMin = Math.min(1, jS / maxSteps);
+            const rMax = Math.min(1, jE / minSteps);
+            const dNear = (1 - rMax) * minDistM, dFar = (1 - rMin) * maxDistM;
+            const m15 = tileSize15M * 1.5 + distMargin, m14 = tileSize14M * 1.5 + distMargin;
+            const t15 = (synthetic && !syn15) ? [] :
+                coords15.filter(t => t.d >= dNear - m15 && t.d <= dFar + m15).map(packz15);
+            const t14 = coords14.filter(t => t.d >= dNear - m14 && t.d <= dFar + m14).map(packz14);
+            if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return null; }
+            const jobIdx = doneCounts.length;
+            doneCounts.push(0);
+            const transfer = t15.map(t => t.dm.buffer).concat(t14.map(t => t.dm.buffer));
+            jobs.push(tmVisPool.run({
+                type: 'judge', jobId: jobIdx, chunk0: c0, chunk1: c1,
+                lat: latArr, lng: lngArr, startTotal: startTotals,
+                endLat: end.lat, endLng: end.lng, endTotal: endElev, exclM,
+                tiles15: t15, tiles14: t14,
+            }, transfer, (p) => { doneCounts[jobIdx] = p.done; }));
+            await new Promise(r2 => setTimeout(r2, 0));   // 符号化中もUIへ制御を返す
+        }
+        setStatus(`(標高オプション可視判定中(${jobs.length}並列)… 0/${kept.toLocaleString()}画素)`);
+        const progTimer = setInterval(() => {
+            if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return; }
+            const eq = Math.min(kept, Math.floor(doneCounts.reduce((a, b) => a + b, 0) / jobs.length));
+            setStatus(`(標高オプション可視判定中(${jobs.length}並列)… ${eq.toLocaleString()}/${kept.toLocaleString()}画素)`);
+            setTsujiMeshProgress(eq, kept);
+        }, 200);
+        let results;
+        try {
+            results = await Promise.all(jobs);
+        } finally {
+            clearInterval(progTimer);
+        }
+        if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return null; }
+        for (const res of results) {
+            if (!res || res.type !== 'done') return null;   // キャンセル済み
+            const b = res.blocked;
+            for (let i = 0; i < kept; i++) if (b[i]) flags[i] = 1;   // 一時的に「遮蔽あり」を1で集約
+        }
+        for (let i = 0; i < kept; i++) flags[i] = flags[i] ? 0 : 1;   // 反転して 1=可視(OK) に揃える
+        setTsujiMeshProgress(kept, kept);
+        window._tmLastVisFlags = flags;
+        return flags;
+    } catch (err) {
+        console.warn('可視判定のワーカー実行に失敗したため逐次判定にフォールバックします:', err);
+        tmVisPool.terminateAll();
+        flags.fill(0);
+        return judgeSequential();
     }
-    return flags;
 }
 
 /** 辻メッシュ検索の実行 (トグルON/URL自動実行から) */
 async function startTsujiMeshSearch() {
     const generation = ++tsujiMeshGeneration;
     tsujiMeshPool.terminateAll();
+    tmVisPool.terminateAll();   // 実行中の可視判定(標高オプション)もキャンセル
     hideTsujiMeshProgress();
     clearTsujiMeshMarkers();
     _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null; _tmCtrlFracMs = 0;
@@ -8477,6 +8672,7 @@ function closeTsujiMesh(alreadyFlagged = false) {
     document.getElementById('tsujimesh-panel').classList.add('hidden');
     tsujiMeshGeneration++;                       // 実行中の検索をキャンセル
     if (typeof tsujiMeshPool !== 'undefined') tsujiMeshPool.terminateAll();
+    if (typeof tmVisPool !== 'undefined') tmVisPool.terminateAll();
     hideTsujiMeshProgress();
     if (typeof clearTsujiMeshMarkers === 'function') clearTsujiMeshMarkers();
     syncBottomPanels();
