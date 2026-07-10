@@ -186,7 +186,6 @@ html {
 #tsujimesh-row-slider { flex: 1 1 auto; min-width: 0; }
 #tsujimesh-time-slider { flex: 1 1 auto; min-width: 0; }
 #tsujimesh-ctrl-body .tsujimesh-time-label2 { width: 175px; flex-shrink: 0; text-align: right; margin-right: 5px; }   /* メニューの縦並びラベルと同幅(.input-labelの105pxより優先) */
-#tsujimesh-mesh-gray { flex: 1 1 auto; min-width: 0; }
 /* コントロール領域の入力はメニューの縦並びテキストボックスと同幅(155px)に揃える */
 #input-tsujimesh-time-width,
 #select-tsujimesh-time-eps { width: 155px; flex: 0 0 auto; box-sizing: border-box; }
@@ -2033,7 +2032,7 @@ input[type="range"] {
 #tsujimesh-detail-body .td-data-row { cursor: pointer; }
 #tsujimesh-detail-body .td-data-row:hover { background: rgba(255, 255, 255, 0.12); }
 
-/* 辻メッシュ: 3Dバーのオーバーレイは拡大時もシャープに(バーの区切りが滲まないように) */
-.tm-3d-overlay {
+/* 辻メッシュ: メッシュマーカーのオーバーレイは拡大時もシャープに(縞模様が滲まないように) */
+.tm-mesh-overlay {
     image-rendering: pixelated;
 }

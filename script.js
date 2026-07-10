@@ -6486,6 +6486,7 @@ function applyColor(code) {
 function _tmApplyBodyStyleChange() {
     if (!_tsujiMeshRows.length) return;
     _tsujiMeshRows.forEach(r => { if (r.__tr) r.__tr.style.color = r.body.color; });
+    drawTsujiMeshMarkers();   // メッシュのグラデーションタイル(1件=天体色)も天体色を使うため再描画
     recalcTsujiMeshGoldAtTime();
 }
 
@@ -6865,9 +6866,6 @@ let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1
 let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
 let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
-let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)
-let _tm3dOn = true;            // メッシュマーカー3D表示(件数比例の疑似3Dバー)。オフで従来のタイル表示
-let _tm3dUnit = 60;            // 3Dバーの1件あたりの高さ(1画素の一辺に対する%。10〜300)
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
@@ -7000,86 +6998,72 @@ function _tmBuildOverlay(paint, rgba) {
 }
 
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
-/** メッシュマーカーの3Dヒストグラム表示: 画素毎のヒット件数に比例した高さの疑似3Dバーを
- *  奥(北)→手前(南)の順に描く(手前のバーが奥を覆う)。高さ=件数×単位高(バー単位高さ%×1画素)・
- *  上限20件分。DEM1画素をS×Sサブピクセルで高精細に描き(最大ズームでも隣接バーを区別できるように)、
- *  右端1サブピクセル=暗い側面(隣との区切り)・上端=明るいキャップで立体感を出す。
- *  バーは画面上方(北)へ立ち上がるため、キャンバスとオーバーレイ境界を北へ拡張する。
- *  描画は検索/設定変更時の1回のみで、ズームには自動追従する(拡大時はpixelatedでシャープに保つ)。 */
-function _tmBuild3DOverlay() {
+/** メッシュマーカーのグラデーションタイル表示: ヒット件数の度合いを色で表す。
+ *  1件=その画素の最良ヒットの天体色(辻マーカーと同じ色)、最大件数=最も金色(#FFD700)へ
+ *  件数比で線形補間する。最大件数(2件以上ある時)のタイルは金色と赤色の斜め縞模様
+ *  (縞はグローバル座標基準で、隣接する最大値タイル同士で連続する)。0件の画素は対象外(無色)。
+ *  DEM1画素をS×Sサブピクセルで高精細に描き(縞を精細に)、pixelatedでシャープに保つ。
+ *  描画は検索/表示変更時の1回のみで、ズームには自動追従する。 */
+function _tmBuildGradientOverlay() {
     const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
-    if (!C || !C.grid || !E) return null;
+    if (!C || !C.grid || !E || !_tsujiMeshWhiteRows) return null;
     const W = C.gridW;
     // 高精細化のスーパーサンプル倍率(キャンバスのメモリ上限に合わせ、検索エリアが広いほど下げる)
     const S = W <= 768 ? 4 : (W <= 1280 ? 3 : 2);
-    const unit = _tm3dUnit / 100;
-    const maxH = Math.max(1, Math.ceil(20 * unit));   // ヘッドルーム(DEM画素単位)
+    const n = _tsujiMeshPix.lat.length;
+    let maxCnt = 1;
+    for (let p2 = 0; p2 < n; p2++) {
+        const c = E.start[p2 + 1] - E.start[p2];
+        if (c > maxCnt) maxCnt = c;
+    }
+    const GOLD = [255, 215, 0], RED = [255, 0, 0];
+    const STRIPE = 2 * S;   // 斜め縞の周期(半分ずつ金/赤)
     const canvas = document.createElement('canvas');
-    canvas.width = W * S; canvas.height = (W + maxH) * S;
+    canvas.width = W * S; canvas.height = W * S;
     const ctx = canvas.getContext('2d');
     const img = ctx.createImageData(canvas.width, canvas.height);
     const data = img.data;
-    const v = Math.round(255 * (1 - _tmMeshGray / 100));   // タイル表示と同じ基準色
-    const vTop = Math.min(255, v + 50), vSide = Math.max(0, v - 70);
-    const capH = Math.max(1, S >> 1);   // 明るいトップキャップの厚み(サブピクセル)
     const CW = canvas.width;
+    // 天体色→RGBのキャッシュ(行スナップショットの天体毎)
+    const colorCache = new Map();
+    const bodyRGB = (body) => {
+        let c = colorCache.get(body.id);
+        if (!c) { c = _tmCssColorToRGB(body.color || '#ffd700'); colorCache.set(body.id, c); }
+        return c;
+    };
     for (let gy = 0; gy < W; gy++) {
         for (let gx = 0; gx < W; gx++) {
             const idx = C.grid[gy * W + gx];
             if (!idx) continue;
-            const cnt = E.start[idx] - E.start[idx - 1];
-            const hSub = Math.max(S, Math.round(Math.min(cnt, 20) * unit * S));
-            const x0 = gx * S;
-            const yBase = (gy + maxH) * S + (S - 1);
-            for (let dy = 0; dy <= hSub; dy++) {
-                const y = yBase - dy;
-                if (y < 0) break;
-                const isCap = dy > hSub - capH;
+            const pix = idx - 1;
+            const cnt = E.start[pix + 1] - E.start[pix];
+            if (cnt === 0) continue;   // 0件(許容範囲内だがヒットなし)の画素は無色=描かない
+            const row = _tsujiMeshWhiteRows[_tsujiMeshWhiteRow[pix]];
+            const base = bodyRGB(row.body);
+            const t = maxCnt > 1 ? (cnt - 1) / (maxCnt - 1) : 0;
+            const cr = Math.round(base[0] + (GOLD[0] - base[0]) * t);
+            const cg = Math.round(base[1] + (GOLD[1] - base[1]) * t);
+            const cb = Math.round(base[2] + (GOLD[2] - base[2]) * t);
+            const isMax = maxCnt > 1 && cnt === maxCnt;
+            const x0 = gx * S, y0 = gy * S;
+            for (let sy = 0; sy < S; sy++) {
                 for (let sx = 0; sx < S; sx++) {
-                    const c = (sx === S - 1) ? vSide : (isCap ? vTop : v);
-                    const o = (y * CW + x0 + sx) * 4;
-                    data[o] = c; data[o + 1] = c; data[o + 2] = c; data[o + 3] = 230;
+                    let R2 = cr, G2 = cg, B2 = cb;
+                    if (isMax) {
+                        // 金色と赤色の斜め縞(グローバル座標で連続)
+                        const stripe = ((x0 + sx + y0 + sy) % STRIPE) < (STRIPE >> 1);
+                        R2 = stripe ? GOLD[0] : RED[0];
+                        G2 = stripe ? GOLD[1] : RED[1];
+                        B2 = stripe ? GOLD[2] : RED[2];
+                    }
+                    const o = ((y0 + sy) * CW + x0 + sx) * 4;
+                    data[o] = R2; data[o + 1] = G2; data[o + 2] = B2; data[o + 3] = 230;
                 }
             }
         }
     }
     ctx.putImageData(img, 0, 0);
-    // 北へ maxH 画素ぶん拡張した境界(サブピクセル化しても地理範囲は同じ)
-    const scale = Math.pow(2, TSUJIMESH_ZOOM);
-    const R128 = 128 / Math.PI;
-    const cornerLL = (gpx, gpy) => {
-        const lng = ((gpx / scale) / R128 - Math.PI) * 180 / Math.PI;
-        const eL = Math.exp((128 - gpy / scale) * 2 / R128);
-        return [Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng];
-    };
-    return L.imageOverlay(canvas.toDataURL(),
-        L.latLngBounds([cornerLL(C.gxBase, C.gyBase - maxH), cornerLL(C.gxBase + W, C.gyBase + W)]),
-        { interactive: false, className: 'tm-3d-overlay' });
-}
-
-/** 3D表示時のヒットテスト: 画素そのもの(バーの根元)に加えて、カーソルから南(画面下)方向の
- *  画素のバーの立ち上がり部分も判定する。手前(南)のバーが上に描かれるため南側から優先して拾う。 */
-function _tmBarPixAt(latlng) {
-    const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
-    if (!C || !C.grid || !E) return -1;
-    const scale = Math.pow(2, TSUJIMESH_ZOOM);
-    const R = 128 / Math.PI;
-    const gpx = Math.floor(128 * (latlng.lng / 180 + 1) * scale);
-    const sinLat = Math.sin(latlng.lat * Math.PI / 180);
-    const gpy = Math.floor((128 - R * Math.atanh(Math.max(-0.9999999, Math.min(0.9999999, sinLat)))) * scale);
-    const x = gpx - C.gxBase;
-    if (x < 0 || x >= C.gridW) return -1;
-    const unit = _tm3dUnit / 100;
-    const maxH = Math.max(1, Math.ceil(20 * unit));
-    for (let d = maxH; d >= 0; d--) {
-        const y = gpy - C.gyBase + d;
-        if (y < 0 || y >= C.gridW) continue;
-        const idx = C.grid[y * C.gridW + x];
-        if (!idx) continue;
-        const cnt = E.start[idx] - E.start[idx - 1];
-        if (Math.max(1, Math.round(Math.min(cnt, 20) * unit)) >= d) return idx - 1;
-    }
-    return -1;
+    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false, className: 'tm-mesh-overlay' });
 }
 
 function _tmPixAtLatLng(latlng) {
@@ -7133,12 +7117,8 @@ function drawTsujiMeshMarkers() {
         }
     }
     _tsujiMeshPixEntries = { start: csrStart, row: csrRow, pos: csrPos };
-    // 3D表示=件数比例の疑似3Dバー / オフ=従来のタイル(平面塗り)
-    const overlay = _tm3dOn
-        ? _tmBuild3DOverlay()
-        : _tmBuildOverlay((put) => {
-            for (let p = 0; p < n; p++) if (csrStart[p + 1] > csrStart[p]) put(p);
-        }, (() => { const v = Math.round(255 * (1 - _tmMeshGray / 100)); return [v, v, v, 230]; })());
+    // 件数グラデーションタイル(1件=天体色〜最大=金色・最大値は金赤斜め縞)
+    const overlay = _tmBuildGradientOverlay();
     if (overlay) overlay.addTo(tsujiMeshLayer);
 }
 
@@ -7435,8 +7415,8 @@ function _tmShowPixelPopup(latlng) {
             if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
         });
     } else {
-        // メッシュマーカー: 3D表示中はバーの立ち上がり部分も判定。詳細リストも更新する
-        const wpix = _tm3dOn ? _tmBarPixAt(latlng) : pix;
+        // メッシュマーカー: 詳細リストも更新する
+        const wpix = pix;
         if (wpix < 0 || !_tsujiMeshWhiteRow || !map.hasLayer(tsujiMeshLayer) || _tsujiMeshWhiteRow[wpix] < 0) return false;
         pix = wpix;
         const r = _tmMeshPopupLinesHtml(pix, true);
@@ -7625,7 +7605,7 @@ function _tmJumpToHit(pix, h) {
 }
 
 /** 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
- *  メッシュマーカー(3Dバー)の画素の全ヒットを表形式で全件表示する(縦スクロール)。
+ *  メッシュマーカーの画素の全ヒットを表形式で全件表示する(縦スクロール)。
  *  行クリック(タップ)は確定ポップアップの行クリックと同じ(該当行の選択+観測点移動)。
  *  ホバーが外れても最後の内容を保持し、別の画素のホバー/タップで更新する。 */
 function _tmUpdateDetailList(pix) {
@@ -7682,8 +7662,8 @@ function handleTsujiMeshGoldHover(latlng) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
     } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer)) {
-        // 3D表示中はバーの立ち上がり部分も判定。ポップアップは件数のみ(詳細は表示詳細結果リストへ)
-        const wpix = _tm3dOn ? _tmBarPixAt(latlng) : pix;
+        // ポップアップは件数のみ(詳細は表示詳細結果リストへ)
+        const wpix = pix;
         if (wpix >= 0 && _tsujiMeshWhiteRow[wpix] >= 0) {
             const E = _tsujiMeshPixEntries;
             content = `<strong>メッシュマーカー(${E.start[wpix + 1] - E.start[wpix]}件)</strong>`;
@@ -8452,24 +8432,6 @@ function setupTsujiMeshPanelControls() {
             _tmSearchArea = parseInt(r.value) || 3;
             if (appState.isTsujiMeshActive) startTsujiMeshSearch();
         });
-    });
-    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール。追従して再描画
-    document.getElementById('chk-tsujimesh-3d').addEventListener('change', (e) => {
-        _tm3dOn = e.target.checked;
-        drawTsujiMeshMarkers();
-    });
-    document.getElementById('input-tsujimesh-3d-unit').addEventListener('input', (e) => {
-        _tm3dUnit = Math.min(300, Math.max(10, parseInt(e.target.value) || 60));
-        document.getElementById('tsujimesh-3d-unit-label').textContent = _tm3dUnit + '%';
-        if (_tm3dOn) drawTsujiMeshMarkers();
-    });
-    document.getElementById('tsujimesh-mesh-gray').addEventListener('input', (e) => {
-        _tmMeshGray = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 100);
-        const lbl = document.getElementById('tsujimesh-mesh-gray-label');
-        if (lbl) lbl.textContent = `${_tmMeshGray}%`;
-        const smp = document.getElementById('tsujimesh-mesh-gray-sample');
-        if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
-        if (_tsujiMeshRows.length) drawTsujiMeshMarkers();
     });
 }
 
