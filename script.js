@@ -610,7 +610,9 @@ function initMap() {
             '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
             '<div class="leaflet-bar map-pan-v">' +
             '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
-            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
+            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>' +
+            '<div class="leaflet-bar map-pan-c">' +
+            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">⌖</a></div>';
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
         const pan = (dx, dy) => {
@@ -619,6 +621,11 @@ function initMap() {
         };
         [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
             L.DomEvent.on(div.querySelector('#' + id), 'click', (ev) => { L.DomEvent.preventDefault(ev); pan(dx, dy); });
+        });
+        // ⌖: 位置情報メニューの観測点/目的点切替ボタンで選択中のマーカーを可視領域(下部パネルを除く)の中央へ
+        L.DomEvent.on(div.querySelector('#map-center-point'), 'click', (ev) => {
+            L.DomEvent.preventDefault(ev);
+            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
         });
         return div;
     };
@@ -6902,6 +6909,7 @@ let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示�
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
+let _tmDetailSort = { col: -1, asc: true };   // 表示詳細結果リストのソート順(列index/昇順)。別画素のホバーでも維持する
 let _tmDetailLockPopup = null; // 確定ポップアップ(メッシュマーカー/観測点。開いている間は詳細リストを固定)
 let _tmObsMarker = null;       // 観測点マーカー(位置情報ポップアップ。表示詳細結果リストの連動に使用)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
@@ -7662,12 +7670,13 @@ function _tmUpdateDetailList(pix) {
     const body = document.getElementById('tsujimesh-detail-body');
     body.innerHTML = '';
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
-    // 行の表示値を先に確定してからテーブルを組み立てる(見出しソートで再描画するため)
-    const rows = hits.map(h => {
+    // 行の表示値を先に確定してからテーブルを組み立てる(見出しソートで再描画するため)。
+    // defIdx = 既定の並び(表示天体毎グルーピング・天体内は精度角距離昇順)のindex(マーク列のソートに使用)
+    const rows = hits.map((h, i) => {
         const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
         const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
         const dt = new Date(timeMs);
-        return { h, timeMs, dist, dt, sym: _tmAccSymbol(dist),
+        return { h, defIdx: i, timeMs, dist, dt, sym: _tmAccSymbol(dist),
                  dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
                  dowStr: `(${dows[dt.getDay()]})`, timeStr: _tmFmtTimeMs2(timeMs) };
     });
@@ -7689,8 +7698,10 @@ function _tmUpdateDetailList(pix) {
     table.appendChild(tbody);
     body.appendChild(table);
     const bodyOrder = new Map(appState.bodies.map((b, i) => [b.id, i]));
+    // ソート順(列+昇降)は保持し、別の画素のホバー/タップでも同じソート順を初期適用する。
+    // マーク列のソートは既定の並び(表示天体毎グルーピング・天体内は精度角距離昇順)の昇順/降順
     setupTableSort(table, rows, [
-        { label: 'マーク', compare: (a, b) => (a.h.star ? 0 : 1) - (b.h.star ? 0 : 1) },
+        { label: 'マーク', compare: (a, b) => a.defIdx - b.defIdx },
         { label: '天体ID', compare: (a, b) => a.h.row.body.id.localeCompare(b.h.row.body.id) },
         { label: '天体名', compare: (a, b) => (bodyOrder.get(a.h.row.body.id) ?? 0) - (bodyOrder.get(b.h.row.body.id) ?? 0) },
         { label: '精度記号', compare: (a, b) => _tmAccSymbolRank(a.sym) - _tmAccSymbolRank(b.sym) },
@@ -7698,13 +7709,17 @@ function _tmUpdateDetailList(pix) {
         { label: '日付', compare: (a, b) => a.timeMs - b.timeMs },
         { label: '曜日', compare: (a, b) => a.dt.getDay() - b.dt.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
-    ], renderRow, []);
+    ], renderRow, [], {
+        initialColIdx: _tmDetailSort.col, initialAsc: _tmDetailSort.asc,
+        onSort: (col, asc) => { _tmDetailSort = { col, asc }; },
+    });
 }
 
 /** 表示詳細結果リストを初期化して隠す(再検索時) */
 function _tmResetDetailList() {
     _tmDetailPix = -1;
     _tmDetailLockPopup = null;
+    _tmDetailSort = { col: -1, asc: true };
     const box = document.getElementById('tsujimesh-detail');
     if (box) box.classList.add('hidden');
     const panel = document.getElementById('tsujimesh-panel');
@@ -8539,38 +8554,59 @@ function syncBottomPanels() {
 /** 下部パネル(全天儀/標高グラフ/宙の窓/辻検索)で隠れていない可視領域の中央へ、
  * 観測点(appState.start)が来るよう地図をパンする。requestAnimationFrameで多重呼出をコアレス。 */
 let _recenterRAF = null;
+/** 指定地点を可視領域(下部パネルを除く)の中央に表示する(ズームは変えずパンのみ) */
+function recenterPointInView(p, animate = true) {
+    if (typeof map === 'undefined' || !map || !p) return;
+    const size = map.getSize();
+    // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
+    // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
+    let coveredPx = 0;
+    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+        const el = document.getElementById(id);
+        if (!el || el.classList.contains('hidden')) continue;
+        coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+    }
+    const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
+    const z = map.getZoom();
+    const px = map.project([p.lat, p.lng], z);
+    // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと地点が可視領域の中央に来る
+    const centerPx = px.add([0, size.y * coveredFrac / 2]);
+    map.panTo(map.unproject(centerPx, z), { animate });
+}
+
 function recenterObserverInView(animate = true) {
     if (typeof map === 'undefined' || !map || !appState.start) return;
     if (_recenterRAF) cancelAnimationFrame(_recenterRAF);
     _recenterRAF = requestAnimationFrame(() => {
         _recenterRAF = null;
         if (!map || !appState.start) return;
-        const size = map.getSize();
-        // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
-        // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
-        let coveredPx = 0;
-        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
-            const el = document.getElementById(id);
-            if (!el || el.classList.contains('hidden')) continue;
-            coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
-        }
-        const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
-        const z = map.getZoom();
-        const obsPx = map.project([appState.start.lat, appState.start.lng], z);
-        // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと観測点が可視領域の中央に来る
-        const centerPx = obsPx.add([0, size.y * coveredFrac / 2]);
-        map.panTo(map.unproject(centerPx, z), { animate });
+        recenterPointInView(appState.start, animate);
     });
 }
 
 
 // --- テーブルソート ヘルパー ---
-function setupTableSort(table, rowData, columns, renderRowFn, extraRows) {
+// opts(省略可): { initialColIdx, initialAsc } = 生成直後に適用する初期ソート(前回のソート順の復元)、
+//               onSort(colIdx, asc) = ソート実行毎の通知(ソート順の保持に使用)
+function setupTableSort(table, rowData, columns, renderRowFn, extraRows, opts) {
     const ths = Array.from(table.querySelectorAll('thead th'));
     const tbody = table.querySelector('tbody');
     let sortColIdx = -1;
     let sortAsc = true;
 
+    const apply = () => {
+        ths.forEach((h, i) => {
+            h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
+        });
+        rowData.sort((a, b) => {
+            const cmp = columns[sortColIdx].compare(a, b);
+            return sortAsc ? cmp : -cmp;
+        });
+        tbody.innerHTML = '';
+        rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
+        if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+        if (opts && opts.onSort) opts.onSort(sortColIdx, sortAsc);
+    };
     ths.forEach((th, idx) => {
         th.addEventListener('click', () => {
             if (sortColIdx === idx) {
@@ -8579,18 +8615,14 @@ function setupTableSort(table, rowData, columns, renderRowFn, extraRows) {
                 sortColIdx = idx;
                 sortAsc = true;
             }
-            ths.forEach((h, i) => {
-                h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
-            });
-            rowData.sort((a, b) => {
-                const cmp = columns[idx].compare(a, b);
-                return sortAsc ? cmp : -cmp;
-            });
-            tbody.innerHTML = '';
-            rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
-            if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+            apply();
         });
     });
+    if (opts && opts.initialColIdx !== undefined && opts.initialColIdx >= 0 && opts.initialColIdx < columns.length) {
+        sortColIdx = opts.initialColIdx;
+        sortAsc = opts.initialAsc !== false;
+        apply();
+    }
 }
 
 // --- 辻検索 ヘルパー ---
