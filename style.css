@@ -1987,21 +1987,16 @@ input[type="range"] {
 }
 
 
-/* 辻メッシュ: マーカーのポップアップの行(メッシュ)/内容ブロック(辻・優辻)。
-   ホバーでハイライトし、クリック/タップで該当行の表示+観測点に設定する */
-.tm-popup-line,
+/* 辻メッシュ: マーカーのポップアップの内容ブロック(辻・優辻)。
+   ホバーでハイライトし、クリック/タップで該当行の表示+観測点に設定する
+   (メッシュマーカーのポップアップは件数のみで、クリック要素はない) */
 .tm-popup-block {
     cursor: pointer;
     padding: 1px 3px;
     border-radius: 3px;
 }
-.tm-popup-line:hover,
 .tm-popup-block:hover {
     background-color: #dbeafe;
-}
-.tm-popup-note {
-    color: #666;
-    margin-top: 3px;
 }
 
 /* 辻メッシュ: 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間・同じ幅)。

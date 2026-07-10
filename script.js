@@ -634,6 +634,8 @@ function initMap() {
     map.doubleClickZoom.disable();
     map.on('dblclick', onMapDblClick);
     map.on('mousemove', (e) => handleTsujiMeshGoldHover(e.latlng));   // 辻メッシュ金色オーバーレイのツールチップ
+    // メッシュマーカーの確定ポップアップが閉じたら、表示詳細結果リストの固定を解除する
+    map.on('popupclose', (e) => { if (e.popup === _tmDetailLockPopup) _tmDetailLockPopup = null; });
 }
 
 
@@ -6867,6 +6869,7 @@ let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示�
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
 let _tmDetailPix = -1;         // 表示詳細結果リストに表示中の画素(-1=なし)
+let _tmDetailLockPopup = null; // メッシュマーカーの確定ポップアップ(開いている間は詳細リストを確定画素に固定)
 let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
 let _tmLastBig = null;         // 直近の再計算で表示した優辻マーカー {pix, dist, timeMs}(地図センタリングに使用)
 let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
@@ -7389,13 +7392,16 @@ function drawTsujiMeshGoldSet(perPix, big) {
 
 /** メッシュ/辻マーカーの画素のポップアップを開く(PC=クリック・スマホ=タップ共通)。
  *  マーカーのクリック/タップでは位置を確定してポップアップを表示するだけで、観測点は移動しない。
- *  ポップアップの行(メッシュ)/内容(辻)をクリック/タップすると、該当行のデータを結果リストで
- *  表示して観測点をその画素に移動する。画素ヒットなしは false(通常の地図操作として処理)。 */
+ *  メッシュマーカーのポップアップは件数のみ(ホバー中と同じ)で、確定中は表示詳細結果リストを
+ *  確定した画素の内容に固定する(行の選択+観測点移動は詳細リストの行クリックで行う)。
+ *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
+ *  画素ヒットなしは false(通常の地図操作として処理)。 */
 function _tmShowPixelPopup(latlng) {
     if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
     let pix = _tmPixAtLatLng(latlng);
     const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
     const div = document.createElement('div');
+    let meshPin = false;
     if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
         // 辻マーカー: 内容(1ブロック)をクリック→観測点をこの画素に移動+選択中の行をリストで表示
         const ref = _tmRefinePixelTime(pix);
@@ -7408,25 +7414,24 @@ function _tmShowPixelPopup(latlng) {
             if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
         });
     } else {
-        // メッシュマーカー: 詳細リストも更新する
+        // メッシュマーカー: ポップアップは件数のみ(ホバー中と同じ。全ヒットの詳細は表示詳細結果リストと重複するため)
         const wpix = pix;
         if (wpix < 0 || !_tsujiMeshWhiteRow || !map.hasLayer(tsujiMeshLayer) || _tsujiMeshWhiteRow[wpix] < 0) return false;
         pix = wpix;
-        const r = _tmMeshPopupLinesHtml(pix, true);
-        if (!r) return false;
+        const E = _tsujiMeshPixEntries;
+        const cnt = E ? E.start[pix + 1] - E.start[pix] : 0;
+        if (!cnt) return false;
         _tmUpdateDetailList(pix);
-        div.innerHTML = `<strong>メッシュマーカー(${r.hits.length}件)</strong>${r.html}<div class="tm-popup-note">${action}</div>`;
-        div.querySelectorAll('.tm-popup-line').forEach(el => {
-            el.addEventListener('click', () => {
-                const h = r.hits[parseInt(el.dataset.j)];
-                if (h) _tmJumpToHit(pix, h);
-            });
-        });
+        div.innerHTML = `<strong>メッシュマーカー(${cnt}件)</strong>`;
+        meshPin = true;
     }
-    L.popup({ offset: [0, -4] })
+    const popup = L.popup({ offset: [0, -4] })
         .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
         .setContent(div)
         .openOn(map);
+    // 確定中は他の画素をホバーしても表示詳細結果リストを更新しない(ポップアップを閉じると解除)。
+    // openOn が先に旧ポップアップを閉じて popupclose で固定を解くため、固定は openOn の後に設定する。
+    if (meshPin) _tmDetailLockPopup = popup;
     return true;
 }
 
@@ -7566,23 +7571,24 @@ function _tmMeshPopupHits(pix) {
     return out;
 }
 
-/** メッシュマーカーのポップアップ本文の行リスト(1行=マーク+天体名 精度角距離° 辻日付 辻時刻(0.01秒))。
- *  表示上限35件、超える場合は末尾に「...36件以上」。interactive=true は各行をクリック可能なdivにする。
- *  戻り値 { hits, html }(表示順のヒット配列と本文HTML)。ヒットなしは null。 */
-function _tmMeshPopupLinesHtml(pix, interactive) {
-    const hits = _tmMeshPopupHits(pix);
-    if (!hits.length) return null;
-    const MAX_LINES = 35;
-    const parts = [];
-    for (let j = 0; j < hits.length && j < MAX_LINES; j++) {
-        const h = hits[j];
-        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
-        const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
-        const text = `${h.star ? '★' : '・'}${escapeHtml(h.row.body.name)} ${dist.toFixed(5)}° ${_tmFmtDateMs(timeMs)} ${_tmFmtTimeMs2(timeMs)}`;
-        parts.push(interactive ? `<div class="tm-popup-line" data-j="${j}">${text}</div>` : `${text}<br>`);
-    }
-    if (hits.length > MAX_LINES) parts.push(interactive ? '<div>...36件以上</div>' : '...36件以上<br>');
-    return { hits, html: parts.join('') };
+/** 精度記号: 角距離を◎〜◎×128で表示する(精度フィルタオプションと同じ2倍刻みのスケール。
+ *  ◎=±0.125°、×2毎に許容が半分で ◎×128=±0.0009765625°。◎より粗い場合は ○(±0.25°)/△(±1.0°)/-)。 */
+function _tmAccSymbol(dist) {
+    if (dist > 1.0) return '-';
+    if (dist > 0.25) return '△';
+    if (dist > 0.125) return '○';
+    let n = 1;
+    while (n < 128 && dist <= 0.125 / (n * 2)) n *= 2;
+    return n === 1 ? '◎' : `◎×${n}`;
+}
+
+/** 精度記号のソート順(昇順で高精度が先頭: ◎×128 < … < ◎ < ○ < △ < -) */
+function _tmAccSymbolRank(sym) {
+    if (sym === '○') return 1;
+    if (sym === '△') return 2;
+    if (sym === '-') return 3;
+    const m = /^◎(?:×(\d+))?$/.exec(sym);
+    return m ? -(m[1] ? parseInt(m[1]) : 1) : 9;
 }
 
 /** 詳細リスト/確定ポップアップの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
@@ -7599,8 +7605,10 @@ function _tmJumpToHit(pix, h) {
 
 /** 表示詳細結果リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
  *  メッシュマーカーの画素の全ヒットを表形式で全件表示する(縦スクロール)。
- *  行クリック(タップ)は確定ポップアップの行クリックと同じ(該当行の選択+観測点移動)。
- *  ホバーが外れても最後の内容を保持し、別の画素のホバー/タップで更新する。 */
+ *  見出し(列名)クリックで列毎にソートできる(結果リストと同じ▲▼トグル)。
+ *  行クリック(タップ)で該当行を結果リストで選択して観測点をその画素に移動する。
+ *  ホバーが外れても最後の内容を保持し、別の画素のホバー/タップで更新する
+ *  (メッシュマーカーの確定ポップアップ表示中は確定画素に固定し、ホバーでは更新しない)。 */
 function _tmUpdateDetailList(pix) {
     const box = document.getElementById('tsujimesh-detail');
     if (!box || pix === _tmDetailPix) return;
@@ -7612,33 +7620,50 @@ function _tmUpdateDetailList(pix) {
         `表示詳細結果リスト(${hits.length}件) ${_tsujiMeshPix.lat[pix].toFixed(6)}, ${_tsujiMeshPix.lng[pix].toFixed(6)}`;
     const body = document.getElementById('tsujimesh-detail-body');
     body.innerHTML = '';
+    const dows = ['日', '月', '火', '水', '木', '金', '土'];
+    // 行の表示値を先に確定してからテーブルを組み立てる(見出しソートで再描画するため)
+    const rows = hits.map(h => {
+        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+        const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
+        const dt = new Date(timeMs);
+        return { h, timeMs, dist, dt, sym: _tmAccSymbol(dist),
+                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
+                 dowStr: `(${dows[dt.getDay()]})`, timeStr: _tmFmtTimeMs2(timeMs) };
+    });
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.h.row.body.color;
+        tr.innerHTML = `<td>${r.h.star ? '★' : '・'}</td><td>${escapeHtml(r.h.row.body.id)}</td><td>${escapeHtml(r.h.row.body.name)}</td>` +
+            `<td>${r.sym}</td><td>${r.dist.toFixed(5)}°</td>` +
+            `<td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td>`;
+        tr.addEventListener('click', () => _tmJumpToHit(pix, r.h));
+        return tr;
+    };
     const table = document.createElement('table');
     table.className = 'td-table';
     table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th></tr></thead>';
     const tbody = document.createElement('tbody');
-    const dows = ['日', '月', '火', '水', '木', '金', '土'];
-    hits.forEach(h => {
-        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
-        const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
-        const dt = new Date(timeMs);
-        const sym = dist <= 0.125 ? '◎' : dist <= 0.25 ? '○' : dist <= 1.0 ? '△' : '-';
-        const tr = document.createElement('tr');
-        tr.className = 'td-data-row';
-        tr.style.color = h.row.body.color;
-        tr.innerHTML = `<td>${h.star ? '★' : '・'}</td><td>${escapeHtml(h.row.body.id)}</td><td>${escapeHtml(h.row.body.name)}</td>` +
-            `<td>${sym}</td><td>${dist.toFixed(5)}°</td>` +
-            `<td>${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日</td>` +
-            `<td>(${dows[dt.getDay()]})</td><td>${_tmFmtTimeMs2(timeMs)}</td>`;
-        tr.addEventListener('click', () => _tmJumpToHit(pix, h));
-        tbody.appendChild(tr);
-    });
+    rows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
     body.appendChild(table);
+    const bodyOrder = new Map(appState.bodies.map((b, i) => [b.id, i]));
+    setupTableSort(table, rows, [
+        { label: 'マーク', compare: (a, b) => (a.h.star ? 0 : 1) - (b.h.star ? 0 : 1) },
+        { label: '天体ID', compare: (a, b) => a.h.row.body.id.localeCompare(b.h.row.body.id) },
+        { label: '天体名', compare: (a, b) => (bodyOrder.get(a.h.row.body.id) ?? 0) - (bodyOrder.get(b.h.row.body.id) ?? 0) },
+        { label: '精度記号', compare: (a, b) => _tmAccSymbolRank(a.sym) - _tmAccSymbolRank(b.sym) },
+        { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
+        { label: '日付', compare: (a, b) => a.timeMs - b.timeMs },
+        { label: '曜日', compare: (a, b) => a.dt.getDay() - b.dt.getDay() },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+    ], renderRow, []);
 }
 
 /** 表示詳細結果リストを初期化して隠す(再検索時) */
 function _tmResetDetailList() {
     _tmDetailPix = -1;
+    _tmDetailLockPopup = null;
     const box = document.getElementById('tsujimesh-detail');
     if (box) box.classList.add('hidden');
 }
@@ -7660,7 +7685,8 @@ function handleTsujiMeshGoldHover(latlng) {
         if (wpix >= 0 && _tsujiMeshWhiteRow[wpix] >= 0) {
             const E = _tsujiMeshPixEntries;
             content = `<strong>メッシュマーカー(${E.start[wpix + 1] - E.start[wpix]}件)</strong>`;
-            _tmUpdateDetailList(wpix);
+            // 確定ポップアップ表示中は詳細リストを確定画素に固定する(ホバーでは更新しない)
+            if (!_tmDetailLockPopup) _tmUpdateDetailList(wpix);
             atPix = wpix;
         }
     }
@@ -8215,12 +8241,8 @@ async function startTsujiMeshSearch() {
                 !isMoonAgeInRange(moonAge, appState.tsujiMeshMoonBase, appState.tsujiMeshMoonTolerance)) return;
             // 時間フィルタ
             if (appState.tsujiMeshTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
-            let symbol;
-            if (rowDist <= 0.125) symbol = '◎';
-            else if (rowDist <= 0.25) symbol = '○';
-            else if (rowDist <= 1.0) symbol = '△';
-            else symbol = '-';
-            // 精度フィルタ(◎は常時オン・○△-はチェックされた記号のみ表示)
+            const symbol = _tmAccSymbol(rowDist);   // ◎〜◎×128(◎より粗い場合は○△-)
+            // 精度フィルタ(◎〜◎×128は常時オン・○△-はチェックされた記号のみ表示)
             if ((symbol === '○' && !appState.tsujiMeshSymO) ||
                 (symbol === '△' && !appState.tsujiMeshSymTri) ||
                 (symbol === '-' && !appState.tsujiMeshSymDash)) return;
@@ -8309,7 +8331,6 @@ function renderTsujiMeshResults() {
     _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
     contentEl.appendChild(table);
-    const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     setupTableSort(table, _tsujiMeshRows, [
         { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
         { label: '天体名', compare: (a, b) => {
@@ -8317,7 +8338,7 @@ function renderTsujiMeshResults() {
             const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
             return ia - ib;
         }},
-        { label: '精度記号', compare: (a, b) => (symbolRank[a.symbol] ?? 9) - (symbolRank[b.symbol] ?? 9) },
+        { label: '精度記号', compare: (a, b) => _tmAccSymbolRank(a.symbol) - _tmAccSymbolRank(b.symbol) },
         { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
         { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
         { label: '曜日', compare: (a, b) => a.dateObj.getDay() - b.dateObj.getDay() },
