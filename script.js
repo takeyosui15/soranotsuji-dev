@@ -1640,7 +1640,11 @@ function updateLocationDisplay() {
     // マーカーの設置（観測点:青、目的点:赤）— My観測点/My目的点マーカーより常に上に表示するためzIndexOffsetを高く設定
     const observerIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-observer"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
     const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-    L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    const obsMarker = L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
+    // 観測点の位置を含むメッシュ画素の情報を表示詳細結果リストに表示する
+    obsMarker.on('mouseover', _tmShowDetailForObserver);
+    obsMarker.on('click', () => setTimeout(_tmShowDetailForObserver, 0));   // タップ用(ポップアップ開閉処理の後に実行)
     L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
@@ -7666,6 +7670,18 @@ function _tmResetDetailList() {
     _tmDetailLockPopup = null;
     const box = document.getElementById('tsujimesh-detail');
     if (box) box.classList.add('hidden');
+}
+
+/** 観測点マーカーのホバー(PC)/タップ(スマホ)時: 観測点の位置を含むメッシュ画素の全ヒットを
+ *  表示詳細結果リストに表示する(メッシュマーカーをホバーした時と同じ内容)。
+ *  メッシュ外・ヒットなしの画素は何もしない。確定ポップアップ表示中は固定を優先する。 */
+function _tmShowDetailForObserver() {
+    if (_tmDetailLockPopup) return;
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return;
+    if (!_tsujiMeshWhiteRow || !tsujiMeshLayer || !map.hasLayer(tsujiMeshLayer)) return;
+    const pix = _tmPixAtLatLng(L.latLng(appState.start.lat, appState.start.lng));
+    if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return;
+    _tmUpdateDetailList(pix);
 }
 
 /** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
