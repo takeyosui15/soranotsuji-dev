@@ -66,7 +66,7 @@ GNU General Public License for more details.
     <div id="map"></div>
 
     <div id="tsujisearch-panel" class="hidden">
-        <div id="tsujisearch-header">辻検索結果 <span id="tsujisearch-status"></span></div>
+        <div id="tsujisearch-header"><button id="btn-tsujisearch-max" title="検索結果表示領域を最大化">⛶</button> 辻検索結果 <span id="tsujisearch-status"></span></div>
         <div id="tsujisearch-progress" class="tsuji-progress-bar hidden"><div id="tsujisearch-progress-fill"></div></div>
         <div id="tsujisearch-content"></div>
     </div>
@@ -1402,7 +1402,7 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。PC・スマホとも誤操作防止のため<strong>ダブルクリック (ダブルタップ)</strong>で移動します (ダブルクリックズームは無効化されます。ズームは+/-ボタン・ホイール・ピンチで)。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
                         <li><strong>地図パンボタン (◀▶/▲▼)</strong>: 地図左上のボタンで、ドラッグせずに半画面ずつ地図をスクロールできます。</li>
-                        <li><strong>マーカー中央表示ボタン (⌖)</strong>: 地図左上 (パンボタンの下) のボタンで、位置情報メニューの観測点/目的点切り替えボタンで選択されているマーカーを画面中心 (下部パネルに隠れない領域の中央) に表示します (ズームは変わりません)。</li>
+                        <li><strong>マーカー中央表示ボタン (⌖)</strong>: 地図左上の<strong>地図レイヤー選択ボタンとズームボタンの間</strong>のボタンで、位置情報メニューの観測点/目的点切り替えボタンで選択されているマーカーを画面中心 (下部パネルに隠れない領域の中央) に表示します (ズームは変わりません。スマホで結果リストを最大化しても隠れない位置です)。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
@@ -1462,6 +1462,7 @@ GNU General Public License for more details.
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
                         <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
+                        <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。</li>
                     </ul>
                     <p>精度記号:</p>
                     <ul class="help-list">

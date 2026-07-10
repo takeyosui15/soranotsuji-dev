@@ -70,6 +70,12 @@ html {
     bottom: 66.67%;
 }
 
+/* 最大化: 下に別パネルが無ければ2/3、あれば1/3のまま(地図1/3は常に確保。辻メッシュと同じ) */
+#tsujisearch-panel.maximized { height: 66.67%; }
+#tsujisearch-panel.maximized.with-elevation,
+#tsujisearch-panel.maximized.with-milkyway,
+#tsujisearch-panel.maximized.with-soramado { height: 33.33%; }
+
 /* --- 辻メッシュ検索パネル (辻検索と排他・全天儀/標高グラフ/宙の窓とは併用可) --- */
 #tsujimesh-panel {
     position: absolute;
@@ -106,7 +112,8 @@ html {
     border-bottom: 1px solid #444;
     flex-shrink: 0;
 }
-#btn-tsujimesh-max {
+#btn-tsujimesh-max,
+#btn-tsujisearch-max {
     padding: 0 6px;
     margin-right: 6px;
     font-size: 13px;
@@ -117,7 +124,8 @@ html {
     border-radius: 4px;
     cursor: pointer;
 }
-#btn-tsujimesh-max.active { background: #b8860b; border-color: #ffd700; }
+#btn-tsujimesh-max.active,
+#btn-tsujisearch-max.active { background: #b8860b; border-color: #ffd700; }
 
 #tsujimesh-content {
     flex: 1 1 0;
@@ -170,16 +178,18 @@ html {
 
 /* 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールする(左上・ズームコントロールの下) */
 .map-pan-control { display: flex; flex-direction: column; align-items: flex-start; }   /* ▲▼の枠がボタン幅(1×2)になるようシュリンク */
-.map-pan-control .map-pan-h { display: flex; flex-direction: row; margin-bottom: 5px; }
-.map-pan-control .map-pan-h a { width: 26px; height: 26px; line-height: 26px; display: inline-block; text-align: center; }
+/* ◀▶と▲▼の間隔は他のコントロールの間隔(Leaflet既定10px)と同じにする */
+.map-pan-control .map-pan-h { display: flex; flex-direction: row; margin-bottom: 10px; }
+/* ◀▶のサイズは指定しない(▲▼と同じLeaflet標準のボタンサイズを継承する) */
+.map-pan-control .map-pan-h a { display: inline-block; text-align: center; }
 .map-pan-control .map-pan-h a:first-child { border-radius: 4px 0 0 4px; border-bottom: none; border-right: 1px solid #ccc; }
 .map-pan-control .map-pan-h a:last-child { border-radius: 0 4px 4px 0; }
 .map-pan-control a { font-size: 12px; color: black; text-decoration: none; }
 /* ⌖(照準): 選択中のマーカー(観測点/目的点)を画面中心に表示。
+   地図レイヤー選択ボタンとズームボタンの間に独立コントロールとして置く。
    アイコンはSVGをflexで中央配置(フォント依存の縦ズレを避ける) */
-.map-pan-control .map-pan-c { margin-top: 5px; }
-.map-pan-control .map-pan-c a { display: flex; align-items: center; justify-content: center; }
-.map-pan-control .map-pan-c a svg { display: block; }
+.map-center-control a { display: flex; align-items: center; justify-content: center; color: black; }
+.map-center-control a svg { display: block; }
 #tsujimesh-ctrl-body {
     flex: 1 1 auto;
     min-height: 0;

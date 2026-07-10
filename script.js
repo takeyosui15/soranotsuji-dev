@@ -597,6 +597,33 @@ function initMap() {
         "OSM": osm
     }, null, { position: 'topleft' }).addTo(map);
 
+    // ⌖(マーカー中央表示): 地図レイヤー選択ボタンとズームボタンの間に配置
+    // (スマホで結果リストを最大化した時に隠れず操作しやすい位置)
+    const centerControl = L.control({ position: 'topleft' });
+    centerControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'leaflet-bar map-center-control');
+        div.innerHTML =
+            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
+            // ⌖(照準)の文字はフォント依存で描画位置が下にずれる端末があるため、SVGで描いてflexで正確に中央配置する
+            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
+            '</svg></a>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
+        // 位置情報メニューの観測点/目的点切替ボタンで選択中のマーカーを可視領域(下部パネルを除く)の中央へ
+        L.DomEvent.on(div.querySelector('#map-center-point'), 'click', (ev) => {
+            L.DomEvent.preventDefault(ev);
+            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
+        });
+        return div;
+    };
+    centerControl.addTo(map);
+
     L.control.zoom({ position: 'topleft' }).addTo(map);
     L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
 
@@ -610,18 +637,7 @@ function initMap() {
             '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
             '<div class="leaflet-bar map-pan-v">' +
             '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
-            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>' +
-            '<div class="leaflet-bar map-pan-c">' +
-            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
-            // ⌖(照準)の文字はフォント依存で描画位置が下にずれる端末があるため、SVGで描いてflexで正確に中央配置する
-            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
-            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
-            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
-            '</svg></a></div>';
+            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
         L.DomEvent.disableClickPropagation(div);
         L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
         const pan = (dx, dy) => {
@@ -630,11 +646,6 @@ function initMap() {
         };
         [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
             L.DomEvent.on(div.querySelector('#' + id), 'click', (ev) => { L.DomEvent.preventDefault(ev); pan(dx, dy); });
-        });
-        // ⌖: 位置情報メニューの観測点/目的点切替ボタンで選択中のマーカーを可視領域(下部パネルを除く)の中央へ
-        L.DomEvent.on(div.querySelector('#map-center-point'), 'click', (ev) => {
-            L.DomEvent.preventDefault(ev);
-            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
         });
         return div;
     };
@@ -8473,6 +8484,13 @@ function setupTsujiMeshPanelControls() {
         const pnl = document.getElementById('tsujimesh-panel');
         const on = pnl.classList.toggle('maximized');
         document.getElementById('btn-tsujimesh-max').classList.toggle('active', on);
+        syncBottomPanels();
+    });
+    // 辻検索結果パネルの最大化(辻メッシュと同じ: 最大化=画面の2/3・オフ=通常の1/3)
+    document.getElementById('btn-tsujisearch-max').addEventListener('click', () => {
+        const pnl = document.getElementById('tsujisearch-panel');
+        const on = pnl.classList.toggle('maximized');
+        document.getElementById('btn-tsujisearch-max').classList.toggle('active', on);
         syncBottomPanels();
     });
     document.getElementById('tsujimesh-ctrl-header').addEventListener('click', () => {
