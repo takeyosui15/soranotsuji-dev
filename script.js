@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.6 - 2026-07-15: feat: Myセット×スプレッドシート連携 フェーズ3後半(4シート作成・保存/読込・開く/追加(Picker)/コピー/削除・一括更新・行アイコン状態)
 Version 1.20.5 - 2026-07-15: feat: Googleドライブ同期 フェーズ3前半(soranotsuji-app.jsonの保存/読込・同期ダイアログ・フォルダ自動作成/リネーム・バックアップメニューのGoogleドライブ欄)
 Version 1.20.4 - 2026-07-15: feat: Googleログイン基盤 フェーズ2(GISトークン・ヘッダのログイン/同期状態アイコン・soranotsuji-app.json存在チェック・Myセットアイコン連動)
 Version 1.20.3 - 2026-07-15: feat: Myセットメニュー フェーズ1(ローカル核: 既定のセット・行管理・コピー・切り替え表示・表示中バッジ・全て登録)
@@ -1165,14 +1166,14 @@ function setupUI() {
     document.getElementById('gdrive-sync-load').onclick = () => { closeGdriveSyncDialog(); loadAppFromDrive(); };
     document.getElementById('gdrive-sync-cancel').onclick = closeGdriveSyncDialog;
 
-    // Myセット (フェーズ1: ローカル核。スプレッドシート連携ボタンはフェーズ3案内)
+    // Myセット
     document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
-    document.getElementById('btn-myset-update').onclick = mySetGooglePending;
+    document.getElementById('btn-myset-update').onclick = bulkUpdateMySets;
     document.getElementById('btn-myset-switch').onclick = switchMySetDisplay;
-    document.getElementById('btn-myset-open').onclick = mySetGooglePending;
-    document.getElementById('btn-myset-addsheet').onclick = mySetGooglePending;
+    document.getElementById('btn-myset-open').onclick = openMySetSheet;
+    document.getElementById('btn-myset-addsheet').onclick = addMySetSheet;
     document.getElementById('btn-myset-copy').onclick = copyMySet;
-    document.getElementById('btn-myset-delete').onclick = () => alert('Googleドライブのスプレッドシート削除はフェーズ3で実装予定です。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
+    document.getElementById('btn-myset-delete').onclick = deleteMySetWithSheet;
     document.getElementById('btn-myset-regall').onclick = registerAllMySets;
     document.getElementById('btn-myset-up').onclick = () => moveMySet(-1);
     document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
@@ -9770,7 +9771,8 @@ async function googleLogin() {
                                 expiresAt: Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000
                             };
                             updateGoogleLoginIcon();
-                            checkGoogleSyncState();   // ログイン直後にファイル状態を確認
+                            checkGoogleSyncState();     // ログイン直後にファイル状態を確認
+                            checkAllMySetSheets();      // Myセットのシート状態も確認
                             resolve(true);
                         } else {
                             resolve(false);
@@ -10232,22 +10234,379 @@ function formatMySetDateTime(ts) {
     return `${d.getFullYear()}年${p(d.getMonth() + 1)}月${p(d.getDate())}日(${dow}) ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/** フェーズ3で実装するスプレッドシート連携ボタンの仮動作 */
-function mySetGooglePending() {
-    alert('Myセットのスプレッドシート連携(保存/読込・作成)はフェーズ3で実装予定です。');
+// ---- Myセット×Googleスプレッドシート連携 (フェーズ3後半) ----
+
+let mySetSheetStates = {};   // 行アイコン用の実行時状態: setId -> 'checking'|'ok'|'stale'|'missing'|'error' (非永続)
+
+/** Sheets API (v4) 呼び出しの共通処理 */
+async function sheetsApiFetch(path, method, bodyObj) {
+    const token = await ensureGoogleToken();
+    if (!token) throw new Error('Googleログインが必要です');
+    const opt = { method: method || 'GET', headers: { 'Authorization': 'Bearer ' + token } };
+    if (bodyObj !== undefined) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(bodyObj); }
+    const resp = await fetch('https://sheets.googleapis.com/v4/' + path, opt);
+    if (!resp.ok) throw new Error('Sheets APIエラー: ' + resp.status);
+    return resp.json();
 }
 
-/** Myセットの状態アイコン (フェーズ2: ログイン状態のみ反映。シート紐付けはフェーズ3) */
+const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体'];
+
+/** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント2行) */
+function _mySetSheetRows(data) {
+    const commentRows = [['#このようにコメントを記載できます。'], ['#', 'これもコメント行です。']];
+    const pointsRows = (list, label) => [
+        [`${label}ID`, `${label}名`, '緯度', '経度', '標高', '高さ', 'メモ'],
+        ...(list || []).map(p => [p.id, p.name ?? '', p.lat ?? '', p.lng ?? '', p.elev ?? '', p.height ?? 0, p.memo ?? ''])
+    ];
+    const starsRows = (list) => [
+        ['天体ID', '天体名', '赤経', '赤緯'],
+        ...(list || []).map(s => [s.id, s.name ?? '', s.ra ?? '', s.dec ?? ''])
+    ];
+    const tsujiRows = _buildMyTsujiCsv(data.myTsujiSearches || []).replace(/\r\n$/, '').split('\r\n').map(l => l.split(','));
+    return {
+        'My辻検索': commentRows.concat(tsujiRows),
+        'My観測点': commentRows.concat(pointsRows(data.myObservations, '観測点')),
+        'My目的点': commentRows.concat(pointsRows(data.myTargets, '目的点')),
+        'My天体': commentRows.concat(starsRows(data.myStars))
+    };
+}
+
+/** シートの行配列から、コメント行と見出し行を除いたデータ行(セルは文字列化)を返す */
+function _mySetDataRowsOf(rows) {
+    const out = [];
+    let headerSkipped = false;
+    for (const r of (rows || [])) {
+        const cells = (r || []).map(c => String(c ?? ''));
+        if (!cells.length || !cells.join('').trim()) continue;
+        if (cells[0].trim().startsWith('#')) continue;   // コメント行
+        if (!headerSkipped) { headerSkipped = true; continue; }   // 見出し行
+        out.push(cells);
+    }
+    return out;
+}
+
+function _mySetParsePoints(rows, sheetName) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i];
+        if (cols.length < 6) throw new Error(`${sheetName}: ${i + 1}件目の列数が不足しています(6列必要)`);
+        const id = parseInt(toHalfWidth(cols[0].trim()));
+        const name = cols[1].trim();
+        const lat = parseFloat(toHalfWidth(cols[2].trim()));
+        const lng = parseFloat(toHalfWidth(cols[3].trim()));
+        let elev = cols[4].trim() === '' ? 0 : parseFloat(toHalfWidth(cols[4].trim()));
+        if (isNaN(elev)) elev = 0;
+        const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+        const memo = (cols[6] ?? '').trim();
+        if (isNaN(id) || id < 1 || id > 1000) throw new Error(`${sheetName}: ${i + 1}件目のIDが無効です(1〜1000)`);
+        if (ids.has(id)) throw new Error(`${sheetName}: ID ${id} が重複しています`);
+        if (isNaN(lat) || isNaN(lng)) throw new Error(`${sheetName}: ${i + 1}件目の緯度/経度が無効です`);
+        ids.add(id);
+        list.push({ id, name, lat, lng, elev, height, memo, checked: false });
+    }
+    return list;
+}
+
+function _mySetParseStars(rows) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i];
+        if (cols.length < 4) throw new Error(`My天体: ${i + 1}件目の列数が不足しています(4列必要)`);
+        const id = parseInt(toHalfWidth(cols[0].trim()));
+        const name = cols[1].trim();
+        const ra = parseFloat(toHalfWidth(cols[2].trim()));
+        const dec = parseFloat(toHalfWidth(cols[3].trim()));
+        if (isNaN(id) || id < 1 || id > 1000) throw new Error(`My天体: ${i + 1}件目のIDが無効です(1〜1000)`);
+        if (ids.has(id)) throw new Error(`My天体: ID ${id} が重複しています`);
+        if (!name) throw new Error(`My天体: ${i + 1}件目の天体名が空です`);
+        if (isNaN(ra) || isNaN(dec)) throw new Error(`My天体: ${i + 1}件目の赤経/赤緯が無効です`);
+        ids.add(id);
+        list.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
+    }
+    return list;
+}
+
+function _mySetParseTsuji(rows) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const t = parseMyTsujiCsvLine(dataRows[i], i + 1);   // 解析エラー時はalert表示+null
+        if (!t) throw new Error('My辻検索: 解析を中止しました');
+        if (ids.has(t.id)) throw new Error(`My辻検索: 辻検索ID ${t.id} が重複しています`);
+        ids.add(t.id);
+        list.push(t);
+    }
+    return list;
+}
+
+/** Myセット用スプレッドシートの新規作成 (Myセットフォルダ内・4シート構成) */
+async function mySetCreateSheet(s) {
+    await ensureSoraFolders();
+    const res = await driveApiJson('files?fields=id', 'POST', {
+        name: s.name,
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+        parents: [appState.googleDrive.mySetsFolderId],
+        appProperties: { soranotsuji: 'myset' }
+    });
+    s.sheetId = res.id;
+    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+        requests: [
+            { updateSheetProperties: { properties: { sheetId: 0, title: MYSET_SHEET_NAMES[0] }, fields: 'title' } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[1] } } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[2] } } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[3] } } }
+        ]
+    });
+}
+
+/** シートから4メニュー分の内容を取得して解析する (適用はしない) */
+async function _mySetFetchSheetData(s) {
+    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
+    const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+    const vr = res.valueRanges || [];
+    const byIdx = i => (vr[i] && vr[i].values) || [];
+    const data = {
+        myTsujiSearches: _mySetParseTsuji(byIdx(0)),
+        myObservations: _mySetParsePoints(byIdx(1), 'My観測点'),
+        myTargets: _mySetParsePoints(byIdx(2), 'My目的点'),
+        myStars: _mySetParseStars(byIdx(3))
+    };
+    const meta = await driveGetMeta(s.sheetId);
+    return { data, meta };
+}
+
+/** 端末の内容をスプレッドシートへ保存 (無ければ作成。保存時にファイル名もMyセット名に揃える) */
+async function mySetSaveToSheet(s, opts = {}) {
+    try {
+        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return false; }
+        mySetSheetStates[s.id] = 'checking';
+        renderMySetList();
+        if (s.sheetId) {
+            const meta = await driveGetMeta(s.sheetId);
+            if (!meta || meta.trashed) s.sheetId = null;
+        }
+        if (!s.sheetId) await mySetCreateSheet(s);
+        const data = s.id === appState.mySetCurrentId ? snapshotMySetData() : (s.data || {});
+        const sheets = _mySetSheetRows(data);
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+            valueInputOption: 'RAW',
+            data: MYSET_SHEET_NAMES.map(n => ({ range: `'${n}'!A1`, values: sheets[n] }))
+        });
+        let meta = await driveGetMeta(s.sheetId);
+        if (meta && meta.name !== s.name) {
+            meta = await driveApiJson(`files/${s.sheetId}?fields=id,name,modifiedTime,size`, 'PATCH', { name: s.name });   // 名前をMyセット名に揃える
+        }
+        s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
+        s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        // 保持ルール: 同期済みで、オフライン指定なし・非表示中なら端末には保持しない
+        if (!s.offline && s.id !== appState.mySetCurrentId) s.data = null;
+        mySetSheetStates[s.id] = 'ok';
+        saveAppState();
+        renderMySetList();
+        if (!opts.quiet) alert(`Myセット（ID:${s.id}、${s.name}）をGoogleスプレッドシートに保存しました。`);
+        return true;
+    } catch (e) {
+        console.error('mySetSaveToSheet:', e);
+        mySetSheetStates[s.id] = 'error';
+        renderMySetList();
+        if (!opts.quiet) alert('スプレッドシートへの保存に失敗しました: ' + e.message);
+        return false;
+    }
+}
+
+/** スプレッドシートの内容を端末へ読み込み (表示中セットならMy付き4メニューへ即反映) */
+async function mySetLoadFromSheet(s, opts = {}) {
+    try {
+        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return false; }
+        if (!s.sheetId) {
+            if (!opts.quiet) alert('このMyセットにはスプレッドシートが紐付いていません。\n「追加」で既存のスプレッドシートを選ぶか、状態アイコンの押下で作成してください。');
+            return false;
+        }
+        mySetSheetStates[s.id] = 'checking';
+        renderMySetList();
+        const { data, meta } = await _mySetFetchSheetData(s);
+        if (s.id === appState.mySetCurrentId) applyMySetData(data);
+        else if (s.offline) s.data = data;
+        else s.data = null;   // 保持ルール(オフライン指定なしは端末に保持しない)
+        s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
+        s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        mySetSheetStates[s.id] = 'ok';
+        saveAppState();
+        renderMySetList();
+        if (!opts.quiet) alert(`Googleスプレッドシートの内容をMyセット（ID:${s.id}、${s.name}）に読み込みました。`);
+        return true;
+    } catch (e) {
+        console.error('mySetLoadFromSheet:', e);
+        mySetSheetStates[s.id] = 'error';
+        renderMySetList();
+        if (!opts.quiet) alert('スプレッドシートからの読み込みに失敗しました: ' + e.message);
+        return false;
+    }
+}
+
+/** 全Myセットのシート状態を確認して行アイコンへ反映 (ログイン直後などに実行) */
+async function checkAllMySetSheets() {
+    if (!isGoogleLoggedIn()) return;
+    for (const s of appState.mySets) {
+        if (!s.sheetId) continue;
+        try {
+            const meta = await driveGetMeta(s.sheetId);
+            if (!meta || meta.trashed) { mySetSheetStates[s.id] = 'missing'; continue; }
+            mySetSheetStates[s.id] = (s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime) ? 'ok' : 'stale';
+        } catch (e) {
+            mySetSheetStates[s.id] = 'error';
+        }
+    }
+    renderMySetList();
+}
+
+/** Myセット行の状態アイコン */
+function mySetRowIcon(s) {
+    if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
+    if (!s.sheetId || mySetSheetStates[s.id] === 'missing') return ['😢', 'スプレッドシートがありません(押下で作成して保存)'];
+    switch (mySetSheetStates[s.id]) {
+        case 'checking': return ['🕛', 'スプレッドシートを確認中...'];
+        case 'ok':       return ['👍', 'スプレッドシートと同期が取れています'];
+        case 'error':    return ['❌', 'スプレッドシートの確認でエラーが発生しました(押下で保存/読込を再実行)'];
+        default:         return ['👎', '端末とスプレッドシートに差がある可能性があります(押下で保存/読込ラジオに従って更新)'];
+    }
+}
+
+/** Myセット行の状態アイコン押下 */
+function mySetRowStatusClick(s) {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    if (!s.sheetId || mySetSheetStates[s.id] === 'missing') {
+        if (confirm(`Myセット（ID:${s.id}、${s.name}）のGoogleスプレッドシートを作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
+        return;
+    }
+    if (mySetSheetStates[s.id] === 'ok') { alert('Googleドライブの内容とこの端末の内容の同期が取れています。'); return; }
+    if (s.saveMode === 'load') mySetLoadFromSheet(s);
+    else mySetSaveToSheet(s);
+}
+
+/** 0段目ヘッダの一括状態アイコン (全行👍なら👍、1つでも差があれば👎) */
 function mySetStatusIcon() {
-    return isGoogleLoggedIn()
-        ? ['😢', 'スプレッドシート未作成(作成・同期はフェーズ3で実装予定)']
-        : ['🈚️', 'Googleアカウントにログインします'];
+    if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
+    if (!appState.mySets.length) return ['😢', 'Myセットがありません(行追加で作成できます)'];
+    const icons = appState.mySets.map(s => mySetRowIcon(s)[0]);
+    if (icons.every(i => i === '👍')) return ['👍', '全てのMyセットが同期済みです'];
+    return ['👎', '未同期のMyセットがあります(押下でチェックされたMyセットを一括更新)'];
 }
 
-/** Myセットの状態アイコン押下: 未ログインならログイン、ログイン済みはフェーズ3案内 */
+/** 0段目ヘッダの一括状態アイコン押下: 未ログインならログイン、ログイン済みは一括更新 */
 function mySetStatusClick() {
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
-    mySetGooglePending();
+    bulkUpdateMySets();
+}
+
+/** 更新ボタン: チェックされたMyセットを保存/読込ラジオに従って一括更新 */
+async function bulkUpdateMySets() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    const targets = appState.mySets.filter(s => s.checked);
+    if (!targets.length) return alert('更新するMyセットをチェックボックスで選択してください');
+    if (!confirm('チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？')) return;
+    const btn = document.getElementById('btn-myset-update');
+    let done = 0, ng = 0;
+    for (const s of targets) {
+        if (btn) btn.textContent = `🕛更新中(${Math.round(done / targets.length * 100)}%)`;
+        const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true });
+        if (!ok) ng++;
+        done++;
+    }
+    if (btn) btn.textContent = '更新';
+    alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''})`);
+}
+
+/** 開くボタン: 選択中のMyセットのスプレッドシートを開く */
+function openMySetSheet() {
+    const id = getSelectedMySetId();
+    if (id === null || id === 0) return alert('開くMyセットを選択してください(既定のセットは対象外です)');
+    const s = appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
+    if (!confirm('チェックされたMyセットのGoogleスプレッドシートを開きますか？')) return;
+    window.open(`https://docs.google.com/spreadsheets/d/${s.sheetId}/edit`, '_blank');
+}
+
+// Google Picker (追加ボタン用)
+let _pickerApiLoaded = false;
+function loadPickerApi() {
+    return new Promise((resolve, reject) => {
+        if (_pickerApiLoaded && window.google && window.google.picker) return resolve();
+        const sc = document.createElement('script');
+        sc.src = 'https://apis.google.com/js/api.js';
+        sc.async = true;
+        sc.onload = () => { gapi.load('picker', () => { _pickerApiLoaded = true; resolve(); }); };
+        sc.onerror = () => reject(new Error('Google Picker部品の読み込みに失敗しました。ネットワークを確認してください。'));
+        document.head.appendChild(sc);
+    });
+}
+
+/** PickerのAppId(Cloudプロジェクト番号)。クライアントIDの数字接頭辞から自動取得 */
+function getGoogleAppId() {
+    const m = /^(\d+)-/.exec(getGoogleClientId() || '');
+    return m ? m[1] : '';
+}
+
+/** 追加ボタン: Pickerで既存のスプレッドシートを選び、選択中のMyセットに紐付ける */
+async function addMySetSheet() {
+    const id = getSelectedMySetId();
+    if (id === null || id === 0) return alert('追加先のMyセットを選択してください(既定のセットは対象外です)');
+    const s = appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`Myセット（ID:${s.id}、${s.name}）に紐付けるGoogleスプレッドシートを、Googleドライブのファイル選択画面で選びますか？`)) return;
+    const token = await ensureGoogleToken();
+    if (!token) return;
+    if (!GOOGLE_CONFIG.apiKey) return alert('APIキーが未設定です。script.js冒頭のGOOGLE_CONFIG.apiKeyを設定してください。');
+    try { await loadPickerApi(); } catch (e) { return alert(e.message); }
+    const picker = new google.picker.PickerBuilder()
+        .addView(new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS))
+        .setOAuthToken(token)
+        .setDeveloperKey(GOOGLE_CONFIG.apiKey)
+        .setAppId(getGoogleAppId())
+        .setCallback((res) => {
+            if (res[google.picker.Response.ACTION] !== google.picker.Action.PICKED) return;
+            const doc = res[google.picker.Response.DOCUMENTS][0];
+            s.sheetId = doc[google.picker.Document.ID];
+            s.lastSyncSheetTime = null;
+            mySetSheetStates[s.id] = 'stale';
+            saveAppState();
+            setMySetDirty(true);
+            renderMySetList();
+            if (confirm('選択したスプレッドシートの内容を、このMyセットに読み込みますか？')) mySetLoadFromSheet(s);
+        })
+        .build();
+    picker.setVisible(true);
+}
+
+/** 削除ボタン: スプレッドシートをゴミ箱へ移動し、行もリストから削除する */
+async function deleteMySetWithSheet() {
+    const id = getSelectedMySetId();
+    if (id === null || id === 0) return alert('削除するMyセットを選択してください(既定のセットは対象外です)');
+    if (id === appState.mySetCurrentId) return alert('表示中のMyセットは削除できません。\n先に別のMyセットへ切り替えてください。');
+    const s = appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
+    if (!confirm(`チェックされたMyセットのGoogleスプレッドシートを削除しますか？\n(ID:${id}、${s.name})\n※ファイルはGoogleドライブのゴミ箱に移動し(30日間は復元可能)、行もリストから削除します。`)) return;
+    if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return; }
+    try {
+        await driveApiJson(`files/${s.sheetId}?fields=id`, 'PATCH', { trashed: true });
+        appState.mySets = appState.mySets.filter(x => x.id !== id);
+        delete mySetSheetStates[id];
+        saveAppState();
+        setMySetDirty(true);
+        renderMySetList();
+        alert('Googleスプレッドシートをゴミ箱に移動し、行を削除しました。');
+    } catch (e) {
+        console.error(e);
+        alert('削除に失敗しました: ' + e.message);
+    }
 }
 
 /** 0段目ヘッダ: Myセット🈚️(🔛: 表示中セット名…) */
@@ -10281,8 +10640,8 @@ function renderMySetList() {
         </div>`;
     container.appendChild(homeRow);
 
-    const [rowIcon, rowIconTitle] = mySetStatusIcon();
     appState.mySets.forEach(s => {
+        const [rowIcon, rowIconTitle] = mySetRowIcon(s);
         const row = document.createElement('div');
         row.className = 'myset-row' + (cur === s.id ? ' myset-current' : '');
         row.innerHTML = `
@@ -10324,11 +10683,21 @@ function renderMySetList() {
         row.querySelectorAll('.myset-slmode').forEach(r => r.addEventListener('change', (e) => {
             if (e.target.checked) { s.saveMode = e.target.value; saveAppState(); setMySetDirty(true); }
         }));
-        row.querySelector('.myset-offline').addEventListener('change', (e) => { s.offline = e.target.checked; saveAppState(); setMySetDirty(true); });
+        row.querySelector('.myset-offline').addEventListener('change', async (e) => {
+            s.offline = e.target.checked;
+            saveAppState();
+            setMySetDirty(true);
+            if (s.offline && !s.data && s.id !== appState.mySetCurrentId && s.sheetId && isGoogleLoggedIn()) {
+                await mySetLoadFromSheet(s, { quiet: true });   // オフライン保持用に内容を取得
+            } else if (!s.offline && s.id !== appState.mySetCurrentId && s.sheetId && s.lastSyncSheetTime) {
+                s.data = null;   // 同期済みなら端末保持をやめる(未同期の内容は消さない)
+                saveAppState();
+            }
+        });
         const memoInput = row.querySelector('.myset-memo');
         memoInput.addEventListener('input', () => setMySetDirty(true));
         memoInput.addEventListener('change', (e) => { s.memo = e.target.value; saveAppState(); setMySetDirty(true); });
-        row.querySelector('.myset-status').addEventListener('click', mySetStatusClick);
+        row.querySelector('.myset-status').addEventListener('click', () => mySetRowStatusClick(s));
         container.appendChild(row);
     });
 
@@ -10347,16 +10716,36 @@ function initMySetMenu() {
     setTimeout(renderMySetList, 0);
 }
 
-/** 切り替え表示: ①表示中の内容を書き戻し → ②選択セットを展開 → ③表示中ポインタ付け替え */
-function switchMySetDisplay() {
+/** 切り替え表示: ①表示中の内容を書き戻し → ②選択セットを展開 → ③表示中ポインタ付け替え
+ *  端末に保持していないセット(オフライン指定なし)は、切り替え時にスプレッドシートから読み込む */
+async function switchMySetDisplay() {
     const id = getSelectedMySetId();
     if (id === null) return alert('切り替え表示するMyセットを選択してください');
-    if (id !== 0 && !appState.mySets.find(s => s.id === id)) return;
+    const target = id === 0 ? null : appState.mySets.find(s => s.id === id);
+    if (id !== 0 && !target) return;
     if (id === appState.mySetCurrentId) return alert(`Myセット（${getMySetName(id)}）は、すでに表示中です。`);
     const dirty = myObsDirty || myTgtDirty || myTsujiDirty;
     let msg = 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
     if (dirty) msg = 'My付きメニューに未登録の変更があります。切り替えると失われます。\n' + msg;
     if (!confirm(msg)) return;
+    // 端末に内容がないセットは、先にスプレッドシートから取得する(失敗時は何も変えない)
+    let targetData = id === 0 ? appState.mySetHomeData : (target.data || null);
+    if (id !== 0 && !targetData && target.sheetId) {
+        if (!isGoogleLoggedIn()) {
+            const ok = await googleLogin();
+            if (!ok) return alert('このMyセットは端末に保持されていません(オフライン指定なし)。\nログインしてスプレッドシートから読み込む必要があります。');
+        }
+        try {
+            const r = await _mySetFetchSheetData(target);
+            targetData = r.data;
+            target.updatedAt = r.meta ? new Date(r.meta.modifiedTime).getTime() : target.updatedAt;
+            target.lastSyncSheetTime = r.meta ? r.meta.modifiedTime : target.lastSyncSheetTime;
+            mySetSheetStates[target.id] = 'ok';
+        } catch (e) {
+            console.error(e);
+            return alert('スプレッドシートの読み込みに失敗しました: ' + e.message);
+        }
+    }
     // ①現在の表示内容を、表示中セットの保持領域に書き戻す
     const snap = snapshotMySetData();
     if (appState.mySetCurrentId === 0) {
@@ -10367,9 +10756,8 @@ function switchMySetDisplay() {
         else appState.mySetHomeData = snap;   // 表示中の行が消えている場合の退避先(行削除はガード済み)
     }
     // ②選択セットの内容をMy付き4メニューに展開 → ③表示中ポインタを付け替え
-    const target = id === 0 ? appState.mySetHomeData : (appState.mySets.find(s => s.id === id).data || null);
     appState.mySetCurrentId = id;
-    applyMySetData(target);
+    applyMySetData(targetData);
     renderMySetList();
     saveAppState();
 }
@@ -10423,8 +10811,8 @@ function deleteMySetRow() {
     renderMySetList();
 }
 
-/** コピー(複製): 行と内容スナップショットをローカルに複製 (スプレッドシートの複製はフェーズ3) */
-function copyMySet() {
+/** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する */
+async function copyMySet() {
     const id = getSelectedMySetId();
     if (id === null) return alert('コピーするMyセットを選択してください');
     if (id === 0) return alert('既定のセットはコピーできません');
@@ -10432,10 +10820,30 @@ function copyMySet() {
     if (!src) return;
     const newId = getNextMySetId();
     if (newId === null) return alert('Myセットの登録上限(1000件)に達しています');
-    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？`)) return;
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
     const data = id === appState.mySetCurrentId ? snapshotMySetData()
         : (src.data ? JSON.parse(JSON.stringify(src.data)) : null);
-    appState.mySets.push({ id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data });
+    const newSet = { id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
+    if (src.sheetId && isGoogleLoggedIn()) {
+        try {
+            await ensureSoraFolders();
+            const res = await driveApiJson(`files/${src.sheetId}/copy?fields=id,modifiedTime`, 'POST', {
+                name: newSet.name,
+                parents: [appState.googleDrive.mySetsFolderId],
+                appProperties: { soranotsuji: 'myset' }
+            });
+            newSet.sheetId = res.id;
+            newSet.lastSyncSheetTime = res.modifiedTime || null;
+            newSet.updatedAt = res.modifiedTime ? new Date(res.modifiedTime).getTime() : null;
+            mySetSheetStates[newId] = 'ok';
+        } catch (e) {
+            console.error(e);
+            alert('スプレッドシートの複製に失敗したため、行のみ複製しました: ' + e.message);
+        }
+    } else if (src.sheetId) {
+        alert('未ログインのため、行のみ複製しました。\n(スプレッドシートの複製はログイン後に、状態アイコンから保存で作成できます)');
+    }
+    appState.mySets.push(newSet);
     saveAppState();
     setMySetDirty(true);
     renderMySetList();
