@@ -1289,6 +1289,9 @@ input[type="number"]:disabled {
 /* Myセット行の状態アイコンボタン */
 .myset-status { min-width: 34px; }
 
+/* ヘッダのGoogleログイン/同期状態アイコン */
+#btn-google-login { cursor: pointer; }
+
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
 input[type="number"].elev-readonly,

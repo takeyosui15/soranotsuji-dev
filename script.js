@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.4 - 2026-07-15: feat: Googleログイン基盤 フェーズ2(GISトークン・ヘッダのログイン/同期状態アイコン・soranotsuji-app.json存在チェック・Myセットアイコン連動)
 Version 1.20.3 - 2026-07-15: feat: Myセットメニュー フェーズ1(ローカル核: 既定のセット・行管理・コピー・切り替え表示・表示中バッジ・全て登録)
 Version 1.20.2 - 2026-07-15: feat: URL取得に短いURL/長いURLの選択を追加、reset.htmlに使用容量表示、検索中心オプションのラベルを「辻オフセット点」に変更、バックアップファイル名をsoranotsuji-app-バックアップ-に変更
 Version 1.20.1 - 2026-06-16: fix: パール富士で午前0時付近の日付が消える(重複する)問題を対策(東京タワーからのパール富士2026/06/24付)
@@ -60,6 +61,21 @@ Version 1.0.0 - 2026-01-29: Initial release
 // ============================================================
 
 const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
+
+// Google連携設定 (フェーズ2): Cloudコンソールで取得した値を設定する。
+// 本番用/開発用の2クライアント方式(docs/order.md 2026-07-15の回答参照)。
+// clientIdが未設定("")の間はログインできず、アイコン押下時に案内を表示する。
+// クライアントIDは秘密情報ではないため、ソースに直接記載してよい。
+const GOOGLE_CONFIG = {
+    prod: { hosts: ['soranotsuji.net', 'www.soranotsuji.net'], clientId: '' },
+    dev:  { hosts: ['localhost', '127.0.0.1', 'takeyosui15.github.io'], clientId: '' },
+    apiKey: '',   // Google Picker用(フェーズ3)
+    scope: 'https://www.googleapis.com/auth/drive.file'
+};
+function getGoogleClientId() {
+    return GOOGLE_CONFIG.prod.hosts.includes(location.hostname)
+        ? GOOGLE_CONFIG.prod.clientId : GOOGLE_CONFIG.dev.clientId;
+}
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzq94EkeZgbWlFb65cb1WQcRrRVi2Qpd_i60NvJWx6BB6Qxpb-30GD7TSzZptpRYxYL/exec"; 
 const SYNODIC_MONTH = 29.53058886; // 朔望月 (日数)
 
@@ -1123,14 +1139,17 @@ function setupUI() {
     document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
 
     // My辻検索ボタン (Phase A-3)
-    // Myセット (フェーズ1: ローカル核。Google連携ボタンは準備中メッセージ)
+    // Googleログイン/同期状態アイコン (フェーズ2)
+    document.getElementById('btn-google-login').addEventListener('click', (e) => { e.stopPropagation(); onGoogleLoginIconClick(); });
+
+    // Myセット (フェーズ1: ローカル核。スプレッドシート連携ボタンはフェーズ3案内)
     document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
     document.getElementById('btn-myset-update').onclick = mySetGooglePending;
     document.getElementById('btn-myset-switch').onclick = switchMySetDisplay;
     document.getElementById('btn-myset-open').onclick = mySetGooglePending;
     document.getElementById('btn-myset-addsheet').onclick = mySetGooglePending;
     document.getElementById('btn-myset-copy').onclick = copyMySet;
-    document.getElementById('btn-myset-delete').onclick = () => alert('Googleドライブ連携は準備中です。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
+    document.getElementById('btn-myset-delete').onclick = () => alert('Googleドライブのスプレッドシート削除はフェーズ3で実装予定です。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
     document.getElementById('btn-myset-regall').onclick = registerAllMySets;
     document.getElementById('btn-myset-up').onclick = () => moveMySet(-1);
     document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
@@ -1251,6 +1270,7 @@ function saveAppState() {
     // 保存したいデータだけを抽出
     const stateToSave = {
         appSchema: APP_SCHEMA,   // localStorageスキーマ版数（将来のマイグレーション/診断用）
+        savedAt: Date.now(),     // ローカルストレージの最終更新日時（ドライブ同期の新旧比較用）
         start: appState.start,
         end: appState.end,
         homeStart: appState.homeStart, // 登録場所
@@ -9674,6 +9694,168 @@ function toggleHelp() {
 }
 
 // ============================================================
+// Googleログイン基盤 (フェーズ2)
+// GIS(Google Identity Services)のトークンモデル。トークンは端末メモリのみに保持し、
+// 有効期限はローカルで判定する(イベント駆動型。定期的なGoogleへの問い合わせはしない)。
+// soranotsuji-app.jsonの保存/読込(同期)とスプレッドシート連携はフェーズ3で実装。
+// ============================================================
+
+const SORA_APP_FILENAME = 'soranotsuji-app.json';
+let googleToken = null;        // { accessToken, expiresAt } (メモリのみ。localStorageには保存しない)
+let googleTokenClient = null;  // GISのTokenClient
+let googleSyncState = 'none';  // none(未ログイン)|checking(🕛)|nofile(😢)|stale(👎)|ok(👍)|broken(❌)
+let googleAppFileId = null;    // Drive上のsoranotsuji-app.jsonのファイルID(見つかった場合)
+
+function isGoogleLoggedIn() {
+    return !!(googleToken && googleToken.expiresAt > Date.now() + 60000);
+}
+
+/** GISスクリプトの遅延ロード (未ログインのユーザーに余計な通信をさせない) */
+function loadGisScript() {
+    return new Promise((resolve, reject) => {
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Googleログイン部品の読み込みに失敗しました。\nネットワーク(オンライン)を確認してください。'));
+        document.head.appendChild(s);
+    });
+}
+
+/** Googleログイン (ユーザー操作から呼ぶ。成功でtrue) */
+async function googleLogin() {
+    const clientId = getGoogleClientId();
+    if (!clientId) {
+        alert('GoogleログインのクライアントIDが未設定です。\nGoogle CloudコンソールでOAuthクライアントIDを作成し、script.js冒頭のGOOGLE_CONFIGに設定してください。\n(手順: docs/order.md 2026-07-15の回答を参照)');
+        return false;
+    }
+    try { await loadGisScript(); } catch (e) { alert(e.message); return false; }
+    return new Promise((resolve) => {
+        try {
+            if (!googleTokenClient) {
+                googleTokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: GOOGLE_CONFIG.scope,
+                    callback: (resp) => {
+                        if (resp && resp.access_token) {
+                            googleToken = {
+                                accessToken: resp.access_token,
+                                expiresAt: Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000
+                            };
+                            updateGoogleLoginIcon();
+                            checkGoogleSyncState();   // ログイン直後にファイル状態を確認
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    },
+                    error_callback: (err) => {
+                        if (err && err.type !== 'popup_closed') {
+                            alert('Googleログインに失敗しました: ' + (err.message || err.type || '不明なエラー'));
+                        }
+                        updateGoogleLoginIcon();
+                        resolve(false);
+                    }
+                });
+            }
+            googleTokenClient.requestAccessToken();
+        } catch (e) {
+            alert('Googleログインの初期化に失敗しました: ' + e.message);
+            resolve(false);
+        }
+    });
+}
+
+/** 操作時にトークンを確保する (切れていたら取り直す=イベント駆動型)。取得できなければnull */
+async function ensureGoogleToken() {
+    if (isGoogleLoggedIn()) return googleToken.accessToken;
+    const ok = await googleLogin();
+    return ok ? googleToken.accessToken : null;
+}
+
+/** Drive API (v3) 呼び出しの共通処理 */
+async function driveApiFetch(path, options = {}) {
+    const token = await ensureGoogleToken();
+    if (!token) return null;
+    const resp = await fetch('https://www.googleapis.com/drive/v3/' + path, {
+        ...options,
+        headers: { ...(options.headers || {}), 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) throw new Error('Drive APIエラー: ' + resp.status);
+    return resp.json();
+}
+
+/** soranotsuji-app.jsonの存在チェック → 同期状態アイコン更新 (保存/読込の実行はフェーズ3) */
+async function checkGoogleSyncState() {
+    if (!isGoogleLoggedIn()) { googleSyncState = 'none'; updateGoogleLoginIcon(); return; }
+    googleSyncState = 'checking';
+    updateGoogleLoginIcon();
+    try {
+        const q = encodeURIComponent(`name='${SORA_APP_FILENAME}' and trashed=false`);
+        const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime)&spaces=drive`);
+        if (!res || !Array.isArray(res.files) || res.files.length === 0) {
+            googleAppFileId = null;
+            googleSyncState = 'nofile';   // 😢: ファイルがない
+        } else {
+            googleAppFileId = res.files[0].id;
+            googleSyncState = 'stale';    // 👎: 保存/読込が未実装の間は「同期未確認」として表示
+        }
+    } catch (e) {
+        console.error('checkGoogleSyncState:', e);
+        googleSyncState = 'broken';       // ❌
+    }
+    updateGoogleLoginIcon();
+}
+
+/** 宙の辻メニューのログイン/同期状態アイコンと、Myセットの状態アイコンを更新 */
+function updateGoogleLoginIcon() {
+    const el = document.getElementById('btn-google-login');
+    if (el) {
+        const map = {
+            none:     ['🈚️', 'Googleアカウントにログインします(ドライブ同期)'],
+            checking: ['🕛', 'Googleドライブを確認中...'],
+            nofile:   ['😢', `Googleドライブに${SORA_APP_FILENAME}がありません(保存はフェーズ3で実装予定)`],
+            stale:    ['👎', 'Googleドライブとの保存/読込(同期)はフェーズ3で実装予定です'],
+            ok:       ['👍', 'Googleドライブと同期済み'],
+            broken:   ['❌', 'Googleドライブの確認でエラーが発生しました(押して再確認)']
+        };
+        const [icon, title] = map[isGoogleLoggedIn() ? googleSyncState : 'none'] || map.none;
+        el.textContent = icon;
+        el.title = title;
+    }
+    renderMySetList();   // Myセットの状態アイコン(🈚️/😢)とヘッダも連動して更新
+}
+
+/** ヘッダのログイン/同期状態アイコン押下時の動作 */
+function onGoogleLoginIconClick() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    switch (googleSyncState) {
+        case 'checking': break;   // 確認中は何もしない
+        case 'nofile':
+            alert(`Googleドライブに ${SORA_APP_FILENAME} がありません。\nファイルの作成(保存)はフェーズ3で実装予定です。`);
+            break;
+        case 'stale':
+            alert('Googleドライブとの保存/読込(同期)はフェーズ3で実装予定です。');
+            break;
+        case 'ok':
+            alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+            break;
+        default:
+            checkGoogleSyncState();   // エラー時は押下で再確認
+    }
+}
+
+// トークン失効の監視 (ローカル判定のみ。1分毎にアイコンへ反映)
+setInterval(() => {
+    if (googleSyncState !== 'none' && !isGoogleLoggedIn()) {
+        googleToken = null;
+        googleSyncState = 'none';
+        updateGoogleLoginIcon();
+    }
+}, 60000);
+
+// ============================================================
 // Myセット管理 (フェーズ1: ローカル核。Googleドライブ連携はフェーズ2/3で実装)
 // ============================================================
 
@@ -9743,9 +9925,22 @@ function formatMySetDateTime(ts) {
     return `${d.getFullYear()}年${p(d.getMonth() + 1)}月${p(d.getDate())}日(${dow}) ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/** フェーズ2/3で実装するGoogleドライブ連携ボタンの仮動作 */
+/** フェーズ3で実装するスプレッドシート連携ボタンの仮動作 */
 function mySetGooglePending() {
-    alert('Googleドライブ連携(ログイン)は準備中です。\n(フェーズ2/3で実装予定です)');
+    alert('Myセットのスプレッドシート連携(保存/読込・作成)はフェーズ3で実装予定です。');
+}
+
+/** Myセットの状態アイコン (フェーズ2: ログイン状態のみ反映。シート紐付けはフェーズ3) */
+function mySetStatusIcon() {
+    return isGoogleLoggedIn()
+        ? ['😢', 'スプレッドシート未作成(作成・同期はフェーズ3で実装予定)']
+        : ['🈚️', 'Googleアカウントにログインします'];
+}
+
+/** Myセットの状態アイコン押下: 未ログインならログイン、ログイン済みはフェーズ3案内 */
+function mySetStatusClick() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    mySetGooglePending();
 }
 
 /** 0段目ヘッダ: Myセット🈚️(🔛: 表示中セット名…) */
@@ -9753,9 +9948,10 @@ function updateMySetHeader() {
     const label = document.getElementById('myset-header-label');
     if (!label) return;
     const name = getMySetName(appState.mySetCurrentId) || '(名称未設定)';
-    label.innerHTML = `Myセット<span id="myset-header-status" title="Googleドライブ連携(ログイン)は準備中です">🈚️</span>(🔛: <span id="myset-header-current" title="${escapeHtml(name)}">${escapeHtml(name)}</span>)`;
+    const [icon, iconTitle] = mySetStatusIcon();
+    label.innerHTML = `Myセット<span id="myset-header-status" title="${escapeHtml(iconTitle)}">${icon}</span>(🔛: <span id="myset-header-current" title="${escapeHtml(name)}">${escapeHtml(name)}</span>)`;
     const st = document.getElementById('myset-header-status');
-    if (st) st.addEventListener('click', (e) => { e.stopPropagation(); mySetGooglePending(); });
+    if (st) st.addEventListener('click', (e) => { e.stopPropagation(); mySetStatusClick(); });
 }
 
 /** リスト描画 (先頭に既定のセット(ID:0)の固定行、以降はmySetsの行) */
@@ -9778,6 +9974,7 @@ function renderMySetList() {
         </div>`;
     container.appendChild(homeRow);
 
+    const [rowIcon, rowIconTitle] = mySetStatusIcon();
     appState.mySets.forEach(s => {
         const row = document.createElement('div');
         row.className = 'myset-row' + (cur === s.id ? ' myset-current' : '');
@@ -9790,7 +9987,7 @@ function renderMySetList() {
                 ${cur === s.id ? '<span>🔛</span>' : ''}
             </div>
             <div class="control-row">
-                <button class="nav-btn myset-status" data-id="${s.id}" title="Googleドライブ連携(ログイン)は準備中です">🈚️</button>
+                <button class="nav-btn myset-status" data-id="${s.id}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
                 <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${s.id}" autocomplete="off" title="${escapeHtml(s.name)}">
             </div>
             <div class="control-row">
@@ -9824,7 +10021,7 @@ function renderMySetList() {
         const memoInput = row.querySelector('.myset-memo');
         memoInput.addEventListener('input', () => setMySetDirty(true));
         memoInput.addEventListener('change', (e) => { s.memo = e.target.value; saveAppState(); setMySetDirty(true); });
-        row.querySelector('.myset-status').addEventListener('click', mySetGooglePending);
+        row.querySelector('.myset-status').addEventListener('click', mySetStatusClick);
         container.appendChild(row);
     });
 
