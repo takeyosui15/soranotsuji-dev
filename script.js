@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.3 - 2026-07-15: feat: Myセットメニュー フェーズ1(ローカル核: 既定のセット・行管理・コピー・切り替え表示・表示中バッジ・全て登録)
 Version 1.20.2 - 2026-07-15: feat: URL取得に短いURL/長いURLの選択を追加、reset.htmlに使用容量表示、検索中心オプションのラベルを「辻オフセット点」に変更、バックアップファイル名をsoranotsuji-app-バックアップ-に変更
 Version 1.20.1 - 2026-06-16: fix: パール富士で午前0時付近の日付が消える(重複する)問題を対策(東京タワーからのパール富士2026/06/24付)
 Version 1.20.0 - 2026-05-25: feat: 辻ボタン/標高グラフ可視判定/位置精度の大幅な向上(南側にズレる問題を解消)
@@ -212,6 +213,11 @@ let appState = {
     // My観測点 / My目的点
     myObservations: [],  // { id, name, lat, lng, elev, height }
     myTargets: [],       // { id, name, lat, lng, elev, height }
+
+    // Myセット (My辻検索/My観測点/My目的点/My天体の組みを丸ごと切り替え)
+    mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data } (ID>=1。dataは非表示中セットの内容スナップショット)
+    mySetCurrentId: 0,    // 表示中のMyセットID (0=既定のセット)
+    mySetHomeData: null,  // 既定のセット(ID:0)が非表示中の間の内容スナップショット
 
     // My辻検索
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
@@ -480,6 +486,7 @@ window.onload = function() {
     renderMyPointsList('obs');
     renderMyPointsList('tgt');
     renderMyTsujiSearches();
+    initMySetMenu();
 
     // My観測点/My目的点マーカーを表示
     setTimeout(() => updateMyPointMarkers(), 460);
@@ -1116,6 +1123,20 @@ function setupUI() {
     document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
 
     // My辻検索ボタン (Phase A-3)
+    // Myセット (フェーズ1: ローカル核。Google連携ボタンは準備中メッセージ)
+    document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
+    document.getElementById('btn-myset-update').onclick = mySetGooglePending;
+    document.getElementById('btn-myset-switch').onclick = switchMySetDisplay;
+    document.getElementById('btn-myset-open').onclick = mySetGooglePending;
+    document.getElementById('btn-myset-addsheet').onclick = mySetGooglePending;
+    document.getElementById('btn-myset-copy').onclick = copyMySet;
+    document.getElementById('btn-myset-delete').onclick = () => alert('Googleドライブ連携は準備中です。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
+    document.getElementById('btn-myset-regall').onclick = registerAllMySets;
+    document.getElementById('btn-myset-up').onclick = () => moveMySet(-1);
+    document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
+    document.getElementById('btn-myset-addrow').onclick = addMySetRow;
+    document.getElementById('btn-myset-delrow').onclick = deleteMySetRow;
+
     document.getElementById('btn-mytsuji-toggle-all').onclick = toggleAllMyTsuji;
     document.getElementById('btn-mytsuji-get').onclick = getMyTsujiFromTsujiSearch;
     document.getElementById('btn-mytsuji-regall').onclick = registerAllMyTsuji;
@@ -1239,6 +1260,9 @@ function saveAppState() {
         myObservations: appState.myObservations,
         myTargets: appState.myTargets,
         myTsujiSearches: appState.myTsujiSearches,
+        mySets: appState.mySets,
+        mySetCurrentId: appState.mySetCurrentId,
+        mySetHomeData: appState.mySetHomeData,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -1329,6 +1353,9 @@ function loadAppState() {
             if(saved.myTsujiSearches) appState.myTsujiSearches = saved.myTsujiSearches;
             // 旧保存データ(オフセット中心角が行独立になる前)は基本オプションの値で補完
             appState.myTsujiSearches.forEach(t => { if (t.mwOffsetAngle === undefined) t.mwOffsetAngle = Number(saved.mwOffsetAngle ?? appState.mwOffsetAngle) || 0; });
+            if(saved.mySets) appState.mySets = saved.mySets;
+            if(saved.mySetCurrentId !== undefined) appState.mySetCurrentId = saved.mySetCurrentId;
+            if(saved.mySetHomeData !== undefined) appState.mySetHomeData = saved.mySetHomeData;
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -9644,6 +9671,300 @@ function toggleSection(id) {
 function toggleHelp() {
     const modal = document.getElementById('help-modal');
     if(modal) modal.classList.toggle('hidden');
+}
+
+// ============================================================
+// Myセット管理 (フェーズ1: ローカル核。Googleドライブ連携はフェーズ2/3で実装)
+// ============================================================
+
+let mySetDirty = false;
+
+/** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
+function setMySetDirty(val) {
+    mySetDirty = val;
+    const btn = document.getElementById('btn-myset-regall');
+    if (btn) btn.classList.toggle('dirty', !!val);
+}
+
+/** 表示中の内容(My辻検索/My観測点/My目的点/My天体)のスナップショットを作る */
+function snapshotMySetData() {
+    return JSON.parse(JSON.stringify({
+        myTsujiSearches: appState.myTsujiSearches,
+        myObservations: appState.myObservations,
+        myTargets: appState.myTargets,
+        myStars: appState.myStars
+    }));
+}
+
+/** スナップショットをMy付き4メニューに展開して関連UIを再描画する */
+function applyMySetData(data) {
+    const d = data ? JSON.parse(JSON.stringify(data)) : {};
+    appState.myTsujiSearches = d.myTsujiSearches || [];
+    appState.myObservations = d.myObservations || [];
+    appState.myTargets = d.myTargets || [];
+    appState.myStars = d.myStars || [];
+    syncMyStarsToBodies();
+    renderCelestialList();
+    renderMyStarsList();
+    renderMyPointsList('obs');
+    renderMyPointsList('tgt');
+    renderMyTsujiSearches();
+    setMyPointDirty('obs', false);
+    setMyPointDirty('tgt', false);
+    setMyTsujiDirty(false);
+    updateMyPointMarkers();
+    updateAll();
+}
+
+function getSelectedMySetId() {
+    const radio = document.querySelector('input[name="myset-select"]:checked');
+    return radio ? parseInt(radio.value) : null;
+}
+
+function getMySetName(id) {
+    if (id === 0) return '既定のセット';
+    const s = appState.mySets.find(x => x.id === id);
+    return s ? s.name : '';
+}
+
+/** ID自動採番 (1〜1000の空き最小値) */
+function getNextMySetId() {
+    const usedIds = new Set(appState.mySets.map(s => s.id));
+    for (let i = 1; i <= 1000; i++) { if (!usedIds.has(i)) return i; }
+    return null;
+}
+
+/** 更新日時の表示 (例: 2026年03月23日(月) 23:34:50) */
+function formatMySetDateTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2, '0');
+    const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+    return `${d.getFullYear()}年${p(d.getMonth() + 1)}月${p(d.getDate())}日(${dow}) ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+/** フェーズ2/3で実装するGoogleドライブ連携ボタンの仮動作 */
+function mySetGooglePending() {
+    alert('Googleドライブ連携(ログイン)は準備中です。\n(フェーズ2/3で実装予定です)');
+}
+
+/** 0段目ヘッダ: Myセット🈚️(🔛: 表示中セット名…) */
+function updateMySetHeader() {
+    const label = document.getElementById('myset-header-label');
+    if (!label) return;
+    const name = getMySetName(appState.mySetCurrentId) || '(名称未設定)';
+    label.innerHTML = `Myセット<span id="myset-header-status" title="Googleドライブ連携(ログイン)は準備中です">🈚️</span>(🔛: <span id="myset-header-current" title="${escapeHtml(name)}">${escapeHtml(name)}</span>)`;
+    const st = document.getElementById('myset-header-status');
+    if (st) st.addEventListener('click', (e) => { e.stopPropagation(); mySetGooglePending(); });
+}
+
+/** リスト描画 (先頭に既定のセット(ID:0)の固定行、以降はmySetsの行) */
+function renderMySetList() {
+    const container = document.getElementById('myset-list');
+    if (!container) return;
+    const prevSel = getSelectedMySetId();
+    while (container.firstChild) container.removeChild(container.firstChild);
+    const cur = appState.mySetCurrentId;
+
+    // 既定のセット(固定行): 名前変更・行削除・上下移動・Google連携の対象外
+    const homeRow = document.createElement('div');
+    homeRow.className = 'myset-row' + (cur === 0 ? ' myset-current' : '');
+    homeRow.innerHTML = `
+        <hr class="tsujisearch-separator">
+        <div class="mypoint-row-header">
+            <input type="radio" name="myset-select" value="0" class="mystars-radio">
+            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span>
+            <span>既定のセット${cur === 0 ? ' 🔛' : ''}</span>
+        </div>`;
+    container.appendChild(homeRow);
+
+    appState.mySets.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'myset-row' + (cur === s.id ? ' myset-current' : '');
+        row.innerHTML = `
+            <hr class="tsujisearch-separator">
+            <div class="mypoint-row-header">
+                <input type="radio" name="myset-select" value="${s.id}" class="mystars-radio">
+                <input type="checkbox" class="body-checkbox myset-check" data-id="${s.id}" ${s.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
+                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span>
+                ${cur === s.id ? '<span>🔛</span>' : ''}
+            </div>
+            <div class="control-row">
+                <button class="nav-btn myset-status" data-id="${s.id}" title="Googleドライブ連携(ログイン)は準備中です">🈚️</button>
+                <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${s.id}" autocomplete="off" title="${escapeHtml(s.name)}">
+            </div>
+            <div class="control-row">
+                <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-${s.id}" value="save" ${s.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:保存</label>
+                <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-${s.id}" value="load" ${s.saveMode === 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:読込</label>
+                <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${s.id}" ${s.offline ? 'checked' : ''}>:オフライン</label>
+            </div>
+            <div class="control-row">
+                <span class="mypoint-label">更新日時: ${formatMySetDateTime(s.updatedAt)}</span>
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">メモ:</label>
+                <input type="text" class="myset-memo" value="${escapeHtml(s.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${s.id}" autocomplete="off">
+            </div>`;
+        const nameInput = row.querySelector('.myset-name');
+        nameInput.addEventListener('input', () => setMySetDirty(true));
+        nameInput.addEventListener('change', (e) => {
+            const v = e.target.value.trim();
+            if (!v) { e.target.value = s.name; return; }   // 未入力でフォーカスが外れたら元の値を復元
+            s.name = v;
+            e.target.title = v;
+            saveAppState();
+            setMySetDirty(true);
+            if (appState.mySetCurrentId === s.id) updateMySetHeader();   // 🔛表示名の追従
+        });
+        row.querySelector('.myset-check').addEventListener('change', (e) => { s.checked = e.target.checked; saveAppState(); setMySetDirty(true); });
+        row.querySelectorAll('.myset-slmode').forEach(r => r.addEventListener('change', (e) => {
+            if (e.target.checked) { s.saveMode = e.target.value; saveAppState(); setMySetDirty(true); }
+        }));
+        row.querySelector('.myset-offline').addEventListener('change', (e) => { s.offline = e.target.checked; saveAppState(); setMySetDirty(true); });
+        const memoInput = row.querySelector('.myset-memo');
+        memoInput.addEventListener('input', () => setMySetDirty(true));
+        memoInput.addEventListener('change', (e) => { s.memo = e.target.value; saveAppState(); setMySetDirty(true); });
+        row.querySelector('.myset-status').addEventListener('click', mySetGooglePending);
+        container.appendChild(row);
+    });
+
+    // 選択状態の復元 (既定は先頭=既定のセット)
+    const selVal = (prevSel !== null && document.querySelector(`input[name="myset-select"][value="${prevSel}"]`)) ? prevSel : 0;
+    const selRadio = document.querySelector(`input[name="myset-select"][value="${selVal}"]`);
+    if (selRadio) selRadio.checked = true;
+
+    updateMySetHeader();
+}
+
+/** 初期表示 (非同期読み込み: 読み込み中はクルクルを表示) */
+function initMySetMenu() {
+    const container = document.getElementById('myset-list');
+    if (container) container.innerHTML = '<div class="mystars-empty">🕛 読み込み中...</div>';
+    setTimeout(renderMySetList, 0);
+}
+
+/** 切り替え表示: ①表示中の内容を書き戻し → ②選択セットを展開 → ③表示中ポインタ付け替え */
+function switchMySetDisplay() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('切り替え表示するMyセットを選択してください');
+    if (id !== 0 && !appState.mySets.find(s => s.id === id)) return;
+    if (id === appState.mySetCurrentId) return alert(`Myセット（${getMySetName(id)}）は、すでに表示中です。`);
+    const dirty = myObsDirty || myTgtDirty || myTsujiDirty;
+    let msg = 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
+    if (dirty) msg = 'My付きメニューに未登録の変更があります。切り替えると失われます。\n' + msg;
+    if (!confirm(msg)) return;
+    // ①現在の表示内容を、表示中セットの保持領域に書き戻す
+    const snap = snapshotMySetData();
+    if (appState.mySetCurrentId === 0) {
+        appState.mySetHomeData = snap;
+    } else {
+        const curSet = appState.mySets.find(s => s.id === appState.mySetCurrentId);
+        if (curSet) { curSet.data = snap; curSet.updatedAt = Date.now(); }
+        else appState.mySetHomeData = snap;   // 表示中の行が消えている場合の退避先(行削除はガード済み)
+    }
+    // ②選択セットの内容をMy付き4メニューに展開 → ③表示中ポインタを付け替え
+    const target = id === 0 ? appState.mySetHomeData : (appState.mySets.find(s => s.id === id).data || null);
+    appState.mySetCurrentId = id;
+    applyMySetData(target);
+    renderMySetList();
+    saveAppState();
+}
+
+/** 全て登録 (検証 → 確認 → 全件差し替え) */
+function registerAllMySets() {
+    for (const s of appState.mySets) {
+        if (!s.name || !s.name.trim()) {
+            document.getElementById('myset-error').innerHTML =
+                `<span class="mypoint-error-text">MyセットID:${s.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            return;
+        }
+    }
+    document.getElementById('myset-error').innerHTML = '';
+    if (!confirm('現在のMyセットリストをローカルストレージに登録しますか？')) return;
+    appState.mySets.forEach(s => {
+        s.name = s.name.trim();
+        s.memo = (s.memo || '').replace(/,/g, '，');
+    });
+    saveAppState();
+    setMySetDirty(false);
+    renderMySetList();
+    alert('Myセットを登録しました');
+}
+
+/** 行追加 */
+function addMySetRow() {
+    const id = getNextMySetId();
+    if (id === null) return alert('Myセットの登録上限(1000件)に達しています');
+    if (!confirm('Myセットリストの末尾にMyセットの行を追加しますか？')) return;
+    appState.mySets.push({ id, name: '新規Myセット', saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: '', data: null });
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 行削除 (Driveのファイルには触れない。既定のセット/表示中セットは不可) */
+function deleteMySetRow() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('行削除するMyセットを選択してください');
+    if (id === 0) return alert('既定のセットは行削除できません');
+    if (id === appState.mySetCurrentId) return alert('表示中のMyセットは行削除できません。\n先に別のMyセットへ切り替えてください。');
+    const s = appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${s.name}）を削除しますか？\n(Googleドライブのファイルは削除されません)`)) return;
+    appState.mySets = appState.mySets.filter(x => x.id !== id);
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+}
+
+/** コピー(複製): 行と内容スナップショットをローカルに複製 (スプレッドシートの複製はフェーズ3) */
+function copyMySet() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('コピーするMyセットを選択してください');
+    if (id === 0) return alert('既定のセットはコピーできません');
+    const src = appState.mySets.find(x => x.id === id);
+    if (!src) return;
+    const newId = getNextMySetId();
+    if (newId === null) return alert('Myセットの登録上限(1000件)に達しています');
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？`)) return;
+    const data = id === appState.mySetCurrentId ? snapshotMySetData()
+        : (src.data ? JSON.parse(JSON.stringify(src.data)) : null);
+    appState.mySets.push({ id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data });
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${newId}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 上下移動 (既定のセットは先頭固定) */
+function moveMySet(dir) {
+    const id = getSelectedMySetId();
+    if (id === null || id === 0) return;
+    const idx = appState.mySets.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    const to = idx + dir;
+    if (to < 0 || to >= appState.mySets.length) return;
+    [appState.mySets[idx], appState.mySets[to]] = [appState.mySets[to], appState.mySets[idx]];
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 一括選択/一括解除トグル */
+function toggleAllMySets() {
+    const btn = document.getElementById('btn-myset-toggle-all');
+    const newState = !btn.classList.contains('myset-toggle-active');
+    btn.textContent = newState ? '一括解除' : '一括選択';
+    btn.classList.toggle('myset-toggle-active', newState);
+    appState.mySets.forEach(s => { s.checked = newState; });
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
 }
 
 // ============================================================

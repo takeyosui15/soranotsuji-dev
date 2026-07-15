@@ -1263,6 +1263,32 @@ input[type="number"]:disabled {
     font-weight: bold !important;
 }
 
+/* Myセットメニュー (背景赤・少し透明) */
+#sec-myset { background-color: rgba(244, 67, 54, 0.15); }
+/* 表示中のMyセット行: 太字+緑系ハイライト(メニュー背景の薄赤の補色) */
+.myset-row.myset-current {
+    background-color: rgba(76, 175, 80, 0.35);
+    font-weight: bold;
+    border-radius: 6px;
+}
+/* ヘッダの表示中セット名: 長い名前は…で省略 */
+#myset-header-current {
+    display: inline-block;
+    max-width: 7em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+/* Myセット 一括選択トグル: 「一括解除」状態 */
+.myset-toggle-active {
+    background-color: yellow !important;
+    color: black !important;
+    font-weight: bold !important;
+}
+/* Myセット行の状態アイコンボタン */
+.myset-status { min-width: 34px; }
+
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
 input[type="number"].elev-readonly,

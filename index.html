@@ -1103,6 +1103,42 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-myset')">
+                    <span id="myset-header-label">Myセット</span> <span id="icon-sec-myset">▼</span>
+                </div>
+                <div id="sec-myset" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-myset-toggle-all" class="nav-btn main-btn">一括選択</button>
+                        <button id="btn-myset-update" class="nav-btn main-btn" title="チェックされたMyセットを保存/読込ラジオボタンにしたがって更新します(Googleドライブ連携)">更新</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-switch" class="nav-btn main-btn" title="選択中のMyセットの内容にMy辻検索/My観測点/My目的点/My天体を切り替えます">切り替え表示</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-open" class="nav-btn main-btn" title="選択中のMyセットのGoogleスプレッドシートを開きます">開く</button>
+                        <button id="btn-myset-addsheet" class="nav-btn main-btn" title="選択中のMyセットにGoogleスプレッドシートを追加します">追加</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-copy" class="nav-btn main-btn" title="選択中のMyセットをコピー(複製)します">コピー</button>
+                        <button id="btn-myset-delete" class="nav-btn main-btn" title="選択中のMyセットのGoogleスプレッドシートを削除します">削除</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-regall" class="nav-btn main-btn">全て登録</button>
+                    </div>
+                    <div id="myset-error" class="mypoint-error"></div>
+                    <div id="myset-list" class="mypoint-list"></div>
+                    <div class="control-row">
+                        <button id="btn-myset-up" class="nav-btn main-btn">▲上へ</button>
+                        <button id="btn-myset-down" class="nav-btn main-btn">▼下へ</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-addrow" class="nav-btn main-btn">行追加</button>
+                        <button id="btn-myset-delrow" class="nav-btn main-btn">行削除</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-mytsuji')">
                     <span>My辻検索</span> <span id="icon-sec-mytsuji">▼</span>
                 </div>
