@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.7 - 2026-07-15: feat: 既定のセット(ID:0)のスプレッドシート対応(フル行UI・保存/読込/開く/追加/削除・一括更新参加)+privacy.html/terms.html新設+フッターリンク
 Version 1.20.6 - 2026-07-15: feat: Myセット×スプレッドシート連携 フェーズ3後半(4シート作成・保存/読込・開く/追加(Picker)/コピー/削除・一括更新・行アイコン状態)
 Version 1.20.5 - 2026-07-15: feat: Googleドライブ同期 フェーズ3前半(soranotsuji-app.jsonの保存/読込・同期ダイアログ・フォルダ自動作成/リネーム・バックアップメニューのGoogleドライブ欄)
 Version 1.20.4 - 2026-07-15: feat: Googleログイン基盤 フェーズ2(GISトークン・ヘッダのログイン/同期状態アイコン・soranotsuji-app.json存在チェック・Myセットアイコン連動)
@@ -236,6 +237,10 @@ let appState = {
     mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data, sheetId } (ID>=1。dataは非表示中セットの内容スナップショット)
     mySetCurrentId: 0,    // 表示中のMyセットID (0=既定のセット)
     mySetHomeData: null,  // 既定のセット(ID:0)が非表示中の間の内容スナップショット
+    mySetHome: {          // 既定のセット(ID:0)の行情報 (名称固定・常に端末保持。シート紐付けは可能)
+        id: 0, name: '既定のセット', saveMode: 'save', checked: false,
+        updatedAt: null, memo: '', sheetId: null, lastSyncSheetTime: null
+    },
 
     // Googleドライブ連携 (フェーズ3)
     soraFolderName: '/soranotsuji-宙の辻',   // 宙の辻フォルダ名(パス風表記。実フォルダ名は先頭の/を除いたもの)
@@ -1307,6 +1312,7 @@ function saveAppState() {
         mySets: appState.mySets,
         mySetCurrentId: appState.mySetCurrentId,
         mySetHomeData: appState.mySetHomeData,
+        mySetHome: appState.mySetHome,
         soraFolderName: appState.soraFolderName,
         googleDrive: appState.googleDrive,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
@@ -1402,6 +1408,7 @@ function loadAppState() {
             if(saved.mySets) appState.mySets = saved.mySets;
             if(saved.mySetCurrentId !== undefined) appState.mySetCurrentId = saved.mySetCurrentId;
             if(saved.mySetHomeData !== undefined) appState.mySetHomeData = saved.mySetHomeData;
+            if(saved.mySetHome) appState.mySetHome = { ...appState.mySetHome, ...saved.mySetHome, id: 0, name: '既定のセット' };
             if(saved.soraFolderName) appState.soraFolderName = saved.soraFolderName;
             if(saved.googleDrive) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
             if(saved.meteo) appState.meteo = saved.meteo;
@@ -10380,6 +10387,31 @@ async function _mySetFetchSheetData(s) {
     return { data, meta };
 }
 
+/** 既定のセット(ID:0)の行情報を返す */
+function mySetHomeObj() {
+    appState.mySetHome.id = 0;
+    return appState.mySetHome;
+}
+
+/** ヘッダ集計・一括更新などが対象とする全行 (既定のセット+Myセット) */
+function allMySetRows() {
+    return [mySetHomeObj(), ...appState.mySets];
+}
+
+/** 保存/読込対象となるセットの内容を返す (表示中=ライブの内容、既定=退避領域、その他=スナップショット) */
+function mySetDataOf(s) {
+    if (s.id === appState.mySetCurrentId) return snapshotMySetData();
+    return (s.id === 0 ? appState.mySetHomeData : s.data) || {};
+}
+
+/** 読み込んだ内容をセットへ反映する (保持ルール込み) */
+function mySetSetData(s, data) {
+    if (s.id === appState.mySetCurrentId) applyMySetData(data);
+    else if (s.id === 0) appState.mySetHomeData = data;   // 既定のセットは常に端末保持
+    else if (s.offline) s.data = data;
+    else s.data = null;   // 保持ルール(オフライン指定なしは端末に保持しない)
+}
+
 /** 端末の内容をスプレッドシートへ保存 (無ければ作成。保存時にファイル名もMyセット名に揃える) */
 async function mySetSaveToSheet(s, opts = {}) {
     try {
@@ -10391,7 +10423,7 @@ async function mySetSaveToSheet(s, opts = {}) {
             if (!meta || meta.trashed) s.sheetId = null;
         }
         if (!s.sheetId) await mySetCreateSheet(s);
-        const data = s.id === appState.mySetCurrentId ? snapshotMySetData() : (s.data || {});
+        const data = mySetDataOf(s);
         const sheets = _mySetSheetRows(data);
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
@@ -10404,8 +10436,8 @@ async function mySetSaveToSheet(s, opts = {}) {
         }
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
-        // 保持ルール: 同期済みで、オフライン指定なし・非表示中なら端末には保持しない
-        if (!s.offline && s.id !== appState.mySetCurrentId) s.data = null;
+        // 保持ルール: 同期済みで、オフライン指定なし・非表示中なら端末には保持しない(既定のセットは常に保持)
+        if (s.id !== 0 && !s.offline && s.id !== appState.mySetCurrentId) s.data = null;
         mySetSheetStates[s.id] = 'ok';
         saveAppState();
         renderMySetList();
@@ -10431,9 +10463,7 @@ async function mySetLoadFromSheet(s, opts = {}) {
         mySetSheetStates[s.id] = 'checking';
         renderMySetList();
         const { data, meta } = await _mySetFetchSheetData(s);
-        if (s.id === appState.mySetCurrentId) applyMySetData(data);
-        else if (s.offline) s.data = data;
-        else s.data = null;   // 保持ルール(オフライン指定なしは端末に保持しない)
+        mySetSetData(s, data);
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
         mySetSheetStates[s.id] = 'ok';
@@ -10450,10 +10480,10 @@ async function mySetLoadFromSheet(s, opts = {}) {
     }
 }
 
-/** 全Myセットのシート状態を確認して行アイコンへ反映 (ログイン直後などに実行) */
+/** 全Myセット(既定のセット含む)のシート状態を確認して行アイコンへ反映 (ログイン直後などに実行) */
 async function checkAllMySetSheets() {
     if (!isGoogleLoggedIn()) return;
-    for (const s of appState.mySets) {
+    for (const s of allMySetRows()) {
         if (!s.sheetId) continue;
         try {
             const meta = await driveGetMeta(s.sheetId);
@@ -10490,11 +10520,10 @@ function mySetRowStatusClick(s) {
     else mySetSaveToSheet(s);
 }
 
-/** 0段目ヘッダの一括状態アイコン (全行👍なら👍、1つでも差があれば👎) */
+/** 0段目ヘッダの一括状態アイコン (既定のセット含む全行👍なら👍、1つでも差があれば👎) */
 function mySetStatusIcon() {
     if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
-    if (!appState.mySets.length) return ['😢', 'Myセットがありません(行追加で作成できます)'];
-    const icons = appState.mySets.map(s => mySetRowIcon(s)[0]);
+    const icons = allMySetRows().map(s => mySetRowIcon(s)[0]);
     if (icons.every(i => i === '👍')) return ['👍', '全てのMyセットが同期済みです'];
     return ['👎', '未同期のMyセットがあります(押下でチェックされたMyセットを一括更新)'];
 }
@@ -10505,10 +10534,10 @@ function mySetStatusClick() {
     bulkUpdateMySets();
 }
 
-/** 更新ボタン: チェックされたMyセットを保存/読込ラジオに従って一括更新 */
+/** 更新ボタン: チェックされたMyセット(既定のセット含む)を保存/読込ラジオに従って一括更新 */
 async function bulkUpdateMySets() {
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
-    const targets = appState.mySets.filter(s => s.checked);
+    const targets = allMySetRows().filter(s => s.checked);
     if (!targets.length) return alert('更新するMyセットをチェックボックスで選択してください');
     if (!confirm('チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？')) return;
     const btn = document.getElementById('btn-myset-update');
@@ -10523,11 +10552,11 @@ async function bulkUpdateMySets() {
     alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''})`);
 }
 
-/** 開くボタン: 選択中のMyセットのスプレッドシートを開く */
+/** 開くボタン: 選択中のMyセット(既定のセット含む)のスプレッドシートを開く */
 function openMySetSheet() {
     const id = getSelectedMySetId();
-    if (id === null || id === 0) return alert('開くMyセットを選択してください(既定のセットは対象外です)');
-    const s = appState.mySets.find(x => x.id === id);
+    if (id === null) return alert('開くMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!s) return;
     if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
     if (!confirm('チェックされたMyセットのGoogleスプレッドシートを開きますか？')) return;
@@ -10554,11 +10583,11 @@ function getGoogleAppId() {
     return m ? m[1] : '';
 }
 
-/** 追加ボタン: Pickerで既存のスプレッドシートを選び、選択中のMyセットに紐付ける */
+/** 追加ボタン: Pickerで既存のスプレッドシートを選び、選択中のMyセット(既定のセット含む)に紐付ける */
 async function addMySetSheet() {
     const id = getSelectedMySetId();
-    if (id === null || id === 0) return alert('追加先のMyセットを選択してください(既定のセットは対象外です)');
-    const s = appState.mySets.find(x => x.id === id);
+    if (id === null) return alert('追加先のMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!s) return;
     if (!confirm(`Myセット（ID:${s.id}、${s.name}）に紐付けるGoogleスプレッドシートを、Googleドライブのファイル選択画面で選びますか？`)) return;
     const token = await ensureGoogleToken();
@@ -10585,10 +10614,30 @@ async function addMySetSheet() {
     picker.setVisible(true);
 }
 
-/** 削除ボタン: スプレッドシートをゴミ箱へ移動し、行もリストから削除する */
+/** 削除ボタン: スプレッドシートをゴミ箱へ移動し、行もリストから削除する (既定のセットは紐付け解除のみ) */
 async function deleteMySetWithSheet() {
     const id = getSelectedMySetId();
-    if (id === null || id === 0) return alert('削除するMyセットを選択してください(既定のセットは対象外です)');
+    if (id === null) return alert('削除するMyセットを選択してください');
+    if (id === 0) {
+        const home = mySetHomeObj();
+        if (!home.sheetId) return alert('既定のセットにはスプレッドシートが紐付いていません。');
+        if (!confirm('既定のセットのGoogleスプレッドシートを削除しますか？\n※ファイルはGoogleドライブのゴミ箱に移動し(30日間は復元可能)、既定のセットの行と端末の内容はそのまま残ります。')) return;
+        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return; }
+        try {
+            await driveApiJson(`files/${home.sheetId}?fields=id`, 'PATCH', { trashed: true });
+            home.sheetId = null;
+            home.lastSyncSheetTime = null;
+            home.updatedAt = null;
+            delete mySetSheetStates[0];
+            saveAppState();
+            renderMySetList();
+            alert('既定のセットのGoogleスプレッドシートをゴミ箱に移動しました。');
+        } catch (e) {
+            console.error(e);
+            alert('削除に失敗しました: ' + e.message);
+        }
+        return;
+    }
     if (id === appState.mySetCurrentId) return alert('表示中のMyセットは削除できません。\n先に別のMyセットへ切り替えてください。');
     const s = appState.mySets.find(x => x.id === id);
     if (!s) return;
@@ -10628,16 +10677,42 @@ function renderMySetList() {
     while (container.firstChild) container.removeChild(container.firstChild);
     const cur = appState.mySetCurrentId;
 
-    // 既定のセット(固定行): 名前変更・行削除・上下移動・Google連携の対象外
+    // 既定のセット(固定行): 名称固定・行削除/上下移動不可・常に端末保持。スプレッドシートの紐付けは可能
+    const home = mySetHomeObj();
+    const [hIcon, hIconTitle] = mySetRowIcon(home);
     const homeRow = document.createElement('div');
     homeRow.className = 'myset-row' + (cur === 0 ? ' myset-current' : '');
     homeRow.innerHTML = `
         <hr class="tsujisearch-separator">
         <div class="mypoint-row-header">
             <input type="radio" name="myset-select" value="0" class="mystars-radio">
+            <input type="checkbox" class="body-checkbox myset-check-home" ${home.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
             <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span>
-            <span>既定のセット${cur === 0 ? ' 🔛' : ''}</span>
+            ${cur === 0 ? '<span>🔛</span>' : ''}
+        </div>
+        <div class="control-row">
+            <button class="nav-btn myset-status myset-status-home" title="${escapeHtml(hIconTitle)}">${hIcon}</button>
+            <input type="text" class="myset-name" value="既定のセット" readonly title="既定のセット(名称固定)">
+        </div>
+        <div class="control-row">
+            <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-home" value="save" ${home.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode-home">:保存</label>
+            <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-home" value="load" ${home.saveMode === 'load' ? 'checked' : ''} class="myset-slmode-home">:読込</label>
+            <label class="baseopt-radio" title="既定のセットは常に端末に保持されます"><input type="checkbox" checked disabled>:オフライン</label>
+        </div>
+        <div class="control-row">
+            <span class="mypoint-label">更新日時: ${formatMySetDateTime(home.updatedAt)}</span>
+        </div>
+        <div class="control-row">
+            <label class="mypoint-label">メモ:</label>
+            <input type="text" class="myset-memo-home" value="${escapeHtml(home.memo || '')}" placeholder="メモ(150文字)" maxlength="150" autocomplete="off">
         </div>`;
+    homeRow.querySelector('.myset-check-home').addEventListener('change', (e) => { home.checked = e.target.checked; saveAppState(); });
+    homeRow.querySelectorAll('.myset-slmode-home').forEach(r => r.addEventListener('change', (e) => {
+        if (e.target.checked) { home.saveMode = e.target.value; saveAppState(); }
+    }));
+    const homeMemo = homeRow.querySelector('.myset-memo-home');
+    homeMemo.addEventListener('change', (e) => { home.memo = e.target.value; saveAppState(); });
+    homeRow.querySelector('.myset-status-home').addEventListener('click', () => mySetRowStatusClick(home));
     container.appendChild(homeRow);
 
     appState.mySets.forEach(s => {
@@ -10867,12 +10942,13 @@ function moveMySet(dir) {
     if (radio) radio.checked = true;
 }
 
-/** 一括選択/一括解除トグル */
+/** 一括選択/一括解除トグル (既定のセット含む) */
 function toggleAllMySets() {
     const btn = document.getElementById('btn-myset-toggle-all');
     const newState = !btn.classList.contains('myset-toggle-active');
     btn.textContent = newState ? '一括解除' : '一括選択';
     btn.classList.toggle('myset-toggle-active', newState);
+    mySetHomeObj().checked = newState;
     appState.mySets.forEach(s => { s.checked = newState; });
     saveAppState();
     setMySetDirty(true);
