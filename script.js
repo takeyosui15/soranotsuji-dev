@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.9 - 2026-07-15: fix: ダイアログ文字サイズ統一/折り返し防止/[New]赤字・表示中の緑をMy観測点と同濃度に・切り替え時「保存してから切り替え」・Myセット初期選択=表示中・バージョン関数化(フッター連動)
 Version 1.20.8 - 2026-07-15: fix: 同期ダイアログの別行立てレイアウト・🕛の時計アニメーション・Myセット配色統一(終了時刻の赤/My観測点の緑)・既定のセットのコピー対応・「更新:」ラベル・beforeunload警告・ポリシーページのリンク先を本番リポジトリへ
 Version 1.20.7 - 2026-07-15: feat: 既定のセット(ID:0)のスプレッドシート対応(フル行UI・保存/読込/開く/追加/削除・一括更新参加)+privacy.html/terms.html新設+フッターリンク
 Version 1.20.6 - 2026-07-15: feat: Myセット×スプレッドシート連携 フェーズ3後半(4シート作成・保存/読込・開く/追加(Picker)/コピー/削除・一括更新・行アイコン状態)
@@ -64,7 +65,12 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.8';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動時のコンソールログに使用)
+const APP_VERSION = '1.20.9';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+
+/** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
+function getAppVersion() {
+    return APP_VERSION;
+}
 
 const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
 
@@ -413,7 +419,9 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log(`宙の辻: 起動 (v${APP_VERSION})`);
+    console.log(`宙の辻: 起動 (v${getAppVersion()})`);
+    const verEl = document.getElementById('app-version');
+    if (verEl) verEl.textContent = 'v' + getAppVersion();   // フッターのバージョン表示もAPP_VERSIONから反映
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -10059,10 +10067,11 @@ function openGdriveSyncDialog() {
     try { localSavedAt = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').savedAt || null; } catch (e) {}
     const driveTime = appState.googleDrive.lastDriveModifiedTime ? new Date(appState.googleDrive.lastDriveModifiedTime).getTime() : null;
     const newerLocal = localSavedAt !== null && (driveTime === null || localSavedAt >= driveTime);
-    document.getElementById('gdrive-sync-local').textContent =
-        `更新: ${formatMySetDateTime(localSavedAt)}${newerLocal ? ' [New]' : ''}`;
-    document.getElementById('gdrive-sync-drive').textContent =
-        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? ' [New]' : ''}`;
+    const NEW_MARK = ' <span class="gdrive-sync-new">[New]</span>';
+    document.getElementById('gdrive-sync-local').innerHTML =
+        `更新: ${formatMySetDateTime(localSavedAt)}${newerLocal ? NEW_MARK : ''}`;
+    document.getElementById('gdrive-sync-drive').innerHTML =
+        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? NEW_MARK : ''}`;
     dlg.classList.remove('hidden');
 }
 
@@ -10801,8 +10810,10 @@ function renderMySetList() {
         container.appendChild(row);
     });
 
-    // 選択状態の復元 (既定は先頭=既定のセット)
-    const selVal = (prevSel !== null && document.querySelector(`input[name="myset-select"][value="${prevSel}"]`)) ? prevSel : 0;
+    // 選択状態の復元 (初期表示は表示中のMyセットを選択)
+    let selVal = 0;
+    if (prevSel !== null && document.querySelector(`input[name="myset-select"][value="${prevSel}"]`)) selVal = prevSel;
+    else if (document.querySelector(`input[name="myset-select"][value="${cur}"]`)) selVal = cur;
     const selRadio = document.querySelector(`input[name="myset-select"][value="${selVal}"]`);
     if (selRadio) selRadio.checked = true;
 
@@ -10816,6 +10827,47 @@ function initMySetMenu() {
     setTimeout(renderMySetList, 0);
 }
 
+/** 未登録(赤)のMy観測点/My目的点/My辻検索を検証して登録する (切り替え表示前の保存用)。検証NGならfalse */
+function registerDirtyMyMenus() {
+    for (const type of ['obs', 'tgt']) {
+        const cfg = myPointConfig(type);
+        if (!cfg.getDirty()) continue;
+        for (const pt of cfg.list()) {
+            if (!pt.name || pt.lat === null || pt.lat === undefined || pt.lng === null || pt.lng === undefined) {
+                document.getElementById(`${cfg.prefix}-error`).innerHTML =
+                    `<span class="mypoint-error-text">${cfg.label}ID:${pt.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                alert(`${cfg.labelFull}に未入力があるため保存できませんでした。切り替えを中止します。\n${cfg.labelFull}メニューのエラーメッセージをご確認ください。`);
+                return false;
+            }
+        }
+        cfg.list().forEach(pt => {
+            pt.name = (pt.name || '').replace(/,/g, '，');
+            pt.memo = (pt.memo || '').replace(/,/g, '，');
+            if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
+            if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
+        });
+        setMyPointDirty(type, false);
+        updateMyPointMarkers();
+    }
+    if (myTsujiDirty) {
+        for (const t of appState.myTsujiSearches) {
+            if (!t.name || t.days == null || !t.bodyIds || t.obsId == null || t.tgtId == null || t.baseAz == null || t.baseAlt == null) {
+                document.getElementById('mytsuji-error').innerHTML =
+                    `<span class="mypoint-error-text">辻検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                alert('My辻検索に未入力があるため保存できませんでした。切り替えを中止します。\nMy辻検索メニューのエラーメッセージをご確認ください。');
+                return false;
+            }
+        }
+        appState.myTsujiSearches.forEach(t => {
+            t.name = (t.name || '').replace(/,/g, '，');
+            t.memo = (t.memo || '').replace(/,/g, '，');
+        });
+        setMyTsujiDirty(false);
+    }
+    saveAppState();
+    return true;
+}
+
 /** 切り替え表示: ①表示中の内容を書き戻し → ②選択セットを展開 → ③表示中ポインタ付け替え
  *  端末に保持していないセット(オフライン指定なし)は、切り替え時にスプレッドシートから読み込む */
 async function switchMySetDisplay() {
@@ -10825,9 +10877,11 @@ async function switchMySetDisplay() {
     if (id !== 0 && !target) return;
     if (id === appState.mySetCurrentId) return alert(`Myセット（${getMySetName(id)}）は、すでに表示中です。`);
     const dirty = myObsDirty || myTgtDirty || myTsujiDirty;
-    let msg = 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
-    if (dirty) msg = 'My付きメニューに未登録の変更があります。切り替えると失われます。\n' + msg;
+    const msg = dirty
+        ? 'My付きメニューに未登録の変更があります。切り替えると失われます。\n内容を保存してから切り替えますか？'
+        : 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
     if (!confirm(msg)) return;
+    if (dirty && !registerDirtyMyMenus()) return;   // 検証NG(未入力あり)なら切り替えを中止
     // 端末に内容がないセットは、先にスプレッドシートから取得する(失敗時は何も変えない)
     let targetData = id === 0 ? appState.mySetHomeData : (target.data || null);
     if (id !== 0 && !targetData && target.sheetId) {
