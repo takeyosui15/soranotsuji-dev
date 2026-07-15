@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.11 - 2026-07-15: feat: Myセットの「削除」ボタンを「解除」に機能変更(スプレッドシートは削除せず関連付けのみ解除。未ログインでも実行可)
 Version 1.20.10 - 2026-07-15: fix: フッター初期値v0.0.0(script.js読み込み診断)・表示中の緑を不透明合成色に(赤との混色解消)・切り替え時のエラーメッセージ残留を解消
 Version 1.20.9 - 2026-07-15: fix: ダイアログ文字サイズ統一/折り返し防止/[New]赤字・表示中の緑をMy観測点と同濃度に・切り替え時「保存してから切り替え」・Myセット初期選択=表示中・バージョン関数化(フッター連動)
 Version 1.20.8 - 2026-07-15: fix: 同期ダイアログの別行立てレイアウト・🕛の時計アニメーション・Myセット配色統一(終了時刻の赤/My観測点の緑)・既定のセットのコピー対応・「更新:」ラベル・beforeunload警告・ポリシーページのリンク先を本番リポジトリへ
@@ -66,7 +67,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.10';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.11';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1190,7 +1191,7 @@ function setupUI() {
     document.getElementById('btn-myset-open').onclick = openMySetSheet;
     document.getElementById('btn-myset-addsheet').onclick = addMySetSheet;
     document.getElementById('btn-myset-copy').onclick = copyMySet;
-    document.getElementById('btn-myset-delete').onclick = deleteMySetWithSheet;
+    document.getElementById('btn-myset-delete').onclick = unlinkMySetSheet;
     document.getElementById('btn-myset-regall').onclick = registerAllMySets;
     document.getElementById('btn-myset-up').onclick = () => moveMySet(-1);
     document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
@@ -10658,48 +10659,27 @@ async function addMySetSheet() {
     picker.setVisible(true);
 }
 
-/** 削除ボタン: スプレッドシートをゴミ箱へ移動し、行もリストから削除する (既定のセットは紐付け解除のみ) */
-async function deleteMySetWithSheet() {
+/** 解除ボタン: 選択中のMyセット(既定のセット含む)とスプレッドシートの関連付けを解除する。
+ *  Googleドライブのファイルは削除しない(端末内の設定変更のみなので、未ログインでも実行できる) */
+function unlinkMySetSheet() {
     const id = getSelectedMySetId();
-    if (id === null) return alert('削除するMyセットを選択してください');
-    if (id === 0) {
-        const home = mySetHomeObj();
-        if (!home.sheetId) return alert('既定のセットにはスプレッドシートが紐付いていません。');
-        if (!confirm('既定のセットのGoogleスプレッドシートを削除しますか？\n※ファイルはGoogleドライブのゴミ箱に移動し(30日間は復元可能)、既定のセットの行と端末の内容はそのまま残ります。')) return;
-        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return; }
-        try {
-            await driveApiJson(`files/${home.sheetId}?fields=id`, 'PATCH', { trashed: true });
-            home.sheetId = null;
-            home.lastSyncSheetTime = null;
-            home.updatedAt = null;
-            delete mySetSheetStates[0];
-            saveAppState();
-            renderMySetList();
-            alert('既定のセットのGoogleスプレッドシートをゴミ箱に移動しました。');
-        } catch (e) {
-            console.error(e);
-            alert('削除に失敗しました: ' + e.message);
-        }
-        return;
-    }
-    if (id === appState.mySetCurrentId) return alert('表示中のMyセットは削除できません。\n先に別のMyセットへ切り替えてください。');
-    const s = appState.mySets.find(x => x.id === id);
+    if (id === null) return alert('解除するMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!s) return;
-    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。\nリストから行を外すだけの削除は「行削除」をご利用ください。');
-    if (!confirm(`チェックされたMyセットのGoogleスプレッドシートを削除しますか？\n(ID:${id}、${s.name})\n※ファイルはGoogleドライブのゴミ箱に移動し(30日間は復元可能)、行もリストから削除します。`)) return;
-    if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return; }
-    try {
-        await driveApiJson(`files/${s.sheetId}?fields=id`, 'PATCH', { trashed: true });
-        appState.mySets = appState.mySets.filter(x => x.id !== id);
-        delete mySetSheetStates[id];
-        saveAppState();
-        setMySetDirty(true);
-        renderMySetList();
-        alert('Googleスプレッドシートをゴミ箱に移動し、行を削除しました。');
-    } catch (e) {
-        console.error(e);
-        alert('削除に失敗しました: ' + e.message);
+    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
+    let msg = `MyセットとGoogleスプレッドシートの関連付けを解除しますか？\n(ID:${id}、${s.name})\n※Googleドライブのファイルは削除されず、そのまま残ります。`;
+    if (id !== 0 && id !== appState.mySetCurrentId && !s.data) {
+        msg += '\n※このMyセットの内容は端末に保持されていない(オフライン指定なし)ため、解除するとこの行は空になります。内容はスプレッドシート側に残り、「追加」で再び紐付けられます。';
     }
+    if (!confirm(msg)) return;
+    s.sheetId = null;
+    s.lastSyncSheetTime = null;
+    s.updatedAt = null;
+    delete mySetSheetStates[id];
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    alert('Googleスプレッドシートとの関連付けを解除しました。\n(ファイルはGoogleドライブに残っています。不要な場合はGoogleドライブ側で削除してください)');
 }
 
 /** 0段目ヘッダ: Myセット🈚️(🔛: 表示中セット名…) */
