@@ -67,9 +67,9 @@ const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
 // clientIdが未設定("")の間はログインできず、アイコン押下時に案内を表示する。
 // クライアントIDは秘密情報ではないため、ソースに直接記載してよい。
 const GOOGLE_CONFIG = {
-    prod: { hosts: ['soranotsuji.net', 'www.soranotsuji.net'], clientId: '' },
-    dev:  { hosts: ['localhost', '127.0.0.1', 'takeyosui15.github.io'], clientId: '' },
-    apiKey: '',   // Google Picker用(フェーズ3)
+    prod: { hosts: ['soranotsuji.net', 'www.soranotsuji.net'], clientId: '87463892240-cb6fqbj6urj3g1h23fr0v7mvvlphnr8v.apps.googleusercontent.com' },
+    dev:  { hosts: ['localhost', '127.0.0.1', 'takeyosui15.github.io'], clientId: '87463892240-r77t8crupbcbvth420sr22i9d3s4mirl.apps.googleusercontent.com' },
+    apiKey: 'AIzaSyBQsU3b8eSF2gISUkOvi_FDp-N0k2hpE-Y',   // Google Picker用(フェーズ3)
     scope: 'https://www.googleapis.com/auth/drive.file'
 };
 function getGoogleClientId() {
