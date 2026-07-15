@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.12 - 2026-07-15: fix: Myセットのボタン配置変更(開く・コピー/追加・解除)・追加(Picker)に🕛の2段階更新・書き込み権限なし(403)の分かりやすいエラー表示
 Version 1.20.11 - 2026-07-15: feat: Myセットの「削除」ボタンを「解除」に機能変更(スプレッドシートは削除せず関連付けのみ解除。未ログインでも実行可)
 Version 1.20.10 - 2026-07-15: fix: フッター初期値v0.0.0(script.js読み込み診断)・表示中の緑を不透明合成色に(赤との混色解消)・切り替え時のエラーメッセージ残留を解消
 Version 1.20.9 - 2026-07-15: fix: ダイアログ文字サイズ統一/折り返し防止/[New]赤字・表示中の緑をMy観測点と同濃度に・切り替え時「保存してから切り替え」・Myセット初期選択=表示中・バージョン関数化(フッター連動)
@@ -67,7 +68,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.11';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.12';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -10492,7 +10493,11 @@ async function mySetSaveToSheet(s, opts = {}) {
         console.error('mySetSaveToSheet:', e);
         mySetSheetStates[s.id] = 'error';
         renderMySetList();
-        if (!opts.quiet) alert('スプレッドシートへの保存に失敗しました: ' + e.message);
+        if (!opts.quiet) {
+            alert(/403/.test(e.message)
+                ? 'このスプレッドシートへの書き込み権限がありません。\n(閲覧のみで共有されたファイルには保存できません。「:読込」での読み取りは可能です)'
+                : 'スプレッドシートへの保存に失敗しました: ' + e.message);
+        }
         return false;
     }
 }
@@ -10541,12 +10546,12 @@ async function checkAllMySetSheets() {
     renderMySetList();
 }
 
-/** Myセット行の状態アイコン */
+/** Myセット行の状態アイコン (処理中🕛は紐付けの有無より優先して表示する) */
 function mySetRowIcon(s) {
     if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
+    if (mySetSheetStates[s.id] === 'checking') return ['🕛', 'スプレッドシートを処理中...'];
     if (!s.sheetId || mySetSheetStates[s.id] === 'missing') return ['😢', 'スプレッドシートがありません(押下で作成して保存)'];
     switch (mySetSheetStates[s.id]) {
-        case 'checking': return ['🕛', 'スプレッドシートを確認中...'];
         case 'ok':       return ['👍', 'スプレッドシートと同期が取れています'];
         case 'error':    return ['❌', 'スプレッドシートの確認でエラーが発生しました(押下で保存/読込を再実行)'];
         default:         return ['👎', '端末とスプレッドシートに差がある可能性があります(押下で保存/読込ラジオに従って更新)'];
@@ -10612,7 +10617,7 @@ function openMySetSheet() {
 let _pickerApiLoaded = false;
 function loadPickerApi() {
     return new Promise((resolve, reject) => {
-        if (_pickerApiLoaded && window.google && window.google.picker) return resolve();
+        if (window.google && window.google.picker) { _pickerApiLoaded = true; return resolve(); }   // 読み込み済みなら再取得しない
         const sc = document.createElement('script');
         sc.src = 'https://apis.google.com/js/api.js';
         sc.async = true;
@@ -10635,21 +10640,32 @@ async function addMySetSheet() {
     const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!s) return;
     if (!confirm(`Myセット（ID:${s.id}、${s.name}）に紐付けるGoogleスプレッドシートを、Googleドライブのファイル選択画面で選びますか？`)) return;
+    // 処理開始: 🕛(選択またはキャンセルで終了状態へ)
+    const prevState = mySetSheetStates[s.id];
+    mySetSheetStates[s.id] = 'checking';
+    renderMySetList();
+    const restore = () => {
+        if (prevState === undefined) delete mySetSheetStates[s.id];
+        else mySetSheetStates[s.id] = prevState;
+        renderMySetList();
+    };
     const token = await ensureGoogleToken();
-    if (!token) return;
-    if (!GOOGLE_CONFIG.apiKey) return alert('APIキーが未設定です。script.js冒頭のGOOGLE_CONFIG.apiKeyを設定してください。');
-    try { await loadPickerApi(); } catch (e) { return alert(e.message); }
+    if (!token) return restore();
+    if (!GOOGLE_CONFIG.apiKey) { restore(); return alert('APIキーが未設定です。script.js冒頭のGOOGLE_CONFIG.apiKeyを設定してください。'); }
+    try { await loadPickerApi(); } catch (e) { restore(); return alert(e.message); }
     const picker = new google.picker.PickerBuilder()
         .addView(new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS))
         .setOAuthToken(token)
         .setDeveloperKey(GOOGLE_CONFIG.apiKey)
         .setAppId(getGoogleAppId())
         .setCallback((res) => {
-            if (res[google.picker.Response.ACTION] !== google.picker.Action.PICKED) return;
+            const action = res[google.picker.Response.ACTION];
+            if (action === google.picker.Action.CANCEL) { restore(); return; }
+            if (action !== google.picker.Action.PICKED) return;
             const doc = res[google.picker.Response.DOCUMENTS][0];
             s.sheetId = doc[google.picker.Document.ID];
             s.lastSyncSheetTime = null;
-            mySetSheetStates[s.id] = 'stale';
+            mySetSheetStates[s.id] = 'stale';   // 処理終了: 紐付け済み(未同期)
             saveAppState();
             setMySetDirty(true);
             renderMySetList();
