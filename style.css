@@ -1292,6 +1292,19 @@ input[type="number"]:disabled {
 /* ヘッダのGoogleログイン/同期状態アイコン */
 #btn-google-login { cursor: pointer; }
 
+/* 同期ダイアログの日時表示行 */
+.gdrive-sync-info {
+    padding: 6px 8px;
+    font-size: 13px;
+    color: #ffd;
+}
+
+/* バックアップメニューのGoogleドライブ欄: 非活性ボタン */
+#btn-gdrive-login:disabled, #btn-gdrive-logout:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 /* API取得標高の読み取り専用テキストボックス */
 /* API取得標高の読み取り専用テキストボックス */
 input[type="number"].elev-readonly,

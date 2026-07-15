@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.5 - 2026-07-15: feat: Googleドライブ同期 フェーズ3前半(soranotsuji-app.jsonの保存/読込・同期ダイアログ・フォルダ自動作成/リネーム・バックアップメニューのGoogleドライブ欄)
 Version 1.20.4 - 2026-07-15: feat: Googleログイン基盤 フェーズ2(GISトークン・ヘッダのログイン/同期状態アイコン・soranotsuji-app.json存在チェック・Myセットアイコン連動)
 Version 1.20.3 - 2026-07-15: feat: Myセットメニュー フェーズ1(ローカル核: 既定のセット・行管理・コピー・切り替え表示・表示中バッジ・全て登録)
 Version 1.20.2 - 2026-07-15: feat: URL取得に短いURL/長いURLの選択を追加、reset.htmlに使用容量表示、検索中心オプションのラベルを「辻オフセット点」に変更、バックアップファイル名をsoranotsuji-app-バックアップ-に変更
@@ -231,9 +232,19 @@ let appState = {
     myTargets: [],       // { id, name, lat, lng, elev, height }
 
     // Myセット (My辻検索/My観測点/My目的点/My天体の組みを丸ごと切り替え)
-    mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data } (ID>=1。dataは非表示中セットの内容スナップショット)
+    mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data, sheetId } (ID>=1。dataは非表示中セットの内容スナップショット)
     mySetCurrentId: 0,    // 表示中のMyセットID (0=既定のセット)
     mySetHomeData: null,  // 既定のセット(ID:0)が非表示中の間の内容スナップショット
+
+    // Googleドライブ連携 (フェーズ3)
+    soraFolderName: '/soranotsuji-宙の辻',   // 宙の辻フォルダ名(パス風表記。実フォルダ名は先頭の/を除いたもの)
+    googleDrive: {
+        rootFolderId: null, settingsFolderId: null, mySetsFolderId: null, appFileId: null,
+        lastSyncDriveModifiedTime: null,   // 最後に同期した時のドライブ側modifiedTime
+        lastSyncFingerprint: null,         // 最後に同期した時のローカル内容の指紋
+        lastDriveModifiedTime: null,       // 最後に確認したドライブ側modifiedTime(表示用)
+        lastDriveSize: null                // 最後に確認したドライブ側サイズ(表示用)
+    },
 
     // My辻検索
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
@@ -503,6 +514,7 @@ window.onload = function() {
     renderMyPointsList('tgt');
     renderMyTsujiSearches();
     initMySetMenu();
+    updateBackupDriveUI();
 
     // My観測点/My目的点マーカーを表示
     setTimeout(() => updateMyPointMarkers(), 460);
@@ -1142,6 +1154,17 @@ function setupUI() {
     // Googleログイン/同期状態アイコン (フェーズ2)
     document.getElementById('btn-google-login').addEventListener('click', (e) => { e.stopPropagation(); onGoogleLoginIconClick(); });
 
+    // バックアップメニューのGoogleドライブ欄+同期ダイアログ (フェーズ3)
+    document.getElementById('btn-gdrive-login').onclick = googleLogin;
+    document.getElementById('btn-gdrive-logout').onclick = googleLogout;
+    document.getElementById('btn-gdrive-folder-register').onclick = registerSoraFolderName;
+    document.getElementById('gdrive-root-folder').addEventListener('change', (e) => {
+        if (!e.target.value.trim()) e.target.value = appState.soraFolderName;   // 未入力なら元の値を復元
+    });
+    document.getElementById('gdrive-sync-save').onclick = () => { closeGdriveSyncDialog(); saveAppToDrive(); };
+    document.getElementById('gdrive-sync-load').onclick = () => { closeGdriveSyncDialog(); loadAppFromDrive(); };
+    document.getElementById('gdrive-sync-cancel').onclick = closeGdriveSyncDialog;
+
     // Myセット (フェーズ1: ローカル核。スプレッドシート連携ボタンはフェーズ3案内)
     document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
     document.getElementById('btn-myset-update').onclick = mySetGooglePending;
@@ -1283,6 +1306,8 @@ function saveAppState() {
         mySets: appState.mySets,
         mySetCurrentId: appState.mySetCurrentId,
         mySetHomeData: appState.mySetHomeData,
+        soraFolderName: appState.soraFolderName,
+        googleDrive: appState.googleDrive,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -1376,6 +1401,8 @@ function loadAppState() {
             if(saved.mySets) appState.mySets = saved.mySets;
             if(saved.mySetCurrentId !== undefined) appState.mySetCurrentId = saved.mySetCurrentId;
             if(saved.mySetHomeData !== undefined) appState.mySetHomeData = saved.mySetHomeData;
+            if(saved.soraFolderName) appState.soraFolderName = saved.soraFolderName;
+            if(saved.googleDrive) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -9704,7 +9731,6 @@ const SORA_APP_FILENAME = 'soranotsuji-app.json';
 let googleToken = null;        // { accessToken, expiresAt } (メモリのみ。localStorageには保存しない)
 let googleTokenClient = null;  // GISのTokenClient
 let googleSyncState = 'none';  // none(未ログイン)|checking(🕛)|nofile(😢)|stale(👎)|ok(👍)|broken(❌)
-let googleAppFileId = null;    // Drive上のsoranotsuji-app.jsonのファイルID(見つかった場合)
 
 function isGoogleLoggedIn() {
     return !!(googleToken && googleToken.expiresAt > Date.now() + 60000);
@@ -9786,21 +9812,226 @@ async function driveApiFetch(path, options = {}) {
     return resp.json();
 }
 
-/** soranotsuji-app.jsonの存在チェック → 同期状態アイコン更新 (保存/読込の実行はフェーズ3) */
+/** Googleログアウト (トークンの取り消し) */
+function googleLogout() {
+    if (googleToken && window.google && window.google.accounts && window.google.accounts.oauth2 && google.accounts.oauth2.revoke) {
+        try { google.accounts.oauth2.revoke(googleToken.accessToken, () => {}); } catch (e) { console.error(e); }
+    }
+    googleToken = null;
+    googleSyncState = 'none';
+    updateGoogleLoginIcon();
+}
+
+/** ファイルのメタデータ取得 (見つからない場合はnull) */
+async function driveGetMeta(fileId) {
+    try { return await driveApiFetch(`files/${fileId}?fields=id,name,trashed,modifiedTime,size,parents`); }
+    catch (e) { return null; }
+}
+
+/** appPropertiesの目印(soranotsuji=marker)でファイル/フォルダを再発見する (名前変更・移動に耐える) */
+async function driveFindByMarker(marker) {
+    const q = encodeURIComponent(`appProperties has { key='soranotsuji' and value='${marker}' } and trashed=false`);
+    const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime,size)&spaces=drive`);
+    return (res && Array.isArray(res.files)) ? res.files : [];
+}
+
+/** JSONボディでのDrive API POST/PATCH */
+async function driveApiJson(path, method, bodyObj) {
+    return driveApiFetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj) });
+}
+
+/** multipartアップロード (fileIdありなら更新、なしなら作成)。fields=id,size,modifiedTime を返す */
+async function driveUploadJson(fileId, name, parents, contentString, appProps) {
+    const token = await ensureGoogleToken();
+    if (!token) return null;
+    const boundary = 'soranotsuji_multipart_boundary';
+    const meta = fileId ? {} : { name, parents, appProperties: appProps || {}, mimeType: 'application/json' };
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${contentString}\r\n--${boundary}--`;
+    const url = 'https://www.googleapis.com/upload/drive/v3/files' + (fileId ? '/' + fileId : '') + '?uploadType=multipart&fields=id,size,modifiedTime';
+    const resp = await fetch(url, {
+        method: fileId ? 'PATCH' : 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary },
+        body
+    });
+    if (!resp.ok) throw new Error('Drive APIエラー(アップロード): ' + resp.status);
+    return resp.json();
+}
+
+/** 宙の辻フォルダの実フォルダ名 (パス風表記から先頭の/を除いたもの) */
+function soraRootFolderRealName() {
+    return (appState.soraFolderName || '/soranotsuji-宙の辻').replace(/^\//, '').trim() || 'soranotsuji-宙の辻';
+}
+
+/** フォルダ構成(宙の辻/設定/Myセット)をID→目印→作成の3段構えで確保する */
+async function ensureSoraFolders() {
+    const gd = appState.googleDrive;
+    const ensure = async (idKey, marker, name, parentId) => {
+        if (gd[idKey]) {
+            const meta = await driveGetMeta(gd[idKey]);
+            if (meta && !meta.trashed) return;
+            gd[idKey] = null;
+        }
+        const found = await driveFindByMarker(marker);
+        if (found.length) { gd[idKey] = found[0].id; return; }
+        const body = { name, mimeType: 'application/vnd.google-apps.folder', appProperties: { soranotsuji: marker } };
+        if (parentId) body.parents = [parentId];
+        const res = await driveApiJson('files?fields=id', 'POST', body);
+        gd[idKey] = res.id;
+    };
+    await ensure('rootFolderId', 'root', soraRootFolderRealName(), null);
+    await ensure('settingsFolderId', 'settings', '設定', gd.rootFolderId);
+    await ensure('mySetsFolderId', 'mysets', 'Myセット', gd.rootFolderId);
+    saveAppState();
+}
+
+/** ローカルストレージ全体を{キー:値}で集める (reset.htmlのバックアップと同一構造) */
+function collectLocalStorageAll() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        data[k] = localStorage.getItem(k);
+    }
+    return data;
+}
+
+/** ローカル内容の指紋 (savedAt/googleDriveの同期簿記を除いたFNV-1aハッシュ)。同期後の一致判定用 */
+function localContentFingerprint() {
+    const all = collectLocalStorageAll();
+    try {
+        const s = JSON.parse(all[STORAGE_KEY]);
+        delete s.savedAt;
+        delete s.googleDrive;
+        all[STORAGE_KEY] = JSON.stringify(s);
+    } catch (e) { /* STORAGE_KEYが無い/壊れている場合はそのまま */ }
+    const str = JSON.stringify(all);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16);
+}
+
+/** soranotsuji-app.jsonのファイルIDを ID→目印→名前 の順で解決する。メタデータを返す(無ければnull) */
+async function resolveAppFile() {
+    const gd = appState.googleDrive;
+    if (gd.appFileId) {
+        const meta = await driveGetMeta(gd.appFileId);
+        if (meta && !meta.trashed) return meta;
+        gd.appFileId = null;
+    }
+    let found = await driveFindByMarker('appjson');
+    if (!found.length) {
+        const q = encodeURIComponent(`name='${SORA_APP_FILENAME}' and trashed=false`);
+        const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime,size)&spaces=drive`);
+        found = (res && Array.isArray(res.files)) ? res.files : [];
+    }
+    if (found.length) { gd.appFileId = found[0].id; return found[0]; }
+    return null;
+}
+
+/** 端末の内容をGoogleドライブに保存 (作成/上書き+サイズ検証) */
+async function saveAppToDrive() {
+    const gd = appState.googleDrive;
+    googleSyncState = 'checking';
+    updateGoogleLoginIcon();
+    try {
+        saveAppState();   // savedAtを最新化してから吸い上げる
+        await ensureSoraFolders();
+        await resolveAppFile();
+        const content = JSON.stringify(collectLocalStorageAll(), null, 2);
+        const res = gd.appFileId
+            ? await driveUploadJson(gd.appFileId, null, null, content)
+            : await driveUploadJson(null, SORA_APP_FILENAME, [gd.settingsFolderId], content, { soranotsuji: 'appjson' });
+        if (!res) { googleSyncState = 'none'; updateGoogleLoginIcon(); return false; }
+        const bytes = new TextEncoder().encode(content).length;
+        if (Number(res.size) !== bytes) {
+            throw new Error(`アップロード後のサイズが一致しません(端末:${bytes} / ドライブ:${res.size})。\n通信が不安定な可能性があります。再度お試しください。\n(万一の場合もGoogleドライブの「版を管理」から以前の版に戻せます)`);
+        }
+        gd.appFileId = res.id;
+        gd.lastDriveModifiedTime = res.modifiedTime;
+        gd.lastDriveSize = Number(res.size);
+        gd.lastSyncDriveModifiedTime = res.modifiedTime;
+        gd.lastSyncFingerprint = localContentFingerprint();
+        googleSyncState = 'ok';
+        saveAppState();
+        updateGoogleLoginIcon();
+        alert('端末の内容をGoogleドライブに保存しました。');
+        return true;
+    } catch (e) {
+        console.error('saveAppToDrive:', e);
+        googleSyncState = 'broken';
+        updateGoogleLoginIcon();
+        alert('Googleドライブへの保存に失敗しました。\n' + e.message);
+        return false;
+    }
+}
+
+/** Googleドライブの内容を端末に読み込み (検証→上書き→再読み込み) */
+async function loadAppFromDrive() {
+    const gd = appState.googleDrive;
+    try {
+        const meta = await resolveAppFile();
+        if (!meta) return alert(`Googleドライブに ${SORA_APP_FILENAME} がありません。`);
+        const token = await ensureGoogleToken();
+        if (!token) return;
+        const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${gd.appFileId}?alt=media`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!resp.ok) throw new Error('Drive APIエラー(ダウンロード): ' + resp.status);
+        const text = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+            if (typeof data !== 'object' || data === null || Array.isArray(data) || typeof data[STORAGE_KEY] !== 'string') throw new Error('形式不正');
+            JSON.parse(data[STORAGE_KEY]);   // 破損チェック(中身も検証)
+        } catch (e) {
+            googleSyncState = 'broken';
+            updateGoogleLoginIcon();
+            return alert('Googleドライブのファイルが壊れているか、形式が不正です。\nGoogleドライブでファイルを開き「版を管理」から以前の版に戻して、再度お試しください。');
+        }
+        if (!confirm('Googleドライブの内容で、この端末の内容を上書きします。よろしいですか？\n(読み込み後にページを再読み込みします)')) return;
+        Object.keys(data).forEach(k => localStorage.setItem(k, String(data[k])));
+        // 読み込んだ状態に、この端末の同期簿記(ファイルID・同期時点)を書き足す
+        try {
+            const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            s.googleDrive = {
+                ...(s.googleDrive || {}),
+                rootFolderId: gd.rootFolderId, settingsFolderId: gd.settingsFolderId, mySetsFolderId: gd.mySetsFolderId,
+                appFileId: gd.appFileId,
+                lastSyncDriveModifiedTime: meta.modifiedTime, lastDriveModifiedTime: meta.modifiedTime,
+                lastDriveSize: Number(meta.size) || null, lastSyncFingerprint: null
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+            s.googleDrive.lastSyncFingerprint = localContentFingerprint();   // 書き込み後の状態から計算
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        } catch (e) { console.error(e); }
+        alert('Googleドライブの内容を読み込みました。ページを再読み込みします。');
+        appReload();
+    } catch (e) {
+        console.error('loadAppFromDrive:', e);
+        googleSyncState = 'broken';
+        updateGoogleLoginIcon();
+        alert('Googleドライブからの読み込みに失敗しました。\n' + e.message);
+    }
+}
+
+/** soranotsuji-app.jsonの状態チェック → 同期状態アイコン更新 */
 async function checkGoogleSyncState() {
     if (!isGoogleLoggedIn()) { googleSyncState = 'none'; updateGoogleLoginIcon(); return; }
     googleSyncState = 'checking';
     updateGoogleLoginIcon();
     try {
-        const q = encodeURIComponent(`name='${SORA_APP_FILENAME}' and trashed=false`);
-        const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime)&spaces=drive`);
-        if (!res || !Array.isArray(res.files) || res.files.length === 0) {
-            googleAppFileId = null;
+        const gd = appState.googleDrive;
+        const meta = await resolveAppFile();
+        if (!meta) {
+            gd.lastDriveModifiedTime = null;
+            gd.lastDriveSize = null;
             googleSyncState = 'nofile';   // 😢: ファイルがない
         } else {
-            googleAppFileId = res.files[0].id;
-            googleSyncState = 'stale';    // 👎: 保存/読込が未実装の間は「同期未確認」として表示
+            gd.lastDriveModifiedTime = meta.modifiedTime;
+            gd.lastDriveSize = Number(meta.size) || null;
+            const same = (meta.modifiedTime === gd.lastSyncDriveModifiedTime) && (localContentFingerprint() === gd.lastSyncFingerprint);
+            googleSyncState = same ? 'ok' : 'stale';   // 👍: 同期済み / 👎: どちらかが変わった
         }
+        saveAppState();
     } catch (e) {
         console.error('checkGoogleSyncState:', e);
         googleSyncState = 'broken';       // ❌
@@ -9808,23 +10039,49 @@ async function checkGoogleSyncState() {
     updateGoogleLoginIcon();
 }
 
-/** 宙の辻メニューのログイン/同期状態アイコンと、Myセットの状態アイコンを更新 */
+/** 同期ダイアログ (どのように更新しますか？) を開く */
+function openGdriveSyncDialog() {
+    const dlg = document.getElementById('gdrive-sync-dialog');
+    if (!dlg) return;
+    let localSavedAt = null;
+    try { localSavedAt = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').savedAt || null; } catch (e) {}
+    const driveTime = appState.googleDrive.lastDriveModifiedTime ? new Date(appState.googleDrive.lastDriveModifiedTime).getTime() : null;
+    const newerLocal = localSavedAt !== null && (driveTime === null || localSavedAt >= driveTime);
+    document.getElementById('gdrive-sync-local').textContent =
+        `ローカルストレージ 更新日時: ${formatMySetDateTime(localSavedAt)}${newerLocal ? ' [New]' : ''}`;
+    document.getElementById('gdrive-sync-drive').textContent =
+        `Googleドライブ 更新日時: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? ' [New]' : ''}`;
+    dlg.classList.remove('hidden');
+}
+
+function closeGdriveSyncDialog() {
+    const dlg = document.getElementById('gdrive-sync-dialog');
+    if (dlg) dlg.classList.add('hidden');
+}
+
+/** ページ再読み込み (読込完了後に最新の状態で初期化し直すため) */
+function appReload() {
+    location.reload();
+}
+
+/** 宙の辻メニューのログイン/同期状態アイコンと、Myセット・バックアップメニューの表示を更新 */
 function updateGoogleLoginIcon() {
     const el = document.getElementById('btn-google-login');
     if (el) {
         const map = {
             none:     ['🈚️', 'Googleアカウントにログインします(ドライブ同期)'],
             checking: ['🕛', 'Googleドライブを確認中...'],
-            nofile:   ['😢', `Googleドライブに${SORA_APP_FILENAME}がありません(保存はフェーズ3で実装予定)`],
-            stale:    ['👎', 'Googleドライブとの保存/読込(同期)はフェーズ3で実装予定です'],
-            ok:       ['👍', 'Googleドライブと同期済み'],
+            nofile:   ['😢', `Googleドライブに${SORA_APP_FILENAME}がありません(押下で作成して保存)`],
+            stale:    ['👎', '端末とGoogleドライブの内容に差があります(押下で保存/読込を選択)'],
+            ok:       ['👍', 'Googleドライブと同期が取れています'],
             broken:   ['❌', 'Googleドライブの確認でエラーが発生しました(押して再確認)']
         };
         const [icon, title] = map[isGoogleLoggedIn() ? googleSyncState : 'none'] || map.none;
         el.textContent = icon;
         el.title = title;
     }
-    renderMySetList();   // Myセットの状態アイコン(🈚️/😢)とヘッダも連動して更新
+    renderMySetList();     // Myセットの状態アイコンとヘッダも連動して更新
+    updateBackupDriveUI(); // バックアップメニューのGoogleドライブ欄も連動して更新
 }
 
 /** ヘッダのログイン/同期状態アイコン押下時の動作 */
@@ -9833,16 +10090,66 @@ function onGoogleLoginIconClick() {
     switch (googleSyncState) {
         case 'checking': break;   // 確認中は何もしない
         case 'nofile':
-            alert(`Googleドライブに ${SORA_APP_FILENAME} がありません。\nファイルの作成(保存)はフェーズ3で実装予定です。`);
+            if (confirm(`Googleドライブに ${SORA_APP_FILENAME} を作成して、端末の内容を保存しますか？\n(保存先: ${appState.soraFolderName}/設定)`)) {
+                saveAppToDrive();
+            }
             break;
         case 'stale':
-            alert('Googleドライブとの保存/読込(同期)はフェーズ3で実装予定です。');
+            openGdriveSyncDialog();   // どのように更新しますか？(保存/読み込み/キャンセル)
             break;
         case 'ok':
             alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
             break;
         default:
             checkGoogleSyncState();   // エラー時は押下で再確認
+    }
+}
+
+/** バックアップメニューのGoogleドライブ欄の表示更新 */
+function updateBackupDriveUI() {
+    const loginBtn = document.getElementById('btn-gdrive-login');
+    if (!loginBtn) return;
+    const logged = isGoogleLoggedIn();
+    loginBtn.disabled = logged;
+    document.getElementById('btn-gdrive-logout').disabled = !logged;
+    const rootInput = document.getElementById('gdrive-root-folder');
+    if (document.activeElement !== rootInput) rootInput.value = appState.soraFolderName;
+    document.getElementById('gdrive-settings-folder').value = `${appState.soraFolderName}/設定`;
+    document.getElementById('gdrive-mysets-folder').value = `${appState.soraFolderName}/Myセット`;
+    const gd = appState.googleDrive;
+    document.getElementById('gdrive-modified').textContent =
+        gd.lastDriveModifiedTime ? formatGdriveDateTime(gd.lastDriveModifiedTime) : '-';
+    document.getElementById('gdrive-size').textContent =
+        'ローカルストレージ: ' + (gd.lastDriveSize ? `${Math.round(gd.lastDriveSize / 1024).toLocaleString('ja-JP')}KB` : '-');
+}
+
+/** ドライブ日時の表示 (例: 2026/02/09 19:32:16) */
+function formatGdriveDateTime(iso) {
+    const d = new Date(iso);
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+/** 宙の辻フォルダ名の「登録」ボタン: 検証して保存し、ドライブ上のフォルダは名前変更(リネーム)する */
+async function registerSoraFolderName() {
+    const input = document.getElementById('gdrive-root-folder');
+    const v = (input.value || '').trim();
+    if (!v.startsWith('/')) { input.value = appState.soraFolderName; return alert('宙の辻フォルダ名は「/」で始めてください(例: /soranotsuji-宙の辻)'); }
+    const real = v.slice(1).trim();
+    if (!real || real.includes('/')) { input.value = appState.soraFolderName; return alert('フォルダ名が空か、「/」が含まれています(先頭の1つ以外は使用できません)'); }
+    appState.soraFolderName = '/' + real;
+    saveAppState();
+    updateBackupDriveUI();
+    if (isGoogleLoggedIn() && appState.googleDrive.rootFolderId) {
+        try {
+            await driveApiJson(`files/${appState.googleDrive.rootFolderId}?fields=id,name`, 'PATCH', { name: real });
+            alert(`Googleドライブのフォルダ名を「${real}」に変更しました。\n(中のファイルはそのまま追従します)`);
+        } catch (e) {
+            console.error(e);
+            alert('Googleドライブのフォルダ名の変更に失敗しました: ' + e.message);
+        }
+    } else {
+        alert(`宙の辻フォルダ名を「${appState.soraFolderName}」として登録しました。\n(Googleドライブ上のフォルダは、ログイン後の保存時にこの名前で作成・使用されます)`);
     }
 }
 

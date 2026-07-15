@@ -1348,6 +1348,30 @@ GNU General Public License for more details.
                         <button id="btn-backup" class="nav-btn main-btn">バックアップ</button>
                         <button id="btn-import" class="nav-btn main-btn">インポート</button>
                     </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="ローカルストレージの内容を保存しているGoogleドライブの保存先">Googleドライブ</label></div>
+                    <div class="control-row">
+                        <button id="btn-gdrive-login" class="nav-btn main-btn" title="Googleアカウントにログインします">ログイン</button>
+                        <button id="btn-gdrive-logout" class="nav-btn main-btn" title="Googleアカウントからログアウトします">ログアウト</button>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">宙の辻フォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-root-folder" class="mypoint-name" maxlength="150" autocomplete="off" title="マイドライブ直下に作成するフォルダ(「/」で始める)">
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-gdrive-folder-register" class="nav-btn main-btn" title="宙の辻フォルダ名の変更を反映(ドライブ上のフォルダは名前変更)">登録</button>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">設定フォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-settings-folder" class="mypoint-name" readonly>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">Myセットフォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-mysets-folder" class="mypoint-name" readonly>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">Googleドライブ最終更新日時:</label></div>
+                    <div class="control-row left-row"><span id="gdrive-modified" class="mypoint-label">-</span></div>
+                    <div class="control-row left-row"><span id="gdrive-size" class="mypoint-label">ローカルストレージ: -</span></div>
                 </div>
             </div>
 
@@ -1369,7 +1393,7 @@ GNU General Public License for more details.
 
             <div class="panel-footer">
                 &copy; 2026- Takeyoshi Watanabe<br>
-                Sora no Tsuji Project - v1.20.4
+                Sora no Tsuji Project - v1.20.5
             </div>
         </div>
     </div>
@@ -1398,6 +1422,26 @@ GNU General Public License for more details.
                 <div class="picker-name">アクセス日時</div>
             </div>
             <label class="url-picker-short-row" title="オン: 圧縮した短いURLをコピーします / オフ: キー名やキー値がそのままの長いURLをコピーします"><input type="checkbox" id="url-picker-short" checked>:短いURL</label>
+        </div>
+    </div>
+
+    <div id="gdrive-sync-dialog" class="location-picker hidden">
+        <div class="picker-header">
+            <span>どのように更新しますか？</span>
+            <span class="close-picker" onclick="closeGdriveSyncDialog()">×</span>
+        </div>
+        <div class="picker-list">
+            <div class="gdrive-sync-info" id="gdrive-sync-local"></div>
+            <div class="gdrive-sync-info" id="gdrive-sync-drive"></div>
+            <div class="picker-item" id="gdrive-sync-save">
+                <div class="picker-name">①端末の内容をGoogleドライブに保存<br>ローカルストレージ ➡️ Googleドライブ 「保存」</div>
+            </div>
+            <div class="picker-item" id="gdrive-sync-load">
+                <div class="picker-name">②Googleドライブの内容を端末に読み込み<br>ローカルストレージ ⬅️ Googleドライブ 「読み込み」</div>
+            </div>
+            <div class="picker-item" id="gdrive-sync-cancel">
+                <div class="picker-name">③他の端末の方を優先したいのでキャンセル 「キャンセル」</div>
+            </div>
         </div>
     </div>
 
