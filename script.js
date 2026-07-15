@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.10 - 2026-07-15: fix: フッター初期値v0.0.0(script.js読み込み診断)・表示中の緑を不透明合成色に(赤との混色解消)・切り替え時のエラーメッセージ残留を解消
 Version 1.20.9 - 2026-07-15: fix: ダイアログ文字サイズ統一/折り返し防止/[New]赤字・表示中の緑をMy観測点と同濃度に・切り替え時「保存してから切り替え」・Myセット初期選択=表示中・バージョン関数化(フッター連動)
 Version 1.20.8 - 2026-07-15: fix: 同期ダイアログの別行立てレイアウト・🕛の時計アニメーション・Myセット配色統一(終了時刻の赤/My観測点の緑)・既定のセットのコピー対応・「更新:」ラベル・beforeunload警告・ポリシーページのリンク先を本番リポジトリへ
 Version 1.20.7 - 2026-07-15: feat: 既定のセット(ID:0)のスプレッドシート対応(フル行UI・保存/読込/開く/追加/削除・一括更新参加)+privacy.html/terms.html新設+フッターリンク
@@ -65,7 +66,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.9';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.10';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -10228,8 +10229,17 @@ function snapshotMySetData() {
     }));
 }
 
+/** My付きメニューの登録エラーメッセージ表示を消す */
+function clearMyMenuErrors() {
+    for (const id of ['myobs-error', 'mytgt-error', 'mytsuji-error']) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    }
+}
+
 /** スナップショットをMy付き4メニューに展開して関連UIを再描画する */
 function applyMySetData(data) {
+    clearMyMenuErrors();   // 切り替え前のエラーメッセージを持ち越さない
     const d = data ? JSON.parse(JSON.stringify(data)) : {};
     appState.myTsujiSearches = d.myTsujiSearches || [];
     appState.myObservations = d.myObservations || [];
@@ -10846,6 +10856,7 @@ function registerDirtyMyMenus() {
             if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
             if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
         });
+        document.getElementById(`${cfg.prefix}-error`).innerHTML = '';   // 保存成功: エラー表示を消す
         setMyPointDirty(type, false);
         updateMyPointMarkers();
     }
@@ -10862,6 +10873,7 @@ function registerDirtyMyMenus() {
             t.name = (t.name || '').replace(/,/g, '，');
             t.memo = (t.memo || '').replace(/,/g, '，');
         });
+        document.getElementById('mytsuji-error').innerHTML = '';   // 保存成功: エラー表示を消す
         setMyTsujiDirty(false);
     }
     saveAppState();

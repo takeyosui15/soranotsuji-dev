@@ -1265,9 +1265,10 @@ input[type="number"]:disabled {
 
 /* Myセットメニュー (辻検索の終了時刻と同じ赤・少し透明) */
 #sec-myset { background-color: rgba(255, 120, 120, 0.15); }
-/* 表示中のMyセット行: 太字+My観測点と同じ緑(濃さも同じ) */
+/* 表示中のMyセット行: 太字+My観測点と同じ見た目の薄緑。
+   メニューの赤背景と混ざって茶色くならないよう、「白+緑15%」を合成した不透明色で赤を覆う */
 .myset-row.myset-current {
-    background-color: rgba(144, 238, 144, 0.15);
+    background-color: rgb(238, 252, 238);
     font-weight: bold;
     border-radius: 6px;
 }
