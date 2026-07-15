@@ -1609,6 +1609,17 @@ input[type="range"] {
     color: #aaa;
 }
 
+/* URL取得ポップアップ: 短いURL/長いURLの選択チェックボックス */
+.url-picker-short-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .palette-colors {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

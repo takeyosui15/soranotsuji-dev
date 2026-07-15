@@ -104,6 +104,7 @@ GNU General Public License for more details.
     
     <div class="box">
         <p>現在、お使いのブラウザ（このドメイン）に保存されているデータは以下の通りです。</p>
+        <p id="storageUsage" style="font-weight:bold;"></p>
         <div id="dataDisplay">
             </div>
     </div>
@@ -137,11 +138,24 @@ GNU General Public License for more details.
             });
         }
 
+        // ローカルストレージの使用容量を表示する関数 (UTF-16なので1文字=2バイトで概算)
+        function renderStorageUsage() {
+            let bytes = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                bytes += (k.length + (localStorage.getItem(k) || '').length) * 2;
+            }
+            const kb = bytes / 1024;
+            document.getElementById('storageUsage').textContent =
+                `ローカルストレージ使用容量: ${kb.toLocaleString('ja-JP', { maximumFractionDigits: 1 })}KB（${localStorage.length}項目）`;
+        }
+
         // ローカルストレージの中身を取得して画面に表示する関数
         function renderStorageData() {
             const displayArea = document.getElementById('dataDisplay');
             const clearBtn = document.getElementById('clearBtn');
-            
+            renderStorageUsage();
+
             // データが空の場合
             if (localStorage.length === 0) {
                 displayArea.innerHTML = '<p class="empty-message">✓ 現在、保存されているデータはありません。</p>';
@@ -201,7 +215,7 @@ GNU General Public License for more details.
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `soranotsuji-localStorage-${fileStamp()}.json`;
+            a.download = `soranotsuji-app-バックアップ-${fileStamp()}.json`;
             a.click();
             URL.revokeObjectURL(url);
             const statusMsg = document.getElementById('statusMessage');

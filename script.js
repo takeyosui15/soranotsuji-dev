@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.2 - 2026-07-15: feat: URL取得に短いURL/長いURLの選択を追加、reset.htmlに使用容量表示、検索中心オプションのラベルを「辻オフセット点」に変更、バックアップファイル名をsoranotsuji-app-バックアップ-に変更
 Version 1.20.1 - 2026-06-16: fix: パール富士で午前0時付近の日付が消える(重複する)問題を対策(東京タワーからのパール富士2026/06/24付)
 Version 1.20.0 - 2026-05-25: feat: 辻ボタン/標高グラフ可視判定/位置精度の大幅な向上(南側にズレる問題を解消)
 Version 1.19.2 - 2026-05-01: fix: 辻検索とMy辻検索の精度不整合、辻検索とMy辻検索の計算中の観測点/目的点/日時の動的問題を修正
@@ -4241,7 +4242,7 @@ function exportBackup() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `soranotsuji-バックアップ-${formatFileDateTime()}.json`;
+    a.download = `soranotsuji-app-バックアップ-${formatFileDateTime()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -5580,7 +5581,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAccDash', t.accDash ? 'true' : 'false');
     params.set('mode', 'tsujisearch');
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
     }).catch(err => {
@@ -6279,10 +6280,10 @@ function renderMyTsujiSearches() {
             <hr class="tsujisearch-separator">
             <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
             <div class="control-row left-row">
-                <label class="baseopt-radio" title="検索中心をオフセット点の「点」で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="point" data-id="${t.id}" ${t.centerMode !== 'line' ? 'checked' : ''}>:オフセット点</label>
+                <label class="baseopt-radio" title="検索中心を辻オフセット点の「点」で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="point" data-id="${t.id}" ${t.centerMode !== 'line' ? 'checked' : ''}>:辻オフセット点</label>
             </div>
             <div class="control-row left-row">
-                <label class="baseopt-radio" title="検索中心を基準点からオフセット点までの「線」の範囲で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="line" data-id="${t.id}" ${t.centerMode === 'line' ? 'checked' : ''}>:基準点からオフセット点までの線</label>
+                <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="line" data-id="${t.id}" ${t.centerMode === 'line' ? 'checked' : ''}>:基準点から辻オフセット点までの線</label>
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
@@ -9935,13 +9936,21 @@ function closeUrlPicker() {
     urlPickerMode = null;
 }
 
+/** URL取得共通: 「短いURL」チェックボックス(初期値オン)に従い、
+ *  オン=可逆圧縮したqueryキー1つの短いURL / オフ=キー名やキー値がそのままの長いURL を作る。
+ *  どちらのURLでも同じ状態を復元できる(restoreFromUrlが両形式を読む)。 */
+function buildShareUrl(params) {
+    const chk = document.getElementById('url-picker-short');
+    const useShort = !chk || chk.checked;
+    return buildBaseUrl() + (useShort ? '?query=' + encodeQueryParam(params.toString()) : '?' + params.toString());
+}
+
 function copyLocationUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
     // パネル状態(dp/elevation/milkyway/soramado/tsujisearch)は buildCommonUrlParams で付与済み
 
-    // 長いクエリを可逆圧縮して query キー1つの短いURLにまとめる(旧形式の長いURLも引き続き読める)
-    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
     });
@@ -9952,7 +9961,7 @@ function copySoramadoUrl(includeDateTime) {
     params.set('mode', 'preview');
     params.set('soramado', 'true');   // 宙の窓URLは必ず宙の窓パネルを開く
 
-    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の宙の窓を開くURLをクリップボードにコピーしました。');
     });
@@ -9993,8 +10002,7 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiEndPrePostDir', appState.tsujiEndPrePostDir);
     params.set('tsujiEndOffset', appState.tsujiEndOffset);
 
-    // 長いクエリを可逆圧縮して query キー1つの短いURLにまとめる(旧形式の長いURLも引き続き読める)
-    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
     });
@@ -10034,7 +10042,7 @@ function copyTsujiMeshUrl(includeDateTime) {
     params.set('tsujiMeshEndPrePostDir', appState.tsujiMeshEndPrePostDir);
     params.set('tsujiMeshEndOffset', appState.tsujiMeshEndOffset);
 
-    const url = buildBaseUrl() + '?query=' + encodeQueryParam(params.toString());
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の辻メッシュ検索を開くURLをクリップボードにコピーしました。');
     });
