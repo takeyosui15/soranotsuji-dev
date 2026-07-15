@@ -1393,7 +1393,7 @@ GNU General Public License for more details.
 
             <div class="panel-footer">
                 &copy; 2026- Takeyoshi Watanabe<br>
-                Sora no Tsuji Project - v1.20.7<br>
+                Sora no Tsuji Project - v1.20.8<br>
                 <a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a> / <a href="terms.html" target="_blank" rel="noopener">利用規約</a>
             </div>
         </div>
@@ -1432,16 +1432,23 @@ GNU General Public License for more details.
             <span class="close-picker" onclick="closeGdriveSyncDialog()">×</span>
         </div>
         <div class="picker-list">
+            <div class="gdrive-sync-info">ローカルストレージ</div>
             <div class="gdrive-sync-info" id="gdrive-sync-local"></div>
+            <div class="gdrive-sync-info">Googleドライブ</div>
             <div class="gdrive-sync-info" id="gdrive-sync-drive"></div>
             <div class="picker-item" id="gdrive-sync-save">
-                <div class="picker-name">①端末の内容をGoogleドライブに保存<br>ローカルストレージ ➡️ Googleドライブ 「保存」</div>
+                <div class="gdrive-sync-title">①端末の内容をGoogleドライブに保存</div>
+                <div class="gdrive-sync-center">ローカルストレージ ➡️ Googleドライブ</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">保存</button></div>
             </div>
             <div class="picker-item" id="gdrive-sync-load">
-                <div class="picker-name">②Googleドライブの内容を端末に読み込み<br>ローカルストレージ ⬅️ Googleドライブ 「読み込み」</div>
+                <div class="gdrive-sync-title">②Googleドライブの内容を端末に読み込み</div>
+                <div class="gdrive-sync-center">ローカルストレージ ⬅️ Googleドライブ</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">読み込み</button></div>
             </div>
             <div class="picker-item" id="gdrive-sync-cancel">
-                <div class="picker-name">③他の端末の方を優先したいのでキャンセル 「キャンセル」</div>
+                <div class="gdrive-sync-title">③他の端末の方を優先したいのでキャンセル</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">キャンセル</button></div>
             </div>
         </div>
     </div>
@@ -1742,6 +1749,7 @@ GNU General Public License for more details.
                         <li>本サイトでの表示内容は、その情報の正確性を保証するものではありません。実際の観測には十分な余裕を持って行動してください。</li>
                         <li>本サイトは、国土地理院などの無料サービスを利用して成り立っています。サーバーに高負荷をかける行為はご遠慮ください。</li>
                         <li>本サイトを利用したことにより生じたいかなる損害についても責任を負いません。</li>
+                        <li>詳しくは、<a href="privacy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="terms.html" target="_blank" rel="noopener noreferrer">利用規約</a>をご覧ください。</li>
                     </ul>
                 </section>
 

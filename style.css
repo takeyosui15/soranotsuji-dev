@@ -1263,11 +1263,11 @@ input[type="number"]:disabled {
     font-weight: bold !important;
 }
 
-/* Myセットメニュー (背景赤・少し透明) */
-#sec-myset { background-color: rgba(244, 67, 54, 0.15); }
-/* 表示中のMyセット行: 太字+緑系ハイライト(メニュー背景の薄赤の補色) */
+/* Myセットメニュー (辻検索の終了時刻と同じ赤・少し透明) */
+#sec-myset { background-color: rgba(255, 120, 120, 0.15); }
+/* 表示中のMyセット行: 太字+My観測点と同じ緑(視認性のため濃さのみ調整) */
 .myset-row.myset-current {
-    background-color: rgba(76, 175, 80, 0.35);
+    background-color: rgba(144, 238, 144, 0.45);
     font-weight: bold;
     border-radius: 6px;
 }
@@ -1292,11 +1292,22 @@ input[type="number"]:disabled {
 /* ヘッダのGoogleログイン/同期状態アイコン */
 #btn-google-login { cursor: pointer; }
 
-/* 同期ダイアログの日時表示行 */
+/* 同期ダイアログ: 日時表示行(左寄せ)と項目内の中央揃え行 */
 .gdrive-sync-info {
-    padding: 6px 8px;
+    padding: 3px 8px;
     font-size: 13px;
     color: #ffd;
+    text-align: left;
+}
+
+.gdrive-sync-title {
+    font-size: 14px;
+    text-align: left;
+}
+
+.gdrive-sync-center {
+    text-align: center;
+    padding: 3px 0;
 }
 
 /* バックアップメニューのGoogleドライブ欄: 非活性ボタン */

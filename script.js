@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.8 - 2026-07-15: fix: 同期ダイアログの別行立てレイアウト・🕛の時計アニメーション・Myセット配色統一(終了時刻の赤/My観測点の緑)・既定のセットのコピー対応・「更新:」ラベル・beforeunload警告・ポリシーページのリンク先を本番リポジトリへ
 Version 1.20.7 - 2026-07-15: feat: 既定のセット(ID:0)のスプレッドシート対応(フル行UI・保存/読込/開く/追加/削除・一括更新参加)+privacy.html/terms.html新設+フッターリンク
 Version 1.20.6 - 2026-07-15: feat: Myセット×スプレッドシート連携 フェーズ3後半(4シート作成・保存/読込・開く/追加(Picker)/コピー/削除・一括更新・行アイコン状態)
 Version 1.20.5 - 2026-07-15: feat: Googleドライブ同期 フェーズ3前半(soranotsuji-app.jsonの保存/読込・同期ダイアログ・フォルダ自動作成/リネーム・バックアップメニューのGoogleドライブ欄)
@@ -62,6 +63,8 @@ Version 1.0.0 - 2026-01-29: Initial release
 // ============================================================
 // 1. 定数定義
 // ============================================================
+
+const APP_VERSION = '1.20.8';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動時のコンソールログに使用)
 
 const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
 
@@ -410,7 +413,7 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (v1.20.1)");
+    console.log(`宙の辻: 起動 (v${APP_VERSION})`);
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -10057,9 +10060,9 @@ function openGdriveSyncDialog() {
     const driveTime = appState.googleDrive.lastDriveModifiedTime ? new Date(appState.googleDrive.lastDriveModifiedTime).getTime() : null;
     const newerLocal = localSavedAt !== null && (driveTime === null || localSavedAt >= driveTime);
     document.getElementById('gdrive-sync-local').textContent =
-        `ローカルストレージ 更新日時: ${formatMySetDateTime(localSavedAt)}${newerLocal ? ' [New]' : ''}`;
+        `更新: ${formatMySetDateTime(localSavedAt)}${newerLocal ? ' [New]' : ''}`;
     document.getElementById('gdrive-sync-drive').textContent =
-        `Googleドライブ 更新日時: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? ' [New]' : ''}`;
+        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? ' [New]' : ''}`;
     dlg.classList.remove('hidden');
 }
 
@@ -10068,10 +10071,31 @@ function closeGdriveSyncDialog() {
     if (dlg) dlg.classList.add('hidden');
 }
 
-/** ページ再読み込み (読込完了後に最新の状態で初期化し直すため) */
+/** ページ再読み込み (読込完了後に最新の状態で初期化し直すため。beforeunload警告は抑止する) */
 function appReload() {
+    _suppressUnloadGuard = true;
     location.reload();
 }
+
+// 未登録(赤)の変更があるままページを閉じる/再読み込みする時の警告
+let _suppressUnloadGuard = false;
+window.addEventListener('beforeunload', (e) => {
+    if (_suppressUnloadGuard) return;
+    if (myObsDirty || myTgtDirty || myTsujiDirty || mySetDirty) {
+        e.preventDefault();
+        e.returnValue = '';   // ブラウザ標準の確認ダイアログを表示
+    }
+});
+
+// 更新中の🕛アイコンの時計アニメーション (24コマ×500ms=12秒で一周。.clock-anim要素に適用)
+const CLOCK_FRAMES = ['🕛','🕧','🕐','🕜','🕑','🕝','🕒','🕞','🕓','🕟','🕔','🕠','🕕','🕡','🕖','🕢','🕗','🕣','🕘','🕤','🕙','🕥','🕚','🕦'];
+let _clockFrame = 0;
+setInterval(() => {
+    const els = document.querySelectorAll('.clock-anim');
+    if (!els.length) return;
+    _clockFrame = (_clockFrame + 1) % CLOCK_FRAMES.length;
+    els.forEach(el => { el.textContent = CLOCK_FRAMES[_clockFrame]; });
+}, 500);
 
 /** 宙の辻メニューのログイン/同期状態アイコンと、Myセット・バックアップメニューの表示を更新 */
 function updateGoogleLoginIcon() {
@@ -10088,6 +10112,7 @@ function updateGoogleLoginIcon() {
         const [icon, title] = map[isGoogleLoggedIn() ? googleSyncState : 'none'] || map.none;
         el.textContent = icon;
         el.title = title;
+        el.classList.toggle('clock-anim', icon === '🕛');   // 確認中は時計アニメーション
     }
     renderMySetList();     // Myセットの状態アイコンとヘッダも連動して更新
     updateBackupDriveUI(); // バックアップメニューのGoogleドライブ欄も連動して更新
@@ -10543,7 +10568,7 @@ async function bulkUpdateMySets() {
     const btn = document.getElementById('btn-myset-update');
     let done = 0, ng = 0;
     for (const s of targets) {
-        if (btn) btn.textContent = `🕛更新中(${Math.round(done / targets.length * 100)}%)`;
+        if (btn) btn.innerHTML = `<span class="clock-anim">🕛</span>更新中(${Math.round(done / targets.length * 100)}%)`;
         const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true });
         if (!ok) ng++;
         done++;
@@ -10691,7 +10716,7 @@ function renderMySetList() {
             ${cur === 0 ? '<span>🔛</span>' : ''}
         </div>
         <div class="control-row">
-            <button class="nav-btn myset-status myset-status-home" title="${escapeHtml(hIconTitle)}">${hIcon}</button>
+            <button class="nav-btn myset-status myset-status-home${hIcon === '🕛' ? ' clock-anim' : ''}" title="${escapeHtml(hIconTitle)}">${hIcon}</button>
             <input type="text" class="myset-name" value="既定のセット" readonly title="既定のセット(名称固定)">
         </div>
         <div class="control-row">
@@ -10700,7 +10725,7 @@ function renderMySetList() {
             <label class="baseopt-radio" title="既定のセットは常に端末に保持されます"><input type="checkbox" checked disabled>:オフライン</label>
         </div>
         <div class="control-row">
-            <span class="mypoint-label">更新日時: ${formatMySetDateTime(home.updatedAt)}</span>
+            <span class="mypoint-label">更新: ${formatMySetDateTime(home.updatedAt)}</span>
         </div>
         <div class="control-row">
             <label class="mypoint-label">メモ:</label>
@@ -10728,7 +10753,7 @@ function renderMySetList() {
                 ${cur === s.id ? '<span>🔛</span>' : ''}
             </div>
             <div class="control-row">
-                <button class="nav-btn myset-status" data-id="${s.id}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
+                <button class="nav-btn myset-status${rowIcon === '🕛' ? ' clock-anim' : ''}" data-id="${s.id}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
                 <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${s.id}" autocomplete="off" title="${escapeHtml(s.name)}">
             </div>
             <div class="control-row">
@@ -10737,7 +10762,7 @@ function renderMySetList() {
                 <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${s.id}" ${s.offline ? 'checked' : ''}>:オフライン</label>
             </div>
             <div class="control-row">
-                <span class="mypoint-label">更新日時: ${formatMySetDateTime(s.updatedAt)}</span>
+                <span class="mypoint-label">更新: ${formatMySetDateTime(s.updatedAt)}</span>
             </div>
             <div class="control-row">
                 <label class="mypoint-label">メモ:</label>
@@ -10787,7 +10812,7 @@ function renderMySetList() {
 /** 初期表示 (非同期読み込み: 読み込み中はクルクルを表示) */
 function initMySetMenu() {
     const container = document.getElementById('myset-list');
-    if (container) container.innerHTML = '<div class="mystars-empty">🕛 読み込み中...</div>';
+    if (container) container.innerHTML = '<div class="mystars-empty"><span class="clock-anim">🕛</span> 読み込み中...</div>';
     setTimeout(renderMySetList, 0);
 }
 
@@ -10886,18 +10911,17 @@ function deleteMySetRow() {
     renderMySetList();
 }
 
-/** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する */
+/** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する (既定のセットも可) */
 async function copyMySet() {
     const id = getSelectedMySetId();
     if (id === null) return alert('コピーするMyセットを選択してください');
-    if (id === 0) return alert('既定のセットはコピーできません');
-    const src = appState.mySets.find(x => x.id === id);
+    const src = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!src) return;
     const newId = getNextMySetId();
     if (newId === null) return alert('Myセットの登録上限(1000件)に達しています');
     if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
-    const data = id === appState.mySetCurrentId ? snapshotMySetData()
-        : (src.data ? JSON.parse(JSON.stringify(src.data)) : null);
+    const rawData = mySetDataOf(src);
+    const data = (rawData && Object.keys(rawData).length) ? JSON.parse(JSON.stringify(rawData)) : null;
     const newSet = { id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
     if (src.sheetId && isGoogleLoggedIn()) {
         try {
