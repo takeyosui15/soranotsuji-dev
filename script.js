@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.17 - 2026-07-18: feat: 宙の窓の地形格子をDEM画素サイズ目標の適応密度に(頂点予算20万/望遠30万・望遠はランプ1.25乗で遠方に密度を寄せる。600mm・範囲5km級はDEM1画素粒度)
 Version 1.20.16 - 2026-07-18: fix: 宙の窓の最高点と目的点(+)のズレを解消(地形の高さ計算を基準視高度と同じ二半径厳密式に統一+格子を目的点にスナップ)・天体軌跡オフで天体中心の十字も非表示に
 Version 1.20.15 - 2026-07-17: fix: Myセット状態アイコン押下時にシート更新日時を再確認(🕛→[New]表示)・結果リストの差分列を「検索中心方位角差/視高度差」に改名+検索中心基準の値へ・宙の窓にz15 DEM5A/B/C導入(欠損はz14へフォールバック)・My辻検索File出力に時間帯+GH/BH境界時刻の列を追加
 Version 1.20.14 - 2026-07-17: fix: シート既定コメント3行化(デッサン08)・除外範囲の初期値15m・スマホでメニュー最下部が隠れる問題(dvh化)・標高/訪問者グラフのdpr鮮明化・宙の窓のリアル化(焦点距離考慮ズーム+望遠メッシュ細分化+バイリニア補間)
@@ -72,7 +73,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.16';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.17';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -14380,10 +14381,28 @@ function _smSetTerrainProgress(done, total) {
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
     _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
-    // 半径方向は望遠(画角20°以下)でさらに細分化(目的の山がズームされて粗が見えるため)。広角パノラマは方位分解能を倍に
-    const nA = aovH > 180 ? 280 : 140, nR = aovH <= 20 ? 300 : 200, nearKm = 0.01;   // 0km近傍から
+    const nearKm = 0.01;   // 0km近傍から
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
+    // 格子密度: DEMタイルの画素サイズを目標に適応配分する。
+    // 目標は「最遠端(=目的の山)の頂点間隔 ≈ DEM画素」だが、無制限だと広角で数百万頂点になるため、
+    // 頂点予算内で方位・距離を同率で間引く。望遠(画角10°以下)は扇が細いので予算を厚めにし、
+    // ランプ指数も緩めて最遠端に密度を寄せる(600mm・視界範囲5km級ならぴったりDEM1画素粒度になる)
+    const isTele = aovH <= 10;
+    const SM_VERT_BUDGET = isTele ? 300000 : 200000;
+    const rampP = isTele ? 1.25 : 1.5;                                                // 距離ランプの指数(小さいほど遠方に密)
+    const pixKm = 40075 * Math.cos(oLat * Math.PI / 180) / Math.pow(2, zoom) / 256;   // DEM1画素(km)
+    const arcKm = 2 * azHalf * Math.PI / 180 * rangeKm;                               // 最遠端の弧長(km)
+    const nAMin = aovH > 180 ? 280 : 140, nRMin = aovH <= 20 ? 300 : 200;             // 従来密度を下限に
+    let nA = Math.max(nAMin, Math.min(1000, Math.ceil(arcKm / pixKm)));
+    let nR = Math.max(nRMin, Math.ceil(rampP * rangeKm / pixKm));                     // ランプの最遠端間隔=rampP·range/nR
+    const over = ((nA + 1) * (nR + 1)) / SM_VERT_BUDGET;
+    if (over > 1) {
+        const sc = Math.sqrt(over);
+        nA = Math.max(nAMin, Math.floor(nA / sc));
+        nR = Math.max(nRMin, Math.floor(nR / sc));
+        if ((nA + 1) * (nR + 1) > SM_VERT_BUDGET) nR = Math.max(nRMin, Math.floor(SM_VERT_BUDGET / (nA + 1)) - 1);
+    }
     // 目的点スナップ: 山頂(目的点)が格子の「間」に落ちると、頂点の三角形補間で山頂がわずかに
     // 低く/ずれて描かれ、目的点マーカー(+)と最高点が合わない。目的点が扇の中にある場合は、
     // 方位1列(格子全体を半列間隔以内で平行移動)+距離1環を目的点にぴったり合わせ、
@@ -14398,7 +14417,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
             const spacing = 2 * azHalf / nA;
             snapI = Math.max(0, Math.min(nA, Math.round((rel + azHalf) / spacing)));
             azShift = rel - (-azHalf + snapI * spacing);   // |azShift| ≤ 半列間隔
-            snapJ = Math.max(1, Math.min(nR, Math.round(nR * Math.pow((dT - nearKm) / Math.max(1e-9, rangeKm - nearKm), 1 / 1.5))));
+            snapJ = Math.max(1, Math.min(nR, Math.round(nR * Math.pow((dT - nearKm) / Math.max(1e-9, rangeKm - nearKm), 1 / rampP))));
             snapDkm = dT;
         }
     }
@@ -14408,7 +14427,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         // 近傍を密に(1.5乗ランプ)。以前の2乗ランプ+nR=100では最遠端の頂点間隔がrange/50と粗く、
         // 目的の山(範囲の最遠端に来る)の稜線が丸まって見えたため、最遠端をrange/133へ細分化した
         const rr = j / nR;
-        const dkm = (j === snapJ) ? snapDkm : nearKm + (rangeKm - nearKm) * Math.pow(rr, 1.5);
+        const dkm = (j === snapJ) ? snapDkm : nearKm + (rangeKm - nearKm) * Math.pow(rr, rampP);
         for (let i = 0; i <= nA; i++) {
             const a = centerAz + (-azHalf + 2 * azHalf * i / nA) + azShift;
             if (i === snapI && j === snapJ) {
