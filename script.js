@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.14 - 2026-07-17: fix: シート既定コメント3行化(デッサン08)・除外範囲の初期値15m・スマホでメニュー最下部が隠れる問題(dvh化)・標高/訪問者グラフのdpr鮮明化・宙の窓のリアル化(焦点距離考慮ズーム+望遠メッシュ細分化+バイリニア補間)
 Version 1.20.13 - 2026-07-17: fix: Myセット保存でシート先頭のコメント行(任意行数)を温存・スマホの再生「動画」/書き出しのdpr二重スケール崩れを修正・辻検索/辻メッシュの粗探索を安全スキップで高速化(結果不変)・追加CSV入力の重複判定を生値文字列比較に・宙の窓地形の高精細化(z14範囲拡大+メッシュ細分化)
 Version 1.20.12 - 2026-07-15: fix: Myセットのボタン配置変更(開く・コピー/追加・解除)・追加(Picker)に🕛の2段階更新・書き込み権限なし(403)の分かりやすいエラー表示
 Version 1.20.11 - 2026-07-15: feat: Myセットの「削除」ボタンを「解除」に機能変更(スプレッドシートは削除せず関連付けのみ解除。未ログインでも実行可)
@@ -69,7 +70,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.12';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.14';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -347,7 +348,7 @@ let appState = {
     mwShowConstBounds: false,    // 全天儀: 星座領域の表示
     mwShowConstNames: false,     // 全天儀: 星座名称の表示
     mwConstNameSort: 'aiueo',    // 星座名称の表示順: 'aiueo'=50音順(左上から右下へ) / 'pos'=座標順(天頂+90°→-90°)
-    elevExcludeRadius: 0,        // 標高グラフ: 目的点の半径○m以内は可視判定のNGを無視 (0〜10000)
+    elevExcludeRadius: 15,       // 標高グラフ: 目的点の半径○m以内は可視判定のNGを無視 (0〜10000)。既定15m=目的点自身のDEM画素の自己遮蔽(z15対角≒5.5m、z14フォールバック時≒11m)+鋭峰の写り込みを吸収する値
 
     // 辻検索パラメータ (全てlocalStorage保存)
     tsujiSearchBaseAz: 0,
@@ -1574,7 +1575,7 @@ function normalizeAppState() {
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
-    appState.elevExcludeRadius = num(appState.elevExcludeRadius, 0, 0, 10000);
+    appState.elevExcludeRadius = num(appState.elevExcludeRadius, 15, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
     appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? false : !!appState.mwShowBodyNames;   // 初期値オフ(保存済みの設定は維持)
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
@@ -3262,8 +3263,27 @@ function _getTileInfo(lat, lng, zoom) {
     return {
         x: tileX, y: tileY,
         pX: Math.floor(pixelX - tileX * 256),
-        pY: Math.floor(pixelY - tileY * 256)
+        pY: Math.floor(pixelY - tileY * 256),
+        fX: pixelX - tileX * 256,   // 小数画素座標 (宙の窓地形のバイリニア補間用)
+        fY: pixelY - tileY * 256
     };
+}
+
+/** タイル画像データ(256×256 RGBA)から小数画素座標(fX,fY)の標高をバイリニア補間で返す。
+ *  無効画素(データ無し)が4近傍に混じる場合は従来の最近傍参照へフォールバック(null=全て無効)。
+ *  山頂がサンプル点に当たらず標高を取り逃す問題(最近傍参照)を緩和する。sora-terrain-worker.js に同一実装あり */
+function _bilinearElevFromImg(data, fX, fY) {
+    const gx = Math.min(255, Math.max(0, fX - 0.5));
+    const gy = Math.min(255, Math.max(0, fY - 0.5));
+    const x0 = Math.floor(gx), y0 = Math.floor(gy);
+    const x1 = Math.min(255, x0 + 1), y1 = Math.min(255, y0 + 1);
+    const wx = gx - x0, wy = gy - y0;
+    const at = (x, y) => { const o = (y * 256 + x) * 4; return _elevFromRGB(data[o], data[o + 1], data[o + 2]); };
+    const v00 = at(x0, y0), v10 = at(x1, y0), v01 = at(x0, y1), v11 = at(x1, y1);
+    if (v00 === null || v10 === null || v01 === null || v11 === null) {
+        return at(Math.min(255, Math.floor(fX)), Math.min(255, Math.floor(fY)));
+    }
+    return v00 * (1 - wx) * (1 - wy) + v10 * wx * (1 - wy) + v01 * (1 - wx) * wy + v11 * wx * wy;
 }
 
 /** グローバルピクセル座標(gpx,gpy)を緯度経度に逆変換する (_getTileInfo の逆。ピクセル中心を返す) */
@@ -9400,8 +9420,13 @@ function updateProgress(pct, cur, tot) {
 function drawProfileGraph() {
     const cvs = document.getElementById('elevation-canvas');
     const ctx = cvs.getContext('2d');
-    const w = cvs.width = cvs.clientWidth;
-    const h = cvs.height = cvs.clientHeight;
+    // スマホ(dpr>1)でぼやけないよう、バッファはデバイスpxで確保し、描画座標はCSS pxのまま扱う
+    const dpr = window.devicePixelRatio || 1;
+    const w = cvs.clientWidth;
+    const h = cvs.clientHeight;
+    cvs.width = Math.round(w * dpr);
+    cvs.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const pts = appState.elevationData.points.filter(p => p.fetched);
     
     if(pts.length === 0) return;
@@ -9690,8 +9715,14 @@ function showGraph(type) {
 function drawGraph(type) {
     const cvs = document.getElementById('visitor-canvas');
     const ctx = cvs.getContext('2d');
-    const w = cvs.width = cvs.clientWidth;
-    const h = cvs.height = 300;
+    // スマホ(dpr>1)でぼやけないよう、バッファはデバイスpx・レイアウトはCSS pxに分離する
+    const dpr = window.devicePixelRatio || 1;
+    const w = cvs.clientWidth;
+    const h = 300;
+    cvs.style.height = h + 'px';
+    cvs.width = Math.round(w * dpr);
+    cvs.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const data = (type==='current') ? visitorData.dailyLog : visitorData.lastYearLog;
     if(!data || data.length===0) {
@@ -10313,7 +10344,11 @@ const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天�
 /** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
  *  commentsBySheet(シート名→温存する既存コメント行)があればそれを、無ければ既定の2行を先頭に置く */
 function _mySetSheetRows(data, commentsBySheet) {
-    const defaultComments = [['#このようにコメントを記載できます。'], ['#', 'これもコメント行です。複数行、記述できます。']];
+    const defaultComments = [
+        ['#このようにコメントを記載できます。'],
+        ['#', 'これもコメント行です。複数行、記述できます。'],
+        ['#', '先頭から連続する#行がコメント行になります。']
+    ];
     const commentsOf = n => {
         const c = commentsBySheet && commentsBySheet[n];
         return (c && c.length) ? c : defaultComments;
@@ -14179,11 +14214,13 @@ function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
     return { lat: lat2 * 180 / Math.PI, lng: ((lng2 * 180 / Math.PI + 540) % 360) - 180 };
 }
 
-/** 視界範囲(km)からタイル数を抑える適応ズーム (dem_png は z≤14) */
-function _smTerrainZoom(rangeKm, latDeg) {
-    // 1タイルあたり ~ range/12 km を狙う (緯度36°で範囲33km強まで最詳細のz14=約7.7m画素を維持。
-    // 山の形の再現性を優先し、以前のrange/6から緩和した。タイル数は増えるがワーカープールで並列取得される)
-    const span = Math.max(rangeKm / 12, 0.2);
+/** 視界範囲(km)と水平画角(°)からタイル数を抑える適応ズーム (dem_png は z≤14) */
+function _smTerrainZoom(rangeKm, latDeg, aovH) {
+    // 1タイルあたり ~ range/12 km を狙う (緯度36°で範囲33km強まで最詳細のz14=約7.7m画素を維持)。
+    // 望遠(画角が狭い)ほど遠くの山がズームされて粗が見えるため、35mm換算の標準画角54.4°を基準に
+    // 画角比で目標をさらに細かくする(最大1/8まで。望遠では扇が細く、タイル数の増加は限定的)
+    const aovScale = Math.max(0.125, Math.min(1, (Number(aovH) || 54.4) / 54.4));
+    const span = Math.max(rangeKm / 12 * aovScale, 0.2);
     const z = Math.round(Math.log2(40075 * Math.cos(latDeg * Math.PI / 180) / span));
     return Math.max(9, Math.min(14, z));
 }
@@ -14195,7 +14232,7 @@ function _smUpdateTerrain() {
     const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は扇をパノラマ水平画角へ
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const range = Math.max(1, Number(appState.soraViewRange) || 1);
-    const zoom = _smTerrainZoom(range, appState.start.lat);
+    const zoom = _smTerrainZoom(range, appState.start.lat, aovH);
     const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${range}|${zoom}`;
     if (geomKey !== _smGeomKey) {
         _smGeomKey = geomKey;
@@ -14254,7 +14291,8 @@ function _smSetTerrainProgress(done, total) {
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
     _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
-    const nA = aovH > 180 ? 280 : 140, nR = 200, nearKm = 0.01;   // 0km近傍から。広角パノラマは方位分解能を倍に
+    // 半径方向は望遠(画角20°以下)でさらに細分化(目的の山がズームされて粗が見えるため)。広角パノラマは方位分解能を倍に
+    const nA = aovH > 180 ? 280 : 140, nR = aovH <= 20 ? 300 : 200, nearKm = 0.01;   // 0km近傍から
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
     const samples = new Array((nA + 1) * (nR + 1));
@@ -14281,7 +14319,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     for (let idx = 0; idx < samples.length; idx++) {
         const ti = _getTileInfo(samples[idx].lat, samples[idx].lng, zoom);
         const k = `${ti.x}_${ti.y}`;
-        (groups[k] || (groups[k] = { url: `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`, pts: [] })).pts.push({ idx, pX: ti.pX, pY: ti.pY });
+        (groups[k] || (groups[k] = { url: `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`, pts: [] })).pts.push({ idx, pX: ti.pX, pY: ti.pY, fX: ti.fX, fY: ti.fY });
     }
     const keys = Object.keys(groups);
     const total = keys.length;
@@ -14309,7 +14347,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
             const img = await _getTileImageData(g.url);
             for (const pt of g.pts) {
                 let h = 0;
-                if (img) { const i = (pt.pY * 256 + pt.pX) * 4; const v = _elevFromRGB(img.data[i], img.data[i + 1], img.data[i + 2]); h = (v === null) ? 0 : v; }
+                if (img) { const v = _bilinearElevFromImg(img.data, pt.fX, pt.fY); h = (v === null) ? 0 : v; }
                 samples[pt.idx].elev = h;
             }
             tileDone();

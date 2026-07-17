@@ -905,7 +905,11 @@ html {
     font-family: sans-serif;
     font-size: 14px;
     overflow: hidden;
-    max-height: 90vh;
+    /* スマホのvhはアドレスバーを含む「最大」ビューポート基準のため、90vhだと
+       アドレスバー表示中にパネル下端(バージョン・ポリシーリンク)が画面外に隠れる。
+       dvh(その時々の実表示域)基準にして、常に下端まで画面内に収める */
+    max-height: 90vh;   /* dvh非対応の古いブラウザ向けフォールバック */
+    max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     transition: width 0.3s ease;

@@ -18,7 +18,7 @@ GNU General Public License for more details.
 // fetch → PNGデコード(createImageBitmap / OffscreenCanvas) → 標高(GSI dem_png方式) を計算して返す。
 // ネットワークとデコードをワーカーにオフロードし、メインスレッドのプレビュー描画を軽く保つ。
 //
-// 受信: { reqId, url, pts: [{ idx, pX, pY }] }
+// 受信: { reqId, url, pts: [{ idx, pX, pY, fX, fY }] }   (fX/fY=小数画素座標。バイリニア補間に使用)
 // 返信: { reqId, elevs: [{ idx, elev }] }   (取得/デコード失敗時は elev=0)
 
 const POW2_8 = Math.pow(2, 8);
@@ -35,6 +35,22 @@ function elevFromRGB(r, g, b) {
     return h;
 }
 
+// 小数画素座標(fX,fY)のバイリニア補間。script.js の _bilinearElevFromImg と同一実装。
+// 無効画素が4近傍に混じる場合は従来の最近傍参照へフォールバック(null=全て無効)。
+function bilinearElev(data, fX, fY) {
+    const gx = Math.min(255, Math.max(0, fX - 0.5));
+    const gy = Math.min(255, Math.max(0, fY - 0.5));
+    const x0 = Math.floor(gx), y0 = Math.floor(gy);
+    const x1 = Math.min(255, x0 + 1), y1 = Math.min(255, y0 + 1);
+    const wx = gx - x0, wy = gy - y0;
+    const at = (x, y) => { const o = (y * 256 + x) * 4; return elevFromRGB(data[o], data[o + 1], data[o + 2]); };
+    const v00 = at(x0, y0), v10 = at(x1, y0), v01 = at(x0, y1), v11 = at(x1, y1);
+    if (v00 === null || v10 === null || v01 === null || v11 === null) {
+        return at(Math.min(255, Math.floor(fX)), Math.min(255, Math.floor(fY)));
+    }
+    return v00 * (1 - wx) * (1 - wy) + v10 * wx * (1 - wy) + v01 * (1 - wx) * wy + v11 * wx * wy;
+}
+
 self.onmessage = async (e) => {
     const { reqId, url, pts } = e.data;
     const out = new Array(pts.length);
@@ -49,8 +65,9 @@ self.onmessage = async (e) => {
         const img = ctx.getImageData(0, 0, 256, 256).data;
         for (let i = 0; i < pts.length; i++) {
             const p = pts[i];
-            const o = (p.pY * 256 + p.pX) * 4;
-            const v = elevFromRGB(img[o], img[o + 1], img[o + 2]);
+            const v = (p.fX !== undefined)
+                ? bilinearElev(img, p.fX, p.fY)
+                : elevFromRGB(img[(p.pY * 256 + p.pX) * 4], img[(p.pY * 256 + p.pX) * 4 + 1], img[(p.pY * 256 + p.pX) * 4 + 2]);
             out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
         }
         if (bmp.close) bmp.close();
