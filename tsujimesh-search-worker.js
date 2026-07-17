@@ -162,8 +162,15 @@ self.onmessage = (e) => {
         for (let s = 0; s < 1440; s++) {
             const t = dayBase + s * 60000;
             const { az, alt } = calcAzAlt(body, new Date(t), observer, refractionEnabled);
-            // 全画素の視高度範囲の外なら即スキップ
-            if (alt < P.minAlt + altLo - 0.05 || alt > P.maxAlt + altHi + 0.05) continue;
+            // 全画素の視高度範囲の外なら即スキップ。さらに視高度の変化速度上限(日周運動+月の固有運動+
+            // 視差/大気差の変動を含めても0.35°/分)から範囲外が確定する分数だけ先へ飛ばす。
+            // 飛ばした標本はどのみち範囲外で不採用なので、評価結果は全標本評価と完全に同一(結果不変の高速化)
+            const bandLo = P.minAlt + altLo - 0.05, bandHi = P.maxAlt + altHi + 0.05;
+            if (alt < bandLo || alt > bandHi) {
+                const skip = Math.floor(Math.max(bandLo - alt, alt - bandHi) / 0.35) - 1;
+                if (skip > 0) s += skip;
+                continue;
+            }
             const [ex, ny, uz] = dirENU(az, alt);
             forCandidates(az, alt, (pix) => {
                 const dist = evalDist(pix, ex, ny, uz);

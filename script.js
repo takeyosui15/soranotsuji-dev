@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.13 - 2026-07-17: fix: Myセット保存でシート先頭のコメント行(任意行数)を温存・スマホの再生「動画」/書き出しのdpr二重スケール崩れを修正・辻検索/辻メッシュの粗探索を安全スキップで高速化(結果不変)・追加CSV入力の重複判定を生値文字列比較に・宙の窓地形の高精細化(z14範囲拡大+メッシュ細分化)
 Version 1.20.12 - 2026-07-15: fix: Myセットのボタン配置変更(開く・コピー/追加・解除)・追加(Picker)に🕛の2段階更新・書き込み権限なし(403)の分かりやすいエラー表示
 Version 1.20.11 - 2026-07-15: feat: Myセットの「削除」ボタンを「解除」に機能変更(スプレッドシートは削除せず関連付けのみ解除。未ログインでも実行可)
 Version 1.20.10 - 2026-07-15: fix: フッター初期値v0.0.0(script.js読み込み診断)・表示中の緑を不透明合成色に(赤との混色解消)・切り替え時のエラーメッセージ残留を解消
@@ -4819,14 +4820,15 @@ function appendMyPointsCsv(type) {
                     if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
                     const id = parseInt(toHalfWidth(cols[0].trim()));
                     const name = cols[1].trim();
-                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
-                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
+                    const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
+                    const lat = parseFloat(latText);
+                    const lng = parseFloat(lngText);
                     let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
                     const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
                     const memo = (cols[6] !== undefined ? cols[6] : '').trim();
                     if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
                     if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
-                    csvEntries.push({ id, name, lat, lng, elev, height, memo });
+                    csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
                 }
 
                 // CSV内のID重複チェック
@@ -4847,9 +4849,11 @@ function appendMyPointsCsv(type) {
                         entry.elev = el !== null ? el : 0;
                     }
                     
-                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ
+                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ。
+                    // 緯度/経度は数値(double)比較だとCSV生値の末尾1桁違いが同じ倍精度値に丸まって
+                    // 同一視されるため、CSVの生値文字列と登録値の文字列表現で比較する
                     const duplicate = existingList.some(p =>
-                        p.lat === entry.lat && p.lng === entry.lng &&
+                        String(p.lat) === entry.latText && String(p.lng) === entry.lngText &&
                         p.elev === entry.elev && p.height === entry.height
                     );
                     if (duplicate) continue;
@@ -4862,6 +4866,8 @@ function appendMyPointsCsv(type) {
                         if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
                     }
 
+                    delete entry.latText;
+                    delete entry.lngText;
                     existingList.push(entry);
                     addedCount++;
                 }
@@ -10304,9 +10310,14 @@ async function sheetsApiFetch(path, method, bodyObj) {
 
 const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体'];
 
-/** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント2行) */
-function _mySetSheetRows(data) {
-    const commentRows = [['#このようにコメントを記載できます。'], ['#', 'これもコメント行です。']];
+/** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
+ *  commentsBySheet(シート名→温存する既存コメント行)があればそれを、無ければ既定の2行を先頭に置く */
+function _mySetSheetRows(data, commentsBySheet) {
+    const defaultComments = [['#このようにコメントを記載できます。'], ['#', 'これもコメント行です。複数行、記述できます。']];
+    const commentsOf = n => {
+        const c = commentsBySheet && commentsBySheet[n];
+        return (c && c.length) ? c : defaultComments;
+    };
     const pointsRows = (list, label) => [
         [`${label}ID`, `${label}名`, '緯度', '経度', '標高', '高さ', 'メモ'],
         ...(list || []).map(p => [p.id, p.name ?? '', p.lat ?? '', p.lng ?? '', p.elev ?? '', p.height ?? 0, p.memo ?? ''])
@@ -10317,11 +10328,30 @@ function _mySetSheetRows(data) {
     ];
     const tsujiRows = _buildMyTsujiCsv(data.myTsujiSearches || []).replace(/\r\n$/, '').split('\r\n').map(l => l.split(','));
     return {
-        'My辻検索': commentRows.concat(tsujiRows),
-        'My観測点': commentRows.concat(pointsRows(data.myObservations, '観測点')),
-        'My目的点': commentRows.concat(pointsRows(data.myTargets, '目的点')),
-        'My天体': commentRows.concat(starsRows(data.myStars))
+        'My辻検索': commentsOf('My辻検索').concat(tsujiRows),
+        'My観測点': commentsOf('My観測点').concat(pointsRows(data.myObservations, '観測点')),
+        'My目的点': commentsOf('My目的点').concat(pointsRows(data.myTargets, '目的点')),
+        'My天体': commentsOf('My天体').concat(starsRows(data.myStars))
     };
+}
+
+/** シートの先頭から連続する「1列目が#で始まる行」(=温存するコメントブロック)をシート名毎に取得する。
+ *  取得できない場合は空(=既定コメント)を返す。保存時の上書きからユーザー追記のコメント行を守るために使う */
+async function _mySetFetchCommentRows(s) {
+    const commentsBySheet = {};
+    try {
+        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
+        const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+        (res.valueRanges || []).forEach((vr, i) => {
+            const block = [];
+            for (const r of (vr.values || [])) {
+                if (!String((r || [])[0] ?? '').trim().startsWith('#')) break;   // 先頭ブロックのみ(空行でも打ち切り)
+                block.push(r);
+            }
+            commentsBySheet[MYSET_SHEET_NAMES[i]] = block;
+        });
+    } catch (e) { /* 取得失敗時は既定コメントで保存 */ }
+    return commentsBySheet;
 }
 
 /** シートの行配列から、コメント行と見出し行を除いたデータ行(セルは文字列化)を返す */
@@ -10468,9 +10498,11 @@ async function mySetSaveToSheet(s, opts = {}) {
             const meta = await driveGetMeta(s.sheetId);
             if (!meta || meta.trashed) s.sheetId = null;
         }
-        if (!s.sheetId) await mySetCreateSheet(s);
+        let commentsBySheet = null;
+        if (!s.sheetId) await mySetCreateSheet(s);   // 新規作成(中身は空)なら既定コメントを書く
+        else commentsBySheet = await _mySetFetchCommentRows(s);   // 既存シートは先頭の#コメント行を温存
         const data = mySetDataOf(s);
-        const sheets = _mySetSheetRows(data);
+        const sheets = _mySetSheetRows(data, commentsBySheet);
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
             valueInputOption: 'RAW',
@@ -12955,7 +12987,9 @@ function _smComposeFrame(w, h, canvas2d) {
         const nStrips = Math.max(1, Math.ceil(panoAov / 10));
         const stripDeg = panoAov / nStrips;
         const stripAspect = Math.tan(stripDeg * Math.PI / 360) / Math.tan(_smCamera.fov * Math.PI / 360);
-        _smRenderer.setScissorTest(true);
+        // renderer.setViewport/setScissor は devicePixelRatio 倍されるため RT には使えない(dpr>1 のスマホで
+        // 左下拡大に崩れる)。RT 自身の viewport/scissor は非スケールなのでこちらで制御する
+        rt.scissorTest = true;
         for (let i = 0; i < nStrips; i++) {
             const px0 = Math.round(w * i / nStrips), px1 = Math.round(w * (i + 1) / nStrips);
             if (px1 <= px0) continue;
@@ -12963,12 +12997,16 @@ function _smComposeFrame(w, h, canvas2d) {
             _smCamera.aspect = stripAspect;
             _smCamera.lookAt(_smDir(sAz, alt));
             _smCamera.updateProjectionMatrix();
-            _smRenderer.setViewport(px0, 0, px1 - px0, h);
-            _smRenderer.setScissor(px0, 0, px1 - px0, h);
+            rt.viewport.set(px0, 0, px1 - px0, h);
+            rt.scissor.set(px0, 0, px1 - px0, h);
+            _smRenderer.setRenderTarget(rt);   // rt.viewport/scissor を再適用
             _smRenderer.clear(true, true, true);
             _smRenderer.render(_smScene, _smCamera);
         }
-        _smRenderer.setScissorTest(false);
+        rt.scissorTest = false;
+        rt.viewport.set(0, 0, w, h);
+        rt.scissor.set(0, 0, w, h);
+        _smRenderer.setRenderTarget(rt);
     } else if (allsky && _smRenderAllSkyCube(w / h, Math.min(w, h) / 2)) {
         // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドを出力RTへ
         _smRenderer.setRenderTarget(rt);
@@ -12990,7 +13028,7 @@ function _smComposeFrame(w, h, canvas2d) {
     } else {
         _smCamera.aspect = w / h;
         _smCamera.updateProjectionMatrix();
-        _smRenderer.setViewport(0, 0, w, h);
+        // setViewport は devicePixelRatio 倍されるため呼ばない(setRenderTarget が rt 全面 w×h を非スケールで適用済み)
         _smRenderer.clear(true, true, true);
         _smRenderer.render(_smScene, _smCamera);
     }
@@ -13152,7 +13190,9 @@ function soraMovPlayVideo() {
     if (!picked) { alert('このブラウザは動画の生成に対応していません。'); return; }
     if (_expVideo) { alert('動画の書き出し中です。完了または中止してから再生してください。'); return; }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.max(2, Math.round(_smFinderW * dpr)), h = Math.max(2, Math.round(_smFinderH * dpr));
+    // 解像度は偶数に丸める(奇数はスマホのH.264ハードウェアエンコーダで失敗・色帯の既知問題があるため)
+    const even = v => Math.max(2, 2 * Math.round(v / 2));
+    const w = even(_smFinderW * dpr), h = even(_smFinderH * dpr);
     const btn = document.getElementById('btn-sora-mov-play');
     const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', blob => {
         if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
@@ -14141,7 +14181,9 @@ function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
 
 /** 視界範囲(km)からタイル数を抑える適応ズーム (dem_png は z≤14) */
 function _smTerrainZoom(rangeKm, latDeg) {
-    const span = Math.max(rangeKm / 6, 0.2);   // 1タイルあたり ~ range/6 km を狙う
+    // 1タイルあたり ~ range/12 km を狙う (緯度36°で範囲33km強まで最詳細のz14=約7.7m画素を維持。
+    // 山の形の再現性を優先し、以前のrange/6から緩和した。タイル数は増えるがワーカープールで並列取得される)
+    const span = Math.max(rangeKm / 12, 0.2);
     const z = Math.round(Math.log2(40075 * Math.cos(latDeg * Math.PI / 180) / span));
     return Math.max(9, Math.min(14, z));
 }
@@ -14212,13 +14254,15 @@ function _smSetTerrainProgress(done, total) {
 async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const gen = ++_smTerrainGen;
     _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
-    const nA = aovH > 180 ? 280 : 140, nR = 100, nearKm = 0.01;   // 0km近傍から。広角パノラマは方位分解能を倍に
+    const nA = aovH > 180 ? 280 : 140, nR = 200, nearKm = 0.01;   // 0km近傍から。広角パノラマは方位分解能を倍に
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
     const samples = new Array((nA + 1) * (nR + 1));
     let p = 0;
     for (let j = 0; j <= nR; j++) {
-        const rr = j / nR, dkm = nearKm + (rangeKm - nearKm) * rr * rr;   // 近傍を密に
+        // 近傍を密に(1.5乗ランプ)。以前の2乗ランプ+nR=100では最遠端の頂点間隔がrange/50と粗く、
+        // 目的の山(範囲の最遠端に来る)の稜線が丸まって見えたため、最遠端をrange/133へ細分化した
+        const rr = j / nR, dkm = nearKm + (rangeKm - nearKm) * Math.pow(rr, 1.5);
         for (let i = 0; i <= nA; i++) {
             const a = centerAz + (-azHalf + 2 * azHalf * i / nA);
             const d = _smDestPoint(oLat, oLng, a, dkm * 1000);

@@ -16,6 +16,8 @@ GNU General Public License for more details.
 // 辻検索 Web Worker
 // メインスレッドから 1天体・指定日範囲のチャンクを受け取り、
 // 1分単位スキャン → 前後60秒の1秒単位リファインを行ってベスト時刻を返す。
+// 粗探索には「安全スキップ」を併用: 天体の移動速度上限から許容範囲外が確定する標本を
+// 飛ばして高速化する(飛ばすのは必ず範囲外の標本のみなので、結果は全標本評価と完全に同一)。
 
 importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
 
@@ -136,6 +138,22 @@ self.onmessage = (e) => {
         return null;
     };
     const stepsPerDay = 1440;  // 1分単位
+
+    // 安全スキップの中心と包含半径: 許容範囲全体を「中心からskipRadius度以内」の球帽で包む。
+    // 点モード=オフセット点+許容矩形、線モード=線分の中点+半長+許容矩形(いずれも角距離の上界)。
+    // 天体の地平座標系での移動速度は 日周運動15.04°/h + 月の固有運動0.55°/h + 視差/大気差の変動
+    // を含めても 0.35°/分 を超えないため、中心までの角距離が skipRadius より gap 度遠い標本からは
+    // floor(gap/0.35)-1 分先まで「必ず許容範囲外」が確定する。スキップした標本はどのみち不採用
+    // なので、粗探索の評価結果は全標本を評価した場合と完全に同一になる。
+    const SKIP_RATE = 0.35;   // °/分 (移動速度の安全上限)
+    let skipCtrAz = targetAz, skipCtrAlt = targetAlt;
+    let skipRadius = toleranceAz + toleranceAlt;
+    if (isLine) {
+        const dAz = wrap180(targetAz - centerAz0), dAlt = targetAlt - centerAlt0;
+        skipCtrAz = centerAz0 + dAz / 2;
+        skipCtrAlt = centerAlt0 + dAlt / 2;
+        skipRadius += Math.sqrt(dAz * dAz + dAlt * dAlt) / 2;
+    }
     const results = [];
 
     for (let d = dayStart; d < dayEnd; d++) {
@@ -149,9 +167,16 @@ self.onmessage = (e) => {
             const time = new Date(dayBase + s * 60000);
             const { az, alt } = calcAzAlt(body, time, observer, refractionEnabled);
             const dist = matchDist(az, alt);
-            if (dist !== null && dist < bestDist) {
-                bestDist = dist;
-                bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
+            if (dist !== null) {
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestMatch = { timeMs: time.getTime(), azimuth: az, altitude: alt, dist };
+                }
+            } else {
+                // 許容範囲外: 中心から遠いほど先の標本まで範囲外が確定するので、その分を飛ばす(結果不変の高速化)
+                const gap = angularDistance(az, alt, skipCtrAz, skipCtrAlt) - skipRadius;
+                const skip = Math.floor(gap / SKIP_RATE) - 1;
+                if (skip > 0) s += skip;
             }
         }
 
