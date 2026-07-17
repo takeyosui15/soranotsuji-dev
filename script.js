@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.15 - 2026-07-17: fix: Myセット状態アイコン押下時にシート更新日時を再確認(🕛→[New]表示)・結果リストの差分列を「検索中心方位角差/視高度差」に改名+検索中心基準の値へ・宙の窓にz15 DEM5A/B/C導入(欠損はz14へフォールバック)・My辻検索File出力に時間帯+GH/BH境界時刻の列を追加
 Version 1.20.14 - 2026-07-17: fix: シート既定コメント3行化(デッサン08)・除外範囲の初期値15m・スマホでメニュー最下部が隠れる問題(dvh化)・標高/訪問者グラフのdpr鮮明化・宙の窓のリアル化(焦点距離考慮ズーム+望遠メッシュ細分化+バイリニア補間)
 Version 1.20.13 - 2026-07-17: fix: Myセット保存でシート先頭のコメント行(任意行数)を温存・スマホの再生「動画」/書き出しのdpr二重スケール崩れを修正・辻検索/辻メッシュの粗探索を安全スキップで高速化(結果不変)・追加CSV入力の重複判定を生値文字列比較に・宙の窓地形の高精細化(z14範囲拡大+メッシュ細分化)
 Version 1.20.12 - 2026-07-15: fix: Myセットのボタン配置変更(開く・コピー/追加・解除)・追加(Picker)に🕛の2段階更新・書き込み権限なし(403)の分かりやすいエラー表示
@@ -70,7 +71,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.14';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.15';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -6000,10 +6001,13 @@ async function runBatchMyTsujiSearch() {
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
         <th>月齢</th><th>月齢アイコン</th>
-        <th>方位角</th><th>視高度</th><th>視半径</th><th>天体方位角差</th><th>天体視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
 
+    // 検索中心差の参照点(行ごとに独立した検索条件を使用)
+    const myTsujiCtr = (r) => tsujiCenterRefPoint(r.azimuth, r.altitude,
+        r.tsuji.baseAz || 0, r.tsuji.baseAlt || 0, r.tsuji.offsetAz || 0, r.tsuji.offsetAlt || 0, r.tsuji.centerMode);
     const renderMyTsujiResultRow = (r) => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
@@ -6033,8 +6037,8 @@ async function runBatchMyTsujiSearch() {
             <td>${r.azimuth.toFixed(4)}°</td>
             <td>${r.altitude.toFixed(4)}°</td>
             <td>${angRDisplay}</td>
-            <td>${fmtSignedDeg(azDiffDeg(r.azimuth, r.tsuji.baseAz || 0))}</td>
-            <td>${fmtSignedDeg(r.altitude - (r.tsuji.baseAlt || 0))}</td>
+            <td>${fmtSignedDeg(azDiffDeg(r.azimuth, myTsujiCtr(r).az))}</td>
+            <td>${fmtSignedDeg(r.altitude - myTsujiCtr(r).alt)}</td>
             <td>${(Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4)}°</td>
             <td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
@@ -6079,8 +6083,8 @@ async function runBatchMyTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
-        { label: '天体方位角差', compare: (a, b) => azDiffDeg(a.azimuth, a.tsuji.baseAz || 0) - azDiffDeg(b.azimuth, b.tsuji.baseAz || 0) },
-        { label: '天体視高度差', compare: (a, b) => (a.altitude - (a.tsuji.baseAlt || 0)) - (b.altitude - (b.tsuji.baseAlt || 0)) },
+        { label: '検索中心方位角差', compare: (a, b) => azDiffDeg(a.azimuth, myTsujiCtr(a).az) - azDiffDeg(b.azimuth, myTsujiCtr(b).az) },
+        { label: '検索中心視高度差', compare: (a, b) => (a.altitude - myTsujiCtr(a).alt) - (b.altitude - myTsujiCtr(b).alt) },
         { label: 'オフセット中心角', compare: (a, b) => (Number(a.tsuji.mwOffsetAngle) || 0) - (Number(b.tsuji.mwOffsetAngle) || 0) },
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
@@ -6113,11 +6117,16 @@ function buildMyTsujiCsvRow(r) {
     } catch (_) {}
 
     let astroDawn, nautDawn, yoake, civilDawn, civilDusk, higure, nautDusk, astroDusk;
+    let bhEndGhStart, ghEnd, ghStart, ghEndBhStart;   // GH=ゴールデンアワー(±6°〜-4°) / BH=ブルーアワー(-4°〜-6°)
     try {
         astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
         nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
         yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
         civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+        bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);
+        ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);
+        ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);
+        ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);
         civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
         higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
         nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
@@ -6180,11 +6189,13 @@ function buildMyTsujiCsvRow(r) {
         csvDateStr,
         csvDowStr,
         fmtHms(dt),
+        r.timeCategory ?? '-',
         fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
         r.moonAge.toFixed(1),
         r.moonIcon,
         fmtHms(astroDawn), fmtHms(nautDawn), fmtHms(yoake), fmtHms(civilDawn),
-        fmtHms(sr), fmtHms(ss),
+        fmtHms(bhEndGhStart), fmtHms(sr), fmtHms(ghEnd),
+        fmtHms(ghStart), fmtHms(ss), fmtHms(ghEndBhStart),
         fmtHms(civilDusk), fmtHms(higure), fmtHms(nautDusk), fmtHms(astroDusk),
         r.body.id, r.body.name ?? '',
         decStr, raStr,
@@ -6205,8 +6216,8 @@ function buildMyTsujiCsvRow(r) {
         r.azimuth.toFixed(4) + '°',
         r.altitude.toFixed(4) + '°',
         angRStr,
-        fmtSignedDeg(azDiffDeg(r.azimuth, baseAz)),
-        fmtSignedDeg(r.altitude - baseAlt),
+        fmtSignedDeg(azDiffDeg(r.azimuth, tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).az)),
+        fmtSignedDeg(r.altitude - tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).alt),
         partnerDist.toFixed(1) + 'm',
         partnerAz.toFixed(4) + '°',
         partnerAlt.toFixed(4) + '°',
@@ -6293,17 +6304,18 @@ async function fileBatchMyTsujiSearch() {
     statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
 
     const header = [
-        '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻',
+        '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
         '月齢','月齢アイコン',
-        '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明[始]時刻',
-        '日の出時刻','日の入時刻',
-        '常用薄明[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
+        '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明/BH[始]時刻',
+        'BH[終]/GH[始]時刻','日の出時刻','GH[終]時刻',
+        'GH[始]時刻','日の入時刻','GH[終]/BH[始]時刻',
+        '常用薄明/BH[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
         '天体ID','天体名','天体赤緯','天体赤経',
         '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高','観測点メモ',
         '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高','目的点メモ',
         '精度記号','精度角距離',
-        '方位角','視高度','視半径','天体方位角差','天体視高度差',
+        '方位角','視高度','視半径','検索中心方位角差','検索中心視高度差',
         '相手距離','相手方位','相手高度',
         '辻オフセット方位角','辻オフセット視高度','辻オフセット方位距離','辻オフセット視高距離',
         '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','標高グラフ',
@@ -8649,13 +8661,16 @@ async function startTsujiMeshSearch() {
                 (symbol === '-' && !appState.tsujiMeshSymDash)) return;
             const diffBaseAz = baseAz[ev.bestPix];
             const diffBaseAlt = baseAlt[ev.bestPix];
+            // 検索中心差の参照点(最良画素の基準+検索時のオフセット。線モードは線分への最近点)
+            const meshCtr = tsujiCenterRefPoint(rowAz, rowAlt, diffBaseAz, diffBaseAlt,
+                Number(_tsujiMeshCalc.offsetAz) || 0, Number(_tsujiMeshCalc.offsetAlt) || 0, _tsujiMeshCalc.centerMode);
             totalPix += ev.total;
             rows.push({
                 body, dateObj: dt,
                 symbol,
                 dist: rowDist, azimuth: rowAz, altitude: rowAlt,
-                azDiff: azDiffDeg(rowAz, diffBaseAz),
-                altDiff: rowAlt - diffBaseAlt,
+                azDiff: azDiffDeg(rowAz, meshCtr.az),
+                altDiff: rowAlt - meshCtr.alt,
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
@@ -8726,7 +8741,7 @@ function renderTsujiMeshResults() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>天体方位角差</th><th>天体視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
@@ -8754,8 +8769,8 @@ function renderTsujiMeshResults() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
-        { label: '天体方位角差', compare: (a, b) => a.azDiff - b.azDiff },
-        { label: '天体視高度差', compare: (a, b) => a.altDiff - b.altDiff },
+        { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
+        { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, []);
@@ -8986,6 +9001,19 @@ function setupTableSort(table, rowData, columns, renderRowFn, extraRows, opts) {
 function azDiffDeg(az, baseAz) {
     return ((az - baseAz + 540) % 360) - 180;
 }
+
+/** 検索中心の参照点を返す (検索中心方位角差/視高度差の基準)。
+ *  点モード=オフセット点(基準+オフセット)。線モード=基準点→オフセット点の線分への最近点
+ *  (度数平面の射影をクランプ。精度角距離と同じ参照点なので、常に 精度角距離 ≧ |視高度差| が成り立つ) */
+function tsujiCenterRefPoint(az, alt, baseAz, baseAlt, offsetAz, offsetAlt, centerMode) {
+    if (centerMode !== 'line') return { az: baseAz + offsetAz, alt: baseAlt + offsetAlt };
+    const dAz = azDiffDeg(baseAz + offsetAz, baseAz), dAlt = offsetAlt;
+    const pAz = azDiffDeg(az, baseAz), pAlt = alt - baseAlt;
+    const len2 = dAz * dAz + dAlt * dAlt;
+    let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+    s = Math.max(0, Math.min(1, s));
+    return { az: baseAz + s * dAz, alt: baseAlt + s * dAlt };
+}
 /** 符号つき角度の表示文字列 (+12.3456° / -0.1000°) */
 function fmtSignedDeg(d) {
     return (d >= 0 ? '+' : '') + d.toFixed(4) + '°';
@@ -9121,6 +9149,9 @@ async function startTsujiSearch() {
     // オフセットを加算した検索中心
     const targetAz = (baseAz + offsetAz + 360) % 360;
     const targetAlt = baseAlt + offsetAlt;
+    // 検索中心方位角差/視高度差の参照点(点=オフセット点 / 線=線分への最近点)
+    const searchCenterMode = appState.tsujiCenterMode;
+    const _ctrRef = (r) => tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, searchCenterMode);
 
     if (isNaN(baseAz) || isNaN(toleranceAz) || isNaN(baseAlt) || isNaN(toleranceAlt)) {
         statusEl.textContent = '(入力値エラー)';
@@ -9296,8 +9327,8 @@ async function startTsujiSearch() {
             rowData.push({
                 body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
-                azDiff: azDiffDeg(r.azimuth, baseAz),   // 天体方位角差(目的点=基準方位角より右=正)
-                altDiff: r.altitude - baseAlt,          // 天体視高度差(目的点=基準視高度より上=正)
+                azDiff: azDiffDeg(r.azimuth, _ctrRef(r).az),   // 検索中心方位角差(検索中心より右=正)
+                altDiff: r.altitude - _ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,   // この検索で使ったオフセット中心角
                 angularRadius: angR, moonAge, moonIcon,
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
@@ -9339,7 +9370,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>天体方位角差</th><th>天体視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -9369,8 +9400,8 @@ async function startTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
-        { label: '天体方位角差', compare: (a, b) => a.azDiff - b.azDiff },
-        { label: '天体視高度差', compare: (a, b) => a.altDiff - b.altDiff },
+        { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
+        { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, extraRows);
@@ -10327,6 +10358,7 @@ function formatMySetDateTime(ts) {
 // ---- Myセット×Googleスプレッドシート連携 (フェーズ3後半) ----
 
 let mySetSheetStates = {};   // 行アイコン用の実行時状態: setId -> 'checking'|'ok'|'stale'|'missing'|'error' (非永続)
+let mySetSheetTimes = {};    // 直近確認したシートのmodifiedTime(ISO): setId -> string (非永続。stale時の[New]表示用)
 
 /** Sheets API (v4) 呼び出しの共通処理 */
 async function sheetsApiFetch(path, method, bodyObj) {
@@ -10605,6 +10637,7 @@ async function checkAllMySetSheets() {
         try {
             const meta = await driveGetMeta(s.sheetId);
             if (!meta || meta.trashed) { mySetSheetStates[s.id] = 'missing'; continue; }
+            mySetSheetTimes[s.id] = meta.modifiedTime;
             mySetSheetStates[s.id] = (s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime) ? 'ok' : 'stale';
         } catch (e) {
             mySetSheetStates[s.id] = 'error';
@@ -10625,14 +10658,36 @@ function mySetRowIcon(s) {
     }
 }
 
-/** Myセット行の状態アイコン押下 */
-function mySetRowStatusClick(s) {
+/** Myセット行の状態アイコン押下: 画面の状態を信じず、押下時点のシートの更新日時を再確認(🕛)してから動作する。
+ *  再確認で差が新たに見つかった場合は実行せず、👎+[New]表示に更新して知らせる(もう一度押すと保存/読込を実行) */
+async function mySetRowStatusClick(s) {
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    if (mySetSheetStates[s.id] === 'checking') return;   // 処理中の多重押下は無視
     if (!s.sheetId || mySetSheetStates[s.id] === 'missing') {
         if (confirm(`Myセット（ID:${s.id}、${s.name}）のGoogleスプレッドシートを作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
         return;
     }
-    if (mySetSheetStates[s.id] === 'ok') { alert('Googleドライブの内容とこの端末の内容の同期が取れています。'); return; }
+    const stateBefore = mySetSheetStates[s.id];
+    mySetSheetStates[s.id] = 'checking';
+    renderMySetList();
+    let meta = null;
+    try { meta = await driveGetMeta(s.sheetId); } catch (e) {}
+    if (!meta || meta.trashed) {
+        mySetSheetStates[s.id] = 'missing';
+        renderMySetList();
+        if (confirm(`Myセット（ID:${s.id}、${s.name}）のスプレッドシートが見つかりません。\n新しく作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
+        return;
+    }
+    mySetSheetTimes[s.id] = meta.modifiedTime;
+    const inSync = !!(s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime);
+    mySetSheetStates[s.id] = inSync ? 'ok' : 'stale';
+    renderMySetList();
+    if (inSync) { alert('Googleドライブの内容とこの端末の内容の同期が取れています。'); return; }
+    if (stateBefore === 'ok') {
+        // 👍表示から押して差が新たに見つかったケース: 実行せずに知らせる(誤って上書きしないように)
+        alert('スプレッドシート側が更新されています([New]表示)。\nもう一度状態アイコンを押すと、保存/読込ラジオに従って更新します。');
+        return;
+    }
     if (s.saveMode === 'load') mySetLoadFromSheet(s);
     else mySetSaveToSheet(s);
 }
@@ -10777,6 +10832,18 @@ function updateMySetHeader() {
 }
 
 /** リスト描画 (先頭に既定のセット(ID:0)の固定行、以降はmySetsの行) */
+/** 行の「更新:」表示HTML: 差がある(stale)時はシート側の更新日時を併記し、シートが新しければ[New]を付ける */
+function mySetUpdatedHtml(s) {
+    let html = `更新: ${formatMySetDateTime(s.updatedAt)}`;
+    const t = mySetSheetTimes[s.id];
+    if (mySetSheetStates[s.id] === 'stale' && t) {
+        const tm = new Date(t).getTime();
+        const mark = (!s.updatedAt || tm > s.updatedAt) ? ' <span class="gdrive-sync-new">[New]</span>' : '';
+        html += `<br>シート: ${formatMySetDateTime(tm)}${mark}`;
+    }
+    return html;
+}
+
 function renderMySetList() {
     const container = document.getElementById('myset-list');
     if (!container) return;
@@ -10807,7 +10874,7 @@ function renderMySetList() {
             <label class="baseopt-radio" title="既定のセットは常に端末に保持されます"><input type="checkbox" checked disabled>:オフライン</label>
         </div>
         <div class="control-row">
-            <span class="mypoint-label">更新: ${formatMySetDateTime(home.updatedAt)}</span>
+            <span class="mypoint-label">${mySetUpdatedHtml(home)}</span>
         </div>
         <div class="control-row">
             <label class="mypoint-label">メモ:</label>
@@ -10844,7 +10911,7 @@ function renderMySetList() {
                 <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${s.id}" ${s.offline ? 'checked' : ''}>:オフライン</label>
             </div>
             <div class="control-row">
-                <span class="mypoint-label">更新: ${formatMySetDateTime(s.updatedAt)}</span>
+                <span class="mypoint-label">${mySetUpdatedHtml(s)}</span>
             </div>
             <div class="control-row">
                 <label class="mypoint-label">メモ:</label>
@@ -14214,15 +14281,16 @@ function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
     return { lat: lat2 * 180 / Math.PI, lng: ((lng2 * 180 / Math.PI + 540) % 360) - 180 };
 }
 
-/** 視界範囲(km)と水平画角(°)からタイル数を抑える適応ズーム (dem_png は z≤14) */
+/** 視界範囲(km)と水平画角(°)からタイル数を抑える適応ズーム (z15=DEM5A/B/Cチェーン、z≤14=dem_png) */
 function _smTerrainZoom(rangeKm, latDeg, aovH) {
     // 1タイルあたり ~ range/12 km を狙う (緯度36°で範囲33km強まで最詳細のz14=約7.7m画素を維持)。
     // 望遠(画角が狭い)ほど遠くの山がズームされて粗が見えるため、35mm換算の標準画角54.4°を基準に
-    // 画角比で目標をさらに細かくする(最大1/8まで。望遠では扇が細く、タイル数の増加は限定的)
+    // 画角比で目標をさらに細かくする(最大1/8まで。望遠では扇が細く、タイル数の増加は限定的)。
+    // z15はDEM5A→5B→5C(5mメッシュ)+z14フォールバック(欠損画素)のチェーンで取得する
     const aovScale = Math.max(0.125, Math.min(1, (Number(aovH) || 54.4) / 54.4));
     const span = Math.max(rangeKm / 12 * aovScale, 0.2);
     const z = Math.round(Math.log2(40075 * Math.cos(latDeg * Math.PI / 180) / span));
-    return Math.max(9, Math.min(14, z));
+    return Math.max(9, Math.min(15, z));
 }
 
 /** 地形の更新: 扇(位置・方位・画角・範囲)が変わった時のみ非同期取得。陰影は毎回反映 */
@@ -14314,12 +14382,28 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         _smOnTerrainFetched(gen, hf);
         return;
     }
-    // 実DEM: 適応ズームの dem_png タイル単位でグループ化
+    // 実DEM: 適応ズームのタイル単位でグループ化。
+    // z15はDEM5A→5B→5C(5mメッシュ)のチェーン+欠損画素はz14(dem_png)の親タイルへフォールバック
     const groups = {};
     for (let idx = 0; idx < samples.length; idx++) {
         const ti = _getTileInfo(samples[idx].lat, samples[idx].lng, zoom);
         const k = `${ti.x}_${ti.y}`;
-        (groups[k] || (groups[k] = { url: `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`, pts: [] })).pts.push({ idx, pX: ti.pX, pY: ti.pY, fX: ti.fX, fY: ti.fY });
+        let g = groups[k];
+        if (!g) {
+            g = groups[k] = { pts: [] };
+            if (zoom === 15) {
+                g.urls = GSI_DEM_SOURCES.filter(sc => sc.zoom === 15).map(sc => sc.url.replace('{z}', 15).replace('{x}', ti.x).replace('{y}', ti.y));
+                g.fbUrl = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/${ti.x >> 1}/${ti.y >> 1}.png`;
+            } else {
+                g.url = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`;
+            }
+        }
+        const pt = { idx, pX: ti.pX, pY: ti.pY, fX: ti.fX, fY: ti.fY };
+        if (zoom === 15) {
+            pt.fbX = (ti.x & 1) * 128 + ti.fX / 2;   // z14親タイル内の小数画素座標
+            pt.fbY = (ti.y & 1) * 128 + ti.fY / 2;
+        }
+        g.pts.push(pt);
     }
     const keys = Object.keys(groups);
     const total = keys.length;
@@ -14335,7 +14419,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         await Promise.all(keys.map(async (k) => {
             if (gen !== _smTerrainGen) return;
             const g = groups[k];
-            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, pts: g.pts });
+            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, urls: g.urls, fbUrl: g.fbUrl, pts: g.pts });
             if (gen !== _smTerrainGen) return;
             for (const e of res.elevs) samples[e.idx].elev = e.elev;
             tileDone();
@@ -14344,11 +14428,24 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         for (const k of keys) {
             if (gen !== _smTerrainGen) { _smSetTerrainProgress(-1, total); return; }
             const g = groups[k];
-            const img = await _getTileImageData(g.url);
-            for (const pt of g.pts) {
-                let h = 0;
-                if (img) { const v = _bilinearElevFromImg(img.data, pt.fX, pt.fY); h = (v === null) ? 0 : v; }
-                samples[pt.idx].elev = h;
+            if (g.urls) {
+                // z15チェーン+z14フォールバック(欠損画素のみ次のソースを参照。タイルは必要になるまで取得しない)
+                const imgs = new Array(g.urls.length).fill(undefined);
+                const getI = async (i) => { if (imgs[i] === undefined) imgs[i] = await _getTileImageData(g.urls[i]); return imgs[i]; };
+                let fbImg;
+                for (const pt of g.pts) {
+                    let v = null;
+                    for (let i = 0; i < g.urls.length && v === null; i++) { const im = await getI(i); if (im) v = _bilinearElevFromImg(im.data, pt.fX, pt.fY); }
+                    if (v === null) { if (fbImg === undefined) fbImg = await _getTileImageData(g.fbUrl); if (fbImg) v = _bilinearElevFromImg(fbImg.data, pt.fbX, pt.fbY); }
+                    samples[pt.idx].elev = (v === null) ? 0 : v;
+                }
+            } else {
+                const img = await _getTileImageData(g.url);
+                for (const pt of g.pts) {
+                    let h = 0;
+                    if (img) { const v = _bilinearElevFromImg(img.data, pt.fX, pt.fY); h = (v === null) ? 0 : v; }
+                    samples[pt.idx].elev = h;
+                }
             }
             tileDone();
         }

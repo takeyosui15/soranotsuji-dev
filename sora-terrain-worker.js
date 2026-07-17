@@ -19,6 +19,8 @@ GNU General Public License for more details.
 // ネットワークとデコードをワーカーにオフロードし、メインスレッドのプレビュー描画を軽く保つ。
 //
 // 受信: { reqId, url, pts: [{ idx, pX, pY, fX, fY }] }   (fX/fY=小数画素座標。バイリニア補間に使用)
+//   または z15チェーン形式 { reqId, urls: [DEM5A,5B,5C], fbUrl: z14親タイル, pts: [{ idx, fX, fY, fbX, fbY }] }
+//   (欠損画素はチェーンの次のソース→最後にz14親タイル(fbX/fbY=親タイル内の小数画素座標)を参照)
 // 返信: { reqId, elevs: [{ idx, elev }] }   (取得/デコード失敗時は elev=0)
 
 const POW2_8 = Math.pow(2, 8);
@@ -51,9 +53,11 @@ function bilinearElev(data, fX, fY) {
     return v00 * (1 - wx) * (1 - wy) + v10 * wx * (1 - wy) + v01 * (1 - wx) * wy + v11 * wx * wy;
 }
 
-self.onmessage = async (e) => {
-    const { reqId, url, pts } = e.data;
-    const out = new Array(pts.length);
+// タイル画像キャッシュ (ワーカーは再利用されるため、z14親タイル等の重複取得を避ける。上限8枚・先入れ先出し)
+const _tileCache = new Map();   // url -> Uint8ClampedArray(256×256×4) | null(取得失敗)
+async function loadTileData(url) {
+    if (_tileCache.has(url)) return _tileCache.get(url);
+    let data = null;
     try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -62,17 +66,48 @@ self.onmessage = async (e) => {
         const canvas = new OffscreenCanvas(256, 256);
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(bmp, 0, 0, 256, 256);
-        const img = ctx.getImageData(0, 0, 256, 256).data;
+        data = ctx.getImageData(0, 0, 256, 256).data;
+        if (bmp.close) bmp.close();
+    } catch (err) { data = null; }
+    if (_tileCache.size >= 8) _tileCache.delete(_tileCache.keys().next().value);
+    _tileCache.set(url, data);
+    return data;
+}
+
+self.onmessage = async (e) => {
+    const { reqId, url, urls, fbUrl, pts } = e.data;
+    const out = new Array(pts.length);
+    if (urls) {
+        // z15チェーン(DEM5A→5B→5C)+z14親タイルフォールバック。タイルは必要になるまで取得しない
+        const chainImgs = new Array(urls.length).fill(undefined);
+        const getChain = async (c) => { if (chainImgs[c] === undefined) chainImgs[c] = await loadTileData(urls[c]); return chainImgs[c]; };
+        let fbImg;
         for (let i = 0; i < pts.length; i++) {
             const p = pts[i];
-            const v = (p.fX !== undefined)
-                ? bilinearElev(img, p.fX, p.fY)
-                : elevFromRGB(img[(p.pY * 256 + p.pX) * 4], img[(p.pY * 256 + p.pX) * 4 + 1], img[(p.pY * 256 + p.pX) * 4 + 2]);
+            let v = null;
+            for (let c = 0; c < urls.length && v === null; c++) {
+                const img = await getChain(c);
+                if (img) v = bilinearElev(img, p.fX, p.fY);
+            }
+            if (v === null && fbUrl) {
+                if (fbImg === undefined) fbImg = await loadTileData(fbUrl);
+                if (fbImg) v = bilinearElev(fbImg, p.fbX, p.fbY);
+            }
             out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
         }
-        if (bmp.close) bmp.close();
-    } catch (err) {
-        for (let i = 0; i < pts.length; i++) out[i] = { idx: pts[i].idx, elev: 0 };
+        self.postMessage({ reqId, elevs: out });
+        return;
+    }
+    const img = await loadTileData(url);
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        let v = null;
+        if (img) {
+            v = (p.fX !== undefined)
+                ? bilinearElev(img, p.fX, p.fY)
+                : elevFromRGB(img[(p.pY * 256 + p.pX) * 4], img[(p.pY * 256 + p.pX) * 4 + 1], img[(p.pY * 256 + p.pX) * 4 + 2]);
+        }
+        out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
     }
     self.postMessage({ reqId, elevs: out });
 };
