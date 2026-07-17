@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.16 - 2026-07-18: fix: 宙の窓の最高点と目的点(+)のズレを解消(地形の高さ計算を基準視高度と同じ二半径厳密式に統一+格子を目的点にスナップ)・天体軌跡オフで天体中心の十字も非表示に
 Version 1.20.15 - 2026-07-17: fix: Myセット状態アイコン押下時にシート更新日時を再確認(🕛→[New]表示)・結果リストの差分列を「検索中心方位角差/視高度差」に改名+検索中心基準の値へ・宙の窓にz15 DEM5A/B/C導入(欠損はz14へフォールバック)・My辻検索File出力に時間帯+GH/BH境界時刻の列を追加
 Version 1.20.14 - 2026-07-17: fix: シート既定コメント3行化(デッサン08)・除外範囲の初期値15m・スマホでメニュー最下部が隠れる問題(dvh化)・標高/訪問者グラフのdpr鮮明化・宙の窓のリアル化(焦点距離考慮ズーム+望遠メッシュ細分化+バイリニア補間)
 Version 1.20.13 - 2026-07-17: fix: Myセット保存でシート先頭のコメント行(任意行数)を温存・スマホの再生「動画」/書き出しのdpr二重スケール崩れを修正・辻検索/辻メッシュの粗探索を安全スキップで高速化(結果不変)・追加CSV入力の重複判定を生値文字列比較に・宙の窓地形の高精細化(z14範囲拡大+メッシュ細分化)
@@ -71,7 +72,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.15';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.16';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -3273,6 +3274,16 @@ function _getTileInfo(lat, lng, zoom) {
 /** タイル画像データ(256×256 RGBA)から小数画素座標(fX,fY)の標高をバイリニア補間で返す。
  *  無効画素(データ無し)が4近傍に混じる場合は従来の最近傍参照へフォールバック(null=全て無効)。
  *  山頂がサンプル点に当たらず標高を取り逃す問題(最近傍参照)を緩和する。sora-terrain-worker.js に同一実装あり */
+/** タイル画像データから標高を1点参照する。nearest=trueは最近傍画素(getElevationと同じ参照)、それ以外はバイリニア補間 */
+function _smSampleElevFromImg(data, fX, fY, nearest) {
+    if (nearest) {
+        const x = Math.min(255, Math.floor(fX)), y = Math.min(255, Math.floor(fY));
+        const o = (y * 256 + x) * 4;
+        return _elevFromRGB(data[o], data[o + 1], data[o + 2]);
+    }
+    return _bilinearElevFromImg(data, fX, fY);
+}
+
 function _bilinearElevFromImg(data, fX, fY) {
     const gx = Math.min(255, Math.max(0, fX - 0.5));
     const gy = Math.min(255, Math.max(0, fY - 0.5));
@@ -12906,8 +12917,11 @@ function _smApplyMovBodies(frame, metas) {
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(m.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
             sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
         }
-        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(m.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
-        cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        // 天体軌跡オフの時は中心十字も非表示(通常描画の_smBuildBodiesと同じ扱い)
+        if (appState.soraTraj) {
+            const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(m.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+            cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        }
     });
     // 目的点マーカー(赤十字)は固定方向なので毎フレーム同じ
     _smAddTargetMarkers(cs);
@@ -14140,14 +14154,17 @@ function _smBuildBodies() {
     appState.bodies.forEach(body => {
         if (!body.visible) return;
         if (body.id === 'MilkyWay') {
-            // 天の川の基準点(中心座標/オフセット点=基本オプション)に、他天体と同じ天体色の固定画面サイズ十字
+            // 天の川の基準点(中心座標/オフセット点=基本オプション)に、他天体と同じ天体色の固定画面サイズ十字。
+            // 天体軌跡オフの時は実際の見た目の確認を優先して十字も非表示にする(名称表示は表示天体名チェックに従う)
             const gc = getFixedStarRaDec('MilkyWay');
             const ghor = Astronomy.Horizon(date, observer, gc.ra, gc.dec, refr);
             const gpos = _smDir(ghor.azimuth, ghor.altitude).multiplyScalar(_SM_BODY_R);
-            const gfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
-            const gcs = _SM_CROSS_PX * 2 * Math.tan(gfov / 2) / _smFinderH;
-            const gcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
-            gcross.scale.set(gcs, gcs, 1); gcross.position.copy(gpos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(gcross);
+            if (appState.soraTraj) {
+                const gfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+                const gcs = _SM_CROSS_PX * 2 * Math.tan(gfov / 2) / _smFinderH;
+                const gcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+                gcross.scale.set(gcs, gcs, 1); gcross.position.copy(gpos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(gcross);
+            }
             _smAddBodyName(body, gpos);
             return;   // 帯本体は背景球の写真＋天の川の環(線)で表現
         }
@@ -14171,10 +14188,13 @@ function _smBuildBodies() {
         }
         // 中心十字 (全天体・焦点距離/プレビューサイズに依らず ≈_SM_CROSS_PX の画面固定サイズ＝画面中心十字と同程度)。
         // sizeAttenuation:false のSpriteの画面高さ比 = scale/(2·tan(fov/2)) なので、px固定になるよう scale を逆算する。
-        const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
-        const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
-        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
-        cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        // 天体軌跡オフの時は実際の見た目の確認を優先して十字も非表示にする(天体の円盤・名称はそのまま)
+        if (appState.soraTraj) {
+            const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+            const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+            const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+            cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        }
         _smAddBodyName(body, pos);
     });
 
@@ -14301,7 +14321,8 @@ function _smUpdateTerrain() {
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const range = Math.max(1, Number(appState.soraViewRange) || 1);
     const zoom = _smTerrainZoom(range, appState.start.lat, aovH);
-    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${range}|${zoom}`;
+    const endKey = (appState.end && isFinite(appState.end.lat)) ? `${appState.end.lat.toFixed(6)},${appState.end.lng.toFixed(6)}` : '-';   // 目的点スナップの追従用
+    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${range}|${zoom}|${endKey}`;
     if (geomKey !== _smGeomKey) {
         _smGeomKey = geomKey;
         _smFetchTerrain(centerAz, aovH, range, zoom);
@@ -14363,16 +14384,39 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
     const nA = aovH > 180 ? 280 : 140, nR = aovH <= 20 ? 300 : 200, nearKm = 0.01;   // 0km近傍から
     const azHalf = aovH / 2 + 2;     // 余白2°
     const oLat = appState.start.lat, oLng = appState.start.lng;
+    // 目的点スナップ: 山頂(目的点)が格子の「間」に落ちると、頂点の三角形補間で山頂がわずかに
+    // 低く/ずれて描かれ、目的点マーカー(+)と最高点が合わない。目的点が扇の中にある場合は、
+    // 方位1列(格子全体を半列間隔以内で平行移動)+距離1環を目的点にぴったり合わせ、
+    // その頂点の緯度経度は球面近似ではなく目的点の実座標(WGS84)を使う
+    let snapI = -1, snapJ = -1, azShift = 0, snapDkm = 0;
+    const endPt = appState.end;
+    if (endPt && isFinite(endPt.lat) && isFinite(endPt.lng)) {
+        const dT = getDistanceWGS84(oLat, oLng, endPt.lat, endPt.lng) / 1000;   // km
+        const azT = calculateBearing(oLat, oLng, endPt.lat, endPt.lng);
+        const rel = ((azT - centerAz + 540) % 360) - 180;
+        if (dT > nearKm && dT <= rangeKm && Math.abs(rel) <= azHalf) {
+            const spacing = 2 * azHalf / nA;
+            snapI = Math.max(0, Math.min(nA, Math.round((rel + azHalf) / spacing)));
+            azShift = rel - (-azHalf + snapI * spacing);   // |azShift| ≤ 半列間隔
+            snapJ = Math.max(1, Math.min(nR, Math.round(nR * Math.pow((dT - nearKm) / Math.max(1e-9, rangeKm - nearKm), 1 / 1.5))));
+            snapDkm = dT;
+        }
+    }
     const samples = new Array((nA + 1) * (nR + 1));
     let p = 0;
     for (let j = 0; j <= nR; j++) {
         // 近傍を密に(1.5乗ランプ)。以前の2乗ランプ+nR=100では最遠端の頂点間隔がrange/50と粗く、
         // 目的の山(範囲の最遠端に来る)の稜線が丸まって見えたため、最遠端をrange/133へ細分化した
-        const rr = j / nR, dkm = nearKm + (rangeKm - nearKm) * Math.pow(rr, 1.5);
+        const rr = j / nR;
+        const dkm = (j === snapJ) ? snapDkm : nearKm + (rangeKm - nearKm) * Math.pow(rr, 1.5);
         for (let i = 0; i <= nA; i++) {
-            const a = centerAz + (-azHalf + 2 * azHalf * i / nA);
-            const d = _smDestPoint(oLat, oLng, a, dkm * 1000);
-            samples[p++] = { a, dkm, lat: d.lat, lng: d.lng, elev: 0 };
+            const a = centerAz + (-azHalf + 2 * azHalf * i / nA) + azShift;
+            if (i === snapI && j === snapJ) {
+                samples[p++] = { a, dkm, lat: endPt.lat, lng: endPt.lng, elev: 0, nearest: true };   // 山頂頂点は最近傍画素(=getElevationと同じ参照)
+            } else {
+                const d = _smDestPoint(oLat, oLng, a, dkm * 1000);
+                samples[p++] = { a, dkm, lat: d.lat, lng: d.lng, elev: 0 };
+            }
         }
     }
     const hf = { nA, nR, samples, centerAz };
@@ -14403,6 +14447,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
             pt.fbX = (ti.x & 1) * 128 + ti.fX / 2;   // z14親タイル内の小数画素座標
             pt.fbY = (ti.y & 1) * 128 + ti.fY / 2;
         }
+        if (samples[idx].nearest) pt.nearest = true;   // 山頂スナップ頂点は最近傍画素で参照
         g.pts.push(pt);
     }
     const keys = Object.keys(groups);
@@ -14435,15 +14480,15 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
                 let fbImg;
                 for (const pt of g.pts) {
                     let v = null;
-                    for (let i = 0; i < g.urls.length && v === null; i++) { const im = await getI(i); if (im) v = _bilinearElevFromImg(im.data, pt.fX, pt.fY); }
-                    if (v === null) { if (fbImg === undefined) fbImg = await _getTileImageData(g.fbUrl); if (fbImg) v = _bilinearElevFromImg(fbImg.data, pt.fbX, pt.fbY); }
+                    for (let i = 0; i < g.urls.length && v === null; i++) { const im = await getI(i); if (im) v = _smSampleElevFromImg(im.data, pt.fX, pt.fY, pt.nearest); }
+                    if (v === null) { if (fbImg === undefined) fbImg = await _getTileImageData(g.fbUrl); if (fbImg) v = _smSampleElevFromImg(fbImg.data, pt.fbX, pt.fbY, pt.nearest); }
                     samples[pt.idx].elev = (v === null) ? 0 : v;
                 }
             } else {
                 const img = await _getTileImageData(g.url);
                 for (const pt of g.pts) {
                     let h = 0;
-                    if (img) { const v = _bilinearElevFromImg(img.data, pt.fX, pt.fY); h = (v === null) ? 0 : v; }
+                    if (img) { const v = _smSampleElevFromImg(img.data, pt.fX, pt.fY, pt.nearest); h = (v === null) ? 0 : v; }
                     samples[pt.idx].elev = h;
                 }
             }
@@ -14485,7 +14530,8 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     const row = nA + 1;
     const obsElev = Number(appState.start.elev) || 0;
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
-    const Reff = getLocalEarthRadius(appState.start.lat) / (1 - k);
+    const Reff1 = getLocalEarthRadius(appState.start.lat) / (1 - k);
+    const r1 = Reff1 + obsElev;
     // 標高レンジ
     let minE = Infinity, maxE = -Infinity;
     for (const s of samples) { if (s.elev < minE) minE = s.elev; if (s.elev > maxE) maxE = s.elev; }
@@ -14495,12 +14541,19 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     const sE = Math.max(0, Math.min(100, Number(appState.soraElevShade) || 0)) / 50;   // 標高ヒルシェード適用度(1=従来)
     const sS = Math.max(0, Math.min(100, Number(appState.soraSunShade) || 0)) / 50;    // 太陽光ヒルシェード適用度(1=従来)
     const positions = new Float32Array(samples.length * 3);
-    // 1) 位置(ENU・曲率落差込み)を先に作る
+    // 1) 位置(ENU)を先に作る。頂点の見かけの高さ(z)は、基準視高度(calculateApparentAltitude)と
+    //    同じ「緯度別の局所半径2つを使う厳密三角形解」で求める。以前の単一半径の放物線近似では、
+    //    南北方向の局所半径差(3kmで約10m)の分だけ山頂が目的点マーカー(+)より高く/低く描かれ、
+    //    最高点と(+)がわずかに(0.1°程度)ずれて見えた
     for (let idx = 0; idx < samples.length; idx++) {
         const s = samples[idx], d = s.dkm * 1000, a = s.a * Math.PI / 180;
         const E = d * Math.sin(a), N = d * Math.cos(a);
-        const drop = d * d / (2 * Reff);
-        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = (s.elev - obsElev) - drop;
+        const Reff2 = getLocalEarthRadius(s.lat) / (1 - k);
+        const r2 = Reff2 + s.elev;
+        const c = d / ((Reff1 + Reff2) / 2);
+        const slant = Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(c));
+        const alt = Math.atan2(r2 * Math.sin(c) / slant, (r1 * r1 + slant * slant - r2 * r2) / (2 * r1 * slant)) - Math.PI / 2;
+        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = d * Math.tan(alt);
     }
     // 2) 扇グリッドの隣接差分から頂点法線を解析的に算出(上向きに正規化)→安定したヒルシェード
     const sx = sunVec.x, sy = sunVec.y, sz = sunVec.z;

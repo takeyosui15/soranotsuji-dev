@@ -39,6 +39,16 @@ function elevFromRGB(r, g, b) {
 
 // 小数画素座標(fX,fY)のバイリニア補間。script.js の _bilinearElevFromImg と同一実装。
 // 無効画素が4近傍に混じる場合は従来の最近傍参照へフォールバック(null=全て無効)。
+// 1点参照: p.nearest=true は最近傍画素(山頂スナップ頂点。getElevationと同じ参照)、それ以外はバイリニア補間
+function sampleElev(data, fX, fY, nearest) {
+    if (nearest) {
+        const x = Math.min(255, Math.floor(fX)), y = Math.min(255, Math.floor(fY));
+        const o = (y * 256 + x) * 4;
+        return elevFromRGB(data[o], data[o + 1], data[o + 2]);
+    }
+    return bilinearElev(data, fX, fY);
+}
+
 function bilinearElev(data, fX, fY) {
     const gx = Math.min(255, Math.max(0, fX - 0.5));
     const gy = Math.min(255, Math.max(0, fY - 0.5));
@@ -87,11 +97,11 @@ self.onmessage = async (e) => {
             let v = null;
             for (let c = 0; c < urls.length && v === null; c++) {
                 const img = await getChain(c);
-                if (img) v = bilinearElev(img, p.fX, p.fY);
+                if (img) v = sampleElev(img, p.fX, p.fY, p.nearest);
             }
             if (v === null && fbUrl) {
                 if (fbImg === undefined) fbImg = await loadTileData(fbUrl);
-                if (fbImg) v = bilinearElev(fbImg, p.fbX, p.fbY);
+                if (fbImg) v = sampleElev(fbImg, p.fbX, p.fbY, p.nearest);
             }
             out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
         }
@@ -104,7 +114,7 @@ self.onmessage = async (e) => {
         let v = null;
         if (img) {
             v = (p.fX !== undefined)
-                ? bilinearElev(img, p.fX, p.fY)
+                ? sampleElev(img, p.fX, p.fY, p.nearest)
                 : elevFromRGB(img[(p.pY * 256 + p.pX) * 4], img[(p.pY * 256 + p.pX) * 4 + 1], img[(p.pY * 256 + p.pX) * 4 + 2]);
         }
         out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
