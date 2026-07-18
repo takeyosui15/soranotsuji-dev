@@ -504,6 +504,10 @@ html {
 #btn-sora-mov-play { min-width: 72px; }
 #btn-sora-mov-play.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 #soramado-ctrl-body .baseopt-radio { color: #eee; }
+/* ctrlメニュー内の薄明ジャンプ(ダーク背景向けの文字色。レイアウトは薄明メニューと共通) */
+#sora-ctrl-twilight { max-width: 360px; margin: 4px auto; }
+#sora-ctrl-twilight .twilight-group-title,
+#sora-ctrl-twilight .shortcut-item label { color: #eee; }
 #btn-sora-export { min-width: 96px; }
 #btn-sora-export.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 

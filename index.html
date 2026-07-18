@@ -173,11 +173,20 @@ GNU General Public License for more details.
             <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>
             <div id="soramado-ctrl-body" class="hidden">
                 <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="カメラを縦位置(縦向き)か横位置(横向き)かで構えます(宙の窓メニューと連動)">カメラ位置:</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-orient-ctrl" value="landscape" checked>横</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-orient-ctrl" value="portrait">縦</label>
+                </div>
+                <div class="control-row">
                     <label class="input-label tsujisearch-label" title="焦点距離(mm):1〜3000">焦点距離(mm):</label>
                     <input type="number" id="input-sora-ctrl-focal-text" class="sora-mov-num" placeholder="1〜3000mm" step="0.5" min="1" max="3000" title="焦点距離(mm):1〜3000(手入力可。宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
-                    <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="6" max="3000" step="1" title="レンズの焦点距離(宙の窓メニューと連動)">
+                    <label class="input-label tsujisearch-label">焦点距離(選択):</label>
+                    <select id="input-sora-ctrl-focal-select" title="レンズの焦点距離(宙の窓メニューと連動)"></select>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="1" max="1000" step="1" title="レンズの焦点距離(1〜1000mm。1000mm超はテキスト/リストで指定。宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
                     <button id="btn-sora-ctrl-month-prev" class="nav-btn">◀◀</button>
@@ -193,6 +202,7 @@ GNU General Public License for more details.
                     <button id="btn-sora-ctrl-time-next" class="nav-btn">▶</button>
                     <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
                 </div>
+                <div id="sora-ctrl-twilight"></div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
                     <input type="number" id="input-sora-ctrl-offset-az" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360" title="基準方位角からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
@@ -302,7 +312,7 @@ GNU General Public License for more details.
                     <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="h264">:H.264 8-bit(MP4)</label>
                 </div>
                 <div class="control-row left-row">
-                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="webm">:H.264 8-bit(WebM)</label>
+                    <label class="baseopt-radio" title="WebM規格の標準コーデック(YouTube等でそのまま利用可)"><input type="radio" name="sora-exp-format" value="webm">:VP9(WebM)</label>
                 </div>
                 <div class="control-row center-row">
                     <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>
@@ -1341,9 +1351,9 @@ GNU General Public License for more details.
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-backup')">
                     <span>バックアップ/インポート</span>
-                    <span id="icon-sec-backup">▲</span>
+                    <span id="icon-sec-backup">▼</span>
                 </div>
-                <div id="sec-backup" class="section-content">
+                <div id="sec-backup" class="section-content closed">
                     <div class="control-row">
                         <button id="btn-backup" class="nav-btn main-btn">バックアップ</button>
                         <button id="btn-import" class="nav-btn main-btn">インポート</button>

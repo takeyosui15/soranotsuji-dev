@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.18 - 2026-07-18: fix: WebM書き出しをVP9標準化(H.264入りWebM廃止・YouTube対応)・Myセット状態アイコンは再確認+表示のみに(保存/読込は実行しない)・宙の窓ctrlメニューにカメラ位置/焦点距離リスト/薄明ジャンプを追加(デッサン05)・バックアップメニュー初期閉+ドライブ日時を年月日(曜)形式に(デッサン16)
 Version 1.20.17 - 2026-07-18: feat: 宙の窓の地形格子をDEM画素サイズ目標の適応密度に(頂点予算20万/望遠30万・望遠はランプ1.25乗で遠方に密度を寄せる。600mm・範囲5km級はDEM1画素粒度)
 Version 1.20.16 - 2026-07-18: fix: 宙の窓の最高点と目的点(+)のズレを解消(地形の高さ計算を基準視高度と同じ二半径厳密式に統一+格子を目的点にスナップ)・天体軌跡オフで天体中心の十字も非表示に
 Version 1.20.15 - 2026-07-17: fix: Myセット状態アイコン押下時にシート更新日時を再確認(🕛→[New]表示)・結果リストの差分列を「検索中心方位角差/視高度差」に改名+検索中心基準の値へ・宙の窓にz15 DEM5A/B/C導入(欠損はz14へフォールバック)・My辻検索File出力に時間帯+GH/BH境界時刻の列を追加
@@ -73,7 +74,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.17';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.18';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -809,7 +810,12 @@ function setupUI() {
 
     document.querySelectorAll('input[name="time-jump"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
-            if(e.target.checked) jumpToEvent(e.target.value);
+            if(e.target.checked) {
+                jumpToEvent(e.target.value);
+                // 宙の窓ctrlメニューの薄明ジャンプと選択状態を連動
+                const c = document.querySelector(`input[name="time-jump-ctrl"][value="${e.target.value}"]`);
+                if (c) c.checked = true;
+            }
         });
     });
 
@@ -2398,8 +2404,8 @@ function searchMoonAge(targetAge) {
     }
 }
 
-function uncheckTimeShortcuts() { 
-    document.querySelectorAll('input[name="time-jump"]').forEach(r => r.checked = false); 
+function uncheckTimeShortcuts() {
+    document.querySelectorAll('input[name="time-jump"], input[name="time-jump-ctrl"]').forEach(r => r.checked = false);
 }
 
 function stopMove() {
@@ -3601,26 +3607,30 @@ function updateTwilightData(startOfDay, observer) {
         const nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
         const astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
 
-        // 時刻DOM更新
-        document.getElementById('time-astro-dawn').innerText = astroDawn ? formatTime(astroDawn.date) : "--:--";
-        document.getElementById('time-naut-dawn').innerText  = nautDawn ? formatTime(nautDawn.date) : "--:--";
-        document.getElementById('time-yoake').innerText      = yoake ? formatTime(yoake.date) : "--:--";
-        document.getElementById('time-civil-dawn').innerText = civilDawn ? formatTime(civilDawn.date) : "--:--";
-        document.getElementById('time-bh-end-gh-start').innerText = bhEndGhStart ? formatTime(bhEndGhStart.date) : "--:--";
-        document.getElementById('time-tw-sunrise').innerText = sr ? formatTime(sr.date) : "--:--";
-        document.getElementById('time-gh-end').innerText     = ghEnd ? formatTime(ghEnd.date) : "--:--";
+        // 時刻DOM更新 (薄明メニューと宙の窓ctrlメニューのミラー(id末尾-ctrl)を一括更新)
+        const setT = (id, txt) => {
+            const el = document.getElementById(id); if (el) el.innerText = txt;
+            const c = document.getElementById(id + '-ctrl'); if (c) c.innerText = txt;
+        };
+        setT('time-astro-dawn', astroDawn ? formatTime(astroDawn.date) : "--:--");
+        setT('time-naut-dawn', nautDawn ? formatTime(nautDawn.date) : "--:--");
+        setT('time-yoake', yoake ? formatTime(yoake.date) : "--:--");
+        setT('time-civil-dawn', civilDawn ? formatTime(civilDawn.date) : "--:--");
+        setT('time-bh-end-gh-start', bhEndGhStart ? formatTime(bhEndGhStart.date) : "--:--");
+        setT('time-tw-sunrise', sr ? formatTime(sr.date) : "--:--");
+        setT('time-gh-end', ghEnd ? formatTime(ghEnd.date) : "--:--");
 
-        document.getElementById('time-gh-start').innerText   = ghStart ? formatTime(ghStart.date) : "--:--";
-        document.getElementById('time-tw-sunset').innerText  = ss ? formatTime(ss.date) : "--:--";
-        document.getElementById('time-gh-end-bh-start').innerText = ghEndBhStart ? formatTime(ghEndBhStart.date) : "--:--";
-        document.getElementById('time-civil-dusk').innerText = civilDusk ? formatTime(civilDusk.date) : "--:--";
-        document.getElementById('time-higure').innerText     = higure ? formatTime(higure.date) : "--:--";
-        document.getElementById('time-naut-dusk').innerText  = nautDusk ? formatTime(nautDusk.date) : "--:--";
-        document.getElementById('time-astro-dusk').innerText = astroDusk ? formatTime(astroDusk.date) : "--:--";
+        setT('time-gh-start', ghStart ? formatTime(ghStart.date) : "--:--");
+        setT('time-tw-sunset', ss ? formatTime(ss.date) : "--:--");
+        setT('time-gh-end-bh-start', ghEndBhStart ? formatTime(ghEndBhStart.date) : "--:--");
+        setT('time-civil-dusk', civilDusk ? formatTime(civilDusk.date) : "--:--");
+        setT('time-higure', higure ? formatTime(higure.date) : "--:--");
+        setT('time-naut-dusk', nautDusk ? formatTime(nautDusk.date) : "--:--");
+        setT('time-astro-dusk', astroDusk ? formatTime(astroDusk.date) : "--:--");
 
         // 日の出/入の視高度表示
-        document.getElementById('alt-tw-sunrise').innerText = sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--";
-        document.getElementById('alt-tw-sunset').innerText  = ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--";
+        setT('alt-tw-sunrise', sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--");
+        setT('alt-tw-sunset', ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--");
 
         // currentRiseSetDataに薄明データを追加
         currentRiseSetData.astro_dawn = astroDawn?.date;
@@ -10249,11 +10259,9 @@ function updateBackupDriveUI() {
         'ローカルストレージ: ' + (gd.lastDriveSize ? `${Math.round(gd.lastDriveSize / 1024).toLocaleString('ja-JP')}KB` : '-');
 }
 
-/** ドライブ日時の表示 (例: 2026/02/09 19:32:16) */
+/** ドライブ日時の表示 (例: 2026年02月09日(木) 19:32:16。デッサン16に合わせMyセットの日時表示と同形式) */
 function formatGdriveDateTime(iso) {
-    const d = new Date(iso);
-    const p = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    return formatMySetDateTime(new Date(iso).getTime());
 }
 
 /** 宙の辻フォルダ名の「登録」ボタン: 検証して保存し、ドライブ上のフォルダは名前変更(リネーム)する */
@@ -10664,14 +10672,15 @@ function mySetRowIcon(s) {
     if (mySetSheetStates[s.id] === 'checking') return ['🕛', 'スプレッドシートを処理中...'];
     if (!s.sheetId || mySetSheetStates[s.id] === 'missing') return ['😢', 'スプレッドシートがありません(押下で作成して保存)'];
     switch (mySetSheetStates[s.id]) {
-        case 'ok':       return ['👍', 'スプレッドシートと同期が取れています'];
-        case 'error':    return ['❌', 'スプレッドシートの確認でエラーが発生しました(押下で保存/読込を再実行)'];
-        default:         return ['👎', '端末とスプレッドシートに差がある可能性があります(押下で保存/読込ラジオに従って更新)'];
+        case 'ok':       return ['👍', 'スプレッドシートと同期が取れています(押下で更新日時を再確認)'];
+        case 'error':    return ['❌', 'スプレッドシートの確認でエラーが発生しました(押下で再確認)'];
+        default:         return ['👎', '端末とスプレッドシートに差があります(押下で更新日時を再確認。更新はチェックを入れて更新ボタン)'];
     }
 }
 
-/** Myセット行の状態アイコン押下: 画面の状態を信じず、押下時点のシートの更新日時を再確認(🕛)してから動作する。
- *  再確認で差が新たに見つかった場合は実行せず、👎+[New]表示に更新して知らせる(もう一度押すと保存/読込を実行) */
+/** Myセット行の状態アイコン押下: 押下時点のシートの更新日時を再確認(🕛)し、状態(👍/👎/❌)の表示を
+ *  更新するだけで、保存/読込は実行しない(保存か読込かはユーザーが決めること。実行はチェック+更新ボタンで)。
+ *  例外はシート未紐付け/消失時のみで、この場合は従来どおり作成の確認を出す */
 async function mySetRowStatusClick(s) {
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
     if (mySetSheetStates[s.id] === 'checking') return;   // 処理中の多重押下は無視
@@ -10679,7 +10688,6 @@ async function mySetRowStatusClick(s) {
         if (confirm(`Myセット（ID:${s.id}、${s.name}）のGoogleスプレッドシートを作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
         return;
     }
-    const stateBefore = mySetSheetStates[s.id];
     mySetSheetStates[s.id] = 'checking';
     renderMySetList();
     let meta = null;
@@ -10693,15 +10701,8 @@ async function mySetRowStatusClick(s) {
     mySetSheetTimes[s.id] = meta.modifiedTime;
     const inSync = !!(s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime);
     mySetSheetStates[s.id] = inSync ? 'ok' : 'stale';
-    renderMySetList();
-    if (inSync) { alert('Googleドライブの内容とこの端末の内容の同期が取れています。'); return; }
-    if (stateBefore === 'ok') {
-        // 👍表示から押して差が新たに見つかったケース: 実行せずに知らせる(誤って上書きしないように)
-        alert('スプレッドシート側が更新されています([New]表示)。\nもう一度状態アイコンを押すと、保存/読込ラジオに従って更新します。');
-        return;
-    }
-    if (s.saveMode === 'load') mySetLoadFromSheet(s);
-    else mySetSaveToSheet(s);
+    renderMySetList();   // 差がある場合は👎+「シート: 日時[New]」の表示更新のみ
+    if (inSync) alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
 }
 
 /** 0段目ヘッダの一括状態アイコン (既定のセット含む全行👍なら👍、1つでも差があれば👎) */
@@ -12737,8 +12738,57 @@ function soraPopulateSelects() {
     if (ss && !ss.options.length) SORA_SENSORS.forEach(s => { const o = document.createElement('option'); o.value = s.key; o.textContent = s.name; ss.appendChild(o); });
     const fs = document.getElementById('input-sora-focal-select');
     if (fs && !fs.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fs.appendChild(o); });
+    const fsc = document.getElementById('input-sora-ctrl-focal-select');
+    if (fsc && !fsc.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fsc.appendChild(o); });
     const fn = document.getElementById('input-sora-fnum-select');
     if (fn && !fn.options.length) SORA_FNUMBERS.forEach((f, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = 'F' + f; fn.appendChild(o); });
+}
+
+/** 宙の窓ctrlメニューの薄明ジャンプ(夜明/日暮のグリッド)を生成する。薄明メニューと同じ構成で、
+ *  時刻表示は updateTwilightData がミラー更新し(id末尾-ctrl)、選択は薄明メニューのラジオと連動する */
+function setupSoraCtrlTwilight() {
+    const host = document.getElementById('sora-ctrl-twilight');
+    if (!host || host.childElementCount) return;
+    const DAWN = [
+        ['astro_dawn', '天文薄明[始]', 'time-astro-dawn', '(-18°)'],
+        ['naut_dawn', '航海薄明[始]', 'time-naut-dawn', '(-12°)'],
+        ['yoake', '夜明', 'time-yoake', '(-7°21′40″)'],
+        ['civil_dawn', '常用薄明<br>/BH[始]', 'time-civil-dawn', '(-6°)'],
+        ['bh_end_gh_start', 'BH[終]<br>/GH[始]', 'time-bh-end-gh-start', '(-4°)'],
+        ['tw_sunrise', '日の出', 'time-tw-sunrise', `(<span id="alt-tw-sunrise-ctrl">--</span>°)`],
+        ['gh_end', 'GH[終]', 'time-gh-end', '(+6°)'],
+    ];
+    const DUSK = [
+        ['gh_start', 'GH[始]', 'time-gh-start', '(+6°)'],
+        ['tw_sunset', '日の入', 'time-tw-sunset', `(<span id="alt-tw-sunset-ctrl">--</span>°)`],
+        ['gh_end_bh_start', 'GH[終]<br>/BH[始]', 'time-gh-end-bh-start', '(-4°)'],
+        ['civil_dusk', '常用薄明<br>/BH[終]', 'time-civil-dusk', '(-6°)'],
+        ['higure', '日暮', 'time-higure', '(-7°21′40″)'],
+        ['naut_dusk', '航海薄明[終]', 'time-naut-dusk', '(-12°)'],
+        ['astro_dusk', '天文薄明[終]', 'time-astro-dusk', '(-18°)'],
+    ];
+    const grp = (title, items) => `
+        <div class="twilight-group">
+            <div class="twilight-group-title">${title}</div>
+            <div class="twilight-grid">${items.map(([v, name, tid, alt]) => `
+                <div class="shortcut-item">
+                    <input type="radio" name="time-jump-ctrl" id="jump-ctrl-${v}" class="mystars-radio" value="${v}">
+                    <label for="jump-ctrl-${v}">
+                        <span class="shortcut-name">${name}</span>
+                        <span class="shortcut-detail"><span id="${tid}-ctrl">--:--</span> <span class="shortcut-alt">${alt}</span></span>
+                    </label>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    host.innerHTML = grp('夜明', DAWN) + grp('日暮', DUSK);
+    host.querySelectorAll('input[name="time-jump-ctrl"]').forEach(r => {
+        r.addEventListener('change', (e) => {
+            if (!e.target.checked) return;
+            jumpToEvent(e.target.value);
+            const m = document.querySelector(`input[name="time-jump"][value="${e.target.value}"]`);
+            if (m) m.checked = true;   // 薄明メニュー側の選択状態も連動
+        });
+    });
 }
 
 /** appState → フォーム値・算出表示を反映 (フォーカス中の入力は保護) */
@@ -12755,6 +12805,9 @@ function soraSyncUI() {
     txt('sora-focal-label', appState.soraFocal + 'mm');
     set('input-sora-ctrl-focal', appState.soraFocal);
     set('input-sora-ctrl-focal-text', appState.soraFocal);
+    set('input-sora-ctrl-focal-select', String(appState.soraFocal));
+    const orientRC = document.querySelector(`input[name="sora-orient-ctrl"][value="${appState.soraOrient}"]`);
+    if (orientRC) orientRC.checked = true;
     set('input-sora-ctrl-offset-az', Number(appState.soraOffsetAz).toFixed(4));
     set('input-sora-ctrl-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
     set('input-sora-fnum-select', String(appState.soraFNumberIdx));
@@ -13216,15 +13269,17 @@ function soraExportStill(fmt) {
     }, fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92);
 }
 
-/** 選択形式のMIME候補。h264=H.264のMP4(非対応はWebMへ)、webm=H.264のWebM(非対応はVP9等のWebMへ) */
+/** 選択形式のMIME候補。h264=H.264のMP4(非対応はVP9等のWebMへ)、webm=VP9のWebM(非対応はVP8等へ)。
+ *  注意: WebM規格の映像コーデックはVP8/VP9/AV1のみ。「H.264入りWebM」はChrome独自の非標準構成で、
+ *  YouTube等の外部サービスが処理できないため、書き出しには一切使わない */
 function soraExpPickMime(fmt) {
     if (typeof MediaRecorder === 'undefined') return null;
     const wanted = fmt === 'webm'
-        ? ['video/webm;codecs=h264']
+        ? ['video/webm;codecs=vp9']
         : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E'];
     const fallback = fmt === 'webm'
-        ? ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
-        : ['video/webm;codecs=h264', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        ? ['video/webm;codecs=vp8', 'video/webm']
+        : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
     for (const m of wanted) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: false }; } catch (_) {} }
     for (const m of fallback) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: true }; } catch (_) {} }
     return null;
@@ -13282,10 +13337,10 @@ function soraExportVideo(fmt) {
     const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
     const fps = Number(appState.soraMovFps) || 30;
     const durSec = Math.ceil(n / fps);
-    const codecName = fmt === 'webm' ? 'H.264(WebM)' : 'H.264(MP4)';
+    const codecName = fmt === 'webm' ? 'VP9(WebM)' : 'H.264(MP4)';
     const msg = (picked.fellBack
-        ? (fmt === 'webm' ? 'お使いのブラウザはH.264のWebM書き出しに対応していないため、VP9等のWebM形式で出力します。\n'
-                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM形式で出力します。\n`)
+        ? (fmt === 'webm' ? 'お使いのブラウザはVP9のWebM書き出しに対応していないため、VP8のWebM形式で出力します。\n'
+                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM(VP9等)形式で出力します。\n`)
         : '') +
         `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
     if (!confirm(msg)) return;
@@ -13460,6 +13515,7 @@ function setupSoramadoControls() {
     const selH = (id, key, parse) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = parse(el.value); after(); }); };
     selH('input-sora-sensor', 'soraSensorKey', v => v);
     selH('input-sora-focal-select', 'soraFocal', v => parseFloat(v));   // 7.5mm等の小数焦点距離に対応
+    selH('input-sora-ctrl-focal-select', 'soraFocal', v => parseFloat(v));   // ctrlメニュー側(宙の窓メニューと連動)
     selH('input-sora-fnum-select', 'soraFNumberIdx', v => parseInt(v));
     // 焦点距離(mm)テキストボックス: 手入力(0.5刻み)。リスト・スライダー・コントロールメニューと連動
     for (const fid of ['input-sora-focal-text', 'input-sora-ctrl-focal-text']) {
@@ -13481,7 +13537,7 @@ function setupSoramadoControls() {
     const chkH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = el.checked; after(); }); };
     chkH('chk-sora-fisheye', 'soraFisheye');
     sliderH('input-sora-fisheye-slider', 'soraFisheyeStrength');
-    document.querySelectorAll('input[name="sora-orient"]').forEach(r => {
+    document.querySelectorAll('input[name="sora-orient"], input[name="sora-orient-ctrl"]').forEach(r => {
         r.addEventListener('change', () => { if (r.checked) { appState.soraOrient = r.value; after(); } });
     });
     document.querySelectorAll('input[name="sora-fisheye-shape"]').forEach(r => {
@@ -13499,6 +13555,7 @@ function setupSoramadoControls() {
         syncBottomPanels();   // 辻検索結果の位置替え(最大化中は上1/3)・プレビュー再描画・地図センタリング
     });
     // プレビュー内コントロールメニュー(開閉・焦点距離・日付/時刻)。開閉状態は保存しない(初期状態:閉)
+    setupSoraCtrlTwilight();   // 薄明ジャンプ(夜明/日暮)のグリッドを生成
     const ctrlHeader = document.getElementById('soramado-ctrl-header');
     if (ctrlHeader) ctrlHeader.addEventListener('click', () => {
         const body = document.getElementById('soramado-ctrl-body');
