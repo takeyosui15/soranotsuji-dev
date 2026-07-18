@@ -310,7 +310,7 @@ let appState = {
     soraSensorKey: 'fullframe',
     soraAspectW: 3,
     soraAspectH: 2,
-    soraFocal: 35,
+    soraFocal: 24,
     soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
     soraFocusDist: 1000,
     soraFisheye: false,
@@ -1079,6 +1079,10 @@ function setupUI() {
     // URL取得ボタン: ポップアップダイアログ表示
     document.getElementById('btn-url-location').onclick = () => toggleUrlPanel('location');
     document.getElementById('btn-url-tsuji').onclick = () => toggleUrlPanel('tsuji');
+    const tsujiFileBtn = document.getElementById('btn-tsuji-file');
+    if (tsujiFileBtn) tsujiFileBtn.onclick = fileTsujiSearchCsv;
+    const tmFileBtn = document.getElementById('btn-tsujimesh-file');
+    if (tmFileBtn) tmFileBtn.onclick = fileTsujiMeshCsv;
     // URL取得ダイアログ: 項目クリック
     document.getElementById('url-picker-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -1560,7 +1564,7 @@ function normalizeAppState() {
     // 宙の窓: 数値の範囲・型
     appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
     appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
-    appState.soraFocal = num(appState.soraFocal, 35, 1, 3000);
+    appState.soraFocal = num(appState.soraFocal, 24, 1, 3000);
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
     appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 300000);
     appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
@@ -5748,11 +5752,11 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 
 /** 単一のMy辻検索行を実行し、body単位の結果配列を返す。
  *  chunkDoneCb は1チャンク (365日分) 完了ごとに呼ばれる (進捗バー用) */
-async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, chunkDoneCb) {
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, chunkDoneCb, obsOverride, tgtOverride) {
     const obsSource = snapshotObs || appState.myObservations;
     const tgtSource = snapshotTgt || appState.myTargets;
-    const obs = obsSource.find(o => o.id === t.obsId);
-    const tgt = tgtSource.find(g => g.id === t.tgtId);
+    const obs = obsOverride || obsSource.find(o => o.id === t.obsId);
+    const tgt = tgtOverride || tgtSource.find(g => g.id === t.tgtId);
     if (!obs || !tgt) return null;
 
     const observerData = {
@@ -5849,6 +5853,8 @@ async function decorateMyTsujiResults(results) {
         const phase = Astronomy.MoonPhase(r.time);
         const moonAge = (phase / 360) * SYNODIC_MONTH;
         const moonIcon = moonIcons[Math.round(phase / 45) % 8];
+        let moonIllum = 0;
+        try { moonIllum = Astronomy.Illumination('Moon', r.time).phase_fraction * 100; } catch (_) {}
         let symbol;
         if (r.dist <= 0.125) symbol = '◎';
         else if (r.dist <= 0.25) symbol = '○';
@@ -5899,7 +5905,7 @@ async function decorateMyTsujiResults(results) {
             moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2));
             moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
         } catch (_) {}
-        decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, angularRadius, timeCategory,
+        decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, moonIllum, angularRadius, timeCategory,
                  elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr });
     }
     return decorated;
@@ -6029,7 +6035,7 @@ async function runBatchMyTsujiSearch() {
         <th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th>
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
-        <th>月齢</th><th>月齢アイコン</th>
+        <th>月齢</th><th>月齢アイコン</th><th>月輝面比</th>
         <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
@@ -6063,6 +6069,7 @@ async function runBatchMyTsujiSearch() {
             <td>${r.moonsetStr}</td>
             <td>${r.moonAge.toFixed(1)}</td>
             <td>${r.moonIcon}</td>
+            <td>${(r.moonIllum ?? 0).toFixed(1)}%</td>
             <td>${r.azimuth.toFixed(4)}°</td>
             <td>${r.altitude.toFixed(4)}°</td>
             <td>${angRDisplay}</td>
@@ -6109,6 +6116,7 @@ async function runBatchMyTsujiSearch() {
         { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
         { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
         { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
@@ -6222,6 +6230,7 @@ function buildMyTsujiCsvRow(r) {
         fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
         r.moonAge.toFixed(1),
         r.moonIcon,
+        (r.moonIllum ?? 0).toFixed(1) + '%',
         fmtHms(astroDawn), fmtHms(nautDawn), fmtHms(yoake), fmtHms(civilDawn),
         fmtHms(bhEndGhStart), fmtHms(sr), fmtHms(ghEnd),
         fmtHms(ghStart), fmtHms(ss), fmtHms(ghEndBhStart),
@@ -6331,11 +6340,16 @@ async function fileBatchMyTsujiSearch() {
     }
 
     statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+    downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
+    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+}
 
+/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通) */
+function downloadTsujiResultCsv(decorated, filename) {
     const header = [
         '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
-        '月齢','月齢アイコン',
+        '月齢','月齢アイコン','月輝面比',
         '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明/BH[始]時刻',
         'BH[終]/GH[始]時刻','日の出時刻','GH[終]時刻',
         'GH[始]時刻','日の入時刻','GH[終]/BH[始]時刻',
@@ -6365,10 +6379,72 @@ async function fileBatchMyTsujiSearch() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+}
+
+/** 辻検索メニューのFile取得: 現在の辻検索条件で検索を実行し、結果をCSVでダウンロードする。
+ *  列構成はMy辻検索のFile取得と共通(デッサン03)。辻検索ID/名/メモ・観測点/目的点IDは空白 */
+let _tsujiFileRunning = false;
+async function fileTsujiSearchCsv() {
+    if (_tsujiFileRunning) return;
+    const baseAz = appState.tsujiSearchBaseAz, baseAlt = appState.tsujiSearchBaseAlt;
+    if (isNaN(baseAz) || isNaN(baseAlt)) return alert('方位角・視高度・許容範囲を正しく入力してください');
+    if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？')) return;
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    if (!visibleBodies.length) return alert('表示天体がありません');
+    const t = {
+        id: '', name: '', memo: '',
+        days: appState.tsujiSearchDays,
+        baseAz, baseAlt,
+        offsetAz: appState.tsujiSearchOffsetAz || 0, offsetAlt: appState.tsujiSearchOffsetAlt || 0,
+        toleranceAz: appState.tsujiSearchToleranceAz, toleranceAlt: appState.tsujiSearchToleranceAlt,
+        centerMode: appState.tsujiCenterMode === 'line' ? 'line' : 'point',
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,
+        bodyIds: visibleBodies.map(b => b.id).join(':'),
+        moonFilter: appState.tsujiMoonFilterEnabled, moonBase: appState.tsujiMoonBase, moonTolerance: appState.tsujiMoonTolerance,
+        accuracyFilter: appState.tsujiAccuracyFilterEnabled, accDblCircle: appState.tsujiAccDblCircle, accCircle: appState.tsujiAccCircle, accTriangle: appState.tsujiAccTriangle, accDash: appState.tsujiAccDash,
+        elevationOption: appState.tsujiElevationOption, elevOK: appState.tsujiElevOK, elevNG: appState.tsujiElevNG,
+        timeFilter: appState.tsujiTimeFilter,
+        startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset,
+        endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
+    };
+    const obs = { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' };
+    const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
+    _tsujiFileRunning = true;
+    const btn = document.getElementById('btn-tsuji-file');
+    if (btn) btn.classList.add('active');
+    try {
+        showTsujiPanelForMyTsuji('辻検索結果 (File出力)');
+        const statusEl = document.getElementById('tsujisearch-status');
+        document.getElementById('tsujisearch-content').innerHTML = '';
+        statusEl.textContent = '⏳ File出力処理中...';
+        const batchStartDate = new Date(appState.currentDate);
+        batchStartDate.setHours(0, 0, 0, 0);
+        const totalChunks = Math.max(1, visibleBodies.length) * Math.max(1, Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS));
+        let doneChunks = 0;
+        setTsujiProgress(0, totalChunks);
+        const res = await executeSingleMyTsujiSearch(t, batchStartDate.getTime(), null, null,
+            () => { doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);
+        hideTsujiProgress();
+        const allResults = [];
+        if (res) for (const br of res.bodyResults) for (const r of br.results) {
+            allResults.push({ tsuji: t, obs, tgt, body: br.body, time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist });
+        }
+        const decorated = await decorateMyTsujiResults(allResults);
+        if (!decorated.length) { statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
+        statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+        downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
+        statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+    } catch (e) {
+        console.error('fileTsujiSearchCsv:', e);
+        alert('File取得に失敗しました: ' + (e && e.message ? e.message : e));
+    } finally {
+        _tsujiFileRunning = false;
+        hideTsujiProgress();
+        if (btn) btn.classList.remove('active');
+    }
 }
 
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */
@@ -7911,6 +7987,7 @@ function _tmJumpToHit(pix, h) {
  *  行クリック(タップ)で該当行を結果リストで選択して観測点をその画素に移動する。
  *  ホバーが外れても最後の内容を保持し、別の画素のホバー/タップで更新する
  *  (メッシュマーカーの確定ポップアップ表示中は確定画素に固定し、ホバーでは更新しない)。 */
+const _tmDetailAstroCache = new Map();   // dayMs -> { tw, srStr, ssStr, mrStr, msStr } (再検索でクリア)
 function _tmUpdateDetailList(pix) {
     const box = document.getElementById('tsujimesh-detail');
     if (!box || pix === _tmDetailPix) return;
@@ -7927,29 +8004,77 @@ function _tmUpdateDetailList(pix) {
     const body = document.getElementById('tsujimesh-detail-body');
     body.innerHTML = '';
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
+    const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+    // 画素を観測点として日毎の出没・薄明を計算(結果は日単位でキャッシュ。画素間の位置差≒10mの影響は無視できる)
+    const pixTotal = (_tsujiMeshPix.elev[pix] || 0) + (Number(appState.startHeight) || 0);
+    const observer = new Astronomy.Observer(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix], pixTotal);
+    const astroOf = (dt) => {
+        const d0 = new Date(dt); d0.setHours(0, 0, 0, 0);
+        let a = _tmDetailAstroCache.get(d0.getTime());
+        if (!a) {
+            a = { tw: computeDayTwilight(d0, observer), day: d0 };
+            try {
+                a.srStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, d0, 1));
+                a.ssStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, -1, d0, 1));
+                a.mrStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, d0, 2));
+                a.msStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, d0, 2));
+            } catch (_) { a.srStr = a.ssStr = a.mrStr = a.msStr = '--:--:--'; }
+            _tmDetailAstroCache.set(d0.getTime(), a);
+        }
+        return a;
+    };
+    const C = _tsujiMeshCalc;
+    const visFlags = window._tmLastVisFlags;
+    const elevOn = !!appState.tsujiMeshElevationOption && !!visFlags;
     // 行の表示値を先に確定してからテーブルを組み立てる(見出しソートで再描画するため)。
     // defIdx = 既定の並び(表示天体毎グルーピング・天体内は精度角距離昇順)のindex(マーク列のソートに使用)
     const rows = hits.map((h, i) => {
         const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
         const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
         const dt = new Date(timeMs);
+        const a = astroOf(dt);
+        const phase = Astronomy.MoonPhase(dt);
+        let moonIllum = 0;
+        try { moonIllum = Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) {}
+        const az = ref ? ref.az : null, alt = ref ? ref.alt : null;
+        let azD = null, altD = null;
+        if (az !== null && C) {
+            const ctr = tsujiCenterRefPoint(az, alt, C.baseAz[pix], C.baseAlt[pix],
+                Number(C.offsetAz) || 0, Number(C.offsetAlt) || 0, C.centerMode);
+            azD = azDiffDeg(az, ctr.az); altD = alt - ctr.alt;
+        }
         return { h, defIdx: i, timeMs, dist, dt, sym: _tmAccSymbol(dist),
                  dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
-                 dowStr: `(${dows[dt.getDay()]})`, timeStr: _tmFmtTimeMs2(timeMs) };
+                 dowStr: `(${dows[dt.getDay()]})`, timeStr: _tmFmtTimeMs2(timeMs),
+                 timeCategory: classifyTimeCategory(dt, a.tw, a.day),
+                 srStr: a.srStr, ssStr: a.ssStr, mrStr: a.mrStr, msStr: a.msStr,
+                 moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum,
+                 az, alt, angR: getBodyAngularRadius(h.row.body.id, dt, observer),
+                 azD, altD, mwOff: Number(appState.mwOffsetAngle) || 0,
+                 elevStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-' };
     });
     const renderRow = (r) => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
         tr.style.color = r.h.row.body.color;
-        tr.innerHTML = `<td>${r.h.star ? '★' : '・'}</td><td>${escapeHtml(r.h.row.body.id)}</td><td>${escapeHtml(r.h.row.body.name)}</td>` +
+        const angRDisplay = BODY_RADIUS_KM[r.h.row.body.id] ? r.angR.toFixed(3) + '°' : '-.---°';
+        tr.innerHTML = `<td>${r.h.star ? '⭐︎' : '-'}</td><td>${escapeHtml(r.h.row.body.id)}</td><td>${escapeHtml(r.h.row.body.name)}</td>` +
             `<td>${r.sym}</td><td>${r.dist.toFixed(5)}°</td>` +
-            `<td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td>`;
+            `<td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td>` +
+            `<td>${escapeHtml(r.timeCategory)}</td><td>${r.srStr}</td><td>${r.ssStr}</td><td>${r.mrStr}</td><td>${r.msStr}</td>` +
+            `<td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.moonIllum.toFixed(1)}%</td>` +
+            `<td>${r.az !== null ? r.az.toFixed(4) + '°' : '-'}</td><td>${r.alt !== null ? r.alt.toFixed(4) + '°' : '-'}</td><td>${angRDisplay}</td>` +
+            `<td>${r.azD !== null ? fmtSignedDeg(r.azD) : '-'}</td><td>${r.altD !== null ? fmtSignedDeg(r.altD) : '-'}</td>` +
+            `<td>${r.mwOff.toFixed(4)}°</td><td>${escapeHtml(r.elevStatus)}</td>`;
         tr.addEventListener('click', () => _tmJumpToHit(pix, r.h));
         return tr;
     };
     const table = document.createElement('table');
     table.className = 'td-table';
-    table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th>' +
+        '<th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th>' +
+        '<th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th>' +
+        '<th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr></thead>';
     const tbody = document.createElement('tbody');
     rows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
@@ -7966,6 +8091,21 @@ function _tmUpdateDetailList(pix) {
         { label: '日付', compare: (a, b) => a.timeMs - b.timeMs },
         { label: '曜日', compare: (a, b) => a.dt.getDay() - b.dt.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
+        { label: '日の出時刻', compare: (a, b) => a.srStr.localeCompare(b.srStr) },
+        { label: '日の入時刻', compare: (a, b) => a.ssStr.localeCompare(b.ssStr) },
+        { label: '月の出時刻', compare: (a, b) => a.mrStr.localeCompare(b.mrStr) },
+        { label: '月の入時刻', compare: (a, b) => a.msStr.localeCompare(b.msStr) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => a.moonIllum - b.moonIllum },
+        { label: '方位角', compare: (a, b) => (a.az ?? 0) - (b.az ?? 0) },
+        { label: '視高度', compare: (a, b) => (a.alt ?? 0) - (b.alt ?? 0) },
+        { label: '視半径', compare: (a, b) => a.angR - b.angR },
+        { label: '検索中心方位角差', compare: (a, b) => (a.azD ?? 0) - (b.azD ?? 0) },
+        { label: '検索中心視高度差', compare: (a, b) => (a.altD ?? 0) - (b.altD ?? 0) },
+        { label: 'オフセット中心角', compare: (a, b) => a.mwOff - b.mwOff },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevStatus).localeCompare(String(b.elevStatus)) },
     ], renderRow, [], {
         initialColIdx: _tmDetailSort.col, initialAsc: _tmDetailSort.asc,
         onSort: (col, asc) => { _tmDetailSort = { col, asc }; },
@@ -7977,6 +8117,7 @@ function _tmResetDetailList() {
     _tmDetailPix = -1;
     _tmDetailLockPopup = null;
     _tmDetailSort = { col: -1, asc: true };
+    _tmDetailAstroCache.clear();   // 観測点(画素群)や検索条件が変わるため日毎の出没/薄明キャッシュも破棄
     const box = document.getElementById('tsujimesh-detail');
     if (box) box.classList.add('hidden');
     const panel = document.getElementById('tsujimesh-panel');
@@ -8705,6 +8846,7 @@ async function startTsujiMeshSearch() {
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
+                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
                 elevationStatus: (elevOptOn && visFlags)
                     ? (visFlags[ev.bestPix] ? 'OK' : 'NG')
@@ -8730,6 +8872,11 @@ async function startTsujiMeshSearch() {
     setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()})`);
     renderTsujiMeshResults();
     drawTsujiMeshMarkers();
+    // File取得ボタン起点の検索なら、完了した結果行をCSVでダウンロードする
+    if (_tmFileCsvPending) {
+        _tmFileCsvPending = false;
+        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); });
+    }
     // 検索直後は行を自動選択せず、日時も移動しない
     // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
     // 初期画面: 最大ズーム-3で観測点を(下部パネルに隠れない領域の)中央に表示する
@@ -8759,7 +8906,7 @@ function renderTsujiMeshResults() {
         tr.className = 'td-data-row' + (r.__sel ? ' selected' : '');
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -8772,7 +8919,7 @@ function renderTsujiMeshResults() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
@@ -8797,6 +8944,7 @@ function renderTsujiMeshResults() {
         { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
         { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
         { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
@@ -8816,6 +8964,46 @@ function setTsujiMeshProgress(current, total) {
 function hideTsujiMeshProgress() {
     const bar = document.getElementById('tsujimesh-progress');
     if (bar) bar.classList.add('hidden');
+}
+
+/** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に結果行をCSVでダウンロードする。
+ *  観測点ID=最良画素の画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
+let _tmFileCsvPending = false;
+function fileTsujiMeshCsv() {
+    if (!confirm('辻メッシュ検索を実行し、結果をCSVでFile取得しますか？')) return;
+    _tmFileCsvPending = true;
+    if (!appState.isTsujiMeshActive) toggleTsujiMesh();   // OFFなら開始(完了時にCSV出力)
+    else startTsujiMeshSearch();                          // ONなら現在の条件で再検索
+}
+
+/** 辻メッシュ検索の結果行 → CSV(共通列構成)。各行の観測点=その行の最良画素(画素中央の緯度経度) */
+async function _tmExportMeshRowsCsv(rows) {
+    if (!rows.length) { alert('該当する日時はありません'); return; }
+    const C = _tsujiMeshCalc;
+    const height = Number(appState.startHeight) || 0;
+    const list = rows.map(r => {
+        const pix = r.bestPix;
+        return {
+            tsuji: {
+                id: '', name: '', memo: '',
+                baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
+                offsetAz: Number(C.offsetAz) || 0, offsetAlt: Number(C.offsetAlt) || 0,
+                centerMode: C.centerMode,
+                mwOffsetAngle: Number(appState.mwOffsetAngle) || 0
+            },
+            obs: { id: pix, name: '', lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix],
+                   elev: _tsujiMeshPix.elev[pix], height, memo: '' },
+            tgt: { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng,
+                   elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' },
+            body: r.body, time: new Date(r.dateObj), azimuth: r.azimuth, altitude: r.altitude, dist: r.dist,
+            _row: r
+        };
+    });
+    const decorated = await decorateMyTsujiResults(list);
+    // メッシュ固有の値で上書き: 精度記号(◎×N)・標高グラフ(検索時の可視判定)
+    decorated.forEach(d => { d.symbol = d._row.symbol; d.elevationStatus = d._row.elevationStatus; });
+    if (!decorated.length) { alert('該当する日時はありません'); return; }
+    downloadTsujiResultCsv(decorated, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`);
 }
 
 function toggleTsujiMesh() {
@@ -9362,6 +9550,7 @@ async function startTsujiSearch() {
                 altDiff: r.altitude - _ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,   // この検索で使ったオフセット中心角
                 angularRadius: angR, moonAge, moonIcon,
+                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
                 elevationStatus: elevStatus,
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
@@ -9372,7 +9561,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="21">${escapeHtml(body.name)}: and more…</td>`;
+            tr.innerHTML = `<td colspan="22">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -9389,7 +9578,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -9401,7 +9590,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -9428,6 +9617,7 @@ async function startTsujiSearch() {
         { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
         { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
         { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
@@ -10439,6 +10629,27 @@ function _mySetSheetRows(data, commentsBySheet) {
     };
 }
 
+/** 4シート(My辻検索/My観測点/My目的点/My天体)の存在を確認し、無いシートは作成する。
+ *  ユーザーがスプレッドシート上でタブを削除/改名していても、保存/読込がエラーにならないようにする。
+ *  writeInitial=trueなら作成したシートに初期状態(既定コメント3行+見出し行)も書き込む(読込用。
+ *  保存経路は直後に全面書き込みするため不要) */
+async function _mySetEnsureSheets(s, writeInitial) {
+    const meta = await sheetsApiFetch(`spreadsheets/${s.sheetId}?fields=sheets.properties.title`, 'GET');
+    const titles = new Set((meta.sheets || []).map(sh => sh.properties && sh.properties.title));
+    const missing = MYSET_SHEET_NAMES.filter(n => !titles.has(n));
+    if (!missing.length) return;
+    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+        requests: missing.map(n => ({ addSheet: { properties: { title: n } } }))
+    });
+    if (writeInitial) {
+        const empty = _mySetSheetRows({ myTsujiSearches: [], myObservations: [], myTargets: [], myStars: [] });
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+            valueInputOption: 'RAW',
+            data: missing.map(n => ({ range: `'${n}'!A1`, values: empty[n] }))
+        });
+    }
+}
+
 /** シートの先頭から連続する「1列目が#で始まる行」(=温存するコメントブロック)をシート名毎に取得する。
  *  取得できない場合は空(=既定コメント)を返す。保存時の上書きからユーザー追記のコメント行を守るために使う */
 async function _mySetFetchCommentRows(s) {
@@ -10609,8 +10820,12 @@ async function mySetSaveToSheet(s, opts = {}) {
             renderMySetList();
             return false;
         }
-        if (!s.sheetId) await mySetCreateSheet(s);   // 新規作成(中身は空)なら既定コメントを書く
-        else commentsBySheet = await _mySetFetchCommentRows(s);   // 既存シートは先頭の#コメント行を温存
+        if (!s.sheetId) {
+            await mySetCreateSheet(s);   // 新規作成(中身は空)なら既定コメントを書く
+        } else {
+            await _mySetEnsureSheets(s, false);   // タブ削除/改名されていても4シートを揃えてから保存する
+            commentsBySheet = await _mySetFetchCommentRows(s);   // 既存シートは先頭の#コメント行を温存
+        }
         const data = mySetDataOf(s);
         const sheets = _mySetSheetRows(data, commentsBySheet);
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
@@ -10654,6 +10869,7 @@ async function mySetLoadFromSheet(s, opts = {}) {
         }
         mySetSheetStates[s.id] = 'checking';
         renderMySetList();
+        await _mySetEnsureSheets(s, true);   // タブ削除/改名されていても、初期状態で作成してから読み込む
         const { data, meta } = await _mySetFetchSheetData(s);
         mySetSetData(s, data);
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
