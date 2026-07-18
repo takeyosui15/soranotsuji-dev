@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.19 - 2026-07-18: feat: 除外範囲をチェックボックス+目的点側15m/観測点側10mの両側方式に(デッサン02)・一括更新はシート未作成(😢)行をスキップ(作成はユーザー判断)・WebMに再生時間(Duration)を後付け(ストリーミング形式のみ)
 Version 1.20.18 - 2026-07-18: fix: WebM書き出しをVP9標準化(H.264入りWebM廃止・YouTube対応)・Myセット状態アイコンは再確認+表示のみに(保存/読込は実行しない)・宙の窓ctrlメニューにカメラ位置/焦点距離リスト/薄明ジャンプを追加(デッサン05)・バックアップメニュー初期閉+ドライブ日時を年月日(曜)形式に(デッサン16)
 Version 1.20.17 - 2026-07-18: feat: 宙の窓の地形格子をDEM画素サイズ目標の適応密度に(頂点予算20万/望遠30万・望遠はランプ1.25乗で遠方に密度を寄せる。600mm・範囲5km級はDEM1画素粒度)
 Version 1.20.16 - 2026-07-18: fix: 宙の窓の最高点と目的点(+)のズレを解消(地形の高さ計算を基準視高度と同じ二半径厳密式に統一+格子を目的点にスナップ)・天体軌跡オフで天体中心の十字も非表示に
@@ -74,7 +75,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.18';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.19';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -352,7 +353,9 @@ let appState = {
     mwShowConstBounds: false,    // 全天儀: 星座領域の表示
     mwShowConstNames: false,     // 全天儀: 星座名称の表示
     mwConstNameSort: 'aiueo',    // 星座名称の表示順: 'aiueo'=50音順(左上から右下へ) / 'pos'=座標順(天頂+90°→-90°)
-    elevExcludeRadius: 15,       // 標高グラフ: 目的点の半径○m以内は可視判定のNGを無視 (0〜10000)。既定15m=目的点自身のDEM画素の自己遮蔽(z15対角≒5.5m、z14フォールバック時≒11m)+鋭峰の写り込みを吸収する値
+    elevExcludeEnabled: true,    // 標高グラフ: 除外範囲チェックボックス(オフで目的点側/観測点側とも無効=一切無視しない)
+    elevExcludeRadius: 15,       // 標高グラフ: 目的点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定15m=目的点自身のDEM画素の自己遮蔽(z15対角≒5.5m、z14フォールバック時≒11m)+鋭峰の写り込みを吸収する値
+    elevExcludeObsRadius: 10,    // 標高グラフ: 観測点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定10m=観測点自身のDEM画素の自己遮蔽(最悪ケース対角5.5m/11m)を吸収しつつ、足元の実在遮蔽を無視しすぎない値
 
     // 辻検索パラメータ (全てlocalStorage保存)
     tsujiSearchBaseAz: 0,
@@ -1362,7 +1365,9 @@ function saveAppState() {
         mwShowBodies: appState.mwShowBodies, mwShowBodyNames: appState.mwShowBodyNames, mwShowConstFig: appState.mwShowConstFig,
         mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
         mwConstNameSort: appState.mwConstNameSort,
+        elevExcludeEnabled: appState.elevExcludeEnabled,
         elevExcludeRadius: appState.elevExcludeRadius,
+        elevExcludeObsRadius: appState.elevExcludeObsRadius,
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
         tsujiMoonTolerance: appState.tsujiMoonTolerance,
@@ -1481,7 +1486,7 @@ function loadAppState() {
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale',
-             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -1584,7 +1589,9 @@ function normalizeAppState() {
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
+    appState.elevExcludeEnabled = appState.elevExcludeEnabled !== false;
     appState.elevExcludeRadius = num(appState.elevExcludeRadius, 15, 0, 10000);
+    appState.elevExcludeObsRadius = num(appState.elevExcludeObsRadius, 10, 0, 10000);
     appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
     appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? false : !!appState.mwShowBodyNames;   // 初期値オフ(保存済みの設定は維持)
     ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
@@ -8109,7 +8116,9 @@ function selectTsujiMeshRow(idx, jump) {
  *  タイルは対象領域〜目的点のコリドー(扇形)を先取りする(5B/5Cは前段で取得できなかった座標のみ)。
  *  戻り値: Uint8Array(kept) 1=OK / 中断(世代交代)は null */
 async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
-    const exclKm = (Number(appState.elevExcludeRadius) || 0) / 1000;
+    const _exclR = elevExcludeRadii();
+    const exclKm = _exclR.tgt / 1000;
+    const obsExclM = _exclR.obs;
     const synthetic = (typeof window._tmSyntheticElev === 'function');
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
@@ -8246,7 +8255,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             const sx15 = 128 * (sLng / 180 + 1) * scale15;
             const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
             const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
-            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, elevAtPix15).visible ? 1 : 0;
+            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, obsExclM, elevAtPix15).visible ? 1 : 0;
             if ((i & 255) === 0 || i === kept - 1) {
                 setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
                 setTsujiMeshProgress(i + 1, kept);
@@ -8345,7 +8354,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             jobs.push(tmVisPool.run({
                 type: 'judge', jobId: jobIdx, chunk0: c0, chunk1: c1,
                 lat: latArr, lng: lngArr, startTotal: startTotals,
-                endLat: end.lat, endLng: end.lng, endTotal: endElev, exclM,
+                endLat: end.lat, endLng: end.lng, endTotal: endElev, exclM, obsExclM,
                 tiles15: t15, tiles14: t14,
             }, transfer, (p) => { doneCounts[jobIdx] = p.done; }));
             await new Promise(r2 => setTimeout(r2, 0));   // 符号化中もUIへ制御を返す
@@ -9562,15 +9571,22 @@ function drawProfileGraph() {
     }
 }
 
+/** 除外範囲の実効値(m)。チェックボックスがオフの時は両側とも0(=一切無視しない) */
+function elevExcludeRadii() {
+    if (appState.elevExcludeEnabled === false) return { tgt: 0, obs: 0 };
+    return { tgt: Number(appState.elevExcludeRadius) || 0, obs: Number(appState.elevExcludeObsRadius) || 0 };
+}
+
 /** 統一可視判定のコア(標高グラフ・辻検索/My辻検索・辻メッシュ検索の標高オプション共通)。
  *  観測点(sLat,sLng, 標高+高さ=startTotal)→目的点(endLat,endLng, endTotal)の直線(緯度経度線形)を、
  *  点数固定(2000等分)ではなく「DEM分解能固定」の刻み(z15の半画素≒約2m)で歩き、
  *  内部のサンプルが可視直線を上回ったらNG(地球曲率・屈折なし)。
  *  経路長に関わらず全てのDEM画素を取りこぼさない(グラフ描画の2000点とは独立)。
  *  標高は elevAtPix15(z15グローバル画素→DEM5A→5B→5C→z14チェーン。呼び出し側で構成)で参照する。
- *  除外範囲(目的点の半径exclM m以内)のNGは無視。端点そのものは判定しない。
+ *  除外範囲(目的点側: 目的点の半径exclM m以内 / 観測点側: 観測点の半径obsExclM m以内)のNGは無視。
+ *  端点そのものは判定しない。
  *  メルカトルYは64サンプル毎に厳密再計算して区間内は線形補間する(誤差はサブピクセル)。 */
-function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, elevAtPix15) {
+function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15) {
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
@@ -9592,6 +9608,7 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
             const lineElev = startTotal + (endTotal - startTotal) * r;
             if (e > lineElev) {
                 if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                if (distM * r <= obsExclM) continue;      // 除外範囲(観測点側)のNGは無視
                 return { visible: false, blockingDist: distM * r / 1000, blockingElev: e, lineElevAtBlocking: lineElev };
             }
         }
@@ -9606,7 +9623,7 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
  *  取得できなかったタイルのみ取得する。startTotalElev/endTotalElev は (API標高+高さ)[m]。
  *  返り値: { visible, blockingDist?(観測点からkm), blockingElev?, lineElevAtBlocking? } */
 async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev) {
-    const exclM = Number(appState.elevExcludeRadius) || 0;
+    const { tgt: exclM, obs: obsExclM } = elevExcludeRadii();
     const synthetic = (typeof window._tmSyntheticElev === 'function');
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
@@ -9682,7 +9699,7 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
             return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
         };
     }
-    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, elevAtPix15);
+    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
 }
 
 /** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ)。
@@ -10586,6 +10603,12 @@ async function mySetSaveToSheet(s, opts = {}) {
             if (!meta || meta.trashed) s.sheetId = null;
         }
         let commentsBySheet = null;
+        if (!s.sheetId && opts.noCreate) {
+            // 一括更新など「作成はユーザー判断」の経路: シートが無ければ作成せずmissingにして中断
+            mySetSheetStates[s.id] = 'missing';
+            renderMySetList();
+            return false;
+        }
         if (!s.sheetId) await mySetCreateSheet(s);   // 新規作成(中身は空)なら既定コメントを書く
         else commentsBySheet = await _mySetFetchCommentRows(s);   // 既存シートは先頭の#コメント行を温存
         const data = mySetDataOf(s);
@@ -10722,19 +10745,24 @@ function mySetStatusClick() {
 /** 更新ボタン: チェックされたMyセット(既定のセット含む)を保存/読込ラジオに従って一括更新 */
 async function bulkUpdateMySets() {
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
-    const targets = allMySetRows().filter(s => s.checked);
-    if (!targets.length) return alert('更新するMyセットをチェックボックスで選択してください');
-    if (!confirm('チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？')) return;
+    const checked = allMySetRows().filter(s => s.checked);
+    if (!checked.length) return alert('更新するMyセットをチェックボックスで選択してください');
+    // シート未作成(😢)の行は一括更新の対象外。スプレッドシートの新規作成はユーザーの判断に
+    // 委ねる箇所なので、行の😢アイコンからの明示的な操作(確認つき)でのみ行う
+    const skipped = checked.filter(s => !s.sheetId).length;
+    const targets = checked.filter(s => s.sheetId);
+    if (!targets.length) return alert('チェックされたMyセットにスプレッドシートが紐付いていません。\n(スプレッドシートの作成は、各行の😢アイコンの押下で行えます)');
+    if (!confirm(`チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？${skipped ? `\n(シート未作成の${skipped}件は対象外です)` : ''}`)) return;
     const btn = document.getElementById('btn-myset-update');
     let done = 0, ng = 0;
     for (const s of targets) {
         if (btn) btn.innerHTML = `<span class="clock-anim">🕛</span>更新中(${Math.round(done / targets.length * 100)}%)`;
-        const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true });
+        const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true, noCreate: true });
         if (!ok) ng++;
         done++;
     }
     if (btn) btn.textContent = '更新';
-    alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''})`);
+    alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''}${skipped ? `、シート未作成のためスキップ: ${skipped}件` : ''})`);
 }
 
 /** 開くボタン: 選択中のMyセット(既定のセット含む)のスプレッドシートを開く */
@@ -13285,6 +13313,88 @@ function soraExpPickMime(fmt) {
     return null;
 }
 
+/** WebM(EBML)に再生時間(Duration)を書き足す。MediaRecorderのWebMはストリーミング形式で
+ *  Duration要素を持たないため、プレーヤーやサービスによっては長さ不明・シーク不可・処理失敗になる。
+ *  Segment > Info に Duration(0x4489, 8バイトdouble)を挿入する(Segmentサイズは不明長のため親の更新は不要)。
+ *  失敗時・非対応構造の時は元のBlobをそのまま返す(安全側) */
+async function _fixWebmDuration(blob, durationMs) {
+    try {
+        if (!/webm/.test(blob.type) || !(durationMs > 0)) return blob;
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        // EBML可変長値の読取: keepMask=trueはID(マーカービットを保持)、falseはサイズ(マーカービットを除去)
+        const readVint = (pos, keepMask) => {
+            const first = buf[pos];
+            if (first === undefined) return null;
+            let len = 1;
+            for (let mask = 0x80; mask && !(first & mask); mask >>= 1) len++;
+            if (len > 8 || pos + len > buf.length) return null;
+            let value = keepMask ? first : (first & (0xFF >> len));
+            let unknown = !keepMask && (first & (0xFF >> len)) === (0xFF >> len);
+            for (let i = 1; i < len; i++) {
+                value = value * 256 + buf[pos + i];
+                if (buf[pos + i] !== 0xFF) unknown = unknown && false;
+            }
+            return { value, len, unknown: unknown && len > 0 };
+        };
+        // 指定範囲内で目的のID(数値)の要素を探す → { dataStart, dataSize, idStart } | null
+        const findElement = (start, end, targetId) => {
+            let pos = start;
+            while (pos < end) {
+                const id = readVint(pos, true);
+                if (!id) return null;
+                const size = readVint(pos + id.len, false);
+                if (!size) return null;
+                const dataStart = pos + id.len + size.len;
+                if (id.value === targetId) return { idStart: pos, dataStart, dataSize: size.value, sizeUnknown: size.unknown, sizeLen: size.len };
+                if (size.unknown) { pos = dataStart; continue; }   // 不明長(Segment等)は中に降りる
+                pos = dataStart + size.value;
+            }
+            return null;
+        };
+        const segment = findElement(0, buf.length, 0x18538067);
+        if (!segment) return blob;
+        const segEnd = segment.sizeUnknown ? buf.length : segment.dataStart + segment.dataSize;
+        const info = findElement(segment.dataStart, segEnd, 0x1549A966);
+        if (!info || info.sizeUnknown) return blob;
+        const infoEnd = info.dataStart + info.dataSize;
+        // TimecodeScale(0x2AD7B1, ns/tick。既定1,000,000=1ms)を読む
+        let scale = 1000000;
+        const tcs = findElement(info.dataStart, infoEnd, 0x2AD7B1);
+        if (tcs && tcs.dataSize >= 1 && tcs.dataSize <= 8) {
+            scale = 0;
+            for (let i = 0; i < tcs.dataSize; i++) scale = scale * 256 + buf[tcs.dataStart + i];
+        }
+        const durTicks = durationMs * 1000000 / scale;
+        const dur = findElement(info.dataStart, infoEnd, 0x4489);
+        if (dur) return blob;   // 既にDurationがある(停止時に確定化された)ファイルはそのまま
+        // 挿入はSegmentが不明長(ストリーミング形式)の場合のみ。確定化済み(サイズ既知+SeekHead)の
+        // ファイルへの挿入は各要素のオフセットを壊すため行わない(その場合はDurationが既にあるのが通常)
+        if (!segment.sizeUnknown) return blob;
+        const f64 = new DataView(new ArrayBuffer(8));
+        f64.setFloat64(0, durTicks);
+        // Duration要素(0x44 0x89 0x88 + double×8)をInfo末尾に挿入し、Infoのサイズを書き直す。
+        // Infoの新サイズは8バイト固定長vint(0x01 + 7バイト)で書く(元のサイズ欄の長さに依存しない)
+        const durEl = new Uint8Array(11);
+        durEl[0] = 0x44; durEl[1] = 0x89; durEl[2] = 0x88;
+        for (let i = 0; i < 8; i++) durEl[3 + i] = f64.getUint8(i);
+        const newInfoSize = info.dataSize + durEl.length;
+        const sizeBytes = new Uint8Array(8);
+        sizeBytes[0] = 0x01;   // 8バイト長vintのマーカー
+        for (let i = 7, v = newInfoSize; i >= 1; i--) { sizeBytes[i] = v % 256; v = Math.floor(v / 256); }
+        const idBytes = buf.slice(info.idStart, info.idStart + (info.dataStart - info.idStart - info.sizeLen));   // InfoのIDバイト列
+        const out = new Blob([
+            buf.slice(0, info.idStart),
+            idBytes, sizeBytes,
+            buf.slice(info.dataStart, infoEnd), durEl,
+            buf.slice(infoEnd)
+        ], { type: blob.type });
+        return out;
+    } catch (e) {
+        console.error('_fixWebmDuration:', e);
+        return blob;
+    }
+}
+
 /** インターバルMovの全コマをフレームレートで実時間録画する共通部(書き出し/再生オプション②で共用)。
  *  完了(または中止)で onDone(blob|null) を呼ぶ。中止は soraExportCancel。開始できなければ false を返す */
 function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
@@ -13302,7 +13412,7 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
     recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
     const startDate = new Date(appState.currentDate.getTime());
     _expVideo = { recorder, timer: null, canceled: false, startDate, owner };
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
         const st = _expVideo;
         _expVideo = null;
         soraExpProgress(null);
@@ -13310,9 +13420,14 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
         appState.currentDate = new Date(startDate.getTime());
         syncUIFromState();
         updateAll();
-        onDone(st && st.canceled ? null : new Blob(chunks, { type: picked.mime.split(';')[0] }));
+        let blob = st && st.canceled ? null : new Blob(chunks, { type: picked.mime.split(';')[0] });
+        // WebMは再生時間(Duration)を後付けする(MediaRecorder出力は長さ情報が無く、
+        // YouTube等での処理失敗やシーク不可の原因になるため)
+        if (blob && /webm/.test(blob.type)) blob = await _fixWebmDuration(blob, performance.now() - recT0);
+        onDone(blob);
     };
     let f = 0;
+    const recT0 = performance.now();
     recorder.start();
     _expVideo.timer = setInterval(() => {
         if (!_expVideo) return;
@@ -13401,6 +13516,14 @@ function syncBaseOptionUI() {
     set('input-tsuji-mw-offset', appState.mwOffsetAngle);
     set('input-tsujimesh-mw-offset', appState.mwOffsetAngle);
     set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
+    set('input-baseopt-elev-exclude-obs', appState.elevExcludeObsRadius);
+    const exclChk = document.getElementById('chk-baseopt-elev-exclude');
+    if (exclChk) exclChk.checked = appState.elevExcludeEnabled !== false;
+    // チェックボックスがオフの間は目的点側/観測点側の入力を無効化(値は保持)
+    for (const eid of ['input-baseopt-elev-exclude', 'input-baseopt-elev-exclude-obs']) {
+        const el = document.getElementById(eid);
+        if (el) el.disabled = appState.elevExcludeEnabled === false;
+    }
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
     chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
     chk('chk-baseopt-mw-body-names', appState.mwShowBodyNames);
@@ -13483,11 +13606,22 @@ function setupBaseOptionControls() {
         saveAppState();
         _mwRender();   // ラベルの並び順を即時反映
     });
-    const excl = document.getElementById('input-baseopt-elev-exclude');
-    if (excl) excl.addEventListener('change', () => {
-        let v = parseFloat(excl.value);
-        if (isNaN(v)) v = 0;
-        appState.elevExcludeRadius = Math.max(0, Math.min(10000, Math.round(v)));
+    const exclInputH = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (isNaN(v)) v = 0;
+            appState[key] = Math.max(0, Math.min(10000, Math.round(v)));
+            saveAppState();
+            syncBaseOptionUI();
+        });
+    };
+    exclInputH('input-baseopt-elev-exclude', 'elevExcludeRadius');
+    exclInputH('input-baseopt-elev-exclude-obs', 'elevExcludeObsRadius');
+    const exclChk2 = document.getElementById('chk-baseopt-elev-exclude');
+    if (exclChk2) exclChk2.addEventListener('change', () => {
+        appState.elevExcludeEnabled = exclChk2.checked;
         saveAppState();
         syncBaseOptionUI();
     });

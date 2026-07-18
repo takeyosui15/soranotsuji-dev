@@ -24,6 +24,7 @@ self.onmessage = (ev) => {
     const m = ev.data;
     if (!m || m.type !== 'judge') return;
     const { jobId, chunk0, chunk1, lat, lng, startTotal, endLat, endLng, endTotal, exclM } = m;
+    const obsExclM = m.obsExclM || 0;   // 除外範囲(観測点側)。旧メッセージ形式では0(=無効)
 
     // タイル索引: key = tx*32768+ty → Int32Array(256*256, dm)
     const tiles15 = new Map();
@@ -80,6 +81,7 @@ self.onmessage = (ev) => {
                 const lineElev = sTotal + (endTotal - sTotal) * r;
                 if (e > lineElev) {
                     if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                    if (distM * r <= obsExclM) continue;      // 除外範囲(観測点側)のNGは無視
                     blocked[i] = 1;
                     break outer;   // この画素はNG確定(帯域内の早期打ち切り)
                 }
