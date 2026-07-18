@@ -154,9 +154,57 @@ GNU General Public License for more details.
     </div>
 
     <div id="milkyway-panel" class="hidden">
-        <canvas id="milkyway-canvas"></canvas>
-        <svg id="milkyway-labels"></svg>
-        <div id="milkyway-credit"></div>
+        <div id="milkyway-view">
+            <canvas id="milkyway-canvas"></canvas>
+            <svg id="milkyway-labels"></svg>
+            <div id="milkyway-credit"></div>
+        </div>
+        <div id="milkyway-ctrl">
+            <div id="milkyway-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="milkyway-ctrl-arrow">▼</span></div>
+            <div id="milkyway-ctrl-body" class="hidden">
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-month-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-mw-ctrl-date-prev" class="nav-btn">◀</button>
+                    <input type="date" id="mw-ctrl-date" title="基準日付(日時情報メニューと連動)">
+                    <button id="btn-mw-ctrl-date-next" class="nav-btn">▶</button>
+                    <button id="btn-mw-ctrl-month-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-hour-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-mw-ctrl-time-prev" class="nav-btn">◀</button>
+                    <input type="time" id="mw-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
+                    <button id="btn-mw-ctrl-time-next" class="nav-btn">▶</button>
+                    <button id="btn-mw-ctrl-hour-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-speed-month" class="nav-btn main-btn" title="毎秒1月移動(日時情報メニューと連動)">月/秒</button>
+                    <button id="btn-mw-ctrl-speed-day" class="nav-btn main-btn" title="毎秒1日移動(日時情報メニューと連動)">日/秒</button>
+                    <button id="btn-mw-ctrl-speed-hour" class="nav-btn main-btn" title="毎秒1時間移動(日時情報メニューと連動)">時/秒</button>
+                    <button id="btn-mw-ctrl-speed-min" class="nav-btn main-btn" title="毎秒1分移動(日時情報メニューと連動)">分/秒</button>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="表示天体の写真/軌跡/マーカー/方位線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-bodies">:表示天体</label>
+                    <label class="baseopt-radio" title="表示天体名と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-body-names">:表示天体名</label>
+                    <label class="baseopt-radio" title="星座線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-fig">:星座線</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="星座領域(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-bounds">:星座領域</label>
+                    <label class="baseopt-radio" title="星座名称と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-names">:星座名称</label>
+                    <select id="sel-mwctrl-const-sort" title="星座名称のソート順序(基本オプションと連動)">
+                        <option value="aiueo">50音順</option>
+                        <option value="pos">座標順</option>
+                    </select>
+                </div>
+                <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                    <input type="number" id="input-mwctrl-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-mwctrl-mw-offset-slider" class="sora-slider" min="-360" max="360" step="1" title="オフセット中心角(°)(テキストボックス・基本オプションと連動)">
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="soramado-panel" class="hidden">
@@ -1263,10 +1311,11 @@ GNU General Public License for more details.
 
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-starsearch')">
-                    <span>天体検索</span> <span id="icon-sec-starsearch">▼</span>
+                    <span>天体検索/登録</span> <span id="icon-sec-starsearch">▼</span>
                 </div>
                 <div id="sec-starsearch" class="section-content closed">
                     <div class="control-row">
+                        <label>検索天体名:</label>
                         <input type="text" id="input-starsearch" placeholder="シリウス、M78星雲など" maxlength="150">
                     </div>
                     <div class="control-row starsearch-options">
@@ -1277,14 +1326,17 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-starsearch" class="nav-btn main-btn">検索</button>
-                        <button id="btn-starsearch-reg" class="nav-btn main-btn">登録</button>
                     </div>
                     <div class="control-row starsearch-result">
                         <label>天体名:</label>
                         <input type="text" id="input-starsearch-name" placeholder="天体名を入力可能" maxlength="150">
                     </div>
                     <div class="control-row starsearch-result">
+                        <label>赤経赤緯:</label>
                         <input type="text" id="input-starsearch-radec" placeholder="赤経, 赤緯 を入力可能" maxlength="150">
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-starsearch-reg" class="nav-btn main-btn">登録</button>
                     </div>
                 </div>
             </div>

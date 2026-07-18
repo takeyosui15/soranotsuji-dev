@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.20 - 2026-07-19: feat: 月輝面比列(結果リスト3種+詳細+CSV)・辻検索/辻メッシュのFile取得・メッシュ詳細リスト23列化・Myセット4シート存在確認・動画のフレーム同期録画(カクカク解消)+生成後の自己検証・天体検索/登録メニュー改修・全天儀コントロールメニュー(日時/速度/表示/オフセット)・焦点距離初期値24
 Version 1.20.19 - 2026-07-18: feat: 除外範囲をチェックボックス+目的点側15m/観測点側10mの両側方式に(デッサン02)・一括更新はシート未作成(😢)行をスキップ(作成はユーザー判断)・WebMに再生時間(Duration)を後付け(ストリーミング形式のみ)
 Version 1.20.18 - 2026-07-18: fix: WebM書き出しをVP9標準化(H.264入りWebM廃止・YouTube対応)・Myセット状態アイコンは再確認+表示のみに(保存/読込は実行しない)・宙の窓ctrlメニューにカメラ位置/焦点距離リスト/薄明ジャンプを追加(デッサン05)・バックアップメニュー初期閉+ドライブ日時を年月日(曜)形式に(デッサン16)
 Version 1.20.17 - 2026-07-18: feat: 宙の窓の地形格子をDEM画素サイズ目標の適応密度に(頂点予算20万/望遠30万・望遠はランプ1.25乗で遠方に密度を寄せる。600mm・範囲5km級はDEM1画素粒度)
@@ -75,7 +76,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.19';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.20';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -828,6 +829,7 @@ function setupUI() {
     document.getElementById('btn-soramado').onclick = toggleSoramado;
     setupSoramadoControls();
     setupBaseOptionControls();
+    setupMilkyWayCtrl();
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
@@ -1714,6 +1716,10 @@ function syncStateFromUI() {
         if (scd) scd.value = dStr;
         const sct = document.getElementById('sora-ctrl-time');
         if (sct) sct.value = tStr;
+        const mcd = document.getElementById('mw-ctrl-date');
+        if (mcd) mcd.value = dStr;
+        const mct = document.getElementById('mw-ctrl-time');
+        if (mct) mct.value = tStr;
         soraMovSyncUI();
     }
 }
@@ -1736,6 +1742,11 @@ function syncUIFromState() {
     if (scd) scd.value = `${yyyy}-${mm}-${dd}`;
     const sct = document.getElementById('sora-ctrl-time');
     if (sct) sct.value = `${h}:${m}:${s}`;
+    // 全天儀ctrlメニューの日付/時刻ピッカーにも連動反映
+    const mcd = document.getElementById('mw-ctrl-date');
+    if (mcd) mcd.value = `${yyyy}-${mm}-${dd}`;
+    const mct = document.getElementById('mw-ctrl-time');
+    if (mct) mct.value = `${h}:${m}:${s}`;
     soraMovSyncUI();   // 撮影開始/終了日時などの算出表示を日時に追従
 }
 
@@ -4357,7 +4368,7 @@ function registerSearchStar() {
     const ra = parseFloat(parts[0]);
     const dec = parseFloat(parts[1]);
     if (isNaN(ra) || isNaN(dec)) return alert('赤経赤緯の値が不正です');
-    if (!confirm(`検索天体をMy天体に登録しますか？(天体名と赤経赤緯は書き換えられます。)`)) return;
+    if (!confirm(`My天体に登録しますか？`)) return;
     if (addMyStar(name, ra, dec)) {
         // 入力フィールドをクリア
         document.getElementById('input-starsearch-name').value = '';
@@ -12837,6 +12848,59 @@ function _mwInit() {
     _mwUpdateBaseOptions();   // 基本オプション(表示天体・星座線/領域・オフセット点)を初期反映
 }
 
+/** 全天儀のコントロールメニュー(デッサン01)。開閉・日付/時刻・移動速度・表示チェック群・オフセット中心角。
+ *  日付/時刻・チェック群・オフセット中心角は日時情報メニュー/基本オプションと双方向連動する */
+function setupMilkyWayCtrl() {
+    const header = document.getElementById('milkyway-ctrl-header');
+    if (!header || header._mwWired) return;
+    header._mwWired = true;
+    header.addEventListener('click', () => {
+        const body = document.getElementById('milkyway-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('milkyway-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('milkyway-ctrl').classList.toggle('open', open);   // 開=全天儀画面と縦1/2分割
+        resizeMilkyWayGlobe();   // 全天儀画面のサイズが変わるので再描画
+    });
+    const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    btnH('btn-mw-ctrl-month-prev', () => addMonth(-1));
+    btnH('btn-mw-ctrl-date-prev', () => addDay(-1));
+    btnH('btn-mw-ctrl-date-next', () => addDay(1));
+    btnH('btn-mw-ctrl-month-next', () => addMonth(1));
+    btnH('btn-mw-ctrl-hour-prev', () => addMinute(-60));
+    btnH('btn-mw-ctrl-time-prev', () => addMinute(-1));
+    btnH('btn-mw-ctrl-time-next', () => addMinute(1));
+    btnH('btn-mw-ctrl-hour-next', () => addMinute(60));
+    // 日付/時刻ピッカー(日時情報メニューと連動)
+    const dEl = document.getElementById('mw-ctrl-date'), tEl = document.getElementById('mw-ctrl-time');
+    const dtHandler = () => {
+        const dStr = dEl.value, tStr = tEl.value;
+        if (!dStr || !tStr) return;
+        const parts = tStr.split(':');
+        const base = new Date(`${dStr}T00:00:00`);
+        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+        if (isNaN(base.getTime())) return;
+        uncheckTimeShortcuts();
+        appState.currentDate = base;
+        syncUIFromState();
+        updateAll();
+    };
+    if (dEl && tEl) { dEl.addEventListener('change', dtHandler); tEl.addEventListener('change', dtHandler); }
+    // 移動速度ボタン: 日時情報メニューの月/秒等へ委譲し、アクティブ状態をミラーする
+    const speedPairs = [
+        ['btn-mw-ctrl-speed-month', 'btn-speed-month'], ['btn-mw-ctrl-speed-day', 'btn-speed-day'],
+        ['btn-mw-ctrl-speed-hour', 'btn-speed-hour'], ['btn-mw-ctrl-speed-min', 'btn-speed-min'],
+    ];
+    const syncSpeedActive = () => {
+        for (const [cid, sid] of speedPairs) {
+            const c = document.getElementById(cid), s = document.getElementById(sid);
+            if (c && s) c.classList.toggle('active', s.classList.contains('active'));
+        }
+    };
+    for (const [cid, sid] of speedPairs) {
+        btnH(cid, () => { const s = document.getElementById(sid); if (s) s.click(); setTimeout(syncSpeedActive, 0); });
+    }
+}
+
 /** パネルを開いた時の起動。毎回「北が上」にリセット */
 function startMilkyWayGlobe() {
     if (!_mwInited && !_mwFailed) _mwInit();
@@ -13619,15 +13683,26 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
     const fps = Number(appState.soraMovFps) || 30;
     const cv2 = document.createElement('canvas');
     cv2.width = w; cv2.height = h;
-    const stream = cv2.captureStream();
+    // フレーム同期キャプチャ: captureStream(0)+requestFrame()で「描画できた瞬間」に1フレームだけ流し、
+    // フレーム間の描画時間は recorder.pause() で媒体タイムラインから除外する。
+    // 従来の実時間キャプチャ(setInterval)では、フレーム描画(シーン再構築+レンダ+読出)が1/fps秒を
+    // 超える端末でコマ落ちして「カクカクした動画」になっていた。この方式なら描画がどれだけ遅くても
+    // 全コマが漏れなく等間隔(1/fps)で記録される(処理を溜めてから消化する多段キュー相当の効果)。
+    const stream = cv2.captureStream(0);
+    const track = stream.getVideoTracks()[0];
+    const canReqFrame = !!(track && typeof track.requestFrame === 'function');
+    if (!canReqFrame) stream.getVideoTracks().forEach(t => t.stop());
+    const stream2 = canReqFrame ? stream : cv2.captureStream(fps);   // 非対応環境は従来の実時間キャプチャ
+    const track2 = canReqFrame ? track : null;
     let recorder;
     try {
-        recorder = new MediaRecorder(stream, { mimeType: picked.mime, videoBitsPerSecond: Math.min(5e7, Math.max(1e6, w * h * fps * 0.15)) });
+        recorder = new MediaRecorder(stream2, { mimeType: picked.mime, videoBitsPerSecond: Math.min(5e7, Math.max(1e6, w * h * fps * 0.15)) });
     } catch (e) { alert('動画の生成を開始できませんでした: ' + e.message); return false; }
     const chunks = [];
     recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
     const startDate = new Date(appState.currentDate.getTime());
     _expVideo = { recorder, timer: null, canceled: false, startDate, owner };
+    let f = 0;
     recorder.onstop = async () => {
         const st = _expVideo;
         _expVideo = null;
@@ -13637,27 +13712,62 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
         syncUIFromState();
         updateAll();
         let blob = st && st.canceled ? null : new Blob(chunks, { type: picked.mime.split(';')[0] });
-        // WebMは再生時間(Duration)を後付けする(MediaRecorder出力は長さ情報が無く、
-        // YouTube等での処理失敗やシーク不可の原因になるため)
-        if (blob && /webm/.test(blob.type)) blob = await _fixWebmDuration(blob, performance.now() - recT0);
+        // WebMは再生時間(Duration)を後付けする(ストリーミング形式は長さ情報が無く、
+        // 再生アプリやサービスで長さ不明・シーク不可の原因になるため)
+        if (blob && /webm/.test(blob.type)) blob = await _fixWebmDuration(blob, f / fps * 1000);
         onDone(blob);
     };
-    let f = 0;
-    const recT0 = performance.now();
+    const frameMs = 1000 / fps;
     recorder.start();
-    _expVideo.timer = setInterval(() => {
-        if (!_expVideo) return;
-        if (f >= n) {
-            clearInterval(_expVideo.timer);
-            _expVideo.recorder.stop();
-            return;
-        }
-        appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
-        _smComposeFrame(w, h, cv2);
-        soraExpProgress(`${label} ${f + 1}/${n}`);
-        f++;
-    }, 1000 / fps);
+    if (canReqFrame) {
+        const step = () => {
+            if (!_expVideo || _expVideo.canceled) return;
+            if (f >= n) { _expVideo.recorder.stop(); return; }
+            appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
+            _smComposeFrame(w, h, cv2);                          // 重い描画(pause中=タイムライン停止中に実行)
+            if (recorder.state === 'paused') recorder.resume();
+            track2.requestFrame();                               // このコマを1フレームだけ流す
+            soraExpProgress(`${label} ${f + 1}/${n}`);
+            f++;
+            _expVideo.timer = setTimeout(() => {
+                if (!_expVideo) return;
+                if (recorder.state === 'recording' && f < n) recorder.pause();   // 次コマの描画時間を除外
+                step();
+            }, frameMs);
+        };
+        step();
+    } else {
+        _expVideo.timer = setInterval(() => {
+            if (!_expVideo) return;
+            if (f >= n) {
+                clearInterval(_expVideo.timer);
+                _expVideo.recorder.stop();
+                return;
+            }
+            appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
+            _smComposeFrame(w, h, cv2);
+            soraExpProgress(`${label} ${f + 1}/${n}`);
+            f++;
+        }, frameMs);
+    }
     return true;
+}
+
+/** 生成した動画Blobが再生可能か自己検証する(メタデータが読めて長さが正なら良品)。
+ *  スマホでVP9等のソフトウェアエンコードが破綻して壊れたファイルになるケースの検出用 */
+function _soraVerifyBlobPlayable(blob) {
+    return new Promise(resolve => {
+        try {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            const url = URL.createObjectURL(blob);
+            const done = ok => { URL.revokeObjectURL(url); resolve(ok); };
+            const to = setTimeout(() => done(false), 5000);
+            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true); };
+            v.onerror = () => { clearTimeout(to); done(false); };
+            v.src = url;
+        } catch (e) { resolve(true); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
+    });
 }
 
 /** 動画書き出し: インターバルMovの全コマをフレームレートで実時間録画(キャンバスストリーム+MediaRecorder) */
@@ -13677,11 +13787,14 @@ function soraExportVideo(fmt) {
     if (!confirm(msg)) return;
     if (_movTimer || _movVideo) soraMovStop();   // 再生中なら停止してから
     const btn = document.getElementById('btn-sora-export');
-    const ok = _soraRecordMovVideo(picked, w, h, 'export', '書き出し中', blob => {
+    const ok = _soraRecordMovVideo(picked, w, h, 'export', '書き出し中', async blob => {
         if (btn) { btn.classList.remove('active'); btn.textContent = 'ファイル出力'; }
         if (!blob) return;   // 中止時は破棄
-        if (blob.size > 0) soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
-        else alert('動画の生成に失敗しました。');
+        if (blob.size === 0) { alert('動画の生成に失敗しました。'); return; }
+        // 自己検証: この端末で壊れず録画できたか(スマホのソフトウェアVP9破綻等の検出)
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
+        soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
     });
     if (ok && btn) { btn.classList.add('active'); btn.textContent = '中止'; }
 }
@@ -13697,8 +13810,11 @@ function soraMovPlayVideo() {
     const even = v => Math.max(2, 2 * Math.round(v / 2));
     const w = even(_smFinderW * dpr), h = even(_smFinderH * dpr);
     const btn = document.getElementById('btn-sora-mov-play');
-    const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', blob => {
+    const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', async blob => {
         if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
+        // 自己検証: 壊れたファイルをプレビューに重ねない(スマホのソフトウェアエンコード破綻等)
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
         const el = document.createElement('video');
         el.id = 'soramado-movplay-video';
         el.muted = true; el.playsInline = true; el.autoplay = true;
@@ -13751,6 +13867,17 @@ function syncBaseOptionUI() {
     chk('chk-sora-const-fig', appState.mwShowConstFig);
     chk('chk-sora-const-bounds', appState.mwShowConstBounds);
     chk('chk-sora-const-names', appState.mwShowConstNames);
+    // 全天儀ctrlメニュー側(基本オプションと連動・同じ状態を共有)
+    chk('chk-mwctrl-bodies', appState.mwShowBodies);
+    chk('chk-mwctrl-body-names', appState.mwShowBodyNames);
+    chk('chk-mwctrl-const-fig', appState.mwShowConstFig);
+    chk('chk-mwctrl-const-bounds', appState.mwShowConstBounds);
+    chk('chk-mwctrl-const-names', appState.mwShowConstNames);
+    set('input-mwctrl-mw-offset', appState.mwOffsetAngle);
+    const mwSlider = document.getElementById('input-mwctrl-mw-offset-slider');
+    if (mwSlider && document.activeElement !== mwSlider) mwSlider.value = appState.mwOffsetAngle;
+    const mwSort = document.getElementById('sel-mwctrl-const-sort');
+    if (mwSort) mwSort.value = appState.mwConstNameSort;
     const lsSlider = document.getElementById('input-sora-label-scale');
     if (lsSlider) lsSlider.value = appState.soraLabelScale;
     const lsVal = document.getElementById('sora-label-scale-val');
@@ -13786,6 +13913,15 @@ function setupBaseOptionControls() {
     offsetHandler(document.getElementById('input-baseopt-mw-offset'));
     offsetHandler(document.getElementById('input-tsuji-mw-offset'));
     offsetHandler(document.getElementById('input-tsujimesh-mw-offset'));
+    offsetHandler(document.getElementById('input-mwctrl-mw-offset'));   // 全天儀ctrlメニュー(連動)
+    const mwOffSlider = document.getElementById('input-mwctrl-mw-offset-slider');
+    if (mwOffSlider) mwOffSlider.addEventListener('input', () => {
+        let v = parseFloat(mwOffSlider.value);
+        if (isNaN(v)) v = 0;
+        appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+        appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ
+        applyMilkyWayBaseChange();
+    });
     // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しない)。行内のonChangeで登録する
     const chkHandler = (id, key) => {
         const el = document.getElementById(id);
@@ -13807,6 +13943,12 @@ function setupBaseOptionControls() {
     chkHandler('chk-sora-const-fig', 'mwShowConstFig');
     chkHandler('chk-sora-const-bounds', 'mwShowConstBounds');
     chkHandler('chk-sora-const-names', 'mwShowConstNames');
+    // 全天儀ctrlメニュー側のチェックボックス(基本オプションと同じキーを共有=双方向連動)
+    chkHandler('chk-mwctrl-bodies', 'mwShowBodies');
+    chkHandler('chk-mwctrl-body-names', 'mwShowBodyNames');
+    chkHandler('chk-mwctrl-const-fig', 'mwShowConstFig');
+    chkHandler('chk-mwctrl-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-mwctrl-const-names', 'mwShowConstNames');
     // 文字サイズスライダー(表示天体名・星座名称・プレビュー基準100%)
     const lsSlider = document.getElementById('input-sora-label-scale');
     if (lsSlider) lsSlider.addEventListener('input', () => {
@@ -13820,7 +13962,15 @@ function setupBaseOptionControls() {
     if (sortSel) sortSel.addEventListener('change', () => {
         appState.mwConstNameSort = sortSel.value === 'pos' ? 'pos' : 'aiueo';
         saveAppState();
+        syncBaseOptionUI();
         _mwRender();   // ラベルの並び順を即時反映
+    });
+    const mwSortSel = document.getElementById('sel-mwctrl-const-sort');
+    if (mwSortSel) mwSortSel.addEventListener('change', () => {
+        appState.mwConstNameSort = mwSortSel.value === 'pos' ? 'pos' : 'aiueo';
+        saveAppState();
+        syncBaseOptionUI();
+        _mwRender();
     });
     const exclInputH = (id, key) => {
         const el = document.getElementById(id);

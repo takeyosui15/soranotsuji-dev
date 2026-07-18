@@ -321,11 +321,62 @@ html {
     background-color: #000;
     border-top: 1px solid #555;
     z-index: 900;
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: 0;
     box-sizing: border-box;
     overflow: hidden;
 }
+/* 全天儀画面(コントロールメニューを除いた上部)。ラベルSVG・クレジットはこの中で位置決め */
+#milkyway-view {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+/* 全天儀のコントロールメニュー(宙の窓のctrlメニューと同構成。開=領域の縦1/2分割) */
+#milkyway-ctrl {
+    flex: 0 0 auto;
+    width: 100%;
+    background: #3a3a3a;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+#milkyway-ctrl.open { height: 50%; }
+#milkyway-ctrl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #eee;
+    border-top: 1px solid #555;
+    cursor: pointer;
+    max-width: 360px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+#milkyway-ctrl-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 8px 6px;
+    border-top: 1px solid #4a4a4a;
+}
+#milkyway-ctrl-body.hidden { display: none; }
+#milkyway-ctrl-body .control-row { max-width: 360px; margin: 4px auto; }
+#milkyway-ctrl-body .input-label,
+#milkyway-ctrl-body .baseopt-radio { color: #eee; }
+#btn-mw-ctrl-month-prev, #btn-mw-ctrl-date-prev, #btn-mw-ctrl-date-next, #btn-mw-ctrl-month-next,
+#btn-mw-ctrl-hour-prev, #btn-mw-ctrl-time-prev, #btn-mw-ctrl-time-next, #btn-mw-ctrl-hour-next {
+    width: 34px;
+    min-width: 34px;
+}
+#mw-ctrl-date, #mw-ctrl-time { flex: 1 1 auto; min-width: 0; }
 
 #milkyway-panel.hidden {
     display: none;
