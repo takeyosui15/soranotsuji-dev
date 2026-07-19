@@ -126,13 +126,37 @@ async function selftest() {
     console.log('SELFTEST PASS');
 }
 
+function usage() {
+    console.log([
+        '使い方 (このディレクトリ tools/lightpollution で実行してください):',
+        '  1) npm install                       # 依存(geotiff)を入れる。1回だけ',
+        '  2) node lp-preprocess.js --selftest  # 入力ファイル不要の動作確認(SELFTEST PASSと出ればOK)',
+        '  3) node lp-preprocess.js --in ~/Downloads/World_Atlas_2015.tif',
+        '',
+        '  ※ --in の後ろは、GFZからダウンロードした実際のGeoTIFFファイルのパスに置き換えてください。',
+        '     山括弧<>付きの「<GeoTIFF>」は説明用の穴埋め表記です。<>ごと入力するとzshの構文エラーになります。',
+        '  ※ 入手先: https://dataservices.gfz-potsdam.de (doi:10.5880/GFZ.1.4.2016.001)',
+        '',
+        '  オプション: --out <出力先dir(既定 ../../data)> --downsample <縮約率(既定4)>',
+        '              --west/--south/--east/--north <切り出し範囲(既定 E122〜154, N24〜46)>',
+    ].join('\n'));
+}
+
 (async () => {
     const args = process.argv.slice(2);
     const get = (k, def) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : def; };
+    try { require.resolve('geotiff'); } catch (_) {
+        console.error('エラー: 依存パッケージ geotiff が見つかりません。');
+        console.error('このディレクトリ(tools/lightpollution)で `npm install` を実行してから再度お試しください。');
+        process.exit(1);
+    }
     if (args.includes('--selftest')) { await selftest(); return; }
     const inPath = get('--in', null);
-    if (!inPath) {
-        console.log('使い方: node lp-preprocess.js --in <World_Atlas GeoTIFF> [--out ../../data] [--downsample 4] | --selftest');
+    if (!inPath || inPath.startsWith('--')) { usage(); process.exit(1); }
+    if (!fs.existsSync(inPath)) {
+        console.error(`エラー: 入力ファイルが見つかりません: ${inPath}`);
+        console.error('GFZからダウンロードしたGeoTIFF(.tif)のパスを --in に指定してください。');
+        usage();
         process.exit(1);
     }
     await preprocess({
