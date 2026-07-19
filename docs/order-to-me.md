@@ -22,7 +22,7 @@ Claude Code on Webでは、新規セッション毎に新しい `claude/xxx` ブ
 - 新規セッション開始時は、前回の作業内容を引き継ぐために以下で始める:
 
 ```markdown
-/docs/order.md、/docs/todo.md を読んで、前回の作業状態を把握してください。
+/docs/order.md、/docs/todo.md、/docs/order-log/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
 未解決の質問や気になる点があれば、教えてください。
 そして、今までのように、/docs/order.md にご回答をお願いいたします。
 ```
