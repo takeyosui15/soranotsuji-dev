@@ -10,7 +10,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('S0 APP_VERSION 1.22.0', src.includes("APP_VERSION = '1.22.0'"));
+    check('S0 APP_VERSION 1.22.1', src.includes("APP_VERSION = '1.22.1'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
@@ -167,7 +167,9 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
         document.getElementById('input-ss-days').value='16';
         await soraSearchRun();
         const rows=[...document.querySelectorAll('#tsujisearch-content tbody tr')];
-        const confs=new Set(rows.map(tr=>tr.children[11].textContent));
+        const head=[...document.querySelectorAll('#tsujisearch-content thead th')].map(t=>t.textContent);
+        const confI=head.indexOf('信頼度');   // 列追加に強いようヘッダから引く
+        const confs=new Set(rows.map(tr=>tr.children[confI].textContent));
         const lastDay=rows.length?rows[rows.length-1].children[0].textContent:'';
         return { jmaCalls, fcCalls, nRows:rows.length, confs:[...confs].join(','), lastDay };
       } finally { window.fetch=origFetch; }

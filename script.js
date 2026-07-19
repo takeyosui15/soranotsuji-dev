@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.22.1 - 2026-07-19: feat: 宙検索に光害を組み込み(フェーズ3前半) — 同梱アセット(data/lp-japan: Falchi 2016のSQM格子)の遅延読み込み・観測点の天頂SQM+扇形標本の方向光害(重み付き平均)・宙スコアに光害因子(SQM16〜22→暗さ0〜1、天頂6:方向4合成、プリセットの光害重みで反映)・暫定リストに光害(SQM)/方向光害列。アセット未配置/範囲外は'-'表示でスキップ
 Version 1.22.0 - 2026-07-19: feat: 宙検索フェーズ1(データ層。デッサン18) — 視界扇形の標本化(0.05°格子丸め+距離減衰重み)・Open-Meteo /v1/jma 3層雲量のバッチ取得+IndexedDBキャッシュ(TTL2h)+12〜16日はbest_match延長・狙いプリセット5種(天の川/星景/雲海×月夜/パール/朝焼け夕焼け)の乗算型宙スコア(雲×月[避/狙]×対象高度×湿度)・時間帯フィルタ・信頼度(高/中/低)・暫定リスト表示(辻検索パネル間借り・行クリックで日時移動)
 Version 1.21.1 - 2026-07-19: fix: 花火モード — 打ち上げ点の初期値を目的点と同じに(座標表示+標高も目的点に追従。明示設定で確定)・花火点(+)と基準視高度の開花高度基準を「色々=40号の高い方/固定=選択号数の高い方」に(デッサン06)
 Version 1.21.0 - 2026-07-19: feat: 宙の窓に花火モード(デッサン06 55〜70段目+ctrl41〜53段目) — 打ち上げ点(地名/住所/緯度経度+標高+高さ+領域半径)から号数別の開花高度へ軌跡が上がり開花直径の放射状の華が七色で開くシミュレーション。実寸ENU配置で手前の山に遮蔽され写る大きさも実寸。色々/固定+ばらつき(u^γ重み)、花火点(+)マーカー、打ち上げ点の地図マーカー(🎆)+領域円、基準方位角/視高度の算出表示、メニュー/ctrl双方向連動、URL記憶・復元(シード辞書v9)
@@ -81,7 +82,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.22.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.22.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -15333,6 +15334,45 @@ async function ssFetchClouds(points, days) {
     return results;
 }
 
+// --- 光害アセット(フェーズ3。tools/lightpollutionで生成した data/lp-japan.bin/.json) ---
+let _ssLpMeta = null, _ssLpBin = null, _ssLpTried = false;
+/** 光害アセットの遅延読み込み(1回だけ)。無い/壊れている場合はfalse(光害因子はスキップされる) */
+async function ssLoadLp() {
+    if (_ssLpTried) return _ssLpBin !== null;
+    _ssLpTried = true;
+    try {
+        const [meta, bin] = await Promise.all([
+            fetch('data/lp-japan.json').then(r => { if (!r.ok) throw new Error('meta'); return r.json(); }),
+            fetch('data/lp-japan.bin').then(r => { if (!r.ok) throw new Error('bin'); return r.arrayBuffer(); }),
+        ]);
+        if (!meta || !meta.width || !meta.height || bin.byteLength !== meta.width * meta.height) throw new Error('size');
+        _ssLpMeta = meta;
+        _ssLpBin = new Uint8Array(bin);
+        return true;
+    } catch (_) {
+        _ssLpMeta = null; _ssLpBin = null;
+        return false;
+    }
+}
+/** 緯度経度→天頂SQM(mag/arcsec²)。範囲外・未読込はnull */
+function ssLpSqm(lat, lng) {
+    const m = _ssLpMeta;
+    if (!m || !_ssLpBin) return null;
+    const ix = Math.floor((lng - m.west) / m.dLng), iy = Math.floor((m.north - lat) / m.dLat);
+    if (ix < 0 || iy < 0 || ix >= m.width || iy >= m.height) return null;
+    return m.sqmMin + _ssLpBin[iy * m.width + ix] / 255 * (m.sqmMax - m.sqmMin);
+}
+/** 扇形標本に沿った方向光害(重み付き平均SQM)。データの無い標本は除外。全滅ならnull */
+function ssLpDirectional(points) {
+    let sw = 0, sum = 0;
+    for (const p of points) {
+        const s = ssLpSqm(p.lat, p.lng);
+        if (s === null) continue;
+        sw += p.w; sum += p.w * s;
+    }
+    return sw > 0 ? sum / sw : null;
+}
+
 /** 標本毎の雲量を重み付き平均して扇形雲量(層別0〜100)に合成する */
 function ssAggregateHour(points, clouds, hourIdx) {
     let sw = 0, low = 0, mid = 0, high = 0, rh = 0;
@@ -15377,8 +15417,9 @@ function ssAstroHour(date, preset) {
 }
 
 /** 宙スコア(0〜100)。乗算型: どれかの因子が致命的なら総合も低くなる(デッサン18)。
- *  フェーズ1は 雲(3層)×月×対象高度×透明度(地上湿度の簡易版)。光害・AOD・雲海度はフェーズ3 */
-function ssScoreHour(preset, agg, astro) {
+ *  雲(3層)×月×対象高度×透明度(地上湿度の簡易版)×光害(lp={zen,dir}のSQM。省略時はスキップ)。
+ *  AOD・雲海度・統計はフェーズ3後半 */
+function ssScoreHour(preset, agg, astro, lp) {
     const clear = (1 - preset.wL / 100 * agg.low / 100) * (1 - preset.wM / 100 * agg.mid / 100) * (1 - preset.wH / 100 * agg.high / 100);
     let fMoon = 1;
     if (preset.wMoon > 0) {
@@ -15397,7 +15438,14 @@ function ssScoreHour(preset, agg, astro) {
     }
     const humid = Math.max(0, Math.min(1, ((agg.rh || 0) - 60) / 40));      // 湿度60%以下は透明・100%で最大減点
     const fTr = 1 - preset.wTr / 100 * 0.5 * humid;
-    return Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr) / 10));
+    let fLp = 1;
+    if (preset.wLp > 0 && lp && lp.zen !== null && lp.zen !== undefined) {
+        // 空の暗さ0〜1: SQM16(大都市)→0 / SQM22(自然の暗さ)→1。天頂6:視界方向4で合成
+        const dk = v => Math.max(0, Math.min(1, (v - 16) / 6));
+        const dark = (lp.dir !== null && lp.dir !== undefined) ? 0.6 * dk(lp.zen) + 0.4 * dk(lp.dir) : dk(lp.zen);
+        fLp = (1 - preset.wLp / 100) + preset.wLp / 100 * dark;
+    }
+    return Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr * fLp) / 10));
 }
 
 /** 宙検索フェーズ1の実行: 扇形標本→雲量取得→時刻毎スコア→暫定リスト表示(辻検索結果パネル) */
@@ -15417,6 +15465,9 @@ async function soraSearchRun() {
         const rangeKm = Math.max(1, Math.min(300, isFinite(rangeIn) && rangeIn > 0 ? rangeIn : Math.ceil(distKm)));
         setBusy('扇形標本を作成中…');
         const points = ssFanSamples(fanDeg, rangeKm);
+        // 光害(静的アセット): 観測点の天頂SQMと、扇形に沿った方向光害。検索毎に1回だけ算出
+        await ssLoadLp();
+        const lp = { zen: ssLpSqm(appState.start.lat, appState.start.lng), dir: ssLpDirectional(points) };
         setBusy(`雲量を取得中… (${points.length}格子)`);
         const clouds = await ssFetchClouds(points, days);
         const base = clouds[points[0].key];
@@ -15435,10 +15486,10 @@ async function soraSearchRun() {
             if (preset.hours === 'ghbh' && Math.abs(astro.sunAlt) > 6) continue;
             const hoursAhead = (dt.getTime() - now) / 3600e3;
             const conf = hoursAhead <= 72 ? '高' : (hoursAhead <= 264 ? '中' : '低');
-            rows.push({ dt, score: ssScoreHour(preset, agg, astro), agg, astro, conf });
+            rows.push({ dt, score: ssScoreHour(preset, agg, astro, lp), agg, astro, conf });
             if (rows.length % 200 === 0) await new Promise(r => setTimeout(r, 0));
         }
-        ssRenderInterim(rows, preset);
+        ssRenderInterim(rows, preset, lp);
         if (statusEl) statusEl.textContent = `${rows.length}件 (${points.length}格子)`;
     } catch (e) {
         console.error('soraSearchRun:', e);
@@ -15449,8 +15500,9 @@ async function soraSearchRun() {
     }
 }
 
-/** フェーズ1の暫定リスト表示(辻検索結果パネルを間借り。本UIはフェーズ2)。行クリックで日時移動 */
-function ssRenderInterim(rows, preset) {
+/** フェーズ1の暫定リスト表示(辻検索結果パネルを間借り。本UIはフェーズ2)。行クリックで日時移動。
+ *  lp={zen,dir}: 光害(検索毎に一定)。アセット未配置・範囲外は'-'表示 */
+function ssRenderInterim(rows, preset, lp) {
     showTsujiPanelForMyTsuji(`宙検索結果 (${preset.label} / フェーズ1・暫定)`);
     const statusEl = document.getElementById('tsujisearch-status');
     if (statusEl) statusEl.textContent = `(${rows.length}件)`;
@@ -15463,9 +15515,11 @@ function ssRenderInterim(rows, preset) {
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
     const table = document.createElement('table');
     table.className = 'td-table';
-    table.innerHTML = '<thead><tr><th>日付</th><th>曜日</th><th>時刻</th><th>宙スコア</th><th>雲低</th><th>雲中</th><th>雲高</th><th>湿度</th><th>月輝面比</th><th>月高度</th><th>対象高度</th><th>信頼度</th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>日付</th><th>曜日</th><th>時刻</th><th>宙スコア</th><th>雲低</th><th>雲中</th><th>雲高</th><th>湿度</th><th>月輝面比</th><th>月高度</th><th>対象高度</th><th>光害(SQM)</th><th>方向光害</th><th>信頼度</th></tr></thead>';
     const tbody = document.createElement('tbody');
     const p2 = v => ('00' + v).slice(-2);
+    const lpZenStr = (lp && lp.zen !== null && lp.zen !== undefined) ? lp.zen.toFixed(2) : '-';
+    const lpDirStr = (lp && lp.dir !== null && lp.dir !== undefined) ? lp.dir.toFixed(2) : '-';
     for (const r of rows) {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
@@ -15475,7 +15529,8 @@ function ssRenderInterim(rows, preset) {
             `<td>${p2(r.dt.getHours())}:00</td><td style="color:${scoreColor};font-weight:bold;">${r.score.toFixed(1)}</td>` +
             `<td>${Math.round(r.agg.low)}%</td><td>${Math.round(r.agg.mid)}%</td><td>${Math.round(r.agg.high)}%</td><td>${Math.round(r.agg.rh)}%</td>` +
             `<td>${Math.round(r.astro.moonIllum * 100)}%</td><td>${r.astro.moonAlt.toFixed(1)}°</td>` +
-            `<td>${r.astro.objAlt === null ? '-' : r.astro.objAlt.toFixed(1) + '°'}</td><td style="color:${confColor};">${r.conf}</td>`;
+            `<td>${r.astro.objAlt === null ? '-' : r.astro.objAlt.toFixed(1) + '°'}</td>` +
+            `<td>${lpZenStr}</td><td>${lpDirStr}</td><td style="color:${confColor};">${r.conf}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dt);
             syncUIFromState();
