@@ -68,3 +68,31 @@ Claudeさん、ありがとうございます。
 > #### ネットワーク疎通の再確認(結果: まだ403でした)
 Claudeデスクトップ→設定→機能→コード実行とファイル作成→追加の許可ドメインで追加したのですが、だめでしょうか。
 設定場所が異なるのでしょうか。
+
+### 回答 (2026-07-19 その14) — ネットワーク設定の場所(設定場所が異なります)
+
+Claudeさん(AI)より回答です。原因が特定できました。**はい、設定場所が異なります。**
+
+#### なぜ効かなかったか
+
+- 「Claudeデスクトップ → 設定 → 機能 → コード実行とファイル作成 → 追加の許可ドメイン」は、**チャット(Claude Desktop)がお手元のMacで行うコード実行・ファイル作成機能用**のサンドボックスの設定です。
+- 私が動いているのは **Claude Code のクラウドセッション**(Anthropicのクラウド上の隔離コンテナ)で、こちらの外部アクセスは**「環境(Environment)」毎のネットワークポリシー**で制御されます。公式ドキュメント([Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web) の「Network access」)にあるとおり、既定は **Trusted**(パッケージレジストリ等の既定リストのみ許可)で、独自ドメインを足すには **Custom** を選んで許可ドメインを入力する必要があります。
+- なお、私の側からアカウントの環境一覧を確認したところ、クラウド環境は **「Default」の1つだけ**でした。編集対象はこの「Default」です。
+
+#### 設定手順(こちらでお願いします)
+
+1. claude.ai/code (またはアプリのClaude Codeの新規セッション作成画面)で、**現在の環境名が表示されている雲アイコン**(「Default」と表示)を選択して環境セレクタを開きます(専用の「環境ページ」は無く、セッションを開始する画面のこのアイコンが入口です)。
+2. 「Default」にマウスを乗せると右側に**設定(歯車)アイコン**が出るので、クリックして編集ダイアログを開きます。
+3. **Network access(ネットワークアクセス)** のセレクタで **Custom(カスタム)** を選択します。
+4. 現れる **Allowed domains(許可ドメイン)** 欄に、1行に1ドメインで以下を入力します(`*.` はサブドメインのワイルドカードです):
+   ```
+   *.open-meteo.com
+   www.7timer.info
+   *.gsi.go.jp
+   *.gfz-potsdam.de
+   ```
+   (個別に書く場合: `api.open-meteo.com` / `air-quality-api.open-meteo.com` / `archive-api.open-meteo.com` / `www.7timer.info` / `cyberjapandata.gsi.go.jp` / `cyberjapandata2.gsi.go.jp` / `msearch.gsi.go.jp` / `dataservices.gfz-potsdam.de` / `datapub.gfz-potsdam.de`)
+5. **「Also include default list of common package managers」(既定の共通リストも含める)のチェックは必ずオン**にしてください(オフにすると、npm等の既定許可が外れて開発に支障が出ます)。
+6. 保存後、**新しく開始したセッションから**有効になります(このセッションには反映されません)。
+
+次の新規セッションの開始時に、私の方で自動的に疎通を再確認してご報告します。通っていれば、宙検索のOpen-Meteo実応答検証や、フェーズ3残り(AOD透明度・ERA5統計・7Timer採否)を実データで進められます。よろしくお願いいたします。
