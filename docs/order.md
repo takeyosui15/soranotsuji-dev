@@ -123,3 +123,25 @@ tile.openstreetmap.org
 nominatim.openstreetmap.org
 
 ご確認の程、よろしくお願いいたします。
+
+### 回答 (2026-07-19 その15) — 許可ドメインリストの確認(漏れなし)
+
+Claudeさん(AI)より回答です。コードベース全体の外部URL参照を機械的に洗い出して、リストと照合しました。**結論: このリストで漏れはありません。**このまま保存いただければ大丈夫です。
+
+#### 照合結果
+
+- `*.open-meteo.com` — `api.` / `air-quality-api.` / `archive-api.` の3ホストを全てカバー ✓(コード中の裸の `open-meteo.com` は地図の帰属表示リンクのみで通信はありません)
+- `*.gsi.go.jp` — `cyberjapandata.` / `cyberjapandata2.` / `msearch.`(地名検索)/ `maps.`(リンクのみ)を全てカバー ✓
+- `*.gfz-potsdam.de` — `dataservices.` / `datapub.` をカバー ✓
+- `www.7timer.info` ✓
+- `cdn.jsdelivr.net` / `unpkg.com` / `geographiclib.sourceforge.io` — **あると便利なので入れて正解です。**1点訂正させてください: 以前「npm経由でローカル化済みのため不要」と書きましたが、正確には「検証ハーネス側でCDN参照をローカルのvendorに書き換えて回避している」であって、**アプリ本体(index.html・各ワーカー)は今もこれらのCDNを直接読み込んでいます**(Leaflet=unpkg、astronomy-engine/three.js/MathJax=jsDelivr、GeographicLib=sourceforge.io)。許可されれば、書き換え無しの素のindex.htmlで、より本番に近い検証ができます。
+- `tile.openstreetmap.org` / `*.tile.openstreetmap.org` — OSMタイルは `{s}.tile.openstreetmap.org`(s=a/b/c)形式なので、ワイルドカード併記でカバー ✓
+- `nominatim.openstreetmap.org` — 地名検索フォールバック ✓
+
+#### あえて入れなくて良いもの(現リストのままでOK)
+
+- `script.google.com`(訪問カウンターのGAS)— 私のヘッドレス検証が本番カウンターへアクセスしない方が安全なので、**入れない方が良い**です(カウンター自体もsoranotsuji.net以外からのアクセスは弾く実装です)。
+- Google認証/Sheets系(`accounts.google.com` / `sheets.googleapis.com` 等)— Myセット同期の検証は対話的なGoogleログインが必要でヘッドレスでは実行できないため、従来どおりモックで検証します。不要です。
+- GitHub・npm等 — 既定の共通リストに含まれるので、**「Also include default list of common package managers」のチェックをオン**にしていれば個別追加は不要です(このチェックだけお忘れなく)。
+
+保存後、**新規セッションから有効**になります。次の新セッション開始時に、こちらで疎通を自動確認してご報告します。通っていれば、宙検索のOpen-Meteo実応答検証と、フェーズ3残り(AOD透明度・ERA5統計・7Timer採否)に実データで進めます。よろしくお願いいたします。
