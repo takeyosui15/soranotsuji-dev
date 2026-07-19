@@ -10,9 +10,10 @@ const ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftsha
 let PASS=0, FAIL=0;
 const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); ok?PASS++:FAIL++; };
 (async()=>{
+  // 版数ピンは最新のverify(現在は110)のみに置く(テスト方針)。ここでは存在だけ確認する
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('O0 APP_VERSION 1.28.0', src.includes("APP_VERSION = '1.28.0'"));
+    check('O0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -146,18 +147,17 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     check('B7 パネル併用時のrecenterで地点が中心より上', r.y < r.half - 20, `y=${Math.round(r.y)} half=${Math.round(r.half)}`);
   }
 
-  // B8: 未移行機能の安全無効化(マーカーはシャドウ地図に描画・可視地図には出ない)
+  // B8: 未移行機能の安全無効化(R2でマーカーはMapLibre側へ移行済み — 描画先の詳細検証はverify110)
   {
     const r=await p.evaluate(()=>{
       updateAll();
       return {
-        shadowMarkers: document.querySelectorAll('#map-shadow .location-marker').length,
         glMarkers: document.querySelectorAll('#map .location-marker').length,
         tmPopup: _tmShowPixelPopup({lat:35,lng:138}),
       };
     });
-    check('B8 マーカーはシャドウのみ(可視地図0)+メッシュポップアップ抑止', r.shadowMarkers>=2&&r.glMarkers===0&&r.tmPopup===false,
-      `shadow=${r.shadowMarkers} gl=${r.glMarkers}`);
+    check('B8 updateAllがエラーなく走る(マーカーはGL側)+メッシュポップアップ抑止', r.glMarkers>=2&&r.tmPopup===false,
+      `gl=${r.glMarkers}`);
   }
 
   // B9: adapter.setViewの往復(GL座標順/ズーム換算)+シャドウ地図の追従

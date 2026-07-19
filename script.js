@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.29.0 - 2026-07-19: feat: 本体地図のMapLibre移行R2(機能群2=マーカー/ポップアップ) — ?maplibre=1時の観測点(青)/目的点(赤)マーカー+位置情報ポップアップ・観測点-目的点の2本線(見かけの直線=破線/大圏航路=実線。GeoJSONソース+lineレイヤ)・My観測点(緑)/My目的点(橙)マーカー(ポップアップ+クリックで観測点/目的点に適用)・🎆打ち上げ点マーカー+ばらつき範囲円(fillレイヤ)・マーカーはグループ管理(_glMarkerGroups=LeafletのlayerGroup相当)・divIconのCSS transformとMapLibre位置決めtransformの衝突をラッパー要素で回避・アダプタclosePopupのMapLibre側対応・移行中バッジをR2完了表記に更新
 Version 1.28.0 - 2026-07-19: feat: 本体地図のMapLibre移行R1(手順3開始。docs/maplibre-migration.md) — URLフラグ?maplibre=1で本体地図をMapLibre GL JSに切替(既定はLeafletのまま変更なし)・地図アダプタmapAdapter新設(座標順[lat,lng]⇄[lng,lat]とズーム値差[MapLibre=Leaflet−1]を境界で吸収)・ベース地図4種(地理院 標準/写真/淡色+OSM)のラスタレイヤ+レイヤ切替/ズーム/スケール/⌖中央表示/パン◀▶▲▼の各コントロール・クリック(ダブルクリック/ダブルタップ)の観測点/目的点移動・recenterPointInViewの両エンジン対応(MapLibreはeaseTo+offset)・未移行機能(マーカー/辻ライン/検索の地図表示/辻メッシュ)はシャドウLeaflet(非表示・タイル無し)へ描画して安全に無効化+地図右上に移行中バッジ表示
 Version 1.27.0 - 2026-07-19: feat: 宙断面ビューの肉付け(デッサン19の未決①〜④) — ⛶最大化+結果パネル(辻検索/辻メッシュ/宙検索)併用時の1/3化(積み上げ規則を全天儀と同型に)・雲格子を0.1°×9×9に細分化・時間スライダー(基準時刻+12時間・10分刻み・時間の間は線形補間・▶で500ms毎+10分のアニメーション)・気圧面輪切りモード(取得できる最多の16面×実高度の薄板。気象庁降水強度配色のグラデーション+凡例。初回切替時に取得・キャッシュ)・モード切替ラジオ(3層/輪切り)
 Version 1.26.0 - 2026-07-19: feat: 宙断面ビューの骨格(MapLibre GL JS初導入 — 地図全面移行計画の手順2。デッサン19) — 位置情報メニューに宙断面ボタン(標高グラフ/全天儀/宙の窓と排他・下2/3パネル)・地理院淡色ラスタ+地理院DEM(dem_png→terrain-RGB変換のgsidemカスタムプロトコル)の3D地形を斜め俯瞰(pitch65°・観測点→目的点の方位・鉛直誇張1.2)・Open-Meteo 3層雲量(観測点周辺0.2°×5×5格子。宙検索とキャッシュ共有)を実高度の空中スラブ(fill-extrusion。厚み=雲量比例・30%未満は非表示)で低/中/高層に重畳・観測点(青)/目的点(赤)マーカー・日時変更(時単位)で自動更新・閉じるとMapLibreを破棄。本体地図のLeafletとは併存
@@ -88,7 +89,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.28.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.29.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -725,7 +726,15 @@ const mapAdapter = {
         if (USE_MAPLIBRE) { const p = glMap.project([latlng.lng, latlng.lat]); return { x: p.x, y: p.y }; }
         const p = map.latLngToContainerPoint(latlng); return { x: p.x, y: p.y };
     },
-    closePopup() { if (typeof map !== 'undefined' && map) map.closePopup(); },   // MapLibre側ポップアップはR2で導入
+    closePopup() {
+        if (typeof map !== 'undefined' && map) map.closePopup();
+        if (USE_MAPLIBRE) {
+            Object.values(_glMarkerGroups).forEach(list => list.forEach(m => {
+                const pp = m.getPopup && m.getPopup();
+                if (pp && pp.isOpen()) pp.remove();
+            }));
+        }
+    },
 };
 
 // 未移行機能の描画先となるシャドウLeaflet地図(フラグON時のみ。非表示・タイル無しで通信も発生しない)
@@ -867,11 +876,150 @@ function initMapGL(mapEl) {
         }
     });
 
-    // 「移行中」表示(未移行機能の案内。R2〜R5の進行に合わせて文言を更新する)
+    // 移行済み機能用のソース/レイヤ(スタイル読込後に追加し、初回描画をやり直す)
+    glMap.on('style.load', () => {
+        const emptyFC = { type: 'FeatureCollection', features: [] };
+        // R2: 観測点-目的点の線(見かけの直線=破線・大圏航路=実線)
+        glMap.addSource('location-lines', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'loc-line-mercator', type: 'line', source: 'location-lines',
+            filter: ['==', ['get', 'kind'], 'mercator'],
+            paint: { 'line-color': '#000', 'line-width': 2, 'line-opacity': 0.5, 'line-dasharray': [2, 2] } });
+        glMap.addLayer({ id: 'loc-line-gc', type: 'line', source: 'location-lines',
+            filter: ['==', ['get', 'kind'], 'gc'],
+            paint: { 'line-color': '#000', 'line-width': 4, 'line-opacity': 0.8 } });
+        // R2: 花火モードのばらつき範囲円
+        glMap.addSource('fw-circle', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'fw-circle-fill', type: 'fill', source: 'fw-circle',
+            paint: { 'fill-color': '#ffb74d', 'fill-opacity': 0.15 } });
+        glMap.addLayer({ id: 'fw-circle-line', type: 'line', source: 'fw-circle',
+            paint: { 'line-color': '#ff8f00', 'line-width': 1 } });
+        // スタイル準備前に描画された分をやり直す(マーカーはDOMなので影響なし・線/円が対象)
+        if (typeof appState === 'object' && appState.start) {
+            try { updateLocationDisplay(); } catch (e) { console.warn('MapLibre(R2) 初回再描画:', e); }
+            try { _fwMapKey = ''; fwUpdateMapMarker(); } catch (e) { /* 花火モジュール未初期化時は無視 */ }
+        }
+    });
+
+    // 「移行中」表示(未移行機能の案内。R3〜R5の進行に合わせて文言を更新する)
     const badge = document.createElement('div');
     badge.id = 'gl-migration-badge';
-    badge.textContent = 'MapLibre移行中(R1): マーカー/辻ライン/検索の地図表示/辻メッシュは未移行(R2〜R5で対応)';
+    badge.textContent = 'MapLibre移行中(R2まで完了): 辻ライン/辻検索・宙検索の地図表示/辻メッシュは未移行(R3〜R5で対応)';
     mapEl.appendChild(badge);
+}
+
+// ==== R2: MapLibreマーカー/ポップアップ(機能群2) ====
+// LeafletのlayerGroup相当を「グループ名→maplibregl.Marker配列」で管理する
+const _glMarkerGroups = {};
+function _glClearMarkerGroup(name) {
+    (_glMarkerGroups[name] || []).forEach(m => m.remove());
+    _glMarkerGroups[name] = [];
+}
+/** divIcon相当のマーカーを追加する。htmlはラッパーdivの中身(CSSのtransformと、
+ *  MapLibreが位置決めに使うインラインtransformの衝突を避けるため必ずラップする) */
+function _glAddMarker(name, lat, lng, html, opts = {}) {
+    const wrap = document.createElement('div');
+    wrap.style.width = (opts.w || 24) + 'px';
+    wrap.style.height = (opts.h || 24) + 'px';
+    if (opts.className) wrap.className = opts.className;
+    if (opts.zIndex !== undefined) wrap.style.zIndex = String(opts.zIndex);
+    if (opts.interactive === false) wrap.style.pointerEvents = 'none';
+    wrap.innerHTML = html;
+    const mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom' })
+        .setLngLat([lng, lat]).addTo(glMap);
+    if (opts.popupHtml) {
+        mk.setPopup(new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml));
+    }
+    if (opts.onClick) wrap.addEventListener('click', () => opts.onClick());
+    (_glMarkerGroups[name] = _glMarkerGroups[name] || []).push(mk);
+    return mk;
+}
+function _glSetSourceData(srcId, features) {
+    if (!glMap) return;
+    const src = glMap.getSource(srcId);
+    if (src) src.setData({ type: 'FeatureCollection', features });
+}
+
+/** 観測点/目的点マーカー+2本の線(updateLocationDisplayのMapLibre版) */
+function glUpdateLocationDisplay() {
+    _glClearMarkerGroup('location');
+    const s = appState.start, e = appState.end;
+    _glAddMarker('location', s.lat, s.lng, '<div class="location-marker location-marker-observer"></div>',
+        { zIndex: 1000, popupHtml: createLocationPopup('観測点', s, e, appState.startApiElev, appState.startHeight) });
+    _glAddMarker('location', e.lat, e.lng, '<div class="location-marker location-marker-target"></div>',
+        { zIndex: 1000, popupHtml: createLocationPopup('目的点', e, s, appState.endApiElev, appState.endHeight) });
+    const gc = calculateGreatCirclePoints(s, e);
+    _glSetSourceData('location-lines', [
+        { type: 'Feature', properties: { kind: 'mercator' },
+          geometry: { type: 'LineString', coordinates: [[s.lng, s.lat], [e.lng, e.lat]] } },
+        { type: 'Feature', properties: { kind: 'gc' },
+          geometry: { type: 'LineString', coordinates: gc.map(p => [p[1], p[0]]) } },
+    ]);
+}
+
+/** My観測点(緑)/My目的点(橙)マーカー(updateMyPointMarkersのMapLibre版) */
+function glUpdateMyPointMarkers() {
+    _glClearMarkerGroup('mypoint');
+    const addPts = (list, cls, title, apply) => list.forEach(pt => {
+        if (pt.lat === null || pt.lat === undefined) return;
+        _glAddMarker('mypoint', pt.lat, pt.lng, `<div class="location-marker ${cls}"></div>`, {
+            popupHtml: `
+            <b>${title}</b><br>
+            ${escapeHtml(pt.name)}<br>
+            ID: ${pt.id}<br>
+            緯度: ${pt.lat}°<br>
+            経度: ${pt.lng}°<br>
+            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
+            高さ: ${pt.height || 0} m
+        `,
+            onClick: () => apply(pt),
+        });
+    });
+    addPts(appState.myObservations, 'location-marker-myobs', 'My観測点', (pt) => {
+        appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
+        appState.startApiElev = pt.elev || 0;
+        appState.startHeight = pt.height || 0;
+        appState.locMode = 'start';
+        const rs = document.getElementById('radio-start');
+        if (rs) rs.checked = true;
+        saveAppState();
+        updateAll();
+    });
+    addPts(appState.myTargets, 'location-marker-mytgt', 'My目的点', (pt) => {
+        appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
+        appState.endApiElev = pt.elev || 0;
+        appState.endHeight = pt.height || 0;
+        appState.locMode = 'end';
+        const re = document.getElementById('radio-end');
+        if (re) re.checked = true;
+        saveAppState();
+        updateAll();
+    });
+}
+
+/** 🎆打ち上げ点マーカー+ばらつき範囲円(fwUpdateMapMarkerのMapLibre版) */
+function glFwUpdateMapMarker() {
+    if (!glMap) return;
+    const p0 = fwLaunchPoint();
+    const key = `${appState.fwEnabled}|${p0.lat},${p0.lng}|${Number(appState.fwRadius) || 0}`;
+    if (key === _fwMapKey) return;
+    _fwMapKey = key;
+    _glClearMarkerGroup('fw');
+    _glSetSourceData('fw-circle', []);
+    if (!appState.fwEnabled) return;
+    if (!isFinite(p0.lat) || !isFinite(p0.lng)) return;
+    _glAddMarker('fw', p0.lat, p0.lng, '🎆', { className: 'fw-map-icon', anchor: 'center', interactive: false });
+    const r = Number(appState.fwRadius) || 0;
+    if (r > 0) {
+        // 半径r[m]の円を64角形で近似(小半径のため単純なm→度換算で十分)
+        const dLat = r / 111320;
+        const dLng = r / (111320 * Math.cos(p0.lat * Math.PI / 180));
+        const ring = [];
+        for (let i = 0; i <= 64; i++) {
+            const a = i / 64 * 2 * Math.PI;
+            ring.push([p0.lng + dLng * Math.sin(a), p0.lat + dLat * Math.cos(a)]);
+        }
+        _glSetSourceData('fw-circle', [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }]);
+    }
 }
 
 function initMap() {
@@ -2124,6 +2272,9 @@ function updateLocationDisplay() {
     // 編集可能なユーザー高さ
     document.getElementById('input-start-elev').value = appState.startHeight;
     document.getElementById('input-end-elev').value = appState.endHeight;
+
+    // MapLibre移行済み(R2): マーカー/線はMapLibre側に描画する(入力欄の更新は上の共通部で済み)
+    if (USE_MAPLIBRE) { glUpdateLocationDisplay(); return; }
 
     const sPt = L.latLng(appState.start.lat, appState.start.lng);
     const ePt = L.latLng(appState.end.lat, appState.end.lng);
@@ -5329,6 +5480,7 @@ function getMyPointUrl(type) {
 
 /** マーカー更新 (My観測点 + My目的点) */
 function updateMyPointMarkers() {
+    if (USE_MAPLIBRE) { glUpdateMyPointMarkers(); return; }   // MapLibre移行済み(R2)
     if (!myPointMarkerLayer) {
         myPointMarkerLayer = L.layerGroup().addTo(map);
     }
@@ -15514,6 +15666,7 @@ function _fwSyncAnim() {
 /** 打ち上げ点の地図マーカー(🎆)+領域半径の円。花火モードON中のみ表示(内容が同じなら何もしない) */
 let _fwMapMarker = null, _fwMapCircle = null, _fwMapKey = '';
 function fwUpdateMapMarker() {
+    if (USE_MAPLIBRE) { glFwUpdateMapMarker(); return; }   // MapLibre移行済み(R2)
     if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
     const p0 = fwLaunchPoint();
     const key = `${appState.fwEnabled}|${p0.lat},${p0.lng}|${Number(appState.fwRadius) || 0}`;
