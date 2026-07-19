@@ -111,7 +111,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   {
     const p2=await ctx.newPage();
     const errs2=[]; p2.on('pageerror',e=>errs2.push(e.message));
-    await p2.goto(BASE+'/index.html',{waitUntil:'load'});
+    await p2.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
     await p2.waitForFunction(()=>typeof map!=='undefined'&&!!map,{timeout:8000});
     await p2.waitForTimeout(600);
     const r=await p2.evaluate(()=>{

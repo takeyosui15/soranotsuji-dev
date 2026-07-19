@@ -21,11 +21,11 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     route.request().url().startsWith(BASE) ? route.continue() : route.abort();
   });
 
-  // ---- Part A: フラグOFF(既定=Leaflet)の不変 ----
+  // ---- Part A: ?maplibre=0(旧Leaflet地図)の不変(R6の既定切替後も保険フラグで健在) ----
   {
     const p=await ctx.newPage();
     const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-    await p.goto(BASE+'/index.html',{waitUntil:'load'});
+    await p.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
     await p.waitForFunction(()=>typeof mapAdapter==='object'&&typeof map!=='undefined'&&!!map,{timeout:8000});
     await p.waitForTimeout(400);
     const r=await p.evaluate(()=>({
@@ -57,16 +57,16 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   await p.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&typeof map!=='undefined'&&!!map,{timeout:8000});
   await p.waitForTimeout(600);
 
-  // B1: MapLibre本体+シャドウLeaflet+バッジ
+  // B1: MapLibre本体+シャドウLeaflet(移行バッジはR6の既定切替で撤去済み=無いことを確認)
   {
     const r=await p.evaluate(()=>({
       engine: mapAdapter.engine(),
       canvas: !!document.querySelector('#map .maplibregl-canvas'),
-      badge: (document.getElementById('gl-migration-badge')||{}).textContent||'',
+      noBadge: !document.getElementById('gl-migration-badge'),
       shadow: !!document.querySelector('#map-shadow .leaflet-map-pane'),
       layers: ['std','photo','pale','osm'].map(id=>glMap.getLayoutProperty('base-'+id,'visibility')).join(','),
     }));
-    check('B1 MapLibre本体+シャドウLeaflet+移行バッジ', r.engine==='maplibre'&&r.canvas&&/移行/.test(r.badge)&&r.shadow);   // 文言はラウンド毎に更新される(R5〜は「R5まで移行完了」)
+    check('B1 MapLibre本体+シャドウLeaflet(バッジ撤去済み)', r.engine==='maplibre'&&r.canvas&&r.noBadge&&r.shadow);
     check('B1 ベース4種(標準のみ可視)', r.layers==='visible,none,none,none', r.layers);
   }
 

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.33.0 - 2026-07-19: feat: 本体地図のMapLibre移行R6(既定切替) — 本体地図の既定エンジンをLeafletからMapLibre GL JSへ切替(全5機能群の移行完了を受けた手順3の仕上げ)。URLに?maplibre=0を付けると旧Leaflet地図に戻せる(実機確認期間の保険。共有URLには付与されない)・移行中バッジを撤去・localStorage/短縮URLの状態は両エンジンで共通(エンジンを跨いでも位置/設定が保たれる)。Leaflet本体の撤去(手順4)は実機確認後に実施予定(旧動作のverify96〜108は?maplibre=0で歴史的挙動を検証し続ける)
 Version 1.32.0 - 2026-07-19: feat: 本体地図のMapLibre移行R5(機能群5=辻メッシュ。最重量) — ?maplibre=1時のメッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)をimageソース+rasterレイヤ(raster-resampling:nearestでpixelated相当のシャープ表示・更新はupdateImage)・金ドット(選択行のヒット画素×最大5000)をcircleレイヤ化(クリックで観測点設定+ホバーで精度角距離のツールチップをレイヤイベントで再現)・優辻ピン(DOMマーカー。クリックでポップアップ/ホバーで精細化ツールチップ)・画素/ピンのポップアップ(クリックで観測点移動する内容ブロック・メッシュ確定中の詳細リスト固定と閉で解除)・ホバーツールチップ(map mousemove連動)・観測点マーカーの詳細リスト連動(ホバー/ポップアップ固定/常に開くクリック)・表示切替(チェックボックス+天体表示)をレイヤvisibilityで再現・金ドット上のクリックは一般クリック(地点移動)に流さない(queryRenderedFeatures)・レイヤ表示状態の共通問い合わせ口_tmLayerShown(mesh/gold)を新設しhasLayer5箇所を置換
 Version 1.31.0 - 2026-07-19: feat: 本体地図のMapLibre移行R4(機能群4=宙検索オーバーレイ) — ?maplibre=1時の視界扇形(fill+lineレイヤ。輪郭は標本化と同じ簡易平面近似)・扇形標本点(circleレイヤ。塗りデータ駆動=行選択時にその時刻の雲量で白〜濃灰着色)・標本点ホバーのツールチップ(格子/重み/層別雲量。mousemove+mouseleaveのPopup)・パネル✕/再検索での消去。計画書の機能群4のうち「辻マーカー」は辻メッシュ機能の一部のためR5で移行(計画書に注記)
 Version 1.30.0 - 2026-07-19: feat: 本体地図のMapLibre移行R3(機能群3=辻ライン/方位線) — ?maplibre=1時の方位線(等角航法3000km。色/不透明度[地平線下0.3]はデータ駆動・実線/破線の2レイヤ)・辻ライン(前日/翌日=点線・当日=実線・精度境界±0.125°=破線/±視半径=一点鎖線/±1°=二点鎖線をdash種別レイヤ+filterで描き分け。方位急変>5°での区切りはLeaflet版と同一)・5分毎の時刻点(circleレイヤ)+時刻ラベル(DOMマーカー。縁取り文字も同一)・辻ライン365(色データ駆動・薄実線。天体別の表示切替と逐次表示をRAF合流のsetDataで再現)・dashArray(px)→line-dasharray(線幅倍)の換算を記録
@@ -92,7 +93,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.32.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.33.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -232,13 +233,13 @@ let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
-// ==== 手順3: 本体地図のMapLibre移行(段階移行用) ====
-// URLフラグ ?maplibre=1 で本体地図をMapLibre GL JSに切り替える(既定はLeaflet)。
-// フラグON中、未移行機能(マーカー/辻ライン/検索オーバーレイ/辻メッシュ表示)の描画先には
-// 非表示のLeaflet地図(シャドウ地図。タイル読込なし)を充て、既存コードを変更せず安全に無効化する。
-// 各ラウンド(R2〜R5)で機能群毎にMapLibre描画へ移し、R6でシャドウ地図ごとLeafletを撤去する。
+// ==== 手順3: 本体地図のMapLibre移行(R6で既定切替済み) ====
+// 本体地図は既定でMapLibre GL JS。URLに ?maplibre=0 を付けると旧Leaflet地図に戻せる
+// (実機確認期間の保険。手順4=Leaflet撤去まで残す)。
+// Leaflet時代のコード(L.*)は残っており、MapLibre時は非表示のシャドウLeaflet地図
+// (タイル読込なし)が受け皿になる。手順4でシャドウ地図ごとLeafletを撤去する。
 const USE_MAPLIBRE = (() => {
-    try { return new URLSearchParams(window.location.search).get('maplibre') === '1'; } catch (e) { return false; }
+    try { return new URLSearchParams(window.location.search).get('maplibre') !== '0'; } catch (e) { return true; }
 })();
 let glMap = null;            // MapLibre本体(フラグON時のみ)
 let _glBaseLayerId = 'std';  // 表示中のベースレイヤ(std/photo/pale/osm)
@@ -993,11 +994,6 @@ function initMapGL(mapEl) {
         }
     });
 
-    // 「移行中」表示(未移行機能の案内。R3〜R5の進行に合わせて文言を更新する)
-    const badge = document.createElement('div');
-    badge.id = 'gl-migration-badge';
-    badge.textContent = 'MapLibre版(R5まで移行完了): お気づきの差異があればお知らせください(R6で既定切替予定)';
-    mapEl.appendChild(badge);
 }
 
 // ==== R2: MapLibreマーカー/ポップアップ(機能群2) ====

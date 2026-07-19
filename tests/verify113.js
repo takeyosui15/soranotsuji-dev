@@ -58,9 +58,10 @@ const SETUP=`(() => {
 })()`;
 
 (async()=>{
+  // 版数ピンは最新のverify(現在は114)のみに置く(テスト方針)。ここでは存在だけ確認する
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('S0 APP_VERSION 1.32.0', src.includes("APP_VERSION = '1.32.0'"));
+    check('S0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -210,7 +211,7 @@ const SETUP=`(() => {
   {
     const p2=await ctx.newPage();
     const errs2=[]; p2.on('pageerror',e=>errs2.push(e.message));
-    await p2.goto(BASE+'/index.html',{waitUntil:'load'});
+    await p2.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
     await p2.waitForFunction(()=>typeof map!=='undefined'&&!!map,{timeout:8000});
     await p2.waitForTimeout(400);
     await p2.evaluate(SETUP);

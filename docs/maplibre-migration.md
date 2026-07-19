@@ -68,6 +68,17 @@
    `_tmLayerShown('mesh'|'gold')`に集約。検証: tests/verify113.js(14チェック)。
 6. **R6: 既定切替+手順4(Leaflet撤去)** — 実機確認後に既定をMapLibreへ。Leafletのタグ・
    アダプタの旧分岐・`L.*`を撤去し、ズーム連続値化などの挙動差を最終調整。
+   **【既定切替 完了 v1.33.0】** 本体地図の既定エンジンをMapLibreへ切替。
+   `?maplibre=0`で旧Leaflet地図に戻せる(実機確認期間の保険。共有URLには乗らない)。
+   移行中バッジは撤去。localStorage/短縮URLの状態は両エンジン共通(跨いでも保持)。
+   検証: tests/verify114.js(7チェック)。旧Leaflet挙動のverify96〜108は
+   `?maplibre=0`を明示して歴史的挙動を検証し続ける。
+   **【手順4=Leaflet撤去は未実施】** 後戻りしにくい削除のため、実機確認
+   (スマホのタップ操作・辻メッシュ表示・全体の操作感)の後に実施する。
+   撤去時は`?maplibre=0`分岐・シャドウ地図・`L.*`約120箇所・leafletタグを除去し、
+   純math用途のL.latLng().distanceTo()は自前のHaversine/測地線へ置換、
+   `_tmLayerShown`等のエンジン分岐を畳み、verify96〜108の地図依存チェックを
+   MapLibre前提に移植(または宙断面など機能別verifyへ整理)する。
 
 ## 検証方法
 
