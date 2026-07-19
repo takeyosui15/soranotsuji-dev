@@ -107,6 +107,120 @@ html {
 #tsujimesh-panel.maximized.with-milkyway,
 #tsujimesh-panel.maximized.with-soramado { height: 33.33%; }
 
+/* --- 宙検索結果パネル (辻検索/辻メッシュと排他・同じ配置/最大化/積み上げ規則。デッサン18) --- */
+#sorasearch-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-top: 1px solid #2a5a8a;
+    z-index: 910;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+    color: #eee;
+}
+#sorasearch-panel.hidden { display: none; }
+/* 下に別パネル(1/3)があるときは1段上へ */
+#sorasearch-panel.with-elevation,
+#sorasearch-panel.with-milkyway,
+#sorasearch-panel.with-soramado { bottom: 33.33%; }
+/* 宙の窓/全天儀が最大化中: 上1/3=宙検索結果、下2/3=プレビュー/全天儀領域 */
+#sorasearch-panel.with-soramado-max,
+#sorasearch-panel.with-milkyway-max { bottom: 66.67%; }
+/* 最大化: 下に別パネルが無ければ2/3、あれば1/3のまま(地図1/3は常に確保) */
+#sorasearch-panel.maximized { height: 66.67%; }
+#sorasearch-panel.maximized.with-elevation,
+#sorasearch-panel.maximized.with-milkyway,
+#sorasearch-panel.maximized.with-soramado { height: 33.33%; }
+
+#sorasearch-header {
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #7ec8ff;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+}
+#btn-sorasearch-max {
+    padding: 0 6px;
+    margin-right: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#btn-sorasearch-max.active { background: #1e5c96; border-color: #7ec8ff; }
+#btn-sorasearch-close {
+    float: right;
+    padding: 0 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#btn-sorasearch-close:hover { background: rgba(120, 60, 60, 0.8); }
+
+#sorasearch-content {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 4px 10px;
+    font-size: 14px;
+}
+#sorasearch-content .td-table { width: 100%; border-collapse: collapse; }
+#sorasearch-content .td-table th,
+#sorasearch-content .td-table td { padding: 3px 6px; text-align: left; white-space: nowrap; }
+#sorasearch-content .td-table th {
+    color: #aaa; font-weight: normal; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky; top: 0; background: #16222e; z-index: 1; cursor: pointer;
+}
+#sorasearch-content .td-table th:hover { color: #fff; }
+#sorasearch-content .td-table tr.td-data-row { cursor: pointer; }
+#sorasearch-content .td-table tr.td-data-row:hover { background: rgba(255, 255, 255, 0.12); }
+#sorasearch-content .td-table tr.td-data-row.selected { background: rgba(126, 200, 255, 0.22); }
+
+/* 詳細リスト(選択行の標本毎の内訳と因子別の加減点。辻メッシュ詳細と同型) */
+#sorasearch-detail {
+    border-top: 1px solid #2a5a8a;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px 4px;
+}
+#sorasearch-detail.hidden { display: none; }
+#sorasearch-detail-header {
+    font-weight: bold;
+    font-size: 12px;
+    color: #7ec8ff;
+    padding: 3px 0;
+    flex-shrink: 0;
+}
+#sorasearch-detail-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+#sorasearch-detail-body .td-table { width: auto; min-width: 50%; border-collapse: collapse; margin-bottom: 8px; }
+#sorasearch-detail-body .td-table th,
+#sorasearch-detail-body .td-table td { padding: 2px 6px; text-align: left; white-space: nowrap; }
+#sorasearch-detail-body .td-table th {
+    color: #aaa; font-weight: normal; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky; top: 0; background: #16222e; z-index: 1;
+}
+#sorasearch-detail-body .ss-detail-note { color: #999; font-size: 12px; padding: 2px 0 6px; }
+
 #tsujimesh-header {
     padding: 4px 10px;
     font-size: 13px;
@@ -688,6 +802,14 @@ html {
 }
 .sora-aspect { width: 3.2em; }
 .sora-slider { width: 100%; }
+
+/* 宙検索: 重みスライダー行(ラベル+スライダー+値を1行に収める) */
+.ss-w-row { display: flex; align-items: center; gap: 4px; }
+.ss-w-row .input-label { flex: 0 0 72px; }
+.ss-w-slider { flex: 1 1 auto; min-width: 0; }
+.ss-w-val { flex: 0 0 28px; text-align: right; margin-right: 0; }
+#ss-weights-header { cursor: pointer; user-select: none; }
+.ss-disabled-label { color: #888; }
 
 /* プログレスバー */
 #progress-overlay {

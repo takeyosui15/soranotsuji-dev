@@ -1,5 +1,9 @@
 // 第20ラウンド検証: 実ネットワークE2E — 素のindex.html(CDN書き換え無し)+実Open-Meteo/実地理院/実光害アセットでの宙検索
 //
+// ※運用注意(2026-07-19決定のテスト方針): このスクリプトは相手側サーバーに実アクセスするため
+//   **常用しない**。通常の検証はローカルハーネス(vendor+モック)で行い、これは問題発生時に
+//   「ローカル環境との環境差かどうか」を切り分ける目的でのみ単発実行する。
+//
 // 前提(ネットワーク許可済みのClaude Codeクラウド環境で実行する場合):
 //  1. リポジトリ直下を `python3 -m http.server 8099 --bind 127.0.0.1` で配信(vendor書き換え不要)
 //  2. HTTPS_PROXY(エージェントプロキシ)経由の外部アクセスのため、Chromiumに以下が必要:
@@ -64,15 +68,15 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
       await soraSearchRun();
       const ms = Math.round(performance.now() - t0);
       window.fetch = origFetch;
-      const rows = [...document.querySelectorAll('#tsujisearch-content tbody tr')];
-      const head = [...document.querySelectorAll('#tsujisearch-content thead th')].map(t => t.textContent);
+      const rows = [...document.querySelectorAll('#sorasearch-content tbody tr')];
+      const head = [...document.querySelectorAll('#sorasearch-content thead th')].map(t => t.textContent);
       const si = head.indexOf('宙スコア'), lpI = head.indexOf('光害(SQM)'), dirI = head.indexOf('方向光害');
       const scores = rows.map(tr => parseFloat(tr.children[si].textContent)).filter(v => !isNaN(v));
       const lp = rows.length ? rows[0].children[lpI].textContent : '';
       const dir = rows.length ? rows[0].children[dirI].textContent : '';
       return {
         omCalls, ms, nRows: rows.length, status: document.getElementById('ss-status').textContent,
-        title: document.getElementById('tsujisearch-title').textContent,
+        title: document.getElementById('sorasearch-title').textContent,
         sMin: Math.min(...scores), sMax: Math.max(...scores), lp, dir,
       };
     });
@@ -89,7 +93,7 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
       window.fetch = async (u, o) => { if (String(u).includes('api.open-meteo.com')) omCalls++; return origFetch(u, o); };
       await soraSearchRun();
       window.fetch = origFetch;
-      return { omCalls, nRows: document.querySelectorAll('#tsujisearch-content tbody tr').length };
+      return { omCalls, nRows: document.querySelectorAll('#sorasearch-content tbody tr').length };
     });
     check('R4 キャッシュヒットで実コール0', r.omCalls === 0 && r.nRows > 0, `calls=${r.omCalls} rows=${r.nRows}`);
   }

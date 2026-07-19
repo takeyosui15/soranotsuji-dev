@@ -142,6 +142,15 @@ GNU General Public License for more details.
         </div>
     </div>
 
+    <div id="sorasearch-panel" class="hidden">
+        <div id="sorasearch-header"><button id="btn-sorasearch-max" title="検索結果表示領域を最大化">⛶</button> <span id="sorasearch-title">宙検索結果</span> <span id="sorasearch-status"></span> <button id="btn-sorasearch-close" title="宙検索結果パネルを閉じる">✕</button></div>
+        <div id="sorasearch-content"></div>
+        <div id="sorasearch-detail" class="hidden">
+            <div id="sorasearch-detail-header">詳細リスト</div>
+            <div id="sorasearch-detail-body"></div>
+        </div>
+    </div>
+
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
 
@@ -822,17 +831,18 @@ GNU General Public License for more details.
                     <span id="icon-sec-sorasearch">▼</span>
                 </div>
                 <div id="sec-sorasearch" class="section-content closed">
-                    <div class="control-row left-row">
-                        <label class="baseopt-group-label" title="フェーズ1(データ層)の暫定UI。結果リスト/詳細/地図扇形の本実装はフェーズ2で行います(デッサン18)">宙検索(フェーズ1・暫定)</label>
+                    <div class="control-row main-buttons-row">
+                        <button id="btn-ss-file" class="nav-btn main-btn" title="宙検索を実行し、結果をCSVでFile取得します">File取得</button>
                     </div>
                     <div class="control-row">
                         <label class="input-label">狙い:</label>
-                        <select id="sel-ss-preset" title="評価尺度(重み)のプリセット(デッサン18のプリセット値表)">
+                        <select id="sel-ss-preset" title="評価尺度(重み)のプリセット(デッサン18のプリセット値表)。スライダーを動かすとカスタムに切り替わります">
                             <option value="milkyway" selected>天の川</option>
                             <option value="stars">星景(表示天体)</option>
                             <option value="unkai">雲海×月夜</option>
                             <option value="pearl">パール(満月)</option>
                             <option value="glow">朝焼け・夕焼け</option>
+                            <option value="custom">カスタム</option>
                         </select>
                     </div>
                     <div class="control-row">
@@ -852,13 +862,87 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <label class="input-label">範囲(km):</label>
-                        <input type="number" id="input-ss-range" min="1" max="300" step="1" placeholder="初期値=相手距離" title="視界扇形の半径(未入力は相手距離kmの切り上げ)">
+                        <input type="number" id="input-ss-range" min="1" max="300" step="1" placeholder="初期値=相手距離" title="視界扇形の半径(未入力は相手距離kmの切り上げに追従)">
+                    </div>
+                    <div class="control-row left-row" id="ss-weights-header" title="評価尺度の重み(狙いプリセットと連動)を開閉">
+                        <label class="baseopt-group-label">重み <span id="ss-weights-arrow">▼</span></label>
+                    </div>
+                    <div id="ss-weights" class="hidden">
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="低層雲の扇形雲量による減点の強さ">雲(低):</label>
+                            <input type="range" id="input-ss-wl" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="低層雲の重み(0〜100)">
+                            <span id="ss-wl-val" class="sora-val ss-w-val">100</span>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="中層雲の扇形雲量による減点の強さ">雲(中):</label>
+                            <input type="range" id="input-ss-wm" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="中層雲の重み(0〜100)">
+                            <span id="ss-wm-val" class="sora-val ss-w-val">85</span>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="上層雲(巻雲は星が透けるので軽め)の扇形雲量による減点の強さ">雲(高):</label>
+                            <input type="range" id="input-ss-wh" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="上層雲の重み(0〜100)">
+                            <span id="ss-wh-val" class="sora-val ss-w-val">40</span>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="避ける=月高度×輝面比が大きいほど減点(天の川向き) / 狙う=月が見えるほど加点(雲海×月夜・パール向き)">月明かり:</label>
+                            <input type="range" id="input-ss-wmoon" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="月明かりの重み(0〜100)">
+                            <span id="ss-wmoon-val" class="sora-val ss-w-val">80</span>
+                        </div>
+                        <div class="control-row left-row">
+                            <label class="baseopt-radio" title="月高度×輝面比が大きいほど減点します"><input type="radio" name="ss-moon-mode" value="avoid" checked>:避ける</label>
+                            <label class="baseopt-radio" title="月が出ていて輝面比が大きいほど加点します"><input type="radio" name="ss-moon-mode" value="want">:狙う</label>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="雲海度による加点/減点の強さ(雲海度の算出=気圧面データはフェーズ3で有効化)">雲海:</label>
+                            <input type="range" id="input-ss-wunkai" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="雲海の重み(0〜100。フェーズ3で有効化)">
+                            <span id="ss-wunkai-val" class="sora-val ss-w-val">0</span>
+                        </div>
+                        <div class="control-row left-row">
+                            <label class="baseopt-radio" title="雲海度を低層雲として減点します"><input type="radio" name="ss-unkai-mode" value="avoid" checked>:避ける</label>
+                            <label class="baseopt-radio" title="雲海度が高いほど加点します(フェーズ3で有効化)"><input type="radio" name="ss-unkai-mode" value="want">:狙う</label>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="観測点の天頂SQMと方向光害による減点の強さ">光害:</label>
+                            <input type="range" id="input-ss-wlp" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="光害の重み(0〜100)">
+                            <span id="ss-wlp-val" class="sora-val ss-w-val">70</span>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="湿度による減点の強さ(フェーズ2は地上湿度の簡易版。AODはフェーズ3)">透明度:</label>
+                            <input type="range" id="input-ss-wtr" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="透明度の重み(0〜100)">
+                            <span id="ss-wtr-val" class="sora-val ss-w-val">40</span>
+                        </div>
+                        <div class="control-row ss-w-row">
+                            <label class="input-label" title="対象(天の川=天の川中心 / 星景=表示天体 / パール=月。プリセットに追従)の高度条件による重み">対象高度:</label>
+                            <input type="range" id="input-ss-wobj" class="sora-slider ss-w-slider" min="0" max="100" step="1" title="対象天体の高度の重み(0〜100)">
+                            <span id="ss-wobj-val" class="sora-val ss-w-val">60</span>
+                        </div>
+                        <div class="control-row left-row">
+                            <label class="baseopt-group-label" title="リストアップ対象の時間帯を絞る(太陽高度による区分)">時間帯</label>
+                        </div>
+                        <div class="control-row left-row">
+                            <input type="checkbox" id="chk-ss-band-night" class="body-checkbox" checked><label for="chk-ss-band-night" title="太陽高度-18°未満(天文薄明終〜始)">:夜</label>
+                            <input type="checkbox" id="chk-ss-band-twilight" class="body-checkbox"><label for="chk-ss-band-twilight" title="太陽高度-18°〜-6°(天文/航海薄明の帯)">:薄明</label>
+                            <input type="checkbox" id="chk-ss-band-ghbh" class="body-checkbox"><label for="chk-ss-band-ghbh" title="太陽高度-6°〜+6°(BH=-6〜-4°/GH=-4〜+6°の帯)">:GH・BH</label>
+                            <input type="checkbox" id="chk-ss-band-day" class="body-checkbox"><label for="chk-ss-band-day" title="太陽高度+6°以上">:昼</label>
+                        </div>
                     </div>
                     <div class="control-row main-buttons-row">
-                        <button id="btn-ss-run" class="nav-btn main-btn" title="宙検索を実行し、結果を辻検索結果パネルに暫定表示します(Open-Meteoの3層雲量+月+対象天体で宙スコアを算出)">検索</button>
+                        <button id="btn-ss-run" class="nav-btn main-btn" title="宙検索を実行し、画面下部の宙検索結果パネルに結果を表示します(Open-Meteoの3層雲量+月+光害+対象天体で宙スコアを算出)">検索</button>
                     </div>
                     <div class="control-row left-row">
                         <span id="ss-status" class="sora-val"></span>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-ss-stat" class="body-checkbox" disabled><label for="chk-ss-stat" class="ss-disabled-label" title="検索期間の先についてERA5の過去統計から同時期の晴天率を統計行として追加します(フェーズ3で有効化)">:統計(フェーズ3)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="検索の対象(観測点×目的点の組)">対象</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="現在の位置情報の観測点×目的点で検索します"><input type="radio" name="ss-target" value="current" checked>:現在の観測点×目的点</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio ss-disabled-label" title="My観測点×My目的点の一括検索(フェーズ4で有効化)"><input type="radio" name="ss-target" value="batch" disabled>:My観測点×My目的点(フェーズ4)</label>
                     </div>
                 </div>
             </div>

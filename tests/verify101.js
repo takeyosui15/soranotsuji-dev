@@ -10,7 +10,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('L0 APP_VERSION 1.22.1', src.includes("APP_VERSION = '1.22.1'"));
+    check('L0 APP_VERSION 1.23.0', src.includes("APP_VERSION = '1.23.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
@@ -83,14 +83,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
         document.getElementById('input-ss-days').value='3';
         document.getElementById('sel-ss-preset').value='milkyway';
         await soraSearchRun();
-        const head=[...document.querySelectorAll('#tsujisearch-content thead th')].map(t=>t.textContent);
-        const row=document.querySelector('#tsujisearch-content tbody tr');
+        const head=[...document.querySelectorAll('#sorasearch-content thead th')].map(t=>t.textContent);
+        const row=document.querySelector('#sorasearch-content tbody tr');
         const cells=row?[...row.children].map(c=>c.textContent):[];
         const lpI=head.indexOf('光害(SQM)'), dirI=head.indexOf('方向光害');
         return { headOk:lpI>=0&&dirI>=0, lpVal:cells[lpI], dirVal:cells[dirI], nCols:head.length };
       } finally { window.fetch=origFetch; }
     });
-    check('L3 列に光害(SQM)/方向光害(14列)', r.headOk&&r.nCols===14, `cols=${r.nCols}`);
+    check('L3 列に光害(SQM)/方向光害(18列)', r.headOk&&r.nCols===18, `cols=${r.nCols}`);
     check('L3 光害値が数値で表示される', /^\d+\.\d{2}$/.test(r.lpVal)&&/^\d+\.\d{2}$/.test(r.dirVal), `${r.lpVal}/${r.dirVal}`);
   }
 

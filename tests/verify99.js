@@ -10,7 +10,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('F0 APP_VERSION 1.22.1', src.includes("APP_VERSION = '1.22.1'"));
+    check('F0 APP_VERSION 1.23.0', src.includes("APP_VERSION = '1.23.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
@@ -190,11 +190,11 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const enc=encodeQueryParam(params.toString());
       const dec=decodeQueryParam(enc);
       return { missing:missing.join(','), roundtrip: dec===params.toString(),
-               v9: _QP_SEED_VERSIONS.length===9,
+               v9: _QP_SEED_VERSIONS.length>=9,   // v9以降(新機能で辞書版が増えても花火URLは読める)
                vals:`${params.get('fwEnabled')}/${params.get('fwSize')}/${params.get('fwLat')}` };
     });
     check('F7 URLに花火パラメータ10種', r.missing==='', r.missing);
-    check('F7 短縮URL(シード辞書v9)の往復一致', r.roundtrip&&r.v9, r.vals);
+    check('F7 短縮URL(シード辞書v9以降)の往復一致', r.roundtrip&&r.v9, r.vals);
   }
 
   // F8: 花火モードOFF→アニメ停止・シーン/マーカー消去
