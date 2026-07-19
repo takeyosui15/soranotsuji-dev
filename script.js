@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.27.0 - 2026-07-19: feat: 宙断面ビューの肉付け(デッサン19の未決①〜④) — ⛶最大化+結果パネル(辻検索/辻メッシュ/宙検索)併用時の1/3化(積み上げ規則を全天儀と同型に)・雲格子を0.1°×9×9に細分化・時間スライダー(基準時刻+12時間・10分刻み・時間の間は線形補間・▶で500ms毎+10分のアニメーション)・気圧面輪切りモード(取得できる最多の16面×実高度の薄板。気象庁降水強度配色のグラデーション+凡例。初回切替時に取得・キャッシュ)・モード切替ラジオ(3層/輪切り)
 Version 1.26.0 - 2026-07-19: feat: 宙断面ビューの骨格(MapLibre GL JS初導入 — 地図全面移行計画の手順2。デッサン19) — 位置情報メニューに宙断面ボタン(標高グラフ/全天儀/宙の窓と排他・下2/3パネル)・地理院淡色ラスタ+地理院DEM(dem_png→terrain-RGB変換のgsidemカスタムプロトコル)の3D地形を斜め俯瞰(pitch65°・観測点→目的点の方位・鉛直誇張1.2)・Open-Meteo 3層雲量(観測点周辺0.2°×5×5格子。宙検索とキャッシュ共有)を実高度の空中スラブ(fill-extrusion。厚み=雲量比例・30%未満は非表示)で低/中/高層に重畳・観測点(青)/目的点(赤)マーカー・日時変更(時単位)で自動更新・閉じるとMapLibreを破棄。本体地図のLeafletとは併存
 Version 1.25.0 - 2026-07-19: feat: MyセットにMy宙検索を追加(5シート構成) — シート同期(保存/読込/存在確認の自動作成)・セット切り替え・新規作成の対象にMy宙検索を追加。旧4シート構成の既存スプレッドシートは保存/読込時にMy宙検索タブが自動追加される。シート行はリストCSVと同じ22列(コメント行温存の慣習も共通)
 Version 1.24.0 - 2026-07-19: feat: 宙検索フェーズ3残り+フェーズ4(デッサン18) — 透明度にAOD(air-quality API・7日先まで。湿度との悪い方で霞み度)・雲海度(気圧面8面の雲量×実高度から雲頂を推定し観測点が上なら眼下雲量×充足度。狙うモードで加点因子化・詳細に気圧面プロファイル)・上空風300hPa(シーイングの目安・詳細表示)・統計チェック有効化(ERA5の同月日±7日×過去10年の夜間晴天率を統計行に)・My宙検索メニュー新設(メニュー分割ポリシー: 宙検索=現在の1組/My宙検索=My観測点×My目的点の複数組。宙検索取得・リスト編集・一括選択/一括計算/File取得・行操作・CSV入出力・バックアップ対象)・一括結果は宙検索結果パネルに宙検索ID/名の2列付きで表示(シード辞書v11)
@@ -86,7 +87,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.26.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.27.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -9383,6 +9384,19 @@ function syncBottomPanels() {
         ssPnl.classList.toggle('with-milkyway', appState.isSoraSearchActive && appState.isMilkyWayActive);
         ssPnl.classList.toggle('with-soramado', appState.isSoraSearchActive && appState.isSoramadoActive);
     }
+    // 宙断面パネル(全天儀と同じ規則: 結果パネル併用時は1/3、最大化100%⇄併用66.67%)
+    const sdPnl = document.getElementById('soradanmen-panel');
+    if (sdPnl) {
+        const anyResult = appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive;
+        sdPnl.classList.toggle('with-tsuji', appState.isSoradanmenActive && anyResult);
+        const sdMax = sdPnl.classList.contains('maximized');
+        for (const [pnl, active] of [[tdPnl, appState.isTsujiSearchActive], [tmPnl, appState.isTsujiMeshActive], [ssPnl, appState.isSoraSearchActive]]) {
+            if (!pnl) continue;
+            pnl.classList.toggle('with-soradanmen', active && appState.isSoradanmenActive);
+            pnl.classList.toggle('with-soradanmen-max', active && appState.isSoradanmenActive && sdMax);
+        }
+        if (appState.isSoradanmenActive && _sdMap) setTimeout(() => { if (_sdMap) _sdMap.resize(); }, 0);   // 高さ変更に合わせて再描画
+    }
     const smPnl = document.getElementById('soramado-panel');
     if (smPnl) {
         smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive);
@@ -16325,10 +16339,17 @@ function setupSoraSearchControls() {
 // ============================================================
 let _sdMap = null;            // MapLibre Mapインスタンス(開いている間のみ保持)
 let _sdProtocolAdded = false; // gsidemプロトコルの登録済みフラグ
-let _sdLastHourKey = '';      // 雲スラブを描画済みの時刻(時単位。日時変更の検出用)
-let _sdClouds = null;         // 取得済みの雲量格子 { points, clouds } (開いている間のみ)
+let _sdLastDrawKey = '';      // 描画済みの状態キー(基準時刻|オフセット分|モード。変更検出用)
+let _sdClouds = null;         // 取得済みの3層雲量格子 { points, clouds } (開いている間のみ)
+let _sdSlices = null;         // 取得済みの気圧面格子(輪切りモード。初回切替時に取得)
+let _sdMode = 'layers';       // 表示モード: 'layers'=3層スラブ / 'slices'=気圧面の輪切り
+let _sdOffsetMin = 0;         // 時間スライダーのオフセット(分。0〜720=+12時間、10分刻み)
+let _sdPlayTimer = null;      // 時間アニメーションのタイマー(500ms毎に+10分)
 const SD_EX = 1.2;            // 鉛直誇張(地形と雲スラブで同じ係数にして位置関係を保つ)
-const SD_BANDS = { low: [600, 2000], mid: [3000, 8000], high: [8000, 12000] };   // 層別の高度帯(m)
+const SD_BANDS = { low: [600, 2000], mid: [3000, 8000], high: [8000, 12000] };   // 3層モードの高度帯(m)
+const SD_GRID_STEP = 0.1, SD_GRID_N = 4;      // 3層モードの雲格子: 0.1°刻み×(2N+1=9)×9(細分化)
+const SD_SLICE_STEP = 0.2, SD_SLICE_N = 2;    // 輪切りモードの格子: 0.2°刻み×5×5(16面×2変数のため粗め)
+const SD_PL_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100];   // 輪切り=取得できる最多の16面
 
 /** 地理院DEM(dem_png)タイルをMapbox terrain-RGBへ変換するカスタムプロトコル(gsidem://)。
  *  地理院: x=R*2^16+G*2^8+B, 高さ=x<2^23 ? x*0.01m : (x-2^24)*0.01m, 無効値=2^23(→0m扱い)。
@@ -16388,12 +16409,21 @@ function openSoradanmen() {
 function closeSoradanmen() {
     if (!appState.isSoradanmenActive) return;
     appState.isSoradanmenActive = false;
+    _sdStopPlay();
     document.getElementById('btn-soradanmen').classList.remove('active');
     document.getElementById('soradanmen-panel').classList.add('hidden');
     if (_sdMap) { try { _sdMap.remove(); } catch (_) {} _sdMap = null; }
-    _sdLastHourKey = '';
+    _sdLastDrawKey = '';
     _sdClouds = null;
+    _sdSlices = null;
     syncBottomPanels();
+}
+
+/** 時間アニメーションの停止(▶表示に戻す) */
+function _sdStopPlay() {
+    if (_sdPlayTimer) { clearInterval(_sdPlayTimer); _sdPlayTimer = null; }
+    const btn = document.getElementById('btn-sd-play');
+    if (btn) { btn.textContent = '▶'; btn.classList.remove('active'); }
 }
 
 /** MapLibreマップの初期化: 地理院淡色+DEM terrain+雲スラブ3層+観測点/目的点マーカー。
@@ -16420,6 +16450,7 @@ function _sdInitMap() {
                     tileSize: 256, maxzoom: 14, encoding: 'mapbox',
                 },
                 clouds: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+                slices: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
             },
             layers: [
                 { id: 'base', type: 'raster', source: 'gsi' },
@@ -16429,6 +16460,8 @@ function _sdInitMap() {
                   paint: { 'fill-extrusion-color': '#c3d2e8', 'fill-extrusion-opacity': 0.3, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
                 { id: 'cloud-low', type: 'fill-extrusion', source: 'clouds', filter: ['==', ['get', 'layer'], 'low'],
                   paint: { 'fill-extrusion-color': '#9db8d6', 'fill-extrusion-opacity': 0.35, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
+                { id: 'cloud-slices', type: 'fill-extrusion', source: 'slices',
+                  paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-opacity': 0.5, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
             ],
         },
         center: [(o.lng + e.lng) / 2, (o.lat + e.lat) / 2],
@@ -16447,54 +16480,164 @@ function _sdInitMap() {
     });
 }
 
-/** 雲スラブの更新: 観測点周辺0.2°×5×5格子の3層雲量(宙検索とキャッシュ共有)を、
- *  日時情報メニューの現在時刻(時単位)で層別の空中スラブに描く。force=falseは時刻が変わった時だけ更新 */
+/** 観測点周辺の格子点(step°刻み×(2n+1)²。MSM格子0.05°へ丸めて重複除去)を作る */
+function _sdGridPoints(step, n) {
+    const o = appState.start;
+    const points = [];
+    const seen = new Set();
+    for (let iy = -n; iy <= n; iy++) for (let ix = -n; ix <= n; ix++) {
+        const lat = +(Math.round((o.lat + iy * step) / 0.05) * 0.05).toFixed(2);
+        const lng = +(Math.round((o.lng + ix * step) / 0.05) * 0.05).toFixed(2);
+        const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        points.push({ key, lat, lng, w: 1 });
+    }
+    return points;
+}
+
+/** 表示時刻(基準=日時情報メニューの時単位+スライダーのオフセット分)。雲量は時間の間を線形補間する */
+function _sdEffectiveTime() {
+    const base = new Date(appState.currentDate);
+    base.setMinutes(0, 0, 0);
+    return { baseMs: base.getTime(), effMs: base.getTime() + _sdOffsetMin * 60000 };
+}
+/** 時系列cの時刻effMsにおける補間位置 {i, f} を返す(範囲外はnull)。timeはローカル時刻のISO風文字列 */
+function _sdTimePos(timeArr, effMs) {
+    const hour0 = new Date(effMs);
+    hour0.setMinutes(0, 0, 0);
+    const p2 = v => ('00' + v).slice(-2);
+    const key = `${hour0.getFullYear()}-${p2(hour0.getMonth() + 1)}-${p2(hour0.getDate())}T${p2(hour0.getHours())}:00`;
+    const i = timeArr.indexOf(key);
+    if (i < 0) return null;
+    return { i, f: (effMs - hour0.getTime()) / 3600000 };
+}
+/** 配列arrの位置{i,f}の線形補間(i+1が無い/nullなら補間せずiの値) */
+function _sdLerp(arr, pos) {
+    const a = arr[pos.i];
+    if (a === null || a === undefined) return null;
+    const b = arr[pos.i + 1];
+    if (b === null || b === undefined || pos.f <= 0) return a;
+    return a * (1 - pos.f) + b * pos.f;
+}
+
+/** 気圧面の雲量%→輪切りの色(気象庁の降水強度配色に準拠したグラデーション。10%未満は非表示) */
+function _sdSliceColor(cov) {
+    if (cov >= 95) return '#ff2800';
+    if (cov >= 85) return '#ff9900';
+    if (cov >= 70) return '#ffe600';
+    if (cov >= 50) return '#0050ff';
+    if (cov >= 30) return '#33b4ff';
+    return '#b3f0ff';   // 10〜30%
+}
+const SD_LEGEND_STEPS = [[10, '#b3f0ff'], [30, '#33b4ff'], [50, '#0050ff'], [70, '#ffe600'], [85, '#ff9900'], [95, '#ff2800']];
+
+/** 輪切りモード用: 気圧面16面の雲量×実高度を格子点毎に取得する(IndexedDBキャッシュ・TTL2時間)。
+ *  戻り値: {key → {time, cc:{lev:[..]}, gh:{lev:[..]}}} */
+async function _sdFetchSlices(points, days) {
+    const fd = Math.min(11, days);
+    const H = SD_PL_LEVELS.map(l => `cloud_cover_${l}hPa,geopotential_height_${l}hPa`).join(',');
+    const results = {};
+    const misses = [];
+    for (const p of points) {
+        const hit = await _ssIdb('readonly', s => s.get(`plsd:${p.key}:${fd}`)).catch(() => null);
+        if (hit && Date.now() - hit.t < SS_TTL && hit.data && hit.data.cc) results[p.key] = hit.data;
+        else misses.push(p);
+    }
+    if (misses.length) {
+        const lats = misses.map(p => p.lat).join(','), lngs = misses.map(p => p.lng).join(',');
+        const url = `https://api.open-meteo.com/v1/jma?latitude=${lats}&longitude=${lngs}&hourly=${H}&forecast_days=${fd}&timezone=Asia%2FTokyo`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`気圧面 HTTP ${res.status}`);
+        const arr0 = await res.json();
+        const arr = Array.isArray(arr0) ? arr0 : [arr0];
+        misses.forEach((p, i) => {
+            const h = arr[i] && arr[i].hourly;
+            if (!h || !h.time || !h[`cloud_cover_${SD_PL_LEVELS[0]}hPa`]) return;
+            const data = { time: h.time, cc: {}, gh: {} };
+            for (const l of SD_PL_LEVELS) { data.cc[l] = h[`cloud_cover_${l}hPa`]; data.gh[l] = h[`geopotential_height_${l}hPa`]; }
+            results[p.key] = data;
+            _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, `plsd:${p.key}:${fd}`)).catch(() => {});
+        });
+    }
+    return results;
+}
+
+/** 雲の再描画: モード(3層/輪切り)と表示時刻(基準+スライダー。時間の間は補間)に従ってスラブを描く。
+ *  force=falseは状態(基準時刻|オフセット|モード)が変わった時だけ更新 */
 async function _sdUpdateClouds(force) {
     if (!_sdMap || !appState.isSoradanmenActive) return;
     const statusEl = document.getElementById('soradanmen-status');
-    const dt = new Date(appState.currentDate);
-    dt.setMinutes(0, 0, 0);
+    const { effMs } = _sdEffectiveTime();
+    const eff = new Date(effMs);
     const p2 = v => ('00' + v).slice(-2);
-    const hourKey = `${dt.getFullYear()}-${p2(dt.getMonth() + 1)}-${p2(dt.getDate())}T${p2(dt.getHours())}:00`;
-    if (!force && hourKey === _sdLastHourKey) return;
-    _sdLastHourKey = hourKey;
+    const effLabel = `${eff.getFullYear()}-${p2(eff.getMonth() + 1)}-${p2(eff.getDate())} ${p2(eff.getHours())}:${p2(eff.getMinutes())}`;
+    const drawKey = `${effMs}|${_sdMode}`;
+    if (!force && drawKey === _sdLastDrawKey) return;
+    _sdLastDrawKey = drawKey;
+    const tl = document.getElementById('sd-time-label');
+    if (tl) tl.textContent = `+${Math.floor(_sdOffsetMin / 60)}:${p2(_sdOffsetMin % 60)} (${p2(eff.getHours())}:${p2(eff.getMinutes())})`;
     try {
-        if (!_sdClouds) {
-            if (statusEl) statusEl.innerHTML = '<span class="clock-anim">🕛</span> 雲量を取得中…';
-            const o = appState.start;
-            const points = [];
-            const seen = new Set();
-            for (let iy = -2; iy <= 2; iy++) for (let ix = -2; ix <= 2; ix++) {
-                const lat = +(Math.round((o.lat + iy * 0.2) / 0.05) * 0.05).toFixed(2);
-                const lng = +(Math.round((o.lng + ix * 0.2) / 0.05) * 0.05).toFixed(2);
-                const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
-                points.push({ key, lat, lng, w: 1 });
+        if (_sdMode === 'layers') {
+            if (!_sdClouds) {
+                if (statusEl) statusEl.innerHTML = '<span class="clock-anim">🕛</span> 雲量を取得中…';
+                const points = _sdGridPoints(SD_GRID_STEP, SD_GRID_N);
+                const clouds = await ssFetchClouds(points, 3);   // IndexedDBキャッシュを宙検索と共有(TTL2時間)
+                _sdClouds = { points, clouds };
             }
-            const clouds = await ssFetchClouds(points, 3);   // IndexedDBキャッシュを宙検索と共有(TTL2時間)
-            _sdClouds = { points, clouds };
-        }
-        const feats = [];
-        for (const p of _sdClouds.points) {
-            const c = _sdClouds.clouds[p.key];
-            if (!c || !c.time) continue;
-            const i = c.time.indexOf(hourKey);
-            if (i < 0) continue;
-            for (const [layer, [b, t]] of Object.entries(SD_BANDS)) {
-                const cov = layer === 'low' ? c.low[i] : (layer === 'mid' ? c.mid[i] : c.high[i]);
-                if (cov === null || cov === undefined || cov < 30) continue;   // 雲量30%未満は描かない
-                const h = 0.1;   // 0.2°格子セルの半幅
-                feats.push({
-                    type: 'Feature',
-                    properties: { layer, cov, base: b * SD_EX, top: (b + (t - b) * Math.min(1, cov / 100)) * SD_EX },   // 厚み=雲量に比例
-                    geometry: { type: 'Polygon', coordinates: [[[p.lng - h, p.lat - h], [p.lng + h, p.lat - h], [p.lng + h, p.lat + h], [p.lng - h, p.lat + h], [p.lng - h, p.lat - h]]] },
-                });
+            const feats = [];
+            const h = SD_GRID_STEP / 2;
+            for (const p of _sdClouds.points) {
+                const c = _sdClouds.clouds[p.key];
+                if (!c || !c.time) continue;
+                const pos = _sdTimePos(c.time, effMs);
+                if (!pos) continue;
+                for (const [layer, [b, t]] of Object.entries(SD_BANDS)) {
+                    const cov = _sdLerp(layer === 'low' ? c.low : (layer === 'mid' ? c.mid : c.high), pos);
+                    if (cov === null || cov < 30) continue;   // 雲量30%未満は描かない
+                    feats.push({
+                        type: 'Feature',
+                        properties: { layer, cov, base: b * SD_EX, top: (b + (t - b) * Math.min(1, cov / 100)) * SD_EX },   // 厚み=雲量に比例
+                        geometry: { type: 'Polygon', coordinates: [[[p.lng - h, p.lat - h], [p.lng + h, p.lat - h], [p.lng + h, p.lat + h], [p.lng - h, p.lat + h], [p.lng - h, p.lat - h]]] },
+                    });
+                }
             }
+            const src = _sdMap.getSource('clouds');
+            if (src) src.setData({ type: 'FeatureCollection', features: feats });
+            const src2 = _sdMap.getSource('slices');
+            if (src2) src2.setData({ type: 'FeatureCollection', features: [] });
+            if (statusEl) statusEl.textContent = `${effLabel} の雲(雲量30%以上: ${feats.length}面。低=濃/中/高=淡)`;
+        } else {
+            if (!_sdSlices) {
+                if (statusEl) statusEl.innerHTML = '<span class="clock-anim">🕛</span> 気圧面16面を取得中…';
+                const points = _sdGridPoints(SD_SLICE_STEP, SD_SLICE_N);
+                const slices = await _sdFetchSlices(points, 3);
+                _sdSlices = { points, slices };
+            }
+            const feats = [];
+            const h = SD_SLICE_STEP / 2;
+            for (const p of _sdSlices.points) {
+                const c = _sdSlices.slices[p.key];
+                if (!c || !c.time) continue;
+                const pos = _sdTimePos(c.time, effMs);
+                if (!pos) continue;
+                for (const l of SD_PL_LEVELS) {
+                    const cov = _sdLerp(c.cc[l] || [], pos);
+                    const gh = c.gh[l] && c.gh[l][pos.i];
+                    if (cov === null || cov < 10 || gh === null || gh === undefined) continue;   // 雲量10%未満は非表示
+                    feats.push({
+                        type: 'Feature',
+                        properties: { level: l, cov: Math.round(cov), color: _sdSliceColor(cov), base: Math.max(0, (gh - 120) * SD_EX), top: (gh + 120) * SD_EX },
+                        geometry: { type: 'Polygon', coordinates: [[[p.lng - h, p.lat - h], [p.lng + h, p.lat - h], [p.lng + h, p.lat + h], [p.lng - h, p.lat + h], [p.lng - h, p.lat - h]]] },
+                    });
+                }
+            }
+            const src = _sdMap.getSource('slices');
+            if (src) src.setData({ type: 'FeatureCollection', features: feats });
+            const src2 = _sdMap.getSource('clouds');
+            if (src2) src2.setData({ type: 'FeatureCollection', features: [] });
+            if (statusEl) statusEl.textContent = `${effLabel} の雲(気圧面16面・雲量10%以上: ${feats.length}枚。色=雲量)`;
         }
-        const src = _sdMap.getSource('clouds');
-        if (src) src.setData({ type: 'FeatureCollection', features: feats });
-        if (statusEl) statusEl.textContent = `${hourKey.replace('T', ' ')} の雲(雲量30%以上: ${feats.length}面。低=濃/中/高=淡)`;
     } catch (err) {
         console.error('宙断面 雲量:', err);
         if (statusEl) statusEl.textContent = '雲量を取得できませんでした(地形のみ表示。Open-Meteoへの接続をご確認ください)';
@@ -16507,6 +16650,44 @@ function setupSoradanmenControls() {
     if (btn) btn.onclick = toggleSoradanmen;
     const closeBtn = document.getElementById('btn-soradanmen-close');
     if (closeBtn) closeBtn.onclick = closeSoradanmen;
+    // 最大化(全天儀と同じ: 通常2/3⇄100%、辻検索併用時1/3⇄66.67%)
+    const maxBtn = document.getElementById('btn-soradanmen-max');
+    if (maxBtn) maxBtn.onclick = () => {
+        const pnl = document.getElementById('soradanmen-panel');
+        const on = pnl.classList.toggle('maximized');
+        maxBtn.classList.toggle('active', on);
+        syncBottomPanels();
+    };
+    // モード切替(3層/輪切り)。輪切りの初回は気圧面16面を取得。凡例は輪切りのみ表示
+    document.querySelectorAll('input[name="sd-mode"]').forEach(r => r.addEventListener('change', (e) => {
+        _sdMode = e.target.value === 'slices' ? 'slices' : 'layers';
+        const legend = document.getElementById('sd-legend');
+        if (legend) {
+            legend.classList.toggle('hidden', _sdMode !== 'slices');
+            if (_sdMode === 'slices' && !legend.innerHTML) {
+                legend.innerHTML = '凡例(雲量): ' + SD_LEGEND_STEPS.map(([v, c]) => `<span style="color:${c};">■</span>${v}%`).join(' ') + '〜';
+            }
+        }
+        _sdUpdateClouds(true);
+    }));
+    // 時間スライダー(+12時間・10分刻み。時間の間は補間)
+    const slider = document.getElementById('sd-time-slider');
+    if (slider) slider.addEventListener('input', () => {
+        _sdOffsetMin = Math.max(0, Math.min(720, parseInt(slider.value) || 0));
+        _sdUpdateClouds();
+    });
+    // ▶再生/停止: 500ms毎に+10分(12時間で一周)
+    const playBtn = document.getElementById('btn-sd-play');
+    if (playBtn) playBtn.onclick = () => {
+        if (_sdPlayTimer) { _sdStopPlay(); return; }
+        playBtn.textContent = '⏸';
+        playBtn.classList.add('active');
+        _sdPlayTimer = setInterval(() => {
+            _sdOffsetMin = _sdOffsetMin >= 720 ? 0 : _sdOffsetMin + 10;
+            if (slider) slider.value = _sdOffsetMin;
+            _sdUpdateClouds();
+        }, 500);
+    };
 }
 
 // ============================================================

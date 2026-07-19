@@ -156,7 +156,15 @@ GNU General Public License for more details.
     </div>
 
     <div id="soradanmen-panel" class="hidden">
-        <div id="soradanmen-header"><span id="soradanmen-title">宙断面ビュー(骨格)</span> <span id="soradanmen-status"></span> <button id="btn-soradanmen-close" title="宙断面ビューを閉じる">✕</button></div>
+        <div id="soradanmen-header"><button id="btn-soradanmen-max" title="宙断面を画面いっぱいに最大化">⛶</button> <span id="soradanmen-title">宙断面ビュー</span> <span id="soradanmen-status"></span> <button id="btn-soradanmen-close" title="宙断面ビューを閉じる">✕</button></div>
+        <div id="soradanmen-ctrl-bar">
+            <label class="sd-mode-radio" title="MSMの3層雲量(低/中/高)を高度帯のスラブで表示します"><input type="radio" name="sd-mode" value="layers" checked>:3層</label>
+            <label class="sd-mode-radio" title="気圧面16面の雲量を実高度の輪切り(薄板)で表示します(気圧面雲量はRH近似の目安。取得は初回のみ)"><input type="radio" name="sd-mode" value="slices">:輪切り</label>
+            <button id="btn-sd-play" class="nav-btn" title="時間アニメーションを再生/停止(10分刻みで送ります)">▶</button>
+            <input type="range" id="sd-time-slider" min="0" max="720" step="10" value="0" title="表示時刻(基準時刻から+12時間まで。10分刻み。時間の間の雲量は補間)">
+            <span id="sd-time-label" class="sora-val"></span>
+            <span id="sd-legend" class="hidden"></span>
+        </div>
         <div id="soradanmen-map"></div>
     </div>
 

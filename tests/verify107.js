@@ -12,7 +12,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('D0 APP_VERSION 1.26.0', src.includes("APP_VERSION = '1.26.0'"));
+    // 版数ピンは最新のverifyのみに置く運用(第24ラウンド〜。バージョン更新漏れは最新verifyが検知する)
     const html=fs.readFileSync(path.join(__dirname, '..', 'index.html'),'utf8');
     check('D0 index.htmlにMapLibreタグ+宙断面ボタン+パネル', /maplibre-gl@[\d.]+\/dist\/maplibre-gl\.js/.test(html)&&html.includes('btn-soradanmen')&&html.includes('soradanmen-panel'));
   }
@@ -68,7 +68,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     check('D1 排他: 全天儀→宙断面で全天儀が閉じる', r.mwOpen&&r.mwClosedAfter);
   }
 
-  // D2: マップload後: terrain設定+雲スラブ(25格子×3層=75面)+ステータス表示
+  // D2: マップload後: terrain設定+雲スラブ(0.1°×9×9=81格子×3層=243面)+ステータス表示
   {
     await p.waitForFunction(()=>_sdMap&&_sdMap.loaded&&_sdMap.loaded()&&/面/.test(document.getElementById('soradanmen-status').textContent),{timeout:30000});
     const r=await p.evaluate(()=>{
@@ -82,23 +82,23 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
                status:document.getElementById('soradanmen-status').textContent };
     });
     check('D2 terrain(地理院DEM変換)設定+レイヤ4種+pitch65', r.terrain&&r.layers&&r.pitch===65);
-    check('D2 雲スラブ25格子×3層=75面(モック曇天)', r.nFeats===75&&r.nLow===25, `feats=${r.nFeats}`);
+    check('D2 雲スラブ81格子×3層=243面(モック曇天・0.1°細分化)', r.nFeats===243&&r.nLow===81, `feats=${r.nFeats}`);
     check('D2 低層スラブ: base=600×1.2=720/top=(600+1400×0.9)×1.2=2232(厚み=雲量比例)', Math.round(r.lowBase)===720&&Math.round(r.lowTop)===2232, `${r.lowBase}/${r.lowTop}`);
-    check('D2 ステータスに時刻+面数', /の雲/.test(r.status)&&/75面/.test(r.status), r.status);
+    check('D2 ステータスに時刻+面数', /の雲/.test(r.status)&&/243面/.test(r.status), r.status);
   }
 
   // D3: 日時変更(時単位)で雲スラブが追従更新される
   {
     const r=await p.evaluate(async()=>{
-      const key1=_sdLastHourKey;
+      const key1=_sdLastDrawKey;
       appState.currentDate=new Date(appState.currentDate.getTime()+3600e3);
       syncUIFromState();   // 日時の直接変更はUIへ反映してからupdateAll(行クリックと同じ順序)
       updateAll();
       await new Promise(r=>setTimeout(r,200));
-      const key2=_sdLastHourKey;
+      const key2=_sdLastDrawKey;
       updateAll();   // 同時刻の再呼び出しでは変わらない
       await new Promise(r=>setTimeout(r,100));
-      return { changed:key2!==key1&&key2!=='', stable:_sdLastHourKey===key2 };
+      return { changed:key2!==key1&&key2!=='', stable:_sdLastDrawKey===key2 };
     });
     check('D3 日時+1時間で更新キーが変わり、同時刻では再更新しない', r.changed&&r.stable);
   }
