@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.25.0 - 2026-07-19: feat: MyセットにMy宙検索を追加(5シート構成) — シート同期(保存/読込/存在確認の自動作成)・セット切り替え・新規作成の対象にMy宙検索を追加。旧4シート構成の既存スプレッドシートは保存/読込時にMy宙検索タブが自動追加される。シート行はリストCSVと同じ22列(コメント行温存の慣習も共通)
 Version 1.24.0 - 2026-07-19: feat: 宙検索フェーズ3残り+フェーズ4(デッサン18) — 透明度にAOD(air-quality API・7日先まで。湿度との悪い方で霞み度)・雲海度(気圧面8面の雲量×実高度から雲頂を推定し観測点が上なら眼下雲量×充足度。狙うモードで加点因子化・詳細に気圧面プロファイル)・上空風300hPa(シーイングの目安・詳細表示)・統計チェック有効化(ERA5の同月日±7日×過去10年の夜間晴天率を統計行に)・My宙検索メニュー新設(メニュー分割ポリシー: 宙検索=現在の1組/My宙検索=My観測点×My目的点の複数組。宙検索取得・リスト編集・一括選択/一括計算/File取得・行操作・CSV入出力・バックアップ対象)・一括結果は宙検索結果パネルに宙検索ID/名の2列付きで表示(シード辞書v11)
 Version 1.23.0 - 2026-07-19: feat: 宙検索フェーズ2(本UI。デッサン18) — 専用の宙検索結果パネル(下1/3・最大化⛶・✕・辻検索/辻メッシュと排他・積み上げ規則共通)・結果リスト18列(時間帯/晴天度/雲海度[F3]/透明度/月齢を追加。全列ソート可・宙スコア/信頼度色分け)・行クリックで詳細リスト(因子別の係数内訳+扇形標本毎の方位/距離/重み/層別雲量)・地図に視界扇形+標本点オーバーレイ(行選択でその時刻の雲量を白〜濃灰で着色)・重みスライダー群(プリセット連動・変更でカスタム)+月/雲海の避ける/狙うラジオ+時間帯チェック(夜/薄明/GH・BH/昼)・File取得(CSV: 18列+位置情報+評価尺度+検索条件)・URL取得/localStorageに全項目記憶(シード辞書v10)
 Version 1.22.1 - 2026-07-19: feat: 宙検索に光害を組み込み(フェーズ3前半) — 同梱アセット(data/lp-japan: Falchi 2016のSQM格子)の遅延読み込み・観測点の天頂SQM+扇形標本の方向光害(重み付き平均)・宙スコアに光害因子(SQM16〜22→暗さ0〜1、天頂6:方向4合成、プリセットの光害重みで反映)・暫定リストに光害(SQM)/方向光害列。アセット未配置/範囲外は'-'表示でスキップ
@@ -84,7 +85,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.24.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.25.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -261,7 +262,7 @@ let appState = {
     myObservations: [],  // { id, name, lat, lng, elev, height }
     myTargets: [],       // { id, name, lat, lng, elev, height }
 
-    // Myセット (My辻検索/My観測点/My目的点/My天体の組みを丸ごと切り替え)
+    // Myセット (My辻検索/My観測点/My目的点/My天体/My宙検索の組みを丸ごと切り替え)
     mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data, sheetId } (ID>=1。dataは非表示中セットの内容スナップショット)
     mySetCurrentId: 0,    // 表示中のMyセットID (0=既定のセット)
     mySetHomeData: null,  // 既定のセット(ID:0)が非表示中の間の内容スナップショット
@@ -10774,25 +10775,26 @@ function setMySetDirty(val) {
     if (btn) btn.classList.toggle('dirty', !!val);
 }
 
-/** 表示中の内容(My辻検索/My観測点/My目的点/My天体)のスナップショットを作る */
+/** 表示中の内容(My辻検索/My観測点/My目的点/My天体/My宙検索)のスナップショットを作る */
 function snapshotMySetData() {
     return JSON.parse(JSON.stringify({
         myTsujiSearches: appState.myTsujiSearches,
         myObservations: appState.myObservations,
         myTargets: appState.myTargets,
-        myStars: appState.myStars
+        myStars: appState.myStars,
+        mySoraSearches: appState.mySoraSearches
     }));
 }
 
 /** My付きメニューの登録エラーメッセージ表示を消す */
 function clearMyMenuErrors() {
-    for (const id of ['myobs-error', 'mytgt-error', 'mytsuji-error']) {
+    for (const id of ['myobs-error', 'mytgt-error', 'mytsuji-error', 'mysora-error']) {
         const el = document.getElementById(id);
         if (el) el.innerHTML = '';
     }
 }
 
-/** スナップショットをMy付き4メニューに展開して関連UIを再描画する */
+/** スナップショットをMy付き5メニューに展開して関連UIを再描画する */
 function applyMySetData(data) {
     clearMyMenuErrors();   // 切り替え前のエラーメッセージを持ち越さない
     const d = data ? JSON.parse(JSON.stringify(data)) : {};
@@ -10800,15 +10802,19 @@ function applyMySetData(data) {
     appState.myObservations = d.myObservations || [];
     appState.myTargets = d.myTargets || [];
     appState.myStars = d.myStars || [];
+    appState.mySoraSearches = d.mySoraSearches || [];
+    normalizeAppState();   // 旧スナップショット(My宙検索なし等)も安全な形に揃える
     syncMyStarsToBodies();
     renderCelestialList();
     renderMyStarsList();
     renderMyPointsList('obs');
     renderMyPointsList('tgt');
     renderMyTsujiSearches();
+    renderMySoraSearches();
     setMyPointDirty('obs', false);
     setMyPointDirty('tgt', false);
     setMyTsujiDirty(false);
+    setMySoraDirty(false);
     updateMyPointMarkers();
     updateAll();
 }
@@ -10856,9 +10862,9 @@ async function sheetsApiFetch(path, method, bodyObj) {
     return resp.json();
 }
 
-const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体'];
+const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体', 'My宙検索'];
 
-/** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
+/** Myセットの内容 → 5シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
  *  commentsBySheet(シート名→温存する既存コメント行)があればそれを、無ければ既定の2行を先頭に置く */
 function _mySetSheetRows(data, commentsBySheet) {
     const defaultComments = [
@@ -10879,19 +10885,22 @@ function _mySetSheetRows(data, commentsBySheet) {
         ...(list || []).map(s => [s.id, s.name ?? '', s.ra ?? '', s.dec ?? ''])
     ];
     const tsujiRows = _buildMyTsujiCsv(data.myTsujiSearches || []).replace(/\r\n$/, '').split('\r\n').map(l => l.split(','));
+    const soraRows = [MYSORA_CSV_HEADER, ...(data.mySoraSearches || []).map(_mySoraCsvRowOf)];
     return {
         'My辻検索': commentsOf('My辻検索').concat(tsujiRows),
         'My観測点': commentsOf('My観測点').concat(pointsRows(data.myObservations, '観測点')),
         'My目的点': commentsOf('My目的点').concat(pointsRows(data.myTargets, '目的点')),
-        'My天体': commentsOf('My天体').concat(starsRows(data.myStars))
+        'My天体': commentsOf('My天体').concat(starsRows(data.myStars)),
+        'My宙検索': commentsOf('My宙検索').concat(soraRows)
     };
 }
 
-/** 4シート(My辻検索/My観測点/My目的点/My天体)の存在を確認し、無いシートは作成する。
+/** 5シート(My辻検索/My観測点/My目的点/My天体/My宙検索)の存在を確認し、無いシートは作成する。
  *  ユーザーがスプレッドシート上でタブを削除/改名していても、保存/読込がエラーにならないようにする。
+ *  旧4シート構成の既存スプレッドシートも、ここでMy宙検索タブが自動追加されて5シート構成になる。
  *  writeInitial=trueなら作成したシートに初期状態(既定コメント3行+見出し行)も書き込む(読込用。
  *  保存経路は直後に全面書き込みするため不要)。
- *  【方針】既定名(MYSET_SHEET_NAMES)の4シート以外には一切触らない: ユーザーが独自に作成した
+ *  【方針】既定名(MYSET_SHEET_NAMES)の5シート以外には一切触らない: ユーザーが独自に作成した
  *  タブ(名前を問わず)は列挙するだけで、作成・改名・削除・書き込みの対象にしない */
 async function _mySetEnsureSheets(s, writeInitial) {
     const meta = await sheetsApiFetch(`spreadsheets/${s.sheetId}?fields=sheets.properties.title`, 'GET');
@@ -10902,7 +10911,7 @@ async function _mySetEnsureSheets(s, writeInitial) {
         requests: missing.map(n => ({ addSheet: { properties: { title: n } } }))
     });
     if (writeInitial) {
-        const empty = _mySetSheetRows({ myTsujiSearches: [], myObservations: [], myTargets: [], myStars: [] });
+        const empty = _mySetSheetRows({ myTsujiSearches: [], myObservations: [], myTargets: [], myStars: [], mySoraSearches: [] });
         await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
             valueInputOption: 'RAW',
             data: missing.map(n => ({ range: `'${n}'!A1`, values: empty[n] }))
@@ -11002,7 +11011,7 @@ function _mySetParseTsuji(rows) {
     return list;
 }
 
-/** Myセット用スプレッドシートの新規作成 (Myセットフォルダ内・4シート構成) */
+/** Myセット用スプレッドシートの新規作成 (Myセットフォルダ内・5シート構成) */
 async function mySetCreateSheet(s) {
     await ensureSoraFolders();
     const res = await driveApiJson('files?fields=id', 'POST', {
@@ -11015,14 +11024,29 @@ async function mySetCreateSheet(s) {
     await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
         requests: [
             { updateSheetProperties: { properties: { sheetId: 0, title: MYSET_SHEET_NAMES[0] }, fields: 'title' } },
-            { addSheet: { properties: { title: MYSET_SHEET_NAMES[1] } } },
-            { addSheet: { properties: { title: MYSET_SHEET_NAMES[2] } } },
-            { addSheet: { properties: { title: MYSET_SHEET_NAMES[3] } } }
+            ...MYSET_SHEET_NAMES.slice(1).map(n => ({ addSheet: { properties: { title: n } } }))
         ]
     });
 }
 
-/** シートから4メニュー分の内容を取得して解析する (適用はしない) */
+/** My宙検索シートの行を解析する。シートは末尾の空セルが落ちるため22列にパディングしてから解析する */
+function _mySetParseMySora(rows) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i].slice();
+        while (cols.length < 22) cols.push('');
+        const t = parseMySoraCsvLine(cols, i + 1);   // 解析エラー時はalert表示+null
+        if (!t) throw new Error('My宙検索: 解析を中止しました');
+        if (ids.has(t.id)) throw new Error(`My宙検索: 宙検索ID ${t.id} が重複しています`);
+        ids.add(t.id);
+        list.push(t);
+    }
+    return list;
+}
+
+/** シートから5メニュー分の内容を取得して解析する (適用はしない) */
 async function _mySetFetchSheetData(s) {
     const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
     const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
@@ -11032,7 +11056,8 @@ async function _mySetFetchSheetData(s) {
         myTsujiSearches: _mySetParseTsuji(byIdx(0)),
         myObservations: _mySetParsePoints(byIdx(1), 'My観測点'),
         myTargets: _mySetParsePoints(byIdx(2), 'My目的点'),
-        myStars: _mySetParseStars(byIdx(3))
+        myStars: _mySetParseStars(byIdx(3)),
+        mySoraSearches: _mySetParseMySora(byIdx(4))
     };
     const meta = await driveGetMeta(s.sheetId);
     return { data, meta };
@@ -11538,7 +11563,7 @@ async function switchMySetDisplay() {
     const dirty = myObsDirty || myTgtDirty || myTsujiDirty;
     const msg = dirty
         ? 'My付きメニューに未登録の変更があります。切り替えると失われます。\n内容を保存してから切り替えますか？'
-        : 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
+        : 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体、My宙検索を切り替えますか？';
     if (!confirm(msg)) return;
     if (dirty && !registerDirtyMyMenus()) return;   // 検証NG(未入力あり)なら切り替えを中止
     // 端末に内容がないセットは、先にスプレッドシートから取得する(失敗時は何も変えない)
@@ -16608,21 +16633,25 @@ async function mySoraDownloadCsv(rows) {
 
 // --- My宙検索リストのCSV入出力(22列。狙い/モード/対象/時間帯はラベル表記) ---
 const MYSORA_CSV_HEADER = ['宙検索ID', '宙検索名', '観測点ID', '目的点ID', '狙い', '雲低重み', '雲中重み', '雲高重み', '月モード', '月重み', '雲海モード', '雲海重み', '光害重み', '透明度重み', '対象', '対象重み', '時間帯', '検索期間(日)', '間隔(時間)', '扇角(°)', '範囲(km)', 'メモ'];
+/** My宙検索1件→リストCSV(22列)の値配列。CSV出力とMyセットのシート行で共通 */
+function _mySoraCsvRowOf(t) {
+    const w = t.preset === 'custom' && t.weights ? t.weights : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway);
+    const bands = t.preset === 'custom' && t.weights && t.weights.bands ? t.weights.bands
+        : { night: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'night', twilight: false, ghbh: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'ghbh', day: false };
+    const bandsStr = Object.keys(SS_BAND_LABELS).filter(k => bands[k]).map(k => SS_BAND_LABELS[k]).join('/');
+    const label = t.preset === 'custom' ? 'カスタム' : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).label;
+    return [t.id, t.name || '', t.obsId ?? '', t.tgtId ?? '', label,
+        w.wL, w.wM, w.wH, w.moon === 'want' ? '狙う' : '避ける', w.wMoon,
+        w.unkai === 'want' ? '狙う' : '避ける', w.wUnkai, w.wLp, w.wTr,
+        SS_OBJ_LABELS[w.obj] || w.obj, w.wObj, bandsStr,
+        t.days, t.interval, t.fan, t.range ?? '', t.memo || ''];
+}
 function exportMySoraCsv() {
     if (!appState.mySoraSearches.length) return alert('My宙検索は登録されていません');
     const bom = '\uFEFF';
     let csv = bom + MYSORA_CSV_HEADER.join(',') + '\r\n';
     for (const t of appState.mySoraSearches) {
-        const w = t.preset === 'custom' && t.weights ? t.weights : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway);
-        const bands = t.preset === 'custom' && t.weights && t.weights.bands ? t.weights.bands
-            : { night: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'night', twilight: false, ghbh: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'ghbh', day: false };
-        const bandsStr = Object.keys(SS_BAND_LABELS).filter(k => bands[k]).map(k => SS_BAND_LABELS[k]).join('/');
-        const label = t.preset === 'custom' ? 'カスタム' : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).label;
-        csv += [t.id, t.name || '', t.obsId ?? '', t.tgtId ?? '', label,
-            w.wL, w.wM, w.wH, w.moon === 'want' ? '狙う' : '避ける', w.wMoon,
-            w.unkai === 'want' ? '狙う' : '避ける', w.wUnkai, w.wLp, w.wTr,
-            SS_OBJ_LABELS[w.obj] || w.obj, w.wObj, bandsStr,
-            t.days, t.interval, t.fan, t.range ?? '', t.memo || ''].map(v => {
+        csv += _mySoraCsvRowOf(t).map(v => {
             const s = String(v ?? '');
             return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
         }).join(',') + '\r\n';
