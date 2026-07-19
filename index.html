@@ -380,6 +380,72 @@ GNU General Public License for more details.
                 <div class="control-row center-row">
                     <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>
                 </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
+                    <input type="checkbox" id="chk-sora-ctrl-fw" class="body-checkbox"><label for="chk-sora-ctrl-fw" title="打ち上げ花火のシミュレーションをプレビューに表示(宙の窓メニューと連動)">:花火モード</label>
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="打ち上げ場所の位置情報を指定します">打ち上げ場所</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点(°):</label>
+                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点標高(m):</label>
+                    <input type="number" id="input-fw-ctrl-api-elev" class="sora-mov-num" value="0" step="0.1" placeholder="標高 m" title="打ち上げ点の標高(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点高(m):</label>
+                    <input type="number" id="input-fw-ctrl-height" class="sora-mov-num" value="0" step="0.1" placeholder="追加高さ m" title="打ち上げ点の追加高さ(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点領域(半径,m):</label>
+                    <input type="number" id="input-fw-ctrl-radius" class="sora-mov-num" value="50" step="1" min="0" max="10000" placeholder="半径領域 m" title="打ち上げ位置をこの半径内でランダムに散らします(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">花火:</label>
+                    <select id="sel-fw-ctrl-size" title="花火玉の号数(宙の窓メニューと連動)">
+                        <option value="2.5">2.5号</option>
+                        <option value="3">3号</option>
+                        <option value="5">5号</option>
+                        <option value="10" selected>10号(尺玉)</option>
+                        <option value="30">30号(三尺玉)</option>
+                        <option value="40">40号(四尺玉)</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">玉の直径:</label>
+                    <input type="text" id="fw-ctrl-ball-dia" class="sora-mov-num" readonly title="選択中の号数の玉の直径">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">開花高度:</label>
+                    <input type="text" id="fw-ctrl-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
+                    <span class="sora-val">-</span>
+                    <input type="text" id="fw-ctrl-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">開花直径:</label>
+                    <input type="text" id="fw-ctrl-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
+                    <span class="sora-val">-</span>
+                    <input type="text" id="fw-ctrl-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">表示モード:</label>
+                    <label class="baseopt-radio" title="2.5号から40号までを色々ランダムに打ち上げます(宙の窓メニューと連動)"><input type="radio" name="fw-mode-ctrl" value="vary" checked>:色々</label>
+                    <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます(宙の窓メニューと連動)"><input type="radio" name="fw-mode-ctrl" value="fixed">:固定</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">ばらつき:</label>
+                    <span id="fw-ctrl-spread-label">0</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-fw-ctrl-spread" class="sora-slider" min="-100" max="100" step="1" title="色々モードの号数のばらつき(+100で40号のみ・0で均等・-100で2.5号のみ。宙の窓メニューと連動)">
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">表示オプション:</label>
+                    <input type="checkbox" id="chk-sora-ctrl-fw-point" class="body-checkbox" checked><label for="chk-sora-ctrl-fw-point" title="花火の開花の中心点を十字記号(+)で表示(宙の窓メニューと連動)">:花火点(+)</label>
+                </div>
             </div>
         </div>
     </div>
@@ -934,6 +1000,83 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <input type="range" id="input-sora-label-scale" min="0" max="1000" value="100" step="1" title="表示天体名と星座名称の文字サイズ(プレビュー基準100%・0〜1000%)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-fw" class="body-checkbox"><label for="chk-sora-fw" title="打ち上げ花火のシミュレーションをプレビューに表示(打ち上げの軌跡と放射状の開花・色は七色で切り替わり)">:花火モード</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="打ち上げ場所の位置情報を指定します">打ち上げ場所</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点(°):</label>
+                        <input type="text" id="input-fw-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(未設定時は目的点)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点標高(m):</label>
+                        <input type="number" id="input-fw-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m" title="打ち上げ点の標高(緯度経度の設定で自動取得。手動上書き可)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点高(m):</label>
+                        <input type="number" id="input-fw-height" value="0" step="0.1" placeholder="追加高さ m" title="打ち上げ点の追加高さ(m)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点領域(半径,m):</label>
+                        <input type="number" id="input-fw-radius" value="50" step="1" min="0" max="10000" placeholder="半径領域 m" title="打ち上げ位置をこの半径内でランダムに散らします">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">花火:</label>
+                        <select id="sel-fw-size" title="花火玉の号数(開花高度・開花直径の表示に反映。固定モードの打ち上げ玉)">
+                            <option value="2.5">2.5号</option>
+                            <option value="3">3号</option>
+                            <option value="5">5号</option>
+                            <option value="10" selected>10号(尺玉)</option>
+                            <option value="30">30号(三尺玉)</option>
+                            <option value="40">40号(四尺玉)</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">玉の直径:</label>
+                        <input type="text" id="fw-ball-dia" class="sora-mov-num" readonly title="選択中の号数の玉の直径">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">開花高度:</label>
+                        <input type="text" id="fw-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
+                        <span class="sora-val">-</span>
+                        <input type="text" id="fw-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">開花直径:</label>
+                        <input type="text" id="fw-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
+                        <span class="sora-val">-</span>
+                        <input type="text" id="fw-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">表示モード:</label>
+                        <label class="baseopt-radio" title="2.5号から40号までを色々ランダムに打ち上げます"><input type="radio" name="fw-mode" value="vary" checked>:色々</label>
+                        <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます"><input type="radio" name="fw-mode" value="fixed">:固定</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">ばらつき:</label>
+                        <span id="fw-spread-label">0</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-fw-spread" class="sora-slider" min="-100" max="100" step="1" title="色々モードの号数のばらつき(+100で40号のみ・0で均等・-100で2.5号のみ。固定モードでは0)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">表示オプション:</label>
+                        <input type="checkbox" id="chk-sora-fw-point" class="body-checkbox" checked><label for="chk-sora-fw-point" title="花火の開花の中心点(打ち上げ点の緯度経度・標高・高さ+開花高度の高い方)を十字記号(+)で表示">:花火点(+)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="花火点の位置情報(辻検索とは連動しません)">位置情報</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">基準方位角(°):</label>
+                        <input type="number" id="input-fw-base-az" class="sora-mov-num" step="0.01" min="0" max="360" placeholder="北から時計回り(°)" title="観測点から花火点への方位角(打ち上げ点の設定から自動算出。辻検索とは非連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">基準視高度(°):</label>
+                        <input type="number" id="input-fw-base-alt" class="sora-mov-num" step="0.01" min="-360" max="360" placeholder="水平から上向き(°)" title="観測点から花火点への視高度(標高・高さ・開花高度から自動算出。辻検索とは非連動)">
                     </div>
                     <div class="control-row">
                         <button id="btn-sora-url" class="nav-btn main-btn" title="現在の宙の窓を開くURLをクリップボードにコピー">URL取得</button>

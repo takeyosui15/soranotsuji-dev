@@ -2212,3 +2212,11 @@ input[type="range"] {
 .tm-mesh-overlay {
     image-rendering: pixelated;
 }
+
+/* 花火モード: 打ち上げ点の地図マーカー(🎆) */
+.fw-map-icon {
+    font-size: 20px;
+    line-height: 24px;
+    text-align: center;
+    text-shadow: 0 0 3px #000;
+}

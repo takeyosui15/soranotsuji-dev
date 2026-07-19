@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.21.0 - 2026-07-19: feat: 宙の窓に花火モード(デッサン06 55〜70段目+ctrl41〜53段目) — 打ち上げ点(地名/住所/緯度経度+標高+高さ+領域半径)から号数別の開花高度へ軌跡が上がり開花直径の放射状の華が七色で開くシミュレーション。実寸ENU配置で手前の山に遮蔽され写る大きさも実寸。色々/固定+ばらつき(u^γ重み)、花火点(+)マーカー、打ち上げ点の地図マーカー(🎆)+領域円、基準方位角/視高度の算出表示、メニュー/ctrl双方向連動、URL記憶・復元(シード辞書v9)
 Version 1.20.22 - 2026-07-19: fix: 全天儀の透過オフを「外側から見た構図」に修正(不透明+深度書込の両面描画。従来は奥半球の内面が見えていた)・回転方向の既定を水平に+ラジオ順序を水平/地軸/自由に(デッサン01)・辻メッシュFile取得の行内並びを日時(日付+辻時刻)順に・動画書き出しの出力診断表示を削除(v1.20.20の動作へ復元)
 Version 1.20.21 - 2026-07-19: feat: 辻メッシュFile取得を全ヒット画素出力に(観測点ID=画素ID・詳細結果リスト相当・行内は精度昇順)・処理中表示を🕛アニメーションに統一・全天儀コントロール2〜4段目(前景/後景/透過・自由/水平/地軸・北奥/目的点前)+最大化ボタン(領域2/3⇄1/3・最大化100%⇄66.67%)・動画書き出しに出力診断表示(形式/サイズ/メタデータ長)
 Version 1.20.20 - 2026-07-19: feat: 月輝面比列(結果リスト3種+詳細+CSV)・辻検索/辻メッシュのFile取得・メッシュ詳細リスト23列化・Myセット4シート存在確認・動画のフレーム同期録画(カクカク解消)+生成後の自己検証・天体検索/登録メニュー改修・全天儀コントロールメニュー(日時/速度/表示/オフセット)・焦点距離初期値24
@@ -78,7 +79,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.22';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.21.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -346,6 +347,18 @@ let appState = {
     soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜8192 (縦とアスペクト連動)
     soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜8192
     soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜1000 (プレビュー基準100)
+
+    // 花火モード (デッサン06 55〜70段目。宙の窓メニュー/ctrlメニューで双方向連動・localStorage保存)
+    fwEnabled: false,            // 花火モード(打ち上げ花火のシミュレーション)
+    fwLat: null,                 // 打ち上げ点 緯度(null=未設定→目的点を使う)
+    fwLng: null,                 // 打ち上げ点 経度
+    fwElev: 0,                   // 打ち上げ点標高(m。緯度経度の設定で自動取得・手動上書き可)
+    fwHeight: 0,                 // 打ち上げ点高(m。追加高さ)
+    fwRadius: 50,                // 打ち上げ点領域(半径m。打ち上げ位置をこの円内でランダムに散らす)
+    fwSize: '10',                // 花火玉号数 ('2.5'/'3'/'5'/'10'/'30'/'40')
+    fwMode: 'vary',              // 表示モード: 'vary'=色々(ランダム) / 'fixed'=固定(リストの号数のみ)
+    fwSpread: 0,                 // ばらつき -100〜+100 (+100=40号のみ / 0=均等 / -100=2.5号のみ)
+    fwShowPoint: true,           // 花火点(+)マーカーの表示
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1416,6 +1429,10 @@ function saveAppState() {
         soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb, soraMovPlayMode: appState.soraMovPlayMode,
         soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
         soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH, soraLabelScale: appState.soraLabelScale,
+        // 花火モード
+        fwEnabled: appState.fwEnabled, fwLat: appState.fwLat, fwLng: appState.fwLng,
+        fwElev: appState.fwElev, fwHeight: appState.fwHeight, fwRadius: appState.fwRadius,
+        fwSize: appState.fwSize, fwMode: appState.fwMode, fwSpread: appState.fwSpread, fwShowPoint: appState.fwShowPoint,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1594,6 +1611,16 @@ function normalizeAppState() {
     appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 8192));
     appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 8192));
     appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 1000));
+    // 花火モード
+    appState.fwEnabled = !!appState.fwEnabled;
+    if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng))) { appState.fwLat = null; appState.fwLng = null; }
+    appState.fwElev = num(appState.fwElev, 0, -500, 9000);
+    appState.fwHeight = num(appState.fwHeight, 0, -1000, 10000);
+    appState.fwRadius = num(appState.fwRadius, 50, 0, 10000);
+    if (!FW_SHELLS.some(s => s.key === String(appState.fwSize))) appState.fwSize = '10'; else appState.fwSize = String(appState.fwSize);
+    if (appState.fwMode !== 'fixed') appState.fwMode = 'vary';
+    appState.fwSpread = Math.round(num(appState.fwSpread, 0, -100, 100));
+    appState.fwShowPoint = appState.fwShowPoint !== false;
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -1784,6 +1811,7 @@ function updateAll() {
     if (appState.isSoramadoActive) {
         drawSoramado();
     }
+    fwUpdateMapMarker();   // 花火モードの打ち上げ点マーカー(未設定時は目的点に追従。同内容なら何もしない)
 }
 
 function updateLocationDisplay() {
@@ -11624,7 +11652,9 @@ const _QP_SEEDS_V6 = _QP_SEEDS_V5.concat(['&tsujiMesh', 'tsujiMesh', '&tsujimesh
 const _QP_SEEDS_V7 = _QP_SEEDS_V6.concat(['&tsujiMeshPixHeight=']);
 // v8: v7の全シード + 精度フィルタ(◎○△-)
 const _QP_SEEDS_V8 = _QP_SEEDS_V7.concat(['&tsujiMeshSymO=', '&tsujiMeshSymTri=', '&tsujiMeshSymDash=']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8];   // 添字+1=版数。最新版でエンコードする
+// v9: v8の全シード + 花火モード
+const _QP_SEEDS_V9 = _QP_SEEDS_V8.concat(['&fwEnabled=', '&fwLat=', '&fwLng=', '&fwElev=', '&fwHeight=', '&fwRadius=', '&fwSize=', '&fwMode=', '&fwSpread=', '&fwShowPoint=', '=vary&', '=fixed&']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
@@ -11823,6 +11853,16 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
+
+    // 花火モード(宙の窓メニュー55〜70段目)も記憶・復元(打ち上げ点は設定済みの場合のみ)
+    ['fwEnabled', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwSpread', 'fwShowPoint'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+    if (appState.fwLat !== null && appState.fwLng !== null) {
+        params.set('fwLat', String(appState.fwLat));
+        params.set('fwLng', String(appState.fwLng));
+    }
 
     return params;
 }
@@ -12140,6 +12180,9 @@ function restoreFromUrl() {
      'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
      'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpW', 'soraExpH'].forEach(soraNum);
     ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter'].forEach(soraBool);
+    // 花火モード(宙の窓メニュー55〜70段目)
+    soraBool('fwEnabled'); soraBool('fwShowPoint'); soraStr('fwSize'); soraStr('fwMode');
+    ['fwLat', 'fwLng', 'fwElev', 'fwHeight', 'fwRadius', 'fwSpread'].forEach(soraNum);
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
 
     // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
@@ -13379,6 +13422,7 @@ function soraSyncUI() {
     txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
+    fwSyncUI();   // 花火モード(メニュー/ctrlの両フォーム+算出表示)
 }
 
 /** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
@@ -13659,6 +13703,7 @@ function _smComposeFrame(w, h, canvas2d) {
     _smBuildTraj();
     _smUpdateMilkyWayRing();
     _smUpdateTerrain();
+    _fwUpdateScene(performance.now());   // 花火モード(書き出し・動画にもアニメーション中の花火が写る)
     _smEnsureConstNames();
     _smUpdateConstNames({ w, h });   // 星座名称のサイズ/向きを出力解像度・投影に合わせて更新
     const rt = new THREE.WebGLRenderTarget(w, h);
@@ -14309,6 +14354,37 @@ function setupSoramadoControls() {
     sliderH('input-sora-elevshade', 'soraElevShade');
     sliderH('input-sora-sunshade', 'soraSunShade');
     btnH('btn-sora-url', () => toggleUrlPanel('soramado'));
+    // 花火モード(デッサン06 55〜70段目)。宙の窓メニュー/ctrlメニューの同名コントロールは双方向連動
+    const fwAfter = () => { fwSyncUI(); saveAppState(); fwUpdateMapMarker(); _fwSyncAnim();
+                            if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); } };
+    const fwChk = (ids, key) => ids.forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState[key] = el.checked; fwAfter(); }); });
+    const fwNum = (ids, key, min, max) => ids.forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) appState[key] = Math.max(min, Math.min(max, v));
+            _fwShells = [];   // 高さ/領域の変更は打ち上げ直して反映
+            fwAfter();
+        }); });
+    fwChk(['chk-sora-fw', 'chk-sora-ctrl-fw'], 'fwEnabled');
+    fwChk(['chk-sora-fw-point', 'chk-sora-ctrl-fw-point'], 'fwShowPoint');
+    fwNum(['input-fw-api-elev', 'input-fw-ctrl-api-elev'], 'fwElev', -500, 9000);
+    fwNum(['input-fw-height', 'input-fw-ctrl-height'], 'fwHeight', -1000, 10000);
+    fwNum(['input-fw-radius', 'input-fw-ctrl-radius'], 'fwRadius', 0, 10000);
+    ['sel-fw-size', 'sel-fw-ctrl-size'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState.fwSize = el.value; fwAfter(); }); });
+    document.querySelectorAll('input[name="fw-mode"], input[name="fw-mode-ctrl"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            appState.fwMode = r.value;
+            if (r.value === 'fixed') appState.fwSpread = 0;   // 固定選択時はばらつき0(デッサン06)
+            fwAfter();
+        });
+    });
+    ['input-fw-spread', 'input-fw-ctrl-spread'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { appState.fwSpread = parseInt(el.value) || 0; fwAfter(); }); });
+    ['input-fw-latlng', 'input-fw-ctrl-latlng'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => handleFwLocationInput(el.value)); });
     // 再生オプション: アニメーション/動画のラジオ(切替時は再生中のものを停止)
     document.querySelectorAll('input[name="sora-mov-playmode"]').forEach(r => {
         r.addEventListener('change', () => { if (r.checked) { if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) soraMovStop(); appState.soraMovPlayMode = r.value; soraSyncUI(); saveAppState(); } });
@@ -14368,6 +14444,7 @@ function closeSoramado() {
     appState.isSoramadoActive = false;
     document.getElementById('btn-soramado').classList.remove('active');
     document.getElementById('soramado-panel').classList.add('hidden');
+    _fwSyncAnim();   // 花火アニメーションを停止(花火モードの状態自体は保持)
 }
 
 // --- three.js プレビュー (F1: カメラ枠・ファインダー・中心十字) ---
@@ -14392,6 +14469,7 @@ function _smInit() {
     _smSky = _smBuildSky();
     _smScene.add(_smSky);
     _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
+    _fwGrp = new THREE.Group(); _smScene.add(_fwGrp);                 // 花火モード(実寸ENU。地形で遮蔽される)
     _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
     _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
     _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
@@ -14498,14 +14576,16 @@ function drawSoramado() {
         const mwb = Number(appState.soraMwBrightness);
         _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
     }
-    if (!_movPlaying) {
-        // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新(再生中はキュー側が更新するのでスキップ)
+    if (!_movPlaying && !_fwTickDraw) {
+        // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新
+        // (再生中はキュー側が、花火アニメtick中は花火グループだけが更新されるのでスキップ)
         _smUpdateSky();
         _smBuildBodies();
         _smBuildTraj();
         _smUpdateMilkyWayRing();
         // F3: DEM地形(扇が変わった時のみ再取得)
         _smUpdateTerrain();
+        _fwUpdateScene(performance.now());   // 花火モード(オフならグループを空にする)
     }
     // 星座線/星座領域/星座名称(基本オプション連動): チェックオンなら宙の窓のプレビューにも表示
     _smEnsureConstLayer('fig');
@@ -14587,6 +14667,7 @@ function drawSoramado() {
     const cross = document.getElementById('soramado-center');
     if (cross) cross.classList.toggle('hidden', !appState.soraCenterCross);
     // 左下の中心・画角キャプションは表示しない(依頼により削除)。#soramado-info は three.js読込失敗時のエラー表示にのみ使用。
+    _fwSyncAnim();   // 花火モードON+表示中ならアニメーションループを起動(冪等)
 }
 
 function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }
@@ -14843,6 +14924,274 @@ function _smAddTargetMarkers(cs) {
         }
     }
 }
+// ============================================================
+// 宙の窓 花火モード (デッサン06 55〜70段目) — 打ち上げ花火のシミュレーション
+//  打ち上げ点(緯度経度+標高+高さ)から開花高度まで軌跡の線が上がり、開花直径の
+//  放射状の粒が七色で開く。位置・大きさは実寸ENU(地形と同じ見かけ高さ補正)なので、
+//  手前の山による遮蔽や写る大きさが撮影計画にそのまま使える。
+// ============================================================
+const FW_SHELLS = [
+    { key: '2.5', name: '2.5号',        ball: 7.5, altLo: 80,  altHi: 80,  diaLo: 50,  diaHi: 50 },
+    { key: '3',   name: '3号',          ball: 9,   altLo: 120, altHi: 120, diaLo: 60,  diaHi: 100 },
+    { key: '5',   name: '5号',          ball: 15,  altLo: 190, altHi: 190, diaLo: 150, diaHi: 170 },
+    { key: '10',  name: '10号(尺玉)',   ball: 30,  altLo: 330, altHi: 330, diaLo: 280, diaHi: 300 },
+    { key: '30',  name: '30号(三尺玉)', ball: 90,  altLo: 550, altHi: 550, diaLo: 600, diaHi: 600 },
+    { key: '40',  name: '40号(四尺玉)', ball: 120, altLo: 700, altHi: 750, diaLo: 700, diaHi: 700 },
+];
+const FW_COLORS = ['#ff5252', '#ffa726', '#ffee58', '#66bb6a', '#42a5f5', '#5c6bc0', '#ab47bc'];   // 七色
+let _fwGrp = null;            // three.jsグループ(_smInitで_smSceneへ追加)
+let _fwShells = [];           // 実行中の花火玉
+let _fwNextLaunchAt = 0;      // 次の打ち上げ時刻(performance.now基準)
+let _fwAnimReq = null;        // アニメーションループのrAFハンドル
+let _fwLastTick = 0;          // 直近の描画時刻(30fpsスロットル)
+let _fwTickDraw = false;      // アニメtick中はdrawSoramadoの静的再構築をスキップ
+
+function fwSelectedShell() { return FW_SHELLS.find(s => s.key === String(appState.fwSize)) || FW_SHELLS[3]; }
+
+/** 打ち上げ点の緯度経度(未設定時は目的点を使う) */
+function fwLaunchPoint() {
+    const la = parseFloat(appState.fwLat), ln = parseFloat(appState.fwLng);
+    if (isFinite(la) && isFinite(ln)) return { lat: la, lng: ln };
+    return { lat: appState.end.lat, lng: appState.end.lng };
+}
+
+/** 打ち上げ点の指定総標高(標高+高さ+開花高度等)の実寸ENU座標(m)。
+ *  見かけ高さzは地形メッシュと同じ「緯度別の局所半径2つの厳密三角形解」(屈折込み)で求める */
+function _fwEnu(elevTotal) {
+    const p = fwLaunchPoint();
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    const d = getDistanceWGS84(oLat, oLng, p.lat, p.lng);
+    const az = calculateBearing(oLat, oLng, p.lat, p.lng) * Math.PI / 180;
+    const E = d * Math.sin(az), N = d * Math.cos(az);
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const Reff1 = getLocalEarthRadius(oLat) / (1 - k), Reff2 = getLocalEarthRadius(p.lat) / (1 - k);
+    const r1 = Reff1 + (Number(appState.start.elev) || 0), r2 = Reff2 + elevTotal;
+    const c = d / ((Reff1 + Reff2) / 2);
+    const slant = Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(c)) || 1e-9;
+    const alt = Math.atan2(r2 * Math.sin(c) / slant, (r1 * r1 + slant * slant - r2 * r2) / (2 * r1 * slant)) - Math.PI / 2;
+    return { E, N, z: d * Math.tan(alt), d };
+}
+
+/** 1発打ち上げ: 号数(固定/色々+ばらつき)と開花高度・直径・色・粒方向を決めて登録する */
+function _fwSpawnShell(now) {
+    let idx;
+    if (appState.fwMode === 'fixed') {
+        idx = Math.max(0, FW_SHELLS.findIndex(s => s.key === String(appState.fwSize)));
+    } else {
+        // ばらつき: u^γ で号数indexを偏らせる(γ=(1-p)/(1+p)。+100→40号のみ / 0→均等 / -100→2.5号のみ)
+        const p = Math.max(-0.999, Math.min(0.999, (Number(appState.fwSpread) || 0) / 100));
+        const gamma = (1 - p) / (1 + p);
+        idx = Math.min(FW_SHELLS.length - 1, Math.floor(Math.pow(Math.random(), gamma) * FW_SHELLS.length));
+    }
+    const spec = FW_SHELLS[idx];
+    const bloomAlt = spec.altLo + Math.random() * (spec.altHi - spec.altLo);
+    const R = (spec.diaLo + Math.random() * (spec.diaHi - spec.diaLo)) / 2;
+    // 打ち上げ位置: 領域半径の円内で一様ランダム
+    const rr = Math.max(0, Number(appState.fwRadius) || 0) * Math.sqrt(Math.random());
+    const th = Math.random() * 2 * Math.PI;
+    const offE = rr * Math.sin(th), offN = rr * Math.cos(th);
+    const groundTot = (Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0);
+    const g = _fwEnu(groundTot);
+    const b = _fwEnu(groundTot + bloomAlt);
+    // 開花の粒: 球面一様ランダムの方向ベクトル
+    const nP = 96;
+    const dirs = new Float32Array(nP * 3);
+    for (let i = 0; i < nP; i++) {
+        const u = Math.random() * 2 - 1, ph = Math.random() * 2 * Math.PI, su = Math.sqrt(1 - u * u);
+        dirs[i * 3] = su * Math.cos(ph); dirs[i * 3 + 1] = su * Math.sin(ph); dirs[i * 3 + 2] = u;
+    }
+    const ci = Math.floor(Math.random() * FW_COLORS.length);
+    _fwShells.push({
+        gE: g.E + offE, gN: g.N + offN, gz: g.z,
+        bE: b.E + offE, bN: b.N + offN, bz: b.z,
+        R, dirs, nP,
+        color: FW_COLORS[ci],
+        color2: FW_COLORS[(ci + 1 + Math.floor(Math.random() * (FW_COLORS.length - 1))) % FW_COLORS.length],
+        t0: now,
+        riseDur: 1100 + bloomAlt * 2.2,   // 高い玉ほど打ち上げが長い(10号≒1.8秒)
+        bloomDur: 1300, fadeDur: 1500,
+    });
+}
+
+/** 花火のシーン更新: 打ち上げスケジュール→各玉の軌跡線/開花の粒/花火点(+)を再構築する。
+ *  地形と同じ実寸ENUに置き、depthTest有効で手前の山に自然に遮蔽される(マーカーだけは常時表示) */
+function _fwUpdateScene(now) {
+    if (!_fwGrp) return;
+    while (_fwGrp.children.length) {
+        const c = _fwGrp.children.pop();
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) { if (c.material.map && c.material.map.userData && c.material.map.userData._fwOwn) c.material.map.dispose(); c.material.dispose(); }
+    }
+    if (!appState.fwEnabled) { _fwShells = []; return; }
+    // スケジューラ: 0.5〜1.7秒間隔で打ち上げ(同時最大6発)
+    if (now >= _fwNextLaunchAt) {
+        if (_fwShells.length < 6) _fwSpawnShell(now);
+        _fwNextLaunchAt = now + 500 + Math.random() * 1200;
+    }
+    _fwShells = _fwShells.filter(s => now - s.t0 < s.riseDur + s.bloomDur + s.fadeDur);
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    for (const s of _fwShells) {
+        const t = now - s.t0;
+        if (t < s.riseDur) {
+            // 打ち上げの軌跡: 明るい短い流線(進行の少し後ろ→現在位置)
+            const q = easeOut(Math.max(0, Math.min(1, t / s.riseDur)));
+            const qTail = easeOut(Math.max(0, Math.min(1, t / s.riseDur - 0.22)));
+            const head = new THREE.Vector3(s.gE + (s.bE - s.gE) * q, s.gN + (s.bN - s.gN) * q, s.gz + (s.bz - s.gz) * q);
+            const tail = new THREE.Vector3(s.gE + (s.bE - s.gE) * qTail, s.gN + (s.bN - s.gN) * qTail, s.gz + (s.bz - s.gz) * qTail);
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([tail, head]),
+                new THREE.LineBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(line);
+            const headPt = new THREE.Points(
+                new THREE.BufferGeometry().setFromPoints([head]),
+                new THREE.PointsMaterial({ color: 0xfff3c0, size: Math.max(2, s.R * 0.05), transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(headPt);
+        } else {
+            // 開花: 半径が減速しながら広がり、後半は重力でわずかに垂れつつフェードアウト。
+            // 色は開花の途中で別の色へ切り替わる(七色で色々)
+            const t2 = t - s.riseDur;
+            const grow = easeOut(Math.max(0, Math.min(1, t2 / s.bloomDur)));
+            const r = s.R * grow;
+            const fall = s.R * 0.3 * Math.pow(Math.max(0, t2 - s.bloomDur * 0.5) / (s.bloomDur * 0.5 + s.fadeDur), 2);
+            const fade = 1 - Math.max(0, (t2 - s.bloomDur) / s.fadeDur);
+            const pos = new Float32Array(s.nP * 3);
+            for (let i = 0; i < s.nP; i++) {
+                pos[i * 3] = s.bE + s.dirs[i * 3] * r;
+                pos[i * 3 + 1] = s.bN + s.dirs[i * 3 + 1] * r;
+                pos[i * 3 + 2] = s.bz + s.dirs[i * 3 + 2] * r - fall;
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            const color = (t2 < s.bloomDur * 0.55) ? s.color : s.color2;
+            const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+                color, size: Math.max(2, s.R * 0.06),
+                transparent: true, opacity: Math.max(0, Math.min(1, fade)) * 0.95,
+                blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(pts);
+        }
+    }
+    // 花火点(+): 開花の中心点(打ち上げ点の緯度経度・標高・高さ+選択中号数の開花高度の高い方)
+    if (appState.fwShowPoint && typeof _smCrossTex === 'function') {
+        const spec = fwSelectedShell();
+        const c0 = _fwEnu((Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0) + spec.altHi);
+        const cs = _SM_CROSS_PX * 2 * Math.tan((_smCamera ? _smCamera.fov : 40) * Math.PI / 360) / Math.max(1, _smFinderH);
+        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#FFA726'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        cross.scale.set(cs, cs, 1);
+        cross.position.set(c0.E, c0.N, c0.z);
+        cross.renderOrder = 999;
+        _fwGrp.add(cross);
+    }
+}
+
+/** 花火アニメーションの起動/停止(冪等)。花火モードON+宙の窓表示中のみ約30fpsで更新する。
+ *  1tick=花火グループの更新+再描画のみ(空・天体・地形の再構築はスキップ) */
+function _fwSyncAnim() {
+    const on = appState.fwEnabled && appState.isSoramadoActive && _smInited && !_smFailed;
+    if (on && _fwAnimReq === null) {
+        const tick = () => {
+            if (!(appState.fwEnabled && appState.isSoramadoActive)) { _fwAnimReq = null; return; }
+            _fwAnimReq = requestAnimationFrame(tick);
+            const now = performance.now();
+            if (now - _fwLastTick < 33) return;
+            _fwLastTick = now;
+            _fwUpdateScene(now);
+            _fwTickDraw = true;
+            try { drawSoramado(); } finally { _fwTickDraw = false; }
+        };
+        _fwAnimReq = requestAnimationFrame(tick);
+    } else if (!on && _fwAnimReq !== null) {
+        cancelAnimationFrame(_fwAnimReq);
+        _fwAnimReq = null;
+        _fwShells = []; _fwNextLaunchAt = 0;
+        _fwUpdateScene(performance.now());   // グループを空にする(花火点も含めて消す→次の描画で反映)
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    }
+}
+
+/** 打ち上げ点の地図マーカー(🎆)+領域半径の円。花火モードON中のみ表示(内容が同じなら何もしない) */
+let _fwMapMarker = null, _fwMapCircle = null, _fwMapKey = '';
+function fwUpdateMapMarker() {
+    if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
+    const p0 = fwLaunchPoint();
+    const key = `${appState.fwEnabled}|${p0.lat},${p0.lng}|${Number(appState.fwRadius) || 0}`;
+    if (key === _fwMapKey) return;
+    _fwMapKey = key;
+    if (_fwMapMarker) { map.removeLayer(_fwMapMarker); _fwMapMarker = null; }
+    if (_fwMapCircle) { map.removeLayer(_fwMapCircle); _fwMapCircle = null; }
+    if (!appState.fwEnabled) return;
+    const p = fwLaunchPoint();
+    if (!isFinite(p.lat) || !isFinite(p.lng)) return;
+    _fwMapMarker = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ className: 'fw-map-icon', html: '🎆', iconSize: [24, 24], iconAnchor: [12, 12] }),
+        title: '打ち上げ点', interactive: false,
+    }).addTo(map);
+    const r = Number(appState.fwRadius) || 0;
+    if (r > 0) _fwMapCircle = L.circle([p.lat, p.lng], { radius: r, color: '#ff8f00', weight: 1, fillColor: '#ffb74d', fillOpacity: 0.15, interactive: false }).addTo(map);
+}
+
+/** appState → 花火モードのフォーム(宙の窓メニュー/ctrlメニューの両方)と算出表示を反映 */
+function fwSyncUI() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    chk('chk-sora-fw', appState.fwEnabled); chk('chk-sora-ctrl-fw', appState.fwEnabled);
+    const p = fwLaunchPoint();
+    const locStr = (appState.fwLat !== null && appState.fwLng !== null) ? `${p.lat}, ${p.lng}` : '';
+    set('input-fw-latlng', locStr); set('input-fw-ctrl-latlng', locStr);
+    set('input-fw-api-elev', appState.fwElev); set('input-fw-ctrl-api-elev', appState.fwElev);
+    set('input-fw-height', appState.fwHeight); set('input-fw-ctrl-height', appState.fwHeight);
+    set('input-fw-radius', appState.fwRadius); set('input-fw-ctrl-radius', appState.fwRadius);
+    set('sel-fw-size', String(appState.fwSize)); set('sel-fw-ctrl-size', String(appState.fwSize));
+    const spec = fwSelectedShell();
+    ['fw-ball-dia', 'fw-ctrl-ball-dia'].forEach(id => set(id, spec.ball + 'cm'));
+    ['fw-alt-lo', 'fw-ctrl-alt-lo'].forEach(id => set(id, spec.altLo + 'm'));
+    ['fw-alt-hi', 'fw-ctrl-alt-hi'].forEach(id => set(id, spec.altHi + 'm'));
+    ['fw-dia-lo', 'fw-ctrl-dia-lo'].forEach(id => set(id, spec.diaLo + 'm'));
+    ['fw-dia-hi', 'fw-ctrl-dia-hi'].forEach(id => set(id, spec.diaHi + 'm'));
+    const mR = document.querySelector(`input[name="fw-mode"][value="${appState.fwMode}"]`);
+    if (mR) mR.checked = true;
+    const mRC = document.querySelector(`input[name="fw-mode-ctrl"][value="${appState.fwMode}"]`);
+    if (mRC) mRC.checked = true;
+    const sp = Number(appState.fwSpread) || 0;
+    set('input-fw-spread', sp); set('input-fw-ctrl-spread', sp);
+    txt('fw-spread-label', (sp > 0 ? '+' : '') + sp); txt('fw-ctrl-spread-label', (sp > 0 ? '+' : '') + sp);
+    chk('chk-sora-fw-point', appState.fwShowPoint); chk('chk-sora-ctrl-fw-point', appState.fwShowPoint);
+    // 位置情報: 観測点→花火点(開花高度の高い方)の基準方位角/基準視高度(算出値。辻検索とは非連動)
+    const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, p.lat, p.lng);
+    const az = calculateBearing(appState.start.lat, appState.start.lng, p.lat, p.lng);
+    const fwTot = (Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0) + spec.altHi;
+    const alt = calculateApparentAltitude(dist, Number(appState.start.elev) || 0, fwTot, appState.start.lat, p.lat);
+    set('input-fw-base-az', az.toFixed(2));
+    set('input-fw-base-alt', alt.toFixed(2));
+}
+
+/** 打ち上げ点テキストの入力: 緯度,経度の直入力 or 地名/住所検索(位置情報メニューと同じ流れ) */
+async function handleFwLocationInput(val) {
+    if (!val) return;
+    const coords = parseInput(val);
+    if (coords) { await applyFwCoords(coords); return; }
+    const results = await searchLocation(toFullWidth(val.trim()));
+    if (!results || results.length === 0) { alert('該当する地名が見つかりませんでした'); return; }
+    showLocationPicker(results, async r => { await applyFwCoords({ lat: r.lat, lng: r.lon }); });
+}
+
+async function applyFwCoords(coords) {
+    // 座標は即時反映し、標高は取得でき次第あとから埋める(取得待ちで設定が遅れない/失敗時は0)
+    appState.fwLat = coords.lat;
+    appState.fwLng = coords.lng;
+    appState.fwHeight = 0;
+    _fwShells = [];   // 位置が変わったら打ち上げ直す
+    if (typeof map !== 'undefined' && map) map.setView([coords.lat, coords.lng]);
+    fwSyncUI(); saveAppState(); fwUpdateMapMarker();
+    if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
+    let elev = 0;
+    try { elev = await getElevation(coords.lat, coords.lng); } catch (_) { elev = 0; }
+    appState.fwElev = (elev !== null && isFinite(elev)) ? elev : 0;
+    _fwShells = [];
+    fwSyncUI(); saveAppState();
+    if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
+}
+
 function _smDiskTex(color) {
     return _smCanvasTex('disk_' + color, (c, s) => {
         c.clearRect(0, 0, s, s); c.fillStyle = color;
