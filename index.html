@@ -1,6 +1,6 @@
 <!--
 宙の辻 - Sora no Tsuji
-Copyright (c) 2026- Sora no Tsuji Project
+Copyright (C) 2026 Takeyoshi Watanabe (Sora no Tsuji Project)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@ GNU General Public License for more details.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="宙の辻 - Sora no Tsuji: ダイヤモンド富士やパール富士、特定の山の『推し山』ダイヤモンドが見られる時間と場所の「辻(交差点)」をマップ上に可視化するWebアプリ。">
+    <meta name="description" content="宙の辻 - Sora no Tsuji: 山×天の川/月/太陽！パール槍ヶ岳から星景写真！ダイヤモンド富士まで！時間・場所・詳細がマップ上で検索して分かるWebアプリ！">
     <meta property="og:title" content="宙の辻 - Sora no Tsuji">
-    <meta property="og:description" content="ダイヤモンド富士やパール富士、特定の山の『推し山』ダイヤモンドが見られる時間と場所の「辻(交差点)」をマップ上に可視化するWebアプリ。">
+    <meta property="og:description" content="山×天の川/月/太陽！パール槍ヶ岳から星景写真！ダイヤモンド富士まで！時間・場所・詳細がマップ上で検索して分かるWebアプリ！">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://soranotsuji.net/">
     <meta property="og:image" content="https://soranotsuji.net/ogp.png?v=3">
@@ -27,7 +27,7 @@ GNU General Public License for more details.
     <meta property="og:locale" content="ja_JP">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="宙の辻 - Sora no Tsuji">
-    <meta name="twitter:description" content="ダイヤモンド富士やパール富士、特定の山の『推し山』ダイヤモンドが見られる時間と場所の「辻(交差点)」をマップ上に可視化するWebアプリ。">
+    <meta name="twitter:description" content="山×天の川/月/太陽！パール槍ヶ岳から星景写真！ダイヤモンド富士まで！時間・場所・詳細がマップ上で検索して分かるWebアプリ！">
     <meta name="twitter:image" content="https://soranotsuji.net/ogp.png?v=3">
     <meta name="google-site-verification" content="U7ZpT_pBinlYJOZLdc1AZtTrb5IXSjZYlBcFo38w8kM" />
     <title>宙の辻 - Sora no Tsuji</title>
@@ -57,24 +57,395 @@ GNU General Public License for more details.
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+
+    <!-- 全天儀(3D天体儀)用。グローバル THREE を公開する UMD 最終版(r161でUMD廃止のため0.160.0に固定) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
 
     <div id="map"></div>
 
     <div id="tsujisearch-panel" class="hidden">
-        <div id="tsujisearch-header">辻検索結果 <span id="tsujisearch-status"></span></div>
+        <div id="tsujisearch-header"><button id="btn-tsujisearch-max" title="検索結果表示領域を最大化">⛶</button> <span id="tsujisearch-title">辻検索結果</span> <span id="tsujisearch-status"></span></div>
         <div id="tsujisearch-progress" class="tsuji-progress-bar hidden"><div id="tsujisearch-progress-fill"></div></div>
         <div id="tsujisearch-content"></div>
     </div>
 
+    <div id="tsujimesh-panel" class="hidden">
+        <div id="tsujimesh-header"><button id="btn-tsujimesh-max" title="検索結果表示領域を最大化">⛶</button> 辻メッシュ検索結果 <span id="tsujimesh-status"></span></div>
+        <div id="tsujimesh-progress" class="tsuji-progress-bar hidden"><div id="tsujimesh-progress-fill"></div></div>
+        <div id="tsujimesh-content"></div>
+        <div id="tsujimesh-detail" class="hidden">
+            <div id="tsujimesh-detail-header">詳細リスト(0件)</div>
+            <div id="tsujimesh-detail-body"></div>
+        </div>
+        <div id="tsujimesh-ctrl">
+            <div id="tsujimesh-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="tsujimesh-ctrl-arrow">▼</span></div>
+            <div id="tsujimesh-ctrl-body" class="hidden">
+                <div class="control-row center-row">
+                    <input type="checkbox" id="chk-tsujimesh-marker-layer" class="body-checkbox" checked><label for="chk-tsujimesh-marker-layer" title="地図のメッシュマーカーレイヤー(メッシュ/辻)の表示/非表示を切り替え">:メッシュマーカーレイヤー</label>
+                </div>
+                <div class="control-row center-row">
+                    <span id="tsujimesh-time-label" class="tsujimesh-ctrl-label" title="再計算する基準となる辻日時(スライダーと結果リストに連動)">辻日時: -</span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-tsujimesh-time-prev" class="nav-btn" title="辻時刻を1秒前へ">◀</button>
+                    <input type="range" id="tsujimesh-time-slider" min="-300" max="300" value="0" step="1" title="辻時刻の秒を調整(範囲=その行の全ヒット画素の辻時刻の範囲。追従して再計算)">
+                    <button id="btn-tsujimesh-time-next" class="nav-btn" title="辻時刻を1秒後へ">▶</button>
+                </div>
+                <div class="control-row center-row">
+                    <label class="input-label tsujimesh-time-label2" for="input-tsujimesh-time-width">辻時刻の幅(s)±:</label>
+                    <input type="number" id="input-tsujimesh-time-width" value="0" min="0" max="86400" step="1" placeholder="0〜86400" title="辻時刻の幅(±秒)。この範囲の各秒で再計算する(幅が大きいほど時間がかかります)">
+                </div>
+                <div class="control-row center-row">
+                    <label class="input-label tsujimesh-time-label2" for="select-tsujimesh-time-eps">精度フィルタオプション:</label>
+                    <select id="select-tsujimesh-time-eps" title="再計算で辻マーカー表示する精度(角距離ε)">
+                        <option value="0.125" selected>◎(±0.125°)</option>
+                        <option value="0.0625">◎×2(±0.0625°)</option>
+                        <option value="0.03125">◎×4(±0.03125°)</option>
+                        <option value="0.015625">◎×8(±0.015625°)</option>
+                        <option value="0.0078125">◎×16(±0.0078125°)</option>
+                        <option value="0.00390625">◎×32(±0.00390625°)</option>
+                        <option value="0.001953125">◎×64(±0.001953125°)</option>
+                        <option value="0.0009765625">◎×128(±0.0009765625°)</option>
+                    </select>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="行選択後の選択マーカー(画面初期表示で優辻マーカーを立てる位置)">行選択後オプション</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="行の辻時刻での最高精度の画素(優辻マーカー)を選択します"><input type="radio" name="tsujimesh-post-mode" value="attime" checked>:辻時刻の優辻マーカー</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="現在の観測点に最も近い最高精度の辻マーカーを選択し、その画素の辻時刻に移動します(≠行の辻時刻)"><input type="radio" name="tsujimesh-post-mode" value="near">:辻時刻の最近傍の辻マーカー</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="辻メッシュ検索のDEM標高タイルの範囲。変更すると再検索します">検索エリア</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="3×3=9タイル(約12km四方)"><input type="radio" name="tsujimesh-area" value="3" checked>:3×3</label>
+                    <label class="baseopt-radio" title="4×4=16タイル(約16km四方)"><input type="radio" name="tsujimesh-area" value="4">:4×4</label>
+                    <label class="baseopt-radio" title="5×5=25タイル(約20km四方)"><input type="radio" name="tsujimesh-area" value="5">:5×5</label>
+                    <label class="baseopt-radio" title="6×6=36タイル(約24km四方)"><input type="radio" name="tsujimesh-area" value="6">:6×6</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-group-label" title="メッシュマーカーの基準色(1件の色)を白から黒のグレースケールで指定。件数が多いほど金色に近づく">メッシュマーカー色</label>
+                </div>
+                <div class="control-row center-row">
+                    <span id="tsujimesh-mesh-gray-label" class="tsujimesh-ctrl-label">0%</span>
+                    <span id="tsujimesh-mesh-gray-sample" style="color:#ffffff;">■</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="tsujimesh-mesh-gray" min="0" max="100" value="0" step="1" title="メッシュマーカーの基準色(1件の色)のグレースケール(0%=白〜100%=黒)">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
-        
+
         <div id="progress-overlay" class="hidden">
             <div class="progress-label">データ取得中... <span id="progress-text">0%</span></div>
             <div class="progress-track">
                 <div id="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="milkyway-panel" class="hidden">
+        <div id="milkyway-view">
+            <canvas id="milkyway-canvas"></canvas>
+            <svg id="milkyway-labels"></svg>
+            <div id="milkyway-credit"></div>
+            <button id="btn-milkyway-max" title="全天儀を画面いっぱいに最大化">⛶</button>
+        </div>
+        <div id="milkyway-ctrl">
+            <div id="milkyway-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="milkyway-ctrl-arrow">▼</span></div>
+            <div id="milkyway-ctrl-body" class="hidden">
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="全天儀の前景(手前側の半分)を表示"><input type="checkbox" id="chk-mwctrl-front" checked>:前景</label>
+                    <label class="baseopt-radio" title="全天儀の後景(奥側の半分)を表示"><input type="checkbox" id="chk-mwctrl-back" checked>:後景</label>
+                    <label class="baseopt-radio" title="オン:全天儀を内側も見えるように表示 / オフ:全天儀を外側から見た構図(天球儀のような表示)"><input type="checkbox" id="chk-mwctrl-through" checked>:透過</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="全天儀の回転方向を水平方向に固定"><input type="radio" name="mwctrl-rot" value="horizontal" checked>:水平</label>
+                    <label class="baseopt-radio" title="全天儀の回転方向を地軸中心に固定"><input type="radio" name="mwctrl-rot" value="axis">:地軸</label>
+                    <label class="baseopt-radio" title="全天儀の回転方向を固定しない"><input type="radio" name="mwctrl-rot" value="free">:自由</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="北が奥になるように位置をリセット(オンにするとすぐオフに戻ります)"><input type="checkbox" id="chk-mwctrl-north-back">:北奥</label>
+                    <label class="baseopt-radio" title="目的点が手前になるように位置をリセット(オンにするとすぐオフに戻ります)"><input type="checkbox" id="chk-mwctrl-target-front">:目的点前</label>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-month-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-mw-ctrl-date-prev" class="nav-btn">◀</button>
+                    <input type="date" id="mw-ctrl-date" title="基準日付(日時情報メニューと連動)">
+                    <button id="btn-mw-ctrl-date-next" class="nav-btn">▶</button>
+                    <button id="btn-mw-ctrl-month-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-hour-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-mw-ctrl-time-prev" class="nav-btn">◀</button>
+                    <input type="time" id="mw-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
+                    <button id="btn-mw-ctrl-time-next" class="nav-btn">▶</button>
+                    <button id="btn-mw-ctrl-hour-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-speed-month" class="nav-btn main-btn" title="毎秒1月移動(日時情報メニューと連動)">月/秒</button>
+                    <button id="btn-mw-ctrl-speed-day" class="nav-btn main-btn" title="毎秒1日移動(日時情報メニューと連動)">日/秒</button>
+                    <button id="btn-mw-ctrl-speed-hour" class="nav-btn main-btn" title="毎秒1時間移動(日時情報メニューと連動)">時/秒</button>
+                    <button id="btn-mw-ctrl-speed-min" class="nav-btn main-btn" title="毎秒1分移動(日時情報メニューと連動)">分/秒</button>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="表示天体の写真/軌跡/マーカー/方位線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-bodies">:表示天体</label>
+                    <label class="baseopt-radio" title="表示天体名と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-body-names">:表示天体名</label>
+                    <label class="baseopt-radio" title="星座線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-fig">:星座線</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="星座領域(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-bounds">:星座領域</label>
+                    <label class="baseopt-radio" title="星座名称と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-const-names">:星座名称</label>
+                    <select id="sel-mwctrl-const-sort" title="星座名称のソート順序(基本オプションと連動)">
+                        <option value="aiueo">50音順</option>
+                        <option value="pos">座標順</option>
+                    </select>
+                </div>
+                <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                    <input type="number" id="input-mwctrl-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-mwctrl-mw-offset-slider" class="sora-slider" min="-360" max="360" step="1" title="オフセット中心角(°)(テキストボックス・基本オプションと連動)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="soramado-panel" class="hidden">
+        <div id="soramado-view">
+            <canvas id="soramado-canvas"></canvas>
+            <div id="soramado-frame"></div>
+            <div id="soramado-center" class="soramado-cross"></div>
+            <div id="soramado-info"></div>
+            <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
+            <div id="soramado-export-progress" class="hidden"></div>
+            <button id="btn-soramado-max" title="プレビューを画面いっぱいに最大化">⛶</button>
+        </div>
+        <div id="soramado-ctrl">
+            <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>
+            <div id="soramado-ctrl-body" class="hidden">
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="カメラを縦位置(縦向き)か横位置(横向き)かで構えます(宙の窓メニューと連動)">カメラ位置:</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-orient-ctrl" value="landscape" checked>横</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-orient-ctrl" value="portrait">縦</label>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="焦点距離(mm):1〜3000">焦点距離(mm):</label>
+                    <input type="number" id="input-sora-ctrl-focal-text" class="sora-mov-num" placeholder="1〜3000mm" step="0.5" min="1" max="3000" title="焦点距離(mm):1〜3000(手入力可。宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">焦点距離(選択):</label>
+                    <select id="input-sora-ctrl-focal-select" title="レンズの焦点距離(宙の窓メニューと連動)"></select>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="1" max="1000" step="1" title="レンズの焦点距離(1〜1000mm。1000mm超はテキスト/リストで指定。宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-ctrl-month-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-sora-ctrl-date-prev" class="nav-btn">◀</button>
+                    <input type="date" id="sora-ctrl-date" title="基準日付(日時情報メニューと連動)">
+                    <button id="btn-sora-ctrl-date-next" class="nav-btn">▶</button>
+                    <button id="btn-sora-ctrl-month-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-ctrl-hour-prev" class="nav-btn">◀◀</button>
+                    <button id="btn-sora-ctrl-time-prev" class="nav-btn">◀</button>
+                    <input type="time" id="sora-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
+                    <button id="btn-sora-ctrl-time-next" class="nav-btn">▶</button>
+                    <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
+                </div>
+                <div id="sora-ctrl-twilight"></div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
+                    <input type="number" id="input-sora-ctrl-offset-az" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360" title="基準方位角からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット視高度(°):</label>
+                    <input type="number" id="input-sora-ctrl-offset-alt" class="sora-mov-num" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360" title="基準視高度からのズレ量(宙の窓メニュー・ドラッグパンと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット方位角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-az-offset" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360" title="基準方位角からの検索中心のズレ量(辻検索メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット視高度(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-alt-offset" class="sora-mov-num" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360" title="基準視高度からの検索中心のズレ量(辻検索メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-az-offset-dist" class="sora-mov-num elev-readonly" readonly value="0" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-alt-offset-dist" class="sora-mov-num elev-readonly" readonly value="0" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-rot" class="sora-mov-num elev-readonly" readonly value="0" step="0.0001">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                    <input type="number" id="input-sora-ctrl-tsuji-rot-alt" class="sora-mov-num elev-readonly" readonly value="0" step="0.0001">
+                </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="表示天体を日時に合わせて動かし、タイムラプス動画をシミュレーションします">インターバルMov</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label" title="シミュレーションの開始日時(上の日付/時刻=日時情報メニューと連動)">撮影開始日時:</label><span id="sora-mov-start" class="sora-val">--</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">撮影間隔(s):</label>
+                    <input type="number" id="input-sora-mov-interval" class="sora-mov-num" min="0.5" max="86400" step="0.5" title="シャッター間隔(秒) 0.5, 1〜86400">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">撮影回数(回):</label>
+                    <input type="number" id="input-sora-mov-shots" class="sora-mov-num" min="1" max="99999" step="1" title="撮影間隔でシャッターを切る回数(1〜99999)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">撮影時間:</label><span id="sora-mov-duration" class="sora-val">--:--:--</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">撮影終了日時:</label><span id="sora-mov-end" class="sora-val">--</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">フレームレート(fps):</label>
+                    <select id="sel-sora-mov-fps" title="タイムラプス動画のフレームレート">
+                        <option value="24">24</option><option value="25">25</option><option value="30" selected>30</option><option value="50">50</option><option value="60">60</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">再生時間:</label><span id="sora-mov-playtime" class="sora-val">--:--:--</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">表示間隔(s):</label>
+                    <select id="sel-sora-mov-step" title="シミュレーション再生で1コマを表示する間隔(秒)">
+                        <option value="0.12">0.12</option><option value="0.24">0.24</option><option value="0.25">0.25</option><option value="0.3" selected>0.3</option><option value="0.5">0.5</option><option value="0.6">0.6</option><option value="1">1</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">画像サイズ(手動:MB):</label>
+                    <input type="number" id="input-sora-mov-mb" class="sora-mov-num" min="1" max="102400" step="0.1" title="1枚あたりの画像サイズ(MB) 1〜102400">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">総画像容量(GB):</label>
+                    <input type="text" id="sora-mov-total" class="sora-mov-num" readonly title="撮影回数×画像サイズの概算容量">
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="再生の方式を選択します">再生オプション:</span>
+                </div>
+                <div class="control-row">
+                    <label class="baseopt-radio" title="再生時間を表示間隔で間引いたコマだけをアニメーションで再生します"><input type="radio" name="sora-mov-playmode" value="anim" checked>:アニメーション</label>
+                    <label class="baseopt-radio" title="MP4(非対応ブラウザはWebM)の動画を生成して、プレビュー画面上で再生します"><input type="radio" name="sora-mov-playmode" value="video">:動画(MP4/WebM)</label>
+                </div>
+                <div class="control-row center-row">
+                    <button id="btn-sora-mov-play" class="nav-btn" title="再生オプションの方式で、撮影開始日時から撮影終了日時までのシミュレーションを再生します">再生</button>
+                </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="現在のプレビュー(静止画)またはインターバルMovのシミュレーション(動画)をファイル出力します">書き出し</span>
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="プレビューのアスペクト比を保って出力する画像サイズ(ピクセル)を指定します">出力画像サイズ(pixel):</span>
+                </div>
+                <div class="control-row">
+                    <input type="number" id="input-sora-exp-w" class="sora-mov-num" min="1" max="8192" step="1" title="出力サイズの横(px) 1〜8192。縦と自動連動">
+                    <span class="sora-val">×</span>
+                    <input type="number" id="input-sora-exp-h" class="sora-mov-num" min="1" max="8192" step="1" title="出力サイズの縦(px) 1〜8192。横と自動連動">
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="ファイル出力の形式を選択します">出力フォーマット:</span>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="jpeg" checked>:JPEG</label>
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="png">:PNG</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio"><input type="radio" name="sora-exp-format" value="h264">:H.264 8-bit(MP4)</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="baseopt-radio" title="WebM規格の標準コーデック(YouTube等でそのまま利用可)"><input type="radio" name="sora-exp-format" value="webm">:VP9(WebM)</label>
+                </div>
+                <div class="control-row center-row">
+                    <button id="btn-sora-export" class="nav-btn" title="選択した形式と出力画像サイズでファイル出力します">ファイル出力</button>
+                </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
+                    <input type="checkbox" id="chk-sora-ctrl-fw" class="body-checkbox"><label for="chk-sora-ctrl-fw" title="打ち上げ花火のシミュレーションをプレビューに表示(宙の窓メニューと連動)">:花火モード</label>
+                </div>
+                <div class="control-row left-row">
+                    <span class="soramado-ctrl-group" title="打ち上げ場所の位置情報を指定します">打ち上げ場所</span>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点(°):</label>
+                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点標高(m):</label>
+                    <input type="number" id="input-fw-ctrl-api-elev" class="sora-mov-num" value="0" step="0.1" placeholder="標高 m" title="打ち上げ点の標高(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点高(m):</label>
+                    <input type="number" id="input-fw-ctrl-height" class="sora-mov-num" value="0" step="0.1" placeholder="追加高さ m" title="打ち上げ点の追加高さ(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">打ち上げ点領域(半径,m):</label>
+                    <input type="number" id="input-fw-ctrl-radius" class="sora-mov-num" value="50" step="1" min="0" max="10000" placeholder="半径領域 m" title="打ち上げ位置をこの半径内でランダムに散らします(宙の窓メニューと連動)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">花火:</label>
+                    <select id="sel-fw-ctrl-size" title="花火玉の号数(宙の窓メニューと連動)">
+                        <option value="2.5">2.5号</option>
+                        <option value="3">3号</option>
+                        <option value="5">5号</option>
+                        <option value="10" selected>10号(尺玉)</option>
+                        <option value="30">30号(三尺玉)</option>
+                        <option value="40">40号(四尺玉)</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">玉の直径:</label>
+                    <input type="text" id="fw-ctrl-ball-dia" class="sora-mov-num" readonly title="選択中の号数の玉の直径">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">開花高度:</label>
+                    <input type="text" id="fw-ctrl-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
+                    <span class="sora-val">-</span>
+                    <input type="text" id="fw-ctrl-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                </div>
+                <div class="control-row">
+                    <label class="input-label tsujisearch-label">開花直径:</label>
+                    <input type="text" id="fw-ctrl-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
+                    <span class="sora-val">-</span>
+                    <input type="text" id="fw-ctrl-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">表示モード:</label>
+                    <label class="baseopt-radio" title="2.5号から40号までを色々ランダムに打ち上げます(宙の窓メニューと連動)"><input type="radio" name="fw-mode-ctrl" value="vary" checked>:色々</label>
+                    <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます(宙の窓メニューと連動)"><input type="radio" name="fw-mode-ctrl" value="fixed">:固定</label>
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">ばらつき:</label>
+                    <span id="fw-ctrl-spread-label">0</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-fw-ctrl-spread" class="sora-slider" min="-100" max="100" step="1" title="色々モードの号数のばらつき(+100で40号のみ・0で均等・-100で2.5号のみ。宙の窓メニューと連動)">
+                </div>
+                <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">表示オプション:</label>
+                    <input type="checkbox" id="chk-sora-ctrl-fw-point" class="body-checkbox" checked><label for="chk-sora-ctrl-fw-point" title="花火の開花の中心点を十字記号(+)で表示(宙の窓メニューと連動)">:花火点(+)</label>
+                </div>
             </div>
         </div>
     </div>
@@ -86,6 +457,7 @@ GNU General Public License for more details.
                 宙の辻<span class="header-subtitle"> - Sora no Tsuji</span>
             </span>
             <div class="header-controls">
+                <span id="btn-google-login" title="Googleアカウントにログインします(ドライブ同期)">🈚️</span>
                 <span id="btn-help" title="ヘルプ">?</span>
                 <span id="toggle-icon">▼</span>
             </div>
@@ -143,7 +515,7 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <div class="spacer-btn"></div>
+                            <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点高(m):</label>
                         <input type="number" id="input-end-elev" placeholder="追加高さ m" value="0" step="0.1">
@@ -151,8 +523,63 @@ GNU General Public License for more details.
 
                     <div class="control-row main-buttons-row">
                         <button id="btn-dp" class="nav-btn main-btn">辻ライン</button>
-                        <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
+                        <button id="btn-milkyway" class="nav-btn main-btn">全天儀</button>
                         <button id="btn-elevation" class="nav-btn main-btn">標高グラフ</button>
+                    </div>
+                    <div class="control-row main-buttons-row">
+                        <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
+                        <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
+                        <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-baseoption')">
+                    <span>基本オプション</span>
+                    <span id="icon-sec-baseoption">▼</span>
+                </div>
+                <div id="sec-baseoption" class="section-content closed">
+                    <div class="control-row left-row"><label class="baseopt-group-label">辻ライン</label></div>
+                    <div class="control-row left-row"><label class="input-label">天の川の基準点:</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="center" checked>天の川の中心座標(いて座付近)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="offset">中心座標からのオフセット点</label>
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row"><label class="baseopt-group-label">全天儀</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-mw-bodies" checked>表示天体</label>
+                        <label class="baseopt-radio" title="全天儀の表示天体名と引き出し線、宙の窓のプレビューの表示天体名を表示/非表示"><input type="checkbox" id="chk-baseopt-mw-body-names">表示天体名</label>
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-fig">星座線</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-bounds">星座領域</label>
+                        <label class="baseopt-radio"><input type="checkbox" id="chk-baseopt-const-names">星座名称</label>
+                        <select id="sel-baseopt-const-sort" title="星座名称の表示順">
+                            <option value="aiueo">50音順</option>
+                            <option value="pos">座標順</option>
+                        </select>
+                    </div>
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角">オフセット中心角(°):</label>
+                        <input type="number" id="input-baseopt-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row"><label class="baseopt-group-label">標高グラフ</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="目的点/観測点の半径○m以内は可視判定のNGを無視する(オフで両側とも無効=一切無視しない)"><input type="checkbox" id="chk-baseopt-elev-exclude" checked>:除外範囲</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点の半径○m以内は可視判定のNGを無視する(初期値15m=目的点自身のDEM画素の自己遮蔽+鋭峰の写り込みを吸収)">目的点側(半径,m):</label>
+                        <input type="number" id="input-baseopt-elev-exclude" placeholder="0〜10000m" step="1" min="0" max="10000">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点の半径○m以内は可視判定のNGを無視する(初期値10m=観測点自身のDEM画素の自己遮蔽を吸収)">観測点側(半径,m):</label>
+                        <input type="number" id="input-baseopt-elev-exclude-obs" placeholder="0〜10000m" step="1" min="0" max="10000">
                     </div>
                 </div>
             </div>
@@ -163,6 +590,9 @@ GNU General Public License for more details.
                     <span id="icon-sec-tsujisearch">▼</span>
                 </div>
                 <div id="sec-tsujisearch" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-tsuji-file" class="nav-btn main-btn" title="現在の辻検索条件で検索を実行し、結果をCSVでFile取得します">File取得</button>
+                    </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">検索期間(日):</label>
                         <input type="number" id="input-tsuji-search-days" placeholder="最大36500日(100年間)" step="365" min="0" max="36500">
@@ -176,20 +606,28 @@ GNU General Public License for more details.
                         <input type="number" id="input-tsuji-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット方位角(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット方位角(°):</label>
                         <input type="number" id="input-tsuji-az-offset" placeholder="基準から時計回り(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="観測点基準">オフセット視高度(°):</label>
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット視高度(°):</label>
                         <input type="number" id="input-tsuji-alt-offset" placeholder="基準から上向き(°)" step="0.0001" min="-360" max="360">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="目的点基準">オフセット方位距離(m):</label>
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
                         <input type="number" id="input-tsuji-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="目的点基準">オフセット視高距離(m):</label>
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
                         <input type="number" id="input-tsuji-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                        <input type="number" id="input-tsuji-rot" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                        <input type="number" id="input-tsuji-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
                     </div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">許容範囲方位角(°): ±</label>
@@ -198,6 +636,20 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">許容範囲視高度(°): ±</label>
                         <input type="number" id="input-tsuji-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を辻オフセット点の「点」で検索します"><input type="radio" name="tsuji-center-mode" value="point" checked>:辻オフセット点</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" name="tsuji-center-mode" value="line">:基準点から辻オフセット点までの線</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <input type="number" id="input-tsuji-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
@@ -214,6 +666,12 @@ GNU General Public License for more details.
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-time-filter" class="body-checkbox">
+                        <label for="chk-tsuji-time-filter">時間フィルタ</label>
+                    </div>
+                    <div id="tsuji-time-filter-groups"></div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-accuracy-filter" class="body-checkbox">
                         <label for="chk-tsuji-accuracy-filter">精度フィルタ</label>
                     </div>
@@ -223,8 +681,452 @@ GNU General Public License for more details.
                         <input type="checkbox" id="chk-tsuji-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:△</label>
                         <input type="checkbox" id="chk-tsuji-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label">:-</label>
                     </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-elev-option" class="body-checkbox">
+                        <label for="chk-tsuji-elev-option">標高オプション</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                        <input type="checkbox" id="chk-tsuji-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+                    </div>
                     <div class="control-row">
                         <button id="btn-url-tsuji" class="nav-btn main-btn" title="現在の辻検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-tsujimesh')">
+                    <span>辻メッシュ検索</span>
+                    <span id="icon-sec-tsujimesh">▼</span>
+                </div>
+                <div id="sec-tsujimesh" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-tsujimesh-file" class="nav-btn main-btn" title="辻メッシュ検索を実行し、結果をCSVでFile取得します">File取得</button>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">検索期間(日):</label>
+                        <input type="number" id="input-tsujimesh-days" placeholder="最大36500日(100年間)" step="1" min="1" max="36500">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準方位角(°):</label>
+                        <input type="number" id="input-tsujimesh-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準視高度(°):</label>
+                        <input type="number" id="input-tsujimesh-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット方位角(°):</label>
+                        <input type="number" id="input-tsujimesh-az-offset" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット視高度(°):</label>
+                        <input type="number" id="input-tsujimesh-alt-offset" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                        <input type="number" id="input-tsujimesh-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                        <input type="number" id="input-tsujimesh-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                        <input type="number" id="input-tsujimesh-rot" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                        <input type="number" id="input-tsujimesh-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="この範囲内の画素だけを検索対象にします">許容範囲方位角(°): ±</label>
+                        <input type="number" id="input-tsujimesh-az-tolerance" placeholder="検索中心から時計回り(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="この範囲内の画素だけを検索対象にします">許容範囲視高度(°): ±</label>
+                        <input type="number" id="input-tsujimesh-alt-tolerance" placeholder="検索中心から上向き(°)" step="0.1" min="0" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を辻オフセット点の「点」で検索します"><input type="radio" name="tsujimesh-center-mode" value="point" checked>:辻オフセット点</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" name="tsujimesh-center-mode" value="line">:基準点から辻オフセット点までの線</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <input type="number" id="input-tsujimesh-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-moon-filter" class="body-checkbox">
+                        <label for="chk-tsujimesh-moon-filter">月齢フィルタ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">基準月齢:</label>
+                        <input type="number" id="input-tsujimesh-moon-base" placeholder="0〜30" step="0.1" min="0" max="30">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">許容範囲月齢: ±</label>
+                        <input type="number" id="input-tsujimesh-moon-tolerance" placeholder="0〜15" step="0.1" min="0" max="15">
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-time-filter" class="body-checkbox">
+                        <label for="chk-tsujimesh-time-filter">時間フィルタ</label>
+                    </div>
+                    <div id="tsujimesh-time-filter-groups"></div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-sym-filter" class="body-checkbox" checked disabled>
+                        <label for="chk-tsujimesh-sym-filter" title="結果リストの行(観測点基準の精度記号)を◎○△-で絞り込みます">精度フィルタ</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-sym-maru2" class="body-checkbox" checked disabled> <label class="tsuji-acc-label" title="精度記号◎〜◎×128(±0.125°以内)の行を表示(常時オン)">:◎</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-maru" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、○精度のデータはありません">:○</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-tri" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、△精度のデータはありません">:△</label>
+                        <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、-精度のデータはありません">:-</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="精度フィルタ◎の当たり判定の精度(検索の判定ε)を指定します">精度フィルタオプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="±0.125°(誤差範囲0.25°)以内"><input type="radio" name="tsujimesh-accuracy" value="x1" checked>:◎</label>
+                        <label class="baseopt-radio" title="±0.0625°(誤差範囲0.125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x2">:◎×2</label>
+                        <label class="baseopt-radio" title="±0.03125°(誤差範囲0.0625°)以内"><input type="radio" name="tsujimesh-accuracy" value="x4">:◎×4</label>
+                        <label class="baseopt-radio" title="±0.015625°(誤差範囲0.03125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x8">:◎×8</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row" title="検索前に全画素の可視(OK)/不可視(NG)を判定し、選んだ対象の画素だけを検索します">
+                        <input type="checkbox" id="chk-tsujimesh-elev-option" class="body-checkbox">
+                        <label for="chk-tsujimesh-elev-option">標高オプション</label>
+                    </div>
+                    <div class="control-row left-row" title="OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素を検索">
+                        <input type="checkbox" id="chk-tsujimesh-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                        <input type="checkbox" id="chk-tsujimesh-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-url-tsujimesh" class="nav-btn main-btn" title="現在の辻メッシュ検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-sorasearch')">
+                    <span>宙検索</span>
+                    <span id="icon-sec-sorasearch">▼</span>
+                </div>
+                <div id="sec-sorasearch" class="section-content closed">
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="フェーズ1(データ層)の暫定UI。結果リスト/詳細/地図扇形の本実装はフェーズ2で行います(デッサン18)">宙検索(フェーズ1・暫定)</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">狙い:</label>
+                        <select id="sel-ss-preset" title="評価尺度(重み)のプリセット(デッサン18のプリセット値表)">
+                            <option value="milkyway" selected>天の川</option>
+                            <option value="stars">星景(表示天体)</option>
+                            <option value="unkai">雲海×月夜</option>
+                            <option value="pearl">パール(満月)</option>
+                            <option value="glow">朝焼け・夕焼け</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">検索期間(日):</label>
+                        <input type="number" id="input-ss-days" value="11" min="1" max="16" step="1" placeholder="1〜16日" title="何日先まで検索するか(12日以降は信頼度低の延長予報)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">間隔:</label>
+                        <select id="sel-ss-interval" title="リストアップする時刻の刻み">
+                            <option value="1" selected>1時間</option>
+                            <option value="3">3時間</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">扇角(°):</label>
+                        <input type="number" id="input-ss-fan" value="24" min="1" max="180" step="1" title="視界扇形の扇角(観測点→目的点の方位が中心)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">範囲(km):</label>
+                        <input type="number" id="input-ss-range" min="1" max="300" step="1" placeholder="初期値=相手距離" title="視界扇形の半径(未入力は相手距離kmの切り上げ)">
+                    </div>
+                    <div class="control-row main-buttons-row">
+                        <button id="btn-ss-run" class="nav-btn main-btn" title="宙検索を実行し、結果を辻検索結果パネルに暫定表示します(Open-Meteoの3層雲量+月+対象天体で宙スコアを算出)">検索</button>
+                    </div>
+                    <div class="control-row left-row">
+                        <span id="ss-status" class="sora-val"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-soramado')">
+                    <span>宙の窓</span>
+                    <span id="icon-sec-soramado">▼</span>
+                </div>
+                <div id="sec-soramado" class="section-content closed">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">センサーサイズ:</label>
+                        <select id="input-sora-sensor" title="カメラのセンサーサイズ"></select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">アスペクト比:</label>
+                        <input type="number" id="input-sora-aspect-w" class="sora-aspect" title="ファインダーのアスペクト比(横)" placeholder="1〜100" step="1" min="1" max="100">
+                        <span class="sora-val">:</span>
+                        <input type="number" id="input-sora-aspect-h" class="sora-aspect" title="ファインダーのアスペクト比(縦)" placeholder="1〜100" step="1" min="1" max="100">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label tsujisearch-label" title="カメラを横位置(横向き)で構えるか縦位置(縦向き)で構えるか">カメラ位置:</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-orient" value="landscape" checked>横</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-orient" value="portrait">縦</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="焦点距離(mm):1〜3000">焦点距離(mm):</label>
+                        <input type="number" id="input-sora-focal-text" class="sora-mov-num" placeholder="1〜3000mm" step="0.5" min="1" max="3000" title="焦点距離(mm):1〜3000(手入力可。リスト・スライダーと連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">焦点距離(選択):</label>
+                        <select id="input-sora-focal-select" title="レンズの焦点距離"></select>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-focal-slider" class="sora-slider" min="1" max="1000" step="1" title="レンズの焦点距離(1〜1000mm。1000mm超はテキスト/リストで指定)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">画角:</label><span id="sora-aov" class="sora-val">H:--° V:--° D:--°</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">F値:</label><span id="sora-fnum-label" class="sora-val">2.8</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">F値(選択):</label>
+                        <select id="input-sora-fnum-select" title="レンズのF値(絞り)"></select>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-fnum-slider" class="sora-slider" min="0" max="28" step="1" title="レンズのF値(絞り)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">合焦距離:</label><span id="sora-focus-label" class="sora-val">1000m</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-focus-slider" class="sora-slider" min="0" max="300000" step="1" title="フォーカスピーキングを表示する合焦距離(m)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">過焦点距離:</label><span id="sora-hyperfocal" class="sora-val">--m</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">合焦範囲:</label><span id="sora-focus-range" class="sora-val">--</span>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">被写界深度:</label><span id="sora-dof" class="sora-val">--m</span>
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-fisheye" class="body-checkbox"><label for="chk-sora-fisheye">:フィッシュアイ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">歪み:</label><span id="sora-fisheye-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-fisheye-slider" class="sora-slider" min="0" max="100" step="1" title="魚眼レンズの歪み度合い(画角も連動)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label tsujisearch-label">画面形状:</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="rect" checked>四角</label>
+                        <label class="baseopt-radio"><input type="radio" name="sora-fisheye-shape" value="circle">円形</label>
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-panorama" class="body-checkbox"><label for="chk-sora-panorama">:パノラマ</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">パノラマ:</label><span id="sora-pano-label" class="sora-val">H:V=--:1 H:--°</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-pano-slider" class="sora-slider" min="0" max="360" step="1" title="パノラマ撮影の水平画角(0〜360°)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準方位角(°):</label>
+                        <input type="number" id="input-sora-base-az" placeholder="北から時計回り(°)" step="0.0001" min="0" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点・目的点から算出(辻検索とは非連動)">基準視高度(°):</label>
+                        <input type="number" id="input-sora-base-alt" placeholder="水平から上向き(°)" step="0.0001" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット方位角(°):</label>
+                        <input type="number" id="input-sora-tsuji-az-offset" placeholder="基準から時計回り(°)" step="0.01" min="-360" max="360" title="基準方位角からの検索中心のズレ量(辻検索メニューと連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準(辻検索メニューと連動)">辻オフセット視高度(°):</label>
+                        <input type="number" id="input-sora-tsuji-alt-offset" placeholder="基準から上向き(°)" step="0.01" min="-360" max="360" title="基準視高度からの検索中心のズレ量(辻検索メニューと連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット方位距離(m):</label>
+                        <input type="number" id="input-sora-tsuji-az-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="目的点基準">辻オフセット視高距離(m):</label>
+                        <input type="number" id="input-sora-tsuji-alt-offset-dist" class="elev-readonly" readonly value="0" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転角(°):</label>
+                        <input type="number" id="input-sora-tsuji-rot" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">辻オフセット回転仰角(°):</label>
+                        <input type="number" id="input-sora-tsuji-rot-alt" class="elev-readonly" readonly value="0" step="0.0001">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
+                        <input type="number" id="input-sora-offset-az" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット視高度(°):</label>
+                        <input type="number" id="input-sora-offset-alt" placeholder="基準から上向き(°)" step="0.5" min="-360" max="360">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">視界範囲(km):</label>
+                        <input type="number" id="input-sora-range" placeholder="1〜300(km)" step="1" min="1" max="300">
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-range-slider" class="sora-slider" min="1" max="300" step="1" title="プレビューに含める奥行きの視界範囲(km)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="天の川を実際に写真で撮った印象に近づけるように写真の明るさを調整できます">天の川</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">明るさ:</label><span id="sora-mw-bright-label" class="sora-val">100%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-mw-bright" class="sora-slider" min="0" max="100" step="1" title="天の川写真の明るさ(白に近い明るい色は保ち、暗い色から先に暗くなります)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="標高と太陽光のヒルシェードで山々や尾根筋を立体的に表示します">ヒルシェード</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="視界範囲内の最高標高を白色とした標高ヒルシェードの適用度合い">標高ヒルシェード:</label><span id="sora-elevshade-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-elevshade" class="sora-slider" min="0" max="100" step="1" title="標高ヒルシェードの適用度合い(50%=従来)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label" title="太陽の位置を光源とした太陽光ヒルシェードの適用度合い">太陽光ヒルシェード:</label><span id="sora-sunshade-label" class="sora-val">50%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-sunshade" class="sora-slider" min="0" max="100" step="1" title="太陽光ヒルシェードの適用度合い(50%=従来)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-peaking" class="body-checkbox"><label for="chk-sora-peaking">:フォーカスピーキング</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-traj" class="body-checkbox"><label for="chk-sora-traj">:天体軌跡</label>
+                        <input type="checkbox" id="chk-sora-center" class="body-checkbox"><label for="chk-sora-center">:画面中心(+)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-target" class="body-checkbox"><label for="chk-sora-target" title="目的点の中心座標の十字記号(+)マーカーを表示/非表示">:目的点(+)</label>
+                        <input type="checkbox" id="chk-sora-search-center" class="body-checkbox"><label for="chk-sora-search-center" title="検索中心のX字記号(×)マーカーを表示/非表示(検索中心オプションが線の場合は目的点からオフセット点までの線も表示)">:検索中心(×)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-mw-body-names" class="body-checkbox"><label for="chk-sora-mw-body-names" title="表示天体名をプレビューと全天儀に表示/非表示(基本オプションと連動)">:表示天体名</label>
+                        <input type="checkbox" id="chk-sora-const-fig" class="body-checkbox"><label for="chk-sora-const-fig" title="星座線をプレビューと全天儀に表示/非表示(基本オプションと連動)">:星座線</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-const-bounds" class="body-checkbox"><label for="chk-sora-const-bounds" title="星座領域をプレビューと全天儀に表示/非表示(基本オプションと連動)">:星座領域</label>
+                        <input type="checkbox" id="chk-sora-const-names" class="body-checkbox"><label for="chk-sora-const-names" title="星座名称をプレビューと全天儀に表示/非表示(基本オプションと連動)">:星座名称</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label" for="input-sora-label-scale">文字サイズ:</label>
+                        <span id="sora-label-scale-val">100%</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-sora-label-scale" min="0" max="1000" value="100" step="1" title="表示天体名と星座名称の文字サイズ(プレビュー基準100%・0〜1000%)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-fw" class="body-checkbox"><label for="chk-sora-fw" title="打ち上げ花火のシミュレーションをプレビューに表示(打ち上げの軌跡と放射状の開花・色は七色で切り替わり)">:花火モード</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="打ち上げ場所の位置情報を指定します">打ち上げ場所</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点(°):</label>
+                        <input type="text" id="input-fw-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点標高(m):</label>
+                        <input type="number" id="input-fw-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m" title="打ち上げ点の標高(緯度経度の設定で自動取得。手動上書き可)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点高(m):</label>
+                        <input type="number" id="input-fw-height" value="0" step="0.1" placeholder="追加高さ m" title="打ち上げ点の追加高さ(m)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">打ち上げ点領域(半径,m):</label>
+                        <input type="number" id="input-fw-radius" value="50" step="1" min="0" max="10000" placeholder="半径領域 m" title="打ち上げ位置をこの半径内でランダムに散らします">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">花火:</label>
+                        <select id="sel-fw-size" title="花火玉の号数(開花高度・開花直径の表示に反映。固定モードの打ち上げ玉)">
+                            <option value="2.5">2.5号</option>
+                            <option value="3">3号</option>
+                            <option value="5">5号</option>
+                            <option value="10" selected>10号(尺玉)</option>
+                            <option value="30">30号(三尺玉)</option>
+                            <option value="40">40号(四尺玉)</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">玉の直径:</label>
+                        <input type="text" id="fw-ball-dia" class="sora-mov-num" readonly title="選択中の号数の玉の直径">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">開花高度:</label>
+                        <input type="text" id="fw-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
+                        <span class="sora-val">-</span>
+                        <input type="text" id="fw-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">開花直径:</label>
+                        <input type="text" id="fw-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
+                        <span class="sora-val">-</span>
+                        <input type="text" id="fw-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">表示モード:</label>
+                        <label class="baseopt-radio" title="2.5号から40号までを色々ランダムに打ち上げます"><input type="radio" name="fw-mode" value="vary" checked>:色々</label>
+                        <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます"><input type="radio" name="fw-mode" value="fixed">:固定</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">ばらつき:</label>
+                        <span id="fw-spread-label">0</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-fw-spread" class="sora-slider" min="-100" max="100" step="1" title="色々モードの号数のばらつき(+100で40号のみ・0で均等・-100で2.5号のみ。固定モードでは0)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">表示オプション:</label>
+                        <input type="checkbox" id="chk-sora-fw-point" class="body-checkbox" checked><label for="chk-sora-fw-point" title="花火の開花の中心点を十字記号(+)で表示(開花高度は色々=40号の高い方/固定=選択号数の高い方)">:花火点(+)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="花火点の位置情報(辻検索とは連動しません)">位置情報</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">基準方位角(°):</label>
+                        <input type="number" id="input-fw-base-az" class="sora-mov-num" step="0.01" min="0" max="360" placeholder="北から時計回り(°)" title="観測点から花火点への方位角(打ち上げ点の設定から自動算出。辻検索とは非連動)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">基準視高度(°):</label>
+                        <input type="number" id="input-fw-base-alt" class="sora-mov-num" step="0.01" min="-360" max="360" placeholder="水平から上向き(°)" title="観測点から花火点への視高度(標高・高さ・開花高度から自動算出。辻検索とは非連動)">
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-sora-url" class="nav-btn main-btn" title="現在の宙の窓を開くURLをクリップボードにコピー">URL取得</button>
                     </div>
                 </div>
             </div>
@@ -359,10 +1261,20 @@ GNU General Public License for more details.
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dawn" class="mystars-radio" value="civil_dawn">
                                 <label for="jump-civil-dawn">
-                                    <span class="shortcut-name">常用薄明[始]</span>
+                                    <span class="shortcut-name">常用薄明<br>/BH[始]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dawn">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-bh-end-gh-start" class="mystars-radio" value="bh_end_gh_start">
+                                <label for="jump-bh-end-gh-start">
+                                    <span class="shortcut-name">BH[終]<br>/GH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-bh-end-gh-start">--:--</span>
+                                        <span class="shortcut-alt">(-4°)</span>
                                     </span>
                                 </label>
                             </div>
@@ -376,12 +1288,32 @@ GNU General Public License for more details.
                                     </span>
                                 </label>
                             </div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-end" class="mystars-radio" value="gh_end">
+                                <label for="jump-gh-end">
+                                    <span class="shortcut-name">GH[終]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-end">--:--</span>
+                                        <span class="shortcut-alt">(+6°)</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <!-- 日暮グループ -->
                     <div class="twilight-group">
                         <div class="twilight-group-title">日暮</div>
                         <div class="twilight-grid">
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-start" class="mystars-radio" value="gh_start">
+                                <label for="jump-gh-start">
+                                    <span class="shortcut-name">GH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-start">--:--</span>
+                                        <span class="shortcut-alt">(+6°)</span>
+                                    </span>
+                                </label>
+                            </div>
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-tw-sunset" class="mystars-radio" value="tw_sunset">
                                 <label for="jump-tw-sunset">
@@ -392,11 +1324,20 @@ GNU General Public License for more details.
                                     </span>
                                 </label>
                             </div>
-                            <div class="shortcut-item twilight-spacer"></div>
+                            <div class="shortcut-item">
+                                <input type="radio" name="time-jump" id="jump-gh-end-bh-start" class="mystars-radio" value="gh_end_bh_start">
+                                <label for="jump-gh-end-bh-start">
+                                    <span class="shortcut-name">GH[終]<br>/BH[始]</span>
+                                    <span class="shortcut-detail">
+                                        <span id="time-gh-end-bh-start">--:--</span>
+                                        <span class="shortcut-alt">(-4°)</span>
+                                    </span>
+                                </label>
+                            </div>
                             <div class="shortcut-item">
                                 <input type="radio" name="time-jump" id="jump-civil-dusk" class="mystars-radio" value="civil_dusk">
                                 <label for="jump-civil-dusk">
-                                    <span class="shortcut-name">常用薄明[終]</span>
+                                    <span class="shortcut-name">常用薄明<br>/BH[終]</span>
                                     <span class="shortcut-detail">
                                         <span id="time-civil-dusk">--:--</span>
                                         <span class="shortcut-alt">(-6°)</span>
@@ -434,6 +1375,42 @@ GNU General Public License for more details.
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-myset')">
+                    <span id="myset-header-label">Myセット</span> <span id="icon-sec-myset">▼</span>
+                </div>
+                <div id="sec-myset" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-myset-toggle-all" class="nav-btn main-btn">一括選択</button>
+                        <button id="btn-myset-update" class="nav-btn main-btn" title="チェックされたMyセットを保存/読込ラジオボタンにしたがって更新します(Googleドライブ連携)">更新</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-switch" class="nav-btn main-btn" title="選択中のMyセットの内容にMy辻検索/My観測点/My目的点/My天体を切り替えます">切り替え表示</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-open" class="nav-btn main-btn" title="選択中のMyセットのGoogleスプレッドシートを開きます">開く</button>
+                        <button id="btn-myset-copy" class="nav-btn main-btn" title="選択中のMyセットをコピー(複製)します">コピー</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-addsheet" class="nav-btn main-btn" title="選択中のMyセットにGoogleスプレッドシートを追加します">追加</button>
+                        <button id="btn-myset-delete" class="nav-btn main-btn" title="選択中のMyセットとGoogleスプレッドシートの関連付けを解除します(ファイルは削除されません)">解除</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-regall" class="nav-btn main-btn">全て登録</button>
+                    </div>
+                    <div id="myset-error" class="mypoint-error"></div>
+                    <div id="myset-list" class="mypoint-list"></div>
+                    <div class="control-row">
+                        <button id="btn-myset-up" class="nav-btn main-btn">▲上へ</button>
+                        <button id="btn-myset-down" class="nav-btn main-btn">▼下へ</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-addrow" class="nav-btn main-btn">行追加</button>
+                        <button id="btn-myset-delrow" class="nav-btn main-btn">行削除</button>
                     </div>
                 </div>
             </div>
@@ -539,10 +1516,11 @@ GNU General Public License for more details.
 
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-starsearch')">
-                    <span>天体検索</span> <span id="icon-sec-starsearch">▼</span>
+                    <span>天体検索/登録</span> <span id="icon-sec-starsearch">▼</span>
                 </div>
                 <div id="sec-starsearch" class="section-content closed">
                     <div class="control-row">
+                        <label>検索天体名:</label>
                         <input type="text" id="input-starsearch" placeholder="シリウス、M78星雲など" maxlength="150">
                     </div>
                     <div class="control-row starsearch-options">
@@ -553,14 +1531,17 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-starsearch" class="nav-btn main-btn">検索</button>
-                        <button id="btn-starsearch-reg" class="nav-btn main-btn">登録</button>
                     </div>
                     <div class="control-row starsearch-result">
                         <label>天体名:</label>
-                        <input type="text" id="input-starsearch-name" placeholder="天体名を変更可能" maxlength="150">
+                        <input type="text" id="input-starsearch-name" placeholder="天体名を入力可能" maxlength="150">
                     </div>
                     <div class="control-row starsearch-result">
-                        <input type="text" id="input-starsearch-radec" readonly placeholder="赤経, 赤緯">
+                        <label>赤経赤緯:</label>
+                        <input type="text" id="input-starsearch-radec" placeholder="赤経, 赤緯 を入力可能" maxlength="150">
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-starsearch-reg" class="nav-btn main-btn">登録</button>
                     </div>
                 </div>
             </div>
@@ -640,13 +1621,37 @@ GNU General Public License for more details.
             <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-backup')">
                     <span>バックアップ/インポート</span>
-                    <span id="icon-sec-backup">▲</span>
+                    <span id="icon-sec-backup">▼</span>
                 </div>
-                <div id="sec-backup" class="section-content">
+                <div id="sec-backup" class="section-content closed">
                     <div class="control-row">
                         <button id="btn-backup" class="nav-btn main-btn">バックアップ</button>
                         <button id="btn-import" class="nav-btn main-btn">インポート</button>
                     </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="ローカルストレージの内容を保存しているGoogleドライブの保存先">Googleドライブ</label></div>
+                    <div class="control-row">
+                        <button id="btn-gdrive-login" class="nav-btn main-btn" title="Googleアカウントにログインします">ログイン</button>
+                        <button id="btn-gdrive-logout" class="nav-btn main-btn" title="Googleアカウントからログアウトします">ログアウト</button>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">宙の辻フォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-root-folder" class="mypoint-name" maxlength="150" autocomplete="off" title="マイドライブ直下に作成するフォルダ(「/」で始める)">
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-gdrive-folder-register" class="nav-btn main-btn" title="宙の辻フォルダ名の変更を反映(ドライブ上のフォルダは名前変更)">登録</button>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">設定フォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-settings-folder" class="mypoint-name" readonly>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">Myセットフォルダ名:</label></div>
+                    <div class="control-row">
+                        <input type="text" id="gdrive-mysets-folder" class="mypoint-name" readonly>
+                    </div>
+                    <div class="control-row left-row"><label class="mypoint-label">Googleドライブ最終更新日時:</label></div>
+                    <div class="control-row left-row"><span id="gdrive-modified" class="mypoint-label">-</span></div>
+                    <div class="control-row left-row"><span id="gdrive-size" class="mypoint-label">ローカルストレージ: -</span></div>
                 </div>
             </div>
 
@@ -667,7 +1672,9 @@ GNU General Public License for more details.
             </div>
 
             <div class="panel-footer">
-                &copy; 2026- Sora no Tsuji Project - v1.20.1
+                &copy; 2026- Takeyoshi Watanabe<br>
+                Sora no Tsuji Project - <span id="app-version">v0.0.0</span><br>
+                <a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a> / <a href="terms.html" target="_blank" rel="noopener">利用規約</a>
             </div>
         </div>
     </div>
@@ -694,6 +1701,34 @@ GNU General Public License for more details.
             </div>
             <div class="picker-item" id="url-picker-access">
                 <div class="picker-name">アクセス日時</div>
+            </div>
+            <label class="url-picker-short-row" title="オン: 圧縮した短いURLをコピーします / オフ: キー名やキー値がそのままの長いURLをコピーします"><input type="checkbox" id="url-picker-short" checked>:短いURL</label>
+        </div>
+    </div>
+
+    <div id="gdrive-sync-dialog" class="location-picker hidden">
+        <div class="picker-header">
+            <span>どのように更新しますか？</span>
+            <span class="close-picker" onclick="closeGdriveSyncDialog()">×</span>
+        </div>
+        <div class="picker-list">
+            <div class="gdrive-sync-info">ローカルストレージ</div>
+            <div class="gdrive-sync-info" id="gdrive-sync-local"></div>
+            <div class="gdrive-sync-info">Googleドライブ</div>
+            <div class="gdrive-sync-info" id="gdrive-sync-drive"></div>
+            <div class="picker-item" id="gdrive-sync-save">
+                <div class="gdrive-sync-title">①端末の内容をGoogleドライブに保存</div>
+                <div class="gdrive-sync-center">ローカルストレージ ➡️ Googleドライブ</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">保存</button></div>
+            </div>
+            <div class="picker-item" id="gdrive-sync-load">
+                <div class="gdrive-sync-title">②Googleドライブの内容を端末に読み込み</div>
+                <div class="gdrive-sync-center">ローカルストレージ ⬅️ Googleドライブ</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">読み込み</button></div>
+            </div>
+            <div class="picker-item" id="gdrive-sync-cancel">
+                <div class="gdrive-sync-title">③他の端末の方を優先したいのでキャンセル</div>
+                <div class="gdrive-sync-center"><button class="nav-btn main-btn">キャンセル</button></div>
             </div>
         </div>
     </div>
@@ -735,11 +1770,14 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>位置情報メニュー</h3>
                     <ul class="help-list">
-                        <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。</li>
+                        <li><strong>観測点 / 目的点</strong>: 地図クリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」を入力して設定。ラジオボタンで地図クリック対象を切替。PC・スマホとも誤操作防止のため<strong>ダブルクリック (ダブルタップ)</strong>で移動します (ダブルクリックズームは無効化されます。ズームは+/-ボタン・ホイール・ピンチで)。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
+                        <li><strong>地図パンボタン (◀▶/▲▼)</strong>: 地図左上のボタンで、ドラッグせずに半画面ずつ地図をスクロールできます。</li>
+                        <li><strong>マーカー中央表示ボタン (⌖)</strong>: 地図左上の<strong>地図レイヤー選択ボタンとズームボタンの間</strong>のボタンで、位置情報メニューの観測点/目的点切り替えボタンで選択されているマーカーを画面中心 (下部パネルに隠れない領域の中央) に表示します (ズームは変わりません。スマホで結果リストを最大化しても隠れない位置です)。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
                         <li><strong>辻 (辻ライン365)</strong>: 直近365日分の辻ラインを実線で一括表示 (重い計算のため起動時は常にOFF)。</li>
+                        <li><strong>高移 (準最高地点移動)</strong>: 選択中(ラジオ)の観測点/目的点を、近傍のより高い小ピークへ移動。DEM標高タイルで算出します。</li>
                         <li><strong>URL</strong>: 現在の状態を共有/復元するURLをコピー (日時固定/半固定/アクセス日時から選択)。</li>
                     </ul>
                 </section>
@@ -757,12 +1795,12 @@ GNU General Public License for more details.
 
                 <section class="help-section">
                     <h3>辻ライン</h3>
-                    <p>「辻ライン」ボタンON時に、目的点の背後に天体が重なって見える観測位置の軌跡 (当日 + 前日 + 翌日) を地図上に描画します。</p>
+                    <p>「辻ライン」ボタンON時に、目的点の背後に天体が重なって見える観測位置の軌跡 (当日 + 前日 + 翌日) を地図上に描画します。線の範囲は<strong>目的点から300km以内</strong>、かつ当日線=<strong>その天体の「現在の日時に最も近い南中」から前後12時間</strong>、翌日線/前日線=その南中の24時間後/24時間前から前後12時間です (3本で連続72時間をカバーするので、月のように南中が毎日約50分ずれる天体でも辻ラインが日付を跨いで連続し、南中が23時頃で辻時刻が翌未明になる場合も当日線=実線側に乗ります)。</p>
                     <ul class="help-list">
                         <li><strong>実線 ───</strong>: 天体の中心が目的点に**完全に**重なる位置 (当日)。5分刻みの●マーカーと時刻表示付き。</li>
                         <li><strong>破線 - - -</strong>: ◎精度の境界 (±0.125°、視半径以内)。</li>
-                        <li><strong>一点鎖線 -·-·-</strong>: ○精度の境界 (天体の視半径エッジライン)。</li>
-                        <li><strong>二点鎖線 -··-··-</strong>: △精度の境界 (±1°)。</li>
+                        <li><strong>一点鎖線 -·-·-</strong>: ○精度の境界 (±0.25°、天体の視半径エッジライン)。</li>
+                        <li><strong>二点鎖線 -··-··-</strong>: △精度の境界 (±1°、視直径×4以内)。</li>
                         <li><strong>点線 · · ·</strong>: 前日・翌日の辻ライン。</li>
                     </ul>
                     <p>表示中の天体ごとに色分けされます。線は5秒間隔で計算され、100km地点で約30m刻み・200km地点で約60m刻みの曲線になります。位置精度は WGS84 楕円体ベースで概ね数m以内 (子午線収差・気差・月の視差を補正済)。</p>
@@ -785,12 +1823,17 @@ GNU General Public License for more details.
                     <ul class="help-list">
                         <li><strong>検索期間</strong>: 検索する日数 (最大36500日 = 100年間)。日時情報メニューの日付が起点。</li>
                         <li><strong>基準方位角・基準視高度</strong>: 観測点→目的点の方位角・視高度 (自動計算)。</li>
-                        <li><strong>オフセット方位角/視高度</strong>: 基準値からのズレ (度)。</li>
-                        <li><strong>オフセット方位距離/視高距離</strong>: 上記オフセットを目的点での横/縦の距離 (m) に換算した参考値。</li>
+                        <li><strong>辻オフセット方位角/視高度</strong>: 基準値からのズレ (度)。</li>
+                        <li><strong>辻オフセット方位距離/視高距離</strong>: 上記オフセットを目的点での横/縦の距離 (m) に換算した参考値。</li>
+                        <li><strong>辻オフセット回転角/回転仰角</strong>: 目的点方向を向いて0時(上)から時計回りの角度と、中心からの球面角距離 (参考値・読取専用)。</li>
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
+                        <li><strong>検索中心方位角差・検索中心視高度差</strong>: 辻時刻の天体位置と<strong>検索中心 (オフセット適用後の点。検索中心「線」のときは線分への最近点=精度角距離と同じ参照点)</strong> との差の符号つき参考値です。検索中心より右 (時計回り) / 上が正。常に 精度角距離 ≧ |検索中心視高度差| が成り立ちます (検索中心方位角差はcos(視高度)の縮み補正がない生の方位角差のため、高高度では精度角距離より大きく表示されることがあります)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
+                        <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/各薄明から選べ、前後オフセットも指定可。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
+                        <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
+                        <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。My辻検索の結果リストは同じパネルを共有するため、同じボタンで最大化できます。</li>
                     </ul>
                     <p>精度記号:</p>
                     <ul class="help-list">
@@ -800,19 +1843,55 @@ GNU General Public License for more details.
                         <li><strong>-</strong>: 上記以外で許容範囲内</li>
                     </ul>
                     <p>検索は1分間隔の粗スキャン → ベスト時刻の前後60秒を1秒単位リファインで実行。各天体最大36500件 (100年分)。太陽・月の視半径は ≈ 0.26°。</p>
+                    <p>結果リストの<strong>時間帯</strong>列は、辻時刻がその日の薄明・日の出/日の入で区切った12区分のどこに入るか (例 <code>日の出&lt;=x&lt;12時</code>) を示します。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>辻メッシュ検索</h3>
+                    <p>「辻メッシュ」ボタンON時に、観測点付近のDEM標高タイル (検索エリア: 3×3/4×4/5×5/6×6) の<strong>全画素を観測点</strong>として辻検索し、精度フィルタ以内になる日時と場所を網羅します。どの位置なら高い精度の日時が存在するかが地図のマーカーで分かります。</p>
+                    <ul class="help-list">
+                        <li><strong>結果リストの1行</strong>: 「天体×日」のイベント。全メッシュマーカー (ヒット画素) を日付毎にグルーピングし、行の辻時刻・精度記号・精度角距離・方位角・視高度は、<strong>その日に領域内で最高精度が出る画素 (最良画素) の辻時刻と、その時の値</strong>です (最良画素基準)。辻時刻・精度角距離・方位角・視高度は<strong>0.01秒精細化後の値 (優辻マーカーのポップアップと同じ値)</strong> で、辻時刻は hh:mm:ss.ff (0.01秒) で表示します。行になる条件は、領域内のどこかの画素で精度フィルタオプション以内になる日です。観測点マーカーは検索エリアを指定するための基準で、行の表示値の基準ではありません。精度記号は<strong>◎〜◎×128</strong> (精度フィルタオプションと同じ2倍刻みのスケール。◎=±0.125°、×2毎に許容が半分で◎×128=±0.0009765625°。該当する最も高い精度の記号を表示し、◎より粗い行は○ (±0.25°)/△ (±1°)/-) です。</li>
+                        <li><strong>行の辻時刻と優辻マーカーの関係</strong>: 行の辻時刻は<strong>その日の最良画素の最良の「瞬間」</strong>、優辻マーカー (金色のピン) は<strong>指定した瞬間の最良の「場所」</strong>を指します。行選択直後は両者が同じ画素を指し、辻時刻スライダーを動かすと、その時刻での最良の場所へピンが移動します。</li>
+                        <li><strong>精度フィルタ ◎/○/△/-</strong>: 結果リストの行を精度記号で絞り込みます。◎〜◎×128 (±0.125°以内) は常時オン、<strong>○ (±0.25°)・△ (±1°)・- は読み取り専用で常時オフ</strong>です (メッシュマーカーは精度フィルタオプション以内=◎クラスのヒットのみ保持するため、○△-のデータは存在しません)。行の値は最良画素基準のため、すべて◎〜◎×128になります。</li>
+                        <li><strong>精度フィルタオプション ◎/◎×2/◎×4/◎×8</strong>: 検索 (画素側) の当たり判定 (±0.125°/±0.0625°/±0.03125°/±0.015625°)。</li>
+                        <li><strong>許容範囲方位角/視高度</strong>: 基準方位角/視高度から±この範囲にある画素だけを検索対象にします。</li>
+                        <li><strong>画素の高さ基準</strong>: 全画素は観測点と同じ高さ基準「DEM標高 + 観測点高 (位置情報メニューの値)」で計算します (通常の辻検索と同じ)。辻マーカーで観測点に設定しても観測点高は維持されます。</li>
+                        <li><strong>メッシュマーカー(グラデーションタイル)</strong>: 全結果行のヒット画素(精度フィルタオプションで指定した精度以上の画素)を<strong>全て表示</strong>します (上限 = 検索エリアの全画素)。マーカーは画素の実寸 (約10m四方) で描くため、ズームに応じて面として見えます。1画素は<strong>表示天体毎に複数日の最良辻日時を保持</strong>します (公転により同じ方向を年2回以上通る太陽・月などの日を取りこぼしません)。タイルの色は<strong>ヒット件数のグラデーション</strong>で、1件=<strong>メッシュマーカー色</strong> (「メッシュマーカー色」スライダーのグレースケール・既定は白)、件数が多いほど金色に近づき、<strong>最大件数=最も金色</strong>になります (既定では白→金のグラデーション。最大件数は1タイルの全表示天体での合計件数をタイル間で比べた最大値)。1タイルは<strong>8×8ピクセル</strong>で高精細に描きます (検索エリアが広い場合はキャンバス上限のため自動縮小)。<strong>最大件数のタイル (2件以上ある時) は金色と赤色の斜め縞模様</strong>で、最多ヒットの場所が一目で分かります (0件の画素は無色=描画されません)。カーソルを合わせる (PC) かタップ (スマホ) すると、<strong>「メッシュマーカー(XX件)」の件数ポップアップ</strong> (XX件=全表示天体での合計ヒット数) を表示し、その画素の全ヒットの詳細は<strong>「詳細リスト」(結果リストとコントロールの間) に全件表示</strong>します (列=マーク★/・・天体ID・天体名・精度記号・精度角距離・日付・曜日・辻時刻0.01秒。初期の並びは表示天体毎のグルーピングで天体内は精度順・天体内で複数ある場合は最良に★。<strong>見出しをクリックすると列毎にソート</strong>できます [クリック毎に昇順▲/降順▼。<strong>ソート順は保持され、別の画素にホバーしても同じ順で表示</strong>されます。マーク列のソートは既定の並び (天体毎に精度角距離順) の昇順/降順です]。ホバーが外れても最後の内容を保持)。<strong>観測点マーカーをホバー (スマホはタップ) した時も、観測点の位置を含む画素の全ヒットを詳細リストに表示</strong>します (メッシュマーカーのホバーと同じ内容。メッシュ外やヒットのない画素の場合は更新しません)。<strong>観測点マーカーのポップアップ (位置情報) の表示中は観測点の情報に固定</strong>され、他の画素をホバーしても切り替わりません (ポップアップを閉じると解除)。PCでは<strong>クリックで位置を確定して、ホバー中と同じ件数のみのポップアップを表示</strong>します (この時点では観測点は移動しません)。<strong>確定中は他の画素をホバーしても詳細リストを更新せず、確定した画素の内容に固定</strong>されます (ポップアップを閉じると解除)。<strong>詳細リストの行をクリック (スマホはタップ) するとその天体×日付の行が結果リストで選択されて観測点がその画素に移動</strong>し、辻時刻コントロールがその行の辻時刻へ移動します (優辻マーカーがそこに立ちます)。日時情報メニューの日時もその行の辻日時に更新されます (辻ラインも一緒に移動します)。移動後は<strong>観測点マーカーのポップアップ (位置情報) が自動で開き、詳細リストは観測点の情報に固定</strong>されたままになります (ポップアップを閉じると解除)。地図上のどの帯でも「そこに立った時の辻」へ飛べます。検索直後の初期画面は<strong>最大ズーム-3で観測点が中央</strong>に表示されます (行の自動選択・日時の移動はしません)。</li>
+                        <li><strong>辻マーカー (天体色領域)</strong>: メッシュマーカーのうち、コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせる (PC) かタップ (スマホ) するとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>をポップアップ表示します。PCではクリックで位置を確定してポップアップを表示します (観測点は移動しません)。<strong>ポップアップの内容はホバーでハイライトされ、クリック (スマホはタップ) すると観測点がその画素に移動</strong>し、該当行 (選択中の行) が結果リストに表示されます。</li>
+                        <li><strong>優辻マーカー (金色のピン)</strong>: 指定した辻時刻での最良精度の画素に、観測点マーカーと同じ大きさの金色のピンを立てます。カーソルで辻日付・辻時刻・精度角距離をポップアップ表示し、クリック (スマホはタップ) で位置を確定してポップアップを表示します (観測点は移動しません)。<strong>ポップアップの内容をクリック (スマホはタップ) すると観測点がその画素に移動</strong>し、該当行が結果リストに表示されます。表示天体メニューで選択行の天体をオフにすると、辻マーカーとピンは非表示になります。</li>
+                        <li><strong>行選択後オプション</strong>: 行選択後の選択マーカーを選べます。<strong>「:辻時刻の優辻マーカー」(初期値)</strong> = 行の辻時刻での最良画素 (優辻マーカー) を選択します。<strong>「:辻時刻の最近傍の辻マーカー」</strong> = 観測点に最も近い最高精度の辻マーカーを選択し、辻時刻コントロールもその画素の辻時刻に移動します (≠行の辻時刻)。</li>
+                        <li><strong>辻時刻コントロール</strong>: 「辻日時」表示 (日付+曜日+時刻。<strong>時刻は0.01秒表示</strong>) と秒スライダー (範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ) で辻時刻を指定。行選択やポップアップの行クリックの直後は行と同じ精細化時刻 (サブ秒付き。例 16:36:07.93) になり、スライダーを手動で動かすと秒単位 (サブ秒0) になります。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜86400秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます (最大で丸1日分。幅が大きいほど再計算に時間がかかります)。<strong>精度フィルタオプションは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
+                        <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに行選択後オプションに従って辻時刻コントロールが初期化され、優辻マーカーが立ちます (行選択でのズーム・センタリングはしません。検索直後に一度ズームしています)。</li>
+                        <li><strong>標高オプション</strong>: ONにすると、検索前に許容範囲内の対象画素それぞれを観測点として、<strong>標高グラフと同一のアルゴリズム</strong>で可視 (OK) / 不可視 (NG) を判定し、チェックで選んだ対象の画素だけを辻メッシュ検索します: <strong>OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素</strong>。判定は<strong>統一可視判定 (標高グラフの可視判定・辻検索の標高オプションと共通のコア)</strong> で、画素→目的点の経路を<strong>DEM分解能固定のズーム15半画素 (約2m) 刻み</strong>で歩き (点数固定ではないので経路長に関わらずDEM画素を取りこぼしません)、各点の標高を<strong>DEM5A/5B/5C (ズーム15・5mメッシュ) → DEM10B (ズーム14)</strong> の順で参照して可視直線 (画素の標高+観測点高→目的点標高。地球曲率・屈折なし) と比較します。除外範囲 (チェックで有効。目的点側/観測点側それぞれの半径○m以内の遮蔽を無視) も標高グラフと同じ規則で適用されるため、<strong>その画素を観測点に設定して標高グラフを実行した時と同じ判定</strong>になります (除外範囲0で目的点直近の点が遮ってNGになる挙動も同一。判定中は「標高タイル取得中…」「可視判定中… i/N画素」の進捗を表示)。判定は<strong>ワーカープール (CPU数+1) で並列実行</strong>され、経路を帯域に分割して各ワーカーが担当分を判定するため、判定結果は従来の逐次処理と完全に同一のまま、コア数分高速になります (再検索やトグルオフで実行中の判定はキャンセルされます)。結果リストの「標高グラフ」列は、その行の表示値を出した地点=<strong>その日の最良画素の位置の可視判定</strong>を表示します。</li>
+                    </ul>
                 </section>
 
                 <section class="help-section">
                     <h3>標高グラフ</h3>
-                    <p>「標高グラフ」ボタンON時に、観測点〜目的点の地形断面を表示。国土地理院のDEM標高タイルから2000地点で標高を取得します。</p>
-                    <p>取得完了後、観測点高・目的点高を加えた可視直線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。屈折・地球曲率は考慮していない単純な直線判定なので、遠距離見通しでは精度に注意してください。</p>
+                    <p>「標高グラフ」ボタンON時に、観測点〜目的点の地形断面を表示。国土地理院のDEM標高タイルから2000地点で標高を取得します。縦軸=標高・横軸=直線距離の目盛を表示します。</p>
+                    <p>取得完了後、観測点高・目的点高を加えた可視直線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。<strong>可視判定はグラフ描画用の2000点とは独立</strong>で、辻検索・辻メッシュ検索の標高オプションと共通の統一可視判定 (経路をズーム15半画素≒約2m刻みで歩き、DEM5A/5B/5C→DEM10Bの順で参照。除外範囲=チェックで有効。目的点側/観測点側それぞれの半径○m以内のNGは無視) を使います。屈折・地球曲率は考慮していない単純な直線判定なので、遠距離見通しでは精度に注意してください。</p>
+                </section>
+
+                <section class="help-section">
+                    <h3>宙の窓</h3>
+                    <p>「宙の窓」ボタンON時に、観測点から目的点方向を撮影するカメラのファインダーをシミュレーションします。センサー(機種名リストから選択可)・焦点距離・F値・アスペクト比から画角(水平/垂直/対角)を計算し、実際の星景写真の構図をプレビューできます。</p>
+                    <ul class="help-list">
+                        <li><strong>カメラの向き</strong>: 基準方位角・基準視高度 (初期値=観測点→目的点の方向)。<strong>カメラオフセット方位角/視高度</strong>で向きをずらせます (プレビューのドラッグパンと連動)。<strong>辻オフセット6項目</strong>は辻検索メニューと双方向連動します。</li>
+                        <li><strong>プレビューの内容</strong>: 天の川の写真 (明るさスライダー)・表示天体のマーカーと中心十字・軌跡 (前日/当日/翌日)・DEM標高タイルの3D地形 (ヒルシェード適用度スライダー)・目的点の赤十字・検索中心の×。基本オプションのチェックで<strong>表示天体名・星座線・星座領域・星座名称</strong>もプレビューに表示されます (宙の窓メニューにも同じチェックがあり双方向連動。星座名称・表示天体名の文字の向き: 通常・四角=水平、円形フィッシュアイ=画面中心から同心円状。<strong>文字サイズスライダー</strong> (0〜1000%・プレビュー基準100%) で大きさを調整できます)。</li>
+                        <li><strong>フィッシュアイ</strong>: 歪みスライダー0〜99%は魚眼風の樽歪み (近似・画角も連動して拡大)。<strong>歪み100%+画面形状:円形のときは「等距離射影の全天表示」</strong>に切り替わります — 画面中心=基準方位角+基準視高度 (カメラの向き)、円周=中心から90°、像高は中心からの角度に比例 (実際の魚眼レンズ・星座盤と同じ投影)。<strong>基準視高度を90°にすると天頂中心の星座盤の見え方</strong>になります (そのとき円の下方向=基準方位角)。全天表示の視野は焦点距離・センサーに依らず常に直径180°です。</li>
+                        <li><strong>パノラマ</strong>: 水平画角を最大360°までアスペクト比可変でシミュレーション (円筒投影。フィッシュアイとは併用不可)。</li>
+                        <li><strong>コントロールメニュー</strong>: プレビュー内下部の「コントロール」から焦点距離・日付/時刻・インターバルMov (タイムラプス再生: アニメ/動画) を操作できます。</li>
+                        <li><strong>書き出し</strong>: 静止画 (JPEG/PNG)・動画 (MP4/WebM) をファイル出力。出力画像サイズ (pixel・1〜8192) を指定でき、右下に日時+クレジットが入ります。全天表示・パノラマ・フィッシュアイもそのまま出力され、<strong>表示天体名・星座名称の文字は出力サイズに比例してプレビューと同じ相対サイズ</strong>になります。</li>
+                        <li><strong>URL/最大化</strong>: 「URL取得」で現在の宙の窓の状態を開くURLをコピー。⛶ボタンでプレビューを最大化できます。</li>
+                    </ul>
                 </section>
 
                 <section class="help-section">
                     <h3>My辻検索 / My観測点 / My目的点</h3>
                     <ul class="help-list">
                         <li><strong>My辻検索</strong>: 辻検索の条件を複数(最大1000件まで)登録・管理。「一括計算」で全件をWorkerプール並列実行、「File取得」でCSV出力。CSV出力の方が<strong>画面出力より詳細</strong>です。</li>
-                        <li><strong>My観測点 / My目的点</strong>: 複数(最大1000件まで)の観測点・目的点を登録・管理。地図上に緑/橙のマーカー表示。「位置反映」で位置情報メニューに反映。CSV入出力対応。</li>
+                        <li><strong>My観測点 / My目的点</strong>: 複数(最大1000件まで)の観測点・目的点を登録・管理。地図上に緑/橙のマーカー表示。「位置反映」で位置情報メニューに反映。各行のチェックボックスで選択。CSV入出力対応。</li>
+                        <li><strong>CSV出力</strong>は<strong>チェックボックスで選択した行のみ</strong>を出力します。<strong>全CSV入力 / 追加CSV入力</strong>では、1列目が <code>#</code> で始まる行を<strong>コメント行として読み飛ばし</strong>ます。</li>
                     </ul>
                 </section>
 
@@ -820,7 +1899,7 @@ GNU General Public License for more details.
                     <h3>表示天体 / My天体 / 天体検索</h3>
                     <ul class="help-list">
                         <li><strong>表示天体</strong>: 太陽・月・8惑星 + 主要恒星 (北極星・北斗七星メラク・オリオン座ミンタカ・すばる・M42・ベガ・アルタイル・デネブ・ベテルギウス・シリウス・プロキオン)。チェックボックスで表示/非表示、カラーパレットで色・線種を変更。各天体の出没/南中時刻・方位角・視高度・視半径を表示。</li>
-                        <li><strong>My天体</strong>: 天体検索で登録した天体の一覧。並べ替え・削除・色変更が可能。CSV入出力対応。</li>
+                        <li><strong>My天体</strong>: 天体検索で登録した天体の一覧。並べ替え・削除・色変更が可能。CSV入出力対応 (CSV出力は表示チェックの天体のみ、CSV入力は <code>#</code> 始まりの行をスキップ)。</li>
                         <li><strong>天体検索</strong>: celestial_db.json から天体を検索 (等級で絞り込み可能)。検索結果から選択し、My天体に登録(最大1000件まで)できます。</li>
                     </ul>
                 </section>
@@ -951,12 +2030,13 @@ GNU General Public License for more details.
                         <li>本サイトでの表示内容は、その情報の正確性を保証するものではありません。実際の観測には十分な余裕を持って行動してください。</li>
                         <li>本サイトは、国土地理院などの無料サービスを利用して成り立っています。サーバーに高負荷をかける行為はご遠慮ください。</li>
                         <li>本サイトを利用したことにより生じたいかなる損害についても責任を負いません。</li>
+                        <li>詳しくは、<a href="privacy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="terms.html" target="_blank" rel="noopener noreferrer">利用規約</a>をご覧ください。</li>
                     </ul>
                 </section>
 
                 <section class="help-section">
                     <h3>謝辞</h3>
-                    <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、<a href="https://geographiclib.sourceforge.io/" target="_blank" rel="noopener noreferrer">GeographicLib</a>並びに、AIのGeminiさん、Claudeさんに、並々ならぬ感謝の意を表します。</p>
+                    <p>本サイトを制作するにあたって利用した <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine Project</a>、<a href="https://geographiclib.sourceforge.io/" target="_blank" rel="noopener noreferrer">GeographicLib</a>、<a href="https://threejs.org/" target="_blank" rel="noopener noreferrer">three.js</a>、星座線・星座境界データの <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener noreferrer">d3-celestial</a>(BSD-3ライセンス)並びに、AIのGeminiさん、Claudeさんに、並々ならぬ感謝の意を表します。</p>
                 </section>
 
                 <section class="help-section">

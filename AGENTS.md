@@ -72,6 +72,8 @@
 | `docs/dessin/` | 機能設計・実装の詳細を確認したいとき |
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |
+| `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
+| `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 
 ## バージョン管理
 - バージョン履歴は `script.js` 冒頭のコメントに記載

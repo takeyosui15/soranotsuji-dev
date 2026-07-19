@@ -1,6 +1,6 @@
 /*
 宙の辻 - Sora no Tsuji
-Copyright (c) 2026- Sora no Tsuji Project
+Copyright (C) 2026 Takeyoshi Watanabe (Sora no Tsuji Project)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -13,6 +13,31 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.22.1 - 2026-07-19: feat: 宙検索に光害を組み込み(フェーズ3前半) — 同梱アセット(data/lp-japan: Falchi 2016のSQM格子)の遅延読み込み・観測点の天頂SQM+扇形標本の方向光害(重み付き平均)・宙スコアに光害因子(SQM16〜22→暗さ0〜1、天頂6:方向4合成、プリセットの光害重みで反映)・暫定リストに光害(SQM)/方向光害列。アセット未配置/範囲外は'-'表示でスキップ
+Version 1.22.0 - 2026-07-19: feat: 宙検索フェーズ1(データ層。デッサン18) — 視界扇形の標本化(0.05°格子丸め+距離減衰重み)・Open-Meteo /v1/jma 3層雲量のバッチ取得+IndexedDBキャッシュ(TTL2h)+12〜16日はbest_match延長・狙いプリセット5種(天の川/星景/雲海×月夜/パール/朝焼け夕焼け)の乗算型宙スコア(雲×月[避/狙]×対象高度×湿度)・時間帯フィルタ・信頼度(高/中/低)・暫定リスト表示(辻検索パネル間借り・行クリックで日時移動)
+Version 1.21.1 - 2026-07-19: fix: 花火モード — 打ち上げ点の初期値を目的点と同じに(座標表示+標高も目的点に追従。明示設定で確定)・花火点(+)と基準視高度の開花高度基準を「色々=40号の高い方/固定=選択号数の高い方」に(デッサン06)
+Version 1.21.0 - 2026-07-19: feat: 宙の窓に花火モード(デッサン06 55〜70段目+ctrl41〜53段目) — 打ち上げ点(地名/住所/緯度経度+標高+高さ+領域半径)から号数別の開花高度へ軌跡が上がり開花直径の放射状の華が七色で開くシミュレーション。実寸ENU配置で手前の山に遮蔽され写る大きさも実寸。色々/固定+ばらつき(u^γ重み)、花火点(+)マーカー、打ち上げ点の地図マーカー(🎆)+領域円、基準方位角/視高度の算出表示、メニュー/ctrl双方向連動、URL記憶・復元(シード辞書v9)
+Version 1.20.22 - 2026-07-19: fix: 全天儀の透過オフを「外側から見た構図」に修正(不透明+深度書込の両面描画。従来は奥半球の内面が見えていた)・回転方向の既定を水平に+ラジオ順序を水平/地軸/自由に(デッサン01)・辻メッシュFile取得の行内並びを日時(日付+辻時刻)順に・動画書き出しの出力診断表示を削除(v1.20.20の動作へ復元)
+Version 1.20.21 - 2026-07-19: feat: 辻メッシュFile取得を全ヒット画素出力に(観測点ID=画素ID・詳細結果リスト相当・行内は精度昇順)・処理中表示を🕛アニメーションに統一・全天儀コントロール2〜4段目(前景/後景/透過・自由/水平/地軸・北奥/目的点前)+最大化ボタン(領域2/3⇄1/3・最大化100%⇄66.67%)・動画書き出しに出力診断表示(形式/サイズ/メタデータ長)
+Version 1.20.20 - 2026-07-19: feat: 月輝面比列(結果リスト3種+詳細+CSV)・辻検索/辻メッシュのFile取得・メッシュ詳細リスト23列化・Myセット4シート存在確認・動画のフレーム同期録画(カクカク解消)+生成後の自己検証・天体検索/登録メニュー改修・全天儀コントロールメニュー(日時/速度/表示/オフセット)・焦点距離初期値24
+Version 1.20.19 - 2026-07-18: feat: 除外範囲をチェックボックス+目的点側15m/観測点側10mの両側方式に(デッサン02)・一括更新はシート未作成(😢)行をスキップ(作成はユーザー判断)・WebMに再生時間(Duration)を後付け(ストリーミング形式のみ)
+Version 1.20.18 - 2026-07-18: fix: WebM書き出しをVP9標準化(H.264入りWebM廃止・YouTube対応)・Myセット状態アイコンは再確認+表示のみに(保存/読込は実行しない)・宙の窓ctrlメニューにカメラ位置/焦点距離リスト/薄明ジャンプを追加(デッサン05)・バックアップメニュー初期閉+ドライブ日時を年月日(曜)形式に(デッサン16)
+Version 1.20.17 - 2026-07-18: feat: 宙の窓の地形格子をDEM画素サイズ目標の適応密度に(頂点予算20万/望遠30万・望遠はランプ1.25乗で遠方に密度を寄せる。600mm・範囲5km級はDEM1画素粒度)
+Version 1.20.16 - 2026-07-18: fix: 宙の窓の最高点と目的点(+)のズレを解消(地形の高さ計算を基準視高度と同じ二半径厳密式に統一+格子を目的点にスナップ)・天体軌跡オフで天体中心の十字も非表示に
+Version 1.20.15 - 2026-07-17: fix: Myセット状態アイコン押下時にシート更新日時を再確認(🕛→[New]表示)・結果リストの差分列を「検索中心方位角差/視高度差」に改名+検索中心基準の値へ・宙の窓にz15 DEM5A/B/C導入(欠損はz14へフォールバック)・My辻検索File出力に時間帯+GH/BH境界時刻の列を追加
+Version 1.20.14 - 2026-07-17: fix: シート既定コメント3行化(デッサン08)・除外範囲の初期値15m・スマホでメニュー最下部が隠れる問題(dvh化)・標高/訪問者グラフのdpr鮮明化・宙の窓のリアル化(焦点距離考慮ズーム+望遠メッシュ細分化+バイリニア補間)
+Version 1.20.13 - 2026-07-17: fix: Myセット保存でシート先頭のコメント行(任意行数)を温存・スマホの再生「動画」/書き出しのdpr二重スケール崩れを修正・辻検索/辻メッシュの粗探索を安全スキップで高速化(結果不変)・追加CSV入力の重複判定を生値文字列比較に・宙の窓地形の高精細化(z14範囲拡大+メッシュ細分化)
+Version 1.20.12 - 2026-07-15: fix: Myセットのボタン配置変更(開く・コピー/追加・解除)・追加(Picker)に🕛の2段階更新・書き込み権限なし(403)の分かりやすいエラー表示
+Version 1.20.11 - 2026-07-15: feat: Myセットの「削除」ボタンを「解除」に機能変更(スプレッドシートは削除せず関連付けのみ解除。未ログインでも実行可)
+Version 1.20.10 - 2026-07-15: fix: フッター初期値v0.0.0(script.js読み込み診断)・表示中の緑を不透明合成色に(赤との混色解消)・切り替え時のエラーメッセージ残留を解消
+Version 1.20.9 - 2026-07-15: fix: ダイアログ文字サイズ統一/折り返し防止/[New]赤字・表示中の緑をMy観測点と同濃度に・切り替え時「保存してから切り替え」・Myセット初期選択=表示中・バージョン関数化(フッター連動)
+Version 1.20.8 - 2026-07-15: fix: 同期ダイアログの別行立てレイアウト・🕛の時計アニメーション・Myセット配色統一(終了時刻の赤/My観測点の緑)・既定のセットのコピー対応・「更新:」ラベル・beforeunload警告・ポリシーページのリンク先を本番リポジトリへ
+Version 1.20.7 - 2026-07-15: feat: 既定のセット(ID:0)のスプレッドシート対応(フル行UI・保存/読込/開く/追加/削除・一括更新参加)+privacy.html/terms.html新設+フッターリンク
+Version 1.20.6 - 2026-07-15: feat: Myセット×スプレッドシート連携 フェーズ3後半(4シート作成・保存/読込・開く/追加(Picker)/コピー/削除・一括更新・行アイコン状態)
+Version 1.20.5 - 2026-07-15: feat: Googleドライブ同期 フェーズ3前半(soranotsuji-app.jsonの保存/読込・同期ダイアログ・フォルダ自動作成/リネーム・バックアップメニューのGoogleドライブ欄)
+Version 1.20.4 - 2026-07-15: feat: Googleログイン基盤 フェーズ2(GISトークン・ヘッダのログイン/同期状態アイコン・soranotsuji-app.json存在チェック・Myセットアイコン連動)
+Version 1.20.3 - 2026-07-15: feat: Myセットメニュー フェーズ1(ローカル核: 既定のセット・行管理・コピー・切り替え表示・表示中バッジ・全て登録)
+Version 1.20.2 - 2026-07-15: feat: URL取得に短いURL/長いURLの選択を追加、reset.htmlに使用容量表示、検索中心オプションのラベルを「辻オフセット点」に変更、バックアップファイル名をsoranotsuji-app-バックアップ-に変更
 Version 1.20.1 - 2026-06-16: fix: パール富士で午前0時付近の日付が消える(重複する)問題を対策(東京タワーからのパール富士2026/06/24付)
 Version 1.20.0 - 2026-05-25: feat: 辻ボタン/標高グラフ可視判定/位置精度の大幅な向上(南側にズレる問題を解消)
 Version 1.19.2 - 2026-05-01: fix: 辻検索とMy辻検索の精度不整合、辻検索とMy辻検索の計算中の観測点/目的点/日時の動的問題を修正
@@ -57,7 +82,29 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
+const APP_VERSION = '1.22.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+
+/** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
+function getAppVersion() {
+    return APP_VERSION;
+}
+
 const STORAGE_KEY = 'soranotsuji_app'; // 唯一の保存キー
+
+// Google連携設定 (フェーズ2): Cloudコンソールで取得した値を設定する。
+// 本番用/開発用の2クライアント方式(docs/order.md 2026-07-15の回答参照)。
+// clientIdが未設定("")の間はログインできず、アイコン押下時に案内を表示する。
+// クライアントIDは秘密情報ではないため、ソースに直接記載してよい。
+const GOOGLE_CONFIG = {
+    prod: { hosts: ['soranotsuji.net', 'www.soranotsuji.net'], clientId: '87463892240-cb6fqbj6urj3g1h23fr0v7mvvlphnr8v.apps.googleusercontent.com' },
+    dev:  { hosts: ['127.0.0.1', 'takeyosui15.github.io'], clientId: '87463892240-r77t8crupbcbvth420sr22i9d3s4mirl.apps.googleusercontent.com' },
+    apiKey: 'AIzaSyBQsU3b8eSF2gISUkOvi_FDp-N0k2hpE-Y',   // Google Picker用(フェーズ3)
+    scope: 'https://www.googleapis.com/auth/drive.file'
+};
+function getGoogleClientId() {
+    return GOOGLE_CONFIG.prod.hosts.includes(location.hostname)
+        ? GOOGLE_CONFIG.prod.clientId : GOOGLE_CONFIG.dev.clientId;
+}
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzq94EkeZgbWlFb65cb1WQcRrRVi2Qpd_i60NvJWx6BB6Qxpb-30GD7TSzZptpRYxYL/exec"; 
 const SYNODIC_MONTH = 29.53058886; // 朔望月 (日数)
 
@@ -98,9 +145,12 @@ const SIRIUS_RA = 6.752477;
 const SIRIUS_DEC = -16.716116;
 const PROCYON_RA = 7.655033;
 const PROCYON_DEC = 5.224988;
+// 天の川: 代表点として天の川銀河の中心 (Sgr A*, J2000) を用いる
+const MILKYWAY_RA = 17.761122;
+const MILKYWAY_DEC = -29.007806;
 
 // 固定RA/Decの恒星IDリスト
-const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon'];
+const FIXED_STAR_IDS = ['Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon', 'MilkyWay'];
 
 /** 固定恒星判定 (既定恒星 + My天体) */
 function isFixedStar(bodyId) {
@@ -118,22 +168,31 @@ const KM_PER_AU = 149597870.7;
 const DEFAULT_START = { lat: 35.658595126386274, lng: 139.74544465541842, elev: 18.5, height: 150.0 };
 const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, height: 0 };
 
-// 天体ごとの初期スタイル (リセット用)
+// 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
+// ここが全組込天体の既定値の唯一の定義。appState.bodies はこれから派生する。
 const DEFAULT_BODIES = [
-    { id: 'Sun',     color: '#FF0000', isDashed: false },
-    { id: 'Moon',    color: '#FFFF00', isDashed: false },
-    { id: 'Mercury', color: '#00BFFF', isDashed: false },
-    { id: 'Venus',   color: '#FFC0CB', isDashed: false },
-    { id: 'Mars',    color: '#FFA500', isDashed: false },
-    { id: 'Jupiter', color: '#A52A2A', isDashed: false },
-    { id: 'Saturn',  color: '#008000', isDashed: false },
-    { id: 'Uranus',  color: '#ADFF2F', isDashed: false },
-    { id: 'Neptune', color: '#4B0082', isDashed: false },
-    { id: 'Pluto',   color: '#800080', isDashed: false },
-    { id: 'Polaris', color: '#000000', isDashed: false },
-    { id: 'Merak',   color: '#654321', isDashed: false },
-    { id: 'Mintaka', color: '#FFFFFF', isDashed: false },
-    { id: 'Subaru',  color: '#0000FF', isDashed: false }
+    { id: 'MilkyWay', name: '天の川',   color: '#DDA0DD', isDashed: false, visible: true },
+    { id: 'Sun',     name: '太陽',     color: '#FF0000', isDashed: false, visible: true },
+    { id: 'Moon',    name: '月',       color: '#FFFF00', isDashed: false, visible: true },
+    { id: 'Mercury', name: '水星',     color: '#00BFFF', isDashed: false, visible: false },
+    { id: 'Venus',   name: '金星',     color: '#FFC0CB', isDashed: false, visible: false },
+    { id: 'Mars',    name: '火星',     color: '#FFA500', isDashed: false, visible: false },
+    { id: 'Jupiter', name: '木星',     color: '#A52A2A', isDashed: false, visible: false },
+    { id: 'Saturn',  name: '土星',     color: '#008000', isDashed: false, visible: false },
+    { id: 'Uranus',  name: '天王星',   color: '#ADFF2F', isDashed: false, visible: false },
+    { id: 'Neptune', name: '海王星',   color: '#4B0082', isDashed: false, visible: false },
+    { id: 'Pluto',   name: '冥王星',   color: '#808080', isDashed: false, visible: false },
+    { id: 'Polaris', name: '北極星',   color: '#000000', isDashed: false, visible: false },
+    { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
+    { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
+    { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
+    { id: 'M42',     name: 'オリオン大星雲M42', color: '#800080', isDashed: false, visible: false },
+    { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
+    { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
+    { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
+    { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
+    { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
+    { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false }
 ];
 
 const COLOR_MAP = [
@@ -151,6 +210,7 @@ const COLOR_MAP = [
     { name: '茶', code: '#A52A2A' }, 
     { name: 'こげ茶', code: '#654321' },
     { name: '白', code: '#FFFFFF' },
+    { name: '灰', code: '#808080' },
     { name: '黒', code: '#000000' }
 ];
 
@@ -158,10 +218,14 @@ const COLOR_MAP = [
 // 2. グローバル変数 & アプリケーション状態 (appState)
 // ============================================================
 
-let map; 
+let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
+// PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
+// (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
+let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
+    ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : false;
 // 辻ライン365 — 天体ごとに L.layerGroup を保持し、表示天体メニューの切替に高速応答する
 let dp365LayerByBody = {}; // body.id -> L.layerGroup (mapに追加されている時のみ表示中)
 let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
@@ -195,6 +259,25 @@ let appState = {
     myObservations: [],  // { id, name, lat, lng, elev, height }
     myTargets: [],       // { id, name, lat, lng, elev, height }
 
+    // Myセット (My辻検索/My観測点/My目的点/My天体の組みを丸ごと切り替え)
+    mySets: [],           // { id, name, saveMode:'save'|'load', offline, checked, updatedAt, memo, data, sheetId } (ID>=1。dataは非表示中セットの内容スナップショット)
+    mySetCurrentId: 0,    // 表示中のMyセットID (0=既定のセット)
+    mySetHomeData: null,  // 既定のセット(ID:0)が非表示中の間の内容スナップショット
+    mySetHome: {          // 既定のセット(ID:0)の行情報 (名称固定・常に端末保持。シート紐付けは可能)
+        id: 0, name: '既定のセット', saveMode: 'save', checked: false,
+        updatedAt: null, memo: '', sheetId: null, lastSyncSheetTime: null
+    },
+
+    // Googleドライブ連携 (フェーズ3)
+    soraFolderName: '/soranotsuji-宙の辻',   // 宙の辻フォルダ名(パス風表記。実フォルダ名は先頭の/を除いたもの)
+    googleDrive: {
+        rootFolderId: null, settingsFolderId: null, mySetsFolderId: null, appFileId: null,
+        lastSyncDriveModifiedTime: null,   // 最後に同期した時のドライブ側modifiedTime
+        lastSyncFingerprint: null,         // 最後に同期した時のローカル内容の指紋
+        lastDriveModifiedTime: null,       // 最後に確認したドライブ側modifiedTime(表示用)
+        lastDriveSize: null                // 最後に確認したドライブ側サイズ(表示用)
+    },
+
     // My辻検索
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
                           //   baseAz, baseAlt, offsetAz, offsetAlt,
@@ -216,29 +299,8 @@ let appState = {
     lastVisitDate: null,
 
     // 天体設定
-    bodies: [
-        { id: 'Sun',     name: '太陽',   color: '#FF0000', isDashed: false, visible: true },
-        { id: 'Moon',    name: '月',     color: '#FFFF00', isDashed: false, visible: true },
-        { id: 'Mercury', name: '水星',   color: '#00BFFF', isDashed: false, visible: false },
-        { id: 'Venus',   name: '金星',   color: '#FFC0CB', isDashed: false, visible: false },
-        { id: 'Mars',    name: '火星',   color: '#FFA500', isDashed: false, visible: false },
-        { id: 'Jupiter', name: '木星',   color: '#A52A2A', isDashed: false, visible: false },
-        { id: 'Saturn',  name: '土星',   color: '#008000', isDashed: false, visible: false },
-        { id: 'Uranus',  name: '天王星', color: '#ADFF2F', isDashed: false, visible: false },
-        { id: 'Neptune', name: '海王星', color: '#4B0082', isDashed: false, visible: false },
-        { id: 'Pluto',   name: '冥王星', color: '#800080', isDashed: false, visible: false },
-        { id: 'Polaris', name: '北極星', color: '#000000', isDashed: false, visible: false },
-        { id: 'Merak',   name: '北斗七星メラク', color: '#654321', isDashed: false, visible: false },
-        { id: 'Mintaka', name: 'オリオン座ミンタカ', color: '#FFFFFF', isDashed: false, visible: false },
-        { id: 'Subaru',  name: 'すばる', color: '#0000FF', isDashed: false, visible: false },
-        { id: 'M42',     name: 'オリオン大星雲M42', color: '#DDA0DD', isDashed: false, visible: false },
-        { id: 'Vega',    name: 'こと座ベガ', color: '#FFA500', isDashed: true, visible: false },
-        { id: 'Altair',  name: 'わし座アルタイル', color: '#008000', isDashed: true, visible: false },
-        { id: 'Deneb',   name: 'はくちょう座デネブ', color: '#FFD700', isDashed: true, visible: false },
-        { id: 'Betelgeuse', name: 'オリオン座ベテルギウス', color: '#FF0000', isDashed: true, visible: false },
-        { id: 'Sirius',  name: 'おおいぬ座シリウス', color: '#00BFFF', isDashed: true, visible: false },
-        { id: 'Procyon', name: 'こいぬ座プロキオン', color: '#ADFF2F', isDashed: true, visible: false }
-    ],
+    // 組込天体は DEFAULT_BODIES から派生（単一情報源）。My天体は別途 myStars から追加される。
+    bodies: DEFAULT_BODIES.map(b => ({ ...b })),
 
     // 機能フラグ
     isMoving: false,
@@ -247,7 +309,72 @@ let appState = {
     isDP365Active: false,
     locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
     isElevationActive: false,
+    isMilkyWayActive: false,
+    isSoramadoActive: false,
     isTsujiSearchActive: false,
+
+    // 宙の窓パラメータ (isSoramadoActive以外はlocalStorage保存)
+    soraSensorKey: 'fullframe',
+    soraAspectW: 3,
+    soraAspectH: 2,
+    soraFocal: 24,
+    soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
+    soraFocusDist: 1000,
+    soraFisheye: false,
+    soraPeaking: false,   // フォーカスピーキング(デッサン38段目: 初期値オフ)
+    soraGrayscale: true,
+    soraBaseAz: 0,
+    soraBaseAlt: 0,
+    soraOffsetAz: 0,
+    soraOffsetAlt: 0,
+    soraViewRange: 10,
+    soraTraj: true,
+    soraCenterCross: true,
+    soraTargetCross: true,       // 目的点(+)マーカーの表示
+    soraSearchCenter: true,      // 検索中心(×)マーカー(検索中心オプションが線なら目的点→オフセット点の線も)の表示
+    soraOrient: 'landscape',     // カメラ位置: 'landscape'=横位置 / 'portrait'=縦位置(アスペクトを回転)
+    soraFisheyeStrength: 50,     // フィッシュアイの歪み(%) 0〜100 (50=従来の見た目)
+    soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
+    soraPanorama: false,         // パノラマ撮影モード(アスペクト比可変・水平画角0〜360°)
+    soraPanoAov: 0,              // パノラマの水平画角(°) 0=レンズの水平画角(自動追従) / 1〜360=指定値
+    soraMovInterval: 15,         // インターバルMov: 撮影間隔(秒) 0.5〜86400
+    soraMovShots: 1,             // インターバルMov: 撮影回数 1〜99999
+    soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
+    soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
+    soraMovImgMb: 140,           // インターバルMov: 画像サイズ(MB) 1〜102400
+    soraMovPlayMode: 'anim',     // 再生オプション: 'anim'=表示間隔サンプリングのアニメ / 'video'=MP4/WebM生成→動画再生
+    soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
+    soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
+    soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
+    soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
+    soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜8192 (縦とアスペクト連動)
+    soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜8192
+    soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜1000 (プレビュー基準100)
+
+    // 花火モード (デッサン06 55〜70段目。宙の窓メニュー/ctrlメニューで双方向連動・localStorage保存)
+    fwEnabled: false,            // 花火モード(打ち上げ花火のシミュレーション)
+    fwLat: null,                 // 打ち上げ点 緯度(null=未設定→目的点を使う)
+    fwLng: null,                 // 打ち上げ点 経度
+    fwElev: 0,                   // 打ち上げ点標高(m。緯度経度の設定で自動取得・手動上書き可)
+    fwHeight: 0,                 // 打ち上げ点高(m。追加高さ)
+    fwRadius: 50,                // 打ち上げ点領域(半径m。打ち上げ位置をこの円内でランダムに散らす)
+    fwSize: '10',                // 花火玉号数 ('2.5'/'3'/'5'/'10'/'30'/'40')
+    fwMode: 'vary',              // 表示モード: 'vary'=色々(ランダム) / 'fixed'=固定(リストの号数のみ)
+    fwSpread: 0,                 // ばらつき -100〜+100 (+100=40号のみ / 0=均等 / -100=2.5号のみ)
+    fwShowPoint: true,           // 花火点(+)マーカーの表示
+
+    // 基本オプション (全てlocalStorage保存)
+    baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
+    mwOffsetAngle: 0,            // オフセット中心角(°) -360〜+360。基本オプションと辻検索メニューで連動
+    mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
+    mwShowBodyNames: false,      // 全天儀の表示天体名+引き出し線、宙の窓プレビューの表示天体名の表示(初期値オフ)
+    mwShowConstFig: false,       // 全天儀: 星座線の表示
+    mwShowConstBounds: false,    // 全天儀: 星座領域の表示
+    mwShowConstNames: false,     // 全天儀: 星座名称の表示
+    mwConstNameSort: 'aiueo',    // 星座名称の表示順: 'aiueo'=50音順(左上から右下へ) / 'pos'=座標順(天頂+90°→-90°)
+    elevExcludeEnabled: true,    // 標高グラフ: 除外範囲チェックボックス(オフで目的点側/観測点側とも無効=一切無視しない)
+    elevExcludeRadius: 15,       // 標高グラフ: 目的点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定15m=目的点自身のDEM画素の自己遮蔽(z15対角≒5.5m、z14フォールバック時≒11m)+鋭峰の写り込みを吸収する値
+    elevExcludeObsRadius: 10,    // 標高グラフ: 観測点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定10m=観測点自身のDEM画素の自己遮蔽(最悪ケース対角5.5m/11m)を吸収しつつ、足元の実在遮蔽を無視しすぎない値
 
     // 辻検索パラメータ (全てlocalStorage保存)
     tsujiSearchBaseAz: 0,
@@ -257,6 +384,7 @@ let appState = {
     tsujiSearchOffsetAlt: 0,
     tsujiSearchToleranceAlt: 15,
     tsujiSearchDays: 365,
+    tsujiCenterMode: 'point',    // 検索中心オプション: 'point'=オフセット点 / 'line'=基準点からオフセット点までの線
 
     // 辻検索: 月齢フィルタ
     tsujiMoonFilterEnabled: false,
@@ -269,6 +397,29 @@ let appState = {
     tsujiAccCircle: false,
     tsujiAccTriangle: false,
     tsujiAccDash: false,
+
+    // 標高オプション
+    tsujiElevationOption: false,
+    // 辻メッシュ検索パラメータ (全てlocalStorage保存。isTsujiMeshActiveのみセッション/URL)
+    tsujiMeshDays: 365,
+    tsujiMeshBaseAz: 0, tsujiMeshOffsetAz: 0, tsujiMeshToleranceAz: 15,
+    tsujiMeshBaseAlt: 0, tsujiMeshOffsetAlt: 0, tsujiMeshToleranceAlt: 15,
+    tsujiMeshCenterMode: 'point',   // 検索中心オプション: 'point'|'line'
+    tsujiMeshAccuracy: 'x1',        // 精度フィルタ: 'x1'=◎(±0.125) 'x2'(±0.0625) 'x4'(±0.03125) 'x8'(±0.015625)
+    tsujiMeshMoonFilterEnabled: false, tsujiMeshMoonBase: 14.8, tsujiMeshMoonTolerance: 2,
+    tsujiMeshTimeFilter: false,
+    tsujiMeshStartMode: 'sunset', tsujiMeshStartTime: '00:00', tsujiMeshStartPrePost: false, tsujiMeshStartPrePostDir: 'before', tsujiMeshStartOffset: '00:00',
+    tsujiMeshEndMode: 'sunrise', tsujiMeshEndTime: '00:00', tsujiMeshEndPrePost: false, tsujiMeshEndPrePostDir: 'before', tsujiMeshEndOffset: '00:00',
+    tsujiMeshSymO: false, tsujiMeshSymTri: false, tsujiMeshSymDash: false,   // 精度フィルタ(◎は常時オン・○△-は読み取り専用で常時オフ: メッシュは◎精度以上のヒットのみ保持するため対象データが無い)
+    tsujiMeshElevationOption: false, tsujiMeshElevOK: false, tsujiMeshElevNG: false,
+    isTsujiMeshActive: false,       // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
+    tsujiElevOK: false,
+    tsujiElevNG: false,
+
+    // 時間フィルタ
+    tsujiTimeFilter: false,
+    tsujiStartMode: 'sunset', tsujiStartTime: '00:00', tsujiStartPrePost: false, tsujiStartPrePostDir: 'before', tsujiStartOffset: '00:00',
+    tsujiEndMode: 'sunrise', tsujiEndTime: '00:00', tsujiEndPrePost: false, tsujiEndPrePostDir: 'before', tsujiEndOffset: '00:00',
 
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
@@ -299,7 +450,9 @@ let currentRiseSetData = {};
 // ============================================================
 
 window.onload = function() {
-    console.log("宙の辻: 起動 (v1.20.1)");
+    console.log(`宙の辻: 起動 (v${getAppVersion()})`);
+    const verEl = document.getElementById('app-version');
+    if (verEl) verEl.textContent = 'v' + getAppVersion();   // フッターのバージョン表示もAPP_VERSIONから反映
     
     // Astronomy Engineが読み込まれているかチェック
     if (typeof Astronomy === 'undefined') {
@@ -359,6 +512,8 @@ window.onload = function() {
     document.getElementById('input-tsuji-alt-offset').value = appState.tsujiSearchOffsetAlt;
     document.getElementById('input-tsuji-alt-tolerance').value = appState.tsujiSearchToleranceAlt;
     document.getElementById('input-tsuji-search-days').value = appState.tsujiSearchDays;
+    const tcmR = document.querySelector(`input[name="tsuji-center-mode"][value="${appState.tsujiCenterMode}"]`);
+    if (tcmR) tcmR.checked = true;
     document.getElementById('chk-tsuji-moon-filter').checked = appState.tsujiMoonFilterEnabled;
     document.getElementById('input-tsuji-moon-base').value = appState.tsujiMoonBase;
     document.getElementById('input-tsuji-moon-tolerance').value = appState.tsujiMoonTolerance;
@@ -367,8 +522,36 @@ window.onload = function() {
     document.getElementById('chk-tsuji-acc-circle').checked = appState.tsujiAccCircle;
     document.getElementById('chk-tsuji-acc-triangle').checked = appState.tsujiAccTriangle;
     document.getElementById('chk-tsuji-acc-dash').checked = appState.tsujiAccDash;
+    document.getElementById('chk-tsuji-elev-option').checked = appState.tsujiElevationOption;
+    document.getElementById('chk-tsuji-elev-ok').checked = appState.tsujiElevOK;
+    document.getElementById('chk-tsuji-elev-ng').checked = appState.tsujiElevNG;
+    // 辻メッシュ検索: localStorage復元値をセット
+    document.getElementById('input-tsujimesh-days').value = appState.tsujiMeshDays;
+    document.getElementById('input-tsujimesh-az').value = appState.tsujiMeshBaseAz;
+    document.getElementById('input-tsujimesh-alt').value = appState.tsujiMeshBaseAlt;
+    document.getElementById('input-tsujimesh-az-tolerance').value = appState.tsujiMeshToleranceAz;
+    document.getElementById('input-tsujimesh-alt-tolerance').value = appState.tsujiMeshToleranceAlt;
+    const tmcmR = document.querySelector(`input[name="tsujimesh-center-mode"][value="${appState.tsujiMeshCenterMode}"]`);
+    if (tmcmR) tmcmR.checked = true;
+    const tmaR = document.querySelector(`input[name="tsujimesh-accuracy"][value="${appState.tsujiMeshAccuracy}"]`);
+    if (tmaR) tmaR.checked = true;
+    document.getElementById('input-tsujimesh-mw-offset').value = appState.mwOffsetAngle;
+    document.getElementById('chk-tsujimesh-moon-filter').checked = appState.tsujiMeshMoonFilterEnabled;
+    document.getElementById('input-tsujimesh-moon-base').value = appState.tsujiMeshMoonBase;
+    document.getElementById('input-tsujimesh-moon-tolerance').value = appState.tsujiMeshMoonTolerance;
+    document.getElementById('chk-tsujimesh-elev-option').checked = appState.tsujiMeshElevationOption;
+    document.getElementById('chk-tsujimesh-sym-maru').checked = appState.tsujiMeshSymO;
+    document.getElementById('chk-tsujimesh-sym-tri').checked = appState.tsujiMeshSymTri;
+    document.getElementById('chk-tsujimesh-sym-dash').checked = appState.tsujiMeshSymDash;
+    document.getElementById('chk-tsujimesh-elev-ok').checked = appState.tsujiMeshElevOK;
+    document.getElementById('chk-tsujimesh-elev-ng').checked = appState.tsujiMeshElevNG;
+    updateTsujiMeshMoonFilterUI();
+    updateTsujiMeshElevationOptionUI();
+    updateTsujiMeshOffsetDistances();
     updateTsujiAccuracyFilterUI();
     updateTsujiMoonFilterUI();
+    updateTsujiElevationOptionUI();
+    syncTsujiTimeFilter();
     updateOffsetDistances();
 
     // リストを生成
@@ -378,9 +561,11 @@ window.onload = function() {
     renderMyPointsList('obs');
     renderMyPointsList('tgt');
     renderMyTsujiSearches();
+    initMySetMenu();
+    updateBackupDriveUI();
 
     // My観測点/My目的点マーカーを表示
-    setTimeout(() => updateMyPointMarkers(), 500);
+    setTimeout(() => updateMyPointMarkers(), 460);
 
     // ツールチップ設定
     setupTooltips();
@@ -399,9 +584,15 @@ window.onload = function() {
         if(appState.isElevationActive) {
             drawProfileGraph();
         }
+        if(appState.isMilkyWayActive) {
+            resizeMilkyWayGlobe();
+        }
+        if(appState.isSoramadoActive) {
+            resizeSoramado();
+        }
     });
 
-    setTimeout(initVisitorCounter, 1000);
+    setTimeout(initVisitorCounter, 900);
 
     // URLパラメータで辻検索が指定されていた場合、自動実行
     if (appState._pendingTsujiSearch) {
@@ -413,9 +604,29 @@ window.onload = function() {
             const pnl = document.getElementById('tsujisearch-panel');
             btn.classList.add('active');
             pnl.classList.remove('hidden');
-            document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
+            // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+            document.getElementById('tsujisearch-title').textContent = '辻検索結果';
             syncBottomPanels();
             startTsujiSearch();
+        }, 500);
+    }
+
+    // URLパラメータで辻メッシュ検索が指定されていた場合、自動実行
+    if (appState._pendingTsujiMesh) {
+        delete appState._pendingTsujiMesh;
+        setTimeout(() => {
+            if (!appState.isTsujiMeshActive) toggleTsujiMesh();
+        }, 500);
+    }
+
+    // URL(プレビューモード)で下部パネルが指定されていた場合、UI準備後に開く(排他なので1つ)
+    if (appState._pendingPanel) {
+        const panel = appState._pendingPanel;
+        delete appState._pendingPanel;
+        setTimeout(() => {
+            if (panel === 'elevation' && !appState.isElevationActive) toggleElevation();
+            else if (panel === 'milkyway' && !appState.isMilkyWayActive) toggleMilkyWayInstrument();
+            else if (panel === 'soramado' && !appState.isSoramadoActive) toggleSoramado();
         }, 500);
     }
 };
@@ -471,14 +682,81 @@ function initMap() {
         "OSM": osm
     }, null, { position: 'topleft' }).addTo(map);
 
+    // ⌖(マーカー中央表示): 地図レイヤー選択ボタンとズームボタンの間に配置
+    // (スマホで結果リストを最大化した時に隠れず操作しやすい位置)
+    const centerControl = L.control({ position: 'topleft' });
+    centerControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'leaflet-bar map-center-control');
+        div.innerHTML =
+            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
+            // ⌖(照準)の文字はフォント依存で描画位置が下にずれる端末があるため、SVGで描いてflexで正確に中央配置する
+            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
+            '</svg></a>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
+        // 位置情報メニューの観測点/目的点切替ボタンで選択中のマーカーを可視領域(下部パネルを除く)の中央へ
+        L.DomEvent.on(div.querySelector('#map-center-point'), 'click', (ev) => {
+            L.DomEvent.preventDefault(ev);
+            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
+        });
+        return div;
+    };
+    centerControl.addTo(map);
+
     L.control.zoom({ position: 'topleft' }).addTo(map);
     L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
-    
+
+    // 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールできる(左上・ズームコントロールの下)
+    const panControl = L.control({ position: 'topleft' });
+    panControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'map-pan-control');
+        div.innerHTML =
+            '<div class="leaflet-bar map-pan-h">' +
+            '<a href="#" id="map-pan-left" title="地図を左へ移動(半画面)">◀</a>' +
+            '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
+            '<div class="leaflet-bar map-pan-v">' +
+            '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
+            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
+        const pan = (dx, dy) => {
+            const s = map.getSize();
+            map.panBy([dx * s.x / 2, dy * s.y / 2]);
+        };
+        [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
+            L.DomEvent.on(div.querySelector('#' + id), 'click', (ev) => { L.DomEvent.preventDefault(ev); pan(dx, dy); });
+        });
+        return div;
+    };
+    panControl.addTo(map);
+
     linesLayer = L.layerGroup().addTo(map);
     locationLayer = L.layerGroup().addTo(map);
     dpLayer = L.layerGroup().addTo(map);
 
     map.on('click', onMapClick);
+    // PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)で観測点が動かないよう、
+    // 観測点/目的点の移動はダブルクリック(ダブルタップ)で行う(ダブルクリックズームは無効化)
+    map.doubleClickZoom.disable();
+    map.on('dblclick', onMapDblClick);
+    // 辻メッシュのメッシュ/辻マーカーのホバーツールチップ(PCのみ)。
+    // スマホはタップ経路(_tmShowPixelPopup)で処理する: タップ時に合成されるmousemoveで
+    // ツールチップを出すと、iOSが「ホバーでDOMが変化した」とみなしてズームボタン等への
+    // クリックを飲み込み、ズームできなくなるため(合成mousemoveはボタンから地図へバブリングする)。
+    // PCでもズームボタン等のコントロール上ではホバーを反応させない(ボタン越しの誤反応防止)。
+    map.on('mousemove', (e) => {
+        if (!_mapDblClickMode) return;
+        const t = e.originalEvent ? e.originalEvent.target : null;
+        handleTsujiMeshGoldHover((t && t.closest && t.closest('.leaflet-control')) ? null : e.latlng);
+    });
+    // メッシュマーカーの確定ポップアップが閉じたら、詳細リストの固定を解除する
+    map.on('popupclose', (e) => { if (e.popup === _tmDetailLockPopup) _tmDetailLockPopup = null; });
 }
 
 
@@ -554,15 +832,28 @@ function setupUI() {
 
     document.querySelectorAll('input[name="time-jump"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
-            if(e.target.checked) jumpToEvent(e.target.value);
+            if(e.target.checked) {
+                jumpToEvent(e.target.value);
+                // 宙の窓ctrlメニューの薄明ジャンプと選択状態を連動
+                const c = document.querySelector(`input[name="time-jump-ctrl"][value="${e.target.value}"]`);
+                if (c) c.checked = true;
+            }
         });
     });
 
     document.getElementById('btn-gps').onclick = useGPS;
     document.getElementById('btn-elevation').onclick = toggleElevation;
+    document.getElementById('btn-milkyway').onclick = toggleMilkyWayInstrument;
+    document.getElementById('btn-soramado').onclick = toggleSoramado;
+    setupSoramadoControls();
+    setupBaseOptionControls();
+    setupMilkyWayCtrl();
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
+    document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
+    document.getElementById('btn-tsujimesh').onclick = toggleTsujiMesh;
+    setupTsujiMeshPanelControls();
 
     // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
     document.querySelectorAll('input[name="loc-mode"]').forEach(radio => {
@@ -584,6 +875,7 @@ function setupUI() {
         e.target.value = appState.tsujiSearchOffsetAz;
         saveAppState();
         updateOffsetDistances();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
@@ -601,6 +893,19 @@ function setupUI() {
         e.target.value = appState.tsujiSearchOffsetAlt;
         saveAppState();
         updateOffsetDistances();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
+    });
+    // 宙の窓メニュー/コントロールメニューの辻オフセット方位角・視高度(辻検索メニューと連動)
+    [['input-sora-tsuji-az-offset', 'tsujiSearchOffsetAz'], ['input-sora-ctrl-tsuji-az-offset', 'tsujiSearchOffsetAz'],
+     ['input-sora-tsuji-alt-offset', 'tsujiSearchOffsetAlt'], ['input-sora-ctrl-tsuji-alt-offset', 'tsujiSearchOffsetAlt']].forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', (e) => {
+            appState[key] = Math.max(-360, Math.min(360, parseFloat(e.target.value) || 0));
+            e.target.value = appState[key];
+            saveAppState();
+            updateOffsetDistances();
+            if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
+        });
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAlt = parseFloat(e.target.value) || 15;
@@ -614,6 +919,10 @@ function setupUI() {
         appState.tsujiSearchDays = Math.min(Math.max(v, 1), 36500);
         e.target.value = appState.tsujiSearchDays;
         saveAppState();
+    });
+    // 検索中心オプション(点/線)
+    document.querySelectorAll('input[name="tsuji-center-mode"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiCenterMode = r.value; saveAppState(); if (appState.isSoramadoActive && !_smFailed) drawSoramado(); } });   // 検索中心(×)の線表示の切替
     });
     // 月齢フィルタ
     document.getElementById('chk-tsuji-moon-filter').addEventListener('change', (e) => {
@@ -644,6 +953,148 @@ function setupUI() {
             saveAppState();
         });
     });
+    // 標高オプション
+    document.getElementById('chk-tsuji-elev-option').addEventListener('change', (e) => {
+        appState.tsujiElevationOption = e.target.checked;
+        updateTsujiElevationOptionUI();
+        saveAppState();
+    });
+    document.getElementById('chk-tsuji-elev-ok').addEventListener('change', (e) => {
+        appState.tsujiElevOK = e.target.checked;
+        saveAppState();
+    });
+    document.getElementById('chk-tsuji-elev-ng').addEventListener('change', (e) => {
+        appState.tsujiElevNG = e.target.checked;
+        saveAppState();
+    });
+    // 時間フィルタ: グループHTMLを生成してから各種ハンドラを登録
+    const tfContainer = document.getElementById('tsuji-time-filter-groups');
+    if (tfContainer) {
+        tfContainer.innerHTML = buildTsujiTimeGroupHtml('start') + buildTsujiTimeGroupHtml('end');
+        document.getElementById('chk-tsuji-time-filter').addEventListener('change', (e) => {
+            appState.tsujiTimeFilter = e.target.checked;
+            updateTsujiTimeFilterUI();
+            saveAppState();
+        });
+        ['start', 'end'].forEach(group => {
+            const G = group === 'start' ? 'Start' : 'End';
+            document.querySelectorAll(`input[name="tsuji-${group}-mode"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsuji' + G + 'Mode'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsuji-${group}-time`).addEventListener('change', (e) => { appState['tsuji' + G + 'Time'] = e.target.value; saveAppState(); });
+            document.getElementById(`chk-tsuji-${group}-prepost`).addEventListener('change', (e) => { appState['tsuji' + G + 'PrePost'] = e.target.checked; updateTsujiTimeFilterUI(); saveAppState(); });
+            document.querySelectorAll(`input[name="tsuji-${group}-prepost-dir"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsuji' + G + 'PrePostDir'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsuji-${group}-offset`).addEventListener('change', (e) => { appState['tsuji' + G + 'Offset'] = e.target.value; saveAppState(); });
+        });
+    }
+
+    // 辻メッシュ検索: メニューの変更をlocalStorage保存
+    document.getElementById('input-tsujimesh-days').addEventListener('change', (e) => {
+        let v = parseInt(e.target.value);
+        if (isNaN(v)) v = 365;
+        appState.tsujiMeshDays = Math.min(Math.max(v, 1), 36500);
+        e.target.value = appState.tsujiMeshDays;
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-az').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiMeshBaseAz = val;
+        e.target.value = appState.tsujiMeshBaseAz;
+        saveAppState();
+        updateTsujiMeshOffsetDistances();
+    });
+    document.getElementById('input-tsujimesh-alt').addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val)) appState.tsujiMeshBaseAlt = val;
+        e.target.value = appState.tsujiMeshBaseAlt;
+        saveAppState();
+        updateTsujiMeshOffsetDistances();
+    });
+    [['input-tsujimesh-az-offset', 'tsujiMeshOffsetAz'], ['input-tsujimesh-alt-offset', 'tsujiMeshOffsetAlt']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            appState[key] = Math.max(-360, Math.min(360, parseFloat(e.target.value) || 0));
+            e.target.value = appState[key];
+            saveAppState();
+            updateTsujiMeshOffsetDistances();
+        });
+    });
+    [['input-tsujimesh-az-tolerance', 'tsujiMeshToleranceAz'], ['input-tsujimesh-alt-tolerance', 'tsujiMeshToleranceAlt']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            appState[key] = parseFloat(e.target.value) || 15;
+            e.target.value = appState[key];
+            saveAppState();
+        });
+    });
+    document.querySelectorAll('input[name="tsujimesh-center-mode"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiMeshCenterMode = r.value; saveAppState(); } });
+    });
+    document.querySelectorAll('input[name="tsujimesh-accuracy"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.tsujiMeshAccuracy = r.value; saveAppState(); } });
+    });
+    document.getElementById('chk-tsujimesh-moon-filter').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonFilterEnabled = e.target.checked;
+        updateTsujiMeshMoonFilterUI();
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-moon-base').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonBase = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 30);
+        e.target.value = appState.tsujiMeshMoonBase;
+        saveAppState();
+    });
+    document.getElementById('input-tsujimesh-moon-tolerance').addEventListener('change', (e) => {
+        appState.tsujiMeshMoonTolerance = Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 15);
+        e.target.value = appState.tsujiMeshMoonTolerance;
+        saveAppState();
+    });
+    document.getElementById('chk-tsujimesh-elev-option').addEventListener('change', (e) => {
+        appState.tsujiMeshElevationOption = e.target.checked;
+        updateTsujiMeshElevationOptionUI();
+        saveAppState();
+    });
+    [['chk-tsujimesh-sym-maru', 'tsujiMeshSymO'], ['chk-tsujimesh-sym-tri', 'tsujiMeshSymTri'], ['chk-tsujimesh-sym-dash', 'tsujiMeshSymDash']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            appState[key] = e.target.checked;
+            saveAppState();
+        });
+    });
+    document.getElementById('chk-tsujimesh-elev-ok').addEventListener('change', (e) => {
+        appState.tsujiMeshElevOK = e.target.checked;
+        saveAppState();
+    });
+    document.getElementById('chk-tsujimesh-elev-ng').addEventListener('change', (e) => {
+        appState.tsujiMeshElevNG = e.target.checked;
+        saveAppState();
+    });
+    // 辻メッシュ: 時間フィルタ(グループHTML生成+結線)
+    const tmfContainer = document.getElementById('tsujimesh-time-filter-groups');
+    if (tmfContainer) {
+        tmfContainer.innerHTML = buildTimeGroupHtmlFor('tsujimesh', 'tsujiMesh', 'start') + buildTimeGroupHtmlFor('tsujimesh', 'tsujiMesh', 'end');
+        document.getElementById('chk-tsujimesh-time-filter').addEventListener('change', (e) => {
+            appState.tsujiMeshTimeFilter = e.target.checked;
+            updateTsujiMeshTimeFilterUI();
+            saveAppState();
+        });
+        ['start', 'end'].forEach(group => {
+            const G = group === 'start' ? 'Start' : 'End';
+            document.querySelectorAll(`input[name="tsujimesh-${group}-mode"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Mode'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsujimesh-${group}-time`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Time'] = e.target.value; saveAppState(); });
+            document.getElementById(`chk-tsujimesh-${group}-prepost`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'PrePost'] = e.target.checked; updateTsujiMeshTimeFilterUI(); saveAppState(); });
+            document.querySelectorAll(`input[name="tsujimesh-${group}-prepost-dir"]`).forEach(r => {
+                r.addEventListener('change', (e) => { appState['tsujiMesh' + G + 'PrePostDir'] = e.target.value; saveAppState(); });
+            });
+            document.getElementById(`input-tsujimesh-${group}-offset`).addEventListener('change', (e) => { appState['tsujiMesh' + G + 'Offset'] = e.target.value; saveAppState(); });
+        });
+        syncTsujiMeshTimeFilter();
+    }
+    document.getElementById('btn-url-tsujimesh').onclick = () => toggleUrlPanel('tsujimesh');
+
+    // 宙検索(フェーズ1・暫定): 検索ボタン
+    const ssRunBtn = document.getElementById('btn-ss-run');
+    if (ssRunBtn) ssRunBtn.onclick = soraSearchRun;
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -652,6 +1103,10 @@ function setupUI() {
     // URL取得ボタン: ポップアップダイアログ表示
     document.getElementById('btn-url-location').onclick = () => toggleUrlPanel('location');
     document.getElementById('btn-url-tsuji').onclick = () => toggleUrlPanel('tsuji');
+    const tsujiFileBtn = document.getElementById('btn-tsuji-file');
+    if (tsujiFileBtn) tsujiFileBtn.onclick = fileTsujiSearchCsv;
+    const tmFileBtn = document.getElementById('btn-tsujimesh-file');
+    if (tmFileBtn) tmFileBtn.onclick = fileTsujiMeshCsv;
     // URL取得ダイアログ: 項目クリック
     document.getElementById('url-picker-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -659,6 +1114,8 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl('fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('fixed');
+        else if (mode === 'soramado') copySoramadoUrl('fixed');
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl('fixed');
     });
     document.getElementById('url-picker-semi-fixed').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -666,6 +1123,8 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl('semi-fixed');
         else if (mode === 'tsuji') copyTsujiSearchUrl('semi-fixed');
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl('semi-fixed');
+        else if (mode === 'soramado') copySoramadoUrl('semi-fixed');
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl('semi-fixed');
     });
     document.getElementById('url-picker-access').addEventListener('click', () => {
         const mode = urlPickerMode;
@@ -673,6 +1132,8 @@ function setupUI() {
         if (mode === 'location') copyLocationUrl(false);
         else if (mode === 'tsuji') copyTsujiSearchUrl(false);
         else if (mode === 'mytsuji') copyMyTsujiSearchUrl(false);
+        else if (mode === 'soramado') copySoramadoUrl(false);
+        else if (mode === 'tsujimesh') copyTsujiMeshUrl(false);
     });
 
     // 座標入力 (changeイベント)
@@ -752,6 +1213,34 @@ function setupUI() {
     document.getElementById('btn-mytgt-url').onclick = () => getMyPointUrl('tgt');
 
     // My辻検索ボタン (Phase A-3)
+    // Googleログイン/同期状態アイコン (フェーズ2)
+    document.getElementById('btn-google-login').addEventListener('click', (e) => { e.stopPropagation(); onGoogleLoginIconClick(); });
+
+    // バックアップメニューのGoogleドライブ欄+同期ダイアログ (フェーズ3)
+    document.getElementById('btn-gdrive-login').onclick = googleLogin;
+    document.getElementById('btn-gdrive-logout').onclick = googleLogout;
+    document.getElementById('btn-gdrive-folder-register').onclick = registerSoraFolderName;
+    document.getElementById('gdrive-root-folder').addEventListener('change', (e) => {
+        if (!e.target.value.trim()) e.target.value = appState.soraFolderName;   // 未入力なら元の値を復元
+    });
+    document.getElementById('gdrive-sync-save').onclick = () => { closeGdriveSyncDialog(); saveAppToDrive(); };
+    document.getElementById('gdrive-sync-load').onclick = () => { closeGdriveSyncDialog(); loadAppFromDrive(); };
+    document.getElementById('gdrive-sync-cancel').onclick = closeGdriveSyncDialog;
+
+    // Myセット
+    document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
+    document.getElementById('btn-myset-update').onclick = bulkUpdateMySets;
+    document.getElementById('btn-myset-switch').onclick = switchMySetDisplay;
+    document.getElementById('btn-myset-open').onclick = openMySetSheet;
+    document.getElementById('btn-myset-addsheet').onclick = addMySetSheet;
+    document.getElementById('btn-myset-copy').onclick = copyMySet;
+    document.getElementById('btn-myset-delete').onclick = unlinkMySetSheet;
+    document.getElementById('btn-myset-regall').onclick = registerAllMySets;
+    document.getElementById('btn-myset-up').onclick = () => moveMySet(-1);
+    document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
+    document.getElementById('btn-myset-addrow').onclick = addMySetRow;
+    document.getElementById('btn-myset-delrow').onclick = deleteMySetRow;
+
     document.getElementById('btn-mytsuji-toggle-all').onclick = toggleAllMyTsuji;
     document.getElementById('btn-mytsuji-get').onclick = getMyTsujiFromTsujiSearch;
     document.getElementById('btn-mytsuji-regall').onclick = registerAllMyTsuji;
@@ -865,6 +1354,8 @@ function setupUI() {
 function saveAppState() {
     // 保存したいデータだけを抽出
     const stateToSave = {
+        appSchema: APP_SCHEMA,   // localStorageスキーマ版数（将来のマイグレーション/診断用）
+        savedAt: Date.now(),     // ローカルストレージの最終更新日時（ドライブ同期の新旧比較用）
         start: appState.start,
         end: appState.end,
         homeStart: appState.homeStart, // 登録場所
@@ -874,6 +1365,12 @@ function saveAppState() {
         myObservations: appState.myObservations,
         myTargets: appState.myTargets,
         myTsujiSearches: appState.myTsujiSearches,
+        mySets: appState.mySets,
+        mySetCurrentId: appState.mySetCurrentId,
+        mySetHomeData: appState.mySetHomeData,
+        mySetHome: appState.mySetHome,
+        soraFolderName: appState.soraFolderName,
+        googleDrive: appState.googleDrive,
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         refractionEnabled: appState.refractionEnabled,
         isDPActive: appState.isDPActive,
@@ -891,6 +1388,14 @@ function saveAppState() {
         tsujiSearchOffsetAlt: appState.tsujiSearchOffsetAlt,
         tsujiSearchToleranceAlt: appState.tsujiSearchToleranceAlt,
         tsujiSearchDays: appState.tsujiSearchDays,
+        tsujiCenterMode: appState.tsujiCenterMode,
+        baseOptMwBase: appState.baseOptMwBase, mwOffsetAngle: appState.mwOffsetAngle,
+        mwShowBodies: appState.mwShowBodies, mwShowBodyNames: appState.mwShowBodyNames, mwShowConstFig: appState.mwShowConstFig,
+        mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
+        mwConstNameSort: appState.mwConstNameSort,
+        elevExcludeEnabled: appState.elevExcludeEnabled,
+        elevExcludeRadius: appState.elevExcludeRadius,
+        elevExcludeObsRadius: appState.elevExcludeObsRadius,
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
         tsujiMoonTolerance: appState.tsujiMoonTolerance,
@@ -899,6 +1404,42 @@ function saveAppState() {
         tsujiAccCircle: appState.tsujiAccCircle,
         tsujiAccTriangle: appState.tsujiAccTriangle,
         tsujiAccDash: appState.tsujiAccDash,
+        tsujiElevationOption: appState.tsujiElevationOption,
+        tsujiElevOK: appState.tsujiElevOK,
+        tsujiElevNG: appState.tsujiElevNG,
+        tsujiTimeFilter: appState.tsujiTimeFilter,
+        tsujiStartMode: appState.tsujiStartMode, tsujiStartTime: appState.tsujiStartTime, tsujiStartPrePost: appState.tsujiStartPrePost, tsujiStartPrePostDir: appState.tsujiStartPrePostDir, tsujiStartOffset: appState.tsujiStartOffset,
+        tsujiEndMode: appState.tsujiEndMode, tsujiEndTime: appState.tsujiEndTime, tsujiEndPrePost: appState.tsujiEndPrePost, tsujiEndPrePostDir: appState.tsujiEndPrePostDir, tsujiEndOffset: appState.tsujiEndOffset,
+        // 辻メッシュ検索パラメータ
+        tsujiMeshDays: appState.tsujiMeshDays,
+        tsujiMeshBaseAz: appState.tsujiMeshBaseAz, tsujiMeshOffsetAz: appState.tsujiMeshOffsetAz, tsujiMeshToleranceAz: appState.tsujiMeshToleranceAz,
+        tsujiMeshBaseAlt: appState.tsujiMeshBaseAlt, tsujiMeshOffsetAlt: appState.tsujiMeshOffsetAlt, tsujiMeshToleranceAlt: appState.tsujiMeshToleranceAlt,
+        tsujiMeshCenterMode: appState.tsujiMeshCenterMode, tsujiMeshAccuracy: appState.tsujiMeshAccuracy,
+        tsujiMeshMoonFilterEnabled: appState.tsujiMeshMoonFilterEnabled, tsujiMeshMoonBase: appState.tsujiMeshMoonBase, tsujiMeshMoonTolerance: appState.tsujiMeshMoonTolerance,
+        tsujiMeshTimeFilter: appState.tsujiMeshTimeFilter,
+        tsujiMeshStartMode: appState.tsujiMeshStartMode, tsujiMeshStartTime: appState.tsujiMeshStartTime, tsujiMeshStartPrePost: appState.tsujiMeshStartPrePost, tsujiMeshStartPrePostDir: appState.tsujiMeshStartPrePostDir, tsujiMeshStartOffset: appState.tsujiMeshStartOffset,
+        tsujiMeshEndMode: appState.tsujiMeshEndMode, tsujiMeshEndTime: appState.tsujiMeshEndTime, tsujiMeshEndPrePost: appState.tsujiMeshEndPrePost, tsujiMeshEndPrePostDir: appState.tsujiMeshEndPrePostDir, tsujiMeshEndOffset: appState.tsujiMeshEndOffset,
+        tsujiMeshSymO: appState.tsujiMeshSymO, tsujiMeshSymTri: appState.tsujiMeshSymTri, tsujiMeshSymDash: appState.tsujiMeshSymDash,
+        tsujiMeshElevationOption: appState.tsujiMeshElevationOption, tsujiMeshElevOK: appState.tsujiMeshElevOK, tsujiMeshElevNG: appState.tsujiMeshElevNG,
+        // 宙の窓パラメータ
+        // 焦点距離・合焦距離・フィッシュアイ強度・パノラマ画角・カメラオフセット・視界範囲は保存しない
+        // (毎アクセスで初期値を適用。URLからは復元される。広画角のまま再訪してDEMタイルを過剰取得するのを防ぐ)
+        soraSensorKey: appState.soraSensorKey, soraAspectW: appState.soraAspectW, soraAspectH: appState.soraAspectH,
+        soraFNumberIdx: appState.soraFNumberIdx,
+        soraFisheye: appState.soraFisheye, soraPeaking: appState.soraPeaking, soraGrayscale: appState.soraGrayscale,
+        soraBaseAz: appState.soraBaseAz, soraBaseAlt: appState.soraBaseAlt,
+        soraTraj: appState.soraTraj, soraCenterCross: appState.soraCenterCross,
+        soraTargetCross: appState.soraTargetCross, soraSearchCenter: appState.soraSearchCenter,
+        soraOrient: appState.soraOrient, soraFisheyeShape: appState.soraFisheyeShape,
+        soraPanorama: appState.soraPanorama,
+        soraMovInterval: appState.soraMovInterval, soraMovShots: appState.soraMovShots, soraMovFps: appState.soraMovFps,
+        soraMovDispStep: appState.soraMovDispStep, soraMovImgMb: appState.soraMovImgMb, soraMovPlayMode: appState.soraMovPlayMode,
+        soraMwBrightness: appState.soraMwBrightness, soraElevShade: appState.soraElevShade, soraSunShade: appState.soraSunShade,
+        soraExpFormat: appState.soraExpFormat, soraExpW: appState.soraExpW, soraExpH: appState.soraExpH, soraLabelScale: appState.soraLabelScale,
+        // 花火モード
+        fwEnabled: appState.fwEnabled, fwLat: appState.fwLat, fwLng: appState.fwLng,
+        fwElev: appState.fwElev, fwHeight: appState.fwHeight, fwRadius: appState.fwRadius,
+        fwSize: appState.fwSize, fwMode: appState.fwMode, fwSpread: appState.fwSpread, fwShowPoint: appState.fwShowPoint,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -924,6 +1465,14 @@ function loadAppState() {
             if(saved.myObservations) appState.myObservations = saved.myObservations;
             if(saved.myTargets) appState.myTargets = saved.myTargets;
             if(saved.myTsujiSearches) appState.myTsujiSearches = saved.myTsujiSearches;
+            // 旧保存データ(オフセット中心角が行独立になる前)は基本オプションの値で補完
+            appState.myTsujiSearches.forEach(t => { if (t.mwOffsetAngle === undefined) t.mwOffsetAngle = Number(saved.mwOffsetAngle ?? appState.mwOffsetAngle) || 0; });
+            if(saved.mySets) appState.mySets = saved.mySets;
+            if(saved.mySetCurrentId !== undefined) appState.mySetCurrentId = saved.mySetCurrentId;
+            if(saved.mySetHomeData !== undefined) appState.mySetHomeData = saved.mySetHomeData;
+            if(saved.mySetHome) appState.mySetHome = { ...appState.mySetHome, ...saved.mySetHome, id: 0, name: '既定のセット' };
+            if(saved.soraFolderName) appState.soraFolderName = saved.soraFolderName;
+            if(saved.googleDrive) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
             if(saved.meteo) appState.meteo = saved.meteo;
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
@@ -940,6 +1489,19 @@ function loadAppState() {
             if(saved.tsujiSearchBaseAlt !== undefined) appState.tsujiSearchBaseAlt = saved.tsujiSearchBaseAlt;
             if(saved.tsujiSearchToleranceAlt !== undefined) appState.tsujiSearchToleranceAlt = saved.tsujiSearchToleranceAlt;
             if(saved.tsujiSearchDays !== undefined) appState.tsujiSearchDays = saved.tsujiSearchDays;
+            if(saved.tsujiCenterMode !== undefined) appState.tsujiCenterMode = saved.tsujiCenterMode;
+            // 辻メッシュ検索パラメータ
+            ['tsujiMeshDays', 'tsujiMeshBaseAz', 'tsujiMeshOffsetAz', 'tsujiMeshToleranceAz',
+             'tsujiMeshBaseAlt', 'tsujiMeshOffsetAlt', 'tsujiMeshToleranceAlt',
+             'tsujiMeshCenterMode', 'tsujiMeshAccuracy',
+             'tsujiMeshMoonFilterEnabled', 'tsujiMeshMoonBase', 'tsujiMeshMoonTolerance',
+             'tsujiMeshTimeFilter',
+             'tsujiMeshStartMode', 'tsujiMeshStartTime', 'tsujiMeshStartPrePost', 'tsujiMeshStartPrePostDir', 'tsujiMeshStartOffset',
+             'tsujiMeshEndMode', 'tsujiMeshEndTime', 'tsujiMeshEndPrePost', 'tsujiMeshEndPrePostDir', 'tsujiMeshEndOffset',
+             'tsujiMeshSymO', 'tsujiMeshSymTri', 'tsujiMeshSymDash',
+             'tsujiMeshElevationOption', 'tsujiMeshElevOK', 'tsujiMeshElevNG'].forEach(k => {
+                if (saved[k] !== undefined) appState[k] = saved[k];
+            });
             if(saved.tsujiMoonFilterEnabled !== undefined) appState.tsujiMoonFilterEnabled = saved.tsujiMoonFilterEnabled;
             if(saved.tsujiMoonBase !== undefined) appState.tsujiMoonBase = saved.tsujiMoonBase;
             if(saved.tsujiMoonTolerance !== undefined) appState.tsujiMoonTolerance = saved.tsujiMoonTolerance;
@@ -948,6 +1510,15 @@ function loadAppState() {
             if(saved.tsujiAccCircle !== undefined) appState.tsujiAccCircle = saved.tsujiAccCircle;
             if(saved.tsujiAccTriangle !== undefined) appState.tsujiAccTriangle = saved.tsujiAccTriangle;
             if(saved.tsujiAccDash !== undefined) appState.tsujiAccDash = saved.tsujiAccDash;
+            if(saved.tsujiElevationOption !== undefined) appState.tsujiElevationOption = saved.tsujiElevationOption;
+            if(saved.tsujiElevOK !== undefined) appState.tsujiElevOK = saved.tsujiElevOK;
+            if(saved.tsujiElevNG !== undefined) appState.tsujiElevNG = saved.tsujiElevNG;
+            ['tsujiTimeFilter','tsujiStartMode','tsujiStartTime','tsujiStartPrePost','tsujiStartPrePostDir','tsujiStartOffset','tsujiEndMode','tsujiEndTime','tsujiEndPrePost','tsujiEndPrePostDir','tsujiEndOffset'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+            // 宙の窓パラメータ復元
+            ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
+             'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
+             'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale',
+             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -967,8 +1538,110 @@ function loadAppState() {
                     }
                 });
             }
+            appState._loadedSchema = (typeof saved.appSchema === 'number') ? saved.appSchema : 0;
         } catch(e) { console.error("Load Error:", e); }
     }
+    // 旧/不整合な保存データを安全な値に正規化（バージョンアップ時の自己修復）
+    normalizeAppState();
+}
+
+/** 読み込んだ appState を安全な値に正規化（冪等）。旧バージョン/不整合データの自己修復。 */
+const APP_SCHEMA = 2;
+function normalizeAppState() {
+    // スキーマ1→2: 既定色の変更(天の川:紫→薄紫 / M42:薄紫→紫)。
+    // 旧既定色のまま使っていた保存データだけ新既定色へ追従する(カスタム色は保持)。
+    if ((appState._loadedSchema || 0) < 2) {
+        const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+        if (mw && typeof mw.color === 'string' && mw.color.toUpperCase() === '#800080') mw.color = '#DDA0DD';
+        const m42 = appState.bodies.find(b => b.id === 'M42');
+        if (m42 && typeof m42.color === 'string' && m42.color.toUpperCase() === '#DDA0DD') m42.color = '#800080';
+    }
+    const validModes = TSUJI_TIME_MODES.map(m => m.v).concat('fixed');
+    const num = (v, def, min, max) => {
+        const n = parseFloat(v);
+        if (!isFinite(n)) return def;
+        return Math.max(min, Math.min(max, n));
+    };
+    const reTime = /^\d{1,2}:\d{2}$/;
+    // 時間フィルタ: モード・前後方向・時刻形式
+    ['Start', 'End'].forEach(G => {
+        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
+        if (!validModes.includes(appState['tsuji' + G + 'Mode'])) appState['tsuji' + G + 'Mode'] = defMode;
+        if (appState['tsuji' + G + 'PrePostDir'] !== 'before' && appState['tsuji' + G + 'PrePostDir'] !== 'after') appState['tsuji' + G + 'PrePostDir'] = 'before';
+        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsuji' + G + k])) appState['tsuji' + G + k] = '00:00'; });
+        appState['tsuji' + G + 'PrePost'] = !!appState['tsuji' + G + 'PrePost'];
+    });
+    appState.tsujiTimeFilter = !!appState.tsujiTimeFilter;
+    // 辻メッシュ検索
+    ['Start', 'End'].forEach(G => {
+        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
+        if (!validModes.includes(appState['tsujiMesh' + G + 'Mode'])) appState['tsujiMesh' + G + 'Mode'] = defMode;
+        if (appState['tsujiMesh' + G + 'PrePostDir'] !== 'before' && appState['tsujiMesh' + G + 'PrePostDir'] !== 'after') appState['tsujiMesh' + G + 'PrePostDir'] = 'before';
+        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsujiMesh' + G + k])) appState['tsujiMesh' + G + k] = '00:00'; });
+        appState['tsujiMesh' + G + 'PrePost'] = !!appState['tsujiMesh' + G + 'PrePost'];
+    });
+    appState.tsujiMeshTimeFilter = !!appState.tsujiMeshTimeFilter;
+    if (!['point', 'line'].includes(appState.tsujiMeshCenterMode)) appState.tsujiMeshCenterMode = 'point';
+    if (!['x1', 'x2', 'x4', 'x8'].includes(appState.tsujiMeshAccuracy)) appState.tsujiMeshAccuracy = 'x1';
+    // 精度フィルタ○△-は読み取り専用・常時オフ(メッシュマーカーは精度フィルタオプション以内=◎クラスの
+    // ヒットのみ保持するため○△-のデータが存在せず、オン/オフに意味が無い)。保存値・URL値も無視する
+    appState.tsujiMeshSymO = false; appState.tsujiMeshSymTri = false; appState.tsujiMeshSymDash = false;
+    appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
+    if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
+    appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
+    // 宙の窓: 数値の範囲・型
+    appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
+    appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
+    appState.soraFocal = num(appState.soraFocal, 24, 1, 3000);
+    appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
+    appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 300000);
+    appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
+    ['soraFisheye', 'soraPeaking', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
+    appState.soraGrayscale = true;   // 標高グレースケールは常時オン(適用度は標高ヒルシェードスライダーで調整; チェックは廃止)
+    if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
+    if (appState.soraOrient !== 'landscape' && appState.soraOrient !== 'portrait') appState.soraOrient = 'landscape';
+    appState.soraFisheyeStrength = num(appState.soraFisheyeStrength, 50, 0, 100);
+    if (appState.soraFisheyeShape !== 'rect' && appState.soraFisheyeShape !== 'circle') appState.soraFisheyeShape = 'rect';
+    appState.soraPanorama = !!appState.soraPanorama;
+    appState.soraPanoAov = num(appState.soraPanoAov, 0, 0, 360);
+    appState.soraMovInterval = num(appState.soraMovInterval, 15, 0.5, 86400);
+    appState.soraMovShots = Math.round(num(appState.soraMovShots, 1, 1, 99999));
+    if (![24, 25, 30, 50, 60].includes(Number(appState.soraMovFps))) appState.soraMovFps = 30; else appState.soraMovFps = Number(appState.soraMovFps);
+    if (![0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1].includes(Number(appState.soraMovDispStep))) appState.soraMovDispStep = 0.3; else appState.soraMovDispStep = Number(appState.soraMovDispStep);
+    appState.soraMovImgMb = num(appState.soraMovImgMb, 140, 1, 102400);
+    appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
+    appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
+    appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
+    if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
+    if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
+    if (!['anim', 'video'].includes(appState.soraMovPlayMode)) appState.soraMovPlayMode = 'anim';
+    appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 8192));
+    appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 8192));
+    appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 1000));
+    // 花火モード
+    appState.fwEnabled = !!appState.fwEnabled;
+    if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng))) { appState.fwLat = null; appState.fwLng = null; }
+    appState.fwElev = num(appState.fwElev, 0, -500, 9000);
+    appState.fwHeight = num(appState.fwHeight, 0, -1000, 10000);
+    appState.fwRadius = num(appState.fwRadius, 50, 0, 10000);
+    if (!FW_SHELLS.some(s => s.key === String(appState.fwSize))) appState.fwSize = '10'; else appState.fwSize = String(appState.fwSize);
+    if (appState.fwMode !== 'fixed') appState.fwMode = 'vary';
+    appState.fwSpread = Math.round(num(appState.fwSpread, 0, -100, 100));
+    appState.fwShowPoint = appState.fwShowPoint !== false;
+    // 基本オプション
+    if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
+    appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
+    appState.elevExcludeEnabled = appState.elevExcludeEnabled !== false;
+    appState.elevExcludeRadius = num(appState.elevExcludeRadius, 15, 0, 10000);
+    appState.elevExcludeObsRadius = num(appState.elevExcludeObsRadius, 10, 0, 10000);
+    appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
+    appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? false : !!appState.mwShowBodyNames;   // 初期値オフ(保存済みの設定は維持)
+    ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
+    appState.soraTargetCross = appState.soraTargetCross !== false;
+    appState.soraSearchCenter = appState.soraSearchCenter !== false;
+    if (appState.mwConstNameSort !== 'aiueo' && appState.mwConstNameSort !== 'pos') appState.mwConstNameSort = 'aiueo';
+    // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
+    // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
 }
 
 /** 登録ボタンロジック (登録 / 呼び出し) */
@@ -1073,6 +1746,17 @@ function syncStateFromUI() {
         const base = new Date(`${dStr}T00:00:00`);
         base.setHours(h, m, s, 0);
         appState.currentDate = base;
+        // 宙の窓プレビューのコントロールメニュー(日付/時刻・撮影開始日時ピッカー)にも連動反映
+        // (メインピッカー直接編集の経路は syncUIFromState を通らないためここでミラー)
+        const scd = document.getElementById('sora-ctrl-date');
+        if (scd) scd.value = dStr;
+        const sct = document.getElementById('sora-ctrl-time');
+        if (sct) sct.value = tStr;
+        const mcd = document.getElementById('mw-ctrl-date');
+        if (mcd) mcd.value = dStr;
+        const mct = document.getElementById('mw-ctrl-time');
+        if (mct) mct.value = tStr;
+        soraMovSyncUI();
     }
 }
 
@@ -1089,6 +1773,17 @@ function syncUIFromState() {
     document.getElementById('time-input').value = `${h}:${m}:${s}`;
     // スライダーは分単位のまま（秒は無視）
     document.getElementById('time-slider').value = d.getHours() * 60 + d.getMinutes();
+    // 宙の窓プレビューのコントロールメニュー(日付/時刻・撮影開始日時ピッカー)にも連動反映
+    const scd = document.getElementById('sora-ctrl-date');
+    if (scd) scd.value = `${yyyy}-${mm}-${dd}`;
+    const sct = document.getElementById('sora-ctrl-time');
+    if (sct) sct.value = `${h}:${m}:${s}`;
+    // 全天儀ctrlメニューの日付/時刻ピッカーにも連動反映
+    const mcd = document.getElementById('mw-ctrl-date');
+    if (mcd) mcd.value = `${yyyy}-${mm}-${dd}`;
+    const mct = document.getElementById('mw-ctrl-time');
+    if (mct) mct.value = `${h}:${m}:${s}`;
+    soraMovSyncUI();   // 撮影開始/終了日時などの算出表示を日時に追従
 }
 
 function updateAll() {
@@ -1110,6 +1805,20 @@ function updateAll() {
     }
 
     updateTsujiSearchInputs();
+
+    updateTsujiMeshSearchInputs();
+
+    // 全天儀: 観測者の位置・日時が変わったら向きを更新
+    if (appState.isMilkyWayActive) {
+        updateMilkyWayGlobe();
+    }
+
+    // 宙の窓: 位置変化で基準方位角/視高度を更新し、開いていれば再描画
+    soraUpdateBaseFromPoints();
+    if (appState.isSoramadoActive) {
+        drawSoramado();
+    }
+    fwUpdateMapMarker();   // 花火モードの打ち上げ点マーカー(未設定時は目的点に追従。同内容なら何もしない)
 }
 
 function updateLocationDisplay() {
@@ -1137,7 +1846,22 @@ function updateLocationDisplay() {
     // マーカーの設置（観測点:青、目的点:赤）— My観測点/My目的点マーカーより常に上に表示するためzIndexOffsetを高く設定
     const observerIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-observer"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
     const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-    L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    const obsMarker = L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
+    // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
+    // 観測点の位置を含むメッシュ画素の情報を詳細リストに表示する
+    // ホバーでの更新はPCのみ(スマホのタップはpopupopen経路で処理する。タップ時に合成される
+    // mouseoverでDOMを変化させると、iOSがホバー扱いにしてポップアップを開くクリックを飲み込むため)
+    obsMarker.on('mouseover', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
+    // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
+    // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
+    obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
+    // クリック(タップ)では常にポップアップを開く: Leaflet既定のトグルだと、既に開いている時
+    // (行選択後の自動表示中など)にマーカーを押すと閉じてしまい、機能が無効に見えるため。
+    // 既定のトグル(click)が閉じた後に開き直す(閉じていた場合は既定の動作で開くので何もしない)
+    obsMarker.on('click', () => { setTimeout(() => {
+        if (_tmObsMarker === obsMarker && !obsMarker.isPopupOpen()) obsMarker.openPopup();
+    }, 0); });
+    _tmObsMarker = obsMarker;
     L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
     
     // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
@@ -1293,26 +2017,64 @@ function updateCalculation() {
     updateMoonInfo(obsDate);
 }
 
+/** 天体の当日の南中時刻(ms)。日の0:00以降で最初に時角=0になる時刻。
+ *  惑星/太陽/月は SearchHourAngle、恒星/天の川は恒星時から直接算出する。失敗時は正午。 */
+function findBodyTransitMs(body, observer, dayStartMs) {
+    try {
+        if (body.id === 'MilkyWay' || isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            const gast = Astronomy.SiderealTime(new Date(dayStartMs));   // グリニッジ視恒星時(時)
+            let haH = (gast + observer.longitude / 15 - rd.ra) % 24;     // 時角(時)
+            if (haH < 0) haH += 24;
+            const dtH = (24 - haH) % 24;                                 // 時角が0に戻るまでの恒星時時間
+            return dayStartMs + dtH * 0.9972695663 * 3600000;
+        }
+        const evt = Astronomy.SearchHourAngle(body.id, observer, 0, new Date(dayStartMs), +1);
+        return evt.time.date.getTime();
+    } catch (_) { return dayStartMs + 43200000; }
+}
+
+/** 当日線(実線)のアンカーにする南中時刻: 前日/当日/翌日を起点とした南中の候補から、
+ *  現在日時に最も近いものを選ぶ。「当日0:00以降で最初の南中」を常に使うと、
+ *  月のように南中が毎日約50分遅れる天体で、0時をまたいだ辻(例: 南中が前日23時頃で
+ *  辻時刻が当日未明5時)が前日窓=点線側に落ちて1日ずれて見えるため。 */
+function _dpAnchorTransitMs(body, observer, dayStartMs, nowMs) {
+    let t0 = findBodyTransitMs(body, observer, dayStartMs);
+    for (const off of [-86400000, 86400000]) {
+        const t = findBodyTransitMs(body, observer, dayStartMs + off);
+        if (Math.abs(t - nowMs) < Math.abs(t0 - nowMs)) t0 = t;
+    }
+    return t0;
+}
+
 async function updateDPLines() {
-    // 新しい世代を発番し、既存キューにある古い世代のタスクをキャンセル
+    // 新しい世代を発番し、既存キューにある古い世代の通常辻ラインタスクをキャンセル(辻ライン365は巻き添えにしない)
     const generation = ++dpCurrentGeneration;
-    dpPoolCancelQueued();
+    dpPoolCancelQueued('dp');
     dpLayer.clearLayers();
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
-    const datePrev = new Date(baseDate.getTime() - 86400000);
-    const dateNext = new Date(baseDate.getTime() + 86400000);
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
     const visibleBodies = appState.bodies.filter(b => b.visible);
 
-    // 各天体について prev/curr/next 3日分の計算をプールで並列実行
+    // 各天体について 前日/当日/翌日 3本の計算をプールで並列実行
     // stepSeconds=5 (方位角の精度は同等、線分刻みが粗くなるだけ。負荷 1/5)
+    // 当日線 = 目的点から300km以内 かつ その天体の「現在日時に最も近い南中」±12時間。
+    // 翌日線/前日線 = その南中±24時間を起点とした±12時間(3窓で連続72時間をタイル)。
+    // 月のように南中が毎日約50分ずれる天体でも、辻ラインが日付を跨いで連続し、
+    // 0時をまたいだ辻時刻(南中23時頃→翌未明5時など)も当日線=実線側に乗る。
+    const DP_DIST_LIMIT = 300000;
+    const nowMs = appState.currentDate.getTime();
     const allComputed = await Promise.all(visibleBodies.map(async body => {
+        const t0 = _dpAnchorTransitMs(body, observer, baseDate.getTime(), nowMs);
+        // 窓の起点は分単位にスナップする。サンプル時刻は「起点+5秒刻み」のため、
+        // 南中時刻の秒端数をそのまま使うと毎分00秒に乗らず、5分毎の時刻マーカーが表示されない。
+        const currStart = Math.floor((t0 - 43200000) / 60000) * 60000;
         const [pPrev, pNext, pCurr] = await Promise.all([
-            calculateDPPathPoints(datePrev, body, observer, { stepSeconds: 5 }),
-            calculateDPPathPoints(dateNext, body, observer, { stepSeconds: 5 }),
-            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5 }),
+            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart - 86400000, distLimit: DP_DIST_LIMIT }),
+            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart + 86400000, distLimit: DP_DIST_LIMIT }),
+            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart, distLimit: DP_DIST_LIMIT }),
         ]);
         return { body, pPrev, pNext, pCurr };
     }));
@@ -1360,6 +2122,8 @@ function ensureDP365LayerForBody(bodyId) {
  *  非表示の天体や、観測点/目的点/日付変更後の再計算は OFF→ON で実施。 */
 async function updateDP365Lines() {
     const generation = ++dp365CurrentGeneration;
+    // 前回実行の残キュー(旧世代の辻ライン365タスク)を破棄してから開始
+    dpPoolCancelQueued('dp365');
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
@@ -1405,7 +2169,7 @@ async function updateDP365Lines() {
             for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
                 const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
                 for (const body of newBodies) {
-                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true }).then(pts => {
+                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true, owner: 'dp365' }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
                         const layer = ensureDP365LayerForBody(body.id);
                         if (!map.hasLayer(layer)) layer.addTo(map);
@@ -1699,8 +2463,8 @@ function searchMoonAge(targetAge) {
     }
 }
 
-function uncheckTimeShortcuts() { 
-    document.querySelectorAll('input[name="time-jump"]').forEach(r => r.checked = false); 
+function uncheckTimeShortcuts() {
+    document.querySelectorAll('input[name="time-jump"], input[name="time-jump-ctrl"]').forEach(r => r.checked = false);
 }
 
 function stopMove() {
@@ -1770,6 +2534,7 @@ function toggleDP365() {
         btn.textContent = '辻'; // 進捗表示(XX%)が残らないように即座にラベル復元
         clearAllDP365Layers();
         dp365CurrentGeneration++; // 進行中の計算を破棄 (orphan async は generation チェックで早期 return)
+        dpPoolCancelQueued('dp365'); // キューに残った未実行の辻ライン365タスクを全て破棄(走り続け防止)
     }
     saveAppState();
 }
@@ -1790,6 +2555,105 @@ function useGPS() {
             updateAll();
         });
     }, () => alert('位置情報を取得できませんでした'));
+}
+
+/**
+ * 準最高地点移動「高移」
+ * ラジオで選択中の観測点/目的点の近傍256×256ピクセル(現在ピクセル中心)を検索し、
+ * 現在地点から最も近い・現在より高い小ピーク(局所最大)へ移動する。
+ * 判定順: ①最も近い ②より高い。DEM標高タイルで算出する。
+ */
+async function moveToNearestPeak() {
+    const isStart = appState.locMode !== 'end';
+    const cur = isStart ? appState.start : appState.end;
+    if (!cur || cur.lat === null || cur.lat === undefined) {
+        return alert((isStart ? '観測点' : '目的点') + 'の緯度経度が設定されていません');
+    }
+    const btn = document.getElementById('btn-move-peak');
+    if (btn) { btn.disabled = true; btn.textContent = '⌛'; }
+    try {
+        // 現在点を覆うDEMソースを選定 (5A→5B→5C→10B)。現在標高と現在グローバルピクセルを取得
+        let chosen = null, curElev = null, gpx0 = 0, gpy0 = 0;
+        for (const dem of GSI_DEM_SOURCES) {
+            const ti = _getTileInfo(cur.lat, cur.lng, dem.zoom);
+            const imgData = await _getTileImageData(_makeTileUrl(dem, ti.x, ti.y));
+            if (!imgData) continue;
+            const idx = (ti.pY * 256 + ti.pX) * 4;
+            const h = _elevFromRGB(imgData.data[idx], imgData.data[idx + 1], imgData.data[idx + 2]);
+            if (h !== null) {
+                chosen = dem; curElev = h;
+                gpx0 = ti.x * 256 + ti.pX; gpy0 = ti.y * 256 + ti.pY;
+                break;
+            }
+        }
+        if (!chosen) return alert('近傍の標高データを取得できませんでした');
+
+        // 現在ピクセルを中心とする256×256の窓を構成し、必要なタイルを一括ロード
+        const HALF = 128, W = HALF * 2;
+        const minGX = gpx0 - HALF, minGY = gpy0 - HALF;
+        const tiles = {};
+        const loads = [];
+        const minTX = Math.floor(minGX / 256), maxTX = Math.floor((minGX + W - 1) / 256);
+        const minTY = Math.floor(minGY / 256), maxTY = Math.floor((minGY + W - 1) / 256);
+        for (let tx = minTX; tx <= maxTX; tx++) {
+            for (let ty = minTY; ty <= maxTY; ty++) {
+                loads.push(_getTileImageData(_makeTileUrl(chosen, tx, ty)).then(d => { tiles[tx + '_' + ty] = d; }));
+            }
+        }
+        await Promise.all(loads);
+
+        // 標高グリッドを構築 (データ無しのピクセルは valid=0)
+        const grid = new Float64Array(W * W);
+        const valid = new Uint8Array(W * W);
+        for (let j = 0; j < W; j++) {
+            for (let i = 0; i < W; i++) {
+                const gx = minGX + i, gy = minGY + j;
+                const tx = Math.floor(gx / 256), ty = Math.floor(gy / 256);
+                const d = tiles[tx + '_' + ty];
+                if (!d) continue;
+                const idx = ((gy - ty * 256) * 256 + (gx - tx * 256)) * 4;
+                const h = _elevFromRGB(d.data[idx], d.data[idx + 1], d.data[idx + 2]);
+                if (h === null) continue;
+                grid[j * W + i] = h; valid[j * W + i] = 1;
+            }
+        }
+
+        // 中心ピクセル=(HALF,HALF)。局所最大(8近傍より高い)かつ現在より高い候補を
+        // ①最も近い(ピクセル距離最小) ②より高い の順で1点選定
+        const ci = HALF, cj = HALF;
+        let best = null;
+        for (let j = 1; j < W - 1; j++) {
+            for (let i = 1; i < W - 1; i++) {
+                if (!valid[j * W + i]) continue;
+                const h = grid[j * W + i];
+                if (h <= curElev) continue;
+                let isPeak = true;
+                for (let dj = -1; dj <= 1 && isPeak; dj++) {
+                    for (let di = -1; di <= 1; di++) {
+                        if (di === 0 && dj === 0) continue;
+                        const n = (j + dj) * W + (i + di);
+                        if (valid[n] && grid[n] > h) { isPeak = false; break; }
+                    }
+                }
+                if (!isPeak) continue;
+                const d2 = (i - ci) * (i - ci) + (j - cj) * (j - cj);
+                if (!best || d2 < best.d2 || (d2 === best.d2 && h > best.h)) {
+                    best = { i, j, h, d2 };
+                }
+            }
+        }
+        if (!best) return alert('近傍により高い地点が見つかりませんでした');
+
+        // 選定ピクセル → 緯度経度。選択中の点に反映し、移動先を画面中心にズーム
+        const dest = _globalPixelToLatLng(minGX + best.i, minGY + best.j, chosen.zoom);
+        await applyLocationCoords({ lat: dest.lat, lng: dest.lng }, isStart);
+        const maxZ = (map && map.getMaxZoom) ? map.getMaxZoom() : 17;
+        map.setView([dest.lat, dest.lng], Math.min(17, maxZ));
+    } catch (e) {
+        alert('準最高地点の探索に失敗しました: ' + (e && e.message ? e.message : e));
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '高移'; }
+    }
 }
 
 
@@ -1816,7 +2680,7 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
 // ============================================================
 // DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
 // ============================================================
-const DP_POOL_SIZE = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+const DP_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
@@ -1859,24 +2723,36 @@ function dpPoolRunTask(message) {
     });
 }
 
-/** キュー上の未開始タスクをすべてキャンセル (世代切替時に呼ぶ) */
-function dpPoolCancelQueued() {
+/** キュー上の未開始タスクをキャンセル (世代切替時に呼ぶ)。
+ *  owner('dp'=通常辻ライン / 'dp365'=辻ライン365)を指定するとそのタスクのみ、省略時は全件。
+ *  プールは両者で共有のため、owner指定で相互の巻き添えキャンセルを防ぐ。 */
+function dpPoolCancelQueued(owner) {
     if (!dpWorkerPool) return;
+    const keep = [];
     for (const task of dpWorkerPool.queue) {
+        if (owner && task.message.owner !== owner) { keep.push(task); continue; }
         task.resolve({ canceled: true, points: [], hourStart: task.message.hourStart });
     }
-    dpWorkerPool.queue = [];
+    dpWorkerPool.queue = keep;
 }
 
 async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     // opts.stepSeconds: Worker内サンプリング間隔(秒) デフォルト 1
     // opts.forceWorker: アニメ中でもメインスレッドフォールバックせずWorkerパスを強制
+    // opts.windowStartMs: 指定時は「その日の0:00」の代わりに任意の24時間窓の起点(ms)を使う(南中基準の窓用)
+    // opts.distLimit: 目的点からの最大距離(m) デフォルト 500000
     const stepSeconds = opts.stepSeconds || 1;
     const forceWorker = !!opts.forceWorker;
+    const distLimit = opts.distLimit || 500000;
 
-    const startOfDay = new Date(targetDate.getTime());
-    startOfDay.setHours(0, 0, 0, 0);
-    const startOfDayMs = startOfDay.getTime();
+    let startOfDayMs;
+    if (opts.windowStartMs !== undefined) {
+        startOfDayMs = opts.windowStartMs;
+    } else {
+        const startOfDay = new Date(targetDate.getTime());
+        startOfDay.setHours(0, 0, 0, 0);
+        startOfDayMs = startOfDay.getTime();
+    }
     const valElev = appState.start.elev;
     const dip = getHorizonDip(valElev);
     const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
@@ -1930,7 +2806,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
                 const hor = Astronomy.Horizon(time, observer, r, d, refr);
                 if (hor.altitude > limit) {
                     const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev, observer.latitude, appState.end.lat);
-                    if (dist > 0 && dist < 500000) {
+                    if (dist > 0 && dist < distLimit) {
                         path.push({ dist, az: hor.azimuth, time });
                     }
                 }
@@ -1956,9 +2832,10 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
             valElev,
             targetElev: appState.end.elev,
             limit,
-            distLimit: 500000,
+            distLimit,
             taskId,
             stepSeconds,  // 365モードでは60(1分)、通常は1(1秒)
+            owner: opts.owner || 'dp',   // キュー掃除のスコープ判定用('dp'/'dp365')
         });
     });
 
@@ -2047,6 +2924,23 @@ function getBodyAngularRadius(bodyId, date, observer) {
     return Math.atan(radiusKm / distKm) * 180 / Math.PI;
 }
 
+/** 天の川の基準点(基本オプション)のRA/Dec。
+ *  基準点が「オフセット点」のときは、銀河赤道(b=0)上を中心座標からオフセット中心角(°)ズラした点を返す。 */
+function getMilkyWayBaseRaDec() {
+    const ang = Number(appState.mwOffsetAngle) || 0;
+    if (appState.baseOptMwBase !== 'offset' || ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
+    const eq = galacticToEquatorial(ang, 0);
+    return { ra: eq.ra, dec: eq.dec };
+}
+
+/** My辻検索の行が使う天の川の基準点のRA/Dec。行ごとのオフセット中心角に従う(基本オプションとは連動しない。0°=中心座標) */
+function _myTsujiMwRaDec(t) {
+    const ang = Number(t && t.mwOffsetAngle) || 0;
+    if (ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
+    const eq = galacticToEquatorial(ang, 0);
+    return { ra: eq.ra, dec: eq.dec };
+}
+
 // 固定RA/Decの恒星のRA/Decを返すヘルパー
 function getFixedStarRaDec(bodyId) {
     switch (bodyId) {
@@ -2061,6 +2955,7 @@ function getFixedStarRaDec(bodyId) {
         case 'Betelgeuse': return { ra: BETELGEUSE_RA, dec: BETELGEUSE_DEC };
         case 'Sirius':     return { ra: SIRIUS_RA, dec: SIRIUS_DEC };
         case 'Procyon':    return { ra: PROCYON_RA, dec: PROCYON_DEC };
+        case 'MilkyWay':   return getMilkyWayBaseRaDec();   // 基本オプションの基準点(中心座標/オフセット点)に追従
         default: {
             // My天体から検索
             const myStar = appState.myStars.find(s => String(s.id) === bodyId);
@@ -2267,23 +3162,66 @@ function calculateKFromMeteo(p, tCel, l) {
 // 計算・描画ヘルパー (イベントハンドラ)
 // ------------------------------------------------------
 
-// 地図クリック時の処理 
+// 地図クリック時の処理
+// PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)による観測点移動を防ぐため、
+// 観測点/目的点の移動とメッシュ/辻マーカーの選択はダブルクリック(ダブルタップ)で行う
+// スマホのダブルタップはLeafletの合成dblclick(2タップの間隔200ms以内でしか発火しない)に
+// 依存せず、click(タップ)2回から自前で判定する(400ms以内・40px以内)
+let _mapLastTapMs = 0, _mapLastTapPt = null;
 async function onMapClick(e) {
-    // アニメーション中は地図クリック/タップで停止
+    // アニメーション中は地図クリック/タップで停止(PC/スマホ共通・シングルで有効)
     if (appState.isMoving) {
         stopMove();
         return;
     }
+    if (_mapDblClickMode) {
+        // PC: メッシュ/辻マーカーの画素のクリックで位置を確定してポップアップを表示(観測点は移動しない)。
+        // 観測点/目的点の移動はダブルクリック(onMapDblClick)
+        _tmShowPixelPopup(e.latlng);
+        return;
+    }
+    // スマホ: 自前のダブルタップ判定(前回タップから400ms以内かつ40px以内)
+    const now = Date.now();
+    const pt = map.latLngToContainerPoint(e.latlng);
+    if (_mapLastTapPt && (now - _mapLastTapMs) <= 400 && pt.distanceTo(_mapLastTapPt) <= 40) {
+        _mapLastTapMs = 0; _mapLastTapPt = null;
+        map.closePopup();
+        await applyMapPointAction(e.latlng);
+        return;
+    }
+    _mapLastTapMs = now; _mapLastTapPt = pt;
+    // シングルタップ: メッシュ/辻マーカーの画素ならポップアップを表示(観測点は移動しない。
+    // ポップアップの行/内容のタップで該当行を表示して観測点に設定)。
+    // 何もない地図のタップでは移動しない(移動はダブルタップ)
+    _tmShowPixelPopup(e.latlng);
+}
+
+async function onMapDblClick(e) {
+    // スマホはclick経路の自前判定で処理済み(タップ間隔が偶然200ms以内で
+    // Leafletの合成dblclickも発火した場合の二重実行を防ぐ)
+    if (!_mapDblClickMode) return;
+    if (appState.isMoving) {
+        stopMove();
+        return;
+    }
+    await applyMapPointAction(e.latlng);
+}
+
+/** 地図の点操作: メッシュ/辻マーカーの画素ならポップアップを表示するだけ(観測点は移動しない。
+ *  観測点の移動はポップアップの行/内容のクリック/タップで行う)。
+ *  それ以外は位置情報メニューのモードに従って観測点/目的点を移動する。 */
+async function applyMapPointAction(latlng) {
+    if (_tmShowPixelPopup(latlng)) return;
     const isStart = appState.locMode === 'start';
-    const elev = await getElevation(e.latlng.lat, e.latlng.lng);
+    const elev = await getElevation(latlng.lat, latlng.lng);
     const val = (elev !== null) ? elev : 0;
-    
+
     if (isStart) {
-        appState.start = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.start = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.startApiElev = val;
         appState.startHeight = 0;
     } else {
-        appState.end = { lat: e.latlng.lat, lng: e.latlng.lng, elev: val };
+        appState.end = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.endApiElev = val;
         appState.endHeight = 0;
     }
@@ -2393,8 +3331,49 @@ function _getTileInfo(lat, lng, zoom) {
     return {
         x: tileX, y: tileY,
         pX: Math.floor(pixelX - tileX * 256),
-        pY: Math.floor(pixelY - tileY * 256)
+        pY: Math.floor(pixelY - tileY * 256),
+        fX: pixelX - tileX * 256,   // 小数画素座標 (宙の窓地形のバイリニア補間用)
+        fY: pixelY - tileY * 256
     };
+}
+
+/** タイル画像データ(256×256 RGBA)から小数画素座標(fX,fY)の標高をバイリニア補間で返す。
+ *  無効画素(データ無し)が4近傍に混じる場合は従来の最近傍参照へフォールバック(null=全て無効)。
+ *  山頂がサンプル点に当たらず標高を取り逃す問題(最近傍参照)を緩和する。sora-terrain-worker.js に同一実装あり */
+/** タイル画像データから標高を1点参照する。nearest=trueは最近傍画素(getElevationと同じ参照)、それ以外はバイリニア補間 */
+function _smSampleElevFromImg(data, fX, fY, nearest) {
+    if (nearest) {
+        const x = Math.min(255, Math.floor(fX)), y = Math.min(255, Math.floor(fY));
+        const o = (y * 256 + x) * 4;
+        return _elevFromRGB(data[o], data[o + 1], data[o + 2]);
+    }
+    return _bilinearElevFromImg(data, fX, fY);
+}
+
+function _bilinearElevFromImg(data, fX, fY) {
+    const gx = Math.min(255, Math.max(0, fX - 0.5));
+    const gy = Math.min(255, Math.max(0, fY - 0.5));
+    const x0 = Math.floor(gx), y0 = Math.floor(gy);
+    const x1 = Math.min(255, x0 + 1), y1 = Math.min(255, y0 + 1);
+    const wx = gx - x0, wy = gy - y0;
+    const at = (x, y) => { const o = (y * 256 + x) * 4; return _elevFromRGB(data[o], data[o + 1], data[o + 2]); };
+    const v00 = at(x0, y0), v10 = at(x1, y0), v01 = at(x0, y1), v11 = at(x1, y1);
+    if (v00 === null || v10 === null || v01 === null || v11 === null) {
+        return at(Math.min(255, Math.floor(fX)), Math.min(255, Math.floor(fY)));
+    }
+    return v00 * (1 - wx) * (1 - wy) + v10 * wx * (1 - wy) + v01 * (1 - wx) * wy + v11 * wx * wy;
+}
+
+/** グローバルピクセル座標(gpx,gpy)を緯度経度に逆変換する (_getTileInfo の逆。ピクセル中心を返す) */
+function _globalPixelToLatLng(gpx, gpy, zoom) {
+    const scale = Math.pow(2, zoom);
+    const R = 128 / Math.PI;
+    const worldX = (gpx + 0.5) / scale;
+    const lng = (worldX / R - Math.PI) * 180 / Math.PI;
+    const worldY = (gpy + 0.5) / scale;
+    const eL = Math.exp((128 - worldY) * 2 / R);
+    const lat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+    return { lat, lng };
 }
 
 function _loadTileImage(url) {
@@ -2530,7 +3509,7 @@ async function fetchAllElevations(points, onProgress) {
     const unfetched = points.filter(p => !p.fetched);
     if (unfetched.length > 0) {
         // Open-Meteo APIはカンマ区切りで複数地点を一括取得可能
-        const BATCH_OM = 100;
+        const BATCH_OM = 96;
         for (let b = 0; b < unfetched.length; b += BATCH_OM) {
             if (generation !== _elevFetchGeneration) return;
             const batch = unfetched.slice(b, b + BATCH_OM);
@@ -2674,44 +3653,245 @@ function updateTwilightData(startOfDay, observer) {
         const nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
         const yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
         const civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+        const bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);   // BH[終]/GH[始]
         const sr        = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+        const ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);       // GH[終]
 
         // 日暮側 (descending)
+        const ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);       // GH[始]
         const ss        = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+        const ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);   // GH[終]/BH[始]
         const civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
         const higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
         const nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
         const astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
 
-        // 時刻DOM更新
-        document.getElementById('time-astro-dawn').innerText = astroDawn ? formatTime(astroDawn.date) : "--:--";
-        document.getElementById('time-naut-dawn').innerText  = nautDawn ? formatTime(nautDawn.date) : "--:--";
-        document.getElementById('time-yoake').innerText      = yoake ? formatTime(yoake.date) : "--:--";
-        document.getElementById('time-civil-dawn').innerText = civilDawn ? formatTime(civilDawn.date) : "--:--";
-        document.getElementById('time-tw-sunrise').innerText = sr ? formatTime(sr.date) : "--:--";
+        // 時刻DOM更新 (薄明メニューと宙の窓ctrlメニューのミラー(id末尾-ctrl)を一括更新)
+        const setT = (id, txt) => {
+            const el = document.getElementById(id); if (el) el.innerText = txt;
+            const c = document.getElementById(id + '-ctrl'); if (c) c.innerText = txt;
+        };
+        setT('time-astro-dawn', astroDawn ? formatTime(astroDawn.date) : "--:--");
+        setT('time-naut-dawn', nautDawn ? formatTime(nautDawn.date) : "--:--");
+        setT('time-yoake', yoake ? formatTime(yoake.date) : "--:--");
+        setT('time-civil-dawn', civilDawn ? formatTime(civilDawn.date) : "--:--");
+        setT('time-bh-end-gh-start', bhEndGhStart ? formatTime(bhEndGhStart.date) : "--:--");
+        setT('time-tw-sunrise', sr ? formatTime(sr.date) : "--:--");
+        setT('time-gh-end', ghEnd ? formatTime(ghEnd.date) : "--:--");
 
-        document.getElementById('time-tw-sunset').innerText  = ss ? formatTime(ss.date) : "--:--";
-        document.getElementById('time-civil-dusk').innerText = civilDusk ? formatTime(civilDusk.date) : "--:--";
-        document.getElementById('time-higure').innerText     = higure ? formatTime(higure.date) : "--:--";
-        document.getElementById('time-naut-dusk').innerText  = nautDusk ? formatTime(nautDusk.date) : "--:--";
-        document.getElementById('time-astro-dusk').innerText = astroDusk ? formatTime(astroDusk.date) : "--:--";
+        setT('time-gh-start', ghStart ? formatTime(ghStart.date) : "--:--");
+        setT('time-tw-sunset', ss ? formatTime(ss.date) : "--:--");
+        setT('time-gh-end-bh-start', ghEndBhStart ? formatTime(ghEndBhStart.date) : "--:--");
+        setT('time-civil-dusk', civilDusk ? formatTime(civilDusk.date) : "--:--");
+        setT('time-higure', higure ? formatTime(higure.date) : "--:--");
+        setT('time-naut-dusk', nautDusk ? formatTime(nautDusk.date) : "--:--");
+        setT('time-astro-dusk', astroDusk ? formatTime(astroDusk.date) : "--:--");
 
         // 日の出/入の視高度表示
-        document.getElementById('alt-tw-sunrise').innerText = sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--";
-        document.getElementById('alt-tw-sunset').innerText  = ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--";
+        setT('alt-tw-sunrise', sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--");
+        setT('alt-tw-sunset', ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--");
 
         // currentRiseSetDataに薄明データを追加
         currentRiseSetData.astro_dawn = astroDawn?.date;
         currentRiseSetData.naut_dawn  = nautDawn?.date;
         currentRiseSetData.yoake      = yoake?.date;
         currentRiseSetData.civil_dawn = civilDawn?.date;
+        currentRiseSetData.bh_end_gh_start = bhEndGhStart?.date;
         currentRiseSetData.tw_sunrise = sr?.date;
+        currentRiseSetData.gh_end     = ghEnd?.date;
+        currentRiseSetData.gh_start   = ghStart?.date;
         currentRiseSetData.tw_sunset  = ss?.date;
+        currentRiseSetData.gh_end_bh_start = ghEndBhStart?.date;
         currentRiseSetData.civil_dusk = civilDusk?.date;
         currentRiseSetData.higure     = higure?.date;
         currentRiseSetData.naut_dusk  = nautDusk?.date;
         currentRiseSetData.astro_dusk = astroDusk?.date;
     } catch(e) {}
+}
+
+// 辻検索/My辻検索の結果「時間帯」列のラベル (0時起点で時間順に16区分。BH=ブルーアワー, GH=ゴールデンアワー)
+const TIME_CATEGORY_LABELS = [
+    '0時<=x<天文薄明[始]',
+    '天文薄明[始]<=x<航海薄明[始]',
+    '航海薄明[始]<=x<夜明',
+    '夜明<=x<常用薄明/BH[始]',
+    '常用薄明/BH[始]<=x<BH[終]/GH[始]',
+    'BH[終]/GH[始]<=x<日の出',
+    '日の出<=x<GH[終]',
+    'GH[終]<=x<12時',
+    '12時<=x<GH[始]',
+    'GH[始]<=x<日の入',
+    '日の入<=x<GH[終]/BH[始]',
+    'GH[終]/BH[始]<=x<常用薄明/BH[終]',
+    '常用薄明/BH[終]<=x<日暮',
+    '日暮<=x<航海薄明[終]',
+    '航海薄明[終]<=x<天文薄明[終]',
+    '天文薄明[終]<=x<0時',
+];
+
+/** 当日の薄明・日の出/日の入時刻をDateで返す (DOM更新なし。時間帯分類用)。値はDate|null。 */
+function computeDayTwilight(startOfDay, observer) {
+    const alt = (dir, deg) => {
+        try { const e = Astronomy.SearchAltitude('Sun', observer, dir, startOfDay, 1, deg); return e ? e.date : null; }
+        catch (_) { return null; }
+    };
+    const rs = (dir) => {
+        try { const e = Astronomy.SearchRiseSet('Sun', observer, dir, startOfDay, 1); return e ? e.date : null; }
+        catch (_) { return null; }
+    };
+    return {
+        astroDawn: alt(+1, -18), nautDawn: alt(+1, -12), yoake: alt(+1, -7.361111),
+        civilDawn: alt(+1, -6), bhEndGhStart: alt(+1, -4), sunrise: rs(+1), ghEnd: alt(+1, 6),
+        ghStart: alt(-1, 6), sunset: rs(-1), ghEndBhStart: alt(-1, -4),
+        civilDusk: alt(-1, -6), higure: alt(-1, -7.361111),
+        nautDusk: alt(-1, -12), astroDusk: alt(-1, -18)
+    };
+}
+
+/** 辻時刻dtが属する時間帯ラベル(TIME_CATEGORY_LABELSのいずれか、不明時'-')を返す。
+ *  tw=computeDayTwilightの結果, startOfDay=当日0:00。null境界はスキップ(隣接区間とマージ)。 */
+function classifyTimeCategory(dt, tw, startOfDay) {
+    const noon = new Date(startOfDay); noon.setHours(12, 0, 0, 0);
+    const nextMidnight = new Date(startOfDay.getTime() + 86400000);
+    const bounds = [tw.astroDawn, tw.nautDawn, tw.yoake, tw.civilDawn, tw.bhEndGhStart, tw.sunrise, tw.ghEnd,
+                    noon, tw.ghStart, tw.sunset, tw.ghEndBhStart, tw.civilDusk, tw.higure, tw.nautDusk, tw.astroDusk, nextMidnight];
+    for (let i = 0; i < bounds.length; i++) {
+        if (bounds[i] && dt < bounds[i]) return TIME_CATEGORY_LABELS[i];
+    }
+    return '-';
+}
+
+// 時間フィルタの時刻モード (値は computeDayTwilight の返却キーに一致)。これに加えて 'fixed'(時刻指定) がある。
+const TSUJI_TIME_MODES = [
+    { v: 'astroDawn',    l: '天文薄明[始]' },
+    { v: 'nautDawn',     l: '航海薄明[始]' },
+    { v: 'yoake',        l: '夜明' },
+    { v: 'civilDawn',    l: '常用薄明/BH[始]' },
+    { v: 'bhEndGhStart', l: 'BH[終]/GH[始]' },
+    { v: 'sunrise',      l: '日の出' },
+    { v: 'ghEnd',        l: 'GH[終]' },
+    { v: 'ghStart',      l: 'GH[始]' },
+    { v: 'sunset',       l: '日の入' },
+    { v: 'ghEndBhStart', l: 'GH[終]/BH[始]' },
+    { v: 'civilDusk',    l: '常用薄明/BH[終]' },
+    { v: 'higure',       l: '日暮' },
+    { v: 'nautDusk',     l: '航海薄明[終]' },
+    { v: 'astroDusk',    l: '天文薄明[終]' },
+];
+
+/** 'HH:MM' を分に変換 (不正時は0) */
+function hhmmToMinutes(s) {
+    if (!s || typeof s !== 'string') return 0;
+    const parts = s.split(':');
+    const h = parseInt(parts[0], 10), mi = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(mi)) return 0;
+    return h * 60 + mi;
+}
+
+/** 時間フィルタの境界時刻を「当日の分(0-1440)」で返す。tw=computeDayTwilightの結果。
+ *  null = 境界が解決できない(その日はその境界を無効扱い)。 */
+function timeModeToMinutes(mode, fixedHHMM, prePost, dir, offsetHHMM, tw) {
+    let base;
+    if (mode === 'fixed') {
+        base = hhmmToMinutes(fixedHHMM);
+    } else {
+        const d = tw ? tw[mode] : null;
+        if (!d) return null;
+        base = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+    }
+    if (prePost) {
+        const off = hhmmToMinutes(offsetHHMM);
+        base += (dir === 'after' ? off : -off);
+    }
+    return ((base % 1440) + 1440) % 1440;
+}
+
+/** 辻時刻dtが時間フィルタの範囲内かを判定する。
+ *  fs = {startMode,startTime,startPrePost,startPrePostDir,startOffset, end同等}。
+ *  開始>終了 のときは夜間(日付境界またぎ)として扱う。境界が解決できない場合は通す。 */
+function passesTimeFilter(dt, tw, fs) {
+    const sMin = timeModeToMinutes(fs.startMode, fs.startTime, fs.startPrePost, fs.startPrePostDir, fs.startOffset, tw);
+    const eMin = timeModeToMinutes(fs.endMode, fs.endTime, fs.endPrePost, fs.endPrePostDir, fs.endOffset, tw);
+    if (sMin === null || eMin === null) return true;
+    const tMin = dt.getHours() * 60 + dt.getMinutes() + dt.getSeconds() / 60;
+    if (sMin <= eMin) return tMin >= sMin && tMin <= eMin;
+    return tMin >= sMin || tMin <= eMin; // 夜間 (日付境界またぎ)
+}
+
+/** 時間フィルタの薄明/出没/GH/BHモード(TSUJI_TIME_MODES)のラジオ(グリッド)HTMLを生成 */
+function timeFilterModeGridHtml(name, checkedValue, cls, dataAttr, disabledAttr = 'disabled') {
+    return TSUJI_TIME_MODES.map(m =>
+        `<label class="tsuji-time-mode"><input type="radio" name="${name}" value="${m.v}" class="${cls}" ${dataAttr} ${checkedValue === m.v ? 'checked' : ''} ${disabledAttr}>${m.l}</label>`
+    ).join('');
+}
+
+/** 辻検索/辻メッシュ検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成。
+ *  prefix: id/name接頭辞('tsuji'|'tsujimesh')、statePrefix: appStateキー接頭辞('tsuji'|'tsujiMesh') */
+function buildTimeGroupHtmlFor(prefix, statePrefix, group) {
+    const G = group === 'start' ? 'Start' : 'End';
+    const name = `${prefix}-${group}-mode`, ppName = `${prefix}-${group}-prepost-dir`;
+    const mode = appState[statePrefix + G + 'Mode'];
+    const ctlCls = `${prefix}-time-control`, ppCls = `${prefix}-${group}-prepost-control`;
+    const groupLabel = group === 'start' ? '開始時刻' : '終了時刻';
+    return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row"><span class="tsuji-time-group-label">${groupLabel}</span></div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="${ctlCls}" ${mode === 'fixed' ? 'checked' : ''} disabled>時刻指定</label>
+            <input type="time" id="input-${prefix}-${group}-time" class="${ctlCls}" value="${appState[statePrefix + G + 'Time']}" disabled>
+        </div>
+        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, ctlCls, '')}</div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="checkbox" id="chk-${prefix}-${group}-prepost" class="body-checkbox ${ctlCls}" ${appState[statePrefix + G + 'PrePost'] ? 'checked' : ''} disabled>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'before' ? 'checked' : ''} disabled>前</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'after' ? 'checked' : ''} disabled>後</label>
+            <input type="time" id="input-${prefix}-${group}-offset" class="${ppCls}" value="${appState[statePrefix + G + 'Offset']}" disabled>
+        </div>
+    </div>`;
+}
+
+/** 辻検索メニューの時間フィルタ1グループ(開始/終了)のHTMLを生成 */
+function buildTsujiTimeGroupHtml(group) {
+    return buildTimeGroupHtmlFor('tsuji', 'tsuji', group);
+}
+
+/** My辻検索の1行の時間フィルタ1グループ(開始/終了)のHTMLを生成 (per-row、クラス+data-id) */
+function buildMyTsujiTimeGroupHtml(t, group) {
+    const id = t.id;
+    const name = `mytsuji-${group}-mode-${id}`, ppName = `mytsuji-${group}-prepost-dir-${id}`;
+    const mode = t[group + 'Mode'] || (group === 'start' ? 'sunset' : 'sunrise');
+    const time = t[group + 'Time'] || '00:00';
+    const prePost = !!t[group + 'PrePost'];
+    const ppDir = t[group + 'PrePostDir'] || 'before';
+    const offset = t[group + 'Offset'] || '00:00';
+    const dis = t.timeFilter ? '' : 'disabled';
+    const ppDis = (t.timeFilter && prePost) ? '' : 'disabled';
+    const cls = `mytsuji-time-control mytsuji-${group}-mode`;
+    const ppCls = `mytsuji-${group}-prepost-control`;
+    const groupLabel = group === 'start' ? '開始時刻' : '終了時刻';
+    return `<div class="tsuji-time-group tsuji-time-${group}">
+        <div class="control-row left-row"><span class="tsuji-time-group-label">${groupLabel}</span></div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="radio" name="${name}" value="fixed" class="${cls}" data-id="${id}" ${mode === 'fixed' ? 'checked' : ''} ${dis}>時刻指定</label>
+            <input type="time" class="mytsuji-time-control mytsuji-${group}-time" data-id="${id}" value="${time}" ${dis}>
+        </div>
+        <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, cls, `data-id="${id}"`, dis)}</div>
+        <div class="control-row left-row">
+            <label class="tsuji-time-mode"><input type="checkbox" class="body-checkbox mytsuji-time-control mytsuji-${group}-prepost" data-id="${id}" ${prePost ? 'checked' : ''} ${dis}>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" data-id="${id}" ${ppDir === 'before' ? 'checked' : ''} ${ppDis}>前</label>
+            <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" data-id="${id}" ${ppDir === 'after' ? 'checked' : ''} ${ppDis}>後</label>
+            <input type="time" class="mytsuji-${group}-offset ${ppCls}" data-id="${id}" value="${offset}" ${ppDis}>
+        </div>
+    </div>`;
+}
+
+/** My辻検索の1行の時間フィルタの活性/非活性を更新 */
+function updateMyTsujiRowTimeFilterUI(row, t) {
+    const on = !!t.timeFilter;
+    row.querySelectorAll('.mytsuji-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const pp = on && !!t[group + 'PrePost'];
+        row.querySelectorAll('.mytsuji-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
 }
 
 function updateMoonInfo(date) {
@@ -2981,6 +4161,13 @@ function formatFileDateTime() {
     return `${Y}${M}${D}-${h}${m}${s}`;
 }
 
+/** CSVのコメント行(1列目が半角#で始まる行)かどうかを判定する */
+function isCsvCommentLine(line) {
+    if (!line) return false;
+    const firstCell = line.replace(/^﻿/, '').split(',')[0];
+    return firstCell.trim().startsWith('#');
+}
+
 /** CSV入力 (My天体) */
 function importMyStarsCsv() {
     if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
@@ -2994,7 +4181,7 @@ function importMyStarsCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件(見出し行+1000行)です');
 
@@ -3043,7 +4230,7 @@ function appendMyStarsCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 const csvEntries = [];
@@ -3104,10 +4291,12 @@ function appendMyStarsCsv() {
 /** CSV出力 (My天体) */
 function exportMyStarsCsv() {
     if (appState.myStars.length === 0) return alert('My天体が登録されていません');
-    if (!confirm('My天体リストの登録内容をCSVファイルに出力しますか？')) return;
+    const targets = appState.myStars.filter(s => s.visible);
+    if (targets.length === 0) return alert('CSV出力するMy天体が選択されていません');
+    if (!confirm('チェックボックスで選択されたMy天体リストの登録内容をCSVファイルに出力しますか？')) return;
     const bom = '\uFEFF';
     let csv = bom + '天体ID,天体名,赤経,赤緯\r\n';
-    appState.myStars.forEach(s => {
+    targets.forEach(s => {
         csv += `${s.id},${s.name},${s.ra},${s.dec}\r\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -3216,7 +4405,7 @@ function registerSearchStar() {
     const ra = parseFloat(parts[0]);
     const dec = parseFloat(parts[1]);
     if (isNaN(ra) || isNaN(dec)) return alert('赤経赤緯の値が不正です');
-    if (!confirm(`検索天体をMy天体に登録しますか？(天体名は書き換えられます。)`)) return;
+    if (!confirm(`My天体に登録しますか？`)) return;
     if (addMyStar(name, ra, dec)) {
         // 入力フィールドをクリア
         document.getElementById('input-starsearch-name').value = '';
@@ -3252,7 +4441,7 @@ function exportBackup() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `soranotsuji-バックアップ-${formatFileDateTime()}.json`;
+    a.download = `soranotsuji-app-バックアップ-${formatFileDateTime()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -3395,6 +4584,7 @@ function renderMyPointsList(type) {
             <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
                 <input type="radio" name="${cfg.prefix}-select" value="${pt.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="body-checkbox mypoint-check" data-id="${pt.id}" ${pt.checked ? 'checked' : ''} title="CSV出力の選択">
                 <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
             </div>
             <div class="control-row">
@@ -3494,6 +4684,11 @@ function renderMyPointsList(type) {
             saveAppState();
             setMyPointDirty(type, true);
         });
+        // イベント: CSV出力選択チェックボックス
+        row.querySelector('.mypoint-check').addEventListener('change', (e) => {
+            pt.checked = e.target.checked;
+            saveAppState();
+        });
         container.appendChild(row);
     });
 }
@@ -3575,12 +4770,12 @@ function addMyPointRow(type) {
     if (!confirm(`${cfg.labelFull}リストの末尾に${cfg.label}の行を追加しますか？`)) return;
     const id = getNextMyPointId(type);
     if (id === null) return;
-    // 選択中の行の次に挿入
+    // 末尾の行の次に追加
     const selId = getSelectedMyPointId(type);
     const idx = selId !== null ? cfg.list().findIndex(p => p.id === selId) : -1;
     const newPt = { id, name: '', lat: null, lng: null, elev: null, height: 0, memo: '' };
     if (idx >= 0) {
-        cfg.list().splice(idx + 1, 0, newPt);
+        cfg.list().push(newPt);   // 末尾の行の次に追加(デッサン変更に追従)
     } else {
         cfg.list().push(newPt);
     }
@@ -3659,7 +4854,7 @@ function importMyPointsCsv(type) {
         reader.onload = async (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件です');
                 const newPoints = [];
@@ -3717,7 +4912,7 @@ function appendMyPointsCsv(type) {
         reader.onload = async (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 const existingList = cfg.list();
@@ -3727,14 +4922,15 @@ function appendMyPointsCsv(type) {
                     if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
                     const id = parseInt(toHalfWidth(cols[0].trim()));
                     const name = cols[1].trim();
-                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
-                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
+                    const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
+                    const lat = parseFloat(latText);
+                    const lng = parseFloat(lngText);
                     let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
                     const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
                     const memo = (cols[6] !== undefined ? cols[6] : '').trim();
                     if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
                     if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
-                    csvEntries.push({ id, name, lat, lng, elev, height, memo });
+                    csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
                 }
 
                 // CSV内のID重複チェック
@@ -3755,9 +4951,11 @@ function appendMyPointsCsv(type) {
                         entry.elev = el !== null ? el : 0;
                     }
                     
-                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ
+                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ。
+                    // 緯度/経度は数値(double)比較だとCSV生値の末尾1桁違いが同じ倍精度値に丸まって
+                    // 同一視されるため、CSVの生値文字列と登録値の文字列表現で比較する
                     const duplicate = existingList.some(p =>
-                        p.lat === entry.lat && p.lng === entry.lng &&
+                        String(p.lat) === entry.latText && String(p.lng) === entry.lngText &&
                         p.elev === entry.elev && p.height === entry.height
                     );
                     if (duplicate) continue;
@@ -3770,6 +4968,8 @@ function appendMyPointsCsv(type) {
                         if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
                     }
 
+                    delete entry.latText;
+                    delete entry.lngText;
                     existingList.push(entry);
                     addedCount++;
                 }
@@ -3792,10 +4992,12 @@ function appendMyPointsCsv(type) {
 function exportMyPointsCsv(type) {
     const cfg = myPointConfig(type);
     if (cfg.list().length === 0) return alert(`${cfg.labelFull}が登録されていません`);
-    if (!confirm(`${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
+    const targets = cfg.list().filter(pt => pt.checked);
+    if (targets.length === 0) return alert(`CSV出力する${cfg.labelFull}が選択されていません`);
+    if (!confirm(`チェックボックスで選択された${cfg.labelFull}リストの登録内容をCSVファイルに出力しますか？`)) return;
     const bom = '\uFEFF';
     let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ,メモ\r\n`;
-    cfg.list().forEach(pt => {
+    targets.forEach(pt => {
         csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${pt.memo || ''}\r\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -3864,6 +5066,10 @@ function updateMyPointMarkers() {
             appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
             appState.startApiElev = pt.elev || 0;
             appState.startHeight = pt.height || 0;
+            // 位置情報メニューのラジオボタンも観測点選択へ移動する
+            appState.locMode = 'start';
+            const rs = document.getElementById('radio-start');
+            if (rs) rs.checked = true;
             saveAppState();
             updateAll();
         });
@@ -3890,6 +5096,10 @@ function updateMyPointMarkers() {
             appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
             appState.endApiElev = pt.elev || 0;
             appState.endHeight = pt.height || 0;
+            // 位置情報メニューのラジオボタンも目的点選択へ移動する
+            appState.locMode = 'end';
+            const re = document.getElementById('radio-end');
+            if (re) re.checked = true;
             saveAppState();
             updateAll();
         });
@@ -4012,12 +5222,15 @@ function addMyTsujiRow() {
         baseAz: null, baseAlt: null,
         offsetAz: 0, offsetAlt: 0,
         toleranceAz: 15, toleranceAlt: 15,
+        centerMode: 'point',   // 検索中心オプション: 'point'=オフセット点 / 'line'=基準点からオフセット点までの線
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 天の川オプション: 初期値は基本オプションの値(以後は行ごとに独立)
         moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
+        elevationOption: false, elevOK: false, elevNG: false,
+        timeFilter: false, startMode: 'sunset', startTime: '00:00', startPrePost: false, startPrePostDir: 'before', startOffset: '00:00', endMode: 'sunrise', endTime: '00:00', endPrePost: false, endPrePostDir: 'before', endOffset: '00:00',
         checked: false, memo: ''
     };
-    if (idx >= 0) appState.myTsujiSearches.splice(idx + 1, 0, newT);
-    else appState.myTsujiSearches.push(newT);
+    appState.myTsujiSearches.push(newT);   // 末尾の行の次に追加(デッサン変更に追従)
     saveAppState();
     setMyTsujiDirty(true);
     renderMyTsujiSearches();
@@ -4090,6 +5303,8 @@ function getMyTsujiFromTsujiSearch() {
         offsetAlt: appState.tsujiSearchOffsetAlt,
         toleranceAz: appState.tsujiSearchToleranceAz,
         toleranceAlt: appState.tsujiSearchToleranceAlt,
+        centerMode: appState.tsujiCenterMode === 'line' ? 'line' : 'point',   // 登録時点の辻検索メニューの検索中心オプション
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 登録時点の基本オプション値を初期値に(以後は行ごとに独立)
         moonFilter: appState.tsujiMoonFilterEnabled,
         moonBase: appState.tsujiMoonBase,
         moonTolerance: appState.tsujiMoonTolerance,
@@ -4098,6 +5313,8 @@ function getMyTsujiFromTsujiSearch() {
         accCircle: appState.tsujiAccCircle,
         accTriangle: appState.tsujiAccTriangle,
         accDash: appState.tsujiAccDash,
+        elevationOption: appState.tsujiElevationOption, elevOK: appState.tsujiElevOK, elevNG: appState.tsujiElevNG,
+        timeFilter: appState.tsujiTimeFilter, startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset, endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
         checked: false, memo: ''
     });
     saveAppState();
@@ -4234,35 +5451,83 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const offsetAlt = parseNumOr(cols[9], 0);
     const toleranceAz = Math.min(Math.max(parseNumOr(cols[10], 15), 0), 360);
     const toleranceAlt = Math.min(Math.max(parseNumOr(cols[11], 15), 0), 360);
-    // 13-15列目: 月齢フィルタ/基準月齢/許容範囲月齢 (省略時デフォルト)
-    let moonFilter = false;
-    if (cols[12] != null) {
-        const v = toHalfWidth(cols[12].trim()).toUpperCase();
-        moonFilter = (v === 'ON' || v === '1' || v === 'TRUE');
-    }
-    const moonBase = Math.min(Math.max(parseNumOr(cols[13], 14.8), 0), 30);
-    const moonTolerance = Math.min(Math.max(parseNumOr(cols[14], 2), 0), 15);
-    // 16-20列目: 精度フィルタ (省略時はfalse)
     const parseBoolOr = (v) => {
         if (v == null) return false;
         const s = toHalfWidth(v.trim()).toUpperCase();
         return (s === 'ON' || s === '1' || s === 'TRUE');
     };
-    const accuracyFilter = parseBoolOr(cols[15]);
-    const accDblCircle = parseBoolOr(cols[16]);
-    const accCircle = parseBoolOr(cols[17]);
-    const accTriangle = parseBoolOr(cols[18]);
-    const accDash = parseBoolOr(cols[19]);
-    // 21列目: メモ (省略時は空文字)
-    const memo = (cols[20] ?? '').trim();
+    // 旧形式は列数で判別して読み替える:
+    //   ≦21列 = 初代(オフセット中心角・時間フィルタ・標高オプションなし)
+    //    36列 = 検索中心の列が追加される前の形式
+    //   ≧37列 = 現行(13列目に検索中心)
+    const legacy = cols.length <= 21;
+    const hasCenter = cols.length >= 37;
+    // 13列目: 検索中心 (point/line。旧形式は point)
+    const centerMode = hasCenter && toHalfWidth((cols[12] ?? '').trim()).toLowerCase() === 'line' ? 'line' : 'point';
+    const ci = hasCenter ? 1 : 0;   // 検索中心の有無による以降の列シフト
+    // オフセット中心角 (旧初代形式は基本オプションの現在値で補完)
+    const mwOffsetAngle = legacy ? (Number(appState.mwOffsetAngle) || 0)
+                                 : Math.min(Math.max(parseNumOr(cols[12 + ci], 0), -360), 360);
+    // 月齢フィルタ/基準月齢/許容範囲月齢 (初代:13-15列目 / 36列:14-16列目 / 37列:15-17列目)
+    const mi = legacy ? 12 : 13 + ci;
+    const moonFilter = parseBoolOr(cols[mi]);
+    const moonBase = Math.min(Math.max(parseNumOr(cols[mi + 1], 14.8), 0), 30);
+    const moonTolerance = Math.min(Math.max(parseNumOr(cols[mi + 2], 2), 0), 15);
+    // 時間フィルタ (新形式のみ: 17-27列目。モードは TSUJI_TIME_MODES の値か fixed)
+    const modeOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim());
+        return (s === 'fixed' || TSUJI_TIME_MODES.some(m => m.v === s)) ? s : def;
+    };
+    const hhmmOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim());
+        return /^\d{1,2}:\d{2}$/.test(s) ? s : def;
+    };
+    const dirOr = (v, def) => {
+        const s = v == null ? '' : toHalfWidth(v.trim()).toLowerCase();
+        if (s === 'after' || s === '後') return 'after';
+        if (s === 'before' || s === '前') return 'before';
+        return def;
+    };
+    let timeFilter = false, startMode = 'sunset', startTime = '00:00', startPrePost = false, startPrePostDir = 'before', startOffset = '00:00';
+    let endMode = 'sunrise', endTime = '00:00', endPrePost = false, endPrePostDir = 'before', endOffset = '00:00';
+    if (!legacy) {
+        timeFilter = parseBoolOr(cols[16 + ci]);
+        startMode = modeOr(cols[17 + ci], 'sunset');
+        startTime = hhmmOr(cols[18 + ci], '00:00');
+        startPrePost = parseBoolOr(cols[19 + ci]);
+        startPrePostDir = dirOr(cols[20 + ci], 'before');
+        startOffset = hhmmOr(cols[21 + ci], '00:00');
+        endMode = modeOr(cols[22 + ci], 'sunrise');
+        endTime = hhmmOr(cols[23 + ci], '00:00');
+        endPrePost = parseBoolOr(cols[24 + ci]);
+        endPrePostDir = dirOr(cols[25 + ci], 'before');
+        endOffset = hhmmOr(cols[26 + ci], '00:00');
+    }
+    // 精度フィルタ (初代:16-20列目 / それ以外は時間フィルタ群の後)
+    const ai = legacy ? 15 : 27 + ci;
+    const accuracyFilter = parseBoolOr(cols[ai]);
+    const accDblCircle = parseBoolOr(cols[ai + 1]);
+    const accCircle = parseBoolOr(cols[ai + 2]);
+    const accTriangle = parseBoolOr(cols[ai + 3]);
+    const accDash = parseBoolOr(cols[ai + 4]);
+    // 標高オプション (初代以外)
+    const elevationOption = legacy ? false : parseBoolOr(cols[32 + ci]);
+    const elevOK = legacy ? false : parseBoolOr(cols[33 + ci]);
+    const elevNG = legacy ? false : parseBoolOr(cols[34 + ci]);
+    // メモ (末尾列)
+    const memo = ((legacy ? cols[20] : cols[35 + ci]) ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
         baseAz, baseAlt,
         offsetAz, offsetAlt,
         toleranceAz, toleranceAlt,
+        centerMode,
+        mwOffsetAngle,
         moonFilter, moonBase, moonTolerance,
+        timeFilter, startMode, startTime, startPrePost, startPrePostDir, startOffset, endMode, endTime, endPrePost, endPrePostDir, endOffset,
         accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
+        elevationOption, elevOK, elevNG,
         checked: false, memo
     };
 }
@@ -4280,7 +5545,7 @@ function importMyTsujiCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
                 if (lines.length > 1001) return alert('CSVの上限は1000件です(ヘッダー行を除く)');
                 const newList = [];
@@ -4324,7 +5589,7 @@ function appendMyTsujiCsv() {
         reader.onload = (ev) => {
             try {
                 const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
                 if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
                 // 全行パース
@@ -4388,13 +5653,10 @@ function appendMyTsujiCsv() {
     input.click();
 }
 
-/** CSV出力 */
-function exportMyTsujiCsv() {
-    if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
-    if (!confirm('My辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
-    const bom = '\uFEFF';
-    let csv = bom + '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,オフセット方位角,オフセット視高度,許容範囲方位角,許容範囲視高度,月齢フィルタ,基準月齢,許容範囲月齢,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,メモ\r\n';
-    appState.myTsujiSearches.forEach(t => {
+/** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
+function _buildMyTsujiCsv(targets) {
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高オプション,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
+    targets.forEach(t => {
         csv += [
             t.id,
             t.name ?? '',
@@ -4408,17 +5670,43 @@ function exportMyTsujiCsv() {
             t.offsetAlt ?? 0,
             t.toleranceAz ?? 15,
             t.toleranceAlt ?? 15,
+            t.centerMode === 'line' ? 'line' : 'point',
+            t.mwOffsetAngle ?? 0,
             t.moonFilter ? 'ON' : 'OFF',
             t.moonBase ?? 14.8,
             t.moonTolerance ?? 2,
+            t.timeFilter ? 'ON' : 'OFF',
+            t.startMode ?? 'sunset',
+            t.startTime ?? '00:00',
+            t.startPrePost ? 'ON' : 'OFF',
+            t.startPrePostDir ?? 'before',
+            t.startOffset ?? '00:00',
+            t.endMode ?? 'sunrise',
+            t.endTime ?? '00:00',
+            t.endPrePost ? 'ON' : 'OFF',
+            t.endPrePostDir ?? 'before',
+            t.endOffset ?? '00:00',
             t.accuracyFilter ? 'ON' : 'OFF',
             t.accDblCircle ? 'ON' : 'OFF',
             t.accCircle ? 'ON' : 'OFF',
             t.accTriangle ? 'ON' : 'OFF',
             t.accDash ? 'ON' : 'OFF',
+            t.elevationOption ? 'ON' : 'OFF',
+            t.elevOK ? 'ON' : 'OFF',
+            t.elevNG ? 'ON' : 'OFF',
             t.memo ?? ''
         ].join(',') + '\r\n';
     });
+    return csv;
+}
+
+/** CSV出力 */
+function exportMyTsujiCsv() {
+    if (appState.myTsujiSearches.length === 0) return alert('My辻検索が登録されていません');
+    const targets = appState.myTsujiSearches.filter(t => t.checked);
+    if (targets.length === 0) return alert('CSV出力するMy辻検索が選択されていません');
+    if (!confirm('チェックボックスで選択されたMy辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
+    const csv = '\uFEFF' + _buildMyTsujiCsv(targets);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4486,6 +5774,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAltOffset', String(t.offsetAlt ?? 0));
     params.set('tsujiAzTolerance', String(t.toleranceAz ?? 15));
     params.set('tsujiAltTolerance', String(t.toleranceAlt ?? 15));
+    params.set('tsujiCenterMode', t.centerMode === 'line' ? 'line' : 'point');
     params.set('tsujiMoonFilter', t.moonFilter ? 'true' : 'false');
     params.set('tsujiMoonBase', String(t.moonBase ?? 14.8));
     params.set('tsujiMoonTolerance', String(t.moonTolerance ?? 2));
@@ -4496,7 +5785,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAccDash', t.accDash ? 'true' : 'false');
     params.set('mode', 'tsujisearch');
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
     }).catch(err => {
@@ -4511,11 +5800,11 @@ function copyMyTsujiSearchUrl(includeDateTime) {
 
 /** 単一のMy辻検索行を実行し、body単位の結果配列を返す。
  *  chunkDoneCb は1チャンク (365日分) 完了ごとに呼ばれる (進捗バー用) */
-async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, chunkDoneCb) {
+async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs, snapshotTgt, chunkDoneCb, obsOverride, tgtOverride) {
     const obsSource = snapshotObs || appState.myObservations;
     const tgtSource = snapshotTgt || appState.myTargets;
-    const obs = obsSource.find(o => o.id === t.obsId);
-    const tgt = tgtSource.find(g => g.id === t.tgtId);
+    const obs = obsOverride || obsSource.find(o => o.id === t.obsId);
+    const tgt = tgtOverride || tgtSource.find(g => g.id === t.tgtId);
     if (!obs || !tgt) return null;
 
     const observerData = {
@@ -4546,7 +5835,10 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
     // 全天体・全チャンクをプールに一括投入し、並列処理する
     const perBodyChunks = bodies.map(body => {
         let bodyMsg;
-        if (isFixedStar(body.id)) {
+        if (body.id === 'MilkyWay') {
+            const rd = _myTsujiMwRaDec(t);   // 天の川はこの行のオフセット中心角を使う(基本オプションとは連動しない)
+            bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        } else if (isFixedStar(body.id)) {
             const rd = getFixedStarRaDec(body.id);
             bodyMsg = { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
         } else {
@@ -4559,6 +5851,7 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
         runTsujiChunks({
             bodyMsg, observerData, refractionEnabled,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
+            centerMode: t.centerMode, centerAz0: ((t.baseAz || 0) + 360) % 360, centerAlt0: t.baseAlt || 0,   // 検索中心オプション(行ごとに独立)
             searchStartMs, days: t.days,
             maxResults: MAX_RESULTS_PER_BODY,
             onChunkDone: chunkDoneCb
@@ -4589,25 +5882,48 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
 
 /** 結果オブジェクトの配列に装飾情報(symbol/moonAge/moonIcon/dateStr/timeStr)を付加。
  *  月齢フィルタで除外される行は null として filter */
-function decorateMyTsujiResults(results) {
+async function decorateMyTsujiResults(results) {
     const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
-    return results.map(r => {
+    const twCache = new Map();
+    // 標高オプション: (観測点ID,目的点ID)毎に1回だけ可視判定 (entry.elevationOption が ON のもの)
+    const visCache = new Map();
+    for (const r of results) {
+        if (!r.tsuji.elevationOption) continue;
+        const vkey = `${r.obs.id}_${r.tgt.id}`;
+        if (visCache.has(vkey)) continue;
+        const sTot = (r.obs.elev || 0) + (r.obs.height || 0);
+        const eTot = (r.tgt.elev || 0) + (r.tgt.height || 0);
+        const v = await computePathVisibility(r.obs.lat, r.obs.lng, sTot, r.tgt.lat, r.tgt.lng, eTot);
+        visCache.set(vkey, v.visible ? 'OK' : 'NG');
+    }
+    const decorated = [];
+    for (const r of results) {
         const phase = Astronomy.MoonPhase(r.time);
         const moonAge = (phase / 360) * SYNODIC_MONTH;
         const moonIcon = moonIcons[Math.round(phase / 45) % 8];
+        let moonIllum = 0;
+        try { moonIllum = Astronomy.Illumination('Moon', r.time).phase_fraction * 100; } catch (_) {}
         let symbol;
         if (r.dist <= 0.125) symbol = '◎';
         else if (r.dist <= 0.25) symbol = '○';
         else if (r.dist <= 1.0) symbol = '△';
         else symbol = '-';
-        if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) return null;
+        if (r.tsuji.moonFilter && !isMoonAgeInRange(moonAge, r.tsuji.moonBase ?? 15, r.tsuji.moonTolerance ?? 2)) continue;
         if (r.tsuji.accuracyFilter) {
             const allowed = [];
             if (r.tsuji.accDblCircle) allowed.push('◎');
             if (r.tsuji.accCircle) allowed.push('○');
             if (r.tsuji.accTriangle) allowed.push('△');
             if (r.tsuji.accDash) allowed.push('-');
-            if (allowed.length > 0 && !allowed.includes(symbol)) return null;
+            if (allowed.length > 0 && !allowed.includes(symbol)) continue;
+        }
+        // 標高オプション: 可視判定の結果(OK/NG/-)とOK/NGフィルタ
+        const elevationStatus = r.tsuji.elevationOption ? (visCache.get(`${r.obs.id}_${r.tgt.id}`) || '-') : '-';
+        if (r.tsuji.elevationOption && (r.tsuji.elevOK || r.tsuji.elevNG)) {
+            const allowedElev = [];
+            if (r.tsuji.elevOK) allowedElev.push('OK');
+            if (r.tsuji.elevNG) allowedElev.push('NG');
+            if (!allowedElev.includes(elevationStatus)) continue;
         }
         const dt = r.time;
         const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
@@ -4618,6 +5934,18 @@ function decorateMyTsujiResults(results) {
         const angularRadius = getBodyAngularRadius(r.body.id, dt, observer);
         // 日の出/日の入/月の出/月の入時刻 (panel/CSV共通)
         const startOfDay = new Date(dt); startOfDay.setHours(0,0,0,0);
+        const twKey = `${r.obs.lat},${r.obs.lng},${(r.obs.elev||0)+(r.obs.height||0)}|${startOfDay.getTime()}`;
+        let tw = twCache.get(twKey);
+        if (!tw) { tw = computeDayTwilight(startOfDay, observer); twCache.set(twKey, tw); }
+        const timeCategory = classifyTimeCategory(dt, tw, startOfDay);
+        // 時間フィルタ: 辻時刻がその日の範囲外ならスキップ
+        if (r.tsuji.timeFilter) {
+            const fs = {
+                startMode: r.tsuji.startMode || 'sunset', startTime: r.tsuji.startTime || '00:00', startPrePost: !!r.tsuji.startPrePost, startPrePostDir: r.tsuji.startPrePostDir || 'before', startOffset: r.tsuji.startOffset || '00:00',
+                endMode: r.tsuji.endMode || 'sunrise', endTime: r.tsuji.endTime || '00:00', endPrePost: !!r.tsuji.endPrePost, endPrePostDir: r.tsuji.endPrePostDir || 'before', endOffset: r.tsuji.endOffset || '00:00',
+            };
+            if (!passesTimeFilter(dt, tw, fs)) continue;
+        }
         let sunriseStr = '--:--:--', sunsetStr = '--:--:--', moonriseStr = '--:--:--', moonsetStr = '--:--:--';
         try {
             sunriseStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1));
@@ -4625,9 +5953,10 @@ function decorateMyTsujiResults(results) {
             moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2));
             moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
         } catch (_) {}
-        return { ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, angularRadius,
-                 sunriseStr, sunsetStr, moonriseStr, moonsetStr };
-    }).filter(Boolean);
+        decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, moonIllum, angularRadius, timeCategory,
+                 elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr });
+    }
+    return decorated;
 }
 
 // 一括計算 / File取得の実行状態とキャンセルフラグ (独立管理)
@@ -4716,7 +6045,7 @@ async function runBatchMyTsujiSearch() {
         if (myGen !== myTsujiBatchGen) return; // 強制キャンセル済 (新規起動済)
         if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
-        statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        statusEl.innerHTML = `<span class="clock-anim">🕛</span> 実行中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiBatchGen) return;
         if (!res) continue;
@@ -4735,7 +6064,7 @@ async function runBatchMyTsujiSearch() {
     myTsujiBatchRunning = false;
     document.getElementById('btn-mytsuji-batch').classList.remove('active');
 
-    const decorated = decorateMyTsujiResults(allResults);
+    const decorated = await decorateMyTsujiResults(allResults);
     if (!myTsujiBatchCanceled) statusEl.textContent = `${decorated.length}件`;
     hideTsujiProgress();
     if (decorated.length === 0) {
@@ -4751,14 +6080,17 @@ async function runBatchMyTsujiSearch() {
         <th>観測点ID</th><th>観測点名</th>
         <th>目的点ID</th><th>目的点名</th>
         <th>精度記号</th><th>精度角距離</th>
-        <th>日付</th><th>曜日</th><th>辻時刻</th>
+        <th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th>
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
-        <th>月齢</th><th>月齢アイコン</th>
-        <th>方位角</th><th>視高度</th><th>視半径</th>
+        <th>月齢</th><th>月齢アイコン</th><th>月輝面比</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
 
+    // 検索中心差の参照点(行ごとに独立した検索条件を使用)
+    const myTsujiCtr = (r) => tsujiCenterRefPoint(r.azimuth, r.altitude,
+        r.tsuji.baseAz || 0, r.tsuji.baseAlt || 0, r.tsuji.offsetAz || 0, r.tsuji.offsetAlt || 0, r.tsuji.centerMode);
     const renderMyTsujiResultRow = (r) => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row';
@@ -4778,15 +6110,21 @@ async function runBatchMyTsujiSearch() {
             <td>${r.dateStr}</td>
             <td>${r.dowStr}</td>
             <td>${r.timeStr}</td>
+            <td>${escapeHtml(r.timeCategory)}</td>
             <td>${r.sunriseStr}</td>
             <td>${r.sunsetStr}</td>
             <td>${r.moonriseStr}</td>
             <td>${r.moonsetStr}</td>
             <td>${r.moonAge.toFixed(1)}</td>
             <td>${r.moonIcon}</td>
+            <td>${(r.moonIllum ?? 0).toFixed(1)}%</td>
             <td>${r.azimuth.toFixed(4)}°</td>
             <td>${r.altitude.toFixed(4)}°</td>
-            <td>${angRDisplay}</td>`;
+            <td>${angRDisplay}</td>
+            <td>${fmtSignedDeg(azDiffDeg(r.azimuth, myTsujiCtr(r).az))}</td>
+            <td>${fmtSignedDeg(r.altitude - myTsujiCtr(r).alt)}</td>
+            <td>${(Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4)}°</td>
+            <td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.startApiElev = r.obs.elev || 0;
             appState.startHeight = r.obs.height || 0;
@@ -4819,15 +6157,21 @@ async function runBatchMyTsujiSearch() {
         { label: '日付', compare: (a, b) => a.time - b.time },
         { label: '曜日', compare: (a, b) => a.time.getDay() - b.time.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
         { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
         { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
         { label: '月の出時刻', compare: (a, b) => a.moonriseStr.localeCompare(b.moonriseStr) },
         { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
         { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
         { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心方位角差', compare: (a, b) => azDiffDeg(a.azimuth, myTsujiCtr(a).az) - azDiffDeg(b.azimuth, myTsujiCtr(b).az) },
+        { label: '検索中心視高度差', compare: (a, b) => (a.altitude - myTsujiCtr(a).alt) - (b.altitude - myTsujiCtr(b).alt) },
+        { label: 'オフセット中心角', compare: (a, b) => (Number(a.tsuji.mwOffsetAngle) || 0) - (Number(b.tsuji.mwOffsetAngle) || 0) },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
 }
 
@@ -4843,31 +6187,41 @@ function fmtHms(d) {
 }
 
 /** decorated 結果1件分をCSV行の配列へ変換 */
-function buildMyTsujiCsvRow(r) {
+function buildMyTsujiCsvRow(r, preAstro) {
     const dt = r.time;
     const startOfDay = new Date(dt);
     startOfDay.setHours(0, 0, 0, 0);
     const observer = new Astronomy.Observer(r.obs.lat, r.obs.lng, (r.obs.elev || 0) + (r.obs.height || 0));
 
     let sr, ss, mr, ms;
-    try {
-        sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-        ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-        mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-        ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-    } catch (_) {}
-
     let astroDawn, nautDawn, yoake, civilDawn, civilDusk, higure, nautDusk, astroDusk;
-    try {
-        astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
-        nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
-        yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
-        civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
-        civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
-        higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
-        nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
-        astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
-    } catch (_) {}
+    let bhEndGhStart, ghEnd, ghStart, ghEndBhStart;   // GH=ゴールデンアワー(±6°〜-4°) / BH=ブルーアワー(-4°〜-6°)
+    if (preAstro) {
+        // 大量行の一括出力(辻メッシュの全画素出力)用: 日単位で事前計算した出没・薄明・GH/BHを共有する
+        ({ sr, ss, mr, ms, astroDawn, nautDawn, yoake, civilDawn, bhEndGhStart, ghEnd,
+           ghStart, ghEndBhStart, civilDusk, higure, nautDusk, astroDusk } = preAstro);
+    } else {
+        try {
+            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+        } catch (_) {}
+        try {
+            astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
+            nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
+            yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
+            civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+            bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);
+            ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);
+            ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);
+            ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);
+            civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
+            higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
+            nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
+            astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
+        } catch (_) {}
+    }
 
     let raStr = '', decStr = '';
     try {
@@ -4913,6 +6267,10 @@ function buildMyTsujiCsvRow(r) {
     const offsetAlt = r.tsuji.offsetAlt || 0;
     const offsetAzDist = partnerDist * Math.tan(offsetAz * Math.PI / 180);
     const offsetAltDist = partnerDist * Math.tan(offsetAlt * Math.PI / 180);
+    // オフセット回転角(上=0°・時計回り) / 回転仰角(基準点とオフセット点の球面角距離)
+    const baseAz = r.tsuji.baseAz || 0, baseAlt = r.tsuji.baseAlt || 0;
+    const offsetRot = calcOffsetRotation(offsetAz, offsetAlt);
+    const offsetRotAlt = angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt);
 
     return [
         r.tsuji.id,
@@ -4921,11 +6279,14 @@ function buildMyTsujiCsvRow(r) {
         csvDateStr,
         csvDowStr,
         fmtHms(dt),
+        r.timeCategory ?? '-',
         fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
         r.moonAge.toFixed(1),
         r.moonIcon,
+        (r.moonIllum ?? 0).toFixed(1) + '%',
         fmtHms(astroDawn), fmtHms(nautDawn), fmtHms(yoake), fmtHms(civilDawn),
-        fmtHms(sr), fmtHms(ss),
+        fmtHms(bhEndGhStart), fmtHms(sr), fmtHms(ghEnd),
+        fmtHms(ghStart), fmtHms(ss), fmtHms(ghEndBhStart),
         fmtHms(civilDusk), fmtHms(higure), fmtHms(nautDusk), fmtHms(astroDusk),
         r.body.id, r.body.name ?? '',
         decStr, raStr,
@@ -4946,6 +6307,8 @@ function buildMyTsujiCsvRow(r) {
         r.azimuth.toFixed(4) + '°',
         r.altitude.toFixed(4) + '°',
         angRStr,
+        fmtSignedDeg(azDiffDeg(r.azimuth, tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).az)),
+        fmtSignedDeg(r.altitude - tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).alt),
         partnerDist.toFixed(1) + 'm',
         partnerAz.toFixed(4) + '°',
         partnerAlt.toFixed(4) + '°',
@@ -4953,6 +6316,10 @@ function buildMyTsujiCsvRow(r) {
         offsetAlt.toFixed(4) + '°',
         offsetAzDist.toFixed(1) + 'm',
         offsetAltDist.toFixed(1) + 'm',
+        offsetRot.toFixed(4) + '°',
+        offsetRotAlt.toFixed(4) + '°',
+        (Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4) + '°',
+        r.elevationStatus ?? '-',
         previewUrl
     ];
 }
@@ -4997,7 +6364,7 @@ async function fileBatchMyTsujiSearch() {
         if (myGen !== myTsujiFileGen) return;
         if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
-        statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        statusEl.innerHTML = `<span class="clock-anim">🕛</span> File出力処理中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiFileGen) return;
         if (!res) continue;
@@ -5019,28 +6386,37 @@ async function fileBatchMyTsujiSearch() {
 
     if (myTsujiFileCanceled) return;
 
-    const decorated = decorateMyTsujiResults(allResults);
+    const decorated = await decorateMyTsujiResults(allResults);
     if (decorated.length === 0) {
         statusEl.textContent = '0件';
         return alert('該当する日時はありません');
     }
 
     statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+    await downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
+    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+}
 
+/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通)。
+ *  行毎の事前計算(r._preAstro)があれば利用。大量行でもUIが固まらないよう2000行毎にyieldし、
+ *  onProgress(done, total) で進捗を通知する(省略可) */
+async function downloadTsujiResultCsv(decorated, filename, onProgress) {
     const header = [
-        '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻',
+        '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
-        '月齢','月齢アイコン',
-        '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明[始]時刻',
-        '日の出時刻','日の入時刻',
-        '常用薄明[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
+        '月齢','月齢アイコン','月輝面比',
+        '天文薄明[始]時刻','航海薄明[始]時刻','夜明時刻','常用薄明/BH[始]時刻',
+        'BH[終]/GH[始]時刻','日の出時刻','GH[終]時刻',
+        'GH[始]時刻','日の入時刻','GH[終]/BH[始]時刻',
+        '常用薄明/BH[終]時刻','日暮時刻','航海薄明[終]時刻','天文薄明[終]時刻',
         '天体ID','天体名','天体赤緯','天体赤経',
         '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高','観測点メモ',
         '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高','目的点メモ',
         '精度記号','精度角距離',
-        '方位角','視高度','視半径',
+        '方位角','視高度','視半径','検索中心方位角差','検索中心視高度差',
         '相手距離','相手方位','相手高度',
-        'オフセット方位角','オフセット視高度','オフセット方位距離','オフセット視高距離',
+        '辻オフセット方位角','辻オフセット視高度','辻オフセット方位距離','辻オフセット視高距離',
+        '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','標高グラフ',
         'プレビューURL'
     ];
     const esc = v => {
@@ -5049,19 +6425,87 @@ async function fileBatchMyTsujiSearch() {
         return s;
     };
     const bom = '\uFEFF';
-    let csv = bom + header.map(esc).join(',') + '\r\n';
-    decorated.forEach(r => {
-        csv += buildMyTsujiCsvRow(r).map(esc).join(',') + '\r\n';
-    });
+    const parts = [bom + header.map(esc).join(',') + '\r\n'];
+    for (let i = 0; i < decorated.length; i++) {
+        const r = decorated[i];
+        parts.push(buildMyTsujiCsvRow(r, r._preAstro).map(esc).join(',') + '\r\n');
+        if ((i + 1) % 2000 === 0) {
+            if (onProgress) onProgress(i + 1, decorated.length);
+            await new Promise(res => setTimeout(res, 0));
+        }
+    }
+    const csv = parts.join('');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+}
+
+/** 辻検索メニューのFile取得: 現在の辻検索条件で検索を実行し、結果をCSVでダウンロードする。
+ *  列構成はMy辻検索のFile取得と共通(デッサン03)。辻検索ID/名/メモ・観測点/目的点IDは空白 */
+let _tsujiFileRunning = false;
+async function fileTsujiSearchCsv() {
+    if (_tsujiFileRunning) return;
+    const baseAz = appState.tsujiSearchBaseAz, baseAlt = appState.tsujiSearchBaseAlt;
+    if (isNaN(baseAz) || isNaN(baseAlt)) return alert('方位角・視高度・許容範囲を正しく入力してください');
+    if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？')) return;
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    if (!visibleBodies.length) return alert('表示天体がありません');
+    const t = {
+        id: '', name: '', memo: '',
+        days: appState.tsujiSearchDays,
+        baseAz, baseAlt,
+        offsetAz: appState.tsujiSearchOffsetAz || 0, offsetAlt: appState.tsujiSearchOffsetAlt || 0,
+        toleranceAz: appState.tsujiSearchToleranceAz, toleranceAlt: appState.tsujiSearchToleranceAlt,
+        centerMode: appState.tsujiCenterMode === 'line' ? 'line' : 'point',
+        mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,
+        bodyIds: visibleBodies.map(b => b.id).join(':'),
+        moonFilter: appState.tsujiMoonFilterEnabled, moonBase: appState.tsujiMoonBase, moonTolerance: appState.tsujiMoonTolerance,
+        accuracyFilter: appState.tsujiAccuracyFilterEnabled, accDblCircle: appState.tsujiAccDblCircle, accCircle: appState.tsujiAccCircle, accTriangle: appState.tsujiAccTriangle, accDash: appState.tsujiAccDash,
+        elevationOption: appState.tsujiElevationOption, elevOK: appState.tsujiElevOK, elevNG: appState.tsujiElevNG,
+        timeFilter: appState.tsujiTimeFilter,
+        startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset,
+        endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
+    };
+    const obs = { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' };
+    const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
+    _tsujiFileRunning = true;
+    const btn = document.getElementById('btn-tsuji-file');
+    if (btn) btn.classList.add('active');
+    try {
+        showTsujiPanelForMyTsuji('辻検索結果 (File出力)');
+        const statusEl = document.getElementById('tsujisearch-status');
+        document.getElementById('tsujisearch-content').innerHTML = '';
+        statusEl.innerHTML = '<span class="clock-anim">🕛</span> File出力処理中...';
+        const batchStartDate = new Date(appState.currentDate);
+        batchStartDate.setHours(0, 0, 0, 0);
+        const totalChunks = Math.max(1, visibleBodies.length) * Math.max(1, Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS));
+        let doneChunks = 0;
+        setTsujiProgress(0, totalChunks);
+        const res = await executeSingleMyTsujiSearch(t, batchStartDate.getTime(), null, null,
+            () => { doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);
+        hideTsujiProgress();
+        const allResults = [];
+        if (res) for (const br of res.bodyResults) for (const r of br.results) {
+            allResults.push({ tsuji: t, obs, tgt, body: br.body, time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist });
+        }
+        const decorated = await decorateMyTsujiResults(allResults);
+        if (!decorated.length) { statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
+        statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+        await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
+        statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+    } catch (e) {
+        console.error('fileTsujiSearchCsv:', e);
+        alert('File取得に失敗しました: ' + (e && e.message ? e.message : e));
+    } finally {
+        _tsujiFileRunning = false;
+        hideTsujiProgress();
+        if (btn) btn.classList.remove('active');
+    }
 }
 
 /** リスト描画 (Phase A-3: イベントハンドラ追加) */
@@ -5110,22 +6554,42 @@ function renderMyTsujiSearches() {
                 <input type="number" class="mytsuji-base-alt" value="${t.baseAlt !== undefined && t.baseAlt !== null ? t.baseAlt.toFixed(4) : ''}" placeholder="基準視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
-                <label class="mytsuji-label">オフセット方位角(°):</label>
+                <label class="mytsuji-label">辻オフセット方位角(°):</label>
                 <input type="number" class="mytsuji-offset-az" value="${t.offsetAz !== undefined && t.offsetAz !== null ? t.offsetAz : 0}" placeholder="オフセット方位角(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
-                <label class="mytsuji-label">オフセット視高度(°):</label>
+                <label class="mytsuji-label">辻オフセット視高度(°):</label>
                 <input type="number" class="mytsuji-offset-alt" value="${t.offsetAlt !== undefined && t.offsetAlt !== null ? t.offsetAlt : 0}" placeholder="オフセット視高度(°)" step="0.0001" min="-360" max="360" data-id="${t.id}">
             </div>
             <div class="control-row">
-                <label class="mytsuji-label">オフセット方位距離(m):</label>
+                <label class="mytsuji-label">辻オフセット方位距離(m):</label>
                 <input type="number" class="mytsuji-offset-az-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
-                <label class="mytsuji-label">オフセット視高距離(m):</label>
+                <label class="mytsuji-label">辻オフセット視高距離(m):</label>
                 <input type="number" class="mytsuji-offset-alt-dist elev-readonly" value="0" readonly step="0.1" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">辻オフセット回転角(°):</label>
+                <input type="number" class="mytsuji-offset-rot elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
+                <label class="mytsuji-label">辻オフセット回転仰角(°):</label>
+                <input type="number" class="mytsuji-offset-rot-alt elev-readonly" value="0" readonly step="0.0001" data-id="${t.id}">
             </div>
             <div class="control-row">
                 <label class="mytsuji-label">許容範囲方位角(°): ±</label>
                 <input type="number" class="mytsuji-tol-az" value="${t.toleranceAz !== undefined && t.toleranceAz !== null ? t.toleranceAz : 15}" placeholder="許容範囲方位角(°)" step="0.1" min="0" max="360" data-id="${t.id}">
                 <label class="mytsuji-label">許容範囲視高度(°): ±</label>
                 <input type="number" class="mytsuji-tol-alt" value="${t.toleranceAlt !== undefined && t.toleranceAlt !== null ? t.toleranceAlt : 15}" placeholder="許容範囲視高度(°)" step="0.1" min="0" max="360" data-id="${t.id}">
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します">検索中心オプション</label></div>
+            <div class="control-row left-row">
+                <label class="baseopt-radio" title="検索中心を辻オフセット点の「点」で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="point" data-id="${t.id}" ${t.centerMode !== 'line' ? 'checked' : ''}>:辻オフセット点</label>
+            </div>
+            <div class="control-row left-row">
+                <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" class="mytsuji-center-mode" name="mytsuji-center-mode-${t.id}" value="line" data-id="${t.id}" ${t.centerMode === 'line' ? 'checked' : ''}>:基準点から辻オフセット点までの線</label>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+            <div class="control-row">
+                <label class="mytsuji-label" title="この行の辻検索だけに反映する天の川の基準点のオフセット中心角(基本オプションとは連動しない)">オフセット中心角(°):</label>
+                <input type="number" class="mytsuji-mw-offset" value="${t.mwOffsetAngle !== undefined && t.mwOffsetAngle !== null ? t.mwOffsetAngle : (Number(appState.mwOffsetAngle) || 0)}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}">
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
@@ -5140,6 +6604,13 @@ function renderMyTsujiSearches() {
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-time-filter" data-id="${t.id}" ${t.timeFilter ? 'checked' : ''}>
+                <label>時間フィルタ</label>
+            </div>
+            ${buildMyTsujiTimeGroupHtml(t, 'start')}
+            ${buildMyTsujiTimeGroupHtml(t, 'end')}
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
                 <input type="checkbox" class="body-checkbox mytsuji-acc-filter" data-id="${t.id}" ${t.accuracyFilter ? 'checked' : ''}>
                 <label>精度フィルタ</label>
             </div>
@@ -5149,27 +6620,39 @@ function renderMyTsujiSearches() {
                 <input type="checkbox" class="body-checkbox mytsuji-acc-triangle" data-id="${t.id}" ${t.accTriangle ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:△</label>
                 <input type="checkbox" class="body-checkbox mytsuji-acc-dash" data-id="${t.id}" ${t.accDash ? 'checked' : ''} ${t.accuracyFilter ? '' : 'disabled'}> <label class="tsuji-acc-label">:-</label>
             </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-elev-option" data-id="${t.id}" ${t.elevationOption ? 'checked' : ''}>
+                <label>標高オプション</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" class="body-checkbox mytsuji-elev-ok" data-id="${t.id}" ${t.elevOK ? 'checked' : ''} ${t.elevationOption ? '' : 'disabled'}> <label class="tsuji-acc-label">:OK</label>
+                <input type="checkbox" class="body-checkbox mytsuji-elev-ng" data-id="${t.id}" ${t.elevNG ? 'checked' : ''} ${t.elevationOption ? '' : 'disabled'}> <label class="tsuji-acc-label">:NG</label>
+            </div>
             <div class="control-row">
                 <label class="mytsuji-label">メモ:</label>
                 <input type="text" class="mytsuji-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${t.id}" autocomplete="off">
             </div>`;
-
-        // 初期表示でオフセット距離を計算 + ID検証
-        const { azDist, altDist } = recalcMyTsujiOffsetDist(t);
-        row.querySelector('.mytsuji-offset-az-dist').value = azDist.toFixed(1);
-        row.querySelector('.mytsuji-offset-alt-dist').value = altDist.toFixed(1);
-        validateMyTsujiRow(t, row);
 
         // ヘルパー: 行内の指定クラスを持つ要素にchangeハンドラを登録
         const onChange = (cls, fn) => {
             const el = row.querySelector('.' + cls);
             if (el) el.addEventListener('change', fn);
         };
+        // オフセットの読取専用欄(方位距離/視高距離/回転角/回転仰角)を再計算して反映
         const updateDist = () => {
             const r = recalcMyTsujiOffsetDist(t);
             row.querySelector('.mytsuji-offset-az-dist').value = r.azDist.toFixed(1);
             row.querySelector('.mytsuji-offset-alt-dist').value = r.altDist.toFixed(1);
+            const oAz = t.offsetAz || 0, oAlt = t.offsetAlt || 0;
+            const bAz = t.baseAz, bAlt = t.baseAlt;
+            const baseValid = bAz !== null && bAz !== undefined && !isNaN(bAz) && bAlt !== null && bAlt !== undefined && !isNaN(bAlt);
+            row.querySelector('.mytsuji-offset-rot').value = parseFloat(calcOffsetRotation(oAz, oAlt).toFixed(4));
+            row.querySelector('.mytsuji-offset-rot-alt').value = baseValid ? parseFloat(angularDistance(bAz, bAlt, bAz + oAz, bAlt + oAlt).toFixed(4)) : 0;
         };
+        // 初期表示 + ID検証
+        updateDist();
+        validateMyTsujiRow(t, row);
 
         onChange('mytsuji-name', e => { t.name = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-days', e => {
@@ -5195,12 +6678,12 @@ function renderMyTsujiSearches() {
         onChange('mytsuji-base-az', e => {
             const v = parseFloat(e.target.value);
             t.baseAz = isNaN(v) ? null : v;
-            saveAppState(); setMyTsujiDirty(true);
+            saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-base-alt', e => {
             const v = parseFloat(e.target.value);
             t.baseAlt = isNaN(v) ? null : v;
-            saveAppState(); setMyTsujiDirty(true);
+            saveAppState(); setMyTsujiDirty(true); updateDist();
         });
         onChange('mytsuji-offset-az', e => {
             t.offsetAz = parseFloat(e.target.value) || 0;
@@ -5222,6 +6705,14 @@ function renderMyTsujiSearches() {
             e.target.value = t.toleranceAlt;
             saveAppState(); setMyTsujiDirty(true);
         });
+        onChange('mytsuji-mw-offset', e => {   // 行ごとに独立(基本オプションとは連動しない)
+            t.mwOffsetAngle = Math.min(Math.max(parseFloat(e.target.value) || 0, -360), 360);
+            e.target.value = t.mwOffsetAngle;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        row.querySelectorAll('.mytsuji-center-mode').forEach(r => r.addEventListener('change', () => {   // 検索中心オプション(行ごとに独立)
+            if (r.checked) { t.centerMode = r.value === 'line' ? 'line' : 'point'; saveAppState(); setMyTsujiDirty(true); }
+        }));
         onChange('mytsuji-moon-filter', e => {
             t.moonFilter = e.target.checked;
             row.querySelector('.mytsuji-moon-base').disabled = !t.moonFilter;
@@ -5250,6 +6741,34 @@ function renderMyTsujiSearches() {
         onChange('mytsuji-acc-circle', e => { t.accCircle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-acc-triangle', e => { t.accTriangle = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
         onChange('mytsuji-acc-dash', e => { t.accDash = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-elev-option', e => {
+            t.elevationOption = e.target.checked;
+            row.querySelector('.mytsuji-elev-ok').disabled = !t.elevationOption;
+            row.querySelector('.mytsuji-elev-ng').disabled = !t.elevationOption;
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        onChange('mytsuji-elev-ok', e => { t.elevOK = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        onChange('mytsuji-elev-ng', e => { t.elevNG = e.target.checked; saveAppState(); setMyTsujiDirty(true); });
+        // 時間フィルタ
+        onChange('mytsuji-time-filter', e => {
+            t.timeFilter = e.target.checked;
+            updateMyTsujiRowTimeFilterUI(row, t);
+            saveAppState(); setMyTsujiDirty(true);
+        });
+        ['start', 'end'].forEach(group => {
+            row.querySelectorAll('.mytsuji-' + group + '-mode').forEach(r => {
+                r.addEventListener('change', e => { t[group + 'Mode'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            });
+            const timeBox = row.querySelector('.mytsuji-' + group + '-time');
+            if (timeBox) timeBox.addEventListener('change', e => { t[group + 'Time'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            const ppChk = row.querySelector('.mytsuji-' + group + '-prepost');
+            if (ppChk) ppChk.addEventListener('change', e => { t[group + 'PrePost'] = e.target.checked; updateMyTsujiRowTimeFilterUI(row, t); saveAppState(); setMyTsujiDirty(true); });
+            row.querySelectorAll('.mytsuji-' + group + '-prepost-control[type="radio"]').forEach(r => {
+                r.addEventListener('change', e => { t[group + 'PrePostDir'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+            });
+            const offBox = row.querySelector('.mytsuji-' + group + '-offset');
+            if (offBox) offBox.addEventListener('change', e => { t[group + 'Offset'] = e.target.value; saveAppState(); setMyTsujiDirty(true); });
+        });
         onChange('mytsuji-check', e => { t.checked = e.target.checked; saveAppState(); });
         onChange('mytsuji-memo', e => { t.memo = e.target.value.trim(); saveAppState(); setMyTsujiDirty(true); });
 
@@ -5295,6 +6814,7 @@ function toggleVisibility(id, checked) {
         body.visible = checked;
         saveAppState();
         updateAll();
+        applyTsujiMeshLayerVisibility();   // 選択行の天体の表示/非表示に辻マーカー(集合+ピン)を連動
         // 辻ライン365 連動: 表示天体が変わったら再計算 (世代カウンタで進行中をキャンセル)
         if (appState.isDP365Active) {
             updateDP365Lines();
@@ -5330,7 +6850,15 @@ function applyColor(code) {
         renderCelestialList();
         renderMyStarsList();
         updateAll();
+        _tmApplyBodyStyleChange();
     }
+}
+
+/** 辻メッシュの辻/優辻マーカーは焼き込み画像のため、天体色の変更時はここで再描画する(結果行の文字色も追従) */
+function _tmApplyBodyStyleChange() {
+    if (!_tsujiMeshRows.length) return;
+    _tsujiMeshRows.forEach(r => { if (r.__tr) r.__tr.style.color = r.body.color; });
+    recalcTsujiMeshGoldAtTime();
 }
 
 function applyLineStyle(type) {
@@ -5401,6 +6929,7 @@ function resetBodyStyle() {
     renderCelestialList();
     renderMyStarsList();
     updateAll();
+    _tmApplyBodyStyleChange();
 }
 
 function closePalette() {
@@ -5415,6 +6944,9 @@ function toggleElevation() {
     appState.isElevationActive = !appState.isElevationActive;
 
     if (appState.isElevationActive) {
+        // 全天儀・宙の窓とは画面下1/3を排他利用するため、開いていれば閉じる
+        if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+        if (appState.isSoramadoActive) closeSoramado();
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         startElevationFetch();
@@ -5425,6 +6957,30 @@ function toggleElevation() {
         document.getElementById('progress-overlay').classList.add('hidden');
     }
     syncBottomPanels();
+}
+
+/** 全天儀の表示/非表示トグル (標高グラフと排他、辻検索とは共存) */
+function toggleMilkyWayInstrument() {
+    if (appState.isMilkyWayActive) {
+        closeMilkyWayInstrument();
+    } else {
+        // 標高グラフ・宙の窓とは排他: 開いていれば閉じる
+        if (appState.isElevationActive) toggleElevation();
+        if (appState.isSoramadoActive) closeSoramado();
+        appState.isMilkyWayActive = true;
+        document.getElementById('btn-milkyway').classList.add('active');
+        document.getElementById('milkyway-panel').classList.remove('hidden');
+        startMilkyWayGlobe();
+        _mwUpdateBaseOptions();   // 閉じている間の基本オプション変更を反映
+    }
+    syncBottomPanels();
+}
+
+/** 全天儀を閉じる (内部用: syncBottomPanels は呼び出し側で行う) */
+function closeMilkyWayInstrument() {
+    appState.isMilkyWayActive = false;
+    document.getElementById('btn-milkyway').classList.remove('active');
+    document.getElementById('milkyway-panel').classList.add('hidden');
 }
 
 // --- 辻検索 入力連動 ---
@@ -5447,14 +7003,41 @@ function updateTsujiSearchInputs() {
     updateOffsetDistances();
 }
 
-/** オフセット方位距離・視高距離を再計算してUIに反映 */
+/** 球面角距離 (Az,Alt座標系での厳密な角距離、°)。tsuji-search-worker.js の angularDistance と同一式。 */
+function angularDistance(az1, alt1, az2, alt2) {
+    const toRad = Math.PI / 180;
+    const cosD = Math.sin(alt1 * toRad) * Math.sin(alt2 * toRad) +
+                 Math.cos(alt1 * toRad) * Math.cos(alt2 * toRad) * Math.cos((az1 - az2) * toRad);
+    return Math.acos(Math.max(-1, Math.min(1, cosD))) * 180 / Math.PI;
+}
+
+/** オフセット回転角 (目的点方向を向いて0時(上)から時計回りの角度、°[0,360))。上=0°・右(方位角+)=90°。 */
+function calcOffsetRotation(offsetAz, offsetAlt) {
+    return (Math.atan2(offsetAz, offsetAlt) * 180 / Math.PI + 360) % 360;
+}
+
+/** オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
 function updateOffsetDistances() {
     const dist = L.latLng(appState.start.lat, appState.start.lng)
                   .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
-    const azDist = dist * Math.tan(appState.tsujiSearchOffsetAz * Math.PI / 180);
-    const altDist = dist * Math.tan(appState.tsujiSearchOffsetAlt * Math.PI / 180);
-    document.getElementById('input-tsuji-az-offset-dist').value = parseFloat(azDist.toFixed(1));
-    document.getElementById('input-tsuji-alt-offset-dist').value = parseFloat(altDist.toFixed(1));
+    const offsetAz = appState.tsujiSearchOffsetAz;
+    const offsetAlt = appState.tsujiSearchOffsetAlt;
+    const azDist = dist * Math.tan(offsetAz * Math.PI / 180);
+    const altDist = dist * Math.tan(offsetAlt * Math.PI / 180);
+    // 回転角 (上=0°・時計回り) / 回転仰角 (中心方向とオフセット適用方向の球面角距離)
+    const baseAz = appState.tsujiSearchBaseAz;
+    const baseAlt = appState.tsujiSearchBaseAlt;
+    const valid = !isNaN(baseAz) && !isNaN(baseAlt) && !isNaN(offsetAz) && !isNaN(offsetAlt);
+    const rot = valid ? calcOffsetRotation(offsetAz, offsetAlt) : 0;
+    const rotAlt = valid ? angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt) : 0;
+    // 辻検索メニュー・宙の窓メニュー・宙の窓コントロールメニューの全コピーへ反映(編集中の入力欄は上書きしない)
+    const setV = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    ['input-tsuji-az-offset', 'input-sora-tsuji-az-offset', 'input-sora-ctrl-tsuji-az-offset'].forEach(id => setV(id, offsetAz));
+    ['input-tsuji-alt-offset', 'input-sora-tsuji-alt-offset', 'input-sora-ctrl-tsuji-alt-offset'].forEach(id => setV(id, offsetAlt));
+    ['input-tsuji-az-offset-dist', 'input-sora-tsuji-az-offset-dist', 'input-sora-ctrl-tsuji-az-offset-dist'].forEach(id => setV(id, parseFloat(azDist.toFixed(1))));
+    ['input-tsuji-alt-offset-dist', 'input-sora-tsuji-alt-offset-dist', 'input-sora-ctrl-tsuji-alt-offset-dist'].forEach(id => setV(id, parseFloat(altDist.toFixed(1))));
+    ['input-tsuji-rot', 'input-sora-tsuji-rot', 'input-sora-ctrl-tsuji-rot'].forEach(id => setV(id, parseFloat(rot.toFixed(4))));
+    ['input-tsuji-rot-alt', 'input-sora-tsuji-rot-alt', 'input-sora-ctrl-tsuji-rot-alt'].forEach(id => setV(id, parseFloat(rotAlt.toFixed(4))));
 }
 
 /** 月齢フィルタのUI状態を更新 (入力可否) */
@@ -5472,6 +7055,127 @@ function updateTsujiAccuracyFilterUI() {
     document.getElementById('chk-tsuji-acc-dash').disabled = !enabled;
 }
 
+/** 標高オプションのUI状態を更新 (OK/NGチェックの入力可否) */
+function updateTsujiElevationOptionUI() {
+    const enabled = appState.tsujiElevationOption;
+    document.getElementById('chk-tsuji-elev-ok').disabled = !enabled;
+    document.getElementById('chk-tsuji-elev-ng').disabled = !enabled;
+}
+
+/** 時間フィルタのUI状態(活性/非活性)を更新 */
+function updateTsujiTimeFilterUI() {
+    const on = appState.tsujiTimeFilter;
+    document.querySelectorAll('#tsuji-time-filter-groups .tsuji-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const pp = on && appState['tsuji' + G + 'PrePost'];
+        document.querySelectorAll('.tsuji-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
+}
+
+/** 時間フィルタのフォーム値をappStateから反映 */
+function syncTsujiTimeFilter() {
+    const chk = document.getElementById('chk-tsuji-time-filter');
+    if (!chk) return;
+    chk.checked = appState.tsujiTimeFilter;
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const mr = document.querySelector(`input[name="tsuji-${group}-mode"][value="${appState['tsuji' + G + 'Mode']}"]`);
+        if (mr) mr.checked = true;
+        document.getElementById(`input-tsuji-${group}-time`).value = appState['tsuji' + G + 'Time'];
+        document.getElementById(`chk-tsuji-${group}-prepost`).checked = appState['tsuji' + G + 'PrePost'];
+        const dr = document.querySelector(`input[name="tsuji-${group}-prepost-dir"][value="${appState['tsuji' + G + 'PrePostDir']}"]`);
+        if (dr) dr.checked = true;
+        document.getElementById(`input-tsuji-${group}-offset`).value = appState['tsuji' + G + 'Offset'];
+    });
+    updateTsujiTimeFilterUI();
+}
+
+// --- 辻メッシュ検索 入力連動/UIヘルパー ---
+/** 位置が変わった場合のみ辻メッシュの基準方位角/視高度を再計算（手動入力値を保護） */
+function updateTsujiMeshSearchInputs() {
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    if (posKey === appState._lastTsujiMeshPosKey) return;
+    appState._lastTsujiMeshPosKey = posKey;
+    const dist = L.latLng(appState.start.lat, appState.start.lng)
+                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
+    appState.tsujiMeshBaseAz = az;
+    appState.tsujiMeshBaseAlt = alt;
+    const azEl = document.getElementById('input-tsujimesh-az');
+    const altEl = document.getElementById('input-tsujimesh-alt');
+    if (azEl) azEl.value = az.toFixed(4);
+    if (altEl) altEl.value = alt.toFixed(4);
+    saveAppState();
+    updateTsujiMeshOffsetDistances();
+}
+
+/** 辻メッシュの辻オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
+function updateTsujiMeshOffsetDistances() {
+    const dist = L.latLng(appState.start.lat, appState.start.lng)
+                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const offsetAz = appState.tsujiMeshOffsetAz;
+    const offsetAlt = appState.tsujiMeshOffsetAlt;
+    const baseAz = appState.tsujiMeshBaseAz;
+    const baseAlt = appState.tsujiMeshBaseAlt;
+    const valid = !isNaN(baseAz) && !isNaN(baseAlt) && !isNaN(offsetAz) && !isNaN(offsetAlt);
+    const setV = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    setV('input-tsujimesh-az-offset', offsetAz);
+    setV('input-tsujimesh-alt-offset', offsetAlt);
+    setV('input-tsujimesh-az-offset-dist', parseFloat((dist * Math.tan(offsetAz * Math.PI / 180)).toFixed(1)));
+    setV('input-tsujimesh-alt-offset-dist', parseFloat((dist * Math.tan(offsetAlt * Math.PI / 180)).toFixed(1)));
+    setV('input-tsujimesh-rot', parseFloat((valid ? calcOffsetRotation(offsetAz, offsetAlt) : 0).toFixed(4)));
+    setV('input-tsujimesh-rot-alt', parseFloat((valid ? angularDistance(baseAz, baseAlt, baseAz + offsetAz, baseAlt + offsetAlt) : 0).toFixed(4)));
+}
+
+/** 辻メッシュ: 月齢フィルタのUI状態(入力可否)を更新 */
+function updateTsujiMeshMoonFilterUI() {
+    const enabled = appState.tsujiMeshMoonFilterEnabled;
+    const b = document.getElementById('input-tsujimesh-moon-base');
+    const t = document.getElementById('input-tsujimesh-moon-tolerance');
+    if (b) b.disabled = !enabled;
+    if (t) t.disabled = !enabled;
+}
+
+/** 辻メッシュ: 標高オプションのUI状態(OK/NGチェックの入力可否)を更新 */
+function updateTsujiMeshElevationOptionUI() {
+    const enabled = appState.tsujiMeshElevationOption;
+    const ok = document.getElementById('chk-tsujimesh-elev-ok');
+    const ng = document.getElementById('chk-tsujimesh-elev-ng');
+    if (ok) ok.disabled = !enabled;
+    if (ng) ng.disabled = !enabled;
+}
+
+/** 辻メッシュ: 時間フィルタのUI状態(活性/非活性)を更新 */
+function updateTsujiMeshTimeFilterUI() {
+    const on = appState.tsujiMeshTimeFilter;
+    document.querySelectorAll('#tsujimesh-time-filter-groups .tsujimesh-time-control').forEach(el => { el.disabled = !on; });
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const pp = on && appState['tsujiMesh' + G + 'PrePost'];
+        document.querySelectorAll('.tsujimesh-' + group + '-prepost-control').forEach(el => { el.disabled = !pp; });
+    });
+}
+
+/** 辻メッシュ: 時間フィルタのフォーム値をappStateから反映 */
+function syncTsujiMeshTimeFilter() {
+    const chk = document.getElementById('chk-tsujimesh-time-filter');
+    if (!chk) return;
+    chk.checked = appState.tsujiMeshTimeFilter;
+    ['start', 'end'].forEach(group => {
+        const G = group === 'start' ? 'Start' : 'End';
+        const mr = document.querySelector(`input[name="tsujimesh-${group}-mode"][value="${appState['tsujiMesh' + G + 'Mode']}"]`);
+        if (mr) mr.checked = true;
+        document.getElementById(`input-tsujimesh-${group}-time`).value = appState['tsujiMesh' + G + 'Time'];
+        document.getElementById(`chk-tsujimesh-${group}-prepost`).checked = appState['tsujiMesh' + G + 'PrePost'];
+        const dr = document.querySelector(`input[name="tsujimesh-${group}-prepost-dir"][value="${appState['tsujiMesh' + G + 'PrePostDir']}"]`);
+        if (dr) dr.checked = true;
+        document.getElementById(`input-tsujimesh-${group}-offset`).value = appState['tsujiMesh' + G + 'Offset'];
+    });
+    updateTsujiMeshTimeFilterUI();
+}
+
 /** 月齢が基準月齢±許容範囲の範囲内かどうか（月齢はSYNODIC_MONTHで循環） */
 function isMoonAgeInRange(moonAge, base, tolerance) {
     const S = SYNODIC_MONTH;
@@ -5484,11 +7188,12 @@ function isMoonAgeInRange(moonAge, base, tolerance) {
 // --- 辻検索 ---
 /** 辻検索パネルをMy辻検索結果表示用に開く (startTsujiSearchを呼ばず、ヘッダーテキストを差し替える) */
 function showTsujiPanelForMyTsuji(titleText) {
+    if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
     appState.isTsujiSearchActive = true;
     document.getElementById('btn-tsuji-search').classList.add('active');
     document.getElementById('tsujisearch-panel').classList.remove('hidden');
-    document.getElementById('tsujisearch-header').innerHTML =
-        `${titleText} <span id="tsujisearch-status"></span>`;
+    // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+    document.getElementById('tsujisearch-title').textContent = titleText;
     syncBottomPanels();
 }
 
@@ -5498,35 +7203,2164 @@ function toggleTsujiSearch() {
     const pnl = document.getElementById('tsujisearch-panel');
 
     if (appState.isTsujiSearchActive) {
+        if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
         btn.classList.add('active');
         pnl.classList.remove('hidden');
-        document.getElementById('tsujisearch-header').innerHTML = '辻検索結果 <span id="tsujisearch-status"></span>';
+        // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
+        document.getElementById('tsujisearch-title').textContent = '辻検索結果';
         startTsujiSearch();
     } else {
         btn.classList.remove('active');
         pnl.classList.add('hidden');
         appState.tsujiSearchGeneration++;
+        // キャンセル: 実行中ワーカーを terminate し、キューの全タスクを破棄(走り続け防止)。
+        // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止)。
+        if (!myTsujiBatchRunning) tsujiPool.terminateAll();
+        hideTsujiProgress();
     }
     syncBottomPanels();
 }
 
+// --- 辻メッシュ検索 パネル ---
+let tsujiMeshGeneration = 0;   // キャンセル用世代カウンタ
+const TSUJIMESH_ZOOM = 14;     // DEM標高タイルのズーム (dem_png の最大)
+const TSUJIMESH_EPS = { x1: 0.125, x2: 0.0625, x4: 0.03125, x8: 0.015625 };   // 精度フィルタ→角距離ε(°)
+let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
+let _tsujiMeshSelIdx = -1;     // 選択中の行index
+let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array(DEM標高) } (プレフィルタ後)
+let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った観測点高(金色マーカーの観測点設定・標高判定に使用)
+let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
+let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
+let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
+let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + スライダー(その日の通算秒) + サブ秒
+let _tmCtrlFracMs = 0;         // 実効辻時刻のサブ秒(ms)。行選択/ジャンプ時は精細化時刻の端数、スライダー手動操作で0にリセット
+let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
+let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
+let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
+let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
+let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
+let _tmDetailPix = -1;         // 詳細リストに表示中の画素(-1=なし)
+let _tmDetailSort = { col: -1, asc: true };   // 詳細リストのソート順(列index/昇順)。別画素のホバーでも維持する
+let _tmDetailLockPopup = null; // 確定ポップアップ(メッシュマーカー/観測点。開いている間は詳細リストを固定)
+let _tmObsMarker = null;       // 観測点マーカー(位置情報ポップアップ。詳細リストの連動に使用)
+let _tmForcedPin = null;       // 行選択時に優辻マーカーを強制配置する画素(近傍モード。再計算1回で消費)
+let _tsujiMeshWhiteRow = null;   // 白マーカー索引: 画素→最良の行(下のスナップショット配列のindex。-1=なし)
+let _tsujiMeshWhiteTime = null;  // 白マーカー索引: 画素→その行での最良辻時刻(ms)
+let _tsujiMeshWhiteDist = null;  // 白マーカー索引: 画素→その行での最良精度角距離(°)
+let _tsujiMeshWhiteRows = null;  // 索引構築時の行スナップショット(結果リストのソートに影響されない参照)
+// 全件索引(CSR): 1画素×表示天体毎に複数日の最良辻日時を全て保持する(取りこぼしなし)。
+// 画素pの全ヒットは k = start[p]〜start[p+1]-1 で、行= rows[row[k]]・行内位置= pos[k]
+// (辻時刻= 行.pixTime[pos[k]]・精度角距離= 行.pixDist[pos[k]]。値は行の配列を参照し重複保持しない)
+let _tsujiMeshPixEntries = null; // { start: Uint32Array(n+1), row: Int32Array(m), pos: Uint32Array(m) }
+
+// 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
+const tsujiMeshPool = (() => {
+    let workers = [];
+    let idle = [];
+    const queue = [];
+    const active = new Map();
+    function ensure() {
+        while (workers.length < TSUJI_NUM_WORKERS) {
+            const w = new Worker('tsujimesh-search-worker.js');
+            workers.push(w);
+            idle.push(w);
+        }
+    }
+    function dispatch() {
+        while (idle.length && queue.length) {
+            const w = idle.shift();
+            const task = queue.shift();
+            run(w, task);
+        }
+    }
+    function run(worker, task) {
+        active.set(worker, task);
+        worker.onmessage = (e) => {
+            active.delete(worker);
+            if (e.data && e.data.error) task.reject(new Error(e.data.error));
+            else task.resolve(e.data);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.onerror = (err) => {
+            active.delete(worker);
+            task.reject(err);
+            idle.push(worker);
+            dispatch();
+        };
+        worker.postMessage(task.taskData);
+    }
+    return {
+        /** 全ワーカーを生成し、画素データ(基準方位角/視高度+ビン索引)を配布して応答を待つ */
+        async init(initData) {
+            ensure();
+            await Promise.all(workers.map(w => new Promise((resolve, reject) => {
+                w.onmessage = (e) => {
+                    if (e.data && e.data.type === 'inited') resolve();
+                    else if (e.data && e.data.error) reject(new Error(e.data.error));
+                };
+                w.onerror = reject;
+                w.postMessage(initData);
+            })));
+        },
+        runTask(taskData) {
+            return new Promise((resolve, reject) => {
+                ensure();
+                queue.push({ taskData, resolve, reject });
+                dispatch();
+            });
+        },
+        terminateAll() {
+            workers.forEach(w => { try { w.terminate(); } catch(_) {} });
+            const err = new Error('canceled');
+            active.forEach(t => t.reject(err));
+            active.clear();
+            queue.forEach(t => t.reject(err));
+            queue.length = 0;
+            workers = [];
+            idle = [];
+        }
+    };
+})();
+
+// --- 標高オプション可視判定ワーカープール ---
+// プールサイズ=CPU数+1(上限31)。メッセージキューでタスクを配布し、
+// キャンセル(terminateAll)はキューの破棄+実行中ワーカーの終了で行う
+// (実行中のワーカーはループ中でメッセージを受信できないため、terminateが確実)。
+// キャンセルされたタスクの結果は null で解決する(呼び出し側は世代チェックで破棄)。
+const tmVisPool = (() => {
+    const POOL = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+    let idle = [];
+    const busy = new Map();   // worker -> task
+    const queue = [];
+    function dispatch() {
+        while (queue.length && (idle.length + busy.size) <= POOL && busy.size < POOL) {
+            const task = queue.shift();
+            const w = idle.pop() || new Worker('tm-vis-worker.js');
+            busy.set(w, task);
+            w.onmessage = (ev) => {
+                if (ev.data && ev.data.type === 'progress') { if (task.onProgress) task.onProgress(ev.data); return; }
+                busy.delete(w);
+                idle.push(w);
+                task.resolve(ev.data);
+                dispatch();
+            };
+            w.onerror = (err) => {
+                busy.delete(w);
+                try { w.terminate(); } catch (_) {}
+                task.reject(err instanceof Error ? err : new Error((err && err.message) || 'tm-vis-worker error'));
+                dispatch();
+            };
+            w.postMessage(task.payload, task.transfer || []);
+        }
+    }
+    return {
+        size: POOL,
+        run(payload, transfer, onProgress) {
+            return new Promise((resolve, reject) => {
+                queue.push({ payload, transfer, onProgress, resolve, reject });
+                dispatch();
+            });
+        },
+        terminateAll() {
+            queue.splice(0).forEach(t => t.resolve(null));
+            busy.forEach((task, w) => { try { w.terminate(); } catch (_) {} task.resolve(null); });
+            busy.clear();
+            idle.splice(0).forEach(w => { try { w.terminate(); } catch (_) {} });
+        },
+    };
+})();
+
+/** DEMタイルのImageDataを dm(0.1m単位)のInt32Arrayへ符号化する(可視判定ワーカーへの転送用)。
+ *  out の未確定画素(SENTINEL)のみ書き込む(5A→5B→5Cの画素毎フォールバックのマージと同値)。
+ *  round1=true はz14用の1m丸め(逐次判定の Math.round(e) と同値になるよう dm=Math.round(e)*10)。 */
+function _tmPackTileDm(img, out, round1) {
+    const SENT = -2147483648;
+    const d = img.data;
+    for (let p = 0; p < 65536; p++) {
+        if (out[p] !== SENT) continue;
+        const o = p << 2;
+        const e = _elevFromRGB(d[o], d[o + 1], d[o + 2]);
+        if (e === null) continue;
+        out[p] = round1 ? Math.round(e) * 10 : Math.round(e * 10);
+    }
+}
+
+function ensureTsujiMeshLayers() {
+    if (!tsujiMeshLayer && typeof map !== 'undefined' && map) {
+        _tsujiMeshCanvasRenderer = L.canvas({ padding: 0.3 });   // 多数の小マーカー用にCanvas描画
+        tsujiMeshLayer = L.layerGroup().addTo(map);
+        _tsujiMeshGoldLayer = L.layerGroup().addTo(map);
+        applyTsujiMeshLayerVisibility();
+    }
+}
+
+/** マーカーレイヤー(白/金)の表示/非表示をチェックボックスの状態に合わせる */
+function applyTsujiMeshLayerVisibility() {
+    if (typeof map === 'undefined' || !map) return;
+    // 辻マーカー(集合+ピン)は、表示天体メニューで選択行の天体がオフなら非表示にする
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const bodyVisible = !row || !row.body || row.body.visible !== false;
+    [[tsujiMeshLayer, _tsujiMeshLayerVisible], [_tsujiMeshGoldLayer, _tsujiMeshLayerVisible && bodyVisible]].forEach(([l, vis]) => {
+        if (!l) return;
+        if (vis) { if (!map.hasLayer(l)) l.addTo(map); }
+        else if (map.hasLayer(l)) { map.removeLayer(l); }
+    });
+}
+function clearTsujiMeshMarkers() {
+    if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
+    if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
+    _tsujiMeshGoldSet = null;
+    _tsujiMeshWhiteRow = null; _tsujiMeshWhiteTime = null; _tsujiMeshWhiteDist = null; _tsujiMeshWhiteRows = null;
+    if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
+}
+
+/** ヒット画素集合を検索エリア(N×256四方)のオーバーレイ画像に描いて返す(1画像画素=DEM1画素の実寸表示)。
+ *  paint(put) の put(pix) で画素を塗る。rgba=[r,g,b,a(0..255)] */
+function _tmBuildOverlay(paint, rgba) {
+    const C = _tsujiMeshCalc;
+    if (!C || !C.grid) return null;
+    const W = C.gridW;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = W;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(W, W);
+    const data = img.data;
+    const [r, g, b, a] = rgba;
+    paint((pix) => {
+        const o = C.gridPos[pix] * 4;
+        data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
+    });
+    ctx.putImageData(img, 0, 0);
+    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false });
+}
+
+/** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
+/** メッシュマーカーのグラデーションタイル表示: ヒット件数の度合いを色で表す。
+ *  1件=メッシュマーカー色(スライダーのグレースケール・既定は白)、最大件数=最も金色(#FFD700)へ
+ *  件数比で線形補間する(既定では白→金のグラデーション)。最大件数=1タイルに含まれる全表示天体での
+ *  合計件数をタイル間で比べた最大値。最大件数(2件以上ある時)のタイルは金色と赤色の斜め縞模様
+ *  (縞はグローバル座標基準で、隣接する最大値タイル同士で連続する)。0件の画素は無色(描かない)。
+ *  1タイル=8×8ピクセルで高精細に描く(検索エリアが広い場合はキャンバス上限のため4×4/2×2へ自動縮小)。
+ *  pixelatedで拡大してもシャープに保ち、描画は検索/表示変更時の1回のみでズームには自動追従する。 */
+function _tmBuildGradientOverlay() {
+    const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
+    if (!C || !C.grid || !E) return null;
+    const W = C.gridW;
+    // 1タイルあたりのピクセル数(3×3=8、4×4/5×5=4、6×6=2。キャンバスのメモリ上限のため)
+    const S = W <= 768 ? 8 : (W <= 1280 ? 4 : 2);
+    const n = _tsujiMeshPix.lat.length;
+    let maxCnt = 1;
+    for (let p2 = 0; p2 < n; p2++) {
+        const c = E.start[p2 + 1] - E.start[p2];
+        if (c > maxCnt) maxCnt = c;
+    }
+    const GOLD = [255, 215, 0], RED = [255, 0, 0];
+    const STRIPE = 4;   // 斜め縞の周期(2px金+2px赤)
+    const v = Math.round(255 * (1 - _tmMeshGray / 100));   // メッシュマーカー色(1件の色)
+    const canvas = document.createElement('canvas');
+    canvas.width = W * S; canvas.height = W * S;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(canvas.width, canvas.height);
+    const data = img.data;
+    const CW = canvas.width;
+    for (let gy = 0; gy < W; gy++) {
+        for (let gx = 0; gx < W; gx++) {
+            const idx = C.grid[gy * W + gx];
+            if (!idx) continue;
+            const pix = idx - 1;
+            const cnt = E.start[pix + 1] - E.start[pix];
+            if (cnt === 0) continue;   // 0件(許容範囲内だがヒットなし)の画素は無色=描かない
+            const t = maxCnt > 1 ? (cnt - 1) / (maxCnt - 1) : 0;
+            const cr = Math.round(v + (GOLD[0] - v) * t);
+            const cg = Math.round(v + (GOLD[1] - v) * t);
+            const cb = Math.round(v + (GOLD[2] - v) * t);
+            const isMax = maxCnt > 1 && cnt === maxCnt;
+            const x0 = gx * S, y0 = gy * S;
+            for (let sy = 0; sy < S; sy++) {
+                for (let sx = 0; sx < S; sx++) {
+                    let R2 = cr, G2 = cg, B2 = cb;
+                    if (isMax) {
+                        // 金色と赤色の斜め縞(グローバル座標で連続)
+                        const stripe = ((x0 + sx + y0 + sy) % STRIPE) < (STRIPE >> 1);
+                        R2 = stripe ? GOLD[0] : RED[0];
+                        G2 = stripe ? GOLD[1] : RED[1];
+                        B2 = stripe ? GOLD[2] : RED[2];
+                    }
+                    const o = ((y0 + sy) * CW + x0 + sx) * 4;
+                    data[o] = R2; data[o + 1] = G2; data[o + 2] = B2; data[o + 3] = 230;
+                }
+            }
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false, className: 'tm-mesh-overlay' });
+}
+
+function _tmPixAtLatLng(latlng) {
+    const C = _tsujiMeshCalc;
+    if (!C || !C.grid) return -1;
+    const scale = Math.pow(2, TSUJIMESH_ZOOM);
+    const R = 128 / Math.PI;
+    const gpx = Math.floor(128 * (latlng.lng / 180 + 1) * scale);
+    const sinLat = Math.sin(latlng.lat * Math.PI / 180);
+    const gpy = Math.floor((128 - R * Math.atanh(Math.max(-0.9999999, Math.min(0.9999999, sinLat)))) * scale);
+    const x = gpx - C.gxBase, y = gpy - C.gyBase;
+    if (x < 0 || x >= C.gridW || y < 0 || y >= C.gridW) return -1;
+    return C.grid[y * C.gridW + x] - 1;
+}
+
+/** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし)。
+ *  あわせて「画素→最良の行(最小dist)とその辻時刻・精度角距離」の索引を構築する(ホバー/クリック用)。 */
+function drawTsujiMeshMarkers() {
+    ensureTsujiMeshLayers();
+    if (!tsujiMeshLayer || !_tsujiMeshPix) return;
+    tsujiMeshLayer.clearLayers();
+    const n = _tsujiMeshPix.lat.length;
+    _tsujiMeshWhiteRow = new Int32Array(n).fill(-1);
+    _tsujiMeshWhiteTime = new Float64Array(n);
+    _tsujiMeshWhiteDist = new Float32Array(n);
+    _tsujiMeshWhiteRows = _tsujiMeshRows.slice();
+    // 全件索引(CSR)の構築: 1パス目=画素毎のヒット数を数え、2パス目=行/行内位置を充填する
+    let m = 0;
+    for (const row of _tsujiMeshWhiteRows) m += row.pixIdx.length;
+    const csrStart = new Uint32Array(n + 1);
+    for (const row of _tsujiMeshWhiteRows) {
+        const idxArr = row.pixIdx;
+        for (let i = 0; i < idxArr.length; i++) csrStart[idxArr[i] + 1]++;
+    }
+    for (let p = 0; p < n; p++) csrStart[p + 1] += csrStart[p];
+    const csrRow = new Int32Array(m), csrPos = new Uint32Array(m);
+    const fill = csrStart.slice(0, n);   // 画素毎の書き込み位置(進行カーソル)
+    for (let r = 0; r < _tsujiMeshWhiteRows.length; r++) {
+        const row = _tsujiMeshWhiteRows[r];
+        const idxArr = row.pixIdx;
+        for (let i = 0; i < idxArr.length; i++) {
+            const pix = idxArr[i];
+            const k = fill[pix]++;
+            csrRow[k] = r;
+            csrPos[k] = i;
+            if (_tsujiMeshWhiteRow[pix] < 0 || row.pixDist[i] < _tsujiMeshWhiteDist[pix]) {
+                _tsujiMeshWhiteRow[pix] = r;
+                _tsujiMeshWhiteTime[pix] = row.pixTime[i];
+                _tsujiMeshWhiteDist[pix] = row.pixDist[i];
+            }
+        }
+    }
+    _tsujiMeshPixEntries = { start: csrStart, row: csrRow, pos: csrPos };
+    // 件数グラデーションタイル(1件=天体色〜最大=金色・最大値は金赤斜め縞)
+    const overlay = _tmBuildGradientOverlay();
+    if (overlay) overlay.addTo(tsujiMeshLayer);
+}
+
+/** 全件索引から画素の全ヒット(表示天体毎→日付順)を取り出す。各要素 {row, timeMs, dist, best}。
+ *  CSRの2パス目は行indexの昇順に充填するため、取り出し順=行の構築順(表示天体順→日時順)。 */
+function _tmPixAllHits(pix) {
+    const E = _tsujiMeshPixEntries;
+    if (!E || !_tsujiMeshWhiteRows) return [];
+    const out = [];
+    for (let k = E.start[pix]; k < E.start[pix + 1]; k++) {
+        const row = _tsujiMeshWhiteRows[E.row[k]], i = E.pos[k];
+        out.push({ row, timeMs: row.pixTime[i], dist: row.pixDist[i], best: false });
+    }
+    let bi = -1;
+    for (let j = 0; j < out.length; j++) if (bi < 0 || out[j].dist < out[bi].dist) bi = j;
+    if (bi >= 0) out[bi].best = true;
+    return out;
+}
+
+/** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
+function updateTsujiMeshGoldMarkers() {
+    ensureTsujiMeshLayers();
+    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
+    _tsujiMeshGoldLayer.clearLayers();
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    if (!row) return;
+    const n = Math.min(row.pixIdx.length, 5000);
+    for (let i = 0; i < n; i++) {
+        const pix = row.pixIdx[i];
+        const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
+        L.circleMarker([lat, lng], {
+            renderer: _tsujiMeshCanvasRenderer,
+            radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
+        }).on('click', () => {
+            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点高)
+            appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
+            appState.startApiElev = elev;
+            appState.startHeight = _tsujiMeshPixHeightUsed;
+            saveAppState();
+            updateAll();
+        }).bindTooltip(`精度角距離 ${row.pixDist[i].toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
+          .addTo(_tsujiMeshGoldLayer);
+    }
+}
+
+/** 辻時刻コントロールの実効辻時刻(ms)。スライダー(選択行の日0:00からの通算秒)+サブ秒 から求める */
+function _tmCtrlEffectiveMs() {
+    if (_tmCtrlDay0 === null) return null;
+    const sl = document.getElementById('tsujimesh-time-slider');
+    if (!sl) return null;
+    return _tmCtrlDay0 + parseInt(sl.value) * 1000 + _tmCtrlFracMs;
+}
+
+/** 指定した辻時刻(±幅s)の各秒で全画素を再評価し、精度フィルタ(ε)以内の画素を金色マーカーで表示する。
+ *  判定はワーカー(tsujimesh-search-worker.js)と同一: 天体位置は領域中心で1回計算し、
+ *  方位角ビン索引で候補画素を引き、ENU一次回転補正した検索中心(点/線)への角距離で判定する。
+ *  検索条件(オフセット/検索中心/大気差)は検索時のスナップショット(_tsujiMeshCalc)に凍結。 */
+function recalcTsujiMeshGoldAtTime() {
+    const C = _tsujiMeshCalc;
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const t = _tmCtrlEffectiveMs();
+    if (!C || !row || t === null) { updateTsujiMeshGoldMarkers(); return; }
+    const lbl = document.getElementById('tsujimesh-time-label');
+    if (lbl) lbl.textContent = `辻日時: ${_tmFmtDateMs(t)} ${_tmFmtTimeMs2(t)}`;   // 0.01秒表示
+    const eps = _tmCtrlEps, w = _tmCtrlWidth;
+    const D2R = Math.PI / 180;
+    const wrap180 = (deg) => ((deg + 540) % 360) - 180;
+    const angDist = (az1, alt1, az2, alt2) => {
+        const s = Math.sin(alt1 * D2R) * Math.sin(alt2 * D2R) +
+                  Math.cos(alt1 * D2R) * Math.cos(alt2 * D2R) * Math.cos((az1 - az2) * D2R);
+        return Math.acos(Math.max(-1, Math.min(1, s))) / D2R;
+    };
+    const isLine = C.centerMode === 'line';
+    const dAz = wrap180(C.offsetAz), dAlt = C.offsetAlt;
+    const len2 = dAz * dAz + dAlt * dAlt;
+    const altLo = (isLine ? Math.min(0, dAlt) : C.offsetAlt) - eps;
+    const altHi = (isLine ? Math.max(0, dAlt) : C.offsetAlt) + eps;
+    const azLo = isLine ? Math.min(0, dAz) : dAz;
+    const azHi = isLine ? Math.max(0, dAz) : dAz;
+    const evalDist = (pix, ex, ny, uz) => {
+        const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
+        const cx = ex - (wN * uz - wU * ny);
+        const cy = ny - (wU * ex - wE * uz);
+        const cz = uz - (wE * ny - wN * ex);
+        const altPd = Math.asin(Math.max(-1, Math.min(1, cz))) / D2R;
+        const azP = Math.atan2(cx, cy) / D2R;
+        const bAz = C.baseAz[pix], bAlt = C.baseAlt[pix];
+        if (isLine) {
+            const pAz = wrap180(azP - bAz), pAlt = altPd - bAlt;
+            let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+            s = Math.max(0, Math.min(1, s));
+            return angDist(azP, altPd, bAz + s * dAz, bAlt + s * dAlt);
+        }
+        return angDist(azP, altPd, bAz + C.offsetAz, bAlt + C.offsetAlt);
+    };
+    const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    let fixedRaDec = null;
+    if (isFixedStar(row.body.id)) fixedRaDec = getFixedStarRaDec(row.body.id);
+    // 点モードの高速路: 画素ごとの検索中心(基準+オフセット)の単位ベクトルを一度だけ前計算し、
+    // 弦距離の2乗(角距離と厳密に単調)で判定する(三角関数はヒット分の角度変換のみ)。
+    if (!isLine && !C.tx) {
+        const n = C.baseAz.length;
+        C.tx = new Float32Array(n); C.ty = new Float32Array(n); C.tz = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const taz = (C.baseAz[i] + C.offsetAz) * D2R, talt = (C.baseAlt[i] + C.offsetAlt) * D2R;
+            const c2 = Math.cos(talt);
+            C.tx[i] = Math.sin(taz) * c2; C.ty[i] = Math.cos(taz) * c2; C.tz[i] = Math.sin(talt);
+        }
+    }
+    const chord2 = (pix, ex, ny, uz) => {
+        const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
+        const cx = ex - (wN * uz - wU * ny);
+        const cy = ny - (wU * ex - wE * uz);
+        const cz = uz - (wE * ny - wN * ex);
+        const dx = cx - C.tx[pix], dy = cy - C.ty[pix], dz = cz - C.tz[pix];
+        return dx * dx + dy * dy + dz * dz;
+    };
+    const chordToDeg = (q) => Math.asin(Math.min(1, Math.sqrt(q) / 2)) * 2 / D2R;
+    const thr2 = Math.pow(2 * Math.sin(eps * D2R / 2), 2);
+    // 集合の最小distは型付き配列で持つ(幅が広い時に数百万回のget/setになるMapより速い)
+    if (!C.distBuf) C.distBuf = new Float32Array(C.baseAz.length);
+    const distBuf = C.distBuf;
+    distBuf.fill(Infinity);
+    const hits = [];
+    for (let s = -w; s <= w; s++) {
+        const time = new Date(t + s * 1000);
+        let ra, dec;
+        if (fixedRaDec) {
+            ra = fixedRaDec.ra; dec = fixedRaDec.dec;
+        } else {
+            const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
+            ra = eq.ra; dec = eq.dec;
+        }
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const az = hor.azimuth, alt = hor.altitude;
+        if (alt < C.minAlt + altLo - 0.05 || alt > C.maxAlt + altHi + 0.05) continue;
+        const ca = Math.cos(alt * D2R);
+        const ex = Math.sin(az * D2R) * ca, ny = Math.cos(az * D2R) * ca, uz = Math.sin(alt * D2R);
+        const cosAlt = Math.max(ca, 0.02);
+        let half = (azHi - azLo) / 2 + eps / cosAlt + C.binSize + 0.08;
+        if (half > 15) half = 15;
+        const center = az - (azLo + azHi) / 2;
+        const b0 = Math.floor((((center - half) % 360 + 360) % 360) / C.binSize);
+        const b1 = Math.floor((((center + half) % 360 + 360) % 360) / C.binSize);
+        const scanBin = (b) => {
+            const st = C.binIndex[b], en = C.binIndex[b + 1];
+            for (let i = st; i < en; i++) {
+                const pix = C.binPixels[i];
+                const relAlt = alt - C.baseAlt[pix];
+                if (relAlt < altLo - 0.05 || relAlt > altHi + 0.05) continue;
+                let dist;
+                if (isLine) {
+                    dist = evalDist(pix, ex, ny, uz);
+                    if (dist > eps) continue;
+                } else {
+                    const q = chord2(pix, ex, ny, uz);
+                    if (q > thr2) continue;
+                    dist = chordToDeg(q);
+                }
+                if (distBuf[pix] === Infinity) hits.push(pix);
+                if (dist < distBuf[pix]) distBuf[pix] = dist;
+            }
+        };
+        if (b0 <= b1) {
+            for (let b = b0; b <= b1; b++) scanBin(b);
+        } else {   // 0°をまたぐ
+            for (let b = b0; b < C.nBins; b++) scanBin(b);
+            for (let b = 0; b <= b1; b++) scanBin(b);
+        }
+    }
+    const perPix = new Map();   // pix -> 最小dist (クリック/ホバー判定と描画に使用)
+    for (let i = 0; i < hits.length; i++) perPix.set(hits[i], distBuf[hits[i]]);
+    // 指定した辻時刻(実効時刻t)での最良精度の画素: εに関係なく全画素の最小距離(argmin)を1回のスイープで求める
+    let big = null;
+    {
+        const time = new Date(t);
+        let ra, dec;
+        if (fixedRaDec) {
+            ra = fixedRaDec.ra; dec = fixedRaDec.dec;
+        } else {
+            const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
+            ra = eq.ra; dec = eq.dec;
+        }
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const ca = Math.cos(hor.altitude * D2R);
+        const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
+        let bestPix = -1, bestDist = Infinity;
+        const n = C.baseAz.length;
+        if (isLine) {
+            for (let pix = 0; pix < n; pix++) {
+                const dist = evalDist(pix, ex, ny, uz);
+                if (dist < bestDist) { bestDist = dist; bestPix = pix; }
+            }
+        } else {
+            let bestQ = Infinity;
+            for (let pix = 0; pix < n; pix++) {
+                const q = chord2(pix, ex, ny, uz);
+                if (q < bestQ) { bestQ = q; bestPix = pix; }
+            }
+            bestDist = chordToDeg(bestQ);
+        }
+        if (bestPix >= 0) big = { pix: bestPix, dist: bestDist, timeMs: t };
+    }
+    // 近傍モードの行選択直後は、指定された「近傍の最高精度点」へピンを強制配置(1回で消費)
+    if (_tmForcedPin) { big = _tmForcedPin; _tmForcedPin = null; }
+    drawTsujiMeshGoldSet(perPix, big);
+}
+
+/** 金色マーカーの画素をクリックした時と同じ観測点設定(観測点高=検索時の観測点高) */
+function _tmSetObserverToPix(pix) {
+    const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
+    appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
+    appState.startApiElev = elev;
+    appState.startHeight = _tsujiMeshPixHeightUsed;
+    saveAppState();
+    updateAll();
+}
+
+/** 再計算した画素集合(pix→精度角距離)を金色のオーバーレイで描画し(全画素表示・上限なし)、
+ *  クリック/ホバーは地図側のハンドラで _tsujiMeshGoldSet を参照。
+ *  big={pix,dist,timeMs}(最良精度の画素)には、観測点マーカーと同じ大きさの金色ピン(優辻マーカー)を立てる。 */
+let _tsujiMeshGoldSet = null;   // 表示中の辻マーカー集合(pix→精度角距離)。クリック/ホバー判定に使用
+const _tmColorCache = new Map();   // CSS色→[r,g,b](辻マーカーの天体色)
+function _tmCssColorToRGB(c) {
+    const key = c || '#ffd700';
+    let rgb = _tmColorCache.get(key);
+    if (!rgb) {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 1;
+        const x = cv.getContext('2d');
+        x.fillStyle = key;
+        x.fillRect(0, 0, 1, 1);
+        const d = x.getImageData(0, 0, 1, 1).data;
+        rgb = [d[0], d[1], d[2]];
+        _tmColorCache.set(key, rgb);
+    }
+    return rgb;
+}
+function _tmFmtDateMs(ms) {
+    const d = new Date(ms);
+    const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+    return `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日(${dow})`;
+}
+function _tmFmtTimeMs2(ms) {
+    const d = new Date(ms);
+    const sec = d.getSeconds() + d.getMilliseconds() / 1000;
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
+}
+function drawTsujiMeshGoldSet(perPix, big) {
+    ensureTsujiMeshLayers();
+    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
+    _tsujiMeshGoldLayer.clearLayers();
+    _tsujiMeshGoldSet = perPix;
+    // 辻マーカーは選択行の天体色で描く(複数天体の検索でどの天体の集合か分かるように)
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const [cr, cg, cb] = _tmCssColorToRGB(row && row.body ? row.body.color : '#ffd700');
+    const overlay = _tmBuildOverlay((put) => { for (const pix of perPix.keys()) put(pix); }, [cr, cg, cb, 235]);
+    if (overlay) overlay.addTo(_tsujiMeshGoldLayer);
+    // 最良精度の画素: 観測点マーカーと同じ大きさの金色ピン(優辻マーカー)で指し示す
+    if (big && big.pix >= 0) {
+        const goldIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-tsujigold"></div>', iconSize: [24, 24], iconAnchor: [12, 24] });
+        const marker = L.marker([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]], { icon: goldIcon, zIndexOffset: 900 })
+            .on('click', () => _tmShowPinPopup(big))   // クリック/タップでポップアップ(観測点は移動しない)
+            .bindTooltip('…', { direction: 'top' })
+            .addTo(_tsujiMeshGoldLayer);
+        // ツールチップは開いた時に画素の最良辻時刻(0.01秒精度)を精細化して表示する
+        marker.on('tooltipopen', () => {
+            const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
+            marker.setTooltipContent(_tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist));
+        });
+    }
+    applyTsujiMeshLayerVisibility();
+}
+
+/** メッシュ/辻マーカーの画素のポップアップを開く(PC=クリック・スマホ=タップ共通)。
+ *  マーカーのクリック/タップでは位置を確定してポップアップを表示するだけで、観測点は移動しない。
+ *  メッシュマーカーのポップアップは件数のみ(ホバー中と同じ)で、確定中は詳細リストを
+ *  確定した画素の内容に固定する(行の選択+観測点移動は詳細リストの行クリックで行う)。
+ *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
+ *  画素ヒットなしは false(通常の地図操作として処理)。 */
+function _tmShowPixelPopup(latlng) {
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
+    let pix = _tmPixAtLatLng(latlng);
+    const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
+    const div = document.createElement('div');
+    let meshPin = false;
+    if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+        // 辻マーカー: 内容(1ブロック)をクリック→観測点をこの画素に移動+選択中の行をリストで表示
+        const ref = _tmRefinePixelTime(pix);
+        if (!ref) return false;
+        div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, action)}</div>`;
+        div.querySelector('.tm-popup-block').addEventListener('click', () => {
+            map.closePopup();
+            _tmSetObserverToPix(pix);
+            const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+            if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
+        });
+    } else {
+        // メッシュマーカー: ポップアップは件数のみ(ホバー中と同じ。全ヒットの詳細は詳細リストと重複するため)
+        const wpix = pix;
+        if (wpix < 0 || !_tsujiMeshWhiteRow || !map.hasLayer(tsujiMeshLayer) || _tsujiMeshWhiteRow[wpix] < 0) return false;
+        pix = wpix;
+        const E = _tsujiMeshPixEntries;
+        const cnt = E ? E.start[pix + 1] - E.start[pix] : 0;
+        if (!cnt) return false;
+        _tmUpdateDetailList(pix);
+        div.innerHTML = `<strong>メッシュマーカー(${cnt}件)</strong>`;
+        meshPin = true;
+    }
+    const popup = L.popup({ offset: [0, -4] })
+        .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
+        .setContent(div)
+        .openOn(map);
+    // 確定中は他の画素をホバーしても詳細リストを更新しない(ポップアップを閉じると解除)。
+    // openOn が先に旧ポップアップを閉じて popupclose で固定を解くため、固定は openOn の後に設定する。
+    if (meshPin) _tmDetailLockPopup = popup;
+    return true;
+}
+
+/** 優辻マーカー(金色ピン)のポップアップ(クリック/タップで開く。観測点は移動しない)。
+ *  内容をクリック/タップすると観測点をその画素に移動し、選択中の行をリストで表示する。 */
+function _tmShowPinPopup(big) {
+    if (typeof map === 'undefined' || !map) return;
+    const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
+    const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist, action)}</div>`;
+    div.querySelector('.tm-popup-block').addEventListener('click', () => {
+        map.closePopup();
+        _tmSetObserverToPix(big.pix);
+        const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+        if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
+    });
+    L.popup({ offset: [0, -20] })
+        .setLatLng([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]])
+        .setContent(div)
+        .openOn(map);
+}
+
+/** 画素×天体の角距離評価関数(ms→°)を作る。判定は検索本体と同一(回転補正+点/線の検索中心)。
+ *  検索条件は検索時のスナップショット(_tsujiMeshCalc)に凍結。条件不足ならnull。 */
+function _tmPixDistFn(pix, body) {
+    const C = _tsujiMeshCalc;
+    if (!C || !body) return null;
+    const D2R = Math.PI / 180;
+    const wrap180 = (deg) => ((deg + 540) % 360) - 180;
+    const angDist = (az1, alt1, az2, alt2) => {
+        const s = Math.sin(alt1 * D2R) * Math.sin(alt2 * D2R) +
+                  Math.cos(alt1 * D2R) * Math.cos(alt2 * D2R) * Math.cos((az1 - az2) * D2R);
+        return Math.acos(Math.max(-1, Math.min(1, s))) / D2R;
+    };
+    const isLine = C.centerMode === 'line';
+    const dAz = wrap180(C.offsetAz), dAlt = C.offsetAlt;
+    const len2 = dAz * dAz + dAlt * dAlt;
+    const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    let fixedRaDec = null;
+    if (isFixedStar(body.id)) fixedRaDec = getFixedStarRaDec(body.id);
+    return (ms, out) => {
+        const time = new Date(ms);
+        let ra, dec;
+        if (fixedRaDec) { ra = fixedRaDec.ra; dec = fixedRaDec.dec; }
+        else { const eq = Astronomy.Equator(body.id, time, observer, true, true); ra = eq.ra; dec = eq.dec; }
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        if (out) { out.az = hor.azimuth; out.alt = hor.altitude; }   // 観測点中心の天体位置(ワーカーのbestAz/bestAltと同義)
+        const ca = Math.cos(hor.altitude * D2R);
+        const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
+        const wE = -C.dN[pix], wN = C.dE[pix], wU = C.dE[pix] * C.tanLat;
+        const cx = ex - (wN * uz - wU * ny);
+        const cy = ny - (wU * ex - wE * uz);
+        const cz = uz - (wE * ny - wN * ex);
+        const altPd = Math.asin(Math.max(-1, Math.min(1, cz))) / D2R;
+        const azP = Math.atan2(cx, cy) / D2R;
+        const bAz = C.baseAz[pix], bAlt = C.baseAlt[pix];
+        if (isLine) {
+            const pAz = wrap180(azP - bAz), pAlt = altPd - bAlt;
+            let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+            s = Math.max(0, Math.min(1, s));
+            return angDist(azP, altPd, bAz + s * dAz, bAlt + s * dAlt);
+        }
+        return angDist(azP, altPd, bAz + C.offsetAz, bAlt + C.offsetAlt);
+    };
+}
+
+/** 画素の辻時刻の軽量精細化: 秒精度の最小時刻(ワーカーの1秒格子)の前後1秒の3点放物線補間で0.01秒化。
+ *  ポップアップの行毎の表示・結果行の値用(±120秒スキャンの_tmRefinePixelTimeより約80倍軽い)。
+ *  戻り値の az/alt は精細化時刻での観測点中心の天体位置(結果行の方位角/視高度と同義)。 */
+function _tmRefinePixelTimeFast(pix, centerMs, body) {
+    const distAt = _tmPixDistFn(pix, body);
+    if (!distAt) return null;
+    const a = distAt(centerMs - 1000) ** 2, b = distAt(centerMs) ** 2, c = distAt(centerMs + 1000) ** 2;
+    let frac = 0;
+    const denom = a - 2 * b + c;
+    if (denom > 1e-18) frac = Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / denom));
+    const bestMs = centerMs + frac * 1000;
+    const out = {};
+    const dist = distAt(bestMs, out);
+    return { timeMs: bestMs, dist, az: out.az, alt: out.alt };
+}
+
+/** 画素の最良辻時刻を、中心時刻±120秒の1秒スキャン+放物線補間で0.01秒精度で求める。
+ *  判定は検索本体と同一(回転補正+点/線の検索中心)。centerMs/body省略時は表示中の辻時刻と選択行の天体。 */
+let _tmRefineCache = { key: null, val: null };
+function _tmRefinePixelTime(pix, centerMs, body) {
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const t = (centerMs !== undefined) ? centerMs : _tmCtrlEffectiveMs();
+    if (body === undefined) body = row ? row.body : null;
+    if (t === null) return null;
+    const distAt = _tmPixDistFn(pix, body);
+    if (!distAt) return null;
+    const key = `${pix}_${t}_${body.id}`;
+    if (_tmRefineCache.key === key) return _tmRefineCache.val;
+    const R = 120;
+    const ds = new Float64Array(2 * R + 1);
+    let bi = 0;
+    for (let i = 0; i <= 2 * R; i++) {
+        ds[i] = distAt(t + (i - R) * 1000);
+        if (ds[i] < ds[bi]) bi = i;
+    }
+    // 放物線補間(距離の2乗が最小近傍で2次関数になることを利用)で秒未満を精細化
+    let frac = 0;
+    if (bi > 0 && bi < 2 * R) {
+        const a = ds[bi - 1] ** 2, b = ds[bi] ** 2, c = ds[bi + 1] ** 2;
+        const denom = a - 2 * b + c;
+        if (denom > 1e-18) frac = Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / denom));
+    }
+    const bestMs = t + (bi - R + frac) * 1000;
+    const val = { timeMs: bestMs, dist: distAt(bestMs) };
+    _tmRefineCache = { key, val };
+    return val;
+}
+
+/** ポップアップ本文(タイトル太字/辻日付/辻時刻(0.01秒)/精度角距離/クリック説明)を組み立てる */
+function _tmTooltipHtml(title, timeMs, dist, action) {
+    return `<strong>${title}</strong><br>辻日付: ${_tmFmtDateMs(timeMs)}<br>辻時刻: ${_tmFmtTimeMs2(timeMs)}<br>精度角距離: ${dist.toFixed(5)}°<br>${action || 'クリックで観測点に設定'}`;
+}
+
+/** メッシュマーカーのポップアップに表示する画素の全ヒットを、表示天体毎にグルーピングして
+ *  天体内は精度角距離の昇順(最良が先頭)で並べる。天体内で複数ある場合は最良に★(star=true)。
+ *  1画素は表示天体毎に複数日の最良辻日時を保持する(公転で同方向を年2回以上通る日を取りこぼさない)。 */
+function _tmMeshPopupHits(pix) {
+    const hits = _tmPixAllHits(pix);
+    const groups = new Map();   // 天体ID→ヒット配列(挿入順=表示天体順)
+    for (const h of hits) {
+        if (!groups.has(h.row.body.id)) groups.set(h.row.body.id, []);
+        groups.get(h.row.body.id).push(h);
+    }
+    const out = [];
+    for (const arr of groups.values()) {
+        arr.sort((a, b) => a.dist - b.dist);
+        arr.forEach((h, i) => { h.star = (arr.length >= 2 && i === 0); });
+        out.push(...arr);
+    }
+    return out;
+}
+
+/** 精度記号: 角距離を◎〜◎×128で表示する(精度フィルタオプションと同じ2倍刻みのスケール。
+ *  ◎=±0.125°、×2毎に許容が半分で ◎×128=±0.0009765625°。◎より粗い場合は ○(±0.25°)/△(±1.0°)/-)。 */
+function _tmAccSymbol(dist) {
+    if (dist > 1.0) return '-';
+    if (dist > 0.25) return '△';
+    if (dist > 0.125) return '○';
+    let n = 1;
+    while (n < 128 && dist <= 0.125 / (n * 2)) n *= 2;
+    return n === 1 ? '◎' : `◎×${n}`;
+}
+
+/** 精度記号のソート順(昇順で高精度が先頭: ◎×128 < … < ◎ < ○ < △ < -) */
+function _tmAccSymbolRank(sym) {
+    if (sym === '○') return 1;
+    if (sym === '△') return 2;
+    if (sym === '-') return 3;
+    const m = /^◎(?:×(\d+))?$/.exec(sym);
+    return m ? -(m[1] ? parseInt(m[1]) : 1) : 9;
+}
+
+/** 詳細リストの行のクリック: 該当行を結果リストで選択し、観測点をその画素に移動する。
+ *  ジャンプ先の辻時刻は行と同じ0.01秒精細化後の値(表示との一致)。
+ *  日時情報メニューの日時も行の辻日時に更新する(結果リストの行クリックと同じ。辻ラインも一緒に移動する)。
+ *  移動後は観測点マーカーのポップアップ(位置情報)を開き、詳細リストを
+ *  観測点(=選択した画素)の情報のまま固定する(ポップアップを閉じると解除)。 */
+function _tmJumpToHit(pix, h) {
+    if (typeof map !== 'undefined' && map) map.closePopup();
+    const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+    const timeMs = ref ? ref.timeMs : h.timeMs;
+    appState.currentDate = new Date(timeMs);
+    syncUIFromState();
+    _tmSetObserverToPix(pix);   // saveAppState+updateAll(日時・観測点の変更をまとめて反映)
+    const idx = _tsujiMeshRows.indexOf(h.row);
+    if (idx >= 0) selectTsujiMeshRow(idx, { pix, timeMs, dist: ref ? ref.dist : h.dist });
+    if (_tmObsMarker) _tmObsMarker.openPopup();
+}
+
+/** 詳細リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
+ *  メッシュマーカーの画素の全ヒットを表形式で全件表示する(縦スクロール)。
+ *  見出し(列名)クリックで列毎にソートできる(結果リストと同じ▲▼トグル)。
+ *  行クリック(タップ)で該当行を結果リストで選択して観測点をその画素に移動する。
+ *  ホバーが外れても最後の内容を保持し、別の画素のホバー/タップで更新する
+ *  (メッシュマーカーの確定ポップアップ表示中は確定画素に固定し、ホバーでは更新しない)。 */
+const _tmDetailAstroCache = new Map();   // dayMs -> { tw, srStr, ssStr, mrStr, msStr } (再検索でクリア)
+function _tmUpdateDetailList(pix) {
+    const box = document.getElementById('tsujimesh-detail');
+    if (!box || pix === _tmDetailPix) return;
+    const hits = _tmMeshPopupHits(pix);
+    if (!hits.length) return;
+    _tmDetailPix = pix;
+    box.classList.remove('hidden');
+    // 表示中はパネルを2分割(コントロール閉)/3分割(開)レイアウトにする
+    const panel = document.getElementById('tsujimesh-panel');
+    if (panel) panel.classList.add('with-detail');
+    // 緯度経度はラベル付き・生値で表示する(表示の基準を他の生値表示と揃えるため)
+    document.getElementById('tsujimesh-detail-header').textContent =
+        `詳細リスト(${hits.length}件) 緯度経度: ${_tsujiMeshPix.lat[pix]}, ${_tsujiMeshPix.lng[pix]}`;
+    const body = document.getElementById('tsujimesh-detail-body');
+    body.innerHTML = '';
+    const dows = ['日', '月', '火', '水', '木', '金', '土'];
+    const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+    // 画素を観測点として日毎の出没・薄明を計算(結果は日単位でキャッシュ。画素間の位置差≒10mの影響は無視できる)
+    const pixTotal = (_tsujiMeshPix.elev[pix] || 0) + (Number(appState.startHeight) || 0);
+    const observer = new Astronomy.Observer(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix], pixTotal);
+    const astroOf = (dt) => {
+        const d0 = new Date(dt); d0.setHours(0, 0, 0, 0);
+        let a = _tmDetailAstroCache.get(d0.getTime());
+        if (!a) {
+            a = { tw: computeDayTwilight(d0, observer), day: d0 };
+            try {
+                a.srStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, d0, 1));
+                a.ssStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, -1, d0, 1));
+                a.mrStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, d0, 2));
+                a.msStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, d0, 2));
+            } catch (_) { a.srStr = a.ssStr = a.mrStr = a.msStr = '--:--:--'; }
+            _tmDetailAstroCache.set(d0.getTime(), a);
+        }
+        return a;
+    };
+    const C = _tsujiMeshCalc;
+    const visFlags = window._tmLastVisFlags;
+    const elevOn = !!appState.tsujiMeshElevationOption && !!visFlags;
+    // 行の表示値を先に確定してからテーブルを組み立てる(見出しソートで再描画するため)。
+    // defIdx = 既定の並び(表示天体毎グルーピング・天体内は精度角距離昇順)のindex(マーク列のソートに使用)
+    const rows = hits.map((h, i) => {
+        const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
+        const timeMs = ref ? ref.timeMs : h.timeMs, dist = ref ? ref.dist : h.dist;
+        const dt = new Date(timeMs);
+        const a = astroOf(dt);
+        const phase = Astronomy.MoonPhase(dt);
+        let moonIllum = 0;
+        try { moonIllum = Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) {}
+        const az = ref ? ref.az : null, alt = ref ? ref.alt : null;
+        let azD = null, altD = null;
+        if (az !== null && C) {
+            const ctr = tsujiCenterRefPoint(az, alt, C.baseAz[pix], C.baseAlt[pix],
+                Number(C.offsetAz) || 0, Number(C.offsetAlt) || 0, C.centerMode);
+            azD = azDiffDeg(az, ctr.az); altD = alt - ctr.alt;
+        }
+        return { h, defIdx: i, timeMs, dist, dt, sym: _tmAccSymbol(dist),
+                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
+                 dowStr: `(${dows[dt.getDay()]})`, timeStr: _tmFmtTimeMs2(timeMs),
+                 timeCategory: classifyTimeCategory(dt, a.tw, a.day),
+                 srStr: a.srStr, ssStr: a.ssStr, mrStr: a.mrStr, msStr: a.msStr,
+                 moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum,
+                 az, alt, angR: getBodyAngularRadius(h.row.body.id, dt, observer),
+                 azD, altD, mwOff: Number(appState.mwOffsetAngle) || 0,
+                 elevStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-' };
+    });
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        tr.style.color = r.h.row.body.color;
+        const angRDisplay = BODY_RADIUS_KM[r.h.row.body.id] ? r.angR.toFixed(3) + '°' : '-.---°';
+        tr.innerHTML = `<td>${r.h.star ? '⭐︎' : '-'}</td><td>${escapeHtml(r.h.row.body.id)}</td><td>${escapeHtml(r.h.row.body.name)}</td>` +
+            `<td>${r.sym}</td><td>${r.dist.toFixed(5)}°</td>` +
+            `<td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td>` +
+            `<td>${escapeHtml(r.timeCategory)}</td><td>${r.srStr}</td><td>${r.ssStr}</td><td>${r.mrStr}</td><td>${r.msStr}</td>` +
+            `<td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.moonIllum.toFixed(1)}%</td>` +
+            `<td>${r.az !== null ? r.az.toFixed(4) + '°' : '-'}</td><td>${r.alt !== null ? r.alt.toFixed(4) + '°' : '-'}</td><td>${angRDisplay}</td>` +
+            `<td>${r.azD !== null ? fmtSignedDeg(r.azD) : '-'}</td><td>${r.altD !== null ? fmtSignedDeg(r.altD) : '-'}</td>` +
+            `<td>${r.mwOff.toFixed(4)}°</td><td>${escapeHtml(r.elevStatus)}</td>`;
+        tr.addEventListener('click', () => _tmJumpToHit(pix, r.h));
+        return tr;
+    };
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th>' +
+        '<th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th>' +
+        '<th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th>' +
+        '<th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    rows.forEach(r => tbody.appendChild(renderRow(r)));
+    table.appendChild(tbody);
+    body.appendChild(table);
+    const bodyOrder = new Map(appState.bodies.map((b, i) => [b.id, i]));
+    // ソート順(列+昇降)は保持し、別の画素のホバー/タップでも同じソート順を初期適用する。
+    // マーク列のソートは既定の並び(表示天体毎グルーピング・天体内は精度角距離昇順)の昇順/降順
+    setupTableSort(table, rows, [
+        { label: 'マーク', compare: (a, b) => a.defIdx - b.defIdx },
+        { label: '天体ID', compare: (a, b) => a.h.row.body.id.localeCompare(b.h.row.body.id) },
+        { label: '天体名', compare: (a, b) => (bodyOrder.get(a.h.row.body.id) ?? 0) - (bodyOrder.get(b.h.row.body.id) ?? 0) },
+        { label: '精度記号', compare: (a, b) => _tmAccSymbolRank(a.sym) - _tmAccSymbolRank(b.sym) },
+        { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
+        { label: '日付', compare: (a, b) => a.timeMs - b.timeMs },
+        { label: '曜日', compare: (a, b) => a.dt.getDay() - b.dt.getDay() },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
+        { label: '日の出時刻', compare: (a, b) => a.srStr.localeCompare(b.srStr) },
+        { label: '日の入時刻', compare: (a, b) => a.ssStr.localeCompare(b.ssStr) },
+        { label: '月の出時刻', compare: (a, b) => a.mrStr.localeCompare(b.mrStr) },
+        { label: '月の入時刻', compare: (a, b) => a.msStr.localeCompare(b.msStr) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => a.moonIllum - b.moonIllum },
+        { label: '方位角', compare: (a, b) => (a.az ?? 0) - (b.az ?? 0) },
+        { label: '視高度', compare: (a, b) => (a.alt ?? 0) - (b.alt ?? 0) },
+        { label: '視半径', compare: (a, b) => a.angR - b.angR },
+        { label: '検索中心方位角差', compare: (a, b) => (a.azD ?? 0) - (b.azD ?? 0) },
+        { label: '検索中心視高度差', compare: (a, b) => (a.altD ?? 0) - (b.altD ?? 0) },
+        { label: 'オフセット中心角', compare: (a, b) => a.mwOff - b.mwOff },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevStatus).localeCompare(String(b.elevStatus)) },
+    ], renderRow, [], {
+        initialColIdx: _tmDetailSort.col, initialAsc: _tmDetailSort.asc,
+        onSort: (col, asc) => { _tmDetailSort = { col, asc }; },
+    });
+}
+
+/** 詳細リストを初期化して隠す(再検索時) */
+function _tmResetDetailList() {
+    _tmDetailPix = -1;
+    _tmDetailLockPopup = null;
+    _tmDetailSort = { col: -1, asc: true };
+    _tmDetailAstroCache.clear();   // 観測点(画素群)や検索条件が変わるため日毎の出没/薄明キャッシュも破棄
+    const box = document.getElementById('tsujimesh-detail');
+    if (box) box.classList.add('hidden');
+    const panel = document.getElementById('tsujimesh-panel');
+    if (panel) panel.classList.remove('with-detail');
+}
+
+/** 観測点マーカーのホバー(PC)/タップ(スマホ)時: 観測点の位置を含むメッシュ画素の全ヒットを
+ *  詳細リストに表示する(メッシュマーカーをホバーした時と同じ内容)。
+ *  メッシュ外・ヒットなしの画素は何もしない。確定ポップアップ表示中は固定を優先する。
+ *  戻り値: 観測点の画素の情報を表示できたか(観測点ポップアップ表示中の固定の判定に使用)。 */
+function _tmShowDetailForObserver() {
+    if (_tmDetailLockPopup) return false;
+    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
+    if (!_tsujiMeshWhiteRow || !tsujiMeshLayer || !map.hasLayer(tsujiMeshLayer)) return false;
+    const pix = _tmPixAtLatLng(L.latLng(appState.start.lat, appState.start.lng));
+    if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return false;
+    _tmUpdateDetailList(pix);
+    return _tmDetailPix === pix;
+}
+
+/** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
+ *  辻マーカー(表示中の集合)を優先し、集合外の白マーカー画素は最良の行の値を表示する。 */
+let _tmHoverTooltip = null;
+function handleTsujiMeshGoldHover(latlng) {
+    const hide = () => { if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; } };
+    if (!latlng || !_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
+    const pix = _tmPixAtLatLng(latlng);
+    let content = null, atPix = pix;
+    if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+        const ref = _tmRefinePixelTime(pix);
+        if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
+    } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer)) {
+        // ポップアップは件数のみ(詳細は詳細リストへ)
+        const wpix = pix;
+        if (wpix >= 0 && _tsujiMeshWhiteRow[wpix] >= 0) {
+            const E = _tsujiMeshPixEntries;
+            content = `<strong>メッシュマーカー(${E.start[wpix + 1] - E.start[wpix]}件)</strong>`;
+            // 確定ポップアップ表示中は詳細リストを確定画素に固定する(ホバーでは更新しない)
+            if (!_tmDetailLockPopup) _tmUpdateDetailList(wpix);
+            atPix = wpix;
+        }
+    }
+    if (!content) { hide(); return; }
+    const at = L.latLng(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix]);
+    // 地図クリック(preclick)でLeafletが非permanentツールチップを閉じるため、
+    // 参照が残っていても地図から外れていたら作り直す(クリック後にホバーが再表示されない不具合の修正)
+    if (!_tmHoverTooltip || !_tmHoverTooltip._map) {
+        if (_tmHoverTooltip) _tmHoverTooltip.remove();
+        _tmHoverTooltip = L.tooltip({ direction: 'top' }).setLatLng(at).setContent(content).addTo(map);
+    } else {
+        _tmHoverTooltip.setLatLng(at).setContent(content);
+    }
+}
+
+/** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
+function selectTsujiMeshRow(idx, jump) {
+    if (!_tsujiMeshRows.length) return;
+    // ソートで並びが変わっている可能性があるため、フラグから現在indexを再同期
+    const cur = _tsujiMeshRows.findIndex(r => r.__sel);
+    if (cur >= 0) _tsujiMeshSelIdx = cur;
+    idx = Math.max(0, Math.min(_tsujiMeshRows.length - 1, idx));
+    _tsujiMeshRows.forEach(r => { r.__sel = false; if (r.__tr) r.__tr.classList.remove('selected'); });
+    const row = _tsujiMeshRows[idx];
+    row.__sel = true;
+    _tsujiMeshSelIdx = idx;
+    if (row.__tr) {
+        row.__tr.classList.add('selected');
+        row.__tr.scrollIntoView({ block: 'nearest' });
+    }
+    // 行選択後オプション(白マーカークリック時はその画素)に従って、
+    // 辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
+    let initDt = row.dateObj;
+    _tmForcedPin = null;
+    if (jump) {
+        // 白マーカークリック: その画素の辻時刻へジャンプし、優辻マーカーをその画素に配置
+        initDt = new Date(jump.timeMs);
+        _tmForcedPin = { pix: jump.pix, dist: jump.dist, timeMs: jump.timeMs };
+    } else if (_tmPostMode === 'near') {
+        // 近傍の最高精度点(≠辻時刻): 最高精度(◎×128以内、なければその行の最小距離)の画素のうち、
+        // 現在の観測点に地上距離が最も近い画素。辻時刻コントロールはその画素の辻時刻に移動する。
+        let minD = Infinity;
+        for (let i = 0; i < row.pixDist.length; i++) if (row.pixDist[i] < minD) minD = row.pixDist[i];
+        const thr = Math.max(0.0009765625, minD);
+        const obs = _tsujiMeshCalc ? _tsujiMeshCalc.observerData : appState.start;
+        const cosLat = Math.cos(obs.lat * Math.PI / 180);
+        let bestI = -1, bestG = Infinity;
+        for (let i = 0; i < row.pixIdx.length; i++) {
+            if (row.pixDist[i] > thr) continue;
+            const pix = row.pixIdx[i];
+            const dLat = _tsujiMeshPix.lat[pix] - obs.lat;
+            const dLng = (_tsujiMeshPix.lng[pix] - obs.lng) * cosLat;
+            const g = dLat * dLat + dLng * dLng;   // 近傍比較なので平面近似で十分
+            if (g < bestG) { bestG = g; bestI = i; }
+        }
+        if (bestI >= 0) {
+            // 表示は0.01秒精細化後の時刻に合わせる(結果行・優辻マーカーのポップアップと同じ)
+            const refN = _tmRefinePixelTimeFast(row.pixIdx[bestI], row.pixTime[bestI], row.body);
+            const tN = refN ? refN.timeMs : row.pixTime[bestI];
+            initDt = new Date(tN);
+            _tmForcedPin = { pix: row.pixIdx[bestI], dist: refN ? refN.dist : row.pixDist[bestI], timeMs: tN };
+        }
+    }
+    // 辻時刻コントロールを初期化(スライダー=選択行の日0:00からの通算秒)し、その時刻の再計算集合を辻マーカー表示
+    const d0 = new Date(initDt);
+    d0.setHours(0, 0, 0, 0);
+    _tmCtrlDay0 = d0.getTime();
+    const tsl = document.getElementById('tsujimesh-time-slider');
+    if (tsl) {
+        // スライダー範囲は「その行の全ヒット画素の辻時刻の範囲」(初期値も範囲に含める)
+        let minT = Infinity, maxT = -Infinity;
+        for (let i = 0; i < row.pixTime.length; i++) {
+            if (row.pixTime[i] < minT) minT = row.pixTime[i];
+            if (row.pixTime[i] > maxT) maxT = row.pixTime[i];
+        }
+        // スライダーは秒単位・サブ秒(0.01秒精細化の端数)は_tmCtrlFracMsで保持して表示・再計算に反映
+        const totalMs = initDt.getTime() - _tmCtrlDay0;
+        const val = Math.floor(totalMs / 1000);
+        _tmCtrlFracMs = totalMs - val * 1000;
+        if (minT <= maxT) {
+            tsl.min = String(Math.min(Math.floor((minT - _tmCtrlDay0) / 1000), val));
+            tsl.max = String(Math.max(Math.ceil((maxT - _tmCtrlDay0) / 1000), val));
+        } else {
+            tsl.min = String(val - 300); tsl.max = String(val + 300);
+        }
+        tsl.value = String(val);
+    }
+    recalcTsujiMeshGoldAtTime();
+    // 行選択後のズーム・センタリングは行わない(検索直後に一度ズーム済みのため、画面は現在の表示のまま。
+    // 結果リストの行クリック・詳細リストの行クリックとも同様)
+}
+
+/** 辻メッシュ標高オプション: 対象画素それぞれを観測点として、統一可視判定コア(_visJudgeCore)で
+ *  可視判定する(標高グラフの可視判定・辻検索/My辻検索の標高オプションと完全に同じベース)。
+ *  - サンプリングはDEM分解能固定(z15の半画素≒約2m)・標高は DEM5A→5B→5C(z15)→DEM10B(z14)
+ *  - 可視直線(画素のDEM5A系標高+観測点高 → 目的点標高)を上回る点があればNG
+ *  - 除外範囲(目的点の半径○m以内)のNGは無視
+ *  タイルは対象領域〜目的点のコリドー(扇形)を先取りする(5B/5Cは前段で取得できなかった座標のみ)。
+ *  戻り値: Uint8Array(kept) 1=OK / 中断(世代交代)は null */
+async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
+    const _exclR = elevExcludeRadii();
+    const exclKm = _exclR.tgt / 1000;
+    const obsExclM = _exclR.obs;
+    const synthetic = (typeof window._tmSyntheticElev === 'function');
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    const tgx15 = 128 * (end.lng / 180 + 1) * scale15;
+
+    // コリドー(対象領域〜目的点の扇形)の幾何とタイル列挙(実DEMの先取りと、ワーカーへの帯域割り当ての両方で使う)
+    const EARTH_R = 6371000;
+    const mPerDegLat = Math.PI * EARTH_R / 180;
+    const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
+    const scale14 = Math.pow(2, TSUJIMESH_ZOOM);
+    const pixLL14 = (gpx, gpy) => {
+        const lng = ((gpx / scale14) / R128 - Math.PI) * 180 / Math.PI;
+        const eL = Math.exp((128 - gpy / scale14) * 2 / R128);
+        return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
+    };
+    const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
+    const h14 = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale14 * 256);
+    const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
+        .map(([gx, gy]) => toXY(pixLL14(gx, gy)));
+    const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
+    const tgx14 = tgx15 / 2, tgy14 = gpy15At(end.lat) / 2;
+    const inside = tgx14 >= gxBase && tgx14 <= gxBase + gridW && tgy14 >= gyBase && tgy14 <= gyBase + gridW;
+    const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+    let azC = 0, span = 2 * Math.PI;
+    if (!inside) {
+        const azs = corners.map(c => Math.atan2(c.x, c.y));
+        const ds = azs.map(a => wrapPi(a - azs[0]));
+        azC = azs[0] + (Math.min(...ds) + Math.max(...ds)) / 2;
+        span = Math.max(...ds) - Math.min(...ds);
+    }
+    // コリドー内のタイル座標を列挙(タイル中心の方位/距離でセクター絞り込み)。d=目的点からの平面距離(帯域割り当て用)
+    const listTiles = (zoom) => {
+        const tileSizeM = 40075016.686 * Math.cos(refLat * Math.PI / 180) / Math.pow(2, zoom);
+        const tileR = tileSizeM * 0.75;
+        const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
+        const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, zoom);
+        const tSE = _getTileInfo(end.lat - degLatR, end.lng + degLngR, zoom);
+        const out = [];
+        const scaleZ = Math.pow(2, zoom);
+        for (let ty = tNW.y; ty <= tSE.y; ty++) {
+            for (let tx = tNW.x; tx <= tSE.x; tx++) {
+                const cLng = (((tx * 256 + 128) / scaleZ) / R128 - Math.PI) * 180 / Math.PI;
+                const eL = Math.exp((128 - (ty * 256 + 128) / scaleZ) * 2 / R128);
+                const cLat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+                const c = toXY({ lat: cLat, lng: cLng });
+                const d = Math.hypot(c.x, c.y);
+                if (d > maxDist + tileR) continue;
+                if (!inside && d > tileR) {
+                    const pad = Math.asin(Math.min(1, tileR / d));
+                    if (Math.abs(wrapPi(Math.atan2(c.x, c.y) - azC)) > span / 2 + pad) continue;
+                }
+                out.push({ tx, ty, d });
+            }
+        }
+        return out;
+    };
+    const coords14 = listTiles(TSUJIMESH_ZOOM);
+    const coords15 = listTiles(15);
+
+    let elevAtPix15;   // (z15グローバル画素int) → 標高 or null (標高グラフのgetElevationと同じチェーン)
+    let maps15 = null, map14 = null;   // 実DEM時のタイルキャッシュ(ワーカーへの符号化にも使う)
+    if (synthetic) {
+        // テスト用: z15合成(あれば)→z14合成
+        elevAtPix15 = (gx, gy) => {
+            if (typeof window._tmSyntheticElev15 === 'function') {
+                const e = window._tmSyntheticElev15(gx, gy);
+                if (e !== null && e !== undefined) return e;
+            }
+            return window._tmSyntheticElev(gx >> 1, gy >> 1);
+        };
+    } else {
+        // タイル先取り。z14と、z15は5A→5B→5Cの順に未取得座標のみ
+        const fetchInto = async (map, dem, coords, label) => {
+            let done = 0, qi = 0;
+            const loop = async () => {
+                while (qi < coords.length) {
+                    if (generation !== tsujiMeshGeneration) return;
+                    const { tx, ty } = coords[qi++];
+                    let img = null;
+                    try { img = await _getTileImageData(_makeTileUrl(dem, tx, ty)); } catch (_) {}
+                    map.set(tx * 32768 + ty, img);
+                    done++;
+                    if ((done & 7) === 0 || done === coords.length) {
+                        setStatus(`(標高オプション 標高タイル取得中(${label})… ${done}/${coords.length})`);
+                        setTsujiMeshProgress(done, coords.length);
+                    }
+                }
+            };
+            await Promise.all(Array.from({ length: 8 }, loop));
+        };
+        const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        map14 = new Map();
+        maps15 = z15Sources.map(() => new Map());
+        await fetchInto(map14, dem14, coords14, dem14.title);
+        if (generation !== tsujiMeshGeneration) return null;
+        for (let si = 0; si < z15Sources.length; si++) {
+            const need = coords15.filter(({ tx, ty }) => {
+                for (let p = 0; p < si; p++) if (maps15[p].get(tx * 32768 + ty)) return false;
+                return true;
+            });
+            if (need.length === 0) break;
+            await fetchInto(maps15[si], z15Sources[si], need, z15Sources[si].title);
+            if (generation !== tsujiMeshGeneration) return null;
+        }
+        elevAtPix15 = (gx, gy) => {
+            const key = (gx >> 8) * 32768 + (gy >> 8);
+            for (let si = 0; si < maps15.length; si++) {
+                const t = maps15[si].get(key);
+                if (!t) continue;
+                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: getElevationと同じ0.1m丸め
+            }
+            const gx14 = gx >> 1, gy14 = gy >> 1;
+            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
+            if (!t14) return null;
+            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+        };
+    }
+
+    const exclM = exclKm * 1000;
+    const flags = new Uint8Array(kept);
+    if (kept === 0) { window._tmLastVisFlags = flags; return flags; }
+
+    // 逐次判定(合成標高の既定経路・ワーカー失敗時のフォールバック)。結果はワーカー並列判定と同一
+    const judgeSequential = async () => {
+        for (let i = 0; i < kept; i++) {
+            const sLat = latA[i], sLng = lngA[i];
+            // 観測点側の標高も標高グラフと同じチェーン(z15優先)で参照する(無ければ検索用のz14標高)
+            const sx15 = 128 * (sLng / 180 + 1) * scale15;
+            const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
+            const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
+            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, obsExclM, elevAtPix15).visible ? 1 : 0;
+            if ((i & 255) === 0 || i === kept - 1) {
+                setStatus(`(標高オプション可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
+                setTsujiMeshProgress(i + 1, kept);
+                if ((i & 2047) === 0) await new Promise(r2 => setTimeout(r2, 0));   // UIへ制御を返す
+                if (generation !== tsujiMeshGeneration) return null;
+            }
+        }
+        window._tmLastVisFlags = flags;
+        return flags;
+    };
+
+    // 合成標高は既定で逐次(テストの互換)。_tmSyntheticWorkerVis=true でワーカー経路を検証できる
+    const useWorkers = !synthetic || window._tmSyntheticWorkerVis === true;
+    if (!useWorkers) return judgeSequential();
+
+    // --- ワーカープール並列判定(結果は逐次判定とビット一致) ---
+    // 経路を統一コアのSEG=64チャンク境界で帯域分割し、各ワーカーが全画素の担当帯域のみ判定する。
+    // タイルは帯域毎に必要な環帯(目的点からの距離レンジ+余白)分だけをdm(0.1m)のInt32に符号化して転送する
+    // (総転送量≒コリドー1式。ワーカー毎の複製を持たないため、長距離でもメモリが増えない)。
+    try {
+        // 観測点側の標高と、帯域計算のための距離レンジを先に求める
+        setStatus('(標高オプション 判定データ準備中…)');
+        const latArr = new Float64Array(kept), lngArr = new Float64Array(kept), startTotals = new Float64Array(kept);
+        let minDistM = Infinity, maxDistM = 0, minAbsLat = 90, maxAbsLat = 0;
+        const endLL = L.latLng(end.lat, end.lng);
+        for (let i = 0; i < kept; i++) {
+            const sLat = latA[i], sLng = lngA[i];
+            latArr[i] = sLat; lngArr[i] = sLng;
+            const sx15 = 128 * (sLng / 180 + 1) * scale15;
+            const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
+            startTotals[i] = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
+            const d = L.latLng(sLat, sLng).distanceTo(endLL);
+            if (d < minDistM) minDistM = d;
+            if (d > maxDistM) maxDistM = d;
+            const al = Math.abs(sLat);
+            if (al < minAbsLat) minAbsLat = al;
+            if (al > maxAbsLat) maxAbsLat = al;
+        }
+        const Kc = 40075016.686 / (scale15 * 256) / 2;   // stepM = Kc*cos(lat)
+        const maxSteps = Math.max(2, Math.ceil(maxDistM / (Kc * Math.cos(maxAbsLat * Math.PI / 180))));
+        const minSteps = Math.max(2, Math.ceil(minDistM / (Kc * Math.cos(minAbsLat * Math.PI / 180))));
+        const Cmax = Math.max(1, Math.ceil((maxSteps - 1) / 64));
+        const W = Math.max(1, Math.min(tmVisPool.size, Cmax));
+        const chunkPer = Math.ceil(Cmax / W);
+        const tileSize15M = 40075016.686 * Math.cos(refLat * Math.PI / 180) / scale15;
+        const tileSize14M = tileSize15M * 2;
+        const distMargin = Math.max(500, maxDistM * 0.005);
+        const SENT = -2147483648;
+        const syn15 = (synthetic && typeof window._tmSyntheticElev15 === 'function') ? window._tmSyntheticElev15 : null;
+        const packz15 = ({ tx, ty }) => {
+            const out = new Int32Array(65536).fill(SENT);
+            if (synthetic) {
+                for (let p = 0; p < 65536; p++) {
+                    const v = syn15(tx * 256 + (p & 255), ty * 256 + (p >> 8));
+                    if (v !== null && v !== undefined) out[p] = Math.round(v * 10);
+                }
+            } else {
+                for (let si = 0; si < maps15.length; si++) {
+                    const img = maps15[si].get(tx * 32768 + ty);
+                    if (img) _tmPackTileDm(img, out, false);
+                }
+            }
+            return { key: tx * 32768 + ty, dm: out };
+        };
+        const packz14 = ({ tx, ty }) => {
+            const out = new Int32Array(65536).fill(SENT);
+            if (synthetic) {
+                for (let p = 0; p < 65536; p++) {
+                    const v = window._tmSyntheticElev(tx * 256 + (p & 255), ty * 256 + (p >> 8));
+                    if (v !== null && v !== undefined) out[p] = Math.round(v * 10);
+                }
+            } else {
+                const img = map14.get(tx * 32768 + ty);
+                if (img) _tmPackTileDm(img, out, true);
+            }
+            return { key: tx * 32768 + ty, dm: out };
+        };
+        const doneCounts = [];
+        const jobs = [];
+        for (let w = 0; w < W; w++) {
+            const c0 = w * chunkPer, c1 = Math.min(Cmax, c0 + chunkPer);
+            if (c0 >= c1) continue;
+            // 帯域のサンプルが取り得る「目的点からの距離」レンジ(保守的)でタイルを割り当てる
+            const jS = 1 + c0 * 64, jE = c1 * 64;
+            const rMin = Math.min(1, jS / maxSteps);
+            const rMax = Math.min(1, jE / minSteps);
+            const dNear = (1 - rMax) * minDistM, dFar = (1 - rMin) * maxDistM;
+            const m15 = tileSize15M * 1.5 + distMargin, m14 = tileSize14M * 1.5 + distMargin;
+            const t15 = (synthetic && !syn15) ? [] :
+                coords15.filter(t => t.d >= dNear - m15 && t.d <= dFar + m15).map(packz15);
+            const t14 = coords14.filter(t => t.d >= dNear - m14 && t.d <= dFar + m14).map(packz14);
+            if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return null; }
+            const jobIdx = doneCounts.length;
+            doneCounts.push(0);
+            const transfer = t15.map(t => t.dm.buffer).concat(t14.map(t => t.dm.buffer));
+            jobs.push(tmVisPool.run({
+                type: 'judge', jobId: jobIdx, chunk0: c0, chunk1: c1,
+                lat: latArr, lng: lngArr, startTotal: startTotals,
+                endLat: end.lat, endLng: end.lng, endTotal: endElev, exclM, obsExclM,
+                tiles15: t15, tiles14: t14,
+            }, transfer, (p) => { doneCounts[jobIdx] = p.done; }));
+            await new Promise(r2 => setTimeout(r2, 0));   // 符号化中もUIへ制御を返す
+        }
+        setStatus(`(標高オプション可視判定中(${jobs.length}並列)… 0/${kept.toLocaleString()}画素)`);
+        const progTimer = setInterval(() => {
+            if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return; }
+            const eq = Math.min(kept, Math.floor(doneCounts.reduce((a, b) => a + b, 0) / jobs.length));
+            setStatus(`(標高オプション可視判定中(${jobs.length}並列)… ${eq.toLocaleString()}/${kept.toLocaleString()}画素)`);
+            setTsujiMeshProgress(eq, kept);
+        }, 200);
+        let results;
+        try {
+            results = await Promise.all(jobs);
+        } finally {
+            clearInterval(progTimer);
+        }
+        if (generation !== tsujiMeshGeneration) { tmVisPool.terminateAll(); return null; }
+        for (const res of results) {
+            if (!res || res.type !== 'done') return null;   // キャンセル済み
+            const b = res.blocked;
+            for (let i = 0; i < kept; i++) if (b[i]) flags[i] = 1;   // 一時的に「遮蔽あり」を1で集約
+        }
+        for (let i = 0; i < kept; i++) flags[i] = flags[i] ? 0 : 1;   // 反転して 1=可視(OK) に揃える
+        setTsujiMeshProgress(kept, kept);
+        window._tmLastVisFlags = flags;
+        return flags;
+    } catch (err) {
+        console.warn('可視判定のワーカー実行に失敗したため逐次判定にフォールバックします:', err);
+        tmVisPool.terminateAll();
+        flags.fill(0);
+        return judgeSequential();
+    }
+}
+
+/** 辻メッシュ検索の実行 (トグルON/URL自動実行から) */
+async function startTsujiMeshSearch() {
+    const generation = ++tsujiMeshGeneration;
+    tsujiMeshPool.terminateAll();
+    tmVisPool.terminateAll();   // 実行中の可視判定(標高オプション)もキャンセル
+    hideTsujiMeshProgress();
+    clearTsujiMeshMarkers();
+    _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null; _tmCtrlFracMs = 0;
+    _tmResetDetailList();
+
+    const contentEl = document.getElementById('tsujimesh-content');
+    const statusEl = document.getElementById('tsujimesh-status');
+    const setStatus = (t) => { if (statusEl) statusEl.textContent = t; };
+    contentEl.innerHTML = '<div style="padding:8px;color:#999;">DEM標高タイルを取得しています…</div>';
+    setStatus('(DEM標高タイル取得中…)');
+
+    const start = appState.start, end = appState.end;
+    const endElev = end.elev;
+    const pixHeight = Number(appState.startHeight) || 0;   // 観測点高を全画素に自動適用(辻検索と同じ「標高+観測点高」基準)
+    _tsujiMeshPixHeightUsed = pixHeight;
+    const menuBaseAz = appState.tsujiMeshBaseAz, menuBaseAlt = appState.tsujiMeshBaseAlt;
+    const tolAz = appState.tsujiMeshToleranceAz, tolAlt = appState.tsujiMeshToleranceAlt;
+    if (isNaN(menuBaseAz) || isNaN(menuBaseAlt) || isNaN(tolAz) || isNaN(tolAlt)) {
+        setStatus('(入力値エラー)');
+        contentEl.innerHTML = '<div style="padding:8px;color:#f99;">基準方位角・基準視高度・許容範囲を正しく入力してください</div>';
+        return;
+    }
+
+    // 1) 観測点を含むタイルの近傍(検索エリア: N×N)のDEM標高タイルを取得
+    const areaN = _tmSearchArea;
+    const areaHalf = Math.floor((areaN - 1) / 2);
+    const progTotal = 2 * areaN * areaN;   // 取得N²+前計算N²
+    const ti = _getTileInfo(start.lat, start.lng, TSUJIMESH_ZOOM);
+    const dem = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+    // マーカーのオーバーレイ描画・ビューシェッド用: 検索エリア(N*256四方)のグローバル画素座標系
+    const gridW = areaN * 256;
+    const gxBase = (ti.x - areaHalf) * 256, gyBase = (ti.y - areaHalf) * 256;
+    const tiles = [];
+    for (let dy = -areaHalf; dy <= areaN - 1 - areaHalf; dy++)
+        for (let dx = -areaHalf; dx <= areaN - 1 - areaHalf; dx++) tiles.push({ x: ti.x + dx, y: ti.y + dy });
+    const tileData = [];
+    for (let i = 0; i < tiles.length; i++) {
+        if (generation !== tsujiMeshGeneration) return;
+        let img = null;
+        if (typeof window._tmSyntheticElev === 'function') {
+            img = '_synthetic_';   // テスト用: 取得せず合成標高を使う
+        } else {
+            const url = dem.url.replace('{z}', TSUJIMESH_ZOOM).replace('{x}', tiles[i].x).replace('{y}', tiles[i].y);
+            try { img = await _getTileImageData(url); } catch (_) { img = null; }   // 海上等でタイルが無い場合はスキップ
+        }
+        tileData.push(img);
+        setTsujiMeshProgress(i + 1, progTotal);
+    }
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 1b) 標高オプション: 許容範囲で絞った対象画素それぞれに、標高グラフと同一のアルゴリズムで
+    //     可視(OK)/不可視(NG)を判定し、OK/NGチェックで選んだ対象だけを検索する(判定は前計算の後)。
+    //     結果行の標高グラフ列は「行の表示値を出した地点=その日の最良画素」の可視判定を表示する。
+    const elevOptOn = appState.tsujiMeshElevationOption;
+    let viewshedMode = 'all';
+    if (elevOptOn && appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
+        viewshedMode = appState.tsujiMeshElevOK ? 'visible' : 'invisible';
+
+    // 2) 全画素の前計算: 画素→目的点の基準方位角/基準視高度(WGS84測地線+見かけ高度)
+    //    許容範囲(メニューの基準方位角/視高度から±)内の画素だけを検索対象にする
+    setStatus('(画素の前計算中…)');
+    const maxCount = tiles.length * 65536;
+    const baseAzA = new Float32Array(maxCount), baseAltA = new Float32Array(maxCount);
+    const latA = new Float64Array(maxCount), lngA = new Float64Array(maxCount), elevA = new Float32Array(maxCount);
+    const dEA = new Float32Array(maxCount), dNA = new Float32Array(maxCount);   // 領域中心からの変位角(rad)。地平座標系の画素位置補正用
+    const EARTH_R = 6371000;
+    const mPerDegLat = Math.PI * EARTH_R / 180;
+    const mPerDegLng = mPerDegLat * Math.cos(start.lat * Math.PI / 180);
+    const geod = geodesic.Geodesic.WGS84;
+    // マーカーのオーバーレイ描画用: 検索エリア(N*256四方)のグローバル画素→対象画素index+1(0=対象外)
+    const grid = new Uint32Array(gridW * gridW);
+    const gridPosA = new Uint32Array(maxCount);   // 対象画素index→グリッド位置(オーバーレイ描画用の逆引き)
+    let kept = 0, minAlt = Infinity, maxAlt = -Infinity;
+    for (let t = 0; t < tiles.length; t++) {
+        const img = tileData[t];
+        if (!img) { setTsujiMeshProgress(tiles.length + t + 1, progTotal); continue; }
+        const gx0 = tiles[t].x * 256, gy0 = tiles[t].y * 256;
+        const px = (img === '_synthetic_') ? null : img.data;
+        for (let py = 0; py < 256; py++) {
+            for (let pxx = 0; pxx < 256; pxx++) {
+                let elev;
+                if (px) {
+                    const o = (py * 256 + pxx) * 4;
+                    elev = _elevFromRGB(px[o], px[o + 1], px[o + 2]);
+                    if (elev === null) continue;   // 無効値(海など)は対象外
+                } else {
+                    elev = window._tmSyntheticElev(gx0 + pxx, gy0 + py);
+                    if (elev === null) continue;
+                }
+                const ll = _globalPixelToLatLng(gx0 + pxx, gy0 + py, TSUJIMESH_ZOOM);
+                const inv = geod.Inverse(ll.lat, ll.lng, end.lat, end.lng);
+                const az = (inv.azi1 + 360) % 360;
+                if (Math.abs(((az - menuBaseAz + 540) % 360) - 180) > tolAz) continue;
+                const alt = calculateApparentAltitude(inv.s12, elev + pixHeight, endElev, ll.lat, end.lat);
+                if (Math.abs(alt - menuBaseAlt) > tolAlt) continue;
+                baseAzA[kept] = az; baseAltA[kept] = alt;
+                latA[kept] = ll.lat; lngA[kept] = ll.lng; elevA[kept] = elev;
+                dEA[kept] = (ll.lng - start.lng) * mPerDegLng / EARTH_R;
+                dNA[kept] = (ll.lat - start.lat) * mPerDegLat / EARTH_R;
+                const gpos = (gy0 + py - gyBase) * gridW + (gx0 + pxx - gxBase);
+                grid[gpos] = kept + 1;
+                gridPosA[kept] = gpos;
+                if (alt < minAlt) minAlt = alt;
+                if (alt > maxAlt) maxAlt = alt;
+                kept++;
+            }
+        }
+        setTsujiMeshProgress(tiles.length + t + 1, progTotal);
+        await new Promise(r => setTimeout(r, 0));   // UIへ制御を返す
+        if (generation !== tsujiMeshGeneration) return;
+    }
+    if (kept === 0) {
+        setStatus('(対象画素なし)');
+        hideTsujiMeshProgress();
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内の画素がありません(許容範囲方位角/視高度を広げてください)</div>';
+        return;
+    }
+
+    // 標高オプション: 許容範囲内の対象画素それぞれを、標高グラフと同一のアルゴリズムで可視判定する
+    let visFlags = null;   // Uint8Array(kept) 1=OK(可視)
+    if (elevOptOn) {
+        visFlags = await computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus);
+        if (generation !== tsujiMeshGeneration || !visFlags) return;
+        if (viewshedMode !== 'all') {
+            // OK/NGチェックで選んだ対象だけへ圧縮(グリッド索引も再構築)
+            let w = 0;
+            minAlt = Infinity; maxAlt = -Infinity;
+            for (let i = 0; i < kept; i++) {
+                const keep = (viewshedMode === 'visible') ? visFlags[i] === 1 : visFlags[i] === 0;
+                if (!keep) { grid[gridPosA[i]] = 0; continue; }
+                baseAzA[w] = baseAzA[i]; baseAltA[w] = baseAltA[i];
+                latA[w] = latA[i]; lngA[w] = lngA[i]; elevA[w] = elevA[i];
+                dEA[w] = dEA[i]; dNA[w] = dNA[i];
+                gridPosA[w] = gridPosA[i]; visFlags[w] = visFlags[i];
+                grid[gridPosA[w]] = w + 1;
+                if (baseAltA[w] < minAlt) minAlt = baseAltA[w];
+                if (baseAltA[w] > maxAlt) maxAlt = baseAltA[w];
+                w++;
+            }
+            kept = w;
+            if (kept === 0) {
+                setStatus('(対象画素なし)');
+                hideTsujiMeshProgress();
+                contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内かつ標高オプション対象の画素がありません(OK/NGチェックや許容範囲を見直してください)</div>';
+                return;
+            }
+        }
+    }
+    const baseAz = baseAzA.slice(0, kept), baseAlt = baseAltA.slice(0, kept);
+    _tsujiMeshPix = { lat: latA.slice(0, kept), lng: lngA.slice(0, kept), elev: elevA.slice(0, kept) };
+
+    // 3) 方位角ビン索引(0.1°)を構築してワーカーへ配布
+    const binSize = 0.1, nBins = 3600;
+    const counts = new Uint32Array(nBins);
+    for (let i = 0; i < kept; i++) counts[Math.min(nBins - 1, Math.floor(baseAz[i] / binSize))]++;
+    const binIndex = new Uint32Array(nBins + 1);
+    for (let b = 0; b < nBins; b++) binIndex[b + 1] = binIndex[b] + counts[b];
+    const binPixels = new Uint32Array(kept);
+    const cursor = binIndex.slice(0, nBins);
+    for (let i = 0; i < kept; i++) {
+        const b = Math.min(nBins - 1, Math.floor(baseAz[i] / binSize));
+        binPixels[cursor[b]++] = i;
+    }
+    setStatus(`(対象${kept.toLocaleString()}画素 / ワーカー準備中…)`);
+    const dE = dEA.slice(0, kept), dN = dNA.slice(0, kept);
+    // 領域のコーナー基準バウンズ(_globalPixelToLatLngは画素中心+0.5基準なのでコーナーはインライン計算)
+    const cornerLL = (gpx, gpy) => {
+        const scale = Math.pow(2, TSUJIMESH_ZOOM);
+        const R = 128 / Math.PI;
+        const lng = ((gpx / scale) / R - Math.PI) * 180 / Math.PI;
+        const eL = Math.exp((128 - gpy / scale) * 2 / R);
+        const lat = Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI;
+        return { lat, lng };
+    };
+    const nw = cornerLL(gxBase, gyBase), se = cornerLL(gxBase + gridW, gyBase + gridW);
+    // 辻時刻コントロールの再計算(案B)用に、画素索引と検索条件をスナップショット(検索条件の凍結)
+    _tsujiMeshCalc = {
+        baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180),
+        minAlt, maxAlt, binSize, nBins, binIndex, binPixels,
+        observerData: { lat: start.lat, lng: start.lng, elev: start.elev },
+        refractionEnabled: appState.refractionEnabled,
+        offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
+        centerMode: appState.tsujiMeshCenterMode,
+        grid, gridW, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
+        bounds: L.latLngBounds([se.lat, nw.lng], [nw.lat, se.lng]),
+    };
+    await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 4) 表示天体 × 日チャンク(30日)をプールへ投入
+    const visibleBodies = appState.bodies.filter(b => b.visible);
+    if (visibleBodies.length === 0) {
+        setStatus('(表示天体なし)');
+        hideTsujiMeshProgress();
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">表示天体メニューで検索する天体をオンにしてください</div>';
+        return;
+    }
+    const days = appState.tsujiMeshDays;
+    const CHUNK = 30;
+    const numChunks = Math.ceil(days / CHUNK);
+    const totalTasks = visibleBodies.length * numChunks;
+    let doneTasks = 0;
+    const searchStart = new Date(appState.currentDate);
+    searchStart.setHours(0, 0, 0, 0);
+    const searchStartMs = searchStart.getTime();
+    const epsilon = TSUJIMESH_EPS[appState.tsujiMeshAccuracy] || TSUJIMESH_EPS.x1;
+    const observerData = { lat: start.lat, lng: start.lng, elev: start.elev };
+    setStatus(`(検索中… 対象${kept.toLocaleString()}画素 / ${visibleBodies.length}天体 / ${totalTasks}タスク)`);
+    setTsujiMeshProgress(0, totalTasks);
+    contentEl.innerHTML = '<div style="padding:8px;color:#999;">検索しています…</div>';
+
+    const buildBodyMsg = (body) => {
+        if (isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id);
+            return { id: body.id, fixed: true, ra: rd.ra, dec: rd.dec };
+        }
+        return { id: body.id, fixed: false };
+    };
+    const bumpProgress = () => { doneTasks++; setTsujiMeshProgress(doneTasks, totalTasks); };
+
+    const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
+        const bodyMsg = buildBodyMsg(body);
+        const events = [];
+        for (let c = 0; c < numChunks; c++) {
+            const dayStart = c * CHUNK, dayEnd = Math.min(dayStart + CHUNK, days);
+            try {
+                const res = await tsujiMeshPool.runTask({
+                    type: 'search', reqId: `${body.id}_${c}`, body: bodyMsg,
+                    observerData, refractionEnabled: appState.refractionEnabled,
+                    offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
+                    centerMode: appState.tsujiMeshCenterMode, epsilon,
+                    searchStartMs, dayStart, dayEnd,
+                });
+                events.push(...res.events);
+            } catch (_) { /* キャンセル/エラーはスキップ */ }
+            bumpProgress();
+        }
+        events.sort((a, b) => a.dayIdx - b.dayIdx);
+        return { body, events };
+    }));
+    if (generation !== tsujiMeshGeneration) return;
+
+    // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
+    const observer = new Astronomy.Observer(start.lat, start.lng, start.elev);
+    const timeFs = {
+        startMode: appState.tsujiMeshStartMode, startTime: appState.tsujiMeshStartTime, startPrePost: appState.tsujiMeshStartPrePost, startPrePostDir: appState.tsujiMeshStartPrePostDir, startOffset: appState.tsujiMeshStartOffset,
+        endMode: appState.tsujiMeshEndMode, endTime: appState.tsujiMeshEndTime, endPrePost: appState.tsujiMeshEndPrePost, endPrePostDir: appState.tsujiMeshEndPrePostDir, endOffset: appState.tsujiMeshEndOffset,
+    };
+    const riseSetCache = {};
+    const getRiseSetForDay = (dateObj) => {
+        const key = dateObj.toDateString();
+        if (riseSetCache[key]) return riseSetCache[key];
+        const startOfDay = new Date(dateObj);
+        startOfDay.setHours(0, 0, 0, 0);
+        let sr, ss, mr, ms;
+        try {
+            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+        } catch (_) {}
+        const tw = computeDayTwilight(startOfDay, observer);
+        return riseSetCache[key] = { sr, ss, mr, ms, tw, startOfDay };
+    };
+
+    const rows = [];
+    let totalPix = 0;
+    allBodyEvents.forEach(({ body, events }) => {
+        events.forEach(ev => {
+            // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
+            // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
+            // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
+            // 検索本体は1秒格子なので、辻時刻・精度角距離・方位角・視高度は優辻マーカーのポップアップと
+            // 同じ0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
+            const ref = _tmRefinePixelTimeFast(ev.bestPix, ev.bestTimeMs, body);
+            const rowTimeMs = ref ? ref.timeMs : ev.bestTimeMs;
+            const rowDist = ref ? ref.dist : ev.bestDist;
+            const rowAz = ref ? ref.az : ev.bestAz;
+            const rowAlt = ref ? ref.alt : ev.bestAlt;
+            const dt = new Date(rowTimeMs);
+            const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+            const rs = getRiseSetForDay(dt);
+            const phase = Astronomy.MoonPhase(dt);
+            const moonAge = (phase / 360) * SYNODIC_MONTH;
+            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+            // 月齢フィルタ
+            if (appState.tsujiMeshMoonFilterEnabled &&
+                !isMoonAgeInRange(moonAge, appState.tsujiMeshMoonBase, appState.tsujiMeshMoonTolerance)) return;
+            // 時間フィルタ
+            if (appState.tsujiMeshTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
+            const symbol = _tmAccSymbol(rowDist);   // ◎〜◎×128(◎より粗い場合は○△-)
+            // 精度フィルタ(◎〜◎×128は常時オン・○△-はチェックされた記号のみ表示)
+            if ((symbol === '○' && !appState.tsujiMeshSymO) ||
+                (symbol === '△' && !appState.tsujiMeshSymTri) ||
+                (symbol === '-' && !appState.tsujiMeshSymDash)) return;
+            const diffBaseAz = baseAz[ev.bestPix];
+            const diffBaseAlt = baseAlt[ev.bestPix];
+            // 検索中心差の参照点(最良画素の基準+検索時のオフセット。線モードは線分への最近点)
+            const meshCtr = tsujiCenterRefPoint(rowAz, rowAlt, diffBaseAz, diffBaseAlt,
+                Number(_tsujiMeshCalc.offsetAz) || 0, Number(_tsujiMeshCalc.offsetAlt) || 0, _tsujiMeshCalc.centerMode);
+            totalPix += ev.total;
+            rows.push({
+                body, dateObj: dt,
+                symbol,
+                dist: rowDist, azimuth: rowAz, altitude: rowAlt,
+                azDiff: azDiffDeg(rowAz, meshCtr.az),
+                altDiff: rowAlt - meshCtr.alt,
+                mwOffAngle: Number(appState.mwOffsetAngle) || 0,
+                angularRadius: getBodyAngularRadius(body.id, dt, observer),
+                moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
+                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
+                timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
+                elevationStatus: (elevOptOn && visFlags)
+                    ? (visFlags[ev.bestPix] ? 'OK' : 'NG')
+                    : '-',   // 行の表示値を出した地点=最良画素の可視判定(標高グラフと同一アルゴリズム)
+                sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
+                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
+                dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
+                dowStr: `(${dow})`,
+                timeStr: _tmFmtTimeMs2(rowTimeMs),   // 0.01秒表示(優辻マーカーのポップアップと同じ)
+                bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
+                total: ev.total, capped: ev.capped,
+            });
+        });
+    });
+    // 表示天体順 → 日時順
+    const bodyOrder = new Map(visibleBodies.map((b, i) => [b.id, i]));
+    rows.sort((a, b) => (bodyOrder.get(a.body.id) - bodyOrder.get(b.body.id)) || (a.dateObj - b.dateObj));
+
+    if (generation !== tsujiMeshGeneration) return;
+
+    _tsujiMeshRows = rows;
+    hideTsujiMeshProgress();
+    setStatus(`(${rows.length}件 / ヒット画素のべ${totalPix.toLocaleString()})`);
+    renderTsujiMeshResults();
+    drawTsujiMeshMarkers();
+    // File取得ボタン起点の検索なら、完了した結果行をCSVでダウンロードする
+    if (_tmFileCsvPending) {
+        _tmFileCsvPending = false;
+        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); });
+    }
+    // 検索直後は行を自動選択せず、日時も移動しない
+    // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
+    // 初期画面: 最大ズーム-3で観測点を(下部パネルに隠れない領域の)中央に表示する
+    if (typeof map !== 'undefined' && map) {
+        let coveredPx = 0;
+        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+            const el = document.getElementById(id);
+            if (!el || el.classList.contains('hidden')) continue;
+            coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+        }
+        const zoom = (map.getMaxZoom ? map.getMaxZoom() : 18) - 3;
+        const obsPt = map.project([start.lat, start.lng], zoom);
+        map.setView(map.unproject(obsPt.add(L.point(0, coveredPx / 2)), zoom), zoom);
+    }
+}
+
+/** 辻メッシュ検索の結果リスト(21列・ソート可)を描画 */
+function renderTsujiMeshResults() {
+    const contentEl = document.getElementById('tsujimesh-content');
+    contentEl.innerHTML = '';
+    if (_tsujiMeshRows.length === 0) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません(精度フィルタ/許容範囲/検索期間を見直してください)</div>';
+        return;
+    }
+    const renderRow = (r) => {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row' + (r.__sel ? ' selected' : '');
+        tr.style.color = r.body.color;
+        const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dateObj);
+            syncUIFromState();
+            updateAll();
+            selectTsujiMeshRow(_tsujiMeshRows.indexOf(r));
+        });
+        r.__tr = tr;
+        return tr;
+    };
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
+    setupTableSort(table, _tsujiMeshRows, [
+        { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
+        { label: '天体名', compare: (a, b) => {
+            const ia = appState.bodies.findIndex(bo => bo.id === a.body.id);
+            const ib = appState.bodies.findIndex(bo => bo.id === b.body.id);
+            return ia - ib;
+        }},
+        { label: '精度記号', compare: (a, b) => _tmAccSymbolRank(a.symbol) - _tmAccSymbolRank(b.symbol) },
+        { label: '精度角距離', compare: (a, b) => a.dist - b.dist },
+        { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
+        { label: '曜日', compare: (a, b) => a.dateObj.getDay() - b.dateObj.getDay() },
+        { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
+        { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
+        { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
+        { label: '月の出時刻', compare: (a, b) => a.moonriseStr.localeCompare(b.moonriseStr) },
+        { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
+        { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
+        { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
+        { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
+        { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
+        { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
+        { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
+        { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
+    ], renderRow, []);
+}
+
+function setTsujiMeshProgress(current, total) {
+    const bar = document.getElementById('tsujimesh-progress');
+    if (!bar || !total) return;
+    bar.classList.remove('hidden');
+    document.getElementById('tsujimesh-progress-fill').style.width = `${Math.round(current / total * 100)}%`;
+}
+function hideTsujiMeshProgress() {
+    const bar = document.getElementById('tsujimesh-progress');
+    if (bar) bar.classList.add('hidden');
+}
+
+/** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に全ヒット画素をCSVでダウンロードする。
+ *  詳細結果リストの内容の全画素出力。観測点ID=画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
+let _tmFileCsvPending = false;
+function fileTsujiMeshCsv() {
+    if (!confirm('辻メッシュ検索を実行し、結果(全ヒット画素)をCSVでFile取得しますか？')) return;
+    _tmFileCsvPending = true;
+    if (!appState.isTsujiMeshActive) toggleTsujiMesh();   // OFFなら開始(完了時にCSV出力)
+    else startTsujiMeshSearch();                          // ONなら現在の条件で再検索
+}
+
+/** 辻メッシュ検索の結果行 → CSV(共通列構成)。結果リストの表示行(最良画素)だけでなく、
+ *  詳細結果リストと同じく各行の全ヒット画素を1画素=1行(0.01秒精細化後の値)で出力する。
+ *  観測点ID=画素ID(メッシュ全体で一意。同じIDの行は同じ観測点緯度経度)。行内は日時(日付+辻時刻)の昇順。
+ *  出没・薄明・GH/BH・時間帯は検索の共通観測点で日単位に、月齢/輝面比は分単位にキャッシュを共有して
+ *  大量行でも現実的な時間で出力する(画素間の位置差による出没時刻差は高々数十秒なので無視できる) */
+async function _tmExportMeshRowsCsv(rows) {
+    if (!rows.length) { alert('該当する日時はありません'); return; }
+    const C = _tsujiMeshCalc;
+    if (!C || !_tsujiMeshPix) { alert('検索結果がありません'); return; }
+    const height = Number(appState.startHeight) || 0;
+    const totalPixRows = rows.reduce((s, r) => s + (r.pixIdx ? r.pixIdx.length : 0), 0);
+    if (totalPixRows > 50000 &&
+        !confirm(`全ヒット画素 ${totalPixRows.toLocaleString()}行をCSVに出力します(生成に時間がかかる場合があります)。続行しますか？`)) return;
+    const statusEl = document.getElementById('tsujimesh-status');
+    const prevStatus = statusEl ? statusEl.textContent : '';
+    const setBusy = (txt) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(txt)}`; };
+    const obsCommon = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    // 日毎の出没・薄明・GH/BH(共通観測点)。buildMyTsujiCsvRowへ _preAstro として渡して行毎の再計算を省く
+    const dayCache = new Map();   // dayMs -> { day, tw, pre }
+    const astroOf = (dt) => {
+        const d0 = new Date(dt); d0.setHours(0, 0, 0, 0);
+        let a = dayCache.get(d0.getTime());
+        if (!a) {
+            a = { day: d0, tw: computeDayTwilight(d0, obsCommon), pre: {} };
+            const p = a.pre;
+            try {
+                p.sr = Astronomy.SearchRiseSet('Sun', obsCommon, +1, d0, 1);
+                p.ss = Astronomy.SearchRiseSet('Sun', obsCommon, -1, d0, 1);
+                p.mr = Astronomy.SearchRiseSet('Moon', obsCommon, +1, d0, 2);
+                p.ms = Astronomy.SearchRiseSet('Moon', obsCommon, -1, d0, 2);
+            } catch (_) {}
+            try {
+                p.astroDawn = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -18);
+                p.nautDawn  = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -12);
+                p.yoake     = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -7.361111);
+                p.civilDawn = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -6);
+                p.bhEndGhStart = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -4);
+                p.ghEnd     = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, 6);
+                p.ghStart   = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, 6);
+                p.ghEndBhStart = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -4);
+                p.civilDusk = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -6);
+                p.higure    = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -7.361111);
+                p.nautDusk  = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -12);
+                p.astroDusk = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -18);
+            } catch (_) {}
+            dayCache.set(d0.getTime(), a);
+        }
+        return a;
+    };
+    // 月齢/月齢アイコン/輝面比: 分単位キャッシュ(表示精度0.1に対し1分の変化は月齢0.00002・輝面比0.01%程度)
+    const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+    const moonCache = new Map();   // minuteMs -> { moonAge, moonIcon, moonIllum }
+    const moonOf = (timeMs) => {
+        const key = Math.floor(timeMs / 60000);
+        let m = moonCache.get(key);
+        if (!m) {
+            const d = new Date(key * 60000);
+            const phase = Astronomy.MoonPhase(d);
+            m = { moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum: 0 };
+            try { m.moonIllum = Astronomy.Illumination('Moon', d).phase_fraction * 100; } catch (_) {}
+            moonCache.set(key, m);
+        }
+        return m;
+    };
+    const visFlags = window._tmLastVisFlags;
+    const elevOn = !!appState.tsujiMeshElevationOption && !!visFlags;
+    const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng,
+                  elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
+    const mwOff = Number(appState.mwOffsetAngle) || 0;
+    const offAz = Number(C.offsetAz) || 0, offAlt = Number(C.offsetAlt) || 0;
+    const list = [];
+    let done = 0;
+    for (const r of rows) {
+        const n = r.pixIdx ? r.pixIdx.length : 0;
+        if (!n) continue;
+        // 全画素を0.01秒精細化してから、行内の出力順=日時(日付+辻時刻)の昇順で並べる
+        const ents = [];
+        for (let i = 0; i < n; i++) {
+            const pix = r.pixIdx[i];
+            const ref = _tmRefinePixelTimeFast(pix, r.pixTime[i], r.body);
+            ents.push({ pix,
+                        timeMs: ref ? ref.timeMs : r.pixTime[i],
+                        dist: ref ? ref.dist : r.pixDist[i],
+                        az: ref ? ref.az : r.azimuth, alt: ref ? ref.alt : r.altitude });
+            if (++done % 500 === 0) {
+                setBusy(`File出力処理中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
+                await new Promise(res => setTimeout(res, 0));
+            }
+        }
+        ents.sort((a, b) => a.timeMs - b.timeMs);
+        let built = 0;
+        for (const e of ents) {
+            const pix = e.pix;
+            const dt = new Date(e.timeMs);
+            const a = astroOf(dt);
+            const m = moonOf(e.timeMs);
+            list.push({
+                tsuji: { id: '', name: '', memo: '',
+                         baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
+                         offsetAz: offAz, offsetAlt: offAlt,
+                         centerMode: C.centerMode, mwOffsetAngle: mwOff },
+                obs: { id: pix, name: '', lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix],
+                       elev: _tsujiMeshPix.elev[pix], height, memo: '' },
+                tgt,
+                body: r.body, time: dt,
+                azimuth: e.az, altitude: e.alt, dist: e.dist,
+                symbol: _tmAccSymbol(e.dist),
+                moonAge: m.moonAge, moonIcon: m.moonIcon, moonIllum: m.moonIllum,
+                timeCategory: classifyTimeCategory(dt, a.tw, a.day),
+                elevationStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-',
+                _preAstro: a.pre,
+            });
+            // 行整形は軽い処理だが、巨大な行でもUIが固まらないよう定期的にyieldする
+            if (++built % 2000 === 0) await new Promise(res => setTimeout(res, 0));
+        }
+    }
+    if (!list.length) { alert('該当する日時はありません'); return; }
+    setBusy(`CSV生成中… 0/${list.length.toLocaleString()}行`);
+    await downloadTsujiResultCsv(list, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`,
+        (i, total) => setBusy(`CSV生成中… ${i.toLocaleString()}/${total.toLocaleString()}行`));
+    if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${list.length.toLocaleString()}行)`;
+}
+
+function toggleTsujiMesh() {
+    appState.isTsujiMeshActive = !appState.isTsujiMeshActive;
+    const btn = document.getElementById('btn-tsujimesh');
+    const pnl = document.getElementById('tsujimesh-panel');
+    if (appState.isTsujiMeshActive) {
+        if (appState.isTsujiSearchActive) toggleTsujiSearch();   // 辻検索とは同時表示不可
+        btn.classList.add('active');
+        pnl.classList.remove('hidden');
+        startTsujiMeshSearch();
+    } else {
+        closeTsujiMesh(true);
+    }
+    syncBottomPanels();
+}
+
+/** 辻メッシュ検索パネルを閉じる(alreadyFlagged=trueならフラグ反転済み) */
+function closeTsujiMesh(alreadyFlagged = false) {
+    if (!alreadyFlagged && !appState.isTsujiMeshActive) return;
+    appState.isTsujiMeshActive = false;
+    document.getElementById('btn-tsujimesh').classList.remove('active');
+    document.getElementById('tsujimesh-panel').classList.add('hidden');
+    tsujiMeshGeneration++;                       // 実行中の検索をキャンセル
+    if (typeof tsujiMeshPool !== 'undefined') tsujiMeshPool.terminateAll();
+    if (typeof tmVisPool !== 'undefined') tmVisPool.terminateAll();
+    hideTsujiMeshProgress();
+    if (typeof clearTsujiMeshMarkers === 'function') clearTsujiMeshMarkers();
+    syncBottomPanels();
+}
+
+/** 辻メッシュ検索パネルのコントロール(最大化・開閉・スライダー・◀▶)の結線 */
+function setupTsujiMeshPanelControls() {
+    document.getElementById('btn-tsujimesh-max').addEventListener('click', () => {
+        const pnl = document.getElementById('tsujimesh-panel');
+        const on = pnl.classList.toggle('maximized');
+        document.getElementById('btn-tsujimesh-max').classList.toggle('active', on);
+        syncBottomPanels();
+    });
+    // 辻検索結果パネルの最大化(辻メッシュと同じ: 最大化=画面の2/3・オフ=通常の1/3)
+    document.getElementById('btn-tsujisearch-max').addEventListener('click', () => {
+        const pnl = document.getElementById('tsujisearch-panel');
+        const on = pnl.classList.toggle('maximized');
+        document.getElementById('btn-tsujisearch-max').classList.toggle('active', on);
+        syncBottomPanels();
+    });
+    document.getElementById('tsujimesh-ctrl-header').addEventListener('click', () => {
+        const body = document.getElementById('tsujimesh-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('tsujimesh-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('tsujimesh-ctrl').classList.toggle('open', open);
+    });
+    document.getElementById('chk-tsujimesh-marker-layer').addEventListener('change', (e) => {
+        _tsujiMeshLayerVisible = e.target.checked;
+        applyTsujiMeshLayerVisibility();
+    });
+    // 辻時刻コントロール: スライダーに追従してライブ再計算(手動操作はサブ秒を0にリセット=秒単位)
+    document.getElementById('tsujimesh-time-slider').addEventListener('input', () => {
+        _tmCtrlFracMs = 0;
+        recalcTsujiMeshGoldAtTime();
+    });
+    document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (isNaN(v)) { e.target.value = _tmCtrlWidth; return; }   // 未入力は元の値を復元
+        _tmCtrlWidth = Math.min(Math.max(Math.round(v), 0), 86400);
+        e.target.value = _tmCtrlWidth;
+        recalcTsujiMeshGoldAtTime();
+    });
+    // 辻時刻スライダーの◀/▶: 1秒ずつ前/後へ(min/maxでクランプ)して再計算(サブ秒は0にリセット)
+    const stepTimeSlider = (delta) => {
+        const sl = document.getElementById('tsujimesh-time-slider');
+        const v = Math.min(Math.max(parseInt(sl.value) + delta, parseInt(sl.min)), parseInt(sl.max));
+        sl.value = String(v);
+        _tmCtrlFracMs = 0;
+        recalcTsujiMeshGoldAtTime();
+    };
+    document.getElementById('btn-tsujimesh-time-prev').addEventListener('click', () => stepTimeSlider(-1));
+    document.getElementById('btn-tsujimesh-time-next').addEventListener('click', () => stepTimeSlider(1));
+    document.getElementById('select-tsujimesh-time-eps').addEventListener('change', (e) => {
+        _tmCtrlEps = parseFloat(e.target.value) || 0.125;
+        recalcTsujiMeshGoldAtTime();
+    });
+    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール(グラデーションの基準色=1件の色)。追従して再描画
+    document.getElementById('tsujimesh-mesh-gray').addEventListener('input', (e) => {
+        _tmMeshGray = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 100);
+        const lbl = document.getElementById('tsujimesh-mesh-gray-label');
+        if (lbl) lbl.textContent = `${_tmMeshGray}%`;
+        const smp = document.getElementById('tsujimesh-mesh-gray-sample');
+        if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
+        if (_tsujiMeshRows.length) drawTsujiMeshMarkers();
+    });
+    // 行選択後オプション: 優辻マーカー(ピン)の初期位置。切替時は現在の選択行に即適用する
+    document.querySelectorAll('input[name="tsujimesh-post-mode"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            _tmPostMode = r.value;
+            if (_tsujiMeshSelIdx >= 0) selectTsujiMeshRow(_tsujiMeshSelIdx);
+        });
+    });
+    // 検索エリア: N×Nタイル。変更で再検索(世代カウンタが実行中の前の処理をキャンセルする)
+    document.querySelectorAll('input[name="tsujimesh-area"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            _tmSearchArea = parseInt(r.value) || 3;
+            if (appState.isTsujiMeshActive) startTsujiMeshSearch();
+        });
+    });
+}
+
 function syncBottomPanels() {
     const tdPnl = document.getElementById('tsujisearch-panel');
-    if (appState.isTsujiSearchActive && appState.isElevationActive) {
-        tdPnl.classList.add('with-elevation');
-    } else {
-        tdPnl.classList.remove('with-elevation');
+    // 辻検索パネルは、標高グラフ/全天儀が下にあるとき1段上へ押し上げる
+    tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
+    tdPnl.classList.toggle('with-milkyway', appState.isTsujiSearchActive && appState.isMilkyWayActive);
+    tdPnl.classList.toggle('with-soramado', appState.isTsujiSearchActive && appState.isSoramadoActive);
+    // 宙の窓プレビュー領域: 辻検索の有無で高さが変わる(通常2/3⇄1/3、最大化100%⇄66.67%)。
+    // 最大化中に辻検索がONなら辻検索結果を上1/3へ
+    // 辻メッシュ検索パネル(辻検索と同じ積み上げ規則。辻検索とは排他)
+    const tmPnl = document.getElementById('tsujimesh-panel');
+    if (tmPnl) {
+        tmPnl.classList.toggle('with-elevation', appState.isTsujiMeshActive && appState.isElevationActive);
+        tmPnl.classList.toggle('with-milkyway', appState.isTsujiMeshActive && appState.isMilkyWayActive);
+        tmPnl.classList.toggle('with-soramado', appState.isTsujiMeshActive && appState.isSoramadoActive);
     }
+    const smPnl = document.getElementById('soramado-panel');
+    if (smPnl) {
+        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive);
+        tdPnl.classList.toggle('with-soramado-max',
+            appState.isTsujiSearchActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
+        if (tmPnl) tmPnl.classList.toggle('with-soramado-max',
+            appState.isTsujiMeshActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
+        resizeSoramado();   // 高さ変更に合わせてプレビューを再描画
+    }
+    // 全天儀領域(宙の窓と同じ規則: 通常2/3⇄辻検索と併用1/3、最大化100%⇄辻検索と併用66.67%)
+    const mwPnl = document.getElementById('milkyway-panel');
+    if (mwPnl) {
+        mwPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive);
+        tdPnl.classList.toggle('with-milkyway-max',
+            appState.isTsujiSearchActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
+        if (tmPnl) tmPnl.classList.toggle('with-milkyway-max',
+            appState.isTsujiMeshActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
+        resizeMilkyWayGlobe();   // 高さ変更に合わせて全天儀を再描画
+    }
+    // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
+    recenterObserverInView();
+}
+
+/** 下部パネル(全天儀/標高グラフ/宙の窓/辻検索)で隠れていない可視領域の中央へ、
+ * 観測点(appState.start)が来るよう地図をパンする。requestAnimationFrameで多重呼出をコアレス。 */
+let _recenterRAF = null;
+/** 指定地点を可視領域(下部パネルを除く)の中央に表示する(ズームは変えずパンのみ) */
+function recenterPointInView(p, animate = true) {
+    if (typeof map === 'undefined' || !map || !p) return;
+    const size = map.getSize();
+    // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
+    // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
+    let coveredPx = 0;
+    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+        const el = document.getElementById(id);
+        if (!el || el.classList.contains('hidden')) continue;
+        coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
+    }
+    const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
+    const z = map.getZoom();
+    const px = map.project([p.lat, p.lng], z);
+    // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと地点が可視領域の中央に来る
+    const centerPx = px.add([0, size.y * coveredFrac / 2]);
+    map.panTo(map.unproject(centerPx, z), { animate });
+}
+
+function recenterObserverInView(animate = true) {
+    if (typeof map === 'undefined' || !map || !appState.start) return;
+    if (_recenterRAF) cancelAnimationFrame(_recenterRAF);
+    _recenterRAF = requestAnimationFrame(() => {
+        _recenterRAF = null;
+        if (!map || !appState.start) return;
+        recenterPointInView(appState.start, animate);
+    });
 }
 
 
 // --- テーブルソート ヘルパー ---
-function setupTableSort(table, rowData, columns, renderRowFn, extraRows) {
+// opts(省略可): { initialColIdx, initialAsc } = 生成直後に適用する初期ソート(前回のソート順の復元)、
+//               onSort(colIdx, asc) = ソート実行毎の通知(ソート順の保持に使用)
+function setupTableSort(table, rowData, columns, renderRowFn, extraRows, opts) {
     const ths = Array.from(table.querySelectorAll('thead th'));
     const tbody = table.querySelector('tbody');
     let sortColIdx = -1;
     let sortAsc = true;
 
+    const apply = () => {
+        ths.forEach((h, i) => {
+            h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
+        });
+        rowData.sort((a, b) => {
+            const cmp = columns[sortColIdx].compare(a, b);
+            return sortAsc ? cmp : -cmp;
+        });
+        tbody.innerHTML = '';
+        rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
+        if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+        if (opts && opts.onSort) opts.onSort(sortColIdx, sortAsc);
+    };
     ths.forEach((th, idx) => {
         th.addEventListener('click', () => {
             if (sortColIdx === idx) {
@@ -5535,21 +9369,39 @@ function setupTableSort(table, rowData, columns, renderRowFn, extraRows) {
                 sortColIdx = idx;
                 sortAsc = true;
             }
-            ths.forEach((h, i) => {
-                h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
-            });
-            rowData.sort((a, b) => {
-                const cmp = columns[idx].compare(a, b);
-                return sortAsc ? cmp : -cmp;
-            });
-            tbody.innerHTML = '';
-            rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
-            if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+            apply();
         });
     });
+    if (opts && opts.initialColIdx !== undefined && opts.initialColIdx >= 0 && opts.initialColIdx < columns.length) {
+        sortColIdx = opts.initialColIdx;
+        sortAsc = opts.initialAsc !== false;
+        apply();
+    }
 }
 
 // --- 辻検索 ヘルパー ---
+/** 方位角差を±180°へ正規化 (右=正、左=負) */
+function azDiffDeg(az, baseAz) {
+    return ((az - baseAz + 540) % 360) - 180;
+}
+
+/** 検索中心の参照点を返す (検索中心方位角差/視高度差の基準)。
+ *  点モード=オフセット点(基準+オフセット)。線モード=基準点→オフセット点の線分への最近点
+ *  (度数平面の射影をクランプ。精度角距離と同じ参照点なので、常に 精度角距離 ≧ |視高度差| が成り立つ) */
+function tsujiCenterRefPoint(az, alt, baseAz, baseAlt, offsetAz, offsetAlt, centerMode) {
+    if (centerMode !== 'line') return { az: baseAz + offsetAz, alt: baseAlt + offsetAlt };
+    const dAz = azDiffDeg(baseAz + offsetAz, baseAz), dAlt = offsetAlt;
+    const pAz = azDiffDeg(az, baseAz), pAlt = alt - baseAlt;
+    const len2 = dAz * dAz + dAlt * dAlt;
+    let s = len2 > 0 ? (pAz * dAz + pAlt * dAlt) / len2 : 0;
+    s = Math.max(0, Math.min(1, s));
+    return { az: baseAz + s * dAz, alt: baseAlt + s * dAlt };
+}
+/** 符号つき角度の表示文字列 (+12.3456° / -0.1000°) */
+function fmtSignedDeg(d) {
+    return (d >= 0 ? '+' : '') + d.toFixed(4) + '°';
+}
+
 function isAzimuthInRange(az, targetAz, tolerance) {
     let diff = az - targetAz;
     diff = ((diff + 540) % 360) - 180;
@@ -5561,7 +9413,7 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
 // 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
 const TSUJI_CHUNK_DAYS = 365;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min(navigator.hardwareConcurrency || 4, 32));
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
@@ -5629,6 +9481,7 @@ const tsujiPool = (() => {
 async function runTsujiChunks({
     bodyMsg, observerData, refractionEnabled,
     targetAz, targetAlt, toleranceAz, toleranceAlt,
+    centerMode, centerAz0, centerAlt0,
     searchStartMs, days, maxResults, onChunkDone
 }) {
     const numChunks = Math.ceil(days / TSUJI_CHUNK_DAYS);
@@ -5639,6 +9492,7 @@ async function runTsujiChunks({
         const p = tsujiPool.runTask({
             body: bodyMsg, observerData, refractionEnabled,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
+            centerMode: centerMode || 'point', centerAz0: centerAz0 || 0, centerAlt0: centerAlt0 || 0,
             searchStartMs, dayStart, dayEnd, maxResults
         }).then(data => {
             if (onChunkDone) onChunkDone();
@@ -5657,6 +9511,10 @@ async function runTsujiChunks({
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
     const generation = ++appState.tsujiSearchGeneration;
+    // 前回検索の残タスク(実行中＋キュー)を全て破棄してから開始する。
+    // ワーカーは terminate されるが、runTask 時の ensure() で再生成される。
+    // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止。プール共有・排他前提)。
+    if (!myTsujiBatchRunning) tsujiPool.terminateAll();
     const contentEl = document.getElementById('tsujisearch-content');
     const statusEl = document.getElementById('tsujisearch-status');
     contentEl.innerHTML = '';
@@ -5674,6 +9532,9 @@ async function startTsujiSearch() {
     // オフセットを加算した検索中心
     const targetAz = (baseAz + offsetAz + 360) % 360;
     const targetAlt = baseAlt + offsetAlt;
+    // 検索中心方位角差/視高度差の参照点(点=オフセット点 / 線=線分への最近点)
+    const searchCenterMode = appState.tsujiCenterMode;
+    const _ctrRef = (r) => tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, searchCenterMode);
 
     if (isNaN(baseAz) || isNaN(toleranceAz) || isNaN(baseAlt) || isNaN(toleranceAlt)) {
         statusEl.textContent = '(入力値エラー)';
@@ -5712,6 +9573,7 @@ async function startTsujiSearch() {
         return runTsujiChunks({
             bodyMsg, observerData, refractionEnabled,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
+            centerMode: appState.tsujiCenterMode, centerAz0: (baseAz + 360) % 360, centerAlt0: baseAlt,   // 検索中心オプション(線=基準点→オフセット点)
             searchStartMs, days: searchDays,
             maxResults: MAX_RESULTS_PER_BODY,
             onChunkDone: chunkDoneCb
@@ -5755,6 +9617,23 @@ async function startTsujiSearch() {
         return;
     }
 
+    // 標高オプション: start→end の可視判定を1回計算 (start/end は検索中固定のため全行共通)
+    let elevStatus = '-';
+    if (appState.tsujiElevationOption) {
+        statusEl.textContent = '(標高判定中…)';
+        const vis = await computePathVisibility(
+            appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
+            appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
+        if (generation !== appState.tsujiSearchGeneration) return;
+        elevStatus = vis.visible ? 'OK' : 'NG';
+    }
+
+    // 時間フィルタの設定 (全行共通)。各行ごとに当日の薄明/出没(rs.tw)で範囲判定する。
+    const timeFs = {
+        startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset,
+        endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
+    };
+
     // ソート用データをフラットに事前計算
     const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
     const rowData = [];
@@ -5774,7 +9653,8 @@ async function startTsujiSearch() {
             mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
             ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
         } catch (_) {}
-        return riseSetCache[key] = { sr, ss, mr, ms };
+        const tw = computeDayTwilight(startOfDay, observer);
+        return riseSetCache[key] = { sr, ss, mr, ms, tw, startOfDay };
     }
 
     totalResults.forEach(({ body, results, limitReached }) => {
@@ -5816,10 +9696,27 @@ async function startTsujiSearch() {
                 if (allowed.length > 0 && !allowed.includes(symbol)) return;
             }
 
+            // 標高オプションのOK/NGフィルタ
+            if (appState.tsujiElevationOption && (appState.tsujiElevOK || appState.tsujiElevNG)) {
+                const allowedElev = [];
+                if (appState.tsujiElevOK) allowedElev.push('OK');
+                if (appState.tsujiElevNG) allowedElev.push('NG');
+                if (!allowedElev.includes(elevStatus)) return;
+            }
+
+            // 時間フィルタ: 辻時刻がその日の範囲外ならスキップ
+            if (appState.tsujiTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
+
             rowData.push({
                 body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
+                azDiff: azDiffDeg(r.azimuth, _ctrRef(r).az),   // 検索中心方位角差(検索中心より右=正)
+                altDiff: r.altitude - _ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
+                mwOffAngle: Number(appState.mwOffsetAngle) || 0,   // この検索で使ったオフセット中心角
                 angularRadius: angR, moonAge, moonIcon,
+                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
+                timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
+                elevationStatus: elevStatus,
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
                 moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms)
             });
@@ -5828,7 +9725,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="16">${escapeHtml(body.name)}: and more…</td>`;
+            tr.innerHTML = `<td colspan="22">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -5845,7 +9742,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -5857,7 +9754,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>方位角</th><th>視高度</th><th>視半径</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -5877,15 +9774,21 @@ async function startTsujiSearch() {
         { label: '日付', compare: (a, b) => a.dateObj - b.dateObj },
         { label: '曜日', compare: (a, b) => a.dateObj.getDay() - b.dateObj.getDay() },
         { label: '辻時刻', compare: (a, b) => a.timeStr.localeCompare(b.timeStr) },
+        { label: '時間帯', compare: (a, b) => TIME_CATEGORY_LABELS.indexOf(a.timeCategory) - TIME_CATEGORY_LABELS.indexOf(b.timeCategory) },
         { label: '日の出時刻', compare: (a, b) => a.sunriseStr.localeCompare(b.sunriseStr) },
         { label: '日の入時刻', compare: (a, b) => a.sunsetStr.localeCompare(b.sunsetStr) },
         { label: '月の出時刻', compare: (a, b) => a.moonriseStr.localeCompare(b.moonriseStr) },
         { label: '月の入時刻', compare: (a, b) => a.moonsetStr.localeCompare(b.moonsetStr) },
         { label: '月齢', compare: (a, b) => a.moonAge - b.moonAge },
         { label: '月齢アイコン', compare: (a, b) => a.moonIcon.localeCompare(b.moonIcon) },
+        { label: '月輝面比', compare: (a, b) => (a.moonIllum ?? 0) - (b.moonIllum ?? 0) },
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
+        { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
+        { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
+        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, extraRows);
 }
 
@@ -5933,8 +9836,13 @@ function updateProgress(pct, cur, tot) {
 function drawProfileGraph() {
     const cvs = document.getElementById('elevation-canvas');
     const ctx = cvs.getContext('2d');
-    const w = cvs.width = cvs.clientWidth;
-    const h = cvs.height = cvs.clientHeight;
+    // スマホ(dpr>1)でぼやけないよう、バッファはデバイスpxで確保し、描画座標はCSS pxのまま扱う
+    const dpr = window.devicePixelRatio || 1;
+    const w = cvs.clientWidth;
+    const h = cvs.clientHeight;
+    cvs.width = Math.round(w * dpr);
+    cvs.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const pts = appState.elevationData.points.filter(p => p.fetched);
     
     if(pts.length === 0) return;
@@ -5943,7 +9851,7 @@ function drawProfileGraph() {
     const minE = Math.min(0, ...elevs);
     const maxE = Math.max(100, ...elevs);
     
-    const pad = {l:40, r:10, t:20, b:20};
+    const pad = {l:40, r:10, t:20, b:26};
     const gw = w - pad.l - pad.r;
     const gh = h - pad.t - pad.b;
     const maxD = appState.elevationData.points[appState.elevationData.points.length-1].dist;
@@ -5961,6 +9869,24 @@ function drawProfileGraph() {
         ctx.fillText(Math.round(minE+(maxE-minE)*(i/4)), 2, y+3);
     }
     ctx.stroke();
+
+    // 横軸: 直線距離の目盛 (縦の補助線 + 距離ラベル)。縦軸=標高/横軸=距離が分かるようにする
+    const distDecimals = maxD >= 10 ? 0 : (maxD >= 1 ? 1 : 2);
+    const xTicks = 4;
+    ctx.strokeStyle = '#444';
+    ctx.fillStyle = '#aaa';
+    ctx.font = '11px sans-serif';
+    ctx.beginPath();
+    for (let i = 0; i <= xTicks; i++) {
+        const d = maxD * (i / xTicks);
+        const x = toX(d);
+        ctx.moveTo(x, pad.t);
+        ctx.lineTo(x, pad.t + gh);
+        ctx.textAlign = i === 0 ? 'left' : (i === xTicks ? 'right' : 'center');
+        ctx.fillText(`${d.toFixed(distDecimals)}km`, x, pad.t + gh + 14);
+    }
+    ctx.stroke();
+    ctx.textAlign = 'start';
 
     // グラフ上部に間隔情報を表示
     const intervalM = appState.elevationData.intervalM;
@@ -5999,30 +9925,143 @@ function drawProfileGraph() {
     }
 }
 
-/** 標高プロファイルから可視判定を計算する。
- *  各点が可視直線(スタート(API標高+観測点高) → ゴール(API標高+目的点高))より下なら可視 (OK)。
- *  返り値: { visible: boolean, blockingDist?: number, blockingElev?: number, lineElevAtBlocking?: number } */
-function computeVisibility() {
-    const pts = appState.elevationData.points.filter(p => p.fetched);
-    if (pts.length < 2) return { visible: true };
-    const startElev = appState.startApiElev + appState.startHeight;
-    const endElev = appState.endApiElev + appState.endHeight;
-    const totalDist = pts[pts.length - 1].dist;
-    if (totalDist <= 0) return { visible: true };
-    // 両端は除外 (スタート/ゴール地点自体は判定対象外)
-    for (let i = 1; i < pts.length - 1; i++) {
-        const pt = pts[i];
-        const lineElev = startElev + (endElev - startElev) * (pt.dist / totalDist);
-        if (pt.elev > lineElev) {
-            return { visible: false, blockingDist: pt.dist, blockingElev: pt.elev, lineElevAtBlocking: lineElev };
+/** 除外範囲の実効値(m)。チェックボックスがオフの時は両側とも0(=一切無視しない) */
+function elevExcludeRadii() {
+    if (appState.elevExcludeEnabled === false) return { tgt: 0, obs: 0 };
+    return { tgt: Number(appState.elevExcludeRadius) || 0, obs: Number(appState.elevExcludeObsRadius) || 0 };
+}
+
+/** 統一可視判定のコア(標高グラフ・辻検索/My辻検索・辻メッシュ検索の標高オプション共通)。
+ *  観測点(sLat,sLng, 標高+高さ=startTotal)→目的点(endLat,endLng, endTotal)の直線(緯度経度線形)を、
+ *  点数固定(2000等分)ではなく「DEM分解能固定」の刻み(z15の半画素≒約2m)で歩き、
+ *  内部のサンプルが可視直線を上回ったらNG(地球曲率・屈折なし)。
+ *  経路長に関わらず全てのDEM画素を取りこぼさない(グラフ描画の2000点とは独立)。
+ *  標高は elevAtPix15(z15グローバル画素→DEM5A→5B→5C→z14チェーン。呼び出し側で構成)で参照する。
+ *  除外範囲(目的点側: 目的点の半径exclM m以内 / 観測点側: 観測点の半径obsExclM m以内)のNGは無視。
+ *  端点そのものは判定しない。
+ *  メルカトルYは64サンプル毎に厳密再計算して区間内は線形補間する(誤差はサブピクセル)。 */
+function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15) {
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    const distM = L.latLng(sLat, sLng).distanceTo(L.latLng(endLat, endLng));
+    const stepM = 40075016.686 * Math.cos(sLat * Math.PI / 180) / (scale15 * 256) / 2;   // z15の半画素(≒2m)
+    const steps = Math.max(2, Math.ceil(distM / stepM));
+    const sx15 = 128 * (sLng / 180 + 1) * scale15;
+    const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
+    const dLat = endLat - sLat;
+    const SEG = 64;
+    for (let j0 = 1; j0 < steps; j0 += SEG) {
+        const j1 = Math.min(j0 + SEG - 1, steps - 1);
+        const gyA = gpy15At(sLat + dLat * (j0 / steps));
+        const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+        for (let j = j0; j <= j1; j++) {
+            const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
+            if (e === null || e === undefined) continue;   // データ無し点は判定対象外
+            const r = j / steps;
+            const lineElev = startTotal + (endTotal - startTotal) * r;
+            if (e > lineElev) {
+                if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                if (distM * r <= obsExclM) continue;      // 除外範囲(観測点側)のNGは無視
+                return { visible: false, blockingDist: distM * r / 1000, blockingElev: e, lineElevAtBlocking: lineElev };
+            }
         }
     }
     return { visible: true };
 }
 
-/** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ) */
-function showVisibilityResult() {
-    const r = computeVisibility();
+/** 任意のパス start→end の統一可視判定 (標高グラフの可視判定・辻検索/My辻検索の標高オプション用)。
+ *  サンプリングは _visJudgeCore(DEM分解能固定・z15半画素≒2m)で、各点の標高は
+ *  DEM5A→5B→5C(z15)→DEM10B(z14) の順(getElevationと同じフォールバック・丸め)。
+ *  経路上のタイルだけを取得し(_getTileImageDataの共有キャッシュを再利用)、5B/5Cは前段で
+ *  取得できなかったタイルのみ取得する。startTotalElev/endTotalElev は (API標高+高さ)[m]。
+ *  返り値: { visible, blockingDist?(観測点からkm), blockingElev?, lineElevAtBlocking? } */
+async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev) {
+    const { tgt: exclM, obs: obsExclM } = elevExcludeRadii();
+    const synthetic = (typeof window._tmSyntheticElev === 'function');
+    const scale15 = Math.pow(2, 15);
+    const R128 = 128 / Math.PI;
+    const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    let elevAtPix15;
+    if (synthetic) {
+        // テスト用: z15合成(あれば)→z14合成
+        elevAtPix15 = (gx, gy) => {
+            if (typeof window._tmSyntheticElev15 === 'function') {
+                const e = window._tmSyntheticElev15(gx, gy);
+                if (e !== null && e !== undefined) return e;
+            }
+            return window._tmSyntheticElev(gx >> 1, gy >> 1);
+        };
+    } else {
+        // 経路が通るタイル座標を判定と同じ歩きで列挙し、必要なタイルだけ取得する
+        const distM = L.latLng(startLat, startLng).distanceTo(L.latLng(endLat, endLng));
+        const stepM = 40075016.686 * Math.cos(startLat * Math.PI / 180) / (scale15 * 256) / 2;
+        const steps = Math.max(2, Math.ceil(distM / stepM));
+        const sx15 = 128 * (startLng / 180 + 1) * scale15;
+        const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
+        const dLat = endLat - startLat;
+        const keys15 = new Set();
+        const SEG = 64;
+        for (let j0 = 0; j0 <= steps; j0 += SEG) {
+            const j1 = Math.min(j0 + SEG - 1, steps);
+            const gyA = gpy15At(startLat + dLat * (j0 / steps));
+            const dgy = (j1 > j0) ? (gpy15At(startLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+            for (let j = j0; j <= j1; j++) {
+                const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+                keys15.add((gx >> 8) * 32768 + (gy >> 8));
+            }
+        }
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+        const maps15 = z15Sources.map(() => new Map());
+        const map14 = new Map();
+        let pend = [...keys15];
+        for (let si = 0; si < z15Sources.length && pend.length; si++) {
+            const next = [];
+            await Promise.all(pend.map(async (key) => {
+                const tx = Math.floor(key / 32768), ty = key % 32768;
+                let img = null;
+                try { img = await _getTileImageData(_makeTileUrl(z15Sources[si], tx, ty)); } catch (_) {}
+                maps15[si].set(key, img);
+                if (!img) next.push(key);
+            }));
+            pend = next;
+        }
+        await Promise.all([...new Set([...keys15].map(key => {
+            const tx = Math.floor(key / 32768), ty = key % 32768;
+            return (tx >> 1) * 32768 + (ty >> 1);
+        }))].map(async (key14) => {
+            const tx = Math.floor(key14 / 32768), ty = key14 % 32768;
+            let img = null;
+            try { img = await _getTileImageData(_makeTileUrl(dem14, tx, ty)); } catch (_) {}
+            map14.set(key14, img);
+        }));
+        elevAtPix15 = (gx, gy) => {
+            const key = (gx >> 8) * 32768 + (gy >> 8);
+            for (let si = 0; si < maps15.length; si++) {
+                const t = maps15[si].get(key);
+                if (!t) continue;
+                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: 0.1m丸め
+            }
+            const gx14 = gx >> 1, gy14 = gy >> 1;
+            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
+            if (!t14) return null;
+            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+        };
+    }
+    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
+}
+
+/** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ)。
+ *  判定はグラフ描画用の2000点とは独立に、統一可視判定(computePathVisibility)で行う */
+async function showVisibilityResult() {
+    const r = await computePathVisibility(
+        appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
+        appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
     const note = '\n\n※ 屈折・地球曲率は考慮していない単純な直線判定です(遠距離見通しでは精度に注意)';
     if (r.visible) {
         alert('可視判定: OK\n観測点から目的点が見通せます' + note);
@@ -6050,7 +10089,7 @@ function fetchVisitorData(action, todayStr) {
         if (d.error === 'lock_busy') {
             // ロック解除待ち表示 → 3秒後リトライ
             setCounterDisplay('- -', '- -', '- -', '- -');
-            setTimeout(() => fetchVisitorData(action, todayStr), 3000);
+            setTimeout(() => fetchVisitorData(action, todayStr), 2700);
             return;
         }
         if (d.error === 'no_sheet') {
@@ -6100,8 +10139,14 @@ function showGraph(type) {
 function drawGraph(type) {
     const cvs = document.getElementById('visitor-canvas');
     const ctx = cvs.getContext('2d');
-    const w = cvs.width = cvs.clientWidth;
-    const h = cvs.height = 300;
+    // スマホ(dpr>1)でぼやけないよう、バッファはデバイスpx・レイアウトはCSS pxに分離する
+    const dpr = window.devicePixelRatio || 1;
+    const w = cvs.clientWidth;
+    const h = 300;
+    cvs.style.height = h + 'px';
+    cvs.width = Math.round(w * dpr);
+    cvs.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const data = (type==='current') ? visitorData.dailyLog : visitorData.lastYearLog;
     if(!data || data.length===0) {
@@ -6159,8 +10204,1568 @@ function toggleHelp() {
 }
 
 // ============================================================
+// Googleログイン基盤 (フェーズ2)
+// GIS(Google Identity Services)のトークンモデル。トークンは端末メモリのみに保持し、
+// 有効期限はローカルで判定する(イベント駆動型。定期的なGoogleへの問い合わせはしない)。
+// soranotsuji-app.jsonの保存/読込(同期)とスプレッドシート連携はフェーズ3で実装。
+// ============================================================
+
+const SORA_APP_FILENAME = 'soranotsuji-app.json';
+let googleToken = null;        // { accessToken, expiresAt } (メモリのみ。localStorageには保存しない)
+let googleTokenClient = null;  // GISのTokenClient
+let googleSyncState = 'none';  // none(未ログイン)|checking(🕛)|nofile(😢)|stale(👎)|ok(👍)|broken(❌)
+
+function isGoogleLoggedIn() {
+    return !!(googleToken && googleToken.expiresAt > Date.now() + 60000);
+}
+
+/** GISスクリプトの遅延ロード (未ログインのユーザーに余計な通信をさせない) */
+function loadGisScript() {
+    return new Promise((resolve, reject) => {
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Googleログイン部品の読み込みに失敗しました。\nネットワーク(オンライン)を確認してください。'));
+        document.head.appendChild(s);
+    });
+}
+
+/** Googleログイン (ユーザー操作から呼ぶ。成功でtrue) */
+async function googleLogin() {
+    const clientId = getGoogleClientId();
+    if (!clientId) {
+        alert('GoogleログインのクライアントIDが未設定です。\nGoogle CloudコンソールでOAuthクライアントIDを作成し、script.js冒頭のGOOGLE_CONFIGに設定してください。\n(手順: docs/order.md 2026-07-15の回答を参照)');
+        return false;
+    }
+    try { await loadGisScript(); } catch (e) { alert(e.message); return false; }
+    return new Promise((resolve) => {
+        try {
+            if (!googleTokenClient) {
+                googleTokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: GOOGLE_CONFIG.scope,
+                    callback: (resp) => {
+                        if (resp && resp.access_token) {
+                            googleToken = {
+                                accessToken: resp.access_token,
+                                expiresAt: Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000
+                            };
+                            updateGoogleLoginIcon();
+                            checkGoogleSyncState();     // ログイン直後にファイル状態を確認
+                            checkAllMySetSheets();      // Myセットのシート状態も確認
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    },
+                    error_callback: (err) => {
+                        if (err && err.type !== 'popup_closed') {
+                            alert('Googleログインに失敗しました: ' + (err.message || err.type || '不明なエラー'));
+                        }
+                        updateGoogleLoginIcon();
+                        resolve(false);
+                    }
+                });
+            }
+            googleTokenClient.requestAccessToken();
+        } catch (e) {
+            alert('Googleログインの初期化に失敗しました: ' + e.message);
+            resolve(false);
+        }
+    });
+}
+
+/** 操作時にトークンを確保する (切れていたら取り直す=イベント駆動型)。取得できなければnull */
+async function ensureGoogleToken() {
+    if (isGoogleLoggedIn()) return googleToken.accessToken;
+    const ok = await googleLogin();
+    return ok ? googleToken.accessToken : null;
+}
+
+/** Drive API (v3) 呼び出しの共通処理 */
+async function driveApiFetch(path, options = {}) {
+    const token = await ensureGoogleToken();
+    if (!token) return null;
+    const resp = await fetch('https://www.googleapis.com/drive/v3/' + path, {
+        ...options,
+        headers: { ...(options.headers || {}), 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) throw new Error('Drive APIエラー: ' + resp.status);
+    return resp.json();
+}
+
+/** Googleログアウト (トークンの取り消し) */
+function googleLogout() {
+    if (googleToken && window.google && window.google.accounts && window.google.accounts.oauth2 && google.accounts.oauth2.revoke) {
+        try { google.accounts.oauth2.revoke(googleToken.accessToken, () => {}); } catch (e) { console.error(e); }
+    }
+    googleToken = null;
+    googleSyncState = 'none';
+    updateGoogleLoginIcon();
+}
+
+/** ファイルのメタデータ取得 (見つからない場合はnull) */
+async function driveGetMeta(fileId) {
+    try { return await driveApiFetch(`files/${fileId}?fields=id,name,trashed,modifiedTime,size,parents`); }
+    catch (e) { return null; }
+}
+
+/** appPropertiesの目印(soranotsuji=marker)でファイル/フォルダを再発見する (名前変更・移動に耐える) */
+async function driveFindByMarker(marker) {
+    const q = encodeURIComponent(`appProperties has { key='soranotsuji' and value='${marker}' } and trashed=false`);
+    const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime,size)&spaces=drive`);
+    return (res && Array.isArray(res.files)) ? res.files : [];
+}
+
+/** JSONボディでのDrive API POST/PATCH */
+async function driveApiJson(path, method, bodyObj) {
+    return driveApiFetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bodyObj) });
+}
+
+/** multipartアップロード (fileIdありなら更新、なしなら作成)。fields=id,size,modifiedTime を返す */
+async function driveUploadJson(fileId, name, parents, contentString, appProps) {
+    const token = await ensureGoogleToken();
+    if (!token) return null;
+    const boundary = 'soranotsuji_multipart_boundary';
+    const meta = fileId ? {} : { name, parents, appProperties: appProps || {}, mimeType: 'application/json' };
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${contentString}\r\n--${boundary}--`;
+    const url = 'https://www.googleapis.com/upload/drive/v3/files' + (fileId ? '/' + fileId : '') + '?uploadType=multipart&fields=id,size,modifiedTime';
+    const resp = await fetch(url, {
+        method: fileId ? 'PATCH' : 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary },
+        body
+    });
+    if (!resp.ok) throw new Error('Drive APIエラー(アップロード): ' + resp.status);
+    return resp.json();
+}
+
+/** 宙の辻フォルダの実フォルダ名 (パス風表記から先頭の/を除いたもの) */
+function soraRootFolderRealName() {
+    return (appState.soraFolderName || '/soranotsuji-宙の辻').replace(/^\//, '').trim() || 'soranotsuji-宙の辻';
+}
+
+/** フォルダ構成(宙の辻/設定/Myセット)をID→目印→作成の3段構えで確保する */
+async function ensureSoraFolders() {
+    const gd = appState.googleDrive;
+    const ensure = async (idKey, marker, name, parentId) => {
+        if (gd[idKey]) {
+            const meta = await driveGetMeta(gd[idKey]);
+            if (meta && !meta.trashed) return;
+            gd[idKey] = null;
+        }
+        const found = await driveFindByMarker(marker);
+        if (found.length) { gd[idKey] = found[0].id; return; }
+        const body = { name, mimeType: 'application/vnd.google-apps.folder', appProperties: { soranotsuji: marker } };
+        if (parentId) body.parents = [parentId];
+        const res = await driveApiJson('files?fields=id', 'POST', body);
+        gd[idKey] = res.id;
+    };
+    await ensure('rootFolderId', 'root', soraRootFolderRealName(), null);
+    await ensure('settingsFolderId', 'settings', '設定', gd.rootFolderId);
+    await ensure('mySetsFolderId', 'mysets', 'Myセット', gd.rootFolderId);
+    saveAppState();
+}
+
+/** ローカルストレージ全体を{キー:値}で集める (reset.htmlのバックアップと同一構造) */
+function collectLocalStorageAll() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        data[k] = localStorage.getItem(k);
+    }
+    return data;
+}
+
+/** ローカル内容の指紋 (savedAt/googleDriveの同期簿記を除いたFNV-1aハッシュ)。同期後の一致判定用 */
+function localContentFingerprint() {
+    const all = collectLocalStorageAll();
+    try {
+        const s = JSON.parse(all[STORAGE_KEY]);
+        delete s.savedAt;
+        delete s.googleDrive;
+        all[STORAGE_KEY] = JSON.stringify(s);
+    } catch (e) { /* STORAGE_KEYが無い/壊れている場合はそのまま */ }
+    const str = JSON.stringify(all);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16);
+}
+
+/** soranotsuji-app.jsonのファイルIDを ID→目印→名前 の順で解決する。メタデータを返す(無ければnull) */
+async function resolveAppFile() {
+    const gd = appState.googleDrive;
+    if (gd.appFileId) {
+        const meta = await driveGetMeta(gd.appFileId);
+        if (meta && !meta.trashed) return meta;
+        gd.appFileId = null;
+    }
+    let found = await driveFindByMarker('appjson');
+    if (!found.length) {
+        const q = encodeURIComponent(`name='${SORA_APP_FILENAME}' and trashed=false`);
+        const res = await driveApiFetch(`files?q=${q}&fields=files(id,name,modifiedTime,size)&spaces=drive`);
+        found = (res && Array.isArray(res.files)) ? res.files : [];
+    }
+    if (found.length) { gd.appFileId = found[0].id; return found[0]; }
+    return null;
+}
+
+/** 端末の内容をGoogleドライブに保存 (作成/上書き+サイズ検証) */
+async function saveAppToDrive() {
+    const gd = appState.googleDrive;
+    googleSyncState = 'checking';
+    updateGoogleLoginIcon();
+    try {
+        saveAppState();   // savedAtを最新化してから吸い上げる
+        await ensureSoraFolders();
+        await resolveAppFile();
+        const content = JSON.stringify(collectLocalStorageAll(), null, 2);
+        const res = gd.appFileId
+            ? await driveUploadJson(gd.appFileId, null, null, content)
+            : await driveUploadJson(null, SORA_APP_FILENAME, [gd.settingsFolderId], content, { soranotsuji: 'appjson' });
+        if (!res) { googleSyncState = 'none'; updateGoogleLoginIcon(); return false; }
+        const bytes = new TextEncoder().encode(content).length;
+        if (Number(res.size) !== bytes) {
+            throw new Error(`アップロード後のサイズが一致しません(端末:${bytes} / ドライブ:${res.size})。\n通信が不安定な可能性があります。再度お試しください。\n(万一の場合もGoogleドライブの「版を管理」から以前の版に戻せます)`);
+        }
+        gd.appFileId = res.id;
+        gd.lastDriveModifiedTime = res.modifiedTime;
+        gd.lastDriveSize = Number(res.size);
+        gd.lastSyncDriveModifiedTime = res.modifiedTime;
+        gd.lastSyncFingerprint = localContentFingerprint();
+        googleSyncState = 'ok';
+        saveAppState();
+        updateGoogleLoginIcon();
+        alert('端末の内容をGoogleドライブに保存しました。');
+        return true;
+    } catch (e) {
+        console.error('saveAppToDrive:', e);
+        googleSyncState = 'broken';
+        updateGoogleLoginIcon();
+        alert('Googleドライブへの保存に失敗しました。\n' + e.message);
+        return false;
+    }
+}
+
+/** Googleドライブの内容を端末に読み込み (検証→上書き→再読み込み) */
+async function loadAppFromDrive() {
+    const gd = appState.googleDrive;
+    try {
+        const meta = await resolveAppFile();
+        if (!meta) return alert(`Googleドライブに ${SORA_APP_FILENAME} がありません。`);
+        const token = await ensureGoogleToken();
+        if (!token) return;
+        const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${gd.appFileId}?alt=media`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!resp.ok) throw new Error('Drive APIエラー(ダウンロード): ' + resp.status);
+        const text = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+            if (typeof data !== 'object' || data === null || Array.isArray(data) || typeof data[STORAGE_KEY] !== 'string') throw new Error('形式不正');
+            JSON.parse(data[STORAGE_KEY]);   // 破損チェック(中身も検証)
+        } catch (e) {
+            googleSyncState = 'broken';
+            updateGoogleLoginIcon();
+            return alert('Googleドライブのファイルが壊れているか、形式が不正です。\nGoogleドライブでファイルを開き「版を管理」から以前の版に戻して、再度お試しください。');
+        }
+        if (!confirm('Googleドライブの内容で、この端末の内容を上書きします。よろしいですか？\n(読み込み後にページを再読み込みします)')) return;
+        Object.keys(data).forEach(k => localStorage.setItem(k, String(data[k])));
+        // 読み込んだ状態に、この端末の同期簿記(ファイルID・同期時点)を書き足す
+        try {
+            const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            s.googleDrive = {
+                ...(s.googleDrive || {}),
+                rootFolderId: gd.rootFolderId, settingsFolderId: gd.settingsFolderId, mySetsFolderId: gd.mySetsFolderId,
+                appFileId: gd.appFileId,
+                lastSyncDriveModifiedTime: meta.modifiedTime, lastDriveModifiedTime: meta.modifiedTime,
+                lastDriveSize: Number(meta.size) || null, lastSyncFingerprint: null
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+            s.googleDrive.lastSyncFingerprint = localContentFingerprint();   // 書き込み後の状態から計算
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        } catch (e) { console.error(e); }
+        alert('Googleドライブの内容を読み込みました。ページを再読み込みします。');
+        appReload();
+    } catch (e) {
+        console.error('loadAppFromDrive:', e);
+        googleSyncState = 'broken';
+        updateGoogleLoginIcon();
+        alert('Googleドライブからの読み込みに失敗しました。\n' + e.message);
+    }
+}
+
+/** soranotsuji-app.jsonの状態チェック → 同期状態アイコン更新 */
+async function checkGoogleSyncState() {
+    if (!isGoogleLoggedIn()) { googleSyncState = 'none'; updateGoogleLoginIcon(); return; }
+    googleSyncState = 'checking';
+    updateGoogleLoginIcon();
+    try {
+        const gd = appState.googleDrive;
+        const meta = await resolveAppFile();
+        if (!meta) {
+            gd.lastDriveModifiedTime = null;
+            gd.lastDriveSize = null;
+            googleSyncState = 'nofile';   // 😢: ファイルがない
+        } else {
+            gd.lastDriveModifiedTime = meta.modifiedTime;
+            gd.lastDriveSize = Number(meta.size) || null;
+            const same = (meta.modifiedTime === gd.lastSyncDriveModifiedTime) && (localContentFingerprint() === gd.lastSyncFingerprint);
+            googleSyncState = same ? 'ok' : 'stale';   // 👍: 同期済み / 👎: どちらかが変わった
+        }
+        saveAppState();
+    } catch (e) {
+        console.error('checkGoogleSyncState:', e);
+        googleSyncState = 'broken';       // ❌
+    }
+    updateGoogleLoginIcon();
+}
+
+/** 同期ダイアログ (どのように更新しますか？) を開く */
+function openGdriveSyncDialog() {
+    const dlg = document.getElementById('gdrive-sync-dialog');
+    if (!dlg) return;
+    let localSavedAt = null;
+    try { localSavedAt = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').savedAt || null; } catch (e) {}
+    const driveTime = appState.googleDrive.lastDriveModifiedTime ? new Date(appState.googleDrive.lastDriveModifiedTime).getTime() : null;
+    const newerLocal = localSavedAt !== null && (driveTime === null || localSavedAt >= driveTime);
+    const NEW_MARK = ' <span class="gdrive-sync-new">[New]</span>';
+    document.getElementById('gdrive-sync-local').innerHTML =
+        `更新: ${formatMySetDateTime(localSavedAt)}${newerLocal ? NEW_MARK : ''}`;
+    document.getElementById('gdrive-sync-drive').innerHTML =
+        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? NEW_MARK : ''}`;
+    dlg.classList.remove('hidden');
+}
+
+function closeGdriveSyncDialog() {
+    const dlg = document.getElementById('gdrive-sync-dialog');
+    if (dlg) dlg.classList.add('hidden');
+}
+
+/** ページ再読み込み (読込完了後に最新の状態で初期化し直すため。beforeunload警告は抑止する) */
+function appReload() {
+    _suppressUnloadGuard = true;
+    location.reload();
+}
+
+// 未登録(赤)の変更があるままページを閉じる/再読み込みする時の警告
+let _suppressUnloadGuard = false;
+window.addEventListener('beforeunload', (e) => {
+    if (_suppressUnloadGuard) return;
+    if (myObsDirty || myTgtDirty || myTsujiDirty || mySetDirty) {
+        e.preventDefault();
+        e.returnValue = '';   // ブラウザ標準の確認ダイアログを表示
+    }
+});
+
+// 更新中の🕛アイコンの時計アニメーション (24コマ×500ms=12秒で一周。.clock-anim要素に適用)
+const CLOCK_FRAMES = ['🕛','🕧','🕐','🕜','🕑','🕝','🕒','🕞','🕓','🕟','🕔','🕠','🕕','🕡','🕖','🕢','🕗','🕣','🕘','🕤','🕙','🕥','🕚','🕦'];
+let _clockFrame = 0;
+setInterval(() => {
+    const els = document.querySelectorAll('.clock-anim');
+    if (!els.length) return;
+    _clockFrame = (_clockFrame + 1) % CLOCK_FRAMES.length;
+    els.forEach(el => { el.textContent = CLOCK_FRAMES[_clockFrame]; });
+}, 500);
+
+/** 宙の辻メニューのログイン/同期状態アイコンと、Myセット・バックアップメニューの表示を更新 */
+function updateGoogleLoginIcon() {
+    const el = document.getElementById('btn-google-login');
+    if (el) {
+        const map = {
+            none:     ['🈚️', 'Googleアカウントにログインします(ドライブ同期)'],
+            checking: ['🕛', 'Googleドライブを確認中...'],
+            nofile:   ['😢', `Googleドライブに${SORA_APP_FILENAME}がありません(押下で作成して保存)`],
+            stale:    ['👎', '端末とGoogleドライブの内容に差があります(押下で保存/読込を選択)'],
+            ok:       ['👍', 'Googleドライブと同期が取れています'],
+            broken:   ['❌', 'Googleドライブの確認でエラーが発生しました(押して再確認)']
+        };
+        const [icon, title] = map[isGoogleLoggedIn() ? googleSyncState : 'none'] || map.none;
+        el.textContent = icon;
+        el.title = title;
+        el.classList.toggle('clock-anim', icon === '🕛');   // 確認中は時計アニメーション
+    }
+    renderMySetList();     // Myセットの状態アイコンとヘッダも連動して更新
+    updateBackupDriveUI(); // バックアップメニューのGoogleドライブ欄も連動して更新
+}
+
+/** ヘッダのログイン/同期状態アイコン押下時の動作 */
+function onGoogleLoginIconClick() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    switch (googleSyncState) {
+        case 'checking': break;   // 確認中は何もしない
+        case 'nofile':
+            if (confirm(`Googleドライブに ${SORA_APP_FILENAME} を作成して、端末の内容を保存しますか？\n(保存先: ${appState.soraFolderName}/設定)`)) {
+                saveAppToDrive();
+            }
+            break;
+        case 'stale':
+            openGdriveSyncDialog();   // どのように更新しますか？(保存/読み込み/キャンセル)
+            break;
+        case 'ok':
+            alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+            break;
+        default:
+            checkGoogleSyncState();   // エラー時は押下で再確認
+    }
+}
+
+/** バックアップメニューのGoogleドライブ欄の表示更新 */
+function updateBackupDriveUI() {
+    const loginBtn = document.getElementById('btn-gdrive-login');
+    if (!loginBtn) return;
+    const logged = isGoogleLoggedIn();
+    loginBtn.disabled = logged;
+    document.getElementById('btn-gdrive-logout').disabled = !logged;
+    const rootInput = document.getElementById('gdrive-root-folder');
+    if (document.activeElement !== rootInput) rootInput.value = appState.soraFolderName;
+    document.getElementById('gdrive-settings-folder').value = `${appState.soraFolderName}/設定`;
+    document.getElementById('gdrive-mysets-folder').value = `${appState.soraFolderName}/Myセット`;
+    const gd = appState.googleDrive;
+    document.getElementById('gdrive-modified').textContent =
+        gd.lastDriveModifiedTime ? formatGdriveDateTime(gd.lastDriveModifiedTime) : '-';
+    document.getElementById('gdrive-size').textContent =
+        'ローカルストレージ: ' + (gd.lastDriveSize ? `${Math.round(gd.lastDriveSize / 1024).toLocaleString('ja-JP')}KB` : '-');
+}
+
+/** ドライブ日時の表示 (例: 2026年02月09日(木) 19:32:16。デッサン16に合わせMyセットの日時表示と同形式) */
+function formatGdriveDateTime(iso) {
+    return formatMySetDateTime(new Date(iso).getTime());
+}
+
+/** 宙の辻フォルダ名の「登録」ボタン: 検証して保存し、ドライブ上のフォルダは名前変更(リネーム)する */
+async function registerSoraFolderName() {
+    const input = document.getElementById('gdrive-root-folder');
+    const v = (input.value || '').trim();
+    if (!v.startsWith('/')) { input.value = appState.soraFolderName; return alert('宙の辻フォルダ名は「/」で始めてください(例: /soranotsuji-宙の辻)'); }
+    const real = v.slice(1).trim();
+    if (!real || real.includes('/')) { input.value = appState.soraFolderName; return alert('フォルダ名が空か、「/」が含まれています(先頭の1つ以外は使用できません)'); }
+    appState.soraFolderName = '/' + real;
+    saveAppState();
+    updateBackupDriveUI();
+    if (isGoogleLoggedIn() && appState.googleDrive.rootFolderId) {
+        try {
+            await driveApiJson(`files/${appState.googleDrive.rootFolderId}?fields=id,name`, 'PATCH', { name: real });
+            alert(`Googleドライブのフォルダ名を「${real}」に変更しました。\n(中のファイルはそのまま追従します)`);
+        } catch (e) {
+            console.error(e);
+            alert('Googleドライブのフォルダ名の変更に失敗しました: ' + e.message);
+        }
+    } else {
+        alert(`宙の辻フォルダ名を「${appState.soraFolderName}」として登録しました。\n(Googleドライブ上のフォルダは、ログイン後の保存時にこの名前で作成・使用されます)`);
+    }
+}
+
+// トークン失効の監視 (ローカル判定のみ。1分毎にアイコンへ反映)
+setInterval(() => {
+    if (googleSyncState !== 'none' && !isGoogleLoggedIn()) {
+        googleToken = null;
+        googleSyncState = 'none';
+        updateGoogleLoginIcon();
+    }
+}, 60000);
+
+// ============================================================
+// Myセット管理 (フェーズ1: ローカル核。Googleドライブ連携はフェーズ2/3で実装)
+// ============================================================
+
+let mySetDirty = false;
+
+/** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
+function setMySetDirty(val) {
+    mySetDirty = val;
+    const btn = document.getElementById('btn-myset-regall');
+    if (btn) btn.classList.toggle('dirty', !!val);
+}
+
+/** 表示中の内容(My辻検索/My観測点/My目的点/My天体)のスナップショットを作る */
+function snapshotMySetData() {
+    return JSON.parse(JSON.stringify({
+        myTsujiSearches: appState.myTsujiSearches,
+        myObservations: appState.myObservations,
+        myTargets: appState.myTargets,
+        myStars: appState.myStars
+    }));
+}
+
+/** My付きメニューの登録エラーメッセージ表示を消す */
+function clearMyMenuErrors() {
+    for (const id of ['myobs-error', 'mytgt-error', 'mytsuji-error']) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    }
+}
+
+/** スナップショットをMy付き4メニューに展開して関連UIを再描画する */
+function applyMySetData(data) {
+    clearMyMenuErrors();   // 切り替え前のエラーメッセージを持ち越さない
+    const d = data ? JSON.parse(JSON.stringify(data)) : {};
+    appState.myTsujiSearches = d.myTsujiSearches || [];
+    appState.myObservations = d.myObservations || [];
+    appState.myTargets = d.myTargets || [];
+    appState.myStars = d.myStars || [];
+    syncMyStarsToBodies();
+    renderCelestialList();
+    renderMyStarsList();
+    renderMyPointsList('obs');
+    renderMyPointsList('tgt');
+    renderMyTsujiSearches();
+    setMyPointDirty('obs', false);
+    setMyPointDirty('tgt', false);
+    setMyTsujiDirty(false);
+    updateMyPointMarkers();
+    updateAll();
+}
+
+function getSelectedMySetId() {
+    const radio = document.querySelector('input[name="myset-select"]:checked');
+    return radio ? parseInt(radio.value) : null;
+}
+
+function getMySetName(id) {
+    if (id === 0) return '既定のセット';
+    const s = appState.mySets.find(x => x.id === id);
+    return s ? s.name : '';
+}
+
+/** ID自動採番 (1〜1000の空き最小値) */
+function getNextMySetId() {
+    const usedIds = new Set(appState.mySets.map(s => s.id));
+    for (let i = 1; i <= 1000; i++) { if (!usedIds.has(i)) return i; }
+    return null;
+}
+
+/** 更新日時の表示 (例: 2026年03月23日(月) 23:34:50) */
+function formatMySetDateTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2, '0');
+    const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+    return `${d.getFullYear()}年${p(d.getMonth() + 1)}月${p(d.getDate())}日(${dow}) ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// ---- Myセット×Googleスプレッドシート連携 (フェーズ3後半) ----
+
+let mySetSheetStates = {};   // 行アイコン用の実行時状態: setId -> 'checking'|'ok'|'stale'|'missing'|'error' (非永続)
+let mySetSheetTimes = {};    // 直近確認したシートのmodifiedTime(ISO): setId -> string (非永続。stale時の[New]表示用)
+
+/** Sheets API (v4) 呼び出しの共通処理 */
+async function sheetsApiFetch(path, method, bodyObj) {
+    const token = await ensureGoogleToken();
+    if (!token) throw new Error('Googleログインが必要です');
+    const opt = { method: method || 'GET', headers: { 'Authorization': 'Bearer ' + token } };
+    if (bodyObj !== undefined) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(bodyObj); }
+    const resp = await fetch('https://sheets.googleapis.com/v4/' + path, opt);
+    if (!resp.ok) throw new Error('Sheets APIエラー: ' + resp.status);
+    return resp.json();
+}
+
+const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体'];
+
+/** Myセットの内容 → 4シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
+ *  commentsBySheet(シート名→温存する既存コメント行)があればそれを、無ければ既定の2行を先頭に置く */
+function _mySetSheetRows(data, commentsBySheet) {
+    const defaultComments = [
+        ['#このようにコメントを記載できます。'],
+        ['#', 'これもコメント行です。複数行、記述できます。'],
+        ['#', '先頭から連続する#行がコメント行になります。']
+    ];
+    const commentsOf = n => {
+        const c = commentsBySheet && commentsBySheet[n];
+        return (c && c.length) ? c : defaultComments;
+    };
+    const pointsRows = (list, label) => [
+        [`${label}ID`, `${label}名`, '緯度', '経度', '標高', '高さ', 'メモ'],
+        ...(list || []).map(p => [p.id, p.name ?? '', p.lat ?? '', p.lng ?? '', p.elev ?? '', p.height ?? 0, p.memo ?? ''])
+    ];
+    const starsRows = (list) => [
+        ['天体ID', '天体名', '赤経', '赤緯'],
+        ...(list || []).map(s => [s.id, s.name ?? '', s.ra ?? '', s.dec ?? ''])
+    ];
+    const tsujiRows = _buildMyTsujiCsv(data.myTsujiSearches || []).replace(/\r\n$/, '').split('\r\n').map(l => l.split(','));
+    return {
+        'My辻検索': commentsOf('My辻検索').concat(tsujiRows),
+        'My観測点': commentsOf('My観測点').concat(pointsRows(data.myObservations, '観測点')),
+        'My目的点': commentsOf('My目的点').concat(pointsRows(data.myTargets, '目的点')),
+        'My天体': commentsOf('My天体').concat(starsRows(data.myStars))
+    };
+}
+
+/** 4シート(My辻検索/My観測点/My目的点/My天体)の存在を確認し、無いシートは作成する。
+ *  ユーザーがスプレッドシート上でタブを削除/改名していても、保存/読込がエラーにならないようにする。
+ *  writeInitial=trueなら作成したシートに初期状態(既定コメント3行+見出し行)も書き込む(読込用。
+ *  保存経路は直後に全面書き込みするため不要)。
+ *  【方針】既定名(MYSET_SHEET_NAMES)の4シート以外には一切触らない: ユーザーが独自に作成した
+ *  タブ(名前を問わず)は列挙するだけで、作成・改名・削除・書き込みの対象にしない */
+async function _mySetEnsureSheets(s, writeInitial) {
+    const meta = await sheetsApiFetch(`spreadsheets/${s.sheetId}?fields=sheets.properties.title`, 'GET');
+    const titles = new Set((meta.sheets || []).map(sh => sh.properties && sh.properties.title));
+    const missing = MYSET_SHEET_NAMES.filter(n => !titles.has(n));
+    if (!missing.length) return;
+    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+        requests: missing.map(n => ({ addSheet: { properties: { title: n } } }))
+    });
+    if (writeInitial) {
+        const empty = _mySetSheetRows({ myTsujiSearches: [], myObservations: [], myTargets: [], myStars: [] });
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+            valueInputOption: 'RAW',
+            data: missing.map(n => ({ range: `'${n}'!A1`, values: empty[n] }))
+        });
+    }
+}
+
+/** シートの先頭から連続する「1列目が#で始まる行」(=温存するコメントブロック)をシート名毎に取得する。
+ *  取得できない場合は空(=既定コメント)を返す。保存時の上書きからユーザー追記のコメント行を守るために使う */
+async function _mySetFetchCommentRows(s) {
+    const commentsBySheet = {};
+    try {
+        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
+        const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+        (res.valueRanges || []).forEach((vr, i) => {
+            const block = [];
+            for (const r of (vr.values || [])) {
+                if (!String((r || [])[0] ?? '').trim().startsWith('#')) break;   // 先頭ブロックのみ(空行でも打ち切り)
+                block.push(r);
+            }
+            commentsBySheet[MYSET_SHEET_NAMES[i]] = block;
+        });
+    } catch (e) { /* 取得失敗時は既定コメントで保存 */ }
+    return commentsBySheet;
+}
+
+/** シートの行配列から、コメント行と見出し行を除いたデータ行(セルは文字列化)を返す */
+function _mySetDataRowsOf(rows) {
+    const out = [];
+    let headerSkipped = false;
+    for (const r of (rows || [])) {
+        const cells = (r || []).map(c => String(c ?? ''));
+        if (!cells.length || !cells.join('').trim()) continue;
+        if (cells[0].trim().startsWith('#')) continue;   // コメント行
+        if (!headerSkipped) { headerSkipped = true; continue; }   // 見出し行
+        out.push(cells);
+    }
+    return out;
+}
+
+function _mySetParsePoints(rows, sheetName) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i];
+        if (cols.length < 6) throw new Error(`${sheetName}: ${i + 1}件目の列数が不足しています(6列必要)`);
+        const id = parseInt(toHalfWidth(cols[0].trim()));
+        const name = cols[1].trim();
+        const lat = parseFloat(toHalfWidth(cols[2].trim()));
+        const lng = parseFloat(toHalfWidth(cols[3].trim()));
+        let elev = cols[4].trim() === '' ? 0 : parseFloat(toHalfWidth(cols[4].trim()));
+        if (isNaN(elev)) elev = 0;
+        const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+        const memo = (cols[6] ?? '').trim();
+        if (isNaN(id) || id < 1 || id > 1000) throw new Error(`${sheetName}: ${i + 1}件目のIDが無効です(1〜1000)`);
+        if (ids.has(id)) throw new Error(`${sheetName}: ID ${id} が重複しています`);
+        if (isNaN(lat) || isNaN(lng)) throw new Error(`${sheetName}: ${i + 1}件目の緯度/経度が無効です`);
+        ids.add(id);
+        list.push({ id, name, lat, lng, elev, height, memo, checked: false });
+    }
+    return list;
+}
+
+function _mySetParseStars(rows) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const cols = dataRows[i];
+        if (cols.length < 4) throw new Error(`My天体: ${i + 1}件目の列数が不足しています(4列必要)`);
+        const id = parseInt(toHalfWidth(cols[0].trim()));
+        const name = cols[1].trim();
+        const ra = parseFloat(toHalfWidth(cols[2].trim()));
+        const dec = parseFloat(toHalfWidth(cols[3].trim()));
+        if (isNaN(id) || id < 1 || id > 1000) throw new Error(`My天体: ${i + 1}件目のIDが無効です(1〜1000)`);
+        if (ids.has(id)) throw new Error(`My天体: ID ${id} が重複しています`);
+        if (!name) throw new Error(`My天体: ${i + 1}件目の天体名が空です`);
+        if (isNaN(ra) || isNaN(dec)) throw new Error(`My天体: ${i + 1}件目の赤経/赤緯が無効です`);
+        ids.add(id);
+        list.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
+    }
+    return list;
+}
+
+function _mySetParseTsuji(rows) {
+    const list = [];
+    const ids = new Set();
+    const dataRows = _mySetDataRowsOf(rows);
+    for (let i = 0; i < dataRows.length; i++) {
+        const t = parseMyTsujiCsvLine(dataRows[i], i + 1);   // 解析エラー時はalert表示+null
+        if (!t) throw new Error('My辻検索: 解析を中止しました');
+        if (ids.has(t.id)) throw new Error(`My辻検索: 辻検索ID ${t.id} が重複しています`);
+        ids.add(t.id);
+        list.push(t);
+    }
+    return list;
+}
+
+/** Myセット用スプレッドシートの新規作成 (Myセットフォルダ内・4シート構成) */
+async function mySetCreateSheet(s) {
+    await ensureSoraFolders();
+    const res = await driveApiJson('files?fields=id', 'POST', {
+        name: s.name,
+        mimeType: 'application/vnd.google-apps.spreadsheet',
+        parents: [appState.googleDrive.mySetsFolderId],
+        appProperties: { soranotsuji: 'myset' }
+    });
+    s.sheetId = res.id;
+    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+        requests: [
+            { updateSheetProperties: { properties: { sheetId: 0, title: MYSET_SHEET_NAMES[0] }, fields: 'title' } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[1] } } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[2] } } },
+            { addSheet: { properties: { title: MYSET_SHEET_NAMES[3] } } }
+        ]
+    });
+}
+
+/** シートから4メニュー分の内容を取得して解析する (適用はしない) */
+async function _mySetFetchSheetData(s) {
+    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
+    const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+    const vr = res.valueRanges || [];
+    const byIdx = i => (vr[i] && vr[i].values) || [];
+    const data = {
+        myTsujiSearches: _mySetParseTsuji(byIdx(0)),
+        myObservations: _mySetParsePoints(byIdx(1), 'My観測点'),
+        myTargets: _mySetParsePoints(byIdx(2), 'My目的点'),
+        myStars: _mySetParseStars(byIdx(3))
+    };
+    const meta = await driveGetMeta(s.sheetId);
+    return { data, meta };
+}
+
+/** 既定のセット(ID:0)の行情報を返す */
+function mySetHomeObj() {
+    appState.mySetHome.id = 0;
+    return appState.mySetHome;
+}
+
+/** ヘッダ集計・一括更新などが対象とする全行 (既定のセット+Myセット) */
+function allMySetRows() {
+    return [mySetHomeObj(), ...appState.mySets];
+}
+
+/** 保存/読込対象となるセットの内容を返す (表示中=ライブの内容、既定=退避領域、その他=スナップショット) */
+function mySetDataOf(s) {
+    if (s.id === appState.mySetCurrentId) return snapshotMySetData();
+    return (s.id === 0 ? appState.mySetHomeData : s.data) || {};
+}
+
+/** 読み込んだ内容をセットへ反映する (保持ルール込み) */
+function mySetSetData(s, data) {
+    if (s.id === appState.mySetCurrentId) applyMySetData(data);
+    else if (s.id === 0) appState.mySetHomeData = data;   // 既定のセットは常に端末保持
+    else if (s.offline) s.data = data;
+    else s.data = null;   // 保持ルール(オフライン指定なしは端末に保持しない)
+}
+
+/** 端末の内容をスプレッドシートへ保存 (無ければ作成。保存時にファイル名もMyセット名に揃える) */
+async function mySetSaveToSheet(s, opts = {}) {
+    try {
+        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return false; }
+        mySetSheetStates[s.id] = 'checking';
+        renderMySetList();
+        if (s.sheetId) {
+            const meta = await driveGetMeta(s.sheetId);
+            if (!meta || meta.trashed) s.sheetId = null;
+        }
+        let commentsBySheet = null;
+        if (!s.sheetId && opts.noCreate) {
+            // 一括更新など「作成はユーザー判断」の経路: シートが無ければ作成せずmissingにして中断
+            mySetSheetStates[s.id] = 'missing';
+            renderMySetList();
+            return false;
+        }
+        if (!s.sheetId) {
+            await mySetCreateSheet(s);   // 新規作成(中身は空)なら既定コメントを書く
+        } else {
+            await _mySetEnsureSheets(s, false);   // タブ削除/改名されていても4シートを揃えてから保存する
+            commentsBySheet = await _mySetFetchCommentRows(s);   // 既存シートは先頭の#コメント行を温存
+        }
+        const data = mySetDataOf(s);
+        const sheets = _mySetSheetRows(data, commentsBySheet);
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
+        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+            valueInputOption: 'RAW',
+            data: MYSET_SHEET_NAMES.map(n => ({ range: `'${n}'!A1`, values: sheets[n] }))
+        });
+        let meta = await driveGetMeta(s.sheetId);
+        if (meta && meta.name !== s.name) {
+            meta = await driveApiJson(`files/${s.sheetId}?fields=id,name,modifiedTime,size`, 'PATCH', { name: s.name });   // 名前をMyセット名に揃える
+        }
+        s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
+        s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        // 保持ルール: 同期済みで、オフライン指定なし・非表示中なら端末には保持しない(既定のセットは常に保持)
+        if (s.id !== 0 && !s.offline && s.id !== appState.mySetCurrentId) s.data = null;
+        mySetSheetStates[s.id] = 'ok';
+        saveAppState();
+        renderMySetList();
+        if (!opts.quiet) alert(`Myセット（ID:${s.id}、${s.name}）をGoogleスプレッドシートに保存しました。`);
+        return true;
+    } catch (e) {
+        console.error('mySetSaveToSheet:', e);
+        mySetSheetStates[s.id] = 'error';
+        renderMySetList();
+        if (!opts.quiet) {
+            alert(/403/.test(e.message)
+                ? 'このスプレッドシートへの書き込み権限がありません。\n(閲覧のみで共有されたファイルには保存できません。「:読込」での読み取りは可能です)'
+                : 'スプレッドシートへの保存に失敗しました: ' + e.message);
+        }
+        return false;
+    }
+}
+
+/** スプレッドシートの内容を端末へ読み込み (表示中セットならMy付き4メニューへ即反映) */
+async function mySetLoadFromSheet(s, opts = {}) {
+    try {
+        if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return false; }
+        if (!s.sheetId) {
+            if (!opts.quiet) alert('このMyセットにはスプレッドシートが紐付いていません。\n「追加」で既存のスプレッドシートを選ぶか、状態アイコンの押下で作成してください。');
+            return false;
+        }
+        mySetSheetStates[s.id] = 'checking';
+        renderMySetList();
+        await _mySetEnsureSheets(s, true);   // タブ削除/改名されていても、初期状態で作成してから読み込む
+        const { data, meta } = await _mySetFetchSheetData(s);
+        mySetSetData(s, data);
+        s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
+        s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        mySetSheetStates[s.id] = 'ok';
+        saveAppState();
+        renderMySetList();
+        if (!opts.quiet) alert(`Googleスプレッドシートの内容をMyセット（ID:${s.id}、${s.name}）に読み込みました。`);
+        return true;
+    } catch (e) {
+        console.error('mySetLoadFromSheet:', e);
+        mySetSheetStates[s.id] = 'error';
+        renderMySetList();
+        if (!opts.quiet) alert('スプレッドシートからの読み込みに失敗しました: ' + e.message);
+        return false;
+    }
+}
+
+/** 全Myセット(既定のセット含む)のシート状態を確認して行アイコンへ反映 (ログイン直後などに実行) */
+async function checkAllMySetSheets() {
+    if (!isGoogleLoggedIn()) return;
+    for (const s of allMySetRows()) {
+        if (!s.sheetId) continue;
+        try {
+            const meta = await driveGetMeta(s.sheetId);
+            if (!meta || meta.trashed) { mySetSheetStates[s.id] = 'missing'; continue; }
+            mySetSheetTimes[s.id] = meta.modifiedTime;
+            mySetSheetStates[s.id] = (s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime) ? 'ok' : 'stale';
+        } catch (e) {
+            mySetSheetStates[s.id] = 'error';
+        }
+    }
+    renderMySetList();
+}
+
+/** Myセット行の状態アイコン (処理中🕛は紐付けの有無より優先して表示する) */
+function mySetRowIcon(s) {
+    if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
+    if (mySetSheetStates[s.id] === 'checking') return ['🕛', 'スプレッドシートを処理中...'];
+    if (!s.sheetId || mySetSheetStates[s.id] === 'missing') return ['😢', 'スプレッドシートがありません(押下で作成して保存)'];
+    switch (mySetSheetStates[s.id]) {
+        case 'ok':       return ['👍', 'スプレッドシートと同期が取れています(押下で更新日時を再確認)'];
+        case 'error':    return ['❌', 'スプレッドシートの確認でエラーが発生しました(押下で再確認)'];
+        default:         return ['👎', '端末とスプレッドシートに差があります(押下で更新日時を再確認。更新はチェックを入れて更新ボタン)'];
+    }
+}
+
+/** Myセット行の状態アイコン押下: 押下時点のシートの更新日時を再確認(🕛)し、状態(👍/👎/❌)の表示を
+ *  更新するだけで、保存/読込は実行しない(保存か読込かはユーザーが決めること。実行はチェック+更新ボタンで)。
+ *  例外はシート未紐付け/消失時のみで、この場合は従来どおり作成の確認を出す */
+async function mySetRowStatusClick(s) {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    if (mySetSheetStates[s.id] === 'checking') return;   // 処理中の多重押下は無視
+    if (!s.sheetId || mySetSheetStates[s.id] === 'missing') {
+        if (confirm(`Myセット（ID:${s.id}、${s.name}）のGoogleスプレッドシートを作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
+        return;
+    }
+    mySetSheetStates[s.id] = 'checking';
+    renderMySetList();
+    let meta = null;
+    try { meta = await driveGetMeta(s.sheetId); } catch (e) {}
+    if (!meta || meta.trashed) {
+        mySetSheetStates[s.id] = 'missing';
+        renderMySetList();
+        if (confirm(`Myセット（ID:${s.id}、${s.name}）のスプレッドシートが見つかりません。\n新しく作成して、内容を保存しますか？\n(作成先: ${appState.soraFolderName}/Myセット)`)) mySetSaveToSheet(s);
+        return;
+    }
+    mySetSheetTimes[s.id] = meta.modifiedTime;
+    const inSync = !!(s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime);
+    mySetSheetStates[s.id] = inSync ? 'ok' : 'stale';
+    renderMySetList();   // 差がある場合は👎+「シート: 日時[New]」の表示更新のみ
+    if (inSync) alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+}
+
+/** 0段目ヘッダの一括状態アイコン (既定のセット含む全行👍なら👍、1つでも差があれば👎) */
+function mySetStatusIcon() {
+    if (!isGoogleLoggedIn()) return ['🈚️', 'Googleアカウントにログインします'];
+    const icons = allMySetRows().map(s => mySetRowIcon(s)[0]);
+    if (icons.every(i => i === '👍')) return ['👍', '全てのMyセットが同期済みです'];
+    return ['👎', '未同期のMyセットがあります(押下でチェックされたMyセットを一括更新)'];
+}
+
+/** 0段目ヘッダの一括状態アイコン押下: 未ログインならログイン、ログイン済みは一括更新 */
+function mySetStatusClick() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    bulkUpdateMySets();
+}
+
+/** 更新ボタン: チェックされたMyセット(既定のセット含む)を保存/読込ラジオに従って一括更新 */
+async function bulkUpdateMySets() {
+    if (!isGoogleLoggedIn()) { googleLogin(); return; }
+    const checked = allMySetRows().filter(s => s.checked);
+    if (!checked.length) return alert('更新するMyセットをチェックボックスで選択してください');
+    // シート未作成(😢)の行は一括更新の対象外。スプレッドシートの新規作成はユーザーの判断に
+    // 委ねる箇所なので、行の😢アイコンからの明示的な操作(確認つき)でのみ行う
+    const skipped = checked.filter(s => !s.sheetId).length;
+    const targets = checked.filter(s => s.sheetId);
+    if (!targets.length) return alert('チェックされたMyセットにスプレッドシートが紐付いていません。\n(スプレッドシートの作成は、各行の😢アイコンの押下で行えます)');
+    if (!confirm(`チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？${skipped ? `\n(シート未作成の${skipped}件は対象外です)` : ''}`)) return;
+    const btn = document.getElementById('btn-myset-update');
+    let done = 0, ng = 0;
+    for (const s of targets) {
+        if (btn) btn.innerHTML = `<span class="clock-anim">🕛</span>更新中(${Math.round(done / targets.length * 100)}%)`;
+        const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true, noCreate: true });
+        if (!ok) ng++;
+        done++;
+    }
+    if (btn) btn.textContent = '更新';
+    alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''}${skipped ? `、シート未作成のためスキップ: ${skipped}件` : ''})`);
+}
+
+/** 開くボタン: 選択中のMyセット(既定のセット含む)のスプレッドシートを開く */
+function openMySetSheet() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('開くMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
+    if (!confirm('チェックされたMyセットのGoogleスプレッドシートを開きますか？')) return;
+    window.open(`https://docs.google.com/spreadsheets/d/${s.sheetId}/edit`, '_blank');
+}
+
+// Google Picker (追加ボタン用)
+let _pickerApiLoaded = false;
+function loadPickerApi() {
+    return new Promise((resolve, reject) => {
+        if (window.google && window.google.picker) { _pickerApiLoaded = true; return resolve(); }   // 読み込み済みなら再取得しない
+        const sc = document.createElement('script');
+        sc.src = 'https://apis.google.com/js/api.js';
+        sc.async = true;
+        sc.onload = () => { gapi.load('picker', () => { _pickerApiLoaded = true; resolve(); }); };
+        sc.onerror = () => reject(new Error('Google Picker部品の読み込みに失敗しました。ネットワークを確認してください。'));
+        document.head.appendChild(sc);
+    });
+}
+
+/** PickerのAppId(Cloudプロジェクト番号)。クライアントIDの数字接頭辞から自動取得 */
+function getGoogleAppId() {
+    const m = /^(\d+)-/.exec(getGoogleClientId() || '');
+    return m ? m[1] : '';
+}
+
+/** 追加ボタン: Pickerで既存のスプレッドシートを選び、選択中のMyセット(既定のセット含む)に紐付ける */
+async function addMySetSheet() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('追加先のMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`Myセット（ID:${s.id}、${s.name}）に紐付けるGoogleスプレッドシートを、Googleドライブのファイル選択画面で選びますか？`)) return;
+    // 処理開始: 🕛(選択またはキャンセルで終了状態へ)
+    const prevState = mySetSheetStates[s.id];
+    mySetSheetStates[s.id] = 'checking';
+    renderMySetList();
+    const restore = () => {
+        if (prevState === undefined) delete mySetSheetStates[s.id];
+        else mySetSheetStates[s.id] = prevState;
+        renderMySetList();
+    };
+    const token = await ensureGoogleToken();
+    if (!token) return restore();
+    if (!GOOGLE_CONFIG.apiKey) { restore(); return alert('APIキーが未設定です。script.js冒頭のGOOGLE_CONFIG.apiKeyを設定してください。'); }
+    try { await loadPickerApi(); } catch (e) { restore(); return alert(e.message); }
+    const picker = new google.picker.PickerBuilder()
+        .addView(new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS))
+        .setOAuthToken(token)
+        .setDeveloperKey(GOOGLE_CONFIG.apiKey)
+        .setAppId(getGoogleAppId())
+        .setCallback((res) => {
+            const action = res[google.picker.Response.ACTION];
+            if (action === google.picker.Action.CANCEL) { restore(); return; }
+            if (action !== google.picker.Action.PICKED) return;
+            const doc = res[google.picker.Response.DOCUMENTS][0];
+            s.sheetId = doc[google.picker.Document.ID];
+            s.lastSyncSheetTime = null;
+            mySetSheetStates[s.id] = 'stale';   // 処理終了: 紐付け済み(未同期)
+            saveAppState();
+            setMySetDirty(true);
+            renderMySetList();
+            if (confirm('選択したスプレッドシートの内容を、このMyセットに読み込みますか？')) mySetLoadFromSheet(s);
+        })
+        .build();
+    picker.setVisible(true);
+}
+
+/** 解除ボタン: 選択中のMyセット(既定のセット含む)とスプレッドシートの関連付けを解除する。
+ *  Googleドライブのファイルは削除しない(端末内の設定変更のみなので、未ログインでも実行できる) */
+function unlinkMySetSheet() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('解除するMyセットを選択してください');
+    const s = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
+    let msg = `MyセットとGoogleスプレッドシートの関連付けを解除しますか？\n(ID:${id}、${s.name})\n※Googleドライブのファイルは削除されず、そのまま残ります。`;
+    if (id !== 0 && id !== appState.mySetCurrentId && !s.data) {
+        msg += '\n※このMyセットの内容は端末に保持されていない(オフライン指定なし)ため、解除するとこの行は空になります。内容はスプレッドシート側に残り、「追加」で再び紐付けられます。';
+    }
+    if (!confirm(msg)) return;
+    s.sheetId = null;
+    s.lastSyncSheetTime = null;
+    s.updatedAt = null;
+    delete mySetSheetStates[id];
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    alert('Googleスプレッドシートとの関連付けを解除しました。\n(ファイルはGoogleドライブに残っています。不要な場合はGoogleドライブ側で削除してください)');
+}
+
+/** 0段目ヘッダ: Myセット🈚️(🔛: 表示中セット名…) */
+function updateMySetHeader() {
+    const label = document.getElementById('myset-header-label');
+    if (!label) return;
+    const name = getMySetName(appState.mySetCurrentId) || '(名称未設定)';
+    const [icon, iconTitle] = mySetStatusIcon();
+    label.innerHTML = `Myセット<span id="myset-header-status" title="${escapeHtml(iconTitle)}">${icon}</span>(🔛: <span id="myset-header-current" title="${escapeHtml(name)}">${escapeHtml(name)}</span>)`;
+    const st = document.getElementById('myset-header-status');
+    if (st) st.addEventListener('click', (e) => { e.stopPropagation(); mySetStatusClick(); });
+}
+
+/** リスト描画 (先頭に既定のセット(ID:0)の固定行、以降はmySetsの行) */
+/** 行の「更新:」表示HTML: 差がある(stale)時はシート側の更新日時を併記し、シートが新しければ[New]を付ける */
+function mySetUpdatedHtml(s) {
+    let html = `更新: ${formatMySetDateTime(s.updatedAt)}`;
+    const t = mySetSheetTimes[s.id];
+    if (mySetSheetStates[s.id] === 'stale' && t) {
+        const tm = new Date(t).getTime();
+        const mark = (!s.updatedAt || tm > s.updatedAt) ? ' <span class="gdrive-sync-new">[New]</span>' : '';
+        html += `<br>シート: ${formatMySetDateTime(tm)}${mark}`;
+    }
+    return html;
+}
+
+function renderMySetList() {
+    const container = document.getElementById('myset-list');
+    if (!container) return;
+    const prevSel = getSelectedMySetId();
+    while (container.firstChild) container.removeChild(container.firstChild);
+    const cur = appState.mySetCurrentId;
+
+    // 既定のセット(固定行): 名称固定・行削除/上下移動不可・常に端末保持。スプレッドシートの紐付けは可能
+    const home = mySetHomeObj();
+    const [hIcon, hIconTitle] = mySetRowIcon(home);
+    const homeRow = document.createElement('div');
+    homeRow.className = 'myset-row' + (cur === 0 ? ' myset-current' : '');
+    homeRow.innerHTML = `
+        <hr class="tsujisearch-separator">
+        <div class="mypoint-row-header">
+            <input type="radio" name="myset-select" value="0" class="mystars-radio">
+            <input type="checkbox" class="body-checkbox myset-check-home" ${home.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
+            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span>
+            ${cur === 0 ? '<span>🔛</span>' : ''}
+        </div>
+        <div class="control-row">
+            <button class="nav-btn myset-status myset-status-home${hIcon === '🕛' ? ' clock-anim' : ''}" title="${escapeHtml(hIconTitle)}">${hIcon}</button>
+            <input type="text" class="myset-name" value="既定のセット" readonly title="既定のセット(名称固定)">
+        </div>
+        <div class="control-row">
+            <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-home" value="save" ${home.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode-home">:保存</label>
+            <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-home" value="load" ${home.saveMode === 'load' ? 'checked' : ''} class="myset-slmode-home">:読込</label>
+            <label class="baseopt-radio" title="既定のセットは常に端末に保持されます"><input type="checkbox" checked disabled>:オフライン</label>
+        </div>
+        <div class="control-row">
+            <span class="mypoint-label">${mySetUpdatedHtml(home)}</span>
+        </div>
+        <div class="control-row">
+            <label class="mypoint-label">メモ:</label>
+            <input type="text" class="myset-memo-home" value="${escapeHtml(home.memo || '')}" placeholder="メモ(150文字)" maxlength="150" autocomplete="off">
+        </div>`;
+    homeRow.querySelector('.myset-check-home').addEventListener('change', (e) => { home.checked = e.target.checked; saveAppState(); });
+    homeRow.querySelectorAll('.myset-slmode-home').forEach(r => r.addEventListener('change', (e) => {
+        if (e.target.checked) { home.saveMode = e.target.value; saveAppState(); }
+    }));
+    const homeMemo = homeRow.querySelector('.myset-memo-home');
+    homeMemo.addEventListener('change', (e) => { home.memo = e.target.value; saveAppState(); });
+    homeRow.querySelector('.myset-status-home').addEventListener('click', () => mySetRowStatusClick(home));
+    container.appendChild(homeRow);
+
+    appState.mySets.forEach(s => {
+        const [rowIcon, rowIconTitle] = mySetRowIcon(s);
+        const row = document.createElement('div');
+        row.className = 'myset-row' + (cur === s.id ? ' myset-current' : '');
+        row.innerHTML = `
+            <hr class="tsujisearch-separator">
+            <div class="mypoint-row-header">
+                <input type="radio" name="myset-select" value="${s.id}" class="mystars-radio">
+                <input type="checkbox" class="body-checkbox myset-check" data-id="${s.id}" ${s.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
+                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span>
+                ${cur === s.id ? '<span>🔛</span>' : ''}
+            </div>
+            <div class="control-row">
+                <button class="nav-btn myset-status${rowIcon === '🕛' ? ' clock-anim' : ''}" data-id="${s.id}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
+                <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${s.id}" autocomplete="off" title="${escapeHtml(s.name)}">
+            </div>
+            <div class="control-row">
+                <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-${s.id}" value="save" ${s.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:保存</label>
+                <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-${s.id}" value="load" ${s.saveMode === 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:読込</label>
+                <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${s.id}" ${s.offline ? 'checked' : ''}>:オフライン</label>
+            </div>
+            <div class="control-row">
+                <span class="mypoint-label">${mySetUpdatedHtml(s)}</span>
+            </div>
+            <div class="control-row">
+                <label class="mypoint-label">メモ:</label>
+                <input type="text" class="myset-memo" value="${escapeHtml(s.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${s.id}" autocomplete="off">
+            </div>`;
+        const nameInput = row.querySelector('.myset-name');
+        nameInput.addEventListener('input', () => setMySetDirty(true));
+        nameInput.addEventListener('change', (e) => {
+            const v = e.target.value.trim();
+            if (!v) { e.target.value = s.name; return; }   // 未入力でフォーカスが外れたら元の値を復元
+            s.name = v;
+            e.target.title = v;
+            saveAppState();
+            setMySetDirty(true);
+            if (appState.mySetCurrentId === s.id) updateMySetHeader();   // 🔛表示名の追従
+        });
+        row.querySelector('.myset-check').addEventListener('change', (e) => { s.checked = e.target.checked; saveAppState(); setMySetDirty(true); });
+        row.querySelectorAll('.myset-slmode').forEach(r => r.addEventListener('change', (e) => {
+            if (e.target.checked) { s.saveMode = e.target.value; saveAppState(); setMySetDirty(true); }
+        }));
+        row.querySelector('.myset-offline').addEventListener('change', async (e) => {
+            s.offline = e.target.checked;
+            saveAppState();
+            setMySetDirty(true);
+            if (s.offline && !s.data && s.id !== appState.mySetCurrentId && s.sheetId && isGoogleLoggedIn()) {
+                await mySetLoadFromSheet(s, { quiet: true });   // オフライン保持用に内容を取得
+            } else if (!s.offline && s.id !== appState.mySetCurrentId && s.sheetId && s.lastSyncSheetTime) {
+                s.data = null;   // 同期済みなら端末保持をやめる(未同期の内容は消さない)
+                saveAppState();
+            }
+        });
+        const memoInput = row.querySelector('.myset-memo');
+        memoInput.addEventListener('input', () => setMySetDirty(true));
+        memoInput.addEventListener('change', (e) => { s.memo = e.target.value; saveAppState(); setMySetDirty(true); });
+        row.querySelector('.myset-status').addEventListener('click', () => mySetRowStatusClick(s));
+        container.appendChild(row);
+    });
+
+    // 選択状態の復元 (初期表示は表示中のMyセットを選択)
+    let selVal = 0;
+    if (prevSel !== null && document.querySelector(`input[name="myset-select"][value="${prevSel}"]`)) selVal = prevSel;
+    else if (document.querySelector(`input[name="myset-select"][value="${cur}"]`)) selVal = cur;
+    const selRadio = document.querySelector(`input[name="myset-select"][value="${selVal}"]`);
+    if (selRadio) selRadio.checked = true;
+
+    updateMySetHeader();
+}
+
+/** 初期表示 (非同期読み込み: 読み込み中はクルクルを表示) */
+function initMySetMenu() {
+    const container = document.getElementById('myset-list');
+    if (container) container.innerHTML = '<div class="mystars-empty"><span class="clock-anim">🕛</span> 読み込み中...</div>';
+    setTimeout(renderMySetList, 0);
+}
+
+/** 未登録(赤)のMy観測点/My目的点/My辻検索を検証して登録する (切り替え表示前の保存用)。検証NGならfalse */
+function registerDirtyMyMenus() {
+    for (const type of ['obs', 'tgt']) {
+        const cfg = myPointConfig(type);
+        if (!cfg.getDirty()) continue;
+        for (const pt of cfg.list()) {
+            if (!pt.name || pt.lat === null || pt.lat === undefined || pt.lng === null || pt.lng === undefined) {
+                document.getElementById(`${cfg.prefix}-error`).innerHTML =
+                    `<span class="mypoint-error-text">${cfg.label}ID:${pt.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                alert(`${cfg.labelFull}に未入力があるため保存できませんでした。切り替えを中止します。\n${cfg.labelFull}メニューのエラーメッセージをご確認ください。`);
+                return false;
+            }
+        }
+        cfg.list().forEach(pt => {
+            pt.name = (pt.name || '').replace(/,/g, '，');
+            pt.memo = (pt.memo || '').replace(/,/g, '，');
+            if (typeof pt.lat === 'string') pt.lat = parseFloat(toHalfWidth(String(pt.lat)));
+            if (typeof pt.lng === 'string') pt.lng = parseFloat(toHalfWidth(String(pt.lng)));
+        });
+        document.getElementById(`${cfg.prefix}-error`).innerHTML = '';   // 保存成功: エラー表示を消す
+        setMyPointDirty(type, false);
+        updateMyPointMarkers();
+    }
+    if (myTsujiDirty) {
+        for (const t of appState.myTsujiSearches) {
+            if (!t.name || t.days == null || !t.bodyIds || t.obsId == null || t.tgtId == null || t.baseAz == null || t.baseAlt == null) {
+                document.getElementById('mytsuji-error').innerHTML =
+                    `<span class="mypoint-error-text">辻検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                alert('My辻検索に未入力があるため保存できませんでした。切り替えを中止します。\nMy辻検索メニューのエラーメッセージをご確認ください。');
+                return false;
+            }
+        }
+        appState.myTsujiSearches.forEach(t => {
+            t.name = (t.name || '').replace(/,/g, '，');
+            t.memo = (t.memo || '').replace(/,/g, '，');
+        });
+        document.getElementById('mytsuji-error').innerHTML = '';   // 保存成功: エラー表示を消す
+        setMyTsujiDirty(false);
+    }
+    saveAppState();
+    return true;
+}
+
+/** 切り替え表示: ①表示中の内容を書き戻し → ②選択セットを展開 → ③表示中ポインタ付け替え
+ *  端末に保持していないセット(オフライン指定なし)は、切り替え時にスプレッドシートから読み込む */
+async function switchMySetDisplay() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('切り替え表示するMyセットを選択してください');
+    const target = id === 0 ? null : appState.mySets.find(s => s.id === id);
+    if (id !== 0 && !target) return;
+    if (id === appState.mySetCurrentId) return alert(`Myセット（${getMySetName(id)}）は、すでに表示中です。`);
+    const dirty = myObsDirty || myTgtDirty || myTsujiDirty;
+    const msg = dirty
+        ? 'My付きメニューに未登録の変更があります。切り替えると失われます。\n内容を保存してから切り替えますか？'
+        : 'チェックされたMyセットの内容にMy辻検索、My観測点、My目的点、My天体を切り替えますか？';
+    if (!confirm(msg)) return;
+    if (dirty && !registerDirtyMyMenus()) return;   // 検証NG(未入力あり)なら切り替えを中止
+    // 端末に内容がないセットは、先にスプレッドシートから取得する(失敗時は何も変えない)
+    let targetData = id === 0 ? appState.mySetHomeData : (target.data || null);
+    if (id !== 0 && !targetData && target.sheetId) {
+        if (!isGoogleLoggedIn()) {
+            const ok = await googleLogin();
+            if (!ok) return alert('このMyセットは端末に保持されていません(オフライン指定なし)。\nログインしてスプレッドシートから読み込む必要があります。');
+        }
+        try {
+            const r = await _mySetFetchSheetData(target);
+            targetData = r.data;
+            target.updatedAt = r.meta ? new Date(r.meta.modifiedTime).getTime() : target.updatedAt;
+            target.lastSyncSheetTime = r.meta ? r.meta.modifiedTime : target.lastSyncSheetTime;
+            mySetSheetStates[target.id] = 'ok';
+        } catch (e) {
+            console.error(e);
+            return alert('スプレッドシートの読み込みに失敗しました: ' + e.message);
+        }
+    }
+    // ①現在の表示内容を、表示中セットの保持領域に書き戻す
+    const snap = snapshotMySetData();
+    if (appState.mySetCurrentId === 0) {
+        appState.mySetHomeData = snap;
+    } else {
+        const curSet = appState.mySets.find(s => s.id === appState.mySetCurrentId);
+        if (curSet) { curSet.data = snap; curSet.updatedAt = Date.now(); }
+        else appState.mySetHomeData = snap;   // 表示中の行が消えている場合の退避先(行削除はガード済み)
+    }
+    // ②選択セットの内容をMy付き4メニューに展開 → ③表示中ポインタを付け替え
+    appState.mySetCurrentId = id;
+    applyMySetData(targetData);
+    renderMySetList();
+    saveAppState();
+}
+
+/** 全て登録 (検証 → 確認 → 全件差し替え) */
+function registerAllMySets() {
+    for (const s of appState.mySets) {
+        if (!s.name || !s.name.trim()) {
+            document.getElementById('myset-error').innerHTML =
+                `<span class="mypoint-error-text">MyセットID:${s.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            return;
+        }
+    }
+    document.getElementById('myset-error').innerHTML = '';
+    if (!confirm('現在のMyセットリストをローカルストレージに登録しますか？')) return;
+    appState.mySets.forEach(s => {
+        s.name = s.name.trim();
+        s.memo = (s.memo || '').replace(/,/g, '，');
+    });
+    saveAppState();
+    setMySetDirty(false);
+    renderMySetList();
+    alert('Myセットを登録しました');
+}
+
+/** 行追加 */
+function addMySetRow() {
+    const id = getNextMySetId();
+    if (id === null) return alert('Myセットの登録上限(1000件)に達しています');
+    if (!confirm('Myセットリストの末尾にMyセットの行を追加しますか？')) return;
+    appState.mySets.push({ id, name: '新規Myセット', saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: '', data: null });
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 行削除 (Driveのファイルには触れない。既定のセット/表示中セットは不可) */
+function deleteMySetRow() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('行削除するMyセットを選択してください');
+    if (id === 0) return alert('既定のセットは行削除できません');
+    if (id === appState.mySetCurrentId) return alert('表示中のMyセットは行削除できません。\n先に別のMyセットへ切り替えてください。');
+    const s = appState.mySets.find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${s.name}）を削除しますか？\n(Googleドライブのファイルは削除されません)`)) return;
+    appState.mySets = appState.mySets.filter(x => x.id !== id);
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+}
+
+/** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する (既定のセットも可) */
+async function copyMySet() {
+    const id = getSelectedMySetId();
+    if (id === null) return alert('コピーするMyセットを選択してください');
+    const src = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
+    if (!src) return;
+    const newId = getNextMySetId();
+    if (newId === null) return alert('Myセットの登録上限(1000件)に達しています');
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
+    const rawData = mySetDataOf(src);
+    const data = (rawData && Object.keys(rawData).length) ? JSON.parse(JSON.stringify(rawData)) : null;
+    const newSet = { id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
+    if (src.sheetId && isGoogleLoggedIn()) {
+        try {
+            await ensureSoraFolders();
+            const res = await driveApiJson(`files/${src.sheetId}/copy?fields=id,modifiedTime`, 'POST', {
+                name: newSet.name,
+                parents: [appState.googleDrive.mySetsFolderId],
+                appProperties: { soranotsuji: 'myset' }
+            });
+            newSet.sheetId = res.id;
+            newSet.lastSyncSheetTime = res.modifiedTime || null;
+            newSet.updatedAt = res.modifiedTime ? new Date(res.modifiedTime).getTime() : null;
+            mySetSheetStates[newId] = 'ok';
+        } catch (e) {
+            console.error(e);
+            alert('スプレッドシートの複製に失敗したため、行のみ複製しました: ' + e.message);
+        }
+    } else if (src.sheetId) {
+        alert('未ログインのため、行のみ複製しました。\n(スプレッドシートの複製はログイン後に、状態アイコンから保存で作成できます)');
+    }
+    appState.mySets.push(newSet);
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${newId}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 上下移動 (既定のセットは先頭固定) */
+function moveMySet(dir) {
+    const id = getSelectedMySetId();
+    if (id === null || id === 0) return;
+    const idx = appState.mySets.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    const to = idx + dir;
+    if (to < 0 || to >= appState.mySets.length) return;
+    [appState.mySets[idx], appState.mySets[to]] = [appState.mySets[to], appState.mySets[idx]];
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+    const radio = document.querySelector(`input[name="myset-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 一括選択/一括解除トグル (既定のセット含む) */
+function toggleAllMySets() {
+    const btn = document.getElementById('btn-myset-toggle-all');
+    const newState = !btn.classList.contains('myset-toggle-active');
+    btn.textContent = newState ? '一括解除' : '一括選択';
+    btn.classList.toggle('myset-toggle-active', newState);
+    mySetHomeObj().checked = newState;
+    appState.mySets.forEach(s => { s.checked = newState; });
+    saveAppState();
+    setMySetDirty(true);
+    renderMySetList();
+}
+
+// ============================================================
 // URL取得・復元
 // ============================================================
+
+// URL短縮(queryキー)用の可逆圧縮コーデック: LZW(可変コード幅) + Base64URL。
+// 依存なし・同期処理。encodeQueryParam(str) → URL安全文字列、decodeQueryParam(s) → 元文字列(失敗時 null)。
+//
+// 【辞書のバージョン運用】共有シード辞書はエンコード結果のコード割当を決めるため、
+// 一度発行したURLを読み続けるには「その版の辞書」が必要になる。そこで:
+//  - 辞書は _QP_SEED_VERSIONS に版ごとに保持し、既存の版は絶対に変更しない。
+//  - エンコードは常に最新版を使い、出力の先頭に「~版数~」を付ける(v1のみ無印=レガシー)。
+//  - デコードは先頭の「~版数~」で辞書を選ぶ(無印はv1)。
+//  - パラメータキーを追加/変更したら、新しい配列(_QP_SEEDS_V3, ...)を追加して
+//    _QP_SEED_VERSIONS に積み、エンコーダが自動で最新版を使う。古いURLはそのまま読める。
+const _QP_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+// LZWの貪欲一致は接頭辞を辿るため、シードは全接頭辞(2文字以上)に展開して登録する
+function _qpSeedEntries(seeds) {
+    const set = [];
+    const seen = new Set();
+    for (const seed of seeds) {
+        for (let n = 2; n <= seed.length; n++) {
+            const pre = seed.slice(0, n);
+            if (!seen.has(pre)) { seen.add(pre); set.push(pre); }
+        }
+    }
+    return set;
+}
+// v1: 初版の頻出断片(変更禁止: 発行済みURLの復号に使用)
+const _QP_SEEDS = ['tsuji','Start','End','Mode=','Offset=','Offset','Tolerance=','Time=','Filter=','PrePost','Dir=before','Dir=after','=false&','=true&','&tsuji','&star','starId=','startL','endL','startApiElv=','endApiElv=','startElv=','endElv=','Lat=3','Lng=13','sunset','sunrise','00%3A00','Acc','DblCircle','Circle','Triangle','Dash','elevation','milkyway','soramado','mode=preview','mode=tsujisearch','&date=20','&time=','timeZone=%2B0900','Search','Days=365','Moon','Base=','&dp=','Elev','ilkyWay','starName=','starRa=','starDec=','starColor=%23','starIsDashed='];
+// v2: v1の全シード + 現行の全URLパラメータキー(&key=形式)。キー追加時はV3を作って_QP_SEED_VERSIONSへ
+const _QP_SEEDS_V2 = _QP_SEEDS.concat(
+    ['date', 'time', 'timeZone', 'startLat', 'startLng', 'startApiElv', 'startElv', 'endLat', 'endLng', 'endApiElv', 'endElv',
+     'starId', 'starName', 'starRa', 'starDec', 'starColor', 'starIsDashed',
+     'dp', 'elevation', 'milkyway', 'soramado', 'tsujisearch', 'mode',
+     'soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
+     'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
+     'soraPeaking', 'soraTraj', 'soraCenterCross',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH',
+     'tsujiSearchDays', 'tsujiAz', 'tsujiAlt', 'tsujiAzOffset', 'tsujiAltOffset', 'tsujiAzTolerance', 'tsujiAltTolerance',
+     'tsujiMoonFilter', 'tsujiMoonBase', 'tsujiMoonTolerance',
+     'tsujiAccuracyFilter', 'tsujiAccDblCircle', 'tsujiAccCircle', 'tsujiAccTriangle', 'tsujiAccDash',
+     'tsujiElevationOption', 'tsujiElevOK', 'tsujiElevNG',
+     'tsujiTimeFilter', 'tsujiStartMode', 'tsujiStartTime', 'tsujiStartPrePost', 'tsujiStartPrePostDir', 'tsujiStartOffset',
+     'tsujiEndMode', 'tsujiEndTime', 'tsujiEndPrePost', 'tsujiEndPrePostDir', 'tsujiEndOffset']
+        .map(k => '&' + k + '='),
+    ['=landscape&', '=portrait&', '=fullframe&', '=jpeg&', '=png&', '=h264&', '=webm&', '=rect&', '=circle&']
+);
+// v3: v2の全シード + 再生オプション(キー追加時は新版を作って_QP_SEED_VERSIONSへ)
+const _QP_SEEDS_V3 = _QP_SEEDS_V2.concat(['&soraMovPlayMode=', '=anim&', '=video&']);
+// v4: v3の全シード + 検索中心オプション
+const _QP_SEEDS_V4 = _QP_SEEDS_V3.concat(['&tsujiCenterMode=', '=point&', '=line&']);
+// v5: v4の全シード + 目的点/検索中心チェックボックス
+const _QP_SEEDS_V5 = _QP_SEEDS_V4.concat(['&soraTargetCross=', '&soraSearchCenter=']);
+// v6: v5の全シード + 辻メッシュ検索
+const _QP_SEEDS_V6 = _QP_SEEDS_V5.concat(['&tsujiMesh', 'tsujiMesh', '&tsujimesh=', '=x1&', '=x2&', '=x4&', '=x8&', 'MeshStart', 'MeshEnd', '=tsujimesh&']);
+// v7: v6の全シード + 観測点画素の高さ(項目は廃止済み。辞書は凍結のため残す)
+const _QP_SEEDS_V7 = _QP_SEEDS_V6.concat(['&tsujiMeshPixHeight=']);
+// v8: v7の全シード + 精度フィルタ(◎○△-)
+const _QP_SEEDS_V8 = _QP_SEEDS_V7.concat(['&tsujiMeshSymO=', '&tsujiMeshSymTri=', '&tsujiMeshSymDash=']);
+// v9: v8の全シード + 花火モード
+const _QP_SEEDS_V9 = _QP_SEEDS_V8.concat(['&fwEnabled=', '&fwLat=', '&fwLng=', '&fwElev=', '&fwHeight=', '&fwRadius=', '&fwSize=', '&fwMode=', '&fwSpread=', '&fwShowPoint=', '=vary&', '=fixed&']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9];   // 添字+1=版数。最新版でエンコードする
+
+function encodeQueryParam(str) {
+    const bytes = new TextEncoder().encode(str);
+    if (bytes.length === 0) return '';
+    const version = _QP_SEED_VERSIONS.length;   // 常に最新版の辞書で圧縮
+    // LZW圧縮 (初期辞書=1バイト256種, コード幅9bit開始で辞書拡大に応じて広げる)
+    const dict = new Map();
+    for (let i = 0; i < 256; i++) dict.set(String.fromCharCode(i), i);
+    let nextCode = 256;
+    for (const e of _qpSeedEntries(_QP_SEED_VERSIONS[version - 1])) { if (!dict.has(e)) dict.set(e, nextCode++); }
+    let width = 9;
+    while ((1 << width) < nextCode) width++;   // 初期辞書が512を超える場合は幅を拡げて開始
+    const out = [];   // {code, width}
+    let w = '';
+    for (let i = 0; i < bytes.length; i++) {
+        const c = String.fromCharCode(bytes[i]);
+        const wc = w + c;
+        if (dict.has(wc)) { w = wc; continue; }
+        out.push({ code: dict.get(w), width });
+        dict.set(wc, nextCode++);
+        if (nextCode === (1 << width) + 1) width++;   // 新しいコードが幅に収まらなくなる直前に拡幅
+        w = c;
+    }
+    if (w !== '') out.push({ code: dict.get(w), width });
+    // ビットパック → Base64URL (6bit単位)
+    let acc = 0, nbits = 0, s = '';
+    for (const { code, width: wd } of out) {
+        acc = (acc * (1 << wd)) + code;   // 上位詰め
+        nbits += wd;
+        while (nbits >= 6) {
+            nbits -= 6;
+            s += _QP_B64[Math.floor(acc / (1 << nbits)) & 63];
+            acc = acc % (1 << nbits);
+        }
+    }
+    if (nbits > 0) s += _QP_B64[(acc << (6 - nbits)) & 63];
+    return (version >= 2 ? `~${version}~` : '') + s;   // v2以降は辞書版数プレフィックス(v1=無印)
+}
+
+function decodeQueryParam(s) {
+    try {
+        if (!s) return '';
+        // 辞書版数プレフィックス(~N~)。無印はv1(レガシーURL)
+        let seeds = _QP_SEEDS;
+        const vm = /^~(\d+)~/.exec(s);
+        if (vm) {
+            const v = parseInt(vm[1]);
+            if (v < 2 || v > _QP_SEED_VERSIONS.length) return null;   // 未知の版(将来の新版URL)は復号不可
+            seeds = _QP_SEED_VERSIONS[v - 1];
+            s = s.slice(vm[0].length);
+            if (!s) return '';
+        }
+        // Base64URL → ビット列リーダー
+        const vals = [];
+        for (const ch of s) {
+            const v = _QP_B64.indexOf(ch);
+            if (v < 0) return null;
+            vals.push(v);
+        }
+        let pos = 0;   // ビット位置
+        const total = vals.length * 6;
+        const readBits = (n) => {
+            if (pos + n > total) return null;
+            let r = 0;
+            for (let i = 0; i < n; i++) {
+                const v6 = vals[(pos / 6) | 0];
+                const bit = (v6 >> (5 - (pos % 6))) & 1;
+                r = (r << 1) | bit;
+                pos++;
+            }
+            return r;
+        };
+        // LZW展開
+        const dict = [];
+        for (let i = 0; i < 256; i++) dict.push(String.fromCharCode(i));
+        for (const e of _qpSeedEntries(seeds)) dict.push(e);
+        let nextCode = dict.length, width = 9;
+        while ((1 << width) < nextCode) width++;   // エンコーダと同一の初期幅
+        let code = readBits(width);
+        if (code === null) return '';
+        let w = dict[code];
+        if (w === undefined) return null;
+        let res = w;
+        while (true) {
+            if (nextCode === (1 << width)) width++;   // エンコーダが拡幅した直後のコードに合わせる
+            if (pos + width > total) break;           // 端数パディングは無視
+            code = readBits(width);
+            if (code === null) break;
+            let entry;
+            if (code < dict.length) entry = dict[code];
+            else if (code === nextCode) entry = w + w[0];   // KwKwK ケース
+            else return null;
+            res += entry;
+            dict.push(w + entry[0]); nextCode++;
+            w = entry;
+        }
+        // バイト列 → UTF-8文字列
+        const bytes = new Uint8Array(res.length);
+        for (let i = 0; i < res.length; i++) bytes[i] = res.charCodeAt(i);
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (_) {
+        return null;
+    }
+}
 
 function buildBaseUrl() {
     return window.location.origin + window.location.pathname;
@@ -6237,6 +11842,35 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         }
     });
 
+    // 下部パネル等の表示/非表示状態(プレビュー/辻検索の両モードで復元): 辻ライン・標高グラフ・全天儀・宙の窓・辻検索
+    params.set('dp', appState.isDPActive ? 'true' : 'false');
+    params.set('elevation', appState.isElevationActive ? 'true' : 'false');
+    params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
+    params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
+    params.set('tsujisearch', appState.isTsujiSearchActive ? 'true' : 'false');
+    params.set('tsujimesh', appState.isTsujiMeshActive ? 'true' : 'false');
+
+    // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
+    ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
+     'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
+     'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb', 'soraMovPlayMode',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+
+    // 花火モード(宙の窓メニュー55〜70段目)も記憶・復元(打ち上げ点は設定済みの場合のみ)
+    ['fwEnabled', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwSpread', 'fwShowPoint'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+    if (appState.fwLat !== null && appState.fwLng !== null) {
+        params.set('fwLat', String(appState.fwLat));
+        params.set('fwLng', String(appState.fwLng));
+    }
+
     return params;
 }
 
@@ -6266,13 +11900,34 @@ function closeUrlPicker() {
     urlPickerMode = null;
 }
 
+/** URL取得共通: 「短いURL」チェックボックス(初期値オン)に従い、
+ *  オン=可逆圧縮したqueryキー1つの短いURL / オフ=キー名やキー値がそのままの長いURL を作る。
+ *  どちらのURLでも同じ状態を復元できる(restoreFromUrlが両形式を読む)。 */
+function buildShareUrl(params) {
+    const chk = document.getElementById('url-picker-short');
+    const useShort = !chk || chk.checked;
+    return buildBaseUrl() + (useShort ? '?query=' + encodeQueryParam(params.toString()) : '?' + params.toString());
+}
+
 function copyLocationUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
+    // パネル状態(dp/elevation/milkyway/soramado/tsujisearch)は buildCommonUrlParams で付与済み
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
+    });
+}
+
+function copySoramadoUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
+    params.set('mode', 'preview');
+    params.set('soramado', 'true');   // 宙の窓URLは必ず宙の窓パネルを開く
+
+    const url = buildShareUrl(params);
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の宙の窓を開くURLをクリップボードにコピーしました。');
     });
 }
 
@@ -6287,6 +11942,7 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAltOffset', String(appState.tsujiSearchOffsetAlt));
     params.set('tsujiAzTolerance', String(appState.tsujiSearchToleranceAz));
     params.set('tsujiAltTolerance', String(appState.tsujiSearchToleranceAlt));
+    params.set('tsujiCenterMode', appState.tsujiCenterMode || 'point');
     params.set('tsujiMoonFilter', appState.tsujiMoonFilterEnabled ? 'true' : 'false');
     params.set('tsujiMoonBase', String(appState.tsujiMoonBase));
     params.set('tsujiMoonTolerance', String(appState.tsujiMoonTolerance));
@@ -6295,15 +11951,75 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAccCircle', appState.tsujiAccCircle ? 'true' : 'false');
     params.set('tsujiAccTriangle', appState.tsujiAccTriangle ? 'true' : 'false');
     params.set('tsujiAccDash', appState.tsujiAccDash ? 'true' : 'false');
+    params.set('tsujiElevationOption', appState.tsujiElevationOption ? 'true' : 'false');
+    params.set('tsujiElevOK', appState.tsujiElevOK ? 'true' : 'false');
+    params.set('tsujiElevNG', appState.tsujiElevNG ? 'true' : 'false');
+    params.set('tsujiTimeFilter', appState.tsujiTimeFilter ? 'true' : 'false');
+    params.set('tsujiStartMode', appState.tsujiStartMode);
+    params.set('tsujiStartTime', appState.tsujiStartTime);
+    params.set('tsujiStartPrePost', appState.tsujiStartPrePost ? 'true' : 'false');
+    params.set('tsujiStartPrePostDir', appState.tsujiStartPrePostDir);
+    params.set('tsujiStartOffset', appState.tsujiStartOffset);
+    params.set('tsujiEndMode', appState.tsujiEndMode);
+    params.set('tsujiEndTime', appState.tsujiEndTime);
+    params.set('tsujiEndPrePost', appState.tsujiEndPrePost ? 'true' : 'false');
+    params.set('tsujiEndPrePostDir', appState.tsujiEndPrePostDir);
+    params.set('tsujiEndOffset', appState.tsujiEndOffset);
 
-    const url = buildBaseUrl() + '?' + params.toString();
+    const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
         alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
     });
 }
 
+function copyTsujiMeshUrl(includeDateTime) {
+    const params = buildCommonUrlParams(includeDateTime);
+    params.set('mode', 'tsujimesh');
+
+    params.set('tsujiMeshDays', String(appState.tsujiMeshDays));
+    params.set('tsujiMeshAz', String(appState.tsujiMeshBaseAz));
+    params.set('tsujiMeshAlt', String(appState.tsujiMeshBaseAlt));
+    params.set('tsujiMeshAzOffset', String(appState.tsujiMeshOffsetAz));
+    params.set('tsujiMeshAltOffset', String(appState.tsujiMeshOffsetAlt));
+    params.set('tsujiMeshAzTolerance', String(appState.tsujiMeshToleranceAz));
+    params.set('tsujiMeshAltTolerance', String(appState.tsujiMeshToleranceAlt));
+    params.set('tsujiMeshCenterMode', appState.tsujiMeshCenterMode || 'point');
+    params.set('tsujiMeshAccuracy', appState.tsujiMeshAccuracy || 'x1');
+    params.set('tsujiMeshSymO', appState.tsujiMeshSymO ? 'true' : 'false');
+    params.set('tsujiMeshSymTri', appState.tsujiMeshSymTri ? 'true' : 'false');
+    params.set('tsujiMeshSymDash', appState.tsujiMeshSymDash ? 'true' : 'false');
+    params.set('tsujiMeshMoonFilter', appState.tsujiMeshMoonFilterEnabled ? 'true' : 'false');
+    params.set('tsujiMeshMoonBase', String(appState.tsujiMeshMoonBase));
+    params.set('tsujiMeshMoonTolerance', String(appState.tsujiMeshMoonTolerance));
+    params.set('tsujiMeshElevationOption', appState.tsujiMeshElevationOption ? 'true' : 'false');
+    params.set('tsujiMeshElevOK', appState.tsujiMeshElevOK ? 'true' : 'false');
+    params.set('tsujiMeshElevNG', appState.tsujiMeshElevNG ? 'true' : 'false');
+    params.set('tsujiMeshTimeFilter', appState.tsujiMeshTimeFilter ? 'true' : 'false');
+    params.set('tsujiMeshStartMode', appState.tsujiMeshStartMode);
+    params.set('tsujiMeshStartTime', appState.tsujiMeshStartTime);
+    params.set('tsujiMeshStartPrePost', appState.tsujiMeshStartPrePost ? 'true' : 'false');
+    params.set('tsujiMeshStartPrePostDir', appState.tsujiMeshStartPrePostDir);
+    params.set('tsujiMeshStartOffset', appState.tsujiMeshStartOffset);
+    params.set('tsujiMeshEndMode', appState.tsujiMeshEndMode);
+    params.set('tsujiMeshEndTime', appState.tsujiMeshEndTime);
+    params.set('tsujiMeshEndPrePost', appState.tsujiMeshEndPrePost ? 'true' : 'false');
+    params.set('tsujiMeshEndPrePostDir', appState.tsujiMeshEndPrePostDir);
+    params.set('tsujiMeshEndOffset', appState.tsujiMeshEndOffset);
+
+    const url = buildShareUrl(params);
+    navigator.clipboard.writeText(url).then(() => {
+        alert('現在の辻メッシュ検索を開くURLをクリップボードにコピーしました。');
+    });
+}
+
 function restoreFromUrl() {
-    const params = new URLSearchParams(window.location.search);
+    let params = new URLSearchParams(window.location.search);
+    // 短縮URL(queryキー)なら展開して通常のパラメータ群に戻す(復号失敗時はユーザーへ通知して既定状態で続行)
+    if (params.has('query')) {
+        const decoded = decodeQueryParam(params.get('query'));
+        if (decoded) params = new URLSearchParams(decoded);
+        else alert('短縮URLの復元に失敗しました。URLが途中で欠けているか、壊れている可能性があります。既定の状態で開きます。');
+    }
     if (!params.has('mode')) return;
 
     const mode = params.get('mode');
@@ -6410,6 +12126,7 @@ function restoreFromUrl() {
         if (params.has('tsujiAltOffset')) { const v = parseFloat(params.get('tsujiAltOffset')); if (!isNaN(v)) appState.tsujiSearchOffsetAlt = v; }
         if (params.has('tsujiAzTolerance')) { const v = parseFloat(params.get('tsujiAzTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAz = v; }
         if (params.has('tsujiAltTolerance')) { const v = parseFloat(params.get('tsujiAltTolerance')); if (!isNaN(v)) appState.tsujiSearchToleranceAlt = v; }
+        if (params.has('tsujiCenterMode')) appState.tsujiCenterMode = params.get('tsujiCenterMode');
         if (params.has('tsujiMoonFilter')) { appState.tsujiMoonFilterEnabled = params.get('tsujiMoonFilter') === 'true'; }
         if (params.has('tsujiMoonBase')) { const v = parseFloat(params.get('tsujiMoonBase')); if (!isNaN(v)) appState.tsujiMoonBase = v; }
         if (params.has('tsujiMoonTolerance')) { const v = parseFloat(params.get('tsujiMoonTolerance')); if (!isNaN(v)) appState.tsujiMoonTolerance = v; }
@@ -6418,14 +12135,4086 @@ function restoreFromUrl() {
         if (params.has('tsujiAccCircle')) { appState.tsujiAccCircle = params.get('tsujiAccCircle') === 'true'; }
         if (params.has('tsujiAccTriangle')) { appState.tsujiAccTriangle = params.get('tsujiAccTriangle') === 'true'; }
         if (params.has('tsujiAccDash')) { appState.tsujiAccDash = params.get('tsujiAccDash') === 'true'; }
+        if (params.has('tsujiElevationOption')) { appState.tsujiElevationOption = params.get('tsujiElevationOption') === 'true'; }
+        if (params.has('tsujiElevOK')) { appState.tsujiElevOK = params.get('tsujiElevOK') === 'true'; }
+        if (params.has('tsujiElevNG')) { appState.tsujiElevNG = params.get('tsujiElevNG') === 'true'; }
+        if (params.has('tsujiTimeFilter')) { appState.tsujiTimeFilter = params.get('tsujiTimeFilter') === 'true'; }
+        if (params.has('tsujiStartMode')) { appState.tsujiStartMode = params.get('tsujiStartMode'); }
+        if (params.has('tsujiStartTime')) { appState.tsujiStartTime = params.get('tsujiStartTime'); }
+        if (params.has('tsujiStartPrePost')) { appState.tsujiStartPrePost = params.get('tsujiStartPrePost') === 'true'; }
+        if (params.has('tsujiStartPrePostDir')) { appState.tsujiStartPrePostDir = params.get('tsujiStartPrePostDir'); }
+        if (params.has('tsujiStartOffset')) { appState.tsujiStartOffset = params.get('tsujiStartOffset'); }
+        if (params.has('tsujiEndMode')) { appState.tsujiEndMode = params.get('tsujiEndMode'); }
+        if (params.has('tsujiEndTime')) { appState.tsujiEndTime = params.get('tsujiEndTime'); }
+        if (params.has('tsujiEndPrePost')) { appState.tsujiEndPrePost = params.get('tsujiEndPrePost') === 'true'; }
+        if (params.has('tsujiEndPrePostDir')) { appState.tsujiEndPrePostDir = params.get('tsujiEndPrePostDir'); }
+        if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
     }
+
+    // 辻メッシュ検索パラメータ (mode=tsujimeshの時のみ)
+    if (mode === 'tsujimesh') {
+        const meshNum = (pk, sk) => { if (params.has(pk)) { const v = parseFloat(params.get(pk)); if (!isNaN(v)) appState[sk] = v; } };
+        const meshBool = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk) === 'true'; };
+        const meshStr = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk); };
+        if (params.has('tsujiMeshDays')) { const v = parseInt(params.get('tsujiMeshDays')); if (!isNaN(v)) appState.tsujiMeshDays = v; }
+        meshNum('tsujiMeshAz', 'tsujiMeshBaseAz'); meshNum('tsujiMeshAlt', 'tsujiMeshBaseAlt');
+        meshNum('tsujiMeshAzOffset', 'tsujiMeshOffsetAz'); meshNum('tsujiMeshAltOffset', 'tsujiMeshOffsetAlt');
+        meshNum('tsujiMeshAzTolerance', 'tsujiMeshToleranceAz'); meshNum('tsujiMeshAltTolerance', 'tsujiMeshToleranceAlt');
+        meshStr('tsujiMeshCenterMode', 'tsujiMeshCenterMode'); meshStr('tsujiMeshAccuracy', 'tsujiMeshAccuracy');
+        // 精度フィルタ○△-は読み取り専用・常時オフのため、URLの値は適用しない(過去のURLとの互換のため読み飛ばすだけ)
+        meshBool('tsujiMeshMoonFilter', 'tsujiMeshMoonFilterEnabled');
+        meshNum('tsujiMeshMoonBase', 'tsujiMeshMoonBase'); meshNum('tsujiMeshMoonTolerance', 'tsujiMeshMoonTolerance');
+        meshBool('tsujiMeshElevationOption', 'tsujiMeshElevationOption');
+        meshBool('tsujiMeshElevOK', 'tsujiMeshElevOK'); meshBool('tsujiMeshElevNG', 'tsujiMeshElevNG');
+        meshBool('tsujiMeshTimeFilter', 'tsujiMeshTimeFilter');
+        ['Start', 'End'].forEach(G => {
+            meshStr('tsujiMesh' + G + 'Mode', 'tsujiMesh' + G + 'Mode');
+            meshStr('tsujiMesh' + G + 'Time', 'tsujiMesh' + G + 'Time');
+            meshBool('tsujiMesh' + G + 'PrePost', 'tsujiMesh' + G + 'PrePost');
+            meshStr('tsujiMesh' + G + 'PrePostDir', 'tsujiMesh' + G + 'PrePostDir');
+            meshStr('tsujiMesh' + G + 'Offset', 'tsujiMesh' + G + 'Offset');
+        });
+    }
+
+    // 宙の窓メニュー＋コントロールメニューの全項目を復元(preview/tsujisearch の両モード共通)。
+    // 範囲・選択肢の妥当性は直後の normalizeAppState 相当の既定値で担保するため、型変換＋NaNガードのみ行う
+    const soraNum = (key) => { if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState[key] = v; } };
+    const soraBool = (key) => { if (params.has(key)) appState[key] = params.get(key) === 'true'; };
+    const soraStr = (key) => { if (params.has(key)) appState[key] = params.get(key); };
+    soraStr('soraSensorKey'); soraStr('soraOrient'); soraStr('soraFisheyeShape'); soraStr('soraExpFormat'); soraStr('soraMovPlayMode');
+    ['soraAspectW', 'soraAspectH', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist', 'soraFisheyeStrength', 'soraPanoAov',
+     'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+     'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb',
+     'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpW', 'soraExpH'].forEach(soraNum);
+    ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter'].forEach(soraBool);
+    // 花火モード(宙の窓メニュー55〜70段目)
+    soraBool('fwEnabled'); soraBool('fwShowPoint'); soraStr('fwSize'); soraStr('fwMode');
+    ['fwLat', 'fwLng', 'fwElev', 'fwHeight', 'fwRadius', 'fwSpread'].forEach(soraNum);
+    normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
+
+    // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)
+    // 辻ライン(地図オーバーレイ): フラグ復元→ init の active反映＋updateAll で描画
+    if (params.has('dp')) appState.isDPActive = params.get('dp') === 'true';
+    // 標高グラフ/全天儀/宙の窓は排他のため、ONは1つだけ遅延オープン(elevation→milkyway→soramado優先)
+    if (params.get('elevation') === 'true') appState._pendingPanel = 'elevation';
+    else if (params.get('milkyway') === 'true') appState._pendingPanel = 'milkyway';
+    else if (params.get('soramado') === 'true') appState._pendingPanel = 'soramado';
+    // 辻検索: ONなら遅延オープン(他パネルと共存可)
+    if (params.get('tsujisearch') === 'true') appState._pendingTsujiSearch = true;
+    // 辻メッシュ検索: ONなら遅延オープン(辻検索と排他のため、両方ONなら辻メッシュを優先)
+    if (params.get('tsujimesh') === 'true') { appState._pendingTsujiMesh = true; delete appState._pendingTsujiSearch; }
 
     // 標高(elev)を再計算: elev = apiElev + height
     appState.start.elev = appState.startApiElev + appState.startHeight;
     appState.end.elev = appState.endApiElev + appState.endHeight;
 
+    // 宙の窓の基準方位角/視高度/視界範囲をURL値のまま使う(位置起点の自動再計算で上書きしない)
+    if (params.has('soraBaseAz') || params.has('soraBaseAlt')) {
+        appState._soraLastPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    }
+
     // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に）
     if (mode === 'tsujisearch') {
         appState._pendingTsujiSearch = true;
     }
+    // mode=tsujimeshの場合は辻メッシュ検索を自動実行（UIが準備できた後に）
+    if (mode === 'tsujimesh') {
+        appState._pendingTsujiMesh = true;
+        delete appState._pendingTsujiSearch;
+        // URLの基準方位角/視高度を自動再計算で上書きしない
+        if (params.has('tsujiMeshAz') || params.has('tsujiMeshAlt')) {
+            appState._lastTsujiMeshPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+        }
+    }
+}
+
+// ============================================================
+// 全天儀 (Milky Way orrery) — 3D天体儀パネル
+//  - 赤道座標(EQJ)のスカイテクスチャを貼った球を、観測者の地平座標へ
+//    合わせて回転し、外側から俯瞰する。地平線・東西南北・赤道格子を重畳。
+//  - テクスチャは既定でプロシージャル生成。milkyway-skymap.webp があれば差替。
+//  - three.js (グローバル THREE) を使用。CDN未読込時はメッセージ表示で停止。
+// ============================================================
+const _MW_D2R = Math.PI / 180;
+const _MW_R = 1;             // 天球半径(ワールド)
+let _mwInited = false, _mwFailed = false;
+let _mwRenderer = null, _mwScene = null, _mwCamera = null;
+let _mwWorld = null;         // マスターGroup(ドラッグで回転。初期=北が上)
+let _mwGlobe = null;         // テクスチャ球+赤道格子(EQJ系; 観測者へ回転)
+let _mwTexture = null, _mwMaterial = null;
+let _mwMwObjGrp = null;      // 天の川オブジェクト群(環・方位線・マーカー・オフセット点)。基本オプション変更で再構築
+const _mwConstLayers = { fig: null, bounds: null };   // 星座線/星座領域のオーバーレイ球(遅延生成)
+let _mwBodiesObjGrp = null;  // 表示天体オブジェクト群(軌跡・マーカー・方位線)。_mwGlobeの子(EQJ系で天球と共に回転)
+let _mwLabelItems = [];      // 名称ラベル対象 [{name, color, pos(THREE.Vector3 グローブ座標)}]
+let _mwBodiesKey = '';       // 再構築判定キー
+let _mwConstHighlight = null;   // ハイライト中の星座名(null=なし)
+let _mwBlinkPhase = false;      // 点滅位相(黄⇄赤)
+let _mwBlinkTimer = null;       // 点滅タイマー
+let _mwConstHlMarker = null;    // ハイライト中の星座中心を示す3Dリング
+
+// 88星座の日本語名と中心座標(RA時, Dec度; 概略値。名称ラベルの指し示し用)
+const MW_CONSTELLATIONS = [
+    { n: 'アンドロメダ座', a: 'And', ra: 0.8, dec: 37 }, { n: 'いっかくじゅう座', a: 'Mon', ra: 7.1, dec: -3 },
+    { n: 'いて座', a: 'Sgr', ra: 19.1, dec: -28 }, { n: 'いるか座', a: 'Del', ra: 20.7, dec: 12 },
+    { n: 'インディアン座', a: 'Ind', ra: 21.0, dec: -58 }, { n: 'うお座', a: 'Psc', ra: 0.5, dec: 14 },
+    { n: 'うさぎ座', a: 'Lep', ra: 5.5, dec: -19 }, { n: 'うしかい座', a: 'Boo', ra: 14.7, dec: 31 },
+    { n: 'うみへび座', a: 'Hya', ra: 11.6, dec: -14 }, { n: 'エリダヌス座', a: 'Eri', ra: 3.3, dec: -28 },
+    { n: 'おうし座', a: 'Tau', ra: 4.7, dec: 15 }, { n: 'おおいぬ座', a: 'CMa', ra: 6.8, dec: -22 },
+    { n: 'おおかみ座', a: 'Lup', ra: 15.2, dec: -43 }, { n: 'おおぐま座', a: 'UMa', ra: 11.3, dec: 51 },
+    { n: 'おとめ座', a: 'Vir', ra: 13.4, dec: -4 }, { n: 'おひつじ座', a: 'Ari', ra: 2.6, dec: 20 },
+    { n: 'オリオン座', a: 'Ori', ra: 5.6, dec: 6 }, { n: 'がか座', a: 'Pic', ra: 5.7, dec: -53 },
+    { n: 'カシオペヤ座', a: 'Cas', ra: 1.0, dec: 62 }, { n: 'かじき座', a: 'Dor', ra: 5.2, dec: -59 },
+    { n: 'かに座', a: 'Cnc', ra: 8.6, dec: 20 }, { n: 'かみのけ座', a: 'Com', ra: 12.8, dec: 23 },
+    { n: 'カメレオン座', a: 'Cha', ra: 10.7, dec: -79 }, { n: 'からす座', a: 'Crv', ra: 12.4, dec: -18 },
+    { n: 'かんむり座', a: 'CrB', ra: 15.8, dec: 33 }, { n: 'きょしちょう座', a: 'Tuc', ra: 23.8, dec: -66 },
+    { n: 'ぎょしゃ座', a: 'Aur', ra: 6.1, dec: 42 }, { n: 'きりん座', a: 'Cam', ra: 8.9, dec: 69 },
+    { n: 'くじゃく座', a: 'Pav', ra: 19.6, dec: -65 }, { n: 'くじら座', a: 'Cet', ra: 1.7, dec: -7 },
+    { n: 'ケフェウス座', a: 'Cep', ra: 22.0, dec: 71 }, { n: 'ケンタウルス座', a: 'Cen', ra: 13.1, dec: -47 },
+    { n: 'けんびきょう座', a: 'Mic', ra: 21.0, dec: -36 }, { n: 'こいぬ座', a: 'CMi', ra: 7.7, dec: 6 },
+    { n: 'こうま座', a: 'Equ', ra: 21.2, dec: 8 }, { n: 'こぎつね座', a: 'Vul', ra: 20.2, dec: 24 },
+    { n: 'こぐま座', a: 'UMi', ra: 15.0, dec: 78 }, { n: 'こじし座', a: 'LMi', ra: 10.2, dec: 32 },
+    { n: 'コップ座', a: 'Crt', ra: 11.4, dec: -16 }, { n: 'こと座', a: 'Lyr', ra: 18.9, dec: 37 },
+    { n: 'コンパス座', a: 'Cir', ra: 14.6, dec: -63 }, { n: 'さいだん座', a: 'Ara', ra: 17.4, dec: -56 },
+    { n: 'さそり座', a: 'Sco', ra: 16.9, dec: -27 }, { n: 'さんかく座', a: 'Tri', ra: 2.2, dec: 31 },
+    { n: 'しし座', a: 'Leo', ra: 10.7, dec: 13 }, { n: 'じょうぎ座', a: 'Nor', ra: 16.1, dec: -51 },
+    { n: 'たて座', a: 'Sct', ra: 18.7, dec: -10 }, { n: 'ちょうこくぐ座', a: 'Cae', ra: 4.7, dec: -38 },
+    { n: 'ちょうこくしつ座', a: 'Scl', ra: 0.4, dec: -32 }, { n: 'つる座', a: 'Gru', ra: 22.5, dec: -46 },
+    { n: 'テーブルさん座', a: 'Men', ra: 5.4, dec: -77 }, { n: 'てんびん座', a: 'Lib', ra: 15.2, dec: -15 },
+    { n: 'とかげ座', a: 'Lac', ra: 22.5, dec: 46 }, { n: 'とけい座', a: 'Hor', ra: 3.3, dec: -53 },
+    { n: 'とびうお座', a: 'Vol', ra: 7.8, dec: -69 }, { n: 'とも座', a: 'Pup', ra: 7.3, dec: -31 },
+    { n: 'はえ座', a: 'Mus', ra: 12.6, dec: -70 }, { n: 'はくちょう座', a: 'Cyg', ra: 20.6, dec: 45 },
+    { n: 'はちぶんぎ座', a: 'Oct', ra: 23.0, dec: -82 }, { n: 'はと座', a: 'Col', ra: 5.9, dec: -35 },
+    { n: 'ふうちょう座', a: 'Aps', ra: 16.1, dec: -76 }, { n: 'ふたご座', a: 'Gem', ra: 7.1, dec: 23 },
+    { n: 'ペガスス座', a: 'Peg', ra: 22.7, dec: 19 }, { n: 'へび座', a: 'Ser', ra: 16.9, dec: 6 },
+    { n: 'へびつかい座', a: 'Oph', ra: 17.4, dec: -8 }, { n: 'ヘルクレス座', a: 'Her', ra: 17.4, dec: 27 },
+    { n: 'ペルセウス座', a: 'Per', ra: 3.2, dec: 45 }, { n: 'ほ座', a: 'Vel', ra: 9.6, dec: -47 },
+    { n: 'ぼうえんきょう座', a: 'Tel', ra: 19.3, dec: -51 }, { n: 'ほうおう座', a: 'Phe', ra: 0.9, dec: -48 },
+    { n: 'ポンプ座', a: 'Ant', ra: 10.3, dec: -32 }, { n: 'みずがめ座', a: 'Aqr', ra: 22.3, dec: -10 },
+    { n: 'みずへび座', a: 'Hyi', ra: 2.3, dec: -70 }, { n: 'みなみじゅうじ座', a: 'Cru', ra: 12.4, dec: -60 },
+    { n: 'みなみのうお座', a: 'PsA', ra: 22.3, dec: -30 }, { n: 'みなみのかんむり座', a: 'CrA', ra: 18.6, dec: -41 },
+    { n: 'みなみのさんかく座', a: 'TrA', ra: 16.1, dec: -65 }, { n: 'や座', a: 'Sge', ra: 19.7, dec: 19 },
+    { n: 'やぎ座', a: 'Cap', ra: 21.0, dec: -18 }, { n: 'やまねこ座', a: 'Lyn', ra: 8.0, dec: 47 },
+    { n: 'らしんばん座', a: 'Pyx', ra: 8.9, dec: -27 }, { n: 'りゅう座', a: 'Dra', ra: 17.0, dec: 65 },
+    { n: 'りゅうこつ座', a: 'Car', ra: 8.7, dec: -63 }, { n: 'りょうけん座', a: 'CVn', ra: 13.1, dec: 40 },
+    { n: 'レチクル座', a: 'Ret', ra: 3.9, dec: -60 }, { n: 'ろ座', a: 'For', ra: 2.8, dec: -30 },
+    { n: 'ろくぶんぎ座', a: 'Sex', ra: 10.3, dec: -2 }, { n: 'わし座', a: 'Aql', ra: 19.7, dec: 3 },
+];
+const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
+const _MW_DIST0 = 3.4;                     // 初期カメラ距離
+let _mwDist = _MW_DIST0;                    // ホイールズーム用
+// コントロールメニュー2〜3段目(デッサン01): 前景/後景/透過の表示と回転方向の固定
+let _mwShowFront = true, _mwShowBack = true, _mwThrough = true;
+let _mwRotMode = 'horizontal';             // 'horizontal'(水平・初期値) / 'axis'(地軸) / 'free'(自由)
+
+/** 銀河座標(l,b 度) → 赤道座標 J2000 {ra(時), dec(度)} (固定回転行列) */
+function galacticToEquatorial(lDeg, bDeg) {
+    const l = lDeg * _MW_D2R, b = bDeg * _MW_D2R, cb = Math.cos(b);
+    const gx = cb * Math.cos(l), gy = cb * Math.sin(l), gz = Math.sin(b);
+    const ex = -0.0548755604 * gx + 0.4941094279 * gy - 0.8676661490 * gz;
+    const ey = -0.8734370902 * gx - 0.4448296300 * gy - 0.1980763734 * gz;
+    const ez = -0.4838350155 * gx + 0.7469822445 * gy + 0.4559837762 * gz;
+    let ra = Math.atan2(ey, ex); if (ra < 0) ra += 2 * Math.PI;
+    const dec = Math.asin(Math.max(-1, Math.min(1, ez)));
+    return { ra: ra * 12 / Math.PI, dec: dec / _MW_D2R };
+}
+
+/** 赤道座標(RA時,Dec度) → 単位ベクトル(EQJ系: Z=北天極, X=RA0/Dec0) */
+function _mwEquVec(raHours, decDeg) {
+    const ra = raHours * 15 * _MW_D2R, dec = decDeg * _MW_D2R, cd = Math.cos(dec);
+    return [cd * Math.cos(ra), cd * Math.sin(ra), Math.sin(dec)];
+}
+
+/** 地平座標(az,alt 度) → ワールドベクトル(右手系: X=北, Y=天頂, Z=東) */
+function _mwWorldVec(azDeg, altDeg) {
+    const az = azDeg * _MW_D2R, alt = altDeg * _MW_D2R, ca = Math.cos(alt);
+    return [ca * Math.cos(az), Math.sin(alt), ca * Math.sin(az)];
+}
+
+/** 天の川テクスチャのプロシージャル生成 (赤道座標 equirectangular の canvas) */
+function _mwBuildProceduralTexture() {
+    const W = 2048, H = 1024;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#05060a'; g.fillRect(0, 0, W, H);
+    const toPx = (raHours, decDeg) => [(raHours / 24) * W, ((90 - decDeg) / 180) * H];
+    // ガウス近似 (約 -2..+2)
+    const gauss = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2;
+
+    g.globalCompositeOperation = 'lighter';
+    // (a) 天の川の帯: 銀河赤道 b=0 を中心に、広いハロー+明るいコアの2層で描く (RA継ぎ目対策で±W複製)
+    for (let l = 0; l < 360; l += 0.4) {
+        const eq = galacticToEquatorial(l, 0);
+        const [x0, y] = toPx(eq.ra, eq.dec);
+        const cen = Math.max(0, Math.cos((((l + 180) % 360) - 180) * _MW_D2R)); // 銀河中心(l=0)付近で明るく
+        for (const x of [x0 - W, x0, x0 + W]) {
+            let grd = g.createRadialGradient(x, y, 0, x, y, 90);   // 広いハロー
+            grd.addColorStop(0, `rgba(170,190,235,${(0.032 + 0.032 * cen).toFixed(3)})`);
+            grd.addColorStop(1, 'rgba(170,190,235,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, 90, 0, 2 * Math.PI); g.fill();
+            grd = g.createRadialGradient(x, y, 0, x, y, 34);       // 明るいコア
+            grd.addColorStop(0, `rgba(220,228,255,${(0.055 + 0.06 * cen).toFixed(3)})`);
+            grd.addColorStop(1, 'rgba(220,228,255,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, 34, 0, 2 * Math.PI); g.fill();
+        }
+    }
+    // (b1) 全天の淡い星
+    for (let i = 0; i < 1800; i++) {
+        const x = Math.random() * W, y = Math.random() * H;
+        const a = 0.15 + Math.random() * 0.45, s = Math.random() < 0.93 ? 0.6 : 1.2;
+        g.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        g.beginPath(); g.arc(x, y, s, 0, 2 * Math.PI); g.fill();
+    }
+    // (b2) 天の川に集中する星 (|b|小でガウス分布)
+    for (let i = 0; i < 5200; i++) {
+        const l = Math.random() * 360, b = gauss() * 9;
+        const eq = galacticToEquatorial(l, b);
+        const [x, y] = toPx(eq.ra, eq.dec);
+        const a = 0.25 + Math.random() * 0.6, s = Math.random() < 0.9 ? 0.6 : 1.4;
+        g.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+        g.beginPath(); g.arc(x, y, s, 0, 2 * Math.PI); g.fill();
+    }
+    // (c) 星雲グロー (銀河中心ほか)
+    const glow = (lD, bD, rad, col) => {
+        const eq = galacticToEquatorial(lD, bD);
+        const [x0, y] = toPx(eq.ra, eq.dec);
+        for (const x of [x0 - W, x0, x0 + W]) {
+            const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+            grd.addColorStop(0, col); grd.addColorStop(1, 'rgba(0,0,0,0)');
+            g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, 2 * Math.PI); g.fill();
+        }
+    };
+    glow(0, 0, 150, 'rgba(255,225,180,0.18)');   // いて座(銀河中心)
+    glow(80, 0, 110, 'rgba(210,220,255,0.10)');  // はくちょう座方向
+    glow(287, -1, 95, 'rgba(255,205,185,0.10)'); // りゅうこつ座方向
+    g.globalCompositeOperation = 'source-over';
+    return cv;
+}
+
+/** 実画像(milkyway-skymap.webp)があれば差し替え。無ければプロシージャルのまま。 */
+function _mwTryLoadRealImage() {
+    const img = new Image();
+    img.onload = () => {
+        if (_mwFailed || !_mwMaterial) return;
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        // NASA赤道座標版は「0h RAが中央・RAは左へ増加」配置。球UV(u=RA/24)へ水平反転オフセットで整合
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1; tex.offset.x = 0.5;
+        tex.needsUpdate = true;
+        if (_mwTexture) _mwTexture.dispose();
+        _mwTexture = tex;
+        _mwMaterial.map = appState.mwShowBodies ? tex : null;   // 表示天体OFF中は貼らない(ONで復帰)
+        _mwMaterial.color.set(appState.mwShowBodies ? 0xffffff : 0x000000);   // OFF中は黒球(枠組みだけ見える)
+        _mwMaterial.needsUpdate = true;
+        const cr = document.getElementById('milkyway-credit');
+        if (cr) cr.textContent = '天体写真: NASA/Goddard SVS（Deep Star Maps 2020, パブリックドメイン; Gaia: ESA/Gaia/DPAC）';
+        _mwRender();
+    };
+    img.onerror = () => { /* 取得不可: 模式図のまま */ };
+    img.src = 'milkyway-skymap.webp';
+}
+
+/** 赤道座標の経緯線(グラティキュール) */
+function _mwBuildGraticule() {
+    const grp = new THREE.Group();
+    const matMinor = new THREE.LineBasicMaterial({ color: 0x4a6fa5, transparent: true, opacity: 0.35 });
+    const matMajor = new THREE.LineBasicMaterial({ color: 0x6f9fd8, transparent: true, opacity: 0.55 });
+    const RR = _MW_R * 1.002;
+    for (let dec = -75; dec <= 75; dec += 15) {      // 赤緯(緯度)小円 15°刻み
+        const pts = [];
+        for (let i = 0; i <= 128; i++) { const v = _mwEquVec(24 * i / 128, dec); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dec === 0 ? matMajor : matMinor));
+    }
+    for (let ra = 0; ra < 24; ra += 1) {             // 赤経(経度)経線 1h=15°刻み
+        const pts = [];
+        for (let j = 0; j <= 64; j++) { const v = _mwEquVec(ra, -82.5 + 165 * j / 64); pts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR)); }
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matMinor));
+    }
+    return grp;
+}
+
+/** テクスチャ球(EQJ系)を生成 */
+function _mwBuildGlobe() {
+    const slices = 96, stacks = 48, positions = [], uvs = [], indices = [];
+    for (let j = 0; j <= stacks; j++) {
+        const dec = -90 + 180 * j / stacks;
+        for (let i = 0; i <= slices; i++) {
+            const v = _mwEquVec(24 * i / slices, dec);
+            positions.push(v[0] * _MW_R, v[1] * _MW_R, v[2] * _MW_R);
+            uvs.push(i / slices, j / stacks);
+        }
+    }
+    const row = slices + 1;
+    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
+        const a = j * row + i, b = a + row;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    // 加算合成: 暗い背景は透過し、星/帯のみ浮かぶ→内側からも透けて両面で環が見える
+    _mwMaterial = new THREE.MeshBasicMaterial({
+        map: _mwTexture, side: THREE.DoubleSide,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const globe = new THREE.Group();
+    globe.add(new THREE.Mesh(geo, _mwMaterial));
+    globe.add(_mwBuildGraticule());
+    _mwMwObjGrp = _mwBuildMilkyWayRing();
+    globe.add(_mwMwObjGrp);
+    return globe;
+}
+
+/** 天の川リング(銀河赤道)・天の川方位線(中心→銀河中心)・交点の赤マーカー。
+ *  WebGLは線幅指定が効かないため太線は TubeGeometry で表現。_mwGlobe の子として M とともに回転。 */
+function _mwBuildMilkyWayRing() {
+    const grp = new THREE.Group();
+    const RR = _MW_R * 1.006;
+    // 天の川リング: 銀河赤道(b=0)を球面化した白い太環
+    const ringPts = [];
+    for (let l = 0; l < 360; l += 3) {
+        const eq = galacticToEquatorial(l, 0);
+        const v = _mwEquVec(eq.ra, eq.dec);
+        ringPts.push(new THREE.Vector3(v[0] * RR, v[1] * RR, v[2] * RR));
+    }
+    const ringCurve = new THREE.CatmullRomCurve3(ringPts, true);
+    const matWhite = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(ringCurve, 240, 0.0045 * _MW_R, 8, true), matWhite));
+    // 銀河中心方向(=銀河赤道 l=0)。リング・方位線・交点を厳密に一致させる
+    const gc = galacticToEquatorial(0, 0);
+    const gv = _mwEquVec(gc.ra, gc.dec);
+    const gcPos = new THREE.Vector3(gv[0] * RR, gv[1] * RR, gv[2] * RR);
+    // 天の川方位線: 地平面中心(原点)→銀河中心 の白い太線
+    const lineCurve = new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), gcPos);
+    grp.add(new THREE.Mesh(new THREE.TubeGeometry(lineCurve, 1, 0.0035 * _MW_R, 8, false), matWhite));
+    // 交点(銀河中心)の赤マーカー
+    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.018 * _MW_R, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+    marker.position.copy(gcPos);
+    grp.add(marker);
+    // オフセット点(基本オプション): 中心座標からのオフセット中心角の点を天体色マーカー＋天体色方位線で表示。
+    // 中心と重なる場合(角度が360の倍数)は中心の赤マーカーを優先して表示しない。
+    const ang = Number(appState.mwOffsetAngle) || 0;
+    if (appState.baseOptMwBase === 'offset' && ang % 360 !== 0) {
+        const mwBody = appState.bodies.find(b => b.id === 'MilkyWay');
+        const col = new THREE.Color((mwBody && mwBody.color) || '#800080');
+        const op = galacticToEquatorial(ang, 0);
+        const ov = _mwEquVec(op.ra, op.dec);
+        const opPos = new THREE.Vector3(ov[0] * RR, ov[1] * RR, ov[2] * RR);
+        const matBody = new THREE.MeshBasicMaterial({ color: col });
+        grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), opPos), 1, 0.0035 * _MW_R, 8, false), matBody));
+        const opMarker = new THREE.Mesh(new THREE.SphereGeometry(0.018 * _MW_R, 16, 12), matBody);
+        opMarker.position.copy(opPos);
+        grp.add(opMarker);
+    }
+    return grp;
+}
+
+/** 星座線/星座領域のオーバーレイ球を(必要時に)生成する。kind='fig'|'bounds' */
+// 星座線/星座領域: IAU境界ベクトルデータ(d3-celestial, BSD-3ライセンス)を線で描画。
+// 星座別レジストリ(略符→Line配列)でハイライト(黄⇄赤点滅)に対応
+// データ取得は全天儀と宙の窓プレビューで共通(1回だけfetchしてキャッシュ)
+const _constDataCache = {};
+function _constFetch(kind) {
+    if (!_constDataCache[kind]) {
+        const file = kind === 'fig' ? 'constellations.lines.json' : 'constellations.borders.json';
+        _constDataCache[kind] = fetch(file)
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+            .catch(err => { delete _constDataCache[kind]; throw err; });
+    }
+    return _constDataCache[kind];
+}
+const _MW_CONST_STYLE = {
+    fig:    { file: 'constellations.lines.json',   r: 1.002, color: 0x6ec6ff, opacity: 0.8 },   // 星座線=淡い水色
+    bounds: { file: 'constellations.borders.json', r: 1.004, color: 0xd9b64e, opacity: 0.55 },  // 星座領域=淡い金
+};
+const _mwConstSegs = { fig: new Map(), bounds: new Map() };   // 略符 → [THREE.Line]
+const _mwConstLoading = { fig: false, bounds: false };
+
+/** 大円スラープで約2°間隔に細分した頂点列(EQJ球面上)を返す。coords=[ [lonDeg, decDeg], ... ] */
+function _mwConstPolyline(coords, R) {
+    const pts = [];
+    const toVec = (c) => {
+        const raH = (((c[0] % 360) + 360) % 360) / 15;
+        const v = _mwEquVec(raH, c[1]);
+        return new THREE.Vector3(v[0], v[1], v[2]);
+    };
+    for (let i = 0; i < coords.length; i++) {
+        const a = toVec(coords[i]);
+        if (i === 0) { pts.push(a.clone().multiplyScalar(R)); continue; }
+        const prev = toVec(coords[i - 1]);
+        const ang = prev.angleTo(a);
+        const n = Math.max(1, Math.ceil(ang / (2 * Math.PI / 180)));   // ≦2°/分割
+        for (let k = 1; k <= n; k++) {
+            const p = prev.clone().lerp(a, k / n).normalize().multiplyScalar(R);   // 単位球へ正規化=大円近似
+            pts.push(p);
+        }
+    }
+    return pts;
+}
+
+function _mwEnsureConstLayer(kind) {
+    if (_mwConstLayers[kind] || !_mwGlobe || _mwConstLoading[kind]) return;
+    const on = kind === 'fig' ? appState.mwShowConstFig : appState.mwShowConstBounds;
+    if (!on) return;   // ONになるまで生成しない(データを無駄に読まない)
+    const st = _MW_CONST_STYLE[kind];
+    _mwConstLoading[kind] = true;
+    _constFetch(kind).then(gj => {
+        if (!_mwGlobe || _mwConstLayers[kind]) return;
+        const group = new THREE.Group();
+        const R = _MW_R * st.r;
+        for (const f of gj.features) {
+            // 所属星座: lines は id(1星座)、borders は ids="And,Lac"(隣接2星座の共有辺)
+            const abbrs = (f.ids || f.id || '').split(',').filter(Boolean);
+            const geom = f.geometry;
+            const polys = geom.type === 'MultiLineString' ? geom.coordinates : [geom.coordinates];
+            for (const poly of polys) {
+                const pts = _mwConstPolyline(poly, R);
+                if (pts.length < 2) continue;
+                const g = new THREE.BufferGeometry().setFromPoints(pts);
+                const m = new THREE.LineBasicMaterial({ color: st.color, transparent: true, opacity: st.opacity, depthWrite: false });
+                const line = new THREE.Line(g, m);
+                group.add(line);
+                for (const ab of abbrs) {
+                    if (!_mwConstSegs[kind].has(ab)) _mwConstSegs[kind].set(ab, []);
+                    _mwConstSegs[kind].get(ab).push(line);
+                }
+            }
+        }
+        group.visible = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+        _mwConstLayers[kind] = group;
+        _mwGlobe.add(group);
+        _mwRender();
+    }).catch(() => { /* 取得不可: 何も重ねない(次回ONで再試行) */ _mwConstLoading[kind] = false; });
+}
+
+/** 基本オプション(天の川の基準点/オフセット中心角・表示天体・星座線/領域)を全天儀へ反映 */
+function _mwUpdateBaseOptions() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    // 天の川オブジェクト群を再構築(オフセット点マーカー/方位線の反映)
+    if (_mwMwObjGrp) {
+        _mwGlobe.remove(_mwMwObjGrp);
+        _mwMwObjGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _mwMwObjGrp = _mwBuildMilkyWayRing();
+    _mwGlobe.add(_mwMwObjGrp);
+    // 表示天体チェック: 天の川の写真・環・マーカー等の表示/非表示
+    _mwMwObjGrp.visible = !!appState.mwShowBodies;
+    if (_mwMaterial) {
+        _mwMaterial.map = appState.mwShowBodies ? _mwTexture : null;
+        _mwMaterial.color.set(appState.mwShowBodies ? 0xffffff : 0x000000);   // OFF中は黒球(地平線や格子などの枠組みだけが見える)
+        _mwMaterial.needsUpdate = true;
+    }
+    // 星座線/星座領域のオーバーレイ
+    _mwEnsureConstLayer('fig');
+    _mwEnsureConstLayer('bounds');
+    if (_mwConstLayers.fig) _mwConstLayers.fig.visible = !!appState.mwShowConstFig;
+    if (_mwConstLayers.bounds) _mwConstLayers.bounds.visible = !!appState.mwShowConstBounds;
+    _mwBodiesKey = '';   // 表示天体オブジェクトも再構築
+    _mwUpdateBodies();
+    _mwRender();
+}
+
+/** 表示天体のオブジェクト群(軌跡=等赤緯の日周円・視半径マーカー/十字・中心からの方位線)を再構築。
+ *  基本オプションの「表示天体」チェックでまとめて表示/非表示。名称ラベルは _mwUpdateLabels が描く。 */
+function _mwUpdateBodies() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    const date = appState.currentDate;
+    const visKey = appState.bodies.filter(b => b.visible).map(b => `${b.id}:${b.color}`).join(',');
+    const key = `${Math.floor(date.getTime() / 60000)}|${appState.start.lat},${appState.start.lng}|${visKey}|${appState.mwShowBodies}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
+    if (key === _mwBodiesKey && _mwBodiesObjGrp) return;
+    _mwBodiesKey = key;
+    if (_mwBodiesObjGrp) {
+        _mwGlobe.remove(_mwBodiesObjGrp);
+        _mwBodiesObjGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _mwBodiesObjGrp = new THREE.Group();
+    _mwGlobe.add(_mwBodiesObjGrp);
+    _mwLabelItems = [];
+    if (!appState.mwShowBodies) { return; }
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const R = _MW_R * 1.006;
+    appState.bodies.forEach(body => {
+        if (!body.visible) return;
+        let ra, dec;
+        if (body.id === 'MilkyWay' || isFixedStar(body.id)) {
+            const rd = getFixedStarRaDec(body.id); ra = rd.ra; dec = rd.dec;
+        } else {
+            try { const eq = Astronomy.Equator(body.id, date, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { return; }
+        }
+        const v = _mwEquVec(ra, dec);
+        const pos = new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R);
+        const col = new THREE.Color(body.color || '#DDA0DD');
+        // 軌跡: 日周運動=EQJ系の等赤緯円(中心座標を0°として±180°=全周を常に描画)
+        const circPts = [];
+        for (let a = 0; a <= 360; a += 4) {
+            const cv = _mwEquVec(ra + a / 15, dec);
+            circPts.push(new THREE.Vector3(cv[0] * R, cv[1] * R, cv[2] * R));
+        }
+        _mwBodiesObjGrp.add(_mwFrontBackLine(circPts, col, 0.55, false));   // 前面=実線/背面=破線(回転に追従)
+        _mwLabelItems.push({ name: body.name, color: body.color || '#DDA0DD', pos });
+        if (body.id === 'MilkyWay') return;   // 天の川のマーカー/方位線は _mwBuildMilkyWayRing 側で表現(基準点の軌跡とラベルのみここで)
+        const mat = new THREE.MeshBasicMaterial({ color: col });
+        // 方位線: 中心→天体
+        _mwBodiesObjGrp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), pos), 1, 0.0025 * _MW_R, 6, false), mat));
+        const angR = getBodyAngularRadius(body.id, date, observer);
+        if (angR > 0) {
+            // 惑星/太陽/月: 視半径を反映した球マーカー(小さすぎる場合は見やすい最小径にクランプ)
+            const r = Math.max(_MW_R * Math.tan(angR * Math.PI / 180), 0.012 * _MW_R);
+            const mk = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), mat);
+            mk.position.copy(pos);
+            _mwBodiesObjGrp.add(mk);
+        } else {
+            // 恒星: 天体色のマーカー(+) — 位置の接平面上に細い十字
+            const n = pos.clone().normalize();
+            let t1 = new THREE.Vector3(0, 1, 0).cross(n);
+            if (t1.lengthSq() < 1e-6) t1 = new THREE.Vector3(1, 0, 0).cross(n);
+            t1.normalize();
+            const t2 = n.clone().cross(t1).normalize();
+            const L = 0.025 * _MW_R;
+            [t1, t2].forEach(t => {
+                const a = pos.clone().addScaledVector(t, -L), b = pos.clone().addScaledVector(t, L);
+                _mwBodiesObjGrp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(a, b), 1, 0.003 * _MW_R, 6, false), mat));
+            });
+        }
+    });
+}
+
+/** 表示天体・星座の名称を全天儀の左右に並べ、引き出し線で位置を指し示す(SVGオーバーレイ)。
+ *  ドラッグ回転にも追従するよう _mwRender の度に呼ばれる。星座名称はホバー/タップで黄赤点滅ハイライト。 */
+function _mwUpdateLabels() {
+    const svg = document.getElementById('milkyway-labels');
+    if (!svg || !_mwInited || _mwFailed || !_mwCamera || !_mwGlobe) return;
+    const cv = document.getElementById('milkyway-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h || !appState.isMilkyWayActive) { if (svg.firstChild) svg.innerHTML = ''; return; }
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    _mwGlobe.updateMatrixWorld(true);
+    const camDir = _mwCamera.position.clone().normalize();
+    const proj = (pos) => {
+        const wp = pos.clone().applyMatrix4(_mwGlobe.matrixWorld);
+        const front = wp.clone().normalize().dot(camDir) > 0.1;   // 前面(カメラ側)半球のみ
+        const p = wp.project(_mwCamera);
+        return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, front };
+    };
+    const left = [], right = [];
+    // 表示天体名: 投影位置の左右へ振り分け(「:表示天体名」チェックで名称+引き出し線を表示/非表示)
+    if (appState.mwShowBodies && appState.mwShowBodyNames) {
+        _mwLabelItems.forEach(it => {
+            const pr = proj(it.pos);
+            (pr.x < w / 2 ? left : right).push({ name: it.name, color: it.color, x: pr.x, y: pr.y, cls: 'body-label' });
+        });
+        left.sort((a, b) => a.y - b.y); right.sort((a, b) => a.y - b.y);
+    }
+    // 星座名称: 前面半球のみ。50音順=左上から右下(左列→右列)、座標順=Dec+90°→-90°
+    if (appState.mwShowConstNames) {
+        const items = [];
+        const R = _MW_R * 1.006;
+        MW_CONSTELLATIONS.forEach(c => {
+            const v = _mwEquVec(c.ra, c.dec);
+            const pr = proj(new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R));
+            items.push({ name: c.n, dec: c.dec, x: pr.x, y: pr.y, front: pr.front });   // 全星座を表示(背面は引き出し線なし)
+        });
+        if (appState.mwConstNameSort === 'pos') items.sort((a, b) => b.dec - a.dec);
+        else items.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+        const halve = Math.ceil(items.length / 2);
+        items.forEach((it, i) => {
+            (i < halve ? left : right).push({ name: it.name, color: '#9ab', x: it.x, y: it.y, cls: 'const-label', noLine: !it.front });
+        });
+    }
+    const rowH = 12;
+    const place = (list) => {
+        let y = 12;
+        list.forEach(it => { it.ly = y; y += rowH; });
+        return list.filter(it => it.ly < h - 4);   // パネル高さに収まる分のみ(回転で入れ替わる)
+    };
+    const L = place(left), Rr = place(right);
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    // 文字幅の概算(全角=フォントサイズ、半角=0.55倍)。引き出し線の始点計算に使用
+    const estTextW = (s, fs) => { let sum = 0; for (const ch of s) sum += (ch.charCodeAt(0) > 0xFF ? 1 : 0.55) * fs; return sum; };
+    const rowHtml = (it, isLeft) => {
+        const hl = it.cls === 'const-label' && _mwConstHighlight === it.name;
+        const col = hl ? (_mwBlinkPhase ? '#ffee00' : '#ff3333') : it.color;
+        const lw = hl ? 2 : 1;
+        const ax = isLeft ? 6 : w - 6;
+        // 引き出し線は文字の内側端(左列=名称の末尾、右列=名称の先頭)から天体位置へ引く
+        const tw = estTextW(it.name, it.cls === 'const-label' ? 10 : 11);
+        const lx = isLeft ? ax + tw + 3 : ax - tw - 3;
+        // 背面(奥)にある星座は名称のみ表示し、引き出し線は引かない
+        const lineHtml = it.noLine ? '' : `<line x1="${lx.toFixed(1)}" y1="${(it.ly - 4).toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${esc(col)}" stroke-width="${lw}" opacity="0.75"></line>`;
+        return lineHtml +
+               `<text x="${ax}" y="${(it.ly - 3 + rowH - 9).toFixed(1)}" fill="${esc(col)}" ${isLeft ? '' : 'text-anchor="end"'} class="${it.cls}" data-name="${esc(it.name)}">${esc(it.name)}</text>`;
+    };
+    let html = '';
+    L.forEach(it => { html += rowHtml(it, true); });
+    Rr.forEach(it => { html += rowHtml(it, false); });
+    svg.innerHTML = html;
+}
+
+/** 星座名称のハイライト設定(黄⇄赤の点滅＋中心リングマーカー)。name=null で解除 */
+/** ハイライト中の星座の線/領域Line群を取得(レイヤー表示中のもののみ) */
+function _mwHlLines(abbr) {
+    const out = [];
+    if (!abbr) return out;
+    if (_mwConstLayers.fig && _mwConstLayers.fig.visible) out.push(...(_mwConstSegs.fig.get(abbr) || []));
+    if (_mwConstLayers.bounds && _mwConstLayers.bounds.visible) out.push(...(_mwConstSegs.bounds.get(abbr) || []));
+    return out;
+}
+
+/** ハイライト対象の線色/不透明度を基準スタイルへ戻す */
+function _mwResetHlLines(abbr) {
+    if (!abbr) return;
+    (_mwConstSegs.fig.get(abbr) || []).forEach(l => { l.material.color.set(_MW_CONST_STYLE.fig.color); l.material.opacity = _MW_CONST_STYLE.fig.opacity; });
+    (_mwConstSegs.bounds.get(abbr) || []).forEach(l => { l.material.color.set(_MW_CONST_STYLE.bounds.color); l.material.opacity = _MW_CONST_STYLE.bounds.opacity; });
+}
+
+function _mwSetConstHighlight(name) {
+    if (_mwConstHighlight === name) return;
+    // 直前のハイライト星座の線/領域を基準色へ復元
+    const prev = MW_CONSTELLATIONS.find(x => x.n === _mwConstHighlight);
+    if (prev) _mwResetHlLines(prev.a);
+    _mwConstHighlight = name;
+    if (_mwBlinkTimer) { clearInterval(_mwBlinkTimer); _mwBlinkTimer = null; }
+    // 3Dリングマーカーの撤去
+    if (_mwConstHlMarker && _mwGlobe) {
+        _mwGlobe.remove(_mwConstHlMarker);
+        _mwConstHlMarker.geometry.dispose(); _mwConstHlMarker.material.dispose();
+        _mwConstHlMarker = null;
+    }
+    if (name && _mwGlobe) {
+        const c = MW_CONSTELLATIONS.find(x => x.n === name);
+        // 星座線/領域が表示中ならベクトル線そのものを点滅ハイライト。非表示時は中心リングでフォールバック
+        const hlLines = c ? _mwHlLines(c.a) : [];
+        if (c && hlLines.length === 0) {
+            const v = _mwEquVec(c.ra, c.dec);
+            const pos = new THREE.Vector3(v[0], v[1], v[2]).multiplyScalar(_MW_R * 1.006);
+            _mwConstHlMarker = new THREE.Mesh(
+                new THREE.TorusGeometry(0.06 * _MW_R, 0.006 * _MW_R, 8, 32),
+                new THREE.MeshBasicMaterial({ color: 0xffee00 }));
+            _mwConstHlMarker.position.copy(pos);
+            _mwConstHlMarker.lookAt(new THREE.Vector3(0, 0, 0));   // 球面に沿わせる
+            _mwGlobe.add(_mwConstHlMarker);
+        }
+        const blink = () => {
+            _mwBlinkPhase = !_mwBlinkPhase;
+            const col = _mwBlinkPhase ? 0xffee00 : 0xff3333;
+            if (_mwConstHlMarker) _mwConstHlMarker.material.color.set(col);
+            for (const l of hlLines) { l.material.color.set(col); l.material.opacity = 1.0; }
+            _mwRender();
+        };
+        blink();   // 即時に1回反映
+        _mwBlinkTimer = setInterval(blink, 350);
+    }
+    _mwRender();
+}
+
+/** 星座名称のホバー/タップのイベント委譲。
+ *  SVGラベルは毎フレーム再構築されるため、パネルレベルで委譲し「ラベル外に出たら解除」で取りこぼしを防ぐ。 */
+function _mwAttachLabelEvents() {
+    const panel = document.getElementById('milkyway-panel');
+    if (!panel || panel._mwEventsAttached) return;
+    panel._mwEventsAttached = true;
+    let tapClearTimer = null;
+    const isConstLabel = t => t && t.classList && t.classList.contains('const-label');
+    panel.addEventListener('mouseover', e => {
+        if (isConstLabel(e.target)) _mwSetConstHighlight(e.target.getAttribute('data-name'));
+        else if (_mwConstHighlight && !tapClearTimer) _mwSetConstHighlight(null);   // ラベル外に出たら解除(タップ中は維持)
+    });
+    panel.addEventListener('mouseleave', () => { if (!tapClearTimer) _mwSetConstHighlight(null); });
+    panel.addEventListener('click', e => {
+        if (!isConstLabel(e.target)) return;
+        _mwSetConstHighlight(e.target.getAttribute('data-name'));
+        if (tapClearTimer) clearTimeout(tapClearTimer);
+        tapClearTimer = setTimeout(() => { tapClearTimer = null; _mwSetConstHighlight(null); }, 4000);   // タップは4秒で自動解除
+    });
+}
+
+/** 球面上の線/メッシュを「前面(カメラ側)のみ」または「背面のみ」描くようにマテリアルへシェーダーを注入する。
+ *  ビュー空間で頂点が球中心より手前(z大)なら前面。回転(モデル行列)に自動追従する。 */
+function _mwPatchFrontBack(mat, frontOnly) {
+    mat.onBeforeCompile = (sh) => {
+        sh.vertexShader = sh.vertexShader
+            .replace('void main() {', 'varying float vMwFront;\nvoid main() {')
+            .replace('#include <project_vertex>', '#include <project_vertex>\n\tvMwFront = mvPosition.z - (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).z;');
+        sh.fragmentShader = sh.fragmentShader
+            .replace('void main() {', 'varying float vMwFront;\nvoid main() {')
+            .replace('#include <clipping_planes_fragment>', '\tif (vMwFront ' + (frontOnly ? '< 0.0' : '>= 0.0') + ') discard;\n#include <clipping_planes_fragment>');
+    };
+    return mat;
+}
+
+/** 球面上のポリラインを「前面=実線/背面=破線」の2本組(Group)で作る。globe/world中心が原点にあるオブジェクト用 */
+function _mwFrontBackLine(points, color, opacity, loop) {
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const Ctor = loop ? THREE.LineLoop : THREE.Line;
+    const solid = new Ctor(geo, _mwPatchFrontBack(new THREE.LineBasicMaterial({ color, transparent: true, opacity }), true));
+    const dashed = new Ctor(geo, _mwPatchFrontBack(new THREE.LineDashedMaterial({ color, transparent: true, opacity: opacity * 0.75, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
+    dashed.computeLineDistances();
+    const grp = new THREE.Group();
+    grp.add(solid); grp.add(dashed);
+    return grp;
+}
+
+/** 地平面(放射状線)・地平線円・東西南北マーカー(ワールド地平系) */
+function _mwBuildHorizon() {
+    const grp = new THREE.Group();
+    // 地平面: 中心から15°刻みの放射状線(方位コンパス)
+    const matSpoke = new THREE.LineBasicMaterial({ color: 0x557799, transparent: true, opacity: 0.30 });
+    const matSpokeMain = new THREE.LineBasicMaterial({ color: 0x88aacc, transparent: true, opacity: 0.55 });
+    for (let az = 0; az < 360; az += 15) {
+        const v = _mwWorldVec(az, 0);
+        const seg = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(v[0] * _MW_R, 0, v[2] * _MW_R)];
+        grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), (az % 90 === 0) ? matSpokeMain : matSpoke));
+    }
+    // 地平線円: 緑の太線。前面(カメラ側)=実線のトーラス、背面=破線(少しずらした3本重ねで太めに)。回転しても常に前面/背面で切り替わる
+    const horizonTorus = new THREE.Mesh(
+        new THREE.TorusGeometry(_MW_R * 1.004, 0.006 * _MW_R, 8, 128),
+        _mwPatchFrontBack(new THREE.MeshBasicMaterial({ color: 0x33dd88, transparent: true, opacity: 0.95 }), true));
+    horizonTorus.rotation.x = Math.PI / 2;   // XZ平面(地平面)へ
+    grp.add(horizonTorus);
+    for (const rr of [0.998, 1.004, 1.010]) {
+        const pts = [];
+        for (let az = 0; az < 360; az += 2) { const v = _mwWorldVec(az, 0); pts.push(new THREE.Vector3(v[0] * _MW_R * rr, 0, v[2] * _MW_R * rr)); }
+        const dashed = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+            _mwPatchFrontBack(new THREE.LineDashedMaterial({ color: 0x33dd88, transparent: true, opacity: 0.8, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
+        dashed.computeLineDistances();
+        grp.add(dashed);
+    }
+    // 方位マーカー: 北=赤、東/南/西=水色
+    for (const [label, az] of [['北', 0], ['東', 90], ['南', 180], ['西', 270]]) {
+        const v = _mwWorldVec(az, 0);
+        const sp = _mwTextSprite(label, az === 0 ? '#ff4444' : '#66ccff');
+        sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
+        grp.add(sp);
+    }
+    // 方位目盛り: 北=0°、30°おきの度数(地平線円上)。0/90/180/270は北東南西の文字が示す
+    for (let az = 30; az < 360; az += 30) {
+        if (az % 90 === 0) continue;
+        const v = _mwWorldVec(az, 0);
+        const sp = _mwDegreeSprite(String(az));
+        sp.position.set(v[0] * _MW_R * 1.10, 0.02, v[2] * _MW_R * 1.10);
+        grp.add(sp);
+    }
+    return grp;
+}
+
+/** 文字スプライト */
+function _mwTextSprite(text, color) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    c.font = 'bold 44px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillText(text, 34, 34);
+    c.fillStyle = color; c.fillText(text, 32, 32);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sp.scale.set(0.22, 0.22, 0.22);
+    return sp;
+}
+
+/** 方位目盛り用の小型数字スプライト(薄い灰) */
+function _mwDegreeSprite(text) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    c.font = 'bold 30px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillText(text, 33, 33);
+    c.fillStyle = '#cdd6df'; c.fillText(text, 32, 32);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+    sp.scale.set(0.15, 0.15, 0.15);
+    return sp;
+}
+
+/** 観測者の位置・日時から EQJ→ワールド地平系 の回転を求める (Astronomy.Horizon のみ使用) */
+function _mwComputeOrientation() {
+    const obs = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const date = appState.currentDate;
+    const toWorld = (raH, decD) => { const h = Astronomy.Horizon(date, obs, raH, decD, null); return _mwWorldVec(h.azimuth, h.altitude); };
+    const Rx = toWorld(0, 0), Rz = toWorld(0, 90);   // EQJ標準基底 Xe(RA0/Dec0), Ze(北天極)の像
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const rz = norm(Rz);
+    const d = dot(Rx, rz);
+    const rx = norm([Rx[0] - rz[0] * d, Rx[1] - rz[1] * d, Rx[2] - rz[2] * d]);
+    const ry = cross(rz, rx);   // Ze×Xe = Ye
+    return { rx, ry, rz };
+}
+
+/** 固定俯瞰カメラ: 南側上方から原点を見る。画面上=北(+X)・右=東(+Z)・俯瞰で地平面を上から見る */
+function _mwUpdateCamera() {
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    _mwCamera.position.set(-_mwDist * ct, _mwDist * st, 0);
+    _mwCamera.up.set(st, ct, 0);
+    _mwCamera.lookAt(0, 0, 0);
+}
+
+/** 前景/後景/透過(コントロールメニュー2段目)を反映する。
+ *  前景/後景は視線に垂直な原点通過のクリップ面で手前/奥の半球を切り(カメラ固定なので面も固定)、
+ *  透過オン=内側も見える加算合成 / 透過オフ=不透明にして「外側から見た構図」(天球儀のような表示)。
+ *  透過オフでも side は両面描画のまま: 不透明+深度書込なら手前の外皮が深度テストで勝って
+ *  外側から見た構図になり、前景オフ時も奥半球の内面(切り開いたお椀)が正しく残る
+ *  (片面描画にすると前景クリップとの組み合わせで球が全消えする組み合わせが生じる) */
+function _mwApplyViewOptions() {
+    if (!_mwRenderer) return;
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    const viewDir = new THREE.Vector3(ct, -st, 0);   // カメラ→原点 の視線方向(単位ベクトル)
+    const planes = [];
+    // クリップ面は「法線の負側」が描画されない。前景(カメラ側半分)を消す=奥側だけ残す
+    if (!_mwShowFront) planes.push(new THREE.Plane(viewDir.clone(), 0));
+    if (!_mwShowBack) planes.push(new THREE.Plane(viewDir.clone().negate(), 0));
+    _mwRenderer.clippingPlanes = planes;
+    if (_mwMaterial) {
+        _mwMaterial.side = THREE.DoubleSide;
+        _mwMaterial.transparent = _mwThrough;
+        _mwMaterial.depthWrite = !_mwThrough;
+        _mwMaterial.blending = _mwThrough ? THREE.AdditiveBlending : THREE.NormalBlending;
+        _mwMaterial.needsUpdate = true;
+    }
+    _mwRender();
+}
+
+/** 位置リセット(コントロールメニュー4段目): kind='north'→北が奥(初期姿勢)、
+ *  'target'→目的点の方位が手前(天頂軸まわりのヨー回転のみで水平は保つ) */
+function _mwResetOrientation(kind) {
+    if (!_mwWorld) return;
+    if (kind === 'target') {
+        // 方位azの水平方向ベクトル(cos az, 0, sin az)が手前(-X=南側のカメラ方向)を向くヨー角
+        const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+        _mwWorld.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), az * _MW_D2R - Math.PI);
+    } else {
+        _mwWorld.quaternion.identity();   // 初期姿勢=北が奥(上)
+    }
+    _mwRender();
+}
+
+function _mwRender() {
+    if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera);
+    _mwUpdateLabels();   // 名称ラベル/引き出し線をドラッグ・ズームに追従
+}
+
+/** ドラッグでマスターGroup(_mwWorld)をトラックボール回転、ホイールでズーム */
+function _mwAttachDrag(cv) {
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    const upAxis = new THREE.Vector3(st, ct, 0);     // 画面の上方向(=カメラup)
+    const rightAxis = new THREE.Vector3(0, 0, 1);    // 画面の右方向(=東)
+    // マウスは1ポインタのドラッグ、タッチ(スマホ)は2本指の重心移動で回転する
+    const pts = new Map();   // pointerId → {x, y}
+    const centroid = () => {
+        let x = 0, y = 0;
+        pts.forEach(p => { x += p.x; y += p.y; });
+        return { x: x / pts.size, y: y / pts.size };
+    };
+    cv.addEventListener('pointerdown', e => {
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    cv.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId) || !_mwWorld) return;
+        const need = (e.pointerType === 'touch') ? 2 : 1;   // タッチは2本指のみ有効
+        const before = centroid();
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size < need) return;
+        const after = centroid();
+        // 外側から掴んで回す操作感: 前面(カメラ側)が指に追従するよう回転。水平は +dx(=東軸まわり)。
+        // 回転方向モード(コントロールメニュー3段目): 水平=天頂軸のみ・地軸=天の北極軸のみ(横ドラッグで回す)
+        const dx = (after.x - before.x) * 0.006, dy = (after.y - before.y) * 0.006;
+        if (_mwRotMode === 'horizontal') {
+            const zenith = new THREE.Vector3(0, 1, 0).applyQuaternion(_mwWorld.quaternion);
+            _mwWorld.rotateOnWorldAxis(zenith.normalize(), dx);
+        } else if (_mwRotMode === 'axis') {
+            const pole = new THREE.Vector3(0, 0, 1).applyQuaternion(_mwGlobe.quaternion).applyQuaternion(_mwWorld.quaternion);
+            _mwWorld.rotateOnWorldAxis(pole.normalize(), dx);
+        } else {
+            _mwWorld.rotateOnWorldAxis(upAxis, dx);
+            _mwWorld.rotateOnWorldAxis(rightAxis, dy);
+        }
+        _mwRender();
+    });
+    const end = e => { pts.delete(e.pointerId); };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('wheel', e => {
+        e.preventDefault();
+        _mwDist = Math.max(1.7, Math.min(7, _mwDist * (e.deltaY > 0 ? 1.1 : 0.9)));
+        _mwUpdateCamera(); _mwRender();
+    }, { passive: false });
+}
+
+function _mwInit() {
+    if (typeof THREE === 'undefined') {
+        _mwFailed = true;
+        const cr = document.getElementById('milkyway-credit');
+        if (cr) cr.textContent = '3Dライブラリ(three.js)を読み込めませんでした';
+        return;
+    }
+    const cv = document.getElementById('milkyway-canvas');
+    _mwRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    _mwRenderer.setPixelRatio(window.devicePixelRatio || 1);
+    _mwScene = new THREE.Scene();
+    _mwScene.background = new THREE.Color(0x05060a);
+    _mwCamera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+    _mwTexture = new THREE.CanvasTexture(_mwBuildProceduralTexture());
+    _mwTexture.colorSpace = THREE.SRGBColorSpace;
+    _mwGlobe = _mwBuildGlobe();
+    _mwWorld = new THREE.Group();          // ドラッグで回す全体。初期は識別回転(=北が上)
+    _mwWorld.add(_mwGlobe);
+    _mwWorld.add(_mwBuildHorizon());
+    _mwScene.add(_mwWorld);
+    _mwUpdateCamera();
+    _mwAttachDrag(cv);
+    const cr = document.getElementById('milkyway-credit');
+    if (cr) cr.textContent = '天の川: 模式図（生成）';
+    _mwTryLoadRealImage();
+    _mwAttachLabelEvents();
+    _mwInited = true;
+    _mwUpdateBaseOptions();   // 基本オプション(表示天体・星座線/領域・オフセット点)を初期反映
+}
+
+/** 全天儀のコントロールメニュー(デッサン01)。開閉・日付/時刻・移動速度・表示チェック群・オフセット中心角。
+ *  日付/時刻・チェック群・オフセット中心角は日時情報メニュー/基本オプションと双方向連動する */
+function setupMilkyWayCtrl() {
+    const header = document.getElementById('milkyway-ctrl-header');
+    if (!header || header._mwWired) return;
+    header._mwWired = true;
+    header.addEventListener('click', () => {
+        const body = document.getElementById('milkyway-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('milkyway-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('milkyway-ctrl').classList.toggle('open', open);   // 開=全天儀画面と縦1/2分割
+        resizeMilkyWayGlobe();   // 全天儀画面のサイズが変わるので再描画
+    });
+    // 前景/後景/透過(2段目)
+    const viewChk = (id, setter) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { setter(el.checked); _mwApplyViewOptions(); });
+    };
+    viewChk('chk-mwctrl-front', v => { _mwShowFront = v; });
+    viewChk('chk-mwctrl-back', v => { _mwShowBack = v; });
+    viewChk('chk-mwctrl-through', v => { _mwThrough = v; });
+    // 回転方向(3段目): 自由/水平/地軸
+    document.querySelectorAll('input[name="mwctrl-rot"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) _mwRotMode = r.value; });
+    });
+    // 北奥/目的点前(4段目): オンにするとリセットを実行してすぐオフに戻る(デッサン01の制約)
+    const resetChk = (id, kind) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            if (!el.checked) return;
+            _mwResetOrientation(kind);
+            setTimeout(() => { el.checked = false; }, 250);
+        });
+    };
+    resetChk('chk-mwctrl-north-back', 'north');
+    resetChk('chk-mwctrl-target-front', 'target');
+    // 最大化ボタン(全天儀画面0段目): 全面(辻検索ONなら下2/3)⇄通常。状態は保存しない(初期値オフ)
+    const mwMaxBtn = document.getElementById('btn-milkyway-max');
+    if (mwMaxBtn) mwMaxBtn.addEventListener('click', () => {
+        const panel = document.getElementById('milkyway-panel');
+        const on = panel.classList.toggle('maximized');
+        mwMaxBtn.classList.toggle('active', on);
+        mwMaxBtn.title = on ? '全天儀を元のサイズに戻す' : '全天儀を画面いっぱいに最大化';
+        syncBottomPanels();   // 辻検索結果の位置替え(最大化中は上1/3)・全天儀再描画・地図センタリング
+    });
+    const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    btnH('btn-mw-ctrl-month-prev', () => addMonth(-1));
+    btnH('btn-mw-ctrl-date-prev', () => addDay(-1));
+    btnH('btn-mw-ctrl-date-next', () => addDay(1));
+    btnH('btn-mw-ctrl-month-next', () => addMonth(1));
+    btnH('btn-mw-ctrl-hour-prev', () => addMinute(-60));
+    btnH('btn-mw-ctrl-time-prev', () => addMinute(-1));
+    btnH('btn-mw-ctrl-time-next', () => addMinute(1));
+    btnH('btn-mw-ctrl-hour-next', () => addMinute(60));
+    // 日付/時刻ピッカー(日時情報メニューと連動)
+    const dEl = document.getElementById('mw-ctrl-date'), tEl = document.getElementById('mw-ctrl-time');
+    const dtHandler = () => {
+        const dStr = dEl.value, tStr = tEl.value;
+        if (!dStr || !tStr) return;
+        const parts = tStr.split(':');
+        const base = new Date(`${dStr}T00:00:00`);
+        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+        if (isNaN(base.getTime())) return;
+        uncheckTimeShortcuts();
+        appState.currentDate = base;
+        syncUIFromState();
+        updateAll();
+    };
+    if (dEl && tEl) { dEl.addEventListener('change', dtHandler); tEl.addEventListener('change', dtHandler); }
+    // 移動速度ボタン: 日時情報メニューの月/秒等へ委譲し、アクティブ状態をミラーする
+    const speedPairs = [
+        ['btn-mw-ctrl-speed-month', 'btn-speed-month'], ['btn-mw-ctrl-speed-day', 'btn-speed-day'],
+        ['btn-mw-ctrl-speed-hour', 'btn-speed-hour'], ['btn-mw-ctrl-speed-min', 'btn-speed-min'],
+    ];
+    const syncSpeedActive = () => {
+        for (const [cid, sid] of speedPairs) {
+            const c = document.getElementById(cid), s = document.getElementById(sid);
+            if (c && s) c.classList.toggle('active', s.classList.contains('active'));
+        }
+    };
+    for (const [cid, sid] of speedPairs) {
+        btnH(cid, () => { const s = document.getElementById(sid); if (s) s.click(); setTimeout(syncSpeedActive, 0); });
+    }
+}
+
+/** パネルを開いた時の起動。毎回「北が上」にリセット */
+function startMilkyWayGlobe() {
+    if (!_mwInited && !_mwFailed) _mwInit();
+    if (_mwFailed) return;
+    if (_mwWorld) _mwWorld.quaternion.identity();   // 初期表示は毎回 北が上
+    _mwDist = _MW_DIST0;
+    _mwUpdateCamera();
+    resizeMilkyWayGlobe();
+    updateMilkyWayGlobe();
+}
+
+/** 観測者の位置・日時変更に追従して向きを更新 */
+function updateMilkyWayGlobe() {
+    if (!_mwInited || _mwFailed || !_mwGlobe) return;
+    const { rx, ry, rz } = _mwComputeOrientation();
+    const m = new THREE.Matrix4();
+    m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
+    _mwGlobe.quaternion.setFromRotationMatrix(m);
+    _mwUpdateBodies();   // 表示天体(惑星は日時で移動)を追従(キャッシュ付き)
+    _mwRender();
+}
+
+/** リサイズ対応 */
+function resizeMilkyWayGlobe() {
+    if (!_mwInited || _mwFailed) return;
+    const cv = document.getElementById('milkyway-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    _mwRenderer.setSize(w, h, false);
+    _mwCamera.aspect = w / h; _mwCamera.updateProjectionMatrix();
+    _mwRender();
+}
+
+// ============================================================
+// 宙の窓 (Sora no Mado) — 観測点→目的点方向のカメラ視点シミュレーション
+//  フェーズ1: メニュー・光学計算・パネル枠(three.jsカメラ枠/ファインダー/中心十字)
+//  天体描画(F2)・DEM地形(F3)は後続フェーズ。
+// ============================================================
+const SORA_SENSORS = [
+    { key: 'mediumformat', name: '中判 (44×33)',                 w: 44,   h: 33 },
+    { key: 'fullframe',    name: 'フルサイズ (36×24)',            w: 36,   h: 24 },
+    { key: 'apsh',         name: 'APS-H (28.7×19)',              w: 28.7, h: 19 },
+    { key: 'apsc',         name: 'APS-C (23.5×15.6)',            w: 23.5, h: 15.6 },
+    { key: 'apsc_canon',   name: 'APS-C Canon (22.3×14.9)',      w: 22.3, h: 14.9 },
+    { key: 'm43',          name: 'マイクロフォーサーズ (17.3×13)', w: 17.3, h: 13 },
+    { key: 'one',          name: '1型 (13.2×8.8)',               w: 13.2, h: 8.8 },
+    { key: 'type114',      name: '1/1.14型 (11.2×8.4)',          w: 11.2, h: 8.4 },
+    { key: 'type128',      name: '1/1.28型 (9.8×7.3)',           w: 9.8,  h: 7.3 },
+    { key: 'type17',       name: '1/1.7型 (7.6×5.7)',            w: 7.6,  h: 5.7 },
+    { key: 'type20',       name: '1/2.0型 (6.4×4.8)',            w: 6.4,  h: 4.8 },
+    { key: 'type23',       name: '1/2.3型 (6.17×4.55)',          w: 6.17, h: 4.55 },
+    { key: 'type255',      name: '1/2.55型 (5.7×4.3)',           w: 5.7,  h: 4.3 },
+    { key: 'type30',       name: '1/3.0型 (4.8×3.6)',            w: 4.8,  h: 3.6 },
+    { key: 'type36',       name: '1/3.6型 (4.0×3.0)',            w: 4.0,  h: 3.0 },
+    // スマートフォン(主カメラ・広角)。寸法は公開情報ベースの概算(4:3)
+    { key: 'ip_x_11',      name: 'iPhone X/XS/XR/11 (1/2.55型)',            w: 5.7,  h: 4.3 },
+    { key: 'ip_12',        name: 'iPhone 12/12 mini/12 Pro (1/2.55型)',     w: 5.7,  h: 4.3 },
+    { key: 'ip_12pm',      name: 'iPhone 12 Pro Max (1/1.7型)',             w: 7.6,  h: 5.7 },
+    { key: 'ip_13',        name: 'iPhone 13/13 mini (1/1.9型)',             w: 6.8,  h: 5.1 },
+    { key: 'ip_13p_14',    name: 'iPhone 13 Pro/Pro Max・14/14 Plus (1/1.65型)', w: 7.8, h: 5.9 },
+    { key: 'ip_pro48',     name: 'iPhone 14 Pro/15 Pro/16 Pro/17 Pro 系 (1/1.28型)', w: 9.8, h: 7.3 },
+    { key: 'ip_15_16',     name: 'iPhone 15/16 系・17・Air (1/1.56型)',          w: 8.2, h: 6.2 },
+    { key: 'ip_se',        name: 'iPhone SE(第2/3世代) (1/3.0型)',          w: 4.8,  h: 3.6 },
+    { key: 'ipod7',        name: 'iPod touch(第7世代) (1/3.2型)',           w: 4.5,  h: 3.4 },
+    { key: 'px_4a_6a',     name: 'Pixel 4a/5/5a/6a (1/2.55型)',             w: 5.7,  h: 4.3 },
+    { key: 'px_6_7',       name: 'Pixel 6/6 Pro・7/7 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
+    { key: 'px_7a_8a',     name: 'Pixel 7a/8a (1/1.73型)',                  w: 7.4,  h: 5.6 },
+    { key: 'px_8_9',       name: 'Pixel 8/8 Pro・9/9 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
+    { key: 'xp_1ii_iv',    name: 'Xperia 1/5 (II〜IV) (1/1.7型)',           w: 7.6,  h: 5.7 },
+    { key: 'xp_1v',        name: 'Xperia 1 V/5 V・1 VI (1/1.35型)',         w: 9.6,  h: 7.2 },
+    { key: 'xp_10',        name: 'Xperia 10 (II〜VI) (1/2.8型)',            w: 5.1,  h: 3.8 },
+];
+const SORA_FOCALS = [6,7.5,8,10,11,12,13,14,15,16,17,18,20,21,24,25,26,28,30,35,36,40,43,45,50,55,58,60,70,72,75,80,85,86,100,105,120,135,140,150,180,200,210,250,300,360,400,500,600,800,1000,1200,1700,2000];
+const SORA_FNUMBERS = [0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.2,3.5,4.0,4.5,5.0,5.6,6.3,7.1,8.0,9.0,10,11,13,14,16,18,20,22];
+
+function soraSensor() { return SORA_SENSORS.find(s => s.key === appState.soraSensorKey) || SORA_SENSORS[1]; }
+function soraFNumber() { return SORA_FNUMBERS[Math.max(0, Math.min(SORA_FNUMBERS.length - 1, appState.soraFNumberIdx))]; }
+
+/** 実効フレーム: アスペクト比をセンサー(W×H mm)に内接させ {We,He} を返す */
+/** カメラ位置(縦/横)を適用したアスペクト比の横/縦を返す(縦位置は横縦を入れ替え) */
+function soraOrientedAspect() {
+    const w = appState.soraAspectW > 0 ? appState.soraAspectW : 3;
+    const h = appState.soraAspectH > 0 ? appState.soraAspectH : 2;
+    return appState.soraOrient === 'portrait' ? { aw: h, ah: w } : { aw: w, ah: h };
+}
+
+function soraEffectiveFrame() {
+    const s0 = soraSensor();
+    // カメラ位置=縦のときはセンサー自体も回転する(水平/垂直画角が入れ替わる)
+    const s = appState.soraOrient === 'portrait' ? { w: s0.h, h: s0.w } : s0;
+    const { aw, ah } = soraOrientedAspect();
+    const a = aw / ah;
+    const sensorA = s.w / s.h;
+    if (a >= sensorA) return { We: s.w, He: s.w / a };
+    return { We: s.h * a, He: s.h };
+}
+
+/** フィッシュアイの実効パラメータ: uK=樽歪み係数, fovScale=画角拡大率(表示・カメラfovに連動) */
+function soraFisheyeParams() {
+    const s = Math.max(0, Math.min(100, Number(appState.soraFisheyeStrength) || 0));
+    return { uK: 0.7 * s / 100, fovScale: 1 + 0.8 * s / 100 };
+}
+
+/** パノラマの実効水平画角(°)。soraPanoAov=0はレンズの水平画角に自動追従 */
+function soraPanoEffAov(o) {
+    const v = Number(appState.soraPanoAov) || 0;
+    return Math.max(1, Math.min(360, v > 0 ? v : (o || soraComputeOptics()).aovH));
+}
+
+/** パノラマの画面アスペクト比 H:V。横=水平画角の弧長(円筒投影)、縦=垂直画角の透視投影 */
+function soraPanoAspect(o) {
+    const oo = o || soraComputeOptics();
+    const vHalf = Math.min(89, oo.aovV / 2) * Math.PI / 180;
+    return (soraPanoEffAov(oo) * Math.PI / 180) / (2 * Math.tan(vHalf));
+}
+
+/** 光学計算: 画角(水平/垂直/対角°)・過焦点距離・合焦近遠・被写界深度(m) */
+function soraComputeOptics() {
+    const f = appState.soraFocal, N = soraFNumber(), s = soraSensor();
+    const { We, He } = soraEffectiveFrame();
+    const aovH = 2 * Math.atan(We / (2 * f)) * 180 / Math.PI;
+    const aovV = 2 * Math.atan(He / (2 * f)) * 180 / Math.PI;
+    const aovD = 2 * Math.atan(Math.hypot(We, He) / (2 * f)) * 180 / Math.PI;
+    const c = Math.hypot(s.w, s.h) / 1500;          // 許容錯乱円 mm
+    const Hmm = f * f / (N * c) + f;                // 過焦点距離 mm
+    const sMm = appState.soraFocusDist * 1000;      // ピント距離 mm
+    const nearMm = Hmm * sMm / (Hmm + (sMm - f));
+    const farMm = (sMm < Hmm) ? Hmm * sMm / (Hmm - (sMm - f)) : Infinity;
+    const near = nearMm / 1000, far = (farMm === Infinity) ? Infinity : farMm / 1000;
+    return { aovH, aovV, aovD, hyperfocal: Hmm / 1000, near, far, dof: (far === Infinity) ? Infinity : far - near };
+}
+
+function soraFmtM(v) {
+    if (v === Infinity) return '∞';
+    if (v >= 1000) return (v / 1000).toFixed(2) + 'km';
+    if (v >= 10) return v.toFixed(0) + 'm';
+    return v.toFixed(2) + 'm';
+}
+
+/** select の選択肢を生成 */
+function soraPopulateSelects() {
+    const ss = document.getElementById('input-sora-sensor');
+    if (ss && !ss.options.length) SORA_SENSORS.forEach(s => { const o = document.createElement('option'); o.value = s.key; o.textContent = s.name; ss.appendChild(o); });
+    const fs = document.getElementById('input-sora-focal-select');
+    if (fs && !fs.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fs.appendChild(o); });
+    const fsc = document.getElementById('input-sora-ctrl-focal-select');
+    if (fsc && !fsc.options.length) SORA_FOCALS.forEach(f => { const o = document.createElement('option'); o.value = String(f); o.textContent = f + 'mm'; fsc.appendChild(o); });
+    const fn = document.getElementById('input-sora-fnum-select');
+    if (fn && !fn.options.length) SORA_FNUMBERS.forEach((f, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = 'F' + f; fn.appendChild(o); });
+}
+
+/** 宙の窓ctrlメニューの薄明ジャンプ(夜明/日暮のグリッド)を生成する。薄明メニューと同じ構成で、
+ *  時刻表示は updateTwilightData がミラー更新し(id末尾-ctrl)、選択は薄明メニューのラジオと連動する */
+function setupSoraCtrlTwilight() {
+    const host = document.getElementById('sora-ctrl-twilight');
+    if (!host || host.childElementCount) return;
+    const DAWN = [
+        ['astro_dawn', '天文薄明[始]', 'time-astro-dawn', '(-18°)'],
+        ['naut_dawn', '航海薄明[始]', 'time-naut-dawn', '(-12°)'],
+        ['yoake', '夜明', 'time-yoake', '(-7°21′40″)'],
+        ['civil_dawn', '常用薄明<br>/BH[始]', 'time-civil-dawn', '(-6°)'],
+        ['bh_end_gh_start', 'BH[終]<br>/GH[始]', 'time-bh-end-gh-start', '(-4°)'],
+        ['tw_sunrise', '日の出', 'time-tw-sunrise', `(<span id="alt-tw-sunrise-ctrl">--</span>°)`],
+        ['gh_end', 'GH[終]', 'time-gh-end', '(+6°)'],
+    ];
+    const DUSK = [
+        ['gh_start', 'GH[始]', 'time-gh-start', '(+6°)'],
+        ['tw_sunset', '日の入', 'time-tw-sunset', `(<span id="alt-tw-sunset-ctrl">--</span>°)`],
+        ['gh_end_bh_start', 'GH[終]<br>/BH[始]', 'time-gh-end-bh-start', '(-4°)'],
+        ['civil_dusk', '常用薄明<br>/BH[終]', 'time-civil-dusk', '(-6°)'],
+        ['higure', '日暮', 'time-higure', '(-7°21′40″)'],
+        ['naut_dusk', '航海薄明[終]', 'time-naut-dusk', '(-12°)'],
+        ['astro_dusk', '天文薄明[終]', 'time-astro-dusk', '(-18°)'],
+    ];
+    const grp = (title, items) => `
+        <div class="twilight-group">
+            <div class="twilight-group-title">${title}</div>
+            <div class="twilight-grid">${items.map(([v, name, tid, alt]) => `
+                <div class="shortcut-item">
+                    <input type="radio" name="time-jump-ctrl" id="jump-ctrl-${v}" class="mystars-radio" value="${v}">
+                    <label for="jump-ctrl-${v}">
+                        <span class="shortcut-name">${name}</span>
+                        <span class="shortcut-detail"><span id="${tid}-ctrl">--:--</span> <span class="shortcut-alt">${alt}</span></span>
+                    </label>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    host.innerHTML = grp('夜明', DAWN) + grp('日暮', DUSK);
+    host.querySelectorAll('input[name="time-jump-ctrl"]').forEach(r => {
+        r.addEventListener('change', (e) => {
+            if (!e.target.checked) return;
+            jumpToEvent(e.target.value);
+            const m = document.querySelector(`input[name="time-jump"][value="${e.target.value}"]`);
+            if (m) m.checked = true;   // 薄明メニュー側の選択状態も連動
+        });
+    });
+}
+
+/** appState → フォーム値・算出表示を反映 (フォーカス中の入力は保護) */
+function soraSyncUI() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    set('input-sora-sensor', appState.soraSensorKey);
+    set('input-sora-aspect-w', appState.soraAspectW);
+    set('input-sora-aspect-h', appState.soraAspectH);
+    set('input-sora-focal-text', appState.soraFocal);
+    set('input-sora-focal-select', String(appState.soraFocal));
+    set('input-sora-focal-slider', appState.soraFocal);
+    txt('sora-focal-label', appState.soraFocal + 'mm');
+    set('input-sora-ctrl-focal', appState.soraFocal);
+    set('input-sora-ctrl-focal-text', appState.soraFocal);
+    set('input-sora-ctrl-focal-select', String(appState.soraFocal));
+    const orientRC = document.querySelector(`input[name="sora-orient-ctrl"][value="${appState.soraOrient}"]`);
+    if (orientRC) orientRC.checked = true;
+    set('input-sora-ctrl-offset-az', Number(appState.soraOffsetAz).toFixed(4));
+    set('input-sora-ctrl-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
+    set('input-sora-fnum-select', String(appState.soraFNumberIdx));
+    set('input-sora-fnum-slider', appState.soraFNumberIdx);
+    txt('sora-fnum-label', 'F' + soraFNumber());
+    set('input-sora-focus-slider', appState.soraFocusDist);
+    txt('sora-focus-label', appState.soraFocusDist + 'm');
+    chk('chk-sora-fisheye', appState.soraFisheye);
+    set('input-sora-fisheye-slider', appState.soraFisheyeStrength);
+    const orientR = document.querySelector(`input[name="sora-orient"][value="${appState.soraOrient}"]`);
+    if (orientR) orientR.checked = true;
+    const shapeR = document.querySelector(`input[name="sora-fisheye-shape"][value="${appState.soraFisheyeShape}"]`);
+    if (shapeR) shapeR.checked = true;
+    chk('chk-sora-peaking', appState.soraPeaking);
+    chk('chk-sora-traj', appState.soraTraj);
+    chk('chk-sora-center', appState.soraCenterCross);
+    chk('chk-sora-target', appState.soraTargetCross);
+    chk('chk-sora-search-center', appState.soraSearchCenter);
+    set('input-sora-base-az', Number(appState.soraBaseAz).toFixed(4));
+    set('input-sora-base-alt', Number(appState.soraBaseAlt).toFixed(4));
+    set('input-sora-offset-az', Number(appState.soraOffsetAz).toFixed(4));
+    set('input-sora-offset-alt', Number(appState.soraOffsetAlt).toFixed(4));
+    updateOffsetDistances();   // 辻オフセット群(宙の窓/ctrlのコピー含む)を反映
+    set('input-sora-range', appState.soraViewRange);
+    set('input-sora-range-slider', appState.soraViewRange);
+    const o = soraComputeOptics();
+    const fe = appState.soraFisheye ? soraFisheyeParams().fovScale : 1;
+    const aov = x => Math.min(180, x * fe).toFixed(1);
+    txt('sora-aov', 'H:' + aov(o.aovH) + '° V:' + aov(o.aovV) + '° D:' + aov(o.aovD) + '°');
+    txt('sora-fisheye-label', (Number(appState.soraFisheyeStrength) || 0) + '%');
+    chk('chk-sora-panorama', appState.soraPanorama);
+    const panoAov = soraPanoEffAov(o);
+    set('input-sora-pano-slider', Math.round(panoAov));
+    const panoAsp = soraPanoAspect(o);
+    txt('sora-pano-label', 'H:V=' + (panoAsp >= 9.95 ? String(Math.round(panoAsp)) : panoAsp.toFixed(1)) + ':1 H:' + Math.round(panoAov) + '°');
+    set('input-sora-mw-bright', appState.soraMwBrightness);
+    txt('sora-mw-bright-label', (Number(appState.soraMwBrightness) || 0) + '%');
+    set('input-sora-elevshade', appState.soraElevShade);
+    txt('sora-elevshade-label', (Number(appState.soraElevShade) || 0) + '%');
+    set('input-sora-sunshade', appState.soraSunShade);
+    txt('sora-sunshade-label', (Number(appState.soraSunShade) || 0) + '%');
+    set('input-sora-mov-interval', appState.soraMovInterval);
+    set('input-sora-mov-shots', appState.soraMovShots);
+    set('sel-sora-mov-fps', String(appState.soraMovFps));
+    set('sel-sora-mov-step', String(appState.soraMovDispStep));
+    set('input-sora-mov-mb', appState.soraMovImgMb);
+    soraMovSyncUI();
+    const pmR = document.querySelector(`input[name="sora-mov-playmode"][value="${appState.soraMovPlayMode}"]`);
+    if (pmR) pmR.checked = true;
+    const expR = document.querySelector(`input[name="sora-exp-format"][value="${appState.soraExpFormat}"]`);
+    if (expR) expR.checked = true;
+    // 出力サイズはプレビューのアスペクト比に常時追従(縦は横から再計算)
+    const expAsp = appState.soraPanorama ? soraPanoAspect(o) : soraOrientedAspect().aw / soraOrientedAspect().ah;
+    appState.soraExpH = Math.max(1, Math.min(8192, Math.round(appState.soraExpW / expAsp)));
+    set('input-sora-exp-w', appState.soraExpW);
+    set('input-sora-exp-h', appState.soraExpH);
+    txt('sora-hyperfocal', soraFmtM(o.hyperfocal));
+    txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
+    txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
+    fwSyncUI();   // 花火モード(メニュー/ctrlの両フォーム+算出表示)
+}
+
+/** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
+function soraUpdateBaseFromPoints() {
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    if (posKey === appState._soraLastPosKey) return;
+    appState._soraLastPosKey = posKey;
+    const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAz = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+    appState.soraBaseAlt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
+    appState.soraViewRange = Math.max(1, Math.min(300, Math.ceil(dist / 1000)));   // 相手距離kmを切り上げ(0km〜この範囲)
+    appState.soraFocusDist = Math.max(0, Math.min(300000, Math.ceil(dist / 1000) * 1000));   // 合焦距離の初期値=相手距離(km切り上げ→m)
+    saveAppState();
+    soraSyncUI();
+}
+
+// --- インターバルMov (タイムラプス再生シミュレーション) ---
+let _movTimer = null, _movEndMs = 0;
+
+/** 秒数 → "HH:MM:SS" (時は2桁パディング・24時間超も可) */
+function soraMovFmtHMS(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return `${('00' + h).slice(-2)}:${('00' + m).slice(-2)}:${('00' + s).slice(-2)}`;
+}
+
+/** インターバルMovの算出表示(撮影時間・撮影終了日時・再生時間・総画像容量)を更新 */
+function soraMovSyncUI() {
+    const durEl = document.getElementById('sora-mov-duration');
+    if (!durEl) return;
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const durSec = iv * n;
+    durEl.textContent = soraMovFmtHMS(durSec);
+    // 撮影開始日時 = 現在の日時情報(再生はここから始まる)
+    const sEl = document.getElementById('sora-mov-start');
+    if (sEl) {
+        const d0 = appState.currentDate, q2 = v => ('00' + v).slice(-2);
+        sEl.textContent = `${d0.getFullYear()}/${q2(d0.getMonth() + 1)}/${q2(d0.getDate())} ${q2(d0.getHours())}:${q2(d0.getMinutes())}:${q2(d0.getSeconds())}`;
+    }
+    // 再生中は開始時に確定した終了日時を、停止中は現在日時+撮影時間を表示
+    const endMs = _movTimer ? _movEndMs : appState.currentDate.getTime() + durSec * 1000;
+    const e = new Date(endMs);
+    const p2 = v => ('00' + v).slice(-2);
+    document.getElementById('sora-mov-end').textContent =
+        `${e.getFullYear()}/${p2(e.getMonth() + 1)}/${p2(e.getDate())} ${p2(e.getHours())}:${p2(e.getMinutes())}:${p2(e.getSeconds())}`;
+    document.getElementById('sora-mov-playtime').textContent = soraMovFmtHMS(n / (Number(appState.soraMovFps) || 30));
+    const gb = n * (Number(appState.soraMovImgMb) || 140) / 1024;
+    document.getElementById('sora-mov-total').value = gb >= 10 ? String(Math.round(gb)) : gb.toFixed(2);   // 単位はラベル(GB)側に表示
+}
+
+// --- 再生(インターバルMov): 日時情報メニューと切り離した別処理 ---
+// ワーカープールでフレーム毎の天体位置・空の基底を事前計算してキューに積み、
+// 再生タイマーはデキューして ①天体(位置/視半径/月相) ②軌跡(日替わりのみ) ③空・星座線/領域(回転) を動かすだけ。
+// appState.currentDate は再生中も変更しない(辻ライン・地図・メニューの再計算は発生しない)。
+let _movQueue = [], _movFilled = 0, _movPlayIdx = 0, _movGen = 0, _movPlaying = false;
+let _smMovPool = null;
+function _smMovPoolEnsure() {
+    if (_smMovPool) return _smMovPool;
+    const n = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 4));
+    const workers = [];
+    for (let i = 0; i < n; i++) workers.push(new Worker('sora-mov-worker.js'));
+    _smMovPool = { workers, idle: [...workers], queue: [] };
+    return _smMovPool;
+}
+function _smMovRunOnWorker(worker, task) {
+    const handler = (e) => {
+        worker.removeEventListener('message', handler);
+        task.resolve(e.data || { frames: [] });
+        if (_smMovPool.queue.length > 0) _smMovRunOnWorker(worker, _smMovPool.queue.shift());
+        else _smMovPool.idle.push(worker);
+    };
+    worker.addEventListener('message', handler);
+    worker.postMessage(task.message);
+}
+function _smMovPoolRun(message) {
+    const pool = _smMovPoolEnsure();
+    return new Promise(resolve => {
+        const task = { message, resolve };
+        if (pool.idle.length > 0) _smMovRunOnWorker(pool.idle.pop(), task);
+        else pool.queue.push(task);
+    });
+}
+
+/** キューのフレームデータから表示天体スプライト群を再構築(メインスレッドでの天文計算なし) */
+function _smApplyMovBodies(frame, metas) {
+    if (!_smBodiesGrp) return;
+    while (_smBodiesGrp.children.length) { const c = _smBodiesGrp.children.pop(); if (c.material) c.material.dispose(); }
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+    metas.forEach((m, i) => {
+        const fb = frame.bodies[i];
+        if (!fb) return;
+        const pos = _smDir(fb.az, fb.alt).multiplyScalar(_SM_BODY_R);
+        if (m.id === 'Moon' && fb.phase !== undefined) {
+            const tex = _smCanvasTex(`moon_${fb.phase.toFixed(2)}_${fb.waxing}`, (c2, s) => _smDrawMoon(c2, s, fb.phase, fb.waxing), 128);
+            const r = _SM_BODY_R * Math.tan(Math.max(fb.angR, 0.08) * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        } else if (fb.angR > 0) {
+            const r = _SM_BODY_R * Math.tan(fb.angR * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(m.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        }
+        // 天体軌跡オフの時は中心十字も非表示(通常描画の_smBuildBodiesと同じ扱い)
+        if (appState.soraTraj) {
+            const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(m.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+            cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        }
+    });
+    // 目的点マーカー(赤十字)は固定方向なので毎フレーム同じ
+    _smAddTargetMarkers(cs);
+}
+
+/** 再生中の天の川の環: EQJ座標の等価な環+基準点方位線を空と同回転のグループに置き、毎フレームの再計算なしで追従させる。
+ *  (環と写真は表示天体「天の川」の表現そのものなので、表示天体オンの間は再生中も表示し続ける) */
+let _smMovRingGrp = null;
+function _smMovRingSetup() {
+    _smMovRingTeardown();
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    if (!(mw && mw.visible) || !_smEqjGrp) return;
+    const R = _SM_SKY_R * 0.99;
+    const grp = new THREE.Group();
+    const pts = [];
+    for (let l = 0; l <= 360; l += 4) {
+        const eq = galacticToEquatorial(l, 0);
+        const v = _mwEquVec(eq.ra, eq.dec);
+        pts.push(new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R));
+    }
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 })));
+    const rd = getFixedStarRaDec('MilkyWay');
+    const bv = _mwEquVec(rd.ra, rd.dec);
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(bv[0] * R, bv[1] * R, bv[2] * R)]),
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })));
+    _smMovRingGrp = grp;
+    _smEqjGrp.add(grp);
+    if (_smMwRingGrp) _smMwRingGrp.visible = false;   // ENU版と入れ替え(停止時に復元)
+}
+function _smMovRingTeardown() {
+    if (_smMovRingGrp && _smEqjGrp) {
+        _smEqjGrp.remove(_smMovRingGrp);
+        _smMovRingGrp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material && c.material.dispose) c.material.dispose(); });
+    }
+    _smMovRingGrp = null;
+    if (_smMwRingGrp) _smMwRingGrp.visible = true;
+}
+
+/** 再生トグル: 再生オプションで ①アニメーション(表示間隔サンプリング) / ②動画(MP4/WebM)生成→プレビュー上で再生 を切替。
+ *  ①はワーカーで事前計算したキューをデキューして、プレビュー内の①天体②軌跡③空・星座線/領域だけを動かす */
+function soraMovTogglePlay() {
+    if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) { soraMovStop(); return; }
+    if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから再生してください。'); return; }
+    if (appState.soraMovPlayMode === 'video') { soraMovPlayVideo(); return; }
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const shots = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const dispStep = Number(appState.soraMovDispStep) || 0.3;
+    // 再生コマ数は「再生時間(=撮影回数÷fps)÷表示間隔」だけ。全撮影コマは再生しない(動画を表示間隔で間引いたプレビュー)。
+    const playSec = shots / fps;
+    const n = Math.max(1, Math.ceil(playSec / dispStep - 1e-9));
+    const shotIdx = [];   // 表示コマk → 撮影コマ番号(動画時刻 k×表示間隔 のフレーム)
+    for (let k = 0; k < n; k++) shotIdx.push(Math.min(shots - 1, Math.round(k * dispStep * fps)));
+    const startMs = appState.currentDate.getTime();
+    _movEndMs = startMs + iv * shots * 1000;
+    const gen = ++_movGen;
+    // 表示天体のメタ情報(固定天体はRA/Dec、惑星等は半径kmを渡してワーカー側で視半径まで計算)
+    const metas = appState.bodies.filter(b => b.visible).map(b => {
+        const m = { id: b.id, color: b.color || '#DDA0DD' };
+        if (b.id === 'MilkyWay') { const rd = getFixedStarRaDec('MilkyWay'); m.fixed = true; m.ra = rd.ra; m.dec = rd.dec; }
+        else if (isFixedStar(b.id)) { const rd = getFixedStarRaDec(b.id); m.fixed = true; m.ra = rd.ra; m.dec = rd.dec; }
+        else m.radiusKm = BODY_RADIUS_KM[b.id] || 0;
+        return m;
+    });
+    // サンプリングした再生コマだけをチャンクに分けてワーカープールへ事前計算を依頼(結果はコマ順のキューへ)
+    _movQueue = new Array(n);
+    _movFilled = 0;
+    _movPlayIdx = 0;
+    const wBodies = metas.map(m => ({ id: m.id, fixed: !!m.fixed, ra: m.ra, dec: m.dec, radiusKm: m.radiusKm || 0 }));
+    const obs = { lat: appState.start.lat, lng: appState.start.lng, elev: appState.start.elev };
+    const CH = 120;
+    for (let off = 0; off < n; off += CH) {
+        const frames = [];
+        for (let f = off; f < Math.min(n, off + CH); f++) frames.push(startMs + shotIdx[f] * iv * 1000);
+        _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.refractionEnabled })
+            .then(res => {
+                if (gen !== _movGen) return;   // 停止済みの世代は破棄
+                (res.frames || []).forEach((fr, i) => { _movQueue[res.off + i] = fr; });
+                _movFilled += (res.frames || []).length;
+            });
+    }
+    _movPlaying = true;
+    _smMovRingSetup();
+    const btn = document.getElementById('btn-sora-mov-play');
+    if (btn) { btn.classList.add('active'); btn.textContent = '停止'; }
+    const p2 = v => ('00' + v).slice(-2);
+    const stepMs = Math.max(50, (Number(appState.soraMovDispStep) || 0.3) * 1000);
+    _movTimer = setInterval(() => {
+        if (gen !== _movGen) return;
+        if (_movPlayIdx >= n) { soraMovStop(); return; }
+        const fr = _movQueue[_movPlayIdx];
+        if (!fr) { soraExpProgress(`再生準備中… (${_movFilled}/${n}コマ計算済み)`); return; }   // 未計算フレームは待つ
+        _movPlayIdx++;
+        if (fr.sky) {
+            const ra = _smDir(fr.sky.rx.az, fr.sky.rx.alt), rb = _smDir(fr.sky.rz.az, fr.sky.rz.alt);
+            _smSetSkyBasis([ra.x, ra.y, ra.z], [rb.x, rb.y, rb.z]);   // 空・星座線/領域・環が一括で回転
+        }
+        _smApplyMovBodies(fr, metas);        // 天体(位置・視半径・月相)
+        _smBuildTraj(new Date(fr.t));        // 軌跡は日替わり時のみ内部キャッシュで再構築
+        const d = new Date(fr.t);
+        soraExpProgress(`再生中 ${_movPlayIdx}/${n} (${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())})`);
+        drawSoramado();   // 再生中はレンダリングのみ(シーン更新はキュー側で完了済み)
+    }, stepMs);
+    soraMovSyncUI();
+}
+
+function soraMovStop() {
+    if (_movTimer) { clearInterval(_movTimer); _movTimer = null; }
+    if (_expVideo && _expVideo.owner === 'play') soraExportCancel();   // 再生用の動画生成中なら中止
+    if (_movVideo) {   // 動画再生のオーバーレイを片付け
+        if (_movVideo.el && _movVideo.el.parentElement) _movVideo.el.parentElement.removeChild(_movVideo.el);
+        if (_movVideo.url) { try { URL.revokeObjectURL(_movVideo.url); } catch (_) {} }
+        _movVideo = null;
+    }
+    _movGen++;            // 事前計算の未着チャンクを破棄
+    _movPlaying = false;
+    _movQueue = [];
+    _smMovRingTeardown();
+    soraExpProgress(null);
+    const btn = document.getElementById('btn-sora-mov-play');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '再生'; }
+    soraMovSyncUI();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 現在の日時情報の表示へ復帰
+}
+
+// --- 書き出し (静止画JPEG/PNG・動画H.265/H.264) ---
+let _expVideo = null;   // 動画書き出し中の状態 {recorder, timer, canceled, startDate}
+
+/** 右下クレジット文字列: 「YYYY/MM/DD hh:mm:ss © 出力年 宙の辻 - Sora no Tsuji」 */
+function soraExpCredit(d) {
+    const p2 = v => ('00' + v).slice(-2);
+    return `${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}` +
+        ` © ${new Date().getFullYear()} 宙の辻 - Sora no Tsuji`;
+}
+
+/** プレビューを w×h でオフスクリーン描画し、右下に日時＋クレジットを載せた2Dキャンバスを返す。
+ *  drawSoramadoと同じ 通常/パノラマ(ストリップ)/フィッシュアイ 分岐。canvas2d を渡すと再利用(動画フレーム用)。 */
+function _smComposeFrame(w, h, canvas2d) {
+    if (!_smInited || _smFailed || !_smRenderer) return null;
+    const o = soraComputeOptics();
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
+    const pano = appState.soraPanorama;
+    const panoAov = pano ? soraPanoEffAov(o) : 0;
+    const _fe = (!pano && appState.soraFisheye) ? soraFisheyeParams() : null;
+    // 画面固定pxの十字などが出力解像度に合うよう、ファインダー寸法を一時差し替えてシーンを再構築
+    const savedW = _smFinderW, savedH = _smFinderH;
+    _smFinderW = w; _smFinderH = h;
+    // 文字(表示天体名・星座名称)が出力サイズに比例してプレビューと同じ相対サイズになるよう倍率を設定
+    _smLabelScaleX = h / Math.max(1, savedH);
+    if (_smSkyMat && _smSkyMat.userData.uMwBlack) {
+        const mwb = Number(appState.soraMwBrightness);
+        _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
+    }
+    const allsky = !!_fe && _smAllSkyOn();   // 歪み100%+円形: 等距離射影の全天表示
+    if (allsky) {
+        _smSetAllSkyBasis(az, alt);   // 画面中心=カメラの向き
+        // 画面固定サイズのスプライトが出力でも同じ見た目になるよう実効fovを設定(プレビューと同式)
+        const allskyR = Math.min(w, h) / 2;
+        _smCamera.fov = 2 * Math.atan(Math.PI * h / (4 * allskyR)) * 180 / Math.PI;
+    } else {
+        _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
+    }
+    _smCamera.up.set(0, 0, 1);
+    _smCamera.position.set(0, 0, 0);
+    _smCamera.lookAt(_smDir(az, alt));
+    _smUpdateSky();
+    _smBuildBodies();
+    _smBuildTraj();
+    _smUpdateMilkyWayRing();
+    _smUpdateTerrain();
+    _fwUpdateScene(performance.now());   // 花火モード(書き出し・動画にもアニメーション中の花火が写る)
+    _smEnsureConstNames();
+    _smUpdateConstNames({ w, h });   // 星座名称のサイズ/向きを出力解像度・投影に合わせて更新
+    const rt = new THREE.WebGLRenderTarget(w, h);
+    rt.texture.colorSpace = THREE.SRGBColorSpace;
+    _smRenderer.setRenderTarget(rt);
+    _smRenderer.setClearColor(0x0a0e1a, 1);
+    if (pano) {
+        const nStrips = Math.max(1, Math.ceil(panoAov / 10));
+        const stripDeg = panoAov / nStrips;
+        const stripAspect = Math.tan(stripDeg * Math.PI / 360) / Math.tan(_smCamera.fov * Math.PI / 360);
+        // renderer.setViewport/setScissor は devicePixelRatio 倍されるため RT には使えない(dpr>1 のスマホで
+        // 左下拡大に崩れる)。RT 自身の viewport/scissor は非スケールなのでこちらで制御する
+        rt.scissorTest = true;
+        for (let i = 0; i < nStrips; i++) {
+            const px0 = Math.round(w * i / nStrips), px1 = Math.round(w * (i + 1) / nStrips);
+            if (px1 <= px0) continue;
+            const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
+            _smCamera.aspect = stripAspect;
+            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.updateProjectionMatrix();
+            rt.viewport.set(px0, 0, px1 - px0, h);
+            rt.scissor.set(px0, 0, px1 - px0, h);
+            _smRenderer.setRenderTarget(rt);   // rt.viewport/scissor を再適用
+            _smRenderer.clear(true, true, true);
+            _smRenderer.render(_smScene, _smCamera);
+        }
+        rt.scissorTest = false;
+        rt.viewport.set(0, 0, w, h);
+        rt.scissor.set(0, 0, w, h);
+        _smRenderer.setRenderTarget(rt);
+    } else if (allsky && _smRenderAllSkyCube(w / h, Math.min(w, h) / 2)) {
+        // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドを出力RTへ
+        _smRenderer.setRenderTarget(rt);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smAllSkyScene, _smAllSkyCam);
+    } else if (_fe && _smPostMat) {
+        _smCamera.aspect = w / h;
+        _smCamera.updateProjectionMatrix();
+        _smPostMat.uniforms.uK.value = _fe.uK;
+        _smPostMat.uniforms.uCircle.value = appState.soraFisheyeShape === 'circle' ? 1.0 : 0.0;
+        _smPostMat.uniforms.uAspect.value = w / h;
+        _smRT.setSize(w, h);
+        _smRenderer.setRenderTarget(_smRT);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+        _smRenderer.setRenderTarget(rt);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smPostScene, _smPostCam);
+    } else {
+        _smCamera.aspect = w / h;
+        _smCamera.updateProjectionMatrix();
+        // setViewport は devicePixelRatio 倍されるため呼ばない(setRenderTarget が rt 全面 w×h を非スケールで適用済み)
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+    }
+    const buf = new Uint8Array(w * h * 4);
+    _smRenderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+    _smRenderer.setRenderTarget(null);
+    rt.dispose();
+    _smFinderW = savedW; _smFinderH = savedH;
+    _smLabelScaleX = 1;
+    // 上下反転(WebGLは下原点)して2Dキャンバスへ → 右下クレジット
+    const cv2 = canvas2d || document.createElement('canvas');
+    if (cv2.width !== w) cv2.width = w;
+    if (cv2.height !== h) cv2.height = h;
+    const ctx = cv2.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    for (let y = 0; y < h; y++) img.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+    ctx.putImageData(img, 0, 0);
+    const fs = Math.max(9, Math.round(h / 40));
+    ctx.font = `${fs}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.lineWidth = Math.max(1, Math.round(fs / 6));
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    const credit = soraExpCredit(appState.currentDate);
+    ctx.strokeText(credit, w - Math.round(fs * 0.6), h - Math.round(fs * 0.5));
+    ctx.fillText(credit, w - Math.round(fs * 0.6), h - Math.round(fs * 0.5));
+    return cv2;
+}
+
+function soraExpProgress(text) {
+    const el = document.getElementById('soramado-export-progress');
+    if (!el) return;
+    if (text === null) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.textContent = text;
+}
+
+function soraExportDownload(blob, ext) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-宙の窓-${formatFileDateTime()}.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+/** ファイル出力ボタン: 形式ラジオで静止画/動画に振り分け。動画実行中は中止 */
+function soraExportRun() {
+    if (_expVideo && _expVideo.owner === 'export') { soraExportCancel(); return; }
+    if (_expVideo) { alert('再生用の動画を生成中です。停止してから実行してください。'); return; }
+    if (!appState.isSoramadoActive || !_smInited || _smFailed) { alert('宙の窓のプレビューを表示してから実行してください。'); return; }
+    const fmt = appState.soraExpFormat;
+    if (fmt === 'jpeg' || fmt === 'png') soraExportStill(fmt);
+    else soraExportVideo(fmt);
+}
+
+function soraExportStill(fmt) {
+    if (!confirm(`現在のプレビューを${fmt === 'png' ? 'PNG' : 'JPEG'}画像(${appState.soraExpW}×${appState.soraExpH}px)で書き出します。よろしいですか?`)) return;
+    soraExpProgress('画像を書き出し中…');
+    const cv = _smComposeFrame(appState.soraExpW, appState.soraExpH);
+    drawSoramado();   // 画面表示を元の解像度で復元
+    if (!cv) { soraExpProgress(null); alert('画像の生成に失敗しました。'); return; }
+    cv.toBlob(blob => {
+        soraExpProgress(null);
+        if (!blob) { alert('画像の生成に失敗しました。'); return; }
+        soraExportDownload(blob, fmt === 'png' ? 'png' : 'jpg');
+    }, fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92);
+}
+
+/** 選択形式のMIME候補。h264=H.264のMP4(非対応はVP9等のWebMへ)、webm=VP9のWebM(非対応はVP8等へ)。
+ *  注意: WebM規格の映像コーデックはVP8/VP9/AV1のみ。「H.264入りWebM」はChrome独自の非標準構成で、
+ *  YouTube等の外部サービスが処理できないため、書き出しには一切使わない */
+function soraExpPickMime(fmt) {
+    if (typeof MediaRecorder === 'undefined') return null;
+    const wanted = fmt === 'webm'
+        ? ['video/webm;codecs=vp9']
+        : ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E'];
+    const fallback = fmt === 'webm'
+        ? ['video/webm;codecs=vp8', 'video/webm']
+        : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (const m of wanted) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: false }; } catch (_) {} }
+    for (const m of fallback) { try { if (MediaRecorder.isTypeSupported(m)) return { mime: m, fellBack: true }; } catch (_) {} }
+    return null;
+}
+
+/** WebM(EBML)に再生時間(Duration)を書き足す。MediaRecorderのWebMはストリーミング形式で
+ *  Duration要素を持たないため、プレーヤーやサービスによっては長さ不明・シーク不可・処理失敗になる。
+ *  Segment > Info に Duration(0x4489, 8バイトdouble)を挿入する(Segmentサイズは不明長のため親の更新は不要)。
+ *  失敗時・非対応構造の時は元のBlobをそのまま返す(安全側) */
+async function _fixWebmDuration(blob, durationMs) {
+    try {
+        if (!/webm/.test(blob.type) || !(durationMs > 0)) return blob;
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        // EBML可変長値の読取: keepMask=trueはID(マーカービットを保持)、falseはサイズ(マーカービットを除去)
+        const readVint = (pos, keepMask) => {
+            const first = buf[pos];
+            if (first === undefined) return null;
+            let len = 1;
+            for (let mask = 0x80; mask && !(first & mask); mask >>= 1) len++;
+            if (len > 8 || pos + len > buf.length) return null;
+            let value = keepMask ? first : (first & (0xFF >> len));
+            let unknown = !keepMask && (first & (0xFF >> len)) === (0xFF >> len);
+            for (let i = 1; i < len; i++) {
+                value = value * 256 + buf[pos + i];
+                if (buf[pos + i] !== 0xFF) unknown = unknown && false;
+            }
+            return { value, len, unknown: unknown && len > 0 };
+        };
+        // 指定範囲内で目的のID(数値)の要素を探す → { dataStart, dataSize, idStart } | null
+        const findElement = (start, end, targetId) => {
+            let pos = start;
+            while (pos < end) {
+                const id = readVint(pos, true);
+                if (!id) return null;
+                const size = readVint(pos + id.len, false);
+                if (!size) return null;
+                const dataStart = pos + id.len + size.len;
+                if (id.value === targetId) return { idStart: pos, dataStart, dataSize: size.value, sizeUnknown: size.unknown, sizeLen: size.len };
+                if (size.unknown) { pos = dataStart; continue; }   // 不明長(Segment等)は中に降りる
+                pos = dataStart + size.value;
+            }
+            return null;
+        };
+        const segment = findElement(0, buf.length, 0x18538067);
+        if (!segment) return blob;
+        const segEnd = segment.sizeUnknown ? buf.length : segment.dataStart + segment.dataSize;
+        const info = findElement(segment.dataStart, segEnd, 0x1549A966);
+        if (!info || info.sizeUnknown) return blob;
+        const infoEnd = info.dataStart + info.dataSize;
+        // TimecodeScale(0x2AD7B1, ns/tick。既定1,000,000=1ms)を読む
+        let scale = 1000000;
+        const tcs = findElement(info.dataStart, infoEnd, 0x2AD7B1);
+        if (tcs && tcs.dataSize >= 1 && tcs.dataSize <= 8) {
+            scale = 0;
+            for (let i = 0; i < tcs.dataSize; i++) scale = scale * 256 + buf[tcs.dataStart + i];
+        }
+        const durTicks = durationMs * 1000000 / scale;
+        const dur = findElement(info.dataStart, infoEnd, 0x4489);
+        if (dur) return blob;   // 既にDurationがある(停止時に確定化された)ファイルはそのまま
+        // 挿入はSegmentが不明長(ストリーミング形式)の場合のみ。確定化済み(サイズ既知+SeekHead)の
+        // ファイルへの挿入は各要素のオフセットを壊すため行わない(その場合はDurationが既にあるのが通常)
+        if (!segment.sizeUnknown) return blob;
+        const f64 = new DataView(new ArrayBuffer(8));
+        f64.setFloat64(0, durTicks);
+        // Duration要素(0x44 0x89 0x88 + double×8)をInfo末尾に挿入し、Infoのサイズを書き直す。
+        // Infoの新サイズは8バイト固定長vint(0x01 + 7バイト)で書く(元のサイズ欄の長さに依存しない)
+        const durEl = new Uint8Array(11);
+        durEl[0] = 0x44; durEl[1] = 0x89; durEl[2] = 0x88;
+        for (let i = 0; i < 8; i++) durEl[3 + i] = f64.getUint8(i);
+        const newInfoSize = info.dataSize + durEl.length;
+        const sizeBytes = new Uint8Array(8);
+        sizeBytes[0] = 0x01;   // 8バイト長vintのマーカー
+        for (let i = 7, v = newInfoSize; i >= 1; i--) { sizeBytes[i] = v % 256; v = Math.floor(v / 256); }
+        const idBytes = buf.slice(info.idStart, info.idStart + (info.dataStart - info.idStart - info.sizeLen));   // InfoのIDバイト列
+        const out = new Blob([
+            buf.slice(0, info.idStart),
+            idBytes, sizeBytes,
+            buf.slice(info.dataStart, infoEnd), durEl,
+            buf.slice(infoEnd)
+        ], { type: blob.type });
+        return out;
+    } catch (e) {
+        console.error('_fixWebmDuration:', e);
+        return blob;
+    }
+}
+
+/** インターバルMovの全コマをフレームレートで実時間録画する共通部(書き出し/再生オプション②で共用)。
+ *  完了(または中止)で onDone(blob|null) を呼ぶ。中止は soraExportCancel。開始できなければ false を返す */
+function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
+    const iv = Math.max(0.5, Number(appState.soraMovInterval) || 15);
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const cv2 = document.createElement('canvas');
+    cv2.width = w; cv2.height = h;
+    // フレーム同期キャプチャ: captureStream(0)+requestFrame()で「描画できた瞬間」に1フレームだけ流し、
+    // フレーム間の描画時間は recorder.pause() で媒体タイムラインから除外する。
+    // 従来の実時間キャプチャ(setInterval)では、フレーム描画(シーン再構築+レンダ+読出)が1/fps秒を
+    // 超える端末でコマ落ちして「カクカクした動画」になっていた。この方式なら描画がどれだけ遅くても
+    // 全コマが漏れなく等間隔(1/fps)で記録される(処理を溜めてから消化する多段キュー相当の効果)。
+    const stream = cv2.captureStream(0);
+    const track = stream.getVideoTracks()[0];
+    const canReqFrame = !!(track && typeof track.requestFrame === 'function');
+    if (!canReqFrame) stream.getVideoTracks().forEach(t => t.stop());
+    const stream2 = canReqFrame ? stream : cv2.captureStream(fps);   // 非対応環境は従来の実時間キャプチャ
+    const track2 = canReqFrame ? track : null;
+    let recorder;
+    try {
+        recorder = new MediaRecorder(stream2, { mimeType: picked.mime, videoBitsPerSecond: Math.min(5e7, Math.max(1e6, w * h * fps * 0.15)) });
+    } catch (e) { alert('動画の生成を開始できませんでした: ' + e.message); return false; }
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    const startDate = new Date(appState.currentDate.getTime());
+    _expVideo = { recorder, timer: null, canceled: false, startDate, owner };
+    let f = 0;
+    recorder.onstop = async () => {
+        const st = _expVideo;
+        _expVideo = null;
+        soraExpProgress(null);
+        // 日時をシミュレーション開始時点へ復元
+        appState.currentDate = new Date(startDate.getTime());
+        syncUIFromState();
+        updateAll();
+        let blob = st && st.canceled ? null : new Blob(chunks, { type: picked.mime.split(';')[0] });
+        // WebMは再生時間(Duration)を後付けする(ストリーミング形式は長さ情報が無く、
+        // 再生アプリやサービスで長さ不明・シーク不可の原因になるため)
+        if (blob && /webm/.test(blob.type)) blob = await _fixWebmDuration(blob, f / fps * 1000);
+        onDone(blob);
+    };
+    const frameMs = 1000 / fps;
+    recorder.start();
+    if (canReqFrame) {
+        const step = () => {
+            if (!_expVideo || _expVideo.canceled) return;
+            if (f >= n) { _expVideo.recorder.stop(); return; }
+            appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
+            _smComposeFrame(w, h, cv2);                          // 重い描画(pause中=タイムライン停止中に実行)
+            if (recorder.state === 'paused') recorder.resume();
+            track2.requestFrame();                               // このコマを1フレームだけ流す
+            soraExpProgress(`${label} ${f + 1}/${n}`);
+            f++;
+            _expVideo.timer = setTimeout(() => {
+                if (!_expVideo) return;
+                if (recorder.state === 'recording' && f < n) recorder.pause();   // 次コマの描画時間を除外
+                step();
+            }, frameMs);
+        };
+        step();
+    } else {
+        _expVideo.timer = setInterval(() => {
+            if (!_expVideo) return;
+            if (f >= n) {
+                clearInterval(_expVideo.timer);
+                _expVideo.recorder.stop();
+                return;
+            }
+            appState.currentDate = new Date(startDate.getTime() + f * iv * 1000);
+            _smComposeFrame(w, h, cv2);
+            soraExpProgress(`${label} ${f + 1}/${n}`);
+            f++;
+        }, frameMs);
+    }
+    return true;
+}
+
+/** 生成した動画Blobが再生可能か自己検証する(メタデータが読めて長さが正なら良品)。
+ *  スマホでVP9等のソフトウェアエンコードが破綻して壊れたファイルになるケースの検出用 */
+function _soraVerifyBlobPlayable(blob) {
+    return new Promise(resolve => {
+        try {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            const url = URL.createObjectURL(blob);
+            const done = ok => { URL.revokeObjectURL(url); resolve(ok); };
+            const to = setTimeout(() => done(false), 5000);
+            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true); };
+            v.onerror = () => { clearTimeout(to); done(false); };
+            v.src = url;
+        } catch (e) { resolve(true); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
+    });
+}
+
+/** 動画書き出し: インターバルMovの全コマをフレームレートで実時間録画(キャンバスストリーム+MediaRecorder) */
+function soraExportVideo(fmt) {
+    const picked = soraExpPickMime(fmt);
+    if (!picked) { alert('このブラウザは動画の書き出しに対応していません。'); return; }
+    const w = appState.soraExpW, h = appState.soraExpH;
+    const n = Math.max(1, Math.round(Number(appState.soraMovShots) || 1));
+    const fps = Number(appState.soraMovFps) || 30;
+    const durSec = Math.ceil(n / fps);
+    const codecName = fmt === 'webm' ? 'VP9(WebM)' : 'H.264(MP4)';
+    const msg = (picked.fellBack
+        ? (fmt === 'webm' ? 'お使いのブラウザはVP9のWebM書き出しに対応していないため、VP8のWebM形式で出力します。\n'
+                          : `お使いのブラウザは${codecName}での書き出しに対応していないため、WebM(VP9等)形式で出力します。\n`)
+        : '') +
+        `インターバルMovの${n}コマを動画(${w}×${h}px, ${fps}fps)で書き出します。\n約${durSec}秒かかります(実時間で録画します)。よろしいですか?`;
+    if (!confirm(msg)) return;
+    if (_movTimer || _movVideo) soraMovStop();   // 再生中なら停止してから
+    const btn = document.getElementById('btn-sora-export');
+    const ok = _soraRecordMovVideo(picked, w, h, 'export', '書き出し中', async blob => {
+        if (btn) { btn.classList.remove('active'); btn.textContent = 'ファイル出力'; }
+        if (!blob) return;   // 中止時は破棄
+        if (blob.size === 0) { alert('動画の生成に失敗しました。'); return; }
+        // 自己検証: この端末で壊れず録画できたか(スマホのソフトウェアVP9破綻等の検出)
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
+        soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
+    });
+    if (ok && btn) { btn.classList.add('active'); btn.textContent = '中止'; }
+}
+
+/** 再生オプション②: インターバルMovをMP4(非対応はWebM)で生成し、プレビュー画面の上に重ねて動画再生する */
+let _movVideo = null;   // 再生中のオーバーレイ {el, url}
+function soraMovPlayVideo() {
+    const picked = soraExpPickMime('h264');   // MP4優先→非対応ブラウザはWebMへ自動フォールバック(確認なし)
+    if (!picked) { alert('このブラウザは動画の生成に対応していません。'); return; }
+    if (_expVideo) { alert('動画の書き出し中です。完了または中止してから再生してください。'); return; }
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // 解像度は偶数に丸める(奇数はスマホのH.264ハードウェアエンコーダで失敗・色帯の既知問題があるため)
+    const even = v => Math.max(2, 2 * Math.round(v / 2));
+    const w = even(_smFinderW * dpr), h = even(_smFinderH * dpr);
+    const btn = document.getElementById('btn-sora-mov-play');
+    const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', async blob => {
+        if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
+        // 自己検証: 壊れたファイルをプレビューに重ねない(スマホのソフトウェアエンコード破綻等)
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
+        const el = document.createElement('video');
+        el.id = 'soramado-movplay-video';
+        el.muted = true; el.playsInline = true; el.autoplay = true;
+        el.src = URL.createObjectURL(blob);
+        el.addEventListener('ended', () => soraMovStop());   // 再生し終えたら自動停止(プレビュー表示へ復帰)
+        const view = document.getElementById('soramado-view');
+        if (view) view.appendChild(el);
+        _movVideo = { el, url: el.src };
+        drawSoramado();   // ファインダー矩形と同サイズに追従させる
+        el.play().catch(() => {});
+    });
+    if (ok && btn) { btn.classList.add('active'); btn.textContent = '停止'; }
+}
+
+/** 動画書き出しの中止(出力は破棄)。パネルクローズ時も呼ばれる */
+function soraExportCancel() {
+    if (!_expVideo) return;
+    _expVideo.canceled = true;
+    clearInterval(_expVideo.timer);
+    _expVideo.recorder.stop();
+}
+
+/** 各コントロールのイベント登録 */
+// --- 基本オプションメニュー ---
+/** 基本オプションのUI同期(状態→フォーム)。オフセット中心角は辻検索メニュー・My辻検索行とも連動 */
+function syncBaseOptionUI() {
+    const r = document.querySelector(`input[name="baseopt-mw-base"][value="${appState.baseOptMwBase}"]`);
+    if (r) r.checked = true;
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    set('input-baseopt-mw-offset', appState.mwOffsetAngle);
+    set('input-tsuji-mw-offset', appState.mwOffsetAngle);
+    set('input-tsujimesh-mw-offset', appState.mwOffsetAngle);
+    set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
+    set('input-baseopt-elev-exclude-obs', appState.elevExcludeObsRadius);
+    const exclChk = document.getElementById('chk-baseopt-elev-exclude');
+    if (exclChk) exclChk.checked = appState.elevExcludeEnabled !== false;
+    // チェックボックスがオフの間は目的点側/観測点側の入力を無効化(値は保持)
+    for (const eid of ['input-baseopt-elev-exclude', 'input-baseopt-elev-exclude-obs']) {
+        const el = document.getElementById(eid);
+        if (el) el.disabled = appState.elevExcludeEnabled === false;
+    }
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
+    chk('chk-baseopt-mw-body-names', appState.mwShowBodyNames);
+    chk('chk-baseopt-const-fig', appState.mwShowConstFig);
+    chk('chk-baseopt-const-bounds', appState.mwShowConstBounds);
+    chk('chk-baseopt-const-names', appState.mwShowConstNames);
+    // 宙の窓メニュー側のチェックボックス(基本オプションと連動・同じ状態を共有)
+    chk('chk-sora-mw-body-names', appState.mwShowBodyNames);
+    chk('chk-sora-const-fig', appState.mwShowConstFig);
+    chk('chk-sora-const-bounds', appState.mwShowConstBounds);
+    chk('chk-sora-const-names', appState.mwShowConstNames);
+    // 全天儀ctrlメニュー側(基本オプションと連動・同じ状態を共有)
+    chk('chk-mwctrl-bodies', appState.mwShowBodies);
+    chk('chk-mwctrl-body-names', appState.mwShowBodyNames);
+    chk('chk-mwctrl-const-fig', appState.mwShowConstFig);
+    chk('chk-mwctrl-const-bounds', appState.mwShowConstBounds);
+    chk('chk-mwctrl-const-names', appState.mwShowConstNames);
+    set('input-mwctrl-mw-offset', appState.mwOffsetAngle);
+    const mwSlider = document.getElementById('input-mwctrl-mw-offset-slider');
+    if (mwSlider && document.activeElement !== mwSlider) mwSlider.value = appState.mwOffsetAngle;
+    const mwSort = document.getElementById('sel-mwctrl-const-sort');
+    if (mwSort) mwSort.value = appState.mwConstNameSort;
+    const lsSlider = document.getElementById('input-sora-label-scale');
+    if (lsSlider) lsSlider.value = appState.soraLabelScale;
+    const lsVal = document.getElementById('sora-label-scale-val');
+    if (lsVal) lsVal.textContent = `${appState.soraLabelScale}%`;
+    const sortSel = document.getElementById('sel-baseopt-const-sort');
+    if (sortSel) sortSel.value = appState.mwConstNameSort;
+    // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しないため、ここでは上書きしない)
+}
+
+/** 天の川の基準点/オフセット中心角の変更を全機能へ反映(天体詳細・辻ライン・辻検索・全天儀・宙の窓) */
+function applyMilkyWayBaseChange() {
+    saveAppState();
+    syncBaseOptionUI();
+    updateAll();
+    _mwUpdateBaseOptions();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+function setupBaseOptionControls() {
+    document.querySelectorAll('input[name="baseopt-mw-base"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.baseOptMwBase = r.value; applyMilkyWayBaseChange(); } });
+    });
+    const offsetHandler = (el) => {
+        if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (isNaN(v)) v = 0;
+            appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+            appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ(編集が即反映されるように)
+            applyMilkyWayBaseChange();
+        });
+    };
+    offsetHandler(document.getElementById('input-baseopt-mw-offset'));
+    offsetHandler(document.getElementById('input-tsuji-mw-offset'));
+    offsetHandler(document.getElementById('input-tsujimesh-mw-offset'));
+    offsetHandler(document.getElementById('input-mwctrl-mw-offset'));   // 全天儀ctrlメニュー(連動)
+    const mwOffSlider = document.getElementById('input-mwctrl-mw-offset-slider');
+    if (mwOffSlider) mwOffSlider.addEventListener('input', () => {
+        let v = parseFloat(mwOffSlider.value);
+        if (isNaN(v)) v = 0;
+        appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));
+        appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ
+        applyMilkyWayBaseChange();
+    });
+    // My辻検索行のオフセット中心角は行ごとに独立(基本オプションとは連動しない)。行内のonChangeで登録する
+    const chkHandler = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            appState[key] = el.checked;
+            saveAppState();
+            syncBaseOptionUI();   // 基本オプションと宙の窓メニューの両方のチェック状態を再同期(双方向連動)
+            _mwUpdateBaseOptions();
+            if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 星座線/領域・表示天体は宙の窓にも反映
+        });
+    };
+    chkHandler('chk-baseopt-mw-bodies', 'mwShowBodies');
+    chkHandler('chk-baseopt-mw-body-names', 'mwShowBodyNames');
+    chkHandler('chk-baseopt-const-fig', 'mwShowConstFig');
+    chkHandler('chk-baseopt-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-baseopt-const-names', 'mwShowConstNames');
+    // 宙の窓メニュー側のチェックボックス(基本オプションと同じキーを共有=双方向連動)
+    chkHandler('chk-sora-mw-body-names', 'mwShowBodyNames');
+    chkHandler('chk-sora-const-fig', 'mwShowConstFig');
+    chkHandler('chk-sora-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-sora-const-names', 'mwShowConstNames');
+    // 全天儀ctrlメニュー側のチェックボックス(基本オプションと同じキーを共有=双方向連動)
+    chkHandler('chk-mwctrl-bodies', 'mwShowBodies');
+    chkHandler('chk-mwctrl-body-names', 'mwShowBodyNames');
+    chkHandler('chk-mwctrl-const-fig', 'mwShowConstFig');
+    chkHandler('chk-mwctrl-const-bounds', 'mwShowConstBounds');
+    chkHandler('chk-mwctrl-const-names', 'mwShowConstNames');
+    // 文字サイズスライダー(表示天体名・星座名称・プレビュー基準100%)
+    const lsSlider = document.getElementById('input-sora-label-scale');
+    if (lsSlider) lsSlider.addEventListener('input', () => {
+        appState.soraLabelScale = Math.max(0, Math.min(1000, Math.round(Number(lsSlider.value) || 0)));
+        const lsVal = document.getElementById('sora-label-scale-val');
+        if (lsVal) lsVal.textContent = `${appState.soraLabelScale}%`;
+        saveAppState();
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    });
+    const sortSel = document.getElementById('sel-baseopt-const-sort');
+    if (sortSel) sortSel.addEventListener('change', () => {
+        appState.mwConstNameSort = sortSel.value === 'pos' ? 'pos' : 'aiueo';
+        saveAppState();
+        syncBaseOptionUI();
+        _mwRender();   // ラベルの並び順を即時反映
+    });
+    const mwSortSel = document.getElementById('sel-mwctrl-const-sort');
+    if (mwSortSel) mwSortSel.addEventListener('change', () => {
+        appState.mwConstNameSort = mwSortSel.value === 'pos' ? 'pos' : 'aiueo';
+        saveAppState();
+        syncBaseOptionUI();
+        _mwRender();
+    });
+    const exclInputH = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (isNaN(v)) v = 0;
+            appState[key] = Math.max(0, Math.min(10000, Math.round(v)));
+            saveAppState();
+            syncBaseOptionUI();
+        });
+    };
+    exclInputH('input-baseopt-elev-exclude', 'elevExcludeRadius');
+    exclInputH('input-baseopt-elev-exclude-obs', 'elevExcludeObsRadius');
+    const exclChk2 = document.getElementById('chk-baseopt-elev-exclude');
+    if (exclChk2) exclChk2.addEventListener('change', () => {
+        appState.elevExcludeEnabled = exclChk2.checked;
+        saveAppState();
+        syncBaseOptionUI();
+    });
+    syncBaseOptionUI();
+}
+
+function setupSoramadoControls() {
+    soraPopulateSelects();
+    const after = () => { soraSyncUI(); saveAppState(); if (appState.isSoramadoActive) drawSoramado(); };
+    const numH = (id, key, min, max, round) => {
+        const el = document.getElementById(id); if (!el) return;
+        el.addEventListener('change', () => {
+            let v = parseFloat(el.value);
+            if (!isNaN(v)) { v = Math.max(min, Math.min(max, v)); appState[key] = round ? Math.round(v) : v; }
+            after();
+        });
+    };
+    numH('input-sora-aspect-w', 'soraAspectW', 1, 100, true);
+    numH('input-sora-aspect-h', 'soraAspectH', 1, 100, true);
+    numH('input-sora-base-az', 'soraBaseAz', 0, 360, false);
+    numH('input-sora-base-alt', 'soraBaseAlt', -360, 360, false);
+    numH('input-sora-offset-az', 'soraOffsetAz', -360, 360, false);
+    numH('input-sora-offset-alt', 'soraOffsetAlt', -360, 360, false);
+    numH('input-sora-range', 'soraViewRange', 1, 300, true);
+    const selH = (id, key, parse) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = parse(el.value); after(); }); };
+    selH('input-sora-sensor', 'soraSensorKey', v => v);
+    selH('input-sora-focal-select', 'soraFocal', v => parseFloat(v));   // 7.5mm等の小数焦点距離に対応
+    selH('input-sora-ctrl-focal-select', 'soraFocal', v => parseFloat(v));   // ctrlメニュー側(宙の窓メニューと連動)
+    selH('input-sora-fnum-select', 'soraFNumberIdx', v => parseInt(v));
+    // 焦点距離(mm)テキストボックス: 手入力(0.5刻み)。リスト・スライダー・コントロールメニューと連動
+    for (const fid of ['input-sora-focal-text', 'input-sora-ctrl-focal-text']) {
+        const focalText = document.getElementById(fid);
+        if (focalText) focalText.addEventListener('change', () => {
+            const v = parseFloat(focalText.value);
+            if (!isNaN(v)) appState.soraFocal = Math.max(1, Math.min(3000, Math.round(v * 2) / 2));
+            after();
+        });
+    }
+    // コントロールメニューのオフセット方位角/視高度(メニュー・ドラッグパンと連動)
+    numH('input-sora-ctrl-offset-az', 'soraOffsetAz', -360, 360, false);
+    numH('input-sora-ctrl-offset-alt', 'soraOffsetAlt', -360, 360, false);
+    const sliderH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('input', () => { appState[key] = parseInt(el.value); after(); }); };
+    sliderH('input-sora-focal-slider', 'soraFocal');
+    sliderH('input-sora-fnum-slider', 'soraFNumberIdx');
+    sliderH('input-sora-focus-slider', 'soraFocusDist');
+    sliderH('input-sora-range-slider', 'soraViewRange');
+    const chkH = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener('change', () => { appState[key] = el.checked; after(); }); };
+    chkH('chk-sora-fisheye', 'soraFisheye');
+    sliderH('input-sora-fisheye-slider', 'soraFisheyeStrength');
+    document.querySelectorAll('input[name="sora-orient"], input[name="sora-orient-ctrl"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraOrient = r.value; after(); } });
+    });
+    document.querySelectorAll('input[name="sora-fisheye-shape"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraFisheyeShape = r.value; after(); } });
+    });
+    chkH('chk-sora-panorama', 'soraPanorama');
+    sliderH('input-sora-pano-slider', 'soraPanoAov');
+    // プレビュー最大化トグル(画面下1/3 ⇄ 全面)。状態は保存しない(初期値オフ)
+    const maxBtn = document.getElementById('btn-soramado-max');
+    if (maxBtn) maxBtn.addEventListener('click', () => {
+        const panel = document.getElementById('soramado-panel');
+        const on = panel.classList.toggle('maximized');
+        maxBtn.classList.toggle('active', on);
+        maxBtn.title = on ? 'プレビューを元のサイズに戻す' : 'プレビューを画面いっぱいに最大化';
+        syncBottomPanels();   // 辻検索結果の位置替え(最大化中は上1/3)・プレビュー再描画・地図センタリング
+    });
+    // プレビュー内コントロールメニュー(開閉・焦点距離・日付/時刻)。開閉状態は保存しない(初期状態:閉)
+    setupSoraCtrlTwilight();   // 薄明ジャンプ(夜明/日暮)のグリッドを生成
+    const ctrlHeader = document.getElementById('soramado-ctrl-header');
+    if (ctrlHeader) ctrlHeader.addEventListener('click', () => {
+        const body = document.getElementById('soramado-ctrl-body');
+        const open = !body.classList.toggle('hidden');
+        document.getElementById('soramado-ctrl-arrow').textContent = open ? '▲' : '▼';
+        document.getElementById('soramado-ctrl').classList.toggle('open', open);   // 開=プレビュー画面と縦分割
+        resizeSoramado();   // プレビュー画面のサイズが変わるので再描画
+    });
+    sliderH('input-sora-ctrl-focal', 'soraFocal');
+    const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    btnH('btn-sora-ctrl-month-prev', () => addMonth(-1));
+    btnH('btn-sora-ctrl-date-prev', () => addDay(-1));
+    btnH('btn-sora-ctrl-date-next', () => addDay(1));
+    btnH('btn-sora-ctrl-month-next', () => addMonth(1));
+    btnH('btn-sora-ctrl-hour-prev', () => addMinute(-60));
+    btnH('btn-sora-ctrl-time-prev', () => addMinute(-1));
+    btnH('btn-sora-ctrl-time-next', () => addMinute(1));
+    btnH('btn-sora-ctrl-hour-next', () => addMinute(60));
+    // 日付/時刻ピッカー: 日時情報メニューと同じ順序(状態更新→syncUIFromState→updateAll)で反映
+    const dtPairH = (dateId, timeId) => {
+        const dEl = document.getElementById(dateId), tEl = document.getElementById(timeId);
+        if (!dEl || !tEl) return;
+        const handler = () => {
+            const dStr = dEl.value, tStr = tEl.value;
+            if (!dStr || !tStr) return;
+            const parts = tStr.split(':');
+            const base = new Date(`${dStr}T00:00:00`);
+            base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+            if (isNaN(base.getTime())) return;
+            uncheckTimeShortcuts();
+            appState.currentDate = base;
+            syncUIFromState();
+            updateAll();
+        };
+        dEl.addEventListener('change', handler);
+        tEl.addEventListener('change', handler);
+    };
+    dtPairH('sora-ctrl-date', 'sora-ctrl-time');
+    // インターバルMov: パラメータ入力と再生トグル
+    numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
+    numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
+    numH('input-sora-mov-mb', 'soraMovImgMb', 1, 102400, false);
+    selH('sel-sora-mov-fps', 'soraMovFps', v => parseInt(v));
+    selH('sel-sora-mov-step', 'soraMovDispStep', v => parseFloat(v));
+    btnH('btn-sora-mov-play', soraMovTogglePlay);
+    sliderH('input-sora-mw-bright', 'soraMwBrightness');
+    sliderH('input-sora-elevshade', 'soraElevShade');
+    sliderH('input-sora-sunshade', 'soraSunShade');
+    btnH('btn-sora-url', () => toggleUrlPanel('soramado'));
+    // 花火モード(デッサン06 55〜70段目)。宙の窓メニュー/ctrlメニューの同名コントロールは双方向連動
+    const fwAfter = () => { fwSyncUI(); saveAppState(); fwUpdateMapMarker(); _fwSyncAnim();
+                            if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); } };
+    const fwChk = (ids, key) => ids.forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState[key] = el.checked; fwAfter(); }); });
+    const fwNum = (ids, key, min, max) => ids.forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) appState[key] = Math.max(min, Math.min(max, v));
+            _fwShells = [];   // 高さ/領域の変更は打ち上げ直して反映
+            fwAfter();
+        }); });
+    fwChk(['chk-sora-fw', 'chk-sora-ctrl-fw'], 'fwEnabled');
+    fwChk(['chk-sora-fw-point', 'chk-sora-ctrl-fw-point'], 'fwShowPoint');
+    // 打ち上げ点標高: 未設定(目的点追従)中に手動編集されたら、その時点の目的点座標で打ち上げ点を確定してから適用する
+    ['input-fw-api-elev', 'input-fw-ctrl-api-elev'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) {
+                if (appState.fwLat === null || appState.fwLng === null) { appState.fwLat = appState.end.lat; appState.fwLng = appState.end.lng; }
+                appState.fwElev = Math.max(-500, Math.min(9000, v));
+            }
+            _fwShells = [];
+            fwAfter();
+        }); });
+    fwNum(['input-fw-height', 'input-fw-ctrl-height'], 'fwHeight', -1000, 10000);
+    fwNum(['input-fw-radius', 'input-fw-ctrl-radius'], 'fwRadius', 0, 10000);
+    ['sel-fw-size', 'sel-fw-ctrl-size'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState.fwSize = el.value; fwAfter(); }); });
+    document.querySelectorAll('input[name="fw-mode"], input[name="fw-mode-ctrl"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            appState.fwMode = r.value;
+            if (r.value === 'fixed') appState.fwSpread = 0;   // 固定選択時はばらつき0(デッサン06)
+            fwAfter();
+        });
+    });
+    ['input-fw-spread', 'input-fw-ctrl-spread'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { appState.fwSpread = parseInt(el.value) || 0; fwAfter(); }); });
+    ['input-fw-latlng', 'input-fw-ctrl-latlng'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => handleFwLocationInput(el.value)); });
+    // 再生オプション: アニメーション/動画のラジオ(切替時は再生中のものを停止)
+    document.querySelectorAll('input[name="sora-mov-playmode"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) soraMovStop(); appState.soraMovPlayMode = r.value; soraSyncUI(); saveAppState(); } });
+    });
+    // 書き出し: 形式ラジオ・出力サイズ(アスペクト連動)・ファイル出力
+    document.querySelectorAll('input[name="sora-exp-format"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) { appState.soraExpFormat = r.value; soraSyncUI(); saveAppState(); } });
+    });
+    const expAspect = () => appState.soraPanorama ? soraPanoAspect() : soraOrientedAspect().aw / soraOrientedAspect().ah;
+    const expWEl = document.getElementById('input-sora-exp-w');
+    if (expWEl) expWEl.addEventListener('change', () => {
+        const v = Math.round(parseFloat(expWEl.value));
+        if (!isNaN(v)) {
+            appState.soraExpW = Math.max(1, Math.min(8192, v));
+            appState.soraExpH = Math.max(1, Math.min(8192, Math.round(appState.soraExpW / expAspect())));
+        }
+        soraSyncUI(); saveAppState();
+    });
+    const expHEl = document.getElementById('input-sora-exp-h');
+    if (expHEl) expHEl.addEventListener('change', () => {
+        const v = Math.round(parseFloat(expHEl.value));
+        if (!isNaN(v)) {
+            appState.soraExpH = Math.max(1, Math.min(8192, v));
+            appState.soraExpW = Math.max(1, Math.min(8192, Math.round(appState.soraExpH * expAspect())));
+        }
+        soraSyncUI(); saveAppState();
+    });
+    btnH('btn-sora-export', soraExportRun);
+    chkH('chk-sora-peaking', 'soraPeaking');
+    chkH('chk-sora-traj', 'soraTraj');
+    chkH('chk-sora-center', 'soraCenterCross');
+    chkH('chk-sora-target', 'soraTargetCross');
+    chkH('chk-sora-search-center', 'soraSearchCenter');
+    soraSyncUI();
+}
+
+// --- パネル制御 ---
+function toggleSoramado() {
+    if (appState.isSoramadoActive) {
+        closeSoramado();
+    } else {
+        // 標高グラフ・全天儀とは画面下1/3を排他利用
+        if (appState.isElevationActive) toggleElevation();
+        if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+        appState.isSoramadoActive = true;
+        saveAppState();
+        soraSyncUI();
+        document.getElementById('btn-soramado').classList.add('active');
+        document.getElementById('soramado-panel').classList.remove('hidden');
+        drawSoramado();
+    }
+    syncBottomPanels();
+}
+function closeSoramado() {
+    if (_movTimer || _movVideo || (_expVideo && _expVideo.owner === 'play')) soraMovStop();   // インターバルMov再生中なら停止(動画再生・生成中含む)
+    if (_expVideo) soraExportCancel();   // 動画書き出し中なら中止(破棄)
+    appState.isSoramadoActive = false;
+    document.getElementById('btn-soramado').classList.remove('active');
+    document.getElementById('soramado-panel').classList.add('hidden');
+    _fwSyncAnim();   // 花火アニメーションを停止(花火モードの状態自体は保持)
+}
+
+// --- three.js プレビュー (F1: カメラ枠・ファインダー・中心十字) ---
+let _smRenderer = null, _smScene = null, _smCamera = null, _smInited = false, _smFailed = false;
+let _smEqjGrp = null;   // EQJ座標のオーバーレイ群(星座線/領域・再生中の天の川の環)。空と同じ回転を適用
+
+function _smInit() {
+    if (typeof THREE === 'undefined') {
+        _smFailed = true;
+        const info = document.getElementById('soramado-info');
+        if (info) info.textContent = '3Dライブラリ(three.js)を読み込めませんでした';
+        return;
+    }
+    const cv = document.getElementById('soramado-canvas');
+    _smRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, logarithmicDepthBuffer: true });
+    _smRenderer.setPixelRatio(window.devicePixelRatio || 1);
+    _smRenderer.autoClear = false;
+    _smScene = new THREE.Scene();
+    _smScene.background = null;
+    _smCamera = new THREE.PerspectiveCamera(40, 1, 1, 1e6);
+    // F2: 背景天球・軌跡・天体マーカー (描画順: 空→軌跡→天体)
+    _smSky = _smBuildSky();
+    _smScene.add(_smSky);
+    _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
+    _fwGrp = new THREE.Group(); _smScene.add(_fwGrp);                 // 花火モード(実寸ENU。地形で遮蔽される)
+    _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
+    _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
+    _smBodiesGrp = new THREE.Group(); _smScene.add(_smBodiesGrp);
+    _smEqjGrp = new THREE.Group(); _smScene.add(_smEqjGrp);   // 星座線/領域・再生中の環(EQJ→地平回転を共有)
+    _smTryLoadRealImage();
+    _smInitPost();
+    _smAttachDrag(cv);
+    _smInited = true;
+}
+
+/** プレビューのドラッグパン: マウスは1ポインタのドラッグ、タッチ(スマホ)は2本指の重心移動で
+ *  オフセット方位角/視高度を連動更新する(内容が指に追従するパノラマ操作)。 */
+function _smAttachDrag(cv) {
+    const pts = new Map();   // pointerId → {x, y}
+    const centroid = () => {
+        let x = 0, y = 0;
+        pts.forEach(p => { x += p.x; y += p.y; });
+        return { x: x / pts.size, y: y / pts.size };
+    };
+    cv.addEventListener('pointerdown', e => {
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    cv.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return;
+        const need = (e.pointerType === 'touch') ? 2 : 1;   // タッチは2本指のみ有効
+        const before = centroid();
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size < need) return;
+        const after = centroid();
+        const dx = after.x - before.x, dy = after.y - before.y;
+        if (!dx && !dy) return;
+        // px→角度: ファインダー実寸と画角から換算。内容が指に追従(右へドラッグ=視線は左へ=Az減、下へドラッグ=視線は上へ=Alt増)
+        const o = soraComputeOptics();
+        const hAov = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は画面幅=パノラマ水平画角
+        const dAz = -dx * hAov / _smFinderW;
+        const dAlt = dy * o.aovV / _smFinderH;
+        appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
+        appState.soraOffsetAlt = Math.max(-360, Math.min(360, Number(appState.soraOffsetAlt) + dAlt));
+        soraSyncUI();
+        drawSoramado();
+    });
+    const end = e => {
+        if (!pts.has(e.pointerId)) return;
+        pts.delete(e.pointerId);
+        if (pts.size === 0) saveAppState();   // ドラッグ完了時に1回だけ保存
+    };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+}
+
+/** 方位az・視高度alt(度) → ワールド単位ベクトル(右手系 ENU: X=東, Y=北, Z=上) */
+function _smDir(azDeg, altDeg) {
+    const az = azDeg * Math.PI / 180, alt = altDeg * Math.PI / 180, ca = Math.cos(alt);
+    return new THREE.Vector3(Math.sin(az) * ca, Math.cos(az) * ca, Math.sin(alt));
+}
+
+/** ファインダー枠の矩形(指定領域内に finderAspect で内接, margin) → {x,y,w,h} */
+function _smFitRect(boxW, boxH, finderAspect, margin) {
+    let w = boxW * margin, h = w / finderAspect;
+    if (h > boxH * margin) { h = boxH * margin; w = h * finderAspect; }
+    return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
+}
+
+function drawSoramado() {
+    if (!_smInited && !_smFailed) _smInit();
+    if (_smFailed) return;
+    const cv = document.getElementById('soramado-canvas');
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    _smRenderer.setSize(w, h, false);
+
+    const o = soraComputeOptics();
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
+    const pano = appState.soraPanorama;
+    const panoAov = pano ? soraPanoEffAov(o) : 0;
+    const { aw: _oaw, ah: _oah } = soraOrientedAspect();
+    // パノラマON時はアスペクト比を水平画角に応じて可変(円筒投影)。通常時はアスペクト比設定どおり
+    const finderAspect = pano ? soraPanoAspect(o) : _oaw / _oah;
+    // ファインダー矩形(CSS px)を先に求め、中心十字の画面固定サイズやドラッグ換算に使う(_smBuildBodiesより前)
+    const cr = _smFitRect(w, h, finderAspect, 0.94);
+    _smFinderH = cr.h || 1;
+    _smFinderW = cr.w || 1;
+    const _fe = (!pano && appState.soraFisheye) ? soraFisheyeParams() : null;   // パノラマ中はフィッシュアイ無効
+    const allsky = !!_fe && _smAllSkyOn();                    // 歪み100%+円形: 等距離射影の全天表示
+    const allskyR = allsky ? Math.min(cr.w, cr.h) / 2 : 0;    // 円の半径(CSS px)
+    if (allsky) {
+        _smSetAllSkyBasis(az, alt);   // 画面中心=カメラの向き(基準方位角+基準視高度+オフセット)
+        // 画面固定サイズのスプライト(十字/星座名称)の既存スケール式が全天表示でも同じ見た目になるよう、
+        // 等距離射影の中心倍率(最終px = 2·scale·R/π)から逆算した実効fovを設定する(キューブ面90°描画の中心近似)
+        _smCamera.fov = 2 * Math.atan(Math.PI * _smFinderH / (4 * allskyR)) * 180 / Math.PI;
+    } else {
+        _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));   // フィッシュアイON時は歪みに連動して画角を拡大
+    }
+    _smCamera.aspect = finderAspect;
+    _smCamera.up.set(0, 0, 1);
+    _smCamera.position.set(0, 0, 0);
+    _smCamera.lookAt(_smDir(az, alt));
+    _smCamera.updateProjectionMatrix();
+
+    // 天の川の明るさ(黒レベル)をスライダー値から反映
+    if (_smSkyMat && _smSkyMat.userData.uMwBlack) {
+        const mwb = Number(appState.soraMwBrightness);
+        _smSkyMat.userData.uMwBlack.value = 1 - Math.max(0, Math.min(100, isNaN(mwb) ? 100 : mwb)) / 100;
+    }
+    if (!_movPlaying && !_fwTickDraw) {
+        // F2: 背景球の向き/可視・天体マーカー・軌跡・天の川の環を更新
+        // (再生中はキュー側が、花火アニメtick中は花火グループだけが更新されるのでスキップ)
+        _smUpdateSky();
+        _smBuildBodies();
+        _smBuildTraj();
+        _smUpdateMilkyWayRing();
+        // F3: DEM地形(扇が変わった時のみ再取得)
+        _smUpdateTerrain();
+        _fwUpdateScene(performance.now());   // 花火モード(オフならグループを空にする)
+    }
+    // 星座線/星座領域/星座名称(基本オプション連動): チェックオンなら宙の窓のプレビューにも表示
+    _smEnsureConstLayer('fig');
+    _smEnsureConstLayer('bounds');
+    _smEnsureConstNames();
+    _smUpdateConstNames(cr);
+
+    // ファインダー矩形: HTML枠(#soramado-frame)と一致させるため CSS px(論理px)で指定する。
+    // three.js は setViewport/setScissor の座標を内部で devicePixelRatio 倍する(three.js WebGLRenderer)。
+    // ここでデバイスpxを渡すと dpr>1 で二重スケールし、プレビュー内容だけ枠からズレる(スマホで顕著)。
+    const dpr = _smRenderer.getPixelRatio();
+    const glY = h - cr.y - cr.h;                        // WebGLは左下原点 (cr は上部で算出済み)
+    _smRenderer.setScissorTest(false);
+    _smRenderer.setClearColor(0x000000, 1);
+    _smRenderer.clear(true, true, true);                 // パネル全体を黒でクリア
+    if (pano) {
+        // パノラマ: 垂直ストリップ毎にカメラ方位を回して透視投影し、横に並べる(円筒投影の近似)。
+        // ストリップ幅は角度に比例(viewport px は丸め累積で隙間なし)。カメラは fov=垂直画角のまま、
+        // aspect=tan(ストリップ角/2)/tan(垂直画角/2) で各ストリップの水平角範囲を切り出す。
+        const nStrips = Math.max(1, Math.ceil(panoAov / 10));   // 1ストリップ≦10°で円筒近似
+        const stripDeg = panoAov / nStrips;
+        const stripAspect = Math.tan(stripDeg * Math.PI / 360) / Math.tan(_smCamera.fov * Math.PI / 360);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        for (let i = 0; i < nStrips; i++) {
+            const px0 = Math.round(cr.x + cr.w * i / nStrips);
+            const px1 = Math.round(cr.x + cr.w * (i + 1) / nStrips);
+            if (px1 <= px0) continue;
+            const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
+            _smCamera.aspect = stripAspect;
+            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.updateProjectionMatrix();
+            _smRenderer.setViewport(px0, glY, px1 - px0, cr.h);
+            _smRenderer.setScissor(px0, glY, px1 - px0, cr.h);
+            _smRenderer.clear(true, true, true);
+            _smRenderer.render(_smScene, _smCamera);
+        }
+        _smRenderer.setScissorTest(false);
+    } else if (allsky && _smRenderAllSkyCube(finderAspect, allskyR * dpr)) {
+        // 真の魚眼(等距離射影)の全天表示: キューブ全方位レンダ→等距離射影クアッドをファインダーへ
+        _smRenderer.setRenderTarget(null);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
+        _smRenderer.render(_smAllSkyScene, _smAllSkyCam);
+        _smRenderer.setScissorTest(false);
+    } else if (appState.soraFisheye && _smPostMat) {
+        // フィッシュアイ(近似): シーンをRTへ→バレル歪みでファインダーへ
+        // RTは鮮鋭さのためデバイスpxで確保。RTバインド中は RT 自身のviewportが使われるため setViewport は不要。
+        _smPostMat.uniforms.uK.value = _fe.uK;
+        _smPostMat.uniforms.uCircle.value = appState.soraFisheyeShape === 'circle' ? 1.0 : 0.0;
+        _smPostMat.uniforms.uAspect.value = finderAspect;
+        const rw = Math.max(2, Math.round(cr.w * dpr)), rh = Math.max(2, Math.round(cr.h * dpr));
+        _smRT.setSize(rw, rh);
+        _smRenderer.setRenderTarget(_smRT);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        _smRenderer.clear(true, true, true);
+        _smRenderer.render(_smScene, _smCamera);
+        _smRenderer.setRenderTarget(null);
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
+        _smRenderer.render(_smPostScene, _smPostCam);
+        _smRenderer.setScissorTest(false);
+    } else {
+        _smRenderer.setScissorTest(true);
+        _smRenderer.setViewport(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setScissor(cr.x, glY, cr.w, cr.h);
+        _smRenderer.setClearColor(0x0a0e1a, 1);
+        _smRenderer.clear(true, true, true);             // ファインダー内を空色でクリア
+        _smRenderer.render(_smScene, _smCamera);         // 背景球・天体・軌跡・地形
+        _smRenderer.setScissorTest(false);
+    }
+
+    // HTMLオーバーレイ (CSS px で配置)
+    const frame = document.getElementById('soramado-frame');
+    if (frame) { frame.style.width = cr.w + 'px'; frame.style.height = cr.h + 'px'; }
+    if (_movVideo && _movVideo.el) { _movVideo.el.style.width = cr.w + 'px'; _movVideo.el.style.height = cr.h + 'px'; }   // 再生オプション②の動画をファインダー矩形に重ねる
+    const cross = document.getElementById('soramado-center');
+    if (cross) cross.classList.toggle('hidden', !appState.soraCenterCross);
+    // 左下の中心・画角キャプションは表示しない(依頼により削除)。#soramado-info は three.js読込失敗時のエラー表示にのみ使用。
+    _fwSyncAnim();   // 花火モードON+表示中ならアニメーションループを起動(冪等)
+}
+
+function resizeSoramado() { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); }
+
+// --- F2: 天体プレビュー (背景球・天体マーカー・月相・軌跡) ---
+const _SM_BODY_R = 400000, _SM_SKY_R = 600000;   // 天体・天球は地形(≤300km)より外側に置き、地形で遮蔽できるように
+const _SM_CROSS_PX = 26;   // 天体中心十字のスプライト画面高さ(px固定)。可視十字は約0.69倍≈18pxで画面中心十字と同程度
+let _smSky = null, _smSkyMat = null, _smSkyTex = null, _smBodiesGrp = null, _smTrajGrp = null, _smTrajKey = '';
+let _smMwRingGrp = null, _smMwRingKey = '';   // 天の川の環(銀河赤道の大円)を天体色の線で。時刻/位置/色で再計算(キャッシュ)
+let _smFinderH = 200, _smFinderW = 300;   // 直近のファインダーCSS高さ/幅(px)。十字の画面固定サイズやドラッグのpx→角度換算に使用(drawSoramadoで更新)
+const _smTexCache = {};   // key → CanvasTexture
+
+/** 背景天球(BackSide, 赤道座標テクスチャ)を生成 */
+function _smBuildSky() {
+    const slices = 64, stacks = 32, positions = [], uvs = [], indices = [];
+    for (let j = 0; j <= stacks; j++) {
+        const dec = -90 + 180 * j / stacks;
+        for (let i = 0; i <= slices; i++) {
+            const v = _mwEquVec(24 * i / slices, dec);
+            positions.push(v[0] * _SM_SKY_R, v[1] * _SM_SKY_R, v[2] * _SM_SKY_R);
+            uvs.push(i / slices, j / stacks);
+        }
+    }
+    const row = slices + 1;
+    for (let j = 0; j < stacks; j++) for (let i = 0; i < slices; i++) {
+        const a = j * row + i, b = a + row;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    _smSkyTex = new THREE.CanvasTexture(_mwBuildProceduralTexture());
+    _smSkyTex.colorSpace = THREE.SRGBColorSpace;
+    _smSkyMat = new THREE.MeshBasicMaterial({ map: _smSkyTex, side: THREE.DoubleSide, depthWrite: false });
+    // 天の川の明るさ(黒レベル持ち上げ): 白に近い明るい色は保ち、暗い色から先に沈める。
+    // uMwBlack=0で原画どおり、1に近づくほど暗色から黒へ(ホワイトバランスを暗い色から0にするイメージ)。
+    _smSkyMat.onBeforeCompile = (shader) => {
+        shader.uniforms.uMwBlack = { value: 1 - Math.max(0, Math.min(100, Number(appState.soraMwBrightness))) / 100 || 0 };
+        _smSkyMat.userData.uMwBlack = shader.uniforms.uMwBlack;
+        shader.fragmentShader = shader.fragmentShader
+            .replace('void main() {', 'uniform float uMwBlack;\nvoid main() {')
+            .replace('#include <map_fragment>', '#include <map_fragment>\n\tdiffuseColor.rgb = max(diffuseColor.rgb - vec3(uMwBlack), vec3(0.0)) / max(1.0 - uMwBlack, 0.001);');
+    };
+    const mesh = new THREE.Mesh(geo, _smSkyMat);
+    mesh.renderOrder = -1;
+    return mesh;
+}
+
+/** 実画像(高解像度 milkyway-skymap_4k.webp)があれば背景球テクスチャを差し替え */
+function _smTryLoadRealImage() {
+    const img = new Image();
+    img.onload = () => {
+        if (_smFailed || !_smSkyMat) return;
+        const tex = new THREE.Texture(img);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 0.5;   // NASA赤道座標版に整合
+        tex.needsUpdate = true;
+        if (_smSkyTex) _smSkyTex.dispose();
+        _smSkyTex = tex; _smSkyMat.map = tex; _smSkyMat.needsUpdate = true;
+        if (appState.isSoramadoActive) drawSoramado();
+    };
+    img.onerror = () => { /* 取得不可: 模式図のまま */ };
+    img.src = 'milkyway-skymap_4k.webp';   // 宙の窓は広角背景のため高解像度版を使用(全天儀は小サイズ版)
+}
+
+/** EQJ→地平(ENU) 回転を Astronomy.Horizon の基準点から構成し、背景球へ適用＋可視更新 */
+/** EQJ→地平の回転基底(RA0h/Dec0°とDec+90°の地平方向)を空とEQJオーバーレイ群へ適用。
+ *  再生(インターバルMov)ではワーカーが事前計算した基底をここへ流し込む。 */
+function _smSetSkyBasis(Rx, Rz) {
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const rz = norm(Rz), d = dot(Rx, rz);
+    const rx = norm([Rx[0] - rz[0] * d, Rx[1] - rz[1] * d, Rx[2] - rz[2] * d]);
+    const ry = cross(rz, rx);
+    const m = new THREE.Matrix4();
+    m.makeBasis(new THREE.Vector3(rx[0], rx[1], rx[2]), new THREE.Vector3(ry[0], ry[1], ry[2]), new THREE.Vector3(rz[0], rz[1], rz[2]));
+    if (_smSky) _smSky.quaternion.setFromRotationMatrix(m);
+    if (_smEqjGrp && _smSky) _smEqjGrp.quaternion.copy(_smSky.quaternion);
+}
+
+function _smUpdateSky() {
+    if (!_smSky) return;
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    _smSky.visible = !!(mw && mw.visible);
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const toW = (raH, decD) => { const hor = Astronomy.Horizon(date, observer, raH, decD, null); const d = _smDir(hor.azimuth, hor.altitude); return [d.x, d.y, d.z]; };
+    // 星座線/領域(EQJオーバーレイ)は天の川の表示に依らず回転させるため、可視でなくても基底は更新する
+    _smSetSkyBasis(toW(0, 0), toW(0, 90));
+}
+
+// 宙の窓プレビューの星座線/星座領域(基本オプションのチェックと連動)。EQJ群(_smEqjGrp)の子として空と一緒に回転
+const _smConstLayers2 = { fig: null, bounds: null };
+const _smConstLoading2 = { fig: false, bounds: false };
+function _smEnsureConstLayer(kind) {
+    if (!_smEqjGrp) return;
+    const on = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+    if (_smConstLayers2[kind]) { _smConstLayers2[kind].visible = on; return; }
+    if (!on || _smConstLoading2[kind]) return;
+    _smConstLoading2[kind] = true;
+    const st = _MW_CONST_STYLE[kind];
+    _constFetch(kind).then(gj => {
+        if (!_smEqjGrp || _smConstLayers2[kind]) return;
+        const group = new THREE.Group();
+        const R = _SM_SKY_R * 0.995;   // 天球のわずか内側(地形より外側なので山で隠れる)
+        for (const f of gj.features) {
+            const geom = f.geometry;
+            const polys = geom.type === 'MultiLineString' ? geom.coordinates : [geom.coordinates];
+            for (const poly of polys) {
+                const pts = _mwConstPolyline(poly, R);
+                if (pts.length < 2) continue;
+                const g = new THREE.BufferGeometry().setFromPoints(pts);
+                group.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: st.color, transparent: true, opacity: st.opacity * 0.85, depthWrite: false })));
+            }
+        }
+        group.visible = kind === 'fig' ? !!appState.mwShowConstFig : !!appState.mwShowConstBounds;
+        _smConstLayers2[kind] = group;
+        _smEqjGrp.add(group);
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    }).catch(() => { _smConstLoading2[kind] = false; });
+}
+
+// 宙の窓プレビューの星座名称(基本オプションの「:星座名称」チェックと連動)。
+// 88星座の概略中心(MW_CONSTELLATIONS)にテキストスプライトを置き、EQJ群(_smEqjGrp)の子として空と一緒に回転させる。
+// フィッシュアイのポストプロセスでも星座線と一緒に歪む。テクスチャは初回のみ生成し、
+// 向き(四角=水平/円形=同心円状)とスクリーン固定サイズは毎描画(_smUpdateConstNames)で更新する。
+// 表示天体名・星座名称の文字サイズ: メニューのスライダー(%・プレビュー基準100)×書き出し時の出力倍率。
+// 書き出しでは _smLabelScaleX = 出力高さ÷プレビューのファインダー高さ を掛けて、
+// 出力サイズを変えてもプレビューと同じ相対サイズの文字になるようにする
+let _smLabelScaleX = 1;
+function _smLabelScale() {
+    const v = Number(appState.soraLabelScale);
+    return (isNaN(v) ? 100 : Math.max(0, Math.min(1000, v))) / 100 * _smLabelScaleX;
+}
+let _smConstNamesGrp = null;
+function _smEnsureConstNames() {
+    if (!_smEqjGrp || _smConstNamesGrp || !appState.mwShowConstNames) return;
+    const grp = new THREE.Group();
+    const R = _SM_SKY_R * 0.995;
+    MW_CONSTELLATIONS.forEach(c => {
+        // 名称テクスチャ(白文字+黒縁取り)。幅は文字数に応じて可変、アスペクト比はスケール側で維持する
+        const H = 48, font = 'bold 30px sans-serif';
+        const cv = document.createElement('canvas');
+        let ctx = cv.getContext('2d');
+        ctx.font = font;
+        const w = Math.ceil(ctx.measureText(c.n).width) + 16;
+        cv.width = w; cv.height = H;
+        ctx = cv.getContext('2d');
+        ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.strokeText(c.n, w / 2, H / 2);
+        ctx.fillStyle = '#ffffff'; ctx.fillText(c.n, w / 2, H / 2);
+        const tex = new THREE.CanvasTexture(cv);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: tex, transparent: true, opacity: 0.85,
+            depthTest: true, depthWrite: false, sizeAttenuation: false,
+        }));
+        sp.renderOrder = 998;   // 描画順は後段(半透明の重なり用)。depthTestで前景の山並みの奥では隠れる
+        sp.userData.aspect = w / H;
+        const v = _mwEquVec(c.ra, c.dec);
+        sp.position.set(v[0] * R, v[1] * R, v[2] * R);
+        grp.add(sp);
+    });
+    _smConstNamesGrp = grp;
+    _smEqjGrp.add(grp);
+}
+
+/** 星座名称スプライトの毎描画更新: 表示/画面固定サイズ/向き。
+ *  向きは画面形状=四角(またはフィッシュアイオフ・パノラマ中)なら水平、円形なら画面中心から同心円状
+ *  (接線方向・文字の天が中心向き=星座盤の慣例)。バレル歪みは中心からの放射方向を保つため、
+ *  ポストプロセス後も接線方向は維持される。 */
+function _smUpdateConstNames(cr) {
+    if (!_smConstNamesGrp) return;
+    _smConstNamesGrp.visible = !!appState.mwShowConstNames;
+    if (!_smConstNamesGrp.visible) return;
+    const NAME_PX = 13 * _smLabelScale();   // 画面上の文字高さ(px・文字サイズスライダーと書き出し倍率を反映)
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const sy = NAME_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+    const wp = new THREE.Vector3();
+    _smConstNamesGrp.children.forEach(sp => {
+        sp.scale.set(sy * sp.userData.aspect, sy, 1);
+        sp.getWorldPosition(wp);
+        sp.material.rotation = _smLabelRotFor(wp, cr.w, cr.h);
+    });
+}
+
+/** ラベルスプライトの回転角(現在の投影モードに応じて):
+ *  全天表示=画面中心(カメラ方向)まわりの同心円状 / 樽円形=ファインダー中心からの同心円状 / それ以外=0(水平) */
+function _smLabelRotFor(wp, crW, crH) {
+    if (_smAllSkyOn()) return _smAllSkyLabelRot(wp);
+    if (!!appState.soraFisheye && appState.soraFisheyeShape === 'circle' && !appState.soraPanorama) {
+        const ndc = wp.clone().project(_smCamera);
+        const phi = Math.atan2(ndc.y * crH, ndc.x * crW);
+        return phi + Math.PI / 2;
+    }
+    return 0;
+}
+
+/** 64px キャンバスを描いて CanvasTexture をキャッシュ */
+function _smCanvasTex(key, draw, size) {
+    if (_smTexCache[key]) return _smTexCache[key];
+    const s = size || 64, cv = document.createElement('canvas'); cv.width = cv.height = s;
+    draw(cv.getContext('2d'), s);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    _smTexCache[key] = tex; return tex;
+}
+function _smCrossTex(color) {
+    return _smCanvasTex('cross_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.strokeStyle = color; c.lineWidth = 3; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(s / 2, 10); c.lineTo(s / 2, s - 10); c.moveTo(10, s / 2); c.lineTo(s - 10, s / 2); c.stroke();
+    });
+}
+
+/** X字(×)記号のテクスチャ(検索中心マーカー用) */
+function _smCrossTexX(color) {
+    return _smCanvasTex('crossx_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.strokeStyle = color; c.lineWidth = 3; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(14, 14); c.lineTo(s - 14, s - 14); c.moveTo(s - 14, 14); c.lineTo(14, s - 14); c.stroke();
+    });
+}
+
+/** 目的点(+)・検索中心(×)マーカーを _smBodiesGrp へ追加(通常描画/再生の両パスで共用)。
+ *  検索中心 = 基準(目的点)方向 + 辻オフセット。検索中心オプションが線なら目的点→オフセット点の線も描く */
+function _smAddTargetMarkers(cs) {
+    const baseAz = Number(appState.soraBaseAz) || 0, baseAlt = Number(appState.soraBaseAlt) || 0;
+    if (appState.soraTargetCross) {
+        const tpos = _smDir(baseAz, baseAlt).multiplyScalar(_SM_BODY_R);
+        const tcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#F44336'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        tcross.scale.set(cs, cs, 1); tcross.position.copy(tpos.clone().multiplyScalar(0.9999)); tcross.renderOrder = 999;
+        tcross.userData.kind = 'targetCross'; _smBodiesGrp.add(tcross);
+    }
+    if (appState.soraSearchCenter) {
+        const sAz = baseAz + (Number(appState.tsujiSearchOffsetAz) || 0);
+        const sAlt = baseAlt + (Number(appState.tsujiSearchOffsetAlt) || 0);
+        const spos = _smDir(sAz, sAlt).multiplyScalar(_SM_BODY_R * 0.9999);
+        const xcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTexX('#FFD700'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        xcross.scale.set(cs, cs, 1); xcross.position.copy(spos); xcross.renderOrder = 999;
+        xcross.userData.kind = 'searchCenter'; _smBodiesGrp.add(xcross);
+        if (appState.tsujiCenterMode === 'line') {
+            // 検索中心の線分: 検索(ワーカーのsegmentMatch)と同じ「方位角/視高度平面の直線」を描く。
+            // 大円(球面補間)で描くと検索の判定線と中間で数°ズレるため、az/altの線形補間で一致させる。
+            const dAz = ((sAz - baseAz + 540) % 360) - 180;   // ワーカーと同じ±180正規化
+            const dAlt = sAlt - baseAlt;
+            const pts = [];
+            for (let i = 0; i <= 48; i++) {
+                pts.push(_smDir(baseAz + dAz * i / 48, baseAlt + dAlt * i / 48).multiplyScalar(_SM_BODY_R * 0.9999));
+            }
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+                new THREE.LineBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false }));
+            line.renderOrder = 998; line.userData.kind = 'searchCenterLine'; _smBodiesGrp.add(line);
+        }
+    }
+}
+// ============================================================
+// 宙の窓 花火モード (デッサン06 55〜70段目) — 打ち上げ花火のシミュレーション
+//  打ち上げ点(緯度経度+標高+高さ)から開花高度まで軌跡の線が上がり、開花直径の
+//  放射状の粒が七色で開く。位置・大きさは実寸ENU(地形と同じ見かけ高さ補正)なので、
+//  手前の山による遮蔽や写る大きさが撮影計画にそのまま使える。
+// ============================================================
+const FW_SHELLS = [
+    { key: '2.5', name: '2.5号',        ball: 7.5, altLo: 80,  altHi: 80,  diaLo: 50,  diaHi: 50 },
+    { key: '3',   name: '3号',          ball: 9,   altLo: 120, altHi: 120, diaLo: 60,  diaHi: 100 },
+    { key: '5',   name: '5号',          ball: 15,  altLo: 190, altHi: 190, diaLo: 150, diaHi: 170 },
+    { key: '10',  name: '10号(尺玉)',   ball: 30,  altLo: 330, altHi: 330, diaLo: 280, diaHi: 300 },
+    { key: '30',  name: '30号(三尺玉)', ball: 90,  altLo: 550, altHi: 550, diaLo: 600, diaHi: 600 },
+    { key: '40',  name: '40号(四尺玉)', ball: 120, altLo: 700, altHi: 750, diaLo: 700, diaHi: 700 },
+];
+const FW_COLORS = ['#ff5252', '#ffa726', '#ffee58', '#66bb6a', '#42a5f5', '#5c6bc0', '#ab47bc'];   // 七色
+let _fwGrp = null;            // three.jsグループ(_smInitで_smSceneへ追加)
+let _fwShells = [];           // 実行中の花火玉
+let _fwNextLaunchAt = 0;      // 次の打ち上げ時刻(performance.now基準)
+let _fwAnimReq = null;        // アニメーションループのrAFハンドル
+let _fwLastTick = 0;          // 直近の描画時刻(30fpsスロットル)
+let _fwTickDraw = false;      // アニメtick中はdrawSoramadoの静的再構築をスキップ
+
+function fwSelectedShell() { return FW_SHELLS.find(s => s.key === String(appState.fwSize)) || FW_SHELLS[3]; }
+
+/** 花火点(+)の基準にする号数(デッサン06): 色々=40号(最大)の開花高度、固定=リスト選択の号数の開花高度 */
+function fwPointShell() { return appState.fwMode === 'fixed' ? fwSelectedShell() : FW_SHELLS[FW_SHELLS.length - 1]; }
+
+/** 打ち上げ点の緯度経度(初期値=位置情報メニューの目的点。明示設定するまで目的点に追従する) */
+function fwLaunchPoint() {
+    const la = parseFloat(appState.fwLat), ln = parseFloat(appState.fwLng);
+    if (isFinite(la) && isFinite(ln)) return { lat: la, lng: ln };
+    return { lat: appState.end.lat, lng: appState.end.lng };
+}
+
+/** 打ち上げ点標高の実効値(m): 未設定の間は目的点の標高(endApiElev)を使う(初期値=目的点と同じ) */
+function fwEffElev() {
+    if (appState.fwLat !== null && appState.fwLng !== null) return Number(appState.fwElev) || 0;
+    return Number(appState.endApiElev) || 0;
+}
+
+/** 打ち上げ点の指定総標高(標高+高さ+開花高度等)の実寸ENU座標(m)。
+ *  見かけ高さzは地形メッシュと同じ「緯度別の局所半径2つの厳密三角形解」(屈折込み)で求める */
+function _fwEnu(elevTotal) {
+    const p = fwLaunchPoint();
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    const d = getDistanceWGS84(oLat, oLng, p.lat, p.lng);
+    const az = calculateBearing(oLat, oLng, p.lat, p.lng) * Math.PI / 180;
+    const E = d * Math.sin(az), N = d * Math.cos(az);
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const Reff1 = getLocalEarthRadius(oLat) / (1 - k), Reff2 = getLocalEarthRadius(p.lat) / (1 - k);
+    const r1 = Reff1 + (Number(appState.start.elev) || 0), r2 = Reff2 + elevTotal;
+    const c = d / ((Reff1 + Reff2) / 2);
+    const slant = Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(c)) || 1e-9;
+    const alt = Math.atan2(r2 * Math.sin(c) / slant, (r1 * r1 + slant * slant - r2 * r2) / (2 * r1 * slant)) - Math.PI / 2;
+    return { E, N, z: d * Math.tan(alt), d };
+}
+
+/** 1発打ち上げ: 号数(固定/色々+ばらつき)と開花高度・直径・色・粒方向を決めて登録する */
+function _fwSpawnShell(now) {
+    let idx;
+    if (appState.fwMode === 'fixed') {
+        idx = Math.max(0, FW_SHELLS.findIndex(s => s.key === String(appState.fwSize)));
+    } else {
+        // ばらつき: u^γ で号数indexを偏らせる(γ=(1-p)/(1+p)。+100→40号のみ / 0→均等 / -100→2.5号のみ)
+        const p = Math.max(-0.999, Math.min(0.999, (Number(appState.fwSpread) || 0) / 100));
+        const gamma = (1 - p) / (1 + p);
+        idx = Math.min(FW_SHELLS.length - 1, Math.floor(Math.pow(Math.random(), gamma) * FW_SHELLS.length));
+    }
+    const spec = FW_SHELLS[idx];
+    const bloomAlt = spec.altLo + Math.random() * (spec.altHi - spec.altLo);
+    const R = (spec.diaLo + Math.random() * (spec.diaHi - spec.diaLo)) / 2;
+    // 打ち上げ位置: 領域半径の円内で一様ランダム
+    const rr = Math.max(0, Number(appState.fwRadius) || 0) * Math.sqrt(Math.random());
+    const th = Math.random() * 2 * Math.PI;
+    const offE = rr * Math.sin(th), offN = rr * Math.cos(th);
+    const groundTot = fwEffElev() + (Number(appState.fwHeight) || 0);
+    const g = _fwEnu(groundTot);
+    const b = _fwEnu(groundTot + bloomAlt);
+    // 開花の粒: 球面一様ランダムの方向ベクトル
+    const nP = 96;
+    const dirs = new Float32Array(nP * 3);
+    for (let i = 0; i < nP; i++) {
+        const u = Math.random() * 2 - 1, ph = Math.random() * 2 * Math.PI, su = Math.sqrt(1 - u * u);
+        dirs[i * 3] = su * Math.cos(ph); dirs[i * 3 + 1] = su * Math.sin(ph); dirs[i * 3 + 2] = u;
+    }
+    const ci = Math.floor(Math.random() * FW_COLORS.length);
+    _fwShells.push({
+        gE: g.E + offE, gN: g.N + offN, gz: g.z,
+        bE: b.E + offE, bN: b.N + offN, bz: b.z,
+        R, dirs, nP,
+        color: FW_COLORS[ci],
+        color2: FW_COLORS[(ci + 1 + Math.floor(Math.random() * (FW_COLORS.length - 1))) % FW_COLORS.length],
+        t0: now,
+        riseDur: 1100 + bloomAlt * 2.2,   // 高い玉ほど打ち上げが長い(10号≒1.8秒)
+        bloomDur: 1300, fadeDur: 1500,
+    });
+}
+
+/** 花火のシーン更新: 打ち上げスケジュール→各玉の軌跡線/開花の粒/花火点(+)を再構築する。
+ *  地形と同じ実寸ENUに置き、depthTest有効で手前の山に自然に遮蔽される(マーカーだけは常時表示) */
+function _fwUpdateScene(now) {
+    if (!_fwGrp) return;
+    while (_fwGrp.children.length) {
+        const c = _fwGrp.children.pop();
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) { if (c.material.map && c.material.map.userData && c.material.map.userData._fwOwn) c.material.map.dispose(); c.material.dispose(); }
+    }
+    if (!appState.fwEnabled) { _fwShells = []; return; }
+    // スケジューラ: 0.5〜1.7秒間隔で打ち上げ(同時最大6発)
+    if (now >= _fwNextLaunchAt) {
+        if (_fwShells.length < 6) _fwSpawnShell(now);
+        _fwNextLaunchAt = now + 500 + Math.random() * 1200;
+    }
+    _fwShells = _fwShells.filter(s => now - s.t0 < s.riseDur + s.bloomDur + s.fadeDur);
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    for (const s of _fwShells) {
+        const t = now - s.t0;
+        if (t < s.riseDur) {
+            // 打ち上げの軌跡: 明るい短い流線(進行の少し後ろ→現在位置)
+            const q = easeOut(Math.max(0, Math.min(1, t / s.riseDur)));
+            const qTail = easeOut(Math.max(0, Math.min(1, t / s.riseDur - 0.22)));
+            const head = new THREE.Vector3(s.gE + (s.bE - s.gE) * q, s.gN + (s.bN - s.gN) * q, s.gz + (s.bz - s.gz) * q);
+            const tail = new THREE.Vector3(s.gE + (s.bE - s.gE) * qTail, s.gN + (s.bN - s.gN) * qTail, s.gz + (s.bz - s.gz) * qTail);
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([tail, head]),
+                new THREE.LineBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(line);
+            const headPt = new THREE.Points(
+                new THREE.BufferGeometry().setFromPoints([head]),
+                new THREE.PointsMaterial({ color: 0xfff3c0, size: Math.max(2, s.R * 0.05), transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(headPt);
+        } else {
+            // 開花: 半径が減速しながら広がり、後半は重力でわずかに垂れつつフェードアウト。
+            // 色は開花の途中で別の色へ切り替わる(七色で色々)
+            const t2 = t - s.riseDur;
+            const grow = easeOut(Math.max(0, Math.min(1, t2 / s.bloomDur)));
+            const r = s.R * grow;
+            const fall = s.R * 0.3 * Math.pow(Math.max(0, t2 - s.bloomDur * 0.5) / (s.bloomDur * 0.5 + s.fadeDur), 2);
+            const fade = 1 - Math.max(0, (t2 - s.bloomDur) / s.fadeDur);
+            const pos = new Float32Array(s.nP * 3);
+            for (let i = 0; i < s.nP; i++) {
+                pos[i * 3] = s.bE + s.dirs[i * 3] * r;
+                pos[i * 3 + 1] = s.bN + s.dirs[i * 3 + 1] * r;
+                pos[i * 3 + 2] = s.bz + s.dirs[i * 3 + 2] * r - fall;
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            const color = (t2 < s.bloomDur * 0.55) ? s.color : s.color2;
+            const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+                color, size: Math.max(2, s.R * 0.06),
+                transparent: true, opacity: Math.max(0, Math.min(1, fade)) * 0.95,
+                blending: THREE.AdditiveBlending, depthWrite: false }));
+            _fwGrp.add(pts);
+        }
+    }
+    // 花火点(+): 開花の中心点(打ち上げ点の緯度経度・標高・高さ+開花高度)。
+    // 開花高度の基準は色々モード=40号の高い方、固定モード=リスト選択の号数の高い方(デッサン06)
+    if (appState.fwShowPoint && typeof _smCrossTex === 'function') {
+        const spec = fwPointShell();
+        const c0 = _fwEnu(fwEffElev() + (Number(appState.fwHeight) || 0) + spec.altHi);
+        const cs = _SM_CROSS_PX * 2 * Math.tan((_smCamera ? _smCamera.fov : 40) * Math.PI / 360) / Math.max(1, _smFinderH);
+        const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#FFA726'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
+        cross.scale.set(cs, cs, 1);
+        cross.position.set(c0.E, c0.N, c0.z);
+        cross.renderOrder = 999;
+        _fwGrp.add(cross);
+    }
+}
+
+/** 花火アニメーションの起動/停止(冪等)。花火モードON+宙の窓表示中のみ約30fpsで更新する。
+ *  1tick=花火グループの更新+再描画のみ(空・天体・地形の再構築はスキップ) */
+function _fwSyncAnim() {
+    const on = appState.fwEnabled && appState.isSoramadoActive && _smInited && !_smFailed;
+    if (on && _fwAnimReq === null) {
+        const tick = () => {
+            if (!(appState.fwEnabled && appState.isSoramadoActive)) { _fwAnimReq = null; return; }
+            _fwAnimReq = requestAnimationFrame(tick);
+            const now = performance.now();
+            if (now - _fwLastTick < 33) return;
+            _fwLastTick = now;
+            _fwUpdateScene(now);
+            _fwTickDraw = true;
+            try { drawSoramado(); } finally { _fwTickDraw = false; }
+        };
+        _fwAnimReq = requestAnimationFrame(tick);
+    } else if (!on && _fwAnimReq !== null) {
+        cancelAnimationFrame(_fwAnimReq);
+        _fwAnimReq = null;
+        _fwShells = []; _fwNextLaunchAt = 0;
+        _fwUpdateScene(performance.now());   // グループを空にする(花火点も含めて消す→次の描画で反映)
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+    }
+}
+
+/** 打ち上げ点の地図マーカー(🎆)+領域半径の円。花火モードON中のみ表示(内容が同じなら何もしない) */
+let _fwMapMarker = null, _fwMapCircle = null, _fwMapKey = '';
+function fwUpdateMapMarker() {
+    if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
+    const p0 = fwLaunchPoint();
+    const key = `${appState.fwEnabled}|${p0.lat},${p0.lng}|${Number(appState.fwRadius) || 0}`;
+    if (key === _fwMapKey) return;
+    _fwMapKey = key;
+    if (_fwMapMarker) { map.removeLayer(_fwMapMarker); _fwMapMarker = null; }
+    if (_fwMapCircle) { map.removeLayer(_fwMapCircle); _fwMapCircle = null; }
+    if (!appState.fwEnabled) return;
+    const p = fwLaunchPoint();
+    if (!isFinite(p.lat) || !isFinite(p.lng)) return;
+    _fwMapMarker = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ className: 'fw-map-icon', html: '🎆', iconSize: [24, 24], iconAnchor: [12, 12] }),
+        title: '打ち上げ点', interactive: false,
+    }).addTo(map);
+    const r = Number(appState.fwRadius) || 0;
+    if (r > 0) _fwMapCircle = L.circle([p.lat, p.lng], { radius: r, color: '#ff8f00', weight: 1, fillColor: '#ffb74d', fillOpacity: 0.15, interactive: false }).addTo(map);
+}
+
+/** appState → 花火モードのフォーム(宙の窓メニュー/ctrlメニューの両方)と算出表示を反映 */
+function fwSyncUI() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    chk('chk-sora-fw', appState.fwEnabled); chk('chk-sora-ctrl-fw', appState.fwEnabled);
+    const p = fwLaunchPoint();
+    const locStr = `${p.lat}, ${p.lng}`;   // 初期値(未設定)は目的点の座標を表示(デッサン06)
+    set('input-fw-latlng', locStr); set('input-fw-ctrl-latlng', locStr);
+    set('input-fw-api-elev', fwEffElev()); set('input-fw-ctrl-api-elev', fwEffElev());
+    set('input-fw-height', appState.fwHeight); set('input-fw-ctrl-height', appState.fwHeight);
+    set('input-fw-radius', appState.fwRadius); set('input-fw-ctrl-radius', appState.fwRadius);
+    set('sel-fw-size', String(appState.fwSize)); set('sel-fw-ctrl-size', String(appState.fwSize));
+    const spec = fwSelectedShell();
+    ['fw-ball-dia', 'fw-ctrl-ball-dia'].forEach(id => set(id, spec.ball + 'cm'));
+    ['fw-alt-lo', 'fw-ctrl-alt-lo'].forEach(id => set(id, spec.altLo + 'm'));
+    ['fw-alt-hi', 'fw-ctrl-alt-hi'].forEach(id => set(id, spec.altHi + 'm'));
+    ['fw-dia-lo', 'fw-ctrl-dia-lo'].forEach(id => set(id, spec.diaLo + 'm'));
+    ['fw-dia-hi', 'fw-ctrl-dia-hi'].forEach(id => set(id, spec.diaHi + 'm'));
+    const mR = document.querySelector(`input[name="fw-mode"][value="${appState.fwMode}"]`);
+    if (mR) mR.checked = true;
+    const mRC = document.querySelector(`input[name="fw-mode-ctrl"][value="${appState.fwMode}"]`);
+    if (mRC) mRC.checked = true;
+    const sp = Number(appState.fwSpread) || 0;
+    set('input-fw-spread', sp); set('input-fw-ctrl-spread', sp);
+    txt('fw-spread-label', (sp > 0 ? '+' : '') + sp); txt('fw-ctrl-spread-label', (sp > 0 ? '+' : '') + sp);
+    chk('chk-sora-fw-point', appState.fwShowPoint); chk('chk-sora-ctrl-fw-point', appState.fwShowPoint);
+    // 位置情報: 観測点→花火点の基準方位角/基準視高度(算出値。辻検索とは非連動)。
+    // 開花高度の基準は花火点(+)と同じ(色々=40号/固定=選択号数の高い方)
+    const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, p.lat, p.lng);
+    const az = calculateBearing(appState.start.lat, appState.start.lng, p.lat, p.lng);
+    const fwTot = fwEffElev() + (Number(appState.fwHeight) || 0) + fwPointShell().altHi;
+    const alt = calculateApparentAltitude(dist, Number(appState.start.elev) || 0, fwTot, appState.start.lat, p.lat);
+    set('input-fw-base-az', az.toFixed(2));
+    set('input-fw-base-alt', alt.toFixed(2));
+}
+
+/** 打ち上げ点テキストの入力: 緯度,経度の直入力 or 地名/住所検索(位置情報メニューと同じ流れ) */
+async function handleFwLocationInput(val) {
+    if (!val) return;
+    const coords = parseInput(val);
+    if (coords) { await applyFwCoords(coords); return; }
+    const results = await searchLocation(toFullWidth(val.trim()));
+    if (!results || results.length === 0) { alert('該当する地名が見つかりませんでした'); return; }
+    showLocationPicker(results, async r => { await applyFwCoords({ lat: r.lat, lng: r.lon }); });
+}
+
+async function applyFwCoords(coords) {
+    // 座標は即時反映し、標高は取得でき次第あとから埋める(取得待ちで設定が遅れない/失敗時は0)
+    appState.fwLat = coords.lat;
+    appState.fwLng = coords.lng;
+    appState.fwHeight = 0;
+    _fwShells = [];   // 位置が変わったら打ち上げ直す
+    if (typeof map !== 'undefined' && map) map.setView([coords.lat, coords.lng]);
+    fwSyncUI(); saveAppState(); fwUpdateMapMarker();
+    if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
+    let elev = 0;
+    try { elev = await getElevation(coords.lat, coords.lng); } catch (_) { elev = 0; }
+    appState.fwElev = (elev !== null && isFinite(elev)) ? elev : 0;
+    _fwShells = [];
+    fwSyncUI(); saveAppState();
+    if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
+}
+
+// ============================================================
+// 宙検索 (Sora Search) フェーズ1: データ層 (デッサン18)
+//  視界扇形の標本化 → Open-Meteo /v1/jma の3層雲量(バッチ取得+IndexedDBキャッシュ)
+//  → 狙いプリセットの重みで宙スコア(0〜100)を時刻毎に算出 → 暫定リスト表示。
+//  光害・AOD・雲海度(気圧面)・ERA5統計はフェーズ3、本UIと一括対象はフェーズ2/4。
+// ============================================================
+// プリセット値表(デッサン18と同期。w系=0〜100の重み / moon,unkai='avoid'|'want' / hours='night'|'ghbh')
+const SS_PRESETS = {
+    milkyway: { label: '天の川',        wL: 100, wM: 85, wH: 40, moon: 'avoid', wMoon: 80, unkai: 'avoid', wUnkai: 0,  wLp: 70, wTr: 40, obj: 'mw',    wObj: 60, hours: 'night' },
+    stars:    { label: '星景(表示天体)', wL: 100, wM: 85, wH: 50, moon: 'avoid', wMoon: 50, unkai: 'avoid', wUnkai: 0,  wLp: 40, wTr: 30, obj: 'body',  wObj: 80, hours: 'night' },
+    unkai:    { label: '雲海×月夜',     wL: 30,  wM: 90, wH: 50, moon: 'want',  wMoon: 60, unkai: 'want',  wUnkai: 90, wLp: 10, wTr: 20, obj: 'none',  wObj: 0,  hours: 'night' },
+    pearl:    { label: 'パール(満月)',   wL: 100, wM: 90, wH: 50, moon: 'want',  wMoon: 90, unkai: 'avoid', wUnkai: 0,  wLp: 0,  wTr: 20, obj: 'moon',  wObj: 90, hours: 'night' },
+    glow:     { label: '朝焼け・夕焼け', wL: 80,  wM: 40, wH: 20, moon: 'avoid', wMoon: 0,  unkai: 'avoid', wUnkai: 0,  wLp: 0,  wTr: 30, obj: 'none',  wObj: 0,  hours: 'ghbh' },
+};
+
+// --- IndexedDB キャッシュ (DB: soranotsuji-wx / store: fc / TTL 2時間。ローカル使い捨て・Drive同期対象外) ---
+const SS_TTL = 2 * 3600e3;
+let _ssDbReady = null;
+function _ssDb() {
+    if (_ssDbReady) return _ssDbReady;
+    _ssDbReady = new Promise((ok, ng) => {
+        try {
+            const req = indexedDB.open('soranotsuji-wx', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('fc');
+            req.onsuccess = () => ok(req.result);
+            req.onerror = () => ng(req.error);
+        } catch (e) { ng(e); }
+    });
+    return _ssDbReady;
+}
+async function _ssIdb(mode, fn) {
+    const db = await _ssDb();
+    return new Promise((ok, ng) => {
+        const r = fn(db.transaction('fc', mode).objectStore('fc'));
+        r.onsuccess = () => ok(r.result);
+        r.onerror = () => ng(r.error);
+    });
+}
+
+/** 視界扇形の標本: 観測点直上1点+方位5本×距離3環。MSM格子(約5km)より粗くならないよう
+ *  0.05°に丸めて重複除去する(実APIコールは数格子分に圧縮)。重み=距離減衰(近い雲ほど視界を塞ぐ)。
+ *  観測点直上は頭上の雲が最も致命的なので最大重みにする(デッサン18) */
+function ssFanSamples(fanDeg, rangeKm) {
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    const az0 = calculateBearing(oLat, oLng, appState.end.lat, appState.end.lng);
+    const raw = [{ lat: oLat, lng: oLng, w: 1.2 }];
+    for (const fA of [-1, -0.5, 0, 0.5, 1]) {
+        const az = (az0 + fA * fanDeg / 2) * Math.PI / 180;
+        for (const fR of [0.25, 0.6, 1.0]) {
+            const d = rangeKm * 1000 * fR;
+            const lat = oLat + d * Math.cos(az) / 111320;
+            const lng = oLng + d * Math.sin(az) / (111320 * Math.cos(oLat * Math.PI / 180));
+            const w = (1 / (1 + fR)) * (Math.abs(fA) === 1 ? 0.7 : 1.0);   // 距離減衰×方位の中心寄り
+            raw.push({ lat, lng, w });
+        }
+    }
+    const byKey = new Map();
+    for (const p of raw) {
+        const gl = Math.round(p.lat / 0.05) * 0.05, gn = Math.round(p.lng / 0.05) * 0.05;
+        const key = `${gl.toFixed(2)},${gn.toFixed(2)}`;
+        const cur = byKey.get(key);
+        if (!cur) byKey.set(key, { key, lat: +gl.toFixed(2), lng: +gn.toFixed(2), w: p.w });
+        else cur.w = Math.max(cur.w, p.w);   // 同一格子に落ちた標本は最大重みを代表にする
+    }
+    return [...byKey.values()];
+}
+
+/** Open-Meteoの時刻別3層雲量+地上湿度を、キャッシュ優先+未取得分のみ複数地点バッチで取得する。
+ *  days≦11は /v1/jma (気象庁GSM+MSM)。12〜16日は /v1/forecast (best_match) で延長(信頼度低)。
+ *  戻り値: {key → {time:[ISO..], low:[..], mid:[..], high:[..], rh:[..]}} */
+async function ssFetchClouds(points, days) {
+    const d1 = Math.min(11, days);
+    const results = {};
+    const misses = [];
+    for (const p of points) {
+        let hit = null;
+        try { hit = await _ssIdb('readonly', s => s.get(`jma:${p.key}:${days}`)); } catch (_) {}
+        if (hit && Date.now() - hit.t < SS_TTL) results[p.key] = hit.data;
+        else misses.push(p);
+    }
+    if (misses.length) {
+        const lats = misses.map(p => p.lat).join(','), lngs = misses.map(p => p.lng).join(',');
+        const H = 'cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m';
+        const fetchArr = async (base, fd) => {
+            const url = `${base}?latitude=${lats}&longitude=${lngs}&hourly=${H}&forecast_days=${fd}&timezone=Asia%2FTokyo`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
+            const data = await res.json();
+            return Array.isArray(data) ? data : [data];
+        };
+        const arr = await fetchArr('https://api.open-meteo.com/v1/jma', d1);
+        let ext = null;
+        if (days > 11) {
+            try { ext = await fetchArr('https://api.open-meteo.com/v1/forecast', Math.min(16, days)); } catch (_) { ext = null; }
+        }
+        misses.forEach((p, i) => {
+            const h = arr[i] && arr[i].hourly;
+            if (!h) return;
+            const data = { time: h.time, low: h.cloud_cover_low, mid: h.cloud_cover_mid, high: h.cloud_cover_high, rh: h.relative_humidity_2m };
+            // 12日目以降は best_match の延長分を継ぎ足す(同時刻はJMA優先)
+            const eh = ext && ext[i] && ext[i].hourly;
+            if (eh) for (let k = 0; k < eh.time.length; k++) {
+                if (eh.time[k] > data.time[data.time.length - 1]) {
+                    data.time.push(eh.time[k]); data.low.push(eh.cloud_cover_low[k]); data.mid.push(eh.cloud_cover_mid[k]);
+                    data.high.push(eh.cloud_cover_high[k]); data.rh.push(eh.relative_humidity_2m[k]);
+                }
+            }
+            results[p.key] = data;
+            _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, `jma:${p.key}:${days}`)).catch(() => {});
+        });
+    }
+    return results;
+}
+
+// --- 光害アセット(フェーズ3。tools/lightpollutionで生成した data/lp-japan.bin/.json) ---
+let _ssLpMeta = null, _ssLpBin = null, _ssLpTried = false;
+/** 光害アセットの遅延読み込み(1回だけ)。無い/壊れている場合はfalse(光害因子はスキップされる) */
+async function ssLoadLp() {
+    if (_ssLpTried) return _ssLpBin !== null;
+    _ssLpTried = true;
+    try {
+        const [meta, bin] = await Promise.all([
+            fetch('data/lp-japan.json').then(r => { if (!r.ok) throw new Error('meta'); return r.json(); }),
+            fetch('data/lp-japan.bin').then(r => { if (!r.ok) throw new Error('bin'); return r.arrayBuffer(); }),
+        ]);
+        if (!meta || !meta.width || !meta.height || bin.byteLength !== meta.width * meta.height) throw new Error('size');
+        _ssLpMeta = meta;
+        _ssLpBin = new Uint8Array(bin);
+        return true;
+    } catch (_) {
+        _ssLpMeta = null; _ssLpBin = null;
+        return false;
+    }
+}
+/** 緯度経度→天頂SQM(mag/arcsec²)。範囲外・未読込はnull */
+function ssLpSqm(lat, lng) {
+    const m = _ssLpMeta;
+    if (!m || !_ssLpBin) return null;
+    const ix = Math.floor((lng - m.west) / m.dLng), iy = Math.floor((m.north - lat) / m.dLat);
+    if (ix < 0 || iy < 0 || ix >= m.width || iy >= m.height) return null;
+    return m.sqmMin + _ssLpBin[iy * m.width + ix] / 255 * (m.sqmMax - m.sqmMin);
+}
+/** 扇形標本に沿った方向光害(重み付き平均SQM)。データの無い標本は除外。全滅ならnull */
+function ssLpDirectional(points) {
+    let sw = 0, sum = 0;
+    for (const p of points) {
+        const s = ssLpSqm(p.lat, p.lng);
+        if (s === null) continue;
+        sw += p.w; sum += p.w * s;
+    }
+    return sw > 0 ? sum / sw : null;
+}
+
+/** 標本毎の雲量を重み付き平均して扇形雲量(層別0〜100)に合成する */
+function ssAggregateHour(points, clouds, hourIdx) {
+    let sw = 0, low = 0, mid = 0, high = 0, rh = 0;
+    for (const p of points) {
+        const c = clouds[p.key];
+        if (!c || c.low[hourIdx] === undefined || c.low[hourIdx] === null) continue;
+        sw += p.w;
+        low += p.w * c.low[hourIdx]; mid += p.w * c.mid[hourIdx]; high += p.w * c.high[hourIdx]; rh += p.w * (c.rh[hourIdx] || 0);
+    }
+    if (!sw) return null;
+    return { low: low / sw, mid: mid / sw, high: high / sw, rh: rh / sw };
+}
+
+/** 時刻毎の天文量: 太陽/月の高度・月輝面比・対象天体の高度(プリセットのobj種別に従う) */
+function ssAstroHour(date, preset) {
+    const obs = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const hor = (id) => { const eq = Astronomy.Equator(id, date, obs, true, true); return Astronomy.Horizon(date, obs, eq.ra, eq.dec, 'normal'); };
+    const sunAlt = hor('Sun').altitude;
+    const moonH = hor('Moon');
+    let moonIllum = 0;
+    try { moonIllum = Astronomy.Illumination('Moon', date).phase_fraction; } catch (_) {}
+    let objAlt = null;
+    if (preset.obj === 'mw') {
+        const gc = galacticToEquatorial(0, 0);   // 天の川中心(いて座付近)
+        objAlt = Astronomy.Horizon(date, obs, gc.ra, gc.dec, 'normal').altitude;
+    } else if (preset.obj === 'moon') {
+        objAlt = moonH.altitude;
+    } else if (preset.obj === 'body') {
+        // 表示天体の中で最も高いもの(フェーズ1の簡易版)
+        let best = null;
+        for (const b of appState.bodies.filter(b => b.visible)) {
+            try {
+                const h = isFixedStar(b.id)
+                    ? (() => { const rd = getFixedStarRaDec(b.id); return Astronomy.Horizon(date, obs, rd.ra, rd.dec, 'normal'); })()
+                    : hor(b.id);
+                if (best === null || h.altitude > best) best = h.altitude;
+            } catch (_) {}
+        }
+        objAlt = best;
+    }
+    return { sunAlt, moonAlt: moonH.altitude, moonIllum, objAlt };
+}
+
+/** 宙スコア(0〜100)。乗算型: どれかの因子が致命的なら総合も低くなる(デッサン18)。
+ *  雲(3層)×月×対象高度×透明度(地上湿度の簡易版)×光害(lp={zen,dir}のSQM。省略時はスキップ)。
+ *  AOD・雲海度・統計はフェーズ3後半 */
+function ssScoreHour(preset, agg, astro, lp) {
+    const clear = (1 - preset.wL / 100 * agg.low / 100) * (1 - preset.wM / 100 * agg.mid / 100) * (1 - preset.wH / 100 * agg.high / 100);
+    let fMoon = 1;
+    if (preset.wMoon > 0) {
+        if (preset.moon === 'avoid') {
+            const moonUp = Math.max(0, Math.sin(astro.moonAlt * Math.PI / 180)) * astro.moonIllum;   // 月明かりの強さ0〜1
+            fMoon = 1 - preset.wMoon / 100 * moonUp;
+        } else {
+            const seen = astro.moonAlt > 0 ? astro.moonIllum : 0;   // 月が出ていて明るいほど良い
+            fMoon = (1 - preset.wMoon / 100) + preset.wMoon / 100 * seen;
+        }
+    }
+    let fObj = 1;
+    if (preset.wObj > 0 && astro.objAlt !== null) {
+        const g = astro.objAlt <= 0 ? 0 : Math.min(1, astro.objAlt / 20);   // 高度20°以上で満点・地平線下で0
+        fObj = (1 - preset.wObj / 100) + preset.wObj / 100 * g;
+    }
+    const humid = Math.max(0, Math.min(1, ((agg.rh || 0) - 60) / 40));      // 湿度60%以下は透明・100%で最大減点
+    const fTr = 1 - preset.wTr / 100 * 0.5 * humid;
+    let fLp = 1;
+    if (preset.wLp > 0 && lp && lp.zen !== null && lp.zen !== undefined) {
+        // 空の暗さ0〜1: SQM16(大都市)→0 / SQM22(自然の暗さ)→1。天頂6:視界方向4で合成
+        const dk = v => Math.max(0, Math.min(1, (v - 16) / 6));
+        const dark = (lp.dir !== null && lp.dir !== undefined) ? 0.6 * dk(lp.zen) + 0.4 * dk(lp.dir) : dk(lp.zen);
+        fLp = (1 - preset.wLp / 100) + preset.wLp / 100 * dark;
+    }
+    return Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr * fLp) / 10));
+}
+
+/** 宙検索フェーズ1の実行: 扇形標本→雲量取得→時刻毎スコア→暫定リスト表示(辻検索結果パネル) */
+let _ssRunning = false;
+async function soraSearchRun() {
+    if (_ssRunning) return;
+    _ssRunning = true;
+    const statusEl = document.getElementById('ss-status');
+    const setBusy = (t) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(t)}`; };
+    try {
+        const preset = SS_PRESETS[document.getElementById('sel-ss-preset').value] || SS_PRESETS.milkyway;
+        const days = Math.max(1, Math.min(16, parseInt(document.getElementById('input-ss-days').value) || 11));
+        const stepH = parseInt(document.getElementById('sel-ss-interval').value) || 1;
+        const fanDeg = Math.max(1, Math.min(180, parseFloat(document.getElementById('input-ss-fan').value) || 24));
+        const rangeIn = parseFloat(document.getElementById('input-ss-range').value);
+        const distKm = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng) / 1000;
+        const rangeKm = Math.max(1, Math.min(300, isFinite(rangeIn) && rangeIn > 0 ? rangeIn : Math.ceil(distKm)));
+        setBusy('扇形標本を作成中…');
+        const points = ssFanSamples(fanDeg, rangeKm);
+        // 光害(静的アセット): 観測点の天頂SQMと、扇形に沿った方向光害。検索毎に1回だけ算出
+        await ssLoadLp();
+        const lp = { zen: ssLpSqm(appState.start.lat, appState.start.lng), dir: ssLpDirectional(points) };
+        setBusy(`雲量を取得中… (${points.length}格子)`);
+        const clouds = await ssFetchClouds(points, days);
+        const base = clouds[points[0].key];
+        if (!base || !base.time || !base.time.length) throw new Error('雲量データを取得できませんでした');
+        setBusy('宙スコアを計算中…');
+        const rows = [];
+        const now = Date.now();
+        for (let i = 0; i < base.time.length; i += stepH) {
+            const dt = new Date(base.time[i]);
+            if (isNaN(dt.getTime()) || dt.getTime() < now - 3600e3) continue;
+            const agg = ssAggregateHour(points, clouds, i);
+            if (!agg) continue;
+            const astro = ssAstroHour(dt, preset);
+            // 時間帯フィルタ: 夜=天文薄明相当(太陽高度<-18°) / GH/BH=太陽高度±6°帯
+            if (preset.hours === 'night' && astro.sunAlt > -18) continue;
+            if (preset.hours === 'ghbh' && Math.abs(astro.sunAlt) > 6) continue;
+            const hoursAhead = (dt.getTime() - now) / 3600e3;
+            const conf = hoursAhead <= 72 ? '高' : (hoursAhead <= 264 ? '中' : '低');
+            rows.push({ dt, score: ssScoreHour(preset, agg, astro, lp), agg, astro, conf });
+            if (rows.length % 200 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+        ssRenderInterim(rows, preset, lp);
+        if (statusEl) statusEl.textContent = `${rows.length}件 (${points.length}格子)`;
+    } catch (e) {
+        console.error('soraSearchRun:', e);
+        if (statusEl) statusEl.textContent = 'エラー: ' + (e && e.message ? e.message : e);
+        alert('宙検索に失敗しました: ' + (e && e.message ? e.message : e) + '\n(Open-Meteoへの接続をご確認ください)');
+    } finally {
+        _ssRunning = false;
+    }
+}
+
+/** フェーズ1の暫定リスト表示(辻検索結果パネルを間借り。本UIはフェーズ2)。行クリックで日時移動。
+ *  lp={zen,dir}: 光害(検索毎に一定)。アセット未配置・範囲外は'-'表示 */
+function ssRenderInterim(rows, preset, lp) {
+    showTsujiPanelForMyTsuji(`宙検索結果 (${preset.label} / フェーズ1・暫定)`);
+    const statusEl = document.getElementById('tsujisearch-status');
+    if (statusEl) statusEl.textContent = `(${rows.length}件)`;
+    const contentEl = document.getElementById('tsujisearch-content');
+    contentEl.innerHTML = '';
+    if (!rows.length) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する時刻がありません(時間帯フィルタ/期間を見直してください)</div>';
+        return;
+    }
+    const dows = ['日', '月', '火', '水', '木', '金', '土'];
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    table.innerHTML = '<thead><tr><th>日付</th><th>曜日</th><th>時刻</th><th>宙スコア</th><th>雲低</th><th>雲中</th><th>雲高</th><th>湿度</th><th>月輝面比</th><th>月高度</th><th>対象高度</th><th>光害(SQM)</th><th>方向光害</th><th>信頼度</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    const p2 = v => ('00' + v).slice(-2);
+    const lpZenStr = (lp && lp.zen !== null && lp.zen !== undefined) ? lp.zen.toFixed(2) : '-';
+    const lpDirStr = (lp && lp.dir !== null && lp.dir !== undefined) ? lp.dir.toFixed(2) : '-';
+    for (const r of rows) {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        const scoreColor = r.score >= 70 ? '#ffd700' : (r.score >= 40 ? '#eee' : '#888');
+        const confColor = r.conf === '高' ? '#8f8' : (r.conf === '中' ? '#ff8' : '#f88');
+        tr.innerHTML = `<td>${r.dt.getFullYear()}/${p2(r.dt.getMonth() + 1)}/${p2(r.dt.getDate())}</td><td>(${dows[r.dt.getDay()]})</td>` +
+            `<td>${p2(r.dt.getHours())}:00</td><td style="color:${scoreColor};font-weight:bold;">${r.score.toFixed(1)}</td>` +
+            `<td>${Math.round(r.agg.low)}%</td><td>${Math.round(r.agg.mid)}%</td><td>${Math.round(r.agg.high)}%</td><td>${Math.round(r.agg.rh)}%</td>` +
+            `<td>${Math.round(r.astro.moonIllum * 100)}%</td><td>${r.astro.moonAlt.toFixed(1)}°</td>` +
+            `<td>${r.astro.objAlt === null ? '-' : r.astro.objAlt.toFixed(1) + '°'}</td>` +
+            `<td>${lpZenStr}</td><td>${lpDirStr}</td><td style="color:${confColor};">${r.conf}</td>`;
+        tr.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dt);
+            syncUIFromState();
+            updateAll();
+        });
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
+}
+
+function _smDiskTex(color) {
+    return _smCanvasTex('disk_' + color, (c, s) => {
+        c.clearRect(0, 0, s, s); c.fillStyle = color;
+        c.beginPath(); c.arc(s / 2, s / 2, s / 2 - 3, 0, 2 * Math.PI); c.fill();
+    });
+}
+/** 月の満ち欠けキャンバス(clip+半分塗り+ターミネーター楕円) + 視半径の細線円 */
+function _smDrawMoon(c, s, fraction, waxing) {
+    const R = s / 2 - 6, cx = s / 2, cy = s / 2;
+    const dark = 'rgba(48,50,60,0.92)', lit = '#f4f1e0';
+    c.clearRect(0, 0, s, s);
+    c.save();
+    c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.clip();
+    c.fillStyle = dark; c.fillRect(0, 0, s, s);
+    const k = Math.max(0, Math.min(1, fraction));
+    c.fillStyle = lit;
+    if (waxing) c.fillRect(cx, 0, s, s); else c.fillRect(0, 0, cx, s);   // 明るい縁側の半分
+    const ex = R * Math.abs(1 - 2 * k);                                  // ターミネーター楕円の横半径
+    c.beginPath(); c.ellipse(cx, cy, ex, R, 0, 0, 2 * Math.PI);
+    c.fillStyle = (k > 0.5) ? lit : dark;                               // 凸(満ちて)→明, 凹(欠けて)→暗
+    c.fill();
+    c.restore();
+    c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 1;            // 視半径の細線円
+    c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.stroke();
+}
+
+/** 表示天体のマーカー(中心十字・視半径円・月相)を毎回再構築 */
+// 表示天体名のテクスチャ(天体色文字+黒縁取り)。天体ごとに1回だけ生成してキャッシュ
+const _smBodyNameTexCache = {};
+function _smBodyNameTex(body) {
+    const key = `${body.id}_${body.color}_${body.name}`;
+    if (_smBodyNameTexCache[key]) return _smBodyNameTexCache[key];
+    const H = 44, font = 'bold 28px sans-serif';
+    const cv = document.createElement('canvas');
+    let ctx = cv.getContext('2d');
+    ctx.font = font;
+    const w = Math.ceil(ctx.measureText(body.name).width) + 14;
+    cv.width = w; cv.height = H;
+    ctx = cv.getContext('2d');
+    ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.strokeText(body.name, w / 2, H / 2);
+    ctx.fillStyle = body.color; ctx.fillText(body.name, w / 2, H / 2);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return _smBodyNameTexCache[key] = { tex, aspect: w / H };
+}
+
+/** 表示天体名スプライトをマーカーの右横に追加(基本オプション「:表示天体名」オン時)。
+ *  向きは星座名称と同じ規則(全天/樽円形=同心円状・それ以外=水平)。 */
+function _smAddBodyName(body, pos) {
+    if (!appState.mwShowBodyNames) return;
+    const t = _smBodyNameTex(body);
+    const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const sy = 12 * _smLabelScale() * 2 * Math.tan(fovV / 2) / _smFinderH;   // 画面上約12px(文字サイズスライダーと書き出し倍率を反映)
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t.tex, transparent: true, opacity: 0.95, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+    sp.renderOrder = 998;   // depthTestで前景の山並みの奥では隠れる
+    sp.scale.set(sy * t.aspect, sy, 1);
+    sp.center.set(-0.12, 0.5);   // マーカーの右横に表示(アンカー位置の右側に文字)
+    sp.material.rotation = _smLabelRotFor(pos, _smFinderW, _smFinderH);
+    sp.position.copy(pos.clone().multiplyScalar(0.9998));
+    _smBodiesGrp.add(sp);
+}
+
+function _smBuildBodies() {
+    if (!_smBodiesGrp) return;
+    while (_smBodiesGrp.children.length) { const c = _smBodiesGrp.children.pop(); if (c.material) c.material.dispose(); }
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const refr = appState.refractionEnabled ? 'normal' : null;
+    appState.bodies.forEach(body => {
+        if (!body.visible) return;
+        if (body.id === 'MilkyWay') {
+            // 天の川の基準点(中心座標/オフセット点=基本オプション)に、他天体と同じ天体色の固定画面サイズ十字。
+            // 天体軌跡オフの時は実際の見た目の確認を優先して十字も非表示にする(名称表示は表示天体名チェックに従う)
+            const gc = getFixedStarRaDec('MilkyWay');
+            const ghor = Astronomy.Horizon(date, observer, gc.ra, gc.dec, refr);
+            const gpos = _smDir(ghor.azimuth, ghor.altitude).multiplyScalar(_SM_BODY_R);
+            if (appState.soraTraj) {
+                const gfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+                const gcs = _SM_CROSS_PX * 2 * Math.tan(gfov / 2) / _smFinderH;
+                const gcross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+                gcross.scale.set(gcs, gcs, 1); gcross.position.copy(gpos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(gcross);
+            }
+            _smAddBodyName(body, gpos);
+            return;   // 帯本体は背景球の写真＋天の川の環(線)で表現
+        }
+        let ra, dec;
+        if (isFixedStar(body.id)) { const rd = getFixedStarRaDec(body.id); ra = rd.ra; dec = rd.dec; }
+        else { try { const eq = Astronomy.Equator(body.id, date, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { return; } }
+        const hor = Astronomy.Horizon(date, observer, ra, dec, refr);
+        const pos = _smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R);
+        const angR = getBodyAngularRadius(body.id, date, observer);    // deg (点光源は0)
+        if (body.id === 'Moon') {
+            const ill = Astronomy.Illumination('Moon', date);
+            const waxing = Astronomy.MoonPhase(date) < 180;
+            const tex = _smCanvasTex(`moon_${ill.phase_fraction.toFixed(2)}_${waxing}`, (c, s) => _smDrawMoon(c, s, ill.phase_fraction, waxing), 128);
+            const r = _SM_BODY_R * Math.tan(Math.max(angR, 0.08) * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        } else if (angR > 0) {
+            const r = _SM_BODY_R * Math.tan(angR * Math.PI / 180);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smDiskTex(body.color), transparent: true, opacity: 0.55, depthTest: true, depthWrite: false }));
+            sp.scale.set(2 * r, 2 * r, 1); sp.position.copy(pos); _smBodiesGrp.add(sp);
+        }
+        // 中心十字 (全天体・焦点距離/プレビューサイズに依らず ≈_SM_CROSS_PX の画面固定サイズ＝画面中心十字と同程度)。
+        // sizeAttenuation:false のSpriteの画面高さ比 = scale/(2·tan(fov/2)) なので、px固定になるよう scale を逆算する。
+        // 天体軌跡オフの時は実際の見た目の確認を優先して十字も非表示にする(天体の円盤・名称はそのまま)
+        if (appState.soraTraj) {
+            const fovV = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+            const cs = _SM_CROSS_PX * 2 * Math.tan(fovV / 2) / _smFinderH;
+            const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex(body.color), transparent: true, depthTest: true, depthWrite: false, sizeAttenuation: false }));
+            cross.scale.set(cs, cs, 1); cross.position.copy(pos.clone().multiplyScalar(0.9999)); _smBodiesGrp.add(cross);
+        }
+        _smAddBodyName(body, pos);
+    });
+
+    // 目的点マーカー: 基準方位角・基準視高度(=観測点→目的点方向, オフセット無し)に赤い十字を画面固定サイズで表示。
+    // depthTest:false＋高renderOrderで地形に隠れず常に見える。オフセット0なら白い中心十字と重なる。
+    const tfov = (_smCamera ? _smCamera.fov : 40) * Math.PI / 180;
+    const tcs = _SM_CROSS_PX * 2 * Math.tan(tfov / 2) / _smFinderH;
+    _smAddTargetMarkers(tcs);
+}
+
+/** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
+function _smBuildTraj(dateOverride) {
+    if (!_smTrajGrp) return;
+    const dayStart = new Date(dateOverride || appState.currentDate); dayStart.setHours(0, 0, 0, 0);
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
+    const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
+    const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
+    if (key === _smTrajKey) return;
+    _smTrajKey = key;
+    while (_smTrajGrp.children.length) { const c = _smTrajGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    if (!appState.soraTraj) return;
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const dayStartMs = dayStart.getTime(), N = 96;
+    appState.bodies.forEach(body => {
+        if (!body.visible) return;
+        // 天の川は「基準点(中心座標/オフセット点=基本オプション)」を固定点として軌跡を描く。それ以外は通常天体。
+        let isFixed, rd;
+        if (body.id === 'MilkyWay') {
+            isFixed = true; rd = getFixedStarRaDec('MilkyWay');
+        } else {
+            isFixed = isFixedStar(body.id);
+            rd = isFixed ? getFixedStarRaDec(body.id) : null;
+        }
+        // 前日/当日/翌日 を各日 0:00〜23:59:59 で1本ずつ(計3本)描画
+        for (let d = -1; d <= 1; d++) {
+            const day0 = dayStartMs + d * 86400000;
+            const pts = [];
+            for (let i = 0; i <= N; i++) {
+                const t = new Date(day0 + (i / N) * 86399000);   // 0:00 .. 23:59:59
+                let ra, dec;
+                if (isFixed) { ra = rd.ra; dec = rd.dec; }
+                else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
+                const hor = Astronomy.Horizon(t, observer, ra, dec, null);
+                pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
+            }
+            if (pts.length < 2) continue;
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
+            _smTrajGrp.add(line);
+        }
+    });
+}
+
+/** 天の川の環(銀河赤道 b=0 の大円)を白色の線で描画。時刻・位置が変わった時のみ再計算(キャッシュ)。
+ *  背景球と同じ Astronomy.Horizon→_smDir 変換で作るため、天の川写真の帯にぴたり整列する。 */
+function _smUpdateMilkyWayRing() {
+    if (!_smMwRingGrp) return;
+    const mw = appState.bodies.find(b => b.id === 'MilkyWay');
+    const visible = !!(mw && mw.visible);
+    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
+    const key = visible ? `${appState.currentDate.getTime()}|${posKey}` : 'off';
+    if (key === _smMwRingKey) return;
+    _smMwRingKey = key;
+    while (_smMwRingGrp.children.length) { const c = _smMwRingGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    if (!visible) return;
+    let observer;
+    try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
+    const date = appState.currentDate;
+    const refr = appState.refractionEnabled ? 'normal' : null;
+    const pts = [];
+    for (let l = 0; l <= 360; l += 4) {   // 銀河赤道を約91点で大円描画
+        const eq = galacticToEquatorial(l, 0);
+        const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, refr);
+        pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R));
+    }
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthTest: true }));
+    _smMwRingGrp.add(line);
+}
+// --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
+let _smTerrainGrp = null, _smTerrainMesh = null, _smHeightfield = null, _smGeomKey = '', _smShadeKey = '', _smTerrainGen = 0;
+
+/** 現在日時・観測点での太陽のENU方向(単位ベクトル)と高度。地形ヒルシェードの光源に使う。
+ * 夜間(太陽が地平線下)は方位を保ちつつ高度を底上げし、尾根のレリーフを常に維持する。 */
+function _smSunDir() {
+    try {
+        const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+        const date = appState.currentDate;
+        const eq = Astronomy.Equator('Sun', date, observer, true, true);
+        const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, null);
+        const altUse = hor.altitude < 3 ? 35 : hor.altitude;
+        return { vec: _smDir(hor.azimuth, altUse), alt: hor.altitude, az: hor.azimuth };
+    } catch (e) {
+        return { vec: _smDir(135, 45), alt: 45, az: 135 };   // 取得失敗時は南東45°の既定光
+    }
+}
+
+/** 球面上の終点(始点lat,lng・方位az度・距離distm) → {lat,lng} */
+function _smDestPoint(latDeg, lngDeg, azDeg, distM) {
+    const R = EARTH_RADIUS, dr = distM / R;
+    const lat1 = latDeg * Math.PI / 180, lng1 = lngDeg * Math.PI / 180, az = azDeg * Math.PI / 180;
+    const sinLat2 = Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(az);
+    const lat2 = Math.asin(Math.max(-1, Math.min(1, sinLat2)));
+    const lng2 = lng1 + Math.atan2(Math.sin(az) * Math.sin(dr) * Math.cos(lat1), Math.cos(dr) - Math.sin(lat1) * sinLat2);
+    return { lat: lat2 * 180 / Math.PI, lng: ((lng2 * 180 / Math.PI + 540) % 360) - 180 };
+}
+
+/** 視界範囲(km)と水平画角(°)からタイル数を抑える適応ズーム (z15=DEM5A/B/Cチェーン、z≤14=dem_png) */
+function _smTerrainZoom(rangeKm, latDeg, aovH) {
+    // 1タイルあたり ~ range/12 km を狙う (緯度36°で範囲33km強まで最詳細のz14=約7.7m画素を維持)。
+    // 望遠(画角が狭い)ほど遠くの山がズームされて粗が見えるため、35mm換算の標準画角54.4°を基準に
+    // 画角比で目標をさらに細かくする(最大1/8まで。望遠では扇が細く、タイル数の増加は限定的)。
+    // z15はDEM5A→5B→5C(5mメッシュ)+z14フォールバック(欠損画素)のチェーンで取得する
+    const aovScale = Math.max(0.125, Math.min(1, (Number(aovH) || 54.4) / 54.4));
+    const span = Math.max(rangeKm / 12 * aovScale, 0.2);
+    const z = Math.round(Math.log2(40075 * Math.cos(latDeg * Math.PI / 180) / span));
+    return Math.max(9, Math.min(15, z));
+}
+
+/** 地形の更新: 扇(位置・方位・画角・範囲)が変わった時のみ非同期取得。陰影は毎回反映 */
+function _smUpdateTerrain() {
+    if (!_smTerrainGrp) return;
+    const o = soraComputeOptics();
+    const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は扇をパノラマ水平画角へ
+    const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const range = Math.max(1, Number(appState.soraViewRange) || 1);
+    const zoom = _smTerrainZoom(range, appState.start.lat, aovH);
+    const endKey = (appState.end && isFinite(appState.end.lat)) ? `${appState.end.lat.toFixed(6)},${appState.end.lng.toFixed(6)}` : '-';   // 目的点スナップの追従用
+    const geomKey = `${appState.start.lat.toFixed(5)},${appState.start.lng.toFixed(5)},${(+appState.start.elev).toFixed(1)}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${range}|${zoom}|${endKey}`;
+    if (geomKey !== _smGeomKey) {
+        _smGeomKey = geomKey;
+        _smFetchTerrain(centerAz, aovH, range, zoom);
+    }
+    _smApplyShading();
+}
+
+// --- F3: DEM地形タイル取得 ワーカープール (fetch/PNGデコード/標高化を並列オフロード) ---
+const SORA_TERRAIN_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+let _smTerrainPool = null;
+function _smEnsureTerrainPool() {
+    if (_smTerrainPool) return _smTerrainPool;
+    const workers = [];
+    for (let i = 0; i < SORA_TERRAIN_POOL_SIZE; i++) workers.push(new Worker('sora-terrain-worker.js'));
+    _smTerrainPool = { workers, idle: [...workers], queue: [], seq: 0 };
+    return _smTerrainPool;
+}
+function _smTerrainRunOnWorker(worker, task) {
+    const handler = (e) => {
+        worker.removeEventListener('message', handler);
+        task.resolve(e.data || { elevs: [] });
+        if (_smTerrainPool && _smTerrainPool.queue.length > 0) _smTerrainRunOnWorker(worker, _smTerrainPool.queue.shift());
+        else if (_smTerrainPool) _smTerrainPool.idle.push(worker);
+    };
+    worker.addEventListener('message', handler);
+    worker.postMessage(task.message);
+}
+function _smTerrainPoolRun(message) {
+    const pool = _smEnsureTerrainPool();
+    return new Promise(resolve => {
+        const task = { message, resolve };
+        if (pool.idle.length > 0) _smTerrainRunOnWorker(pool.idle.pop(), task);
+        else pool.queue.push(task);
+    });
+}
+/** キュー上の未実行タイルタスクを全て破棄(扇の世代切替時に呼ぶ)。結果は空で解決され、旧世代側の gen チェックで捨てられる。 */
+function _smTerrainPoolCancelQueued() {
+    if (!_smTerrainPool) return;
+    for (const task of _smTerrainPool.queue) task.resolve({ reqId: task.message.reqId, elevs: [] });
+    _smTerrainPool.queue = [];
+}
+
+/** 地形取得の進捗バー。done<0 で非表示、それ以外は done/total を表示。 */
+function _smSetTerrainProgress(done, total) {
+    const bar = document.getElementById('soramado-progress');
+    const fill = document.getElementById('soramado-progress-fill');
+    if (!bar || !fill) return;
+    if (done < 0 || !total) { bar.classList.add('hidden'); return; }
+    bar.classList.remove('hidden');
+    fill.style.width = Math.round(Math.min(1, done / total) * 100) + '%';
+}
+
+/** 扇形をサンプリングし、DEM(またはテスト用合成)から標高を取得 → ハイトフィールド。
+ * 実DEMはタイル単位にまとめ、ワーカープールで並列取得(対応環境)。進捗バーを表示。 */
+async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
+    const gen = ++_smTerrainGen;
+    _smTerrainPoolCancelQueued();   // 旧扇のキュー済みタイルを全て破棄(走り続け防止。実行中の分は gen チェックで結果破棄)
+    const nearKm = 0.01;   // 0km近傍から
+    const azHalf = aovH / 2 + 2;     // 余白2°
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    // 格子密度: DEMタイルの画素サイズを目標に適応配分する。
+    // 目標は「最遠端(=目的の山)の頂点間隔 ≈ DEM画素」だが、無制限だと広角で数百万頂点になるため、
+    // 頂点予算内で方位・距離を同率で間引く。望遠(画角10°以下)は扇が細いので予算を厚めにし、
+    // ランプ指数も緩めて最遠端に密度を寄せる(600mm・視界範囲5km級ならぴったりDEM1画素粒度になる)
+    const isTele = aovH <= 10;
+    const SM_VERT_BUDGET = isTele ? 300000 : 200000;
+    const rampP = isTele ? 1.25 : 1.5;                                                // 距離ランプの指数(小さいほど遠方に密)
+    const pixKm = 40075 * Math.cos(oLat * Math.PI / 180) / Math.pow(2, zoom) / 256;   // DEM1画素(km)
+    const arcKm = 2 * azHalf * Math.PI / 180 * rangeKm;                               // 最遠端の弧長(km)
+    const nAMin = aovH > 180 ? 280 : 140, nRMin = aovH <= 20 ? 300 : 200;             // 従来密度を下限に
+    let nA = Math.max(nAMin, Math.min(1000, Math.ceil(arcKm / pixKm)));
+    let nR = Math.max(nRMin, Math.ceil(rampP * rangeKm / pixKm));                     // ランプの最遠端間隔=rampP·range/nR
+    const over = ((nA + 1) * (nR + 1)) / SM_VERT_BUDGET;
+    if (over > 1) {
+        const sc = Math.sqrt(over);
+        nA = Math.max(nAMin, Math.floor(nA / sc));
+        nR = Math.max(nRMin, Math.floor(nR / sc));
+        if ((nA + 1) * (nR + 1) > SM_VERT_BUDGET) nR = Math.max(nRMin, Math.floor(SM_VERT_BUDGET / (nA + 1)) - 1);
+    }
+    // 目的点スナップ: 山頂(目的点)が格子の「間」に落ちると、頂点の三角形補間で山頂がわずかに
+    // 低く/ずれて描かれ、目的点マーカー(+)と最高点が合わない。目的点が扇の中にある場合は、
+    // 方位1列(格子全体を半列間隔以内で平行移動)+距離1環を目的点にぴったり合わせ、
+    // その頂点の緯度経度は球面近似ではなく目的点の実座標(WGS84)を使う
+    let snapI = -1, snapJ = -1, azShift = 0, snapDkm = 0;
+    const endPt = appState.end;
+    if (endPt && isFinite(endPt.lat) && isFinite(endPt.lng)) {
+        const dT = getDistanceWGS84(oLat, oLng, endPt.lat, endPt.lng) / 1000;   // km
+        const azT = calculateBearing(oLat, oLng, endPt.lat, endPt.lng);
+        const rel = ((azT - centerAz + 540) % 360) - 180;
+        if (dT > nearKm && dT <= rangeKm && Math.abs(rel) <= azHalf) {
+            const spacing = 2 * azHalf / nA;
+            snapI = Math.max(0, Math.min(nA, Math.round((rel + azHalf) / spacing)));
+            azShift = rel - (-azHalf + snapI * spacing);   // |azShift| ≤ 半列間隔
+            snapJ = Math.max(1, Math.min(nR, Math.round(nR * Math.pow((dT - nearKm) / Math.max(1e-9, rangeKm - nearKm), 1 / rampP))));
+            snapDkm = dT;
+        }
+    }
+    const samples = new Array((nA + 1) * (nR + 1));
+    let p = 0;
+    for (let j = 0; j <= nR; j++) {
+        // 近傍を密に(1.5乗ランプ)。以前の2乗ランプ+nR=100では最遠端の頂点間隔がrange/50と粗く、
+        // 目的の山(範囲の最遠端に来る)の稜線が丸まって見えたため、最遠端をrange/133へ細分化した
+        const rr = j / nR;
+        const dkm = (j === snapJ) ? snapDkm : nearKm + (rangeKm - nearKm) * Math.pow(rr, rampP);
+        for (let i = 0; i <= nA; i++) {
+            const a = centerAz + (-azHalf + 2 * azHalf * i / nA) + azShift;
+            if (i === snapI && j === snapJ) {
+                samples[p++] = { a, dkm, lat: endPt.lat, lng: endPt.lng, elev: 0, nearest: true };   // 山頂頂点は最近傍画素(=getElevationと同じ参照)
+            } else {
+                const d = _smDestPoint(oLat, oLng, a, dkm * 1000);
+                samples[p++] = { a, dkm, lat: d.lat, lng: d.lng, elev: 0 };
+            }
+        }
+    }
+    const hf = { nA, nR, samples, centerAz };
+    // テスト用合成標高フック(実DEMを遮断する検証環境用)
+    if (typeof window !== 'undefined' && typeof window._smSyntheticElev === 'function') {
+        for (const s of samples) s.elev = window._smSyntheticElev(s.lat, s.lng);
+        _smOnTerrainFetched(gen, hf);
+        return;
+    }
+    // 実DEM: 適応ズームのタイル単位でグループ化。
+    // z15はDEM5A→5B→5C(5mメッシュ)のチェーン+欠損画素はz14(dem_png)の親タイルへフォールバック
+    const groups = {};
+    for (let idx = 0; idx < samples.length; idx++) {
+        const ti = _getTileInfo(samples[idx].lat, samples[idx].lng, zoom);
+        const k = `${ti.x}_${ti.y}`;
+        let g = groups[k];
+        if (!g) {
+            g = groups[k] = { pts: [] };
+            if (zoom === 15) {
+                g.urls = GSI_DEM_SOURCES.filter(sc => sc.zoom === 15).map(sc => sc.url.replace('{z}', 15).replace('{x}', ti.x).replace('{y}', ti.y));
+                g.fbUrl = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/${ti.x >> 1}/${ti.y >> 1}.png`;
+            } else {
+                g.url = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`;
+            }
+        }
+        const pt = { idx, pX: ti.pX, pY: ti.pY, fX: ti.fX, fY: ti.fY };
+        if (zoom === 15) {
+            pt.fbX = (ti.x & 1) * 128 + ti.fX / 2;   // z14親タイル内の小数画素座標
+            pt.fbY = (ti.y & 1) * 128 + ti.fY / 2;
+        }
+        if (samples[idx].nearest) pt.nearest = true;   // 山頂スナップ頂点は最近傍画素で参照
+        g.pts.push(pt);
+    }
+    const keys = Object.keys(groups);
+    const total = keys.length;
+    let done = 0;
+    _smSetTerrainProgress(0, total);
+    const tileDone = () => { _smSetTerrainProgress(++done, total); };
+
+    // ワーカープールで並列取得(対応環境)。非対応時はメインスレッド逐次にフォールバック。
+    const canWorker = (typeof Worker !== 'undefined') && (typeof OffscreenCanvas !== 'undefined');
+    if (canWorker) {
+        const pool = _smEnsureTerrainPool();
+        const seq0 = ++pool.seq;
+        await Promise.all(keys.map(async (k) => {
+            if (gen !== _smTerrainGen) return;
+            const g = groups[k];
+            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, urls: g.urls, fbUrl: g.fbUrl, pts: g.pts });
+            if (gen !== _smTerrainGen) return;
+            for (const e of res.elevs) samples[e.idx].elev = e.elev;
+            tileDone();
+        }));
+    } else {
+        for (const k of keys) {
+            if (gen !== _smTerrainGen) { _smSetTerrainProgress(-1, total); return; }
+            const g = groups[k];
+            if (g.urls) {
+                // z15チェーン+z14フォールバック(欠損画素のみ次のソースを参照。タイルは必要になるまで取得しない)
+                const imgs = new Array(g.urls.length).fill(undefined);
+                const getI = async (i) => { if (imgs[i] === undefined) imgs[i] = await _getTileImageData(g.urls[i]); return imgs[i]; };
+                let fbImg;
+                for (const pt of g.pts) {
+                    let v = null;
+                    for (let i = 0; i < g.urls.length && v === null; i++) { const im = await getI(i); if (im) v = _smSampleElevFromImg(im.data, pt.fX, pt.fY, pt.nearest); }
+                    if (v === null) { if (fbImg === undefined) fbImg = await _getTileImageData(g.fbUrl); if (fbImg) v = _smSampleElevFromImg(fbImg.data, pt.fbX, pt.fbY, pt.nearest); }
+                    samples[pt.idx].elev = (v === null) ? 0 : v;
+                }
+            } else {
+                const img = await _getTileImageData(g.url);
+                for (const pt of g.pts) {
+                    let h = 0;
+                    if (img) { const v = _smSampleElevFromImg(img.data, pt.fX, pt.fY, pt.nearest); h = (v === null) ? 0 : v; }
+                    samples[pt.idx].elev = h;
+                }
+            }
+            tileDone();
+        }
+    }
+    if (gen !== _smTerrainGen) return;   // 新しい扇に置き換わったらキャンセル(進捗バーは新しい実行のものを消さない)
+    _smSetTerrainProgress(-1, total);   // 非表示
+    _smOnTerrainFetched(gen, hf);
+}
+
+function _smOnTerrainFetched(gen, hf) {
+    if (gen !== _smTerrainGen) return;
+    _smHeightfield = hf;
+    _smShadeKey = '';   // 陰影を再構築
+    _smApplyShading();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+/** ハイトフィールドからメッシュを生成・陰影。fetch不要。
+ * 太陽光ヒルシェード(尾根筋の立体)＋標高グレー(視界範囲内の最高標高=白)を頂点色に焼き込む。 */
+function _smApplyShading() {
+    if (!_smHeightfield) return;
+    const o = soraComputeOptics();
+    const focusNear = o.near, focusFar = o.far;   // m (soraComputeOptics は m単位)
+    const sun = _smSunDir();
+    // 太陽方位/高度を量子化して鍵に含める→日時変化で陰影を再計算
+    const sunKey = `${Math.round(sun.az)}_${Math.round(sun.alt)}`;
+    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}|${appState.soraElevShade}|${appState.soraSunShade}`;
+    if (shadeKey === _smShadeKey && _smTerrainMesh) return;
+    _smShadeKey = shadeKey;
+    _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar, sun.vec);
+}
+
+function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
+    while (_smTerrainGrp.children.length) { const c = _smTerrainGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    _smTerrainMesh = null;
+    const { nA, nR, samples } = hf;
+    const row = nA + 1;
+    const obsElev = Number(appState.start.elev) || 0;
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const Reff1 = getLocalEarthRadius(appState.start.lat) / (1 - k);
+    const r1 = Reff1 + obsElev;
+    // 標高レンジ
+    let minE = Infinity, maxE = -Infinity;
+    for (const s of samples) { if (s.elev < minE) minE = s.elev; if (s.elev > maxE) maxE = s.elev; }
+    if (!isFinite(minE)) { minE = 0; maxE = 1; }
+    const span = Math.max(1, maxE - minE);
+    const gray = appState.soraGrayscale, peak = appState.soraPeaking;
+    const sE = Math.max(0, Math.min(100, Number(appState.soraElevShade) || 0)) / 50;   // 標高ヒルシェード適用度(1=従来)
+    const sS = Math.max(0, Math.min(100, Number(appState.soraSunShade) || 0)) / 50;    // 太陽光ヒルシェード適用度(1=従来)
+    const positions = new Float32Array(samples.length * 3);
+    // 1) 位置(ENU)を先に作る。頂点の見かけの高さ(z)は、基準視高度(calculateApparentAltitude)と
+    //    同じ「緯度別の局所半径2つを使う厳密三角形解」で求める。以前の単一半径の放物線近似では、
+    //    南北方向の局所半径差(3kmで約10m)の分だけ山頂が目的点マーカー(+)より高く/低く描かれ、
+    //    最高点と(+)がわずかに(0.1°程度)ずれて見えた
+    for (let idx = 0; idx < samples.length; idx++) {
+        const s = samples[idx], d = s.dkm * 1000, a = s.a * Math.PI / 180;
+        const E = d * Math.sin(a), N = d * Math.cos(a);
+        const Reff2 = getLocalEarthRadius(s.lat) / (1 - k);
+        const r2 = Reff2 + s.elev;
+        const c = d / ((Reff1 + Reff2) / 2);
+        const slant = Math.sqrt(r1 * r1 + r2 * r2 - 2 * r1 * r2 * Math.cos(c));
+        const alt = Math.atan2(r2 * Math.sin(c) / slant, (r1 * r1 + slant * slant - r2 * r2) / (2 * r1 * slant)) - Math.PI / 2;
+        positions[idx * 3] = E; positions[idx * 3 + 1] = N; positions[idx * 3 + 2] = d * Math.tan(alt);
+    }
+    // 2) 扇グリッドの隣接差分から頂点法線を解析的に算出(上向きに正規化)→安定したヒルシェード
+    const sx = sunVec.x, sy = sunVec.y, sz = sunVec.z;
+    const colors = new Float32Array(samples.length * 3);
+    const getP = (i, j) => { const id = j * row + i; return [positions[id * 3], positions[id * 3 + 1], positions[id * 3 + 2]]; };
+    for (let j = 0; j <= nR; j++) {
+        for (let i = 0; i <= nA; i++) {
+            const idx = j * row + i, s = samples[idx];
+            const pa0 = getP(Math.max(0, i - 1), j), pa1 = getP(Math.min(nA, i + 1), j);   // 方位接線
+            const pr0 = getP(i, Math.max(0, j - 1)), pr1 = getP(i, Math.min(nR, j + 1));   // 距離接線
+            const tax = pa1[0] - pa0[0], tay = pa1[1] - pa0[1], taz = pa1[2] - pa0[2];
+            const trx = pr1[0] - pr0[0], try_ = pr1[1] - pr0[1], trz = pr1[2] - pr0[2];
+            let nx = try_ * taz - trz * tay, ny = trz * tax - trx * taz, nz = trx * tay - try_ * tax;
+            if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+            const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+            // ランバート陰影(環境光0.35＋拡散0.75)→尾根の向きで明暗
+            const lambert = 0.35 + 0.75 * Math.max(0, nx * sx + ny * sy + nz * sz);
+            const d = s.dkm * 1000, slant = Math.hypot(positions[idx * 3], positions[idx * 3 + 1], positions[idx * 3 + 2]);
+            let r, g, b;
+            if (peak && slant >= focusNear && slant <= focusFar) { r = 0.95; g = 0.12; b = 0.12; }   // フォーカスピーキング(赤)
+            else {
+                // 標高グレー(最高標高=白)。grayscale OFF時は一様グレーで純レリーフ。
+                // 適用度スライダー(50%=従来): 標高ヒルシェードは0.6を中心に、太陽光ヒルシェードは1.0(陰影なし)を中心に強弱
+                const base0 = gray ? (0.18 + 0.82 * ((s.elev - minE) / span)) : 0.6;
+                const base = Math.max(0.05, Math.min(1, 0.6 + sE * (base0 - 0.6)));
+                const lam = Math.max(0, 1 + sS * (lambert - 1));
+                let lum = Math.min(1, base * lam);
+                r = lum * 0.94; g = lum * 0.97; b = lum;   // ごく僅かに寒色
+            }
+            colors[idx * 3] = r; colors[idx * 3 + 1] = g; colors[idx * 3 + 2] = b;
+        }
+    }
+    const indices = [];
+    for (let j = 0; j < nR; j++) for (let i = 0; i < nA; i++) {
+        const aI = j * row + i, bI = aI + row;
+        indices.push(aI, bI, aI + 1, aI + 1, bI, bI + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setIndex(indices);
+    // 陰影は頂点色に焼き込み済み(視点非依存のヒルシェード)→MeshBasicでそのまま表示
+    const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    _smTerrainMesh = new THREE.Mesh(geo, mat);
+    _smTerrainGrp.add(_smTerrainMesh);
+}
+
+// --- F3: フィッシュアイ post-process (近似: 透視レンダをRTへ→バレル歪み) ---
+let _smRT = null, _smPostScene = null, _smPostCam = null, _smPostMat = null;
+function _smInitPost() {
+    if (typeof THREE === 'undefined') return;
+    _smRT = new THREE.WebGLRenderTarget(16, 16);
+    _smPostCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    _smPostMat = new THREE.ShaderMaterial({
+        depthTest: false, depthWrite: false,
+        uniforms: { tDiffuse: { value: _smRT.texture }, uK: { value: 0.35 }, uCircle: { value: 0.0 }, uAspect: { value: 1.5 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+        fragmentShader: [
+            'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uK; uniform float uCircle; uniform float uAspect;',
+            'void main(){',
+            '  vec2 c = vUv - 0.5;',
+            '  if (uCircle > 0.5) {',                                          // 画面形状=円形: 内接円の外は黒
+            '    float rlim = 0.5 * min(uAspect, 1.0);',
+            '    if (length(vec2(c.x * uAspect, c.y)) > rlim) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
+            '  }',
+            '  float r2 = dot(c, c) * 4.0;',                 // 0..2 (中心0, 角2)
+            '  vec2 src = 0.5 + c * (1.0 - uK * r2);',       // 樽歪み(縁を内側へ→魚眼風)
+            '  if (src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0) gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);',
+            '  else gl_FragColor = texture2D(tDiffuse, src);',
+            '}'
+        ].join('\n')
+    });
+    _smPostScene = new THREE.Scene();
+    _smPostScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smPostMat));
+}
+
+// --- 真の魚眼(等距離射影)の全天表示 ---
+// フィッシュアイ「歪み100%+円形」のとき、シーンをキューブカメラで全方位レンダリングし、
+// シェーダで等距離射影(像高∝中心からの角度: r = f·θ)に合成する。透視投影+樽歪みの近似と異なり、
+// 画面中心(基準方位角+基準視高度=カメラの向き)から90°までの全天(直径180°)を円形に均等に描く。
+// 基準視高度を90°にすると天頂中心の星座盤の見え方になる(そのとき円の下方向=基準方位角)。
+let _smCubeRT = null, _smCubeCam = null, _smAllSkyMat = null, _smAllSkyScene = null, _smAllSkyCam = null;
+let _smAllSkyBasis = null;   // {f,r,u}: 画面中心方向・画像右・画像上の正規直交基底(THREE.Vector3)
+function _smAllSkyOn() {
+    return !!appState.soraFisheye && appState.soraFisheyeShape === 'circle' &&
+           Number(appState.soraFisheyeStrength) >= 100 && !appState.soraPanorama;
+}
+/** 全天表示の基底を設定: f̂=カメラ方向(画面中心)、r̂=画像右、û=画像上。
+ *  ほぼ天頂/天底では上方向が定義できないため、û=基準方位角の反対(円の下=基準方位角)に固定する */
+function _smSetAllSkyBasis(azDeg, altDeg) {
+    const f = _smDir(azDeg, altDeg);
+    let r, u;
+    if (Math.abs(altDeg) >= 89.9) {
+        r = _smDir(azDeg + 90, 0);
+        u = _smDir(azDeg + 180, 0);
+        if (altDeg < 0) u.negate();
+    } else {
+        r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0, 0, 1)).normalize();
+        u = new THREE.Vector3().crossVectors(r, f).normalize();
+    }
+    _smAllSkyBasis = { f, r, u };
+}
+function _smEnsureAllSky() {
+    if (_smAllSkyMat || typeof THREE === 'undefined') return;
+    _smCubeRT = new THREE.WebGLCubeRenderTarget(1024);
+    _smCubeRT.texture.colorSpace = THREE.SRGBColorSpace;
+    _smCubeCam = new THREE.CubeCamera(0.1, _SM_SKY_R * 4, _smCubeRT);
+    _smAllSkyCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    _smAllSkyMat = new THREE.ShaderMaterial({
+        depthTest: false, depthWrite: false,
+        uniforms: {
+            uCube: { value: _smCubeRT.texture }, uAspect: { value: 1.5 },
+            uF: { value: new THREE.Vector3(0, 1, 0) }, uR: { value: new THREE.Vector3(1, 0, 0) }, uU: { value: new THREE.Vector3(0, 0, 1) },
+        },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+        fragmentShader: [
+            'varying vec2 vUv; uniform samplerCube uCube; uniform float uAspect;',
+            'uniform vec3 uF; uniform vec3 uR; uniform vec3 uU;',
+            'void main(){',
+            '  vec2 c = vUv - 0.5;',
+            '  vec2 p = vec2(c.x * uAspect, c.y);',            // 高さ基準の等方座標
+            '  float rlim = 0.5 * min(uAspect, 1.0);',         // 内接円
+            '  float r = length(p);',
+            '  if (r > rlim) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }',
+            '  float theta = (r / rlim) * 1.5707963;',         // 中心からの角度 0..90° (等距離射影)
+            '  float phi = atan(p.x, p.y);',                   // 画像上方向基準の方位角
+            '  vec3 dir = cos(theta) * uF + sin(theta) * (sin(phi) * uR + cos(phi) * uU);',
+            '  gl_FragColor = textureCube(uCube, dir);',
+            '}'
+        ].join('\n')
+    });
+    _smAllSkyScene = new THREE.Scene();
+    _smAllSkyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), _smAllSkyMat));
+}
+/** 全天表示のキューブレンダリング+uniform設定(プレビュー/書き出し共通)。成功でtrue */
+function _smRenderAllSkyCube(aspect, radiusPx) {
+    _smEnsureAllSky();
+    if (!_smAllSkyMat || !_smAllSkyBasis) return false;
+    const F = Math.max(512, Math.min(2048, Math.round(radiusPx * 2)));
+    if (_smCubeRT.width !== F) _smCubeRT.setSize(F, F);
+    _smCubeCam.position.set(0, 0, 0);
+    // CubeCamera.update は各面をクリアしないため、autoClear=false(宙の窓の既定)のままだと
+    // 前フレームの内容がキューブ面に蓄積して残像になる(天体切替・日時変更で軌跡が残る)。
+    // update の間だけ autoClear を有効にして各面を空色でクリアする
+    const savedAutoClear = _smRenderer.autoClear;
+    _smRenderer.autoClear = true;
+    _smRenderer.setClearColor(0x0a0e1a, 1);
+    _smCubeCam.update(_smRenderer, _smScene);
+    _smRenderer.autoClear = savedAutoClear;
+    _smAllSkyMat.uniforms.uAspect.value = aspect;
+    _smAllSkyMat.uniforms.uF.value.copy(_smAllSkyBasis.f);
+    _smAllSkyMat.uniforms.uR.value.copy(_smAllSkyBasis.r);
+    _smAllSkyMat.uniforms.uU.value.copy(_smAllSkyBasis.u);
+    return true;
+}
+/** 全天表示での星座名称等の回転角: 最終画像(中心=カメラ方向)で同心円状になるよう、
+ *  ラベルが載るキューブ面のスクリーン空間での接線方向の画面角を求める。
+ *  文字の天が画像中心側を向くよう±180°を選ぶ(星座盤の慣例)。 */
+function _smAllSkyLabelRot(wp) {
+    _smEnsureAllSky();
+    if (!_smCubeCam) return 0;
+    const d = wp.clone().normalize();
+    const up = _smAllSkyBasis ? _smAllSkyBasis.f : new THREE.Vector3(0, 0, 1);   // 画像中心方向まわりの同心円
+    const t = new THREE.Vector3().crossVectors(up, d);
+    if (t.lengthSq() < 1e-9) return 0;   // 画像中心の直上は接線が定義できない
+    t.normalize();
+    const u = new THREE.Vector3().crossVectors(d, t).normalize();   // 画像中心側(中心角が減る向き)
+    // 支配軸のキューブ面カメラ(children順: +X,-X,+Y,-Y,+Z,-Z)へ射影して画面角を得る
+    const ax = Math.abs(d.x), ay = Math.abs(d.y), az2 = Math.abs(d.z);
+    let idx;
+    if (ax >= ay && ax >= az2) idx = d.x >= 0 ? 0 : 1;
+    else if (ay >= ax && ay >= az2) idx = d.y >= 0 ? 2 : 3;
+    else idx = d.z >= 0 ? 4 : 5;
+    const cam = _smCubeCam.children[idx];
+    if (!cam) return 0;
+    _smCubeCam.updateMatrixWorld(true);
+    const e = 0.01;
+    const p0 = d.clone().multiplyScalar(_SM_SKY_R).project(cam);
+    const pt = d.clone().multiplyScalar(_SM_SKY_R).addScaledVector(t, _SM_SKY_R * e).project(cam);
+    const pu = d.clone().multiplyScalar(_SM_SKY_R).addScaledVector(u, _SM_SKY_R * e).project(cam);
+    const aT = Math.atan2(pt.y - p0.y, pt.x - p0.x);
+    const aU = Math.atan2(pu.y - p0.y, pu.x - p0.x);
+    const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+    return Math.abs(wrap(aU - (aT + Math.PI / 2))) <= Math.PI / 2 ? aT : aT + Math.PI;
 }
