@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.22 - 2026-07-19: fix: 全天儀の透過オフを「外側から見た構図」に修正(不透明+深度書込の両面描画。従来は奥半球の内面が見えていた)・回転方向の既定を水平に+ラジオ順序を水平/地軸/自由に(デッサン01)・辻メッシュFile取得の行内並びを日時(日付+辻時刻)順に・動画書き出しの出力診断表示を削除(v1.20.20の動作へ復元)
 Version 1.20.21 - 2026-07-19: feat: 辻メッシュFile取得を全ヒット画素出力に(観測点ID=画素ID・詳細結果リスト相当・行内は精度昇順)・処理中表示を🕛アニメーションに統一・全天儀コントロール2〜4段目(前景/後景/透過・自由/水平/地軸・北奥/目的点前)+最大化ボタン(領域2/3⇄1/3・最大化100%⇄66.67%)・動画書き出しに出力診断表示(形式/サイズ/メタデータ長)
 Version 1.20.20 - 2026-07-19: feat: 月輝面比列(結果リスト3種+詳細+CSV)・辻検索/辻メッシュのFile取得・メッシュ詳細リスト23列化・Myセット4シート存在確認・動画のフレーム同期録画(カクカク解消)+生成後の自己検証・天体検索/登録メニュー改修・全天儀コントロールメニュー(日時/速度/表示/オフセット)・焦点距離初期値24
 Version 1.20.19 - 2026-07-18: feat: 除外範囲をチェックボックス+目的点側15m/観測点側10mの両側方式に(デッサン02)・一括更新はシート未作成(😢)行をスキップ(作成はユーザー判断)・WebMに再生時間(Duration)を後付け(ストリーミング形式のみ)
@@ -77,7 +78,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.21';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.22';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -9003,7 +9004,7 @@ function fileTsujiMeshCsv() {
 
 /** 辻メッシュ検索の結果行 → CSV(共通列構成)。結果リストの表示行(最良画素)だけでなく、
  *  詳細結果リストと同じく各行の全ヒット画素を1画素=1行(0.01秒精細化後の値)で出力する。
- *  観測点ID=画素ID(メッシュ全体で一意。同じIDの行は同じ観測点緯度経度)。行内は精度角距離の昇順。
+ *  観測点ID=画素ID(メッシュ全体で一意。同じIDの行は同じ観測点緯度経度)。行内は日時(日付+辻時刻)の昇順。
  *  出没・薄明・GH/BH・時間帯は検索の共通観測点で日単位に、月齢/輝面比は分単位にキャッシュを共有して
  *  大量行でも現実的な時間で出力する(画素間の位置差による出没時刻差は高々数十秒なので無視できる) */
 async function _tmExportMeshRowsCsv(rows) {
@@ -9076,16 +9077,27 @@ async function _tmExportMeshRowsCsv(rows) {
     for (const r of rows) {
         const n = r.pixIdx ? r.pixIdx.length : 0;
         if (!n) continue;
-        // 行内の出力順=精度角距離の昇順(詳細結果リストの既定順と同じ。最良画素が先頭)
-        const order = Array.from({ length: n }, (_, i) => i).sort((x, y) => r.pixDist[x] - r.pixDist[y]);
-        for (const i of order) {
+        // 全画素を0.01秒精細化してから、行内の出力順=日時(日付+辻時刻)の昇順で並べる
+        const ents = [];
+        for (let i = 0; i < n; i++) {
             const pix = r.pixIdx[i];
             const ref = _tmRefinePixelTimeFast(pix, r.pixTime[i], r.body);
-            const timeMs = ref ? ref.timeMs : r.pixTime[i];
-            const dist = ref ? ref.dist : r.pixDist[i];
-            const dt = new Date(timeMs);
+            ents.push({ pix,
+                        timeMs: ref ? ref.timeMs : r.pixTime[i],
+                        dist: ref ? ref.dist : r.pixDist[i],
+                        az: ref ? ref.az : r.azimuth, alt: ref ? ref.alt : r.altitude });
+            if (++done % 500 === 0) {
+                setBusy(`File出力処理中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
+                await new Promise(res => setTimeout(res, 0));
+            }
+        }
+        ents.sort((a, b) => a.timeMs - b.timeMs);
+        let built = 0;
+        for (const e of ents) {
+            const pix = e.pix;
+            const dt = new Date(e.timeMs);
             const a = astroOf(dt);
-            const m = moonOf(timeMs);
+            const m = moonOf(e.timeMs);
             list.push({
                 tsuji: { id: '', name: '', memo: '',
                          baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
@@ -9095,17 +9107,15 @@ async function _tmExportMeshRowsCsv(rows) {
                        elev: _tsujiMeshPix.elev[pix], height, memo: '' },
                 tgt,
                 body: r.body, time: dt,
-                azimuth: ref ? ref.az : r.azimuth, altitude: ref ? ref.alt : r.altitude, dist,
-                symbol: _tmAccSymbol(dist),
+                azimuth: e.az, altitude: e.alt, dist: e.dist,
+                symbol: _tmAccSymbol(e.dist),
                 moonAge: m.moonAge, moonIcon: m.moonIcon, moonIllum: m.moonIllum,
                 timeCategory: classifyTimeCategory(dt, a.tw, a.day),
                 elevationStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-',
                 _preAstro: a.pre,
             });
-            if (++done % 500 === 0) {
-                setBusy(`File出力処理中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
-                await new Promise(res => setTimeout(res, 0));
-            }
+            // 行整形は軽い処理だが、巨大な行でもUIが固まらないよう定期的にyieldする
+            if (++built % 2000 === 0) await new Promise(res => setTimeout(res, 0));
         }
     }
     if (!list.length) { alert('該当する日時はありません'); return; }
@@ -12244,7 +12254,7 @@ const _MW_DIST0 = 3.4;                     // 初期カメラ距離
 let _mwDist = _MW_DIST0;                    // ホイールズーム用
 // コントロールメニュー2〜3段目(デッサン01): 前景/後景/透過の表示と回転方向の固定
 let _mwShowFront = true, _mwShowBack = true, _mwThrough = true;
-let _mwRotMode = 'free';                   // 'free'(自由) / 'horizontal'(水平) / 'axis'(地軸)
+let _mwRotMode = 'horizontal';             // 'horizontal'(水平・初期値) / 'axis'(地軸) / 'free'(自由)
 
 /** 銀河座標(l,b 度) → 赤道座標 J2000 {ra(時), dec(度)} (固定回転行列) */
 function galacticToEquatorial(lDeg, bDeg) {
@@ -12891,7 +12901,10 @@ function _mwUpdateCamera() {
 
 /** 前景/後景/透過(コントロールメニュー2段目)を反映する。
  *  前景/後景は視線に垂直な原点通過のクリップ面で手前/奥の半球を切り(カメラ固定なので面も固定)、
- *  透過オフは球のマテリアルを不透明(表面のみ・通常合成・深度書込)に切り替えて内側を見せない */
+ *  透過オン=内側も見える加算合成 / 透過オフ=不透明にして「外側から見た構図」(天球儀のような表示)。
+ *  透過オフでも side は両面描画のまま: 不透明+深度書込なら手前の外皮が深度テストで勝って
+ *  外側から見た構図になり、前景オフ時も奥半球の内面(切り開いたお椀)が正しく残る
+ *  (片面描画にすると前景クリップとの組み合わせで球が全消えする組み合わせが生じる) */
 function _mwApplyViewOptions() {
     if (!_mwRenderer) return;
     const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
@@ -12902,7 +12915,7 @@ function _mwApplyViewOptions() {
     if (!_mwShowBack) planes.push(new THREE.Plane(viewDir.clone().negate(), 0));
     _mwRenderer.clippingPlanes = planes;
     if (_mwMaterial) {
-        _mwMaterial.side = _mwThrough ? THREE.DoubleSide : THREE.FrontSide;
+        _mwMaterial.side = THREE.DoubleSide;
         _mwMaterial.transparent = _mwThrough;
         _mwMaterial.depthWrite = !_mwThrough;
         _mwMaterial.blending = _mwThrough ? THREE.AdditiveBlending : THREE.NormalBlending;
@@ -13945,7 +13958,6 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
 }
 
 /** 生成した動画Blobが再生可能か自己検証する(メタデータが読めて長さが正なら良品)。
- *  戻り値 {ok, duration}: durationはメタデータから読めた再生時間(秒。読めなければNaN)。
  *  スマホでVP9等のソフトウェアエンコードが破綻して壊れたファイルになるケースの検出用 */
 function _soraVerifyBlobPlayable(blob) {
     return new Promise(resolve => {
@@ -13953,12 +13965,12 @@ function _soraVerifyBlobPlayable(blob) {
             const v = document.createElement('video');
             v.preload = 'metadata';
             const url = URL.createObjectURL(blob);
-            const done = (ok, duration) => { URL.revokeObjectURL(url); resolve({ ok, duration }); };
-            const to = setTimeout(() => done(false, NaN), 5000);
-            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true, v.duration); };
-            v.onerror = () => { clearTimeout(to); done(false, NaN); };
+            const done = ok => { URL.revokeObjectURL(url); resolve(ok); };
+            const to = setTimeout(() => done(false), 5000);
+            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true); };
+            v.onerror = () => { clearTimeout(to); done(false); };
             v.src = url;
-        } catch (e) { resolve({ ok: true, duration: NaN }); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
+        } catch (e) { resolve(true); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
     });
 }
 
@@ -13984,18 +13996,9 @@ function soraExportVideo(fmt) {
         if (!blob) return;   // 中止時は破棄
         if (blob.size === 0) { alert('動画の生成に失敗しました。'); return; }
         // 自己検証: この端末で壊れず録画できたか(スマホのソフトウェアVP9破綻等の検出)
-        const chk = await _soraVerifyBlobPlayable(blob);
-        if (!chk.ok) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
         soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
-        // 出力診断(スマホ等での再生不良の切り分け用): 実際の形式・サイズ・メタデータ長を約15秒表示する。
-        // ここで長さが正しく読めていれば、ファイル自体には長さ情報が入っている(=再生側の対応の問題)
-        const metaDur = isFinite(chk.duration) && chk.duration > 0 ? `${chk.duration.toFixed(2)}秒` : '不明';
-        const diag = `出力診断: ${picked.mime} / ${(blob.size / 1048576).toFixed(2)}MB / ${n}コマ ${fps}fps / メタデータ長 ${metaDur} / 自己検証 ${chk.ok ? 'OK' : 'NG'}`;
-        soraExpProgress(diag);
-        setTimeout(() => {
-            const el = document.getElementById('soramado-export-progress');
-            if (el && el.textContent === diag) soraExpProgress(null);   // 別の表示に切り替わっていたら消さない
-        }, 15000);
     });
     if (ok && btn) { btn.classList.add('active'); btn.textContent = '中止'; }
 }
@@ -14014,8 +14017,8 @@ function soraMovPlayVideo() {
     const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', async blob => {
         if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
         // 自己検証: 壊れたファイルをプレビューに重ねない(スマホのソフトウェアエンコード破綻等)
-        const chk = await _soraVerifyBlobPlayable(blob);
-        if (!chk.ok) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
+        const playable = await _soraVerifyBlobPlayable(blob);
+        if (!playable) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
         const el = document.createElement('video');
         el.id = 'soramado-movplay-video';
         el.muted = true; el.playsInline = true; el.autoplay = true;
