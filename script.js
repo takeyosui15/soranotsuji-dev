@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.28.0 - 2026-07-19: feat: 本体地図のMapLibre移行R1(手順3開始。docs/maplibre-migration.md) — URLフラグ?maplibre=1で本体地図をMapLibre GL JSに切替(既定はLeafletのまま変更なし)・地図アダプタmapAdapter新設(座標順[lat,lng]⇄[lng,lat]とズーム値差[MapLibre=Leaflet−1]を境界で吸収)・ベース地図4種(地理院 標準/写真/淡色+OSM)のラスタレイヤ+レイヤ切替/ズーム/スケール/⌖中央表示/パン◀▶▲▼の各コントロール・クリック(ダブルクリック/ダブルタップ)の観測点/目的点移動・recenterPointInViewの両エンジン対応(MapLibreはeaseTo+offset)・未移行機能(マーカー/辻ライン/検索の地図表示/辻メッシュ)はシャドウLeaflet(非表示・タイル無し)へ描画して安全に無効化+地図右上に移行中バッジ表示
 Version 1.27.0 - 2026-07-19: feat: 宙断面ビューの肉付け(デッサン19の未決①〜④) — ⛶最大化+結果パネル(辻検索/辻メッシュ/宙検索)併用時の1/3化(積み上げ規則を全天儀と同型に)・雲格子を0.1°×9×9に細分化・時間スライダー(基準時刻+12時間・10分刻み・時間の間は線形補間・▶で500ms毎+10分のアニメーション)・気圧面輪切りモード(取得できる最多の16面×実高度の薄板。気象庁降水強度配色のグラデーション+凡例。初回切替時に取得・キャッシュ)・モード切替ラジオ(3層/輪切り)
 Version 1.26.0 - 2026-07-19: feat: 宙断面ビューの骨格(MapLibre GL JS初導入 — 地図全面移行計画の手順2。デッサン19) — 位置情報メニューに宙断面ボタン(標高グラフ/全天儀/宙の窓と排他・下2/3パネル)・地理院淡色ラスタ+地理院DEM(dem_png→terrain-RGB変換のgsidemカスタムプロトコル)の3D地形を斜め俯瞰(pitch65°・観測点→目的点の方位・鉛直誇張1.2)・Open-Meteo 3層雲量(観測点周辺0.2°×5×5格子。宙検索とキャッシュ共有)を実高度の空中スラブ(fill-extrusion。厚み=雲量比例・30%未満は非表示)で低/中/高層に重畳・観測点(青)/目的点(赤)マーカー・日時変更(時単位)で自動更新・閉じるとMapLibreを破棄。本体地図のLeafletとは併存
 Version 1.25.0 - 2026-07-19: feat: MyセットにMy宙検索を追加(5シート構成) — シート同期(保存/読込/存在確認の自動作成)・セット切り替え・新規作成の対象にMy宙検索を追加。旧4シート構成の既存スプレッドシートは保存/読込時にMy宙検索タブが自動追加される。シート行はリストCSVと同じ22列(コメント行温存の慣習も共通)
@@ -87,7 +88,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.27.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.28.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -227,6 +228,16 @@ let map;
 let linesLayer;
 let locationLayer;
 let dpLayer;
+// ==== 手順3: 本体地図のMapLibre移行(段階移行用) ====
+// URLフラグ ?maplibre=1 で本体地図をMapLibre GL JSに切り替える(既定はLeaflet)。
+// フラグON中、未移行機能(マーカー/辻ライン/検索オーバーレイ/辻メッシュ表示)の描画先には
+// 非表示のLeaflet地図(シャドウ地図。タイル読込なし)を充て、既存コードを変更せず安全に無効化する。
+// 各ラウンド(R2〜R5)で機能群毎にMapLibre描画へ移し、R6でシャドウ地図ごとLeafletを撤去する。
+const USE_MAPLIBRE = (() => {
+    try { return new URLSearchParams(window.location.search).get('maplibre') === '1'; } catch (e) { return false; }
+})();
+let glMap = null;            // MapLibre本体(フラグON時のみ)
+let _glBaseLayerId = 'std';  // 表示中のベースレイヤ(std/photo/pale/osm)
 // PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
 // (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
 let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
@@ -682,9 +693,197 @@ function cleanupOldStorage() {
     });
 }
 
+// ==== 地図アダプタ(手順3): LeafletとMapLibreの差異を吸収する薄い層 ====
+// 座標順([lat,lng]⇄[lng,lat])とズーム値の差(MapLibreはLeaflet−1)はここでのみ変換し、
+// アプリ内部は従来どおり[lat,lng]・Leaflet換算ズームで統一する。
+function _glZoom(leafletZoom) { return leafletZoom - 1; }
+function _lfZoom(glZoom) { return glZoom + 1; }
+const mapAdapter = {
+    engine() { return USE_MAPLIBRE ? 'maplibre' : 'leaflet'; },
+    ready() { return USE_MAPLIBRE ? !!glMap : (typeof map !== 'undefined' && !!map); },
+    getZoom() { return USE_MAPLIBRE ? _lfZoom(glMap.getZoom()) : map.getZoom(); },
+    getMaxZoom() {
+        if (USE_MAPLIBRE) return _lfZoom(glMap.getMaxZoom());
+        return (map && map.getMaxZoom) ? map.getMaxZoom() : 18;
+    },
+    getCenter() { const c = USE_MAPLIBRE ? glMap.getCenter() : map.getCenter(); return { lat: c.lat, lng: c.lng }; },
+    getSize() {
+        if (USE_MAPLIBRE) { const el = glMap.getContainer(); return { x: el.clientWidth, y: el.clientHeight }; }
+        const s = map.getSize(); return { x: s.x, y: s.y };
+    },
+    setView(lat, lng, zoom) {
+        if (USE_MAPLIBRE) {
+            glMap.jumpTo({ center: [lng, lat], zoom: (zoom !== undefined) ? _glZoom(zoom) : glMap.getZoom() });
+        } else if (zoom !== undefined) {
+            map.setView([lat, lng], zoom);
+        } else {
+            map.setView([lat, lng]);
+        }
+    },
+    panBy(dx, dy) { if (USE_MAPLIBRE) glMap.panBy([dx, dy]); else map.panBy([dx, dy]); },
+    latLngToContainerPoint(latlng) {
+        if (USE_MAPLIBRE) { const p = glMap.project([latlng.lng, latlng.lat]); return { x: p.x, y: p.y }; }
+        const p = map.latLngToContainerPoint(latlng); return { x: p.x, y: p.y };
+    },
+    closePopup() { if (typeof map !== 'undefined' && map) map.closePopup(); },   // MapLibre側ポップアップはR2で導入
+};
+
+// 未移行機能の描画先となるシャドウLeaflet地図(フラグON時のみ。非表示・タイル無しで通信も発生しない)
+function initShadowMap() {
+    const div = document.createElement('div');
+    div.id = 'map-shadow';
+    div.style.cssText = 'position:absolute;left:-10000px;top:0;width:640px;height:480px;overflow:hidden;';
+    div.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(div);
+    map = L.map(div, {
+        center: [appState.start.lat, appState.start.lng],
+        zoom: 9,
+        zoomControl: false,
+        attributionControl: false
+    });
+    linesLayer = L.layerGroup().addTo(map);
+    locationLayer = L.layerGroup().addTo(map);
+    dpLayer = L.layerGroup().addTo(map);
+}
+
+// MapLibre用の小型コントロール(IControl)。Leaflet版と同じマークアップ/IDを使い、CSSと配線を共有する
+function _glDivControl(build) {
+    return {
+        onAdd() { this._div = build(); return this._div; },
+        onRemove() { if (this._div && this._div.parentNode) this._div.parentNode.removeChild(this._div); }
+    };
+}
+
+function initMapGL(mapEl) {
+    const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
+    const rasterSrc = (tiles, attribution, maxzoom) => ({ type: 'raster', tiles, tileSize: 256, maxzoom, attribution });
+    glMap = new maplibregl.Map({
+        container: mapEl,
+        style: {
+            version: 8,
+            sources: {
+                'base-std': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'], gsiAttr, 18),
+                'base-photo': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg'], gsiAttr, 18),
+                'base-pale': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'], gsiAttr, 18),
+                'base-osm': rasterSrc(
+                    ['a', 'b', 'c'].map(s => `https://${s}.tile.openstreetmap.org/{z}/{x}/{y}.png`),
+                    '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>', 19),
+            },
+            layers: [
+                { id: 'base-std', type: 'raster', source: 'base-std', layout: { visibility: 'visible' } },
+                { id: 'base-photo', type: 'raster', source: 'base-photo', layout: { visibility: 'none' } },
+                { id: 'base-pale', type: 'raster', source: 'base-pale', layout: { visibility: 'none' } },
+                { id: 'base-osm', type: 'raster', source: 'base-osm', layout: { visibility: 'none' } },
+            ],
+        },
+        center: [appState.start.lng, appState.start.lat],
+        zoom: _glZoom(9),
+        maxZoom: _glZoom(18),
+        doubleClickZoom: false,     // 地点移動をダブルクリックに割り当てるため(Leaflet版と同じ)
+        attributionControl: false,
+    });
+    glMap.addControl(new maplibregl.AttributionControl({
+        compact: false,
+        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
+    }), 'bottom-right');
+    // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)
+    glMap.on('error', (e) => { if (e && e.error) console.warn('MapLibre(本体地図):', e.error.message || e.error); });
+
+    // コントロール(左上)。Leaflet版と同順: レイヤ切替 → ⌖ → ズーム → パン
+    glMap.addControl(_glDivControl(() => {
+        const div = document.createElement('div');
+        div.className = 'maplibregl-ctrl leaflet-bar gl-layer-control';
+        const names = { std: '標準(地理院)', photo: '写真(地理院)', pale: '淡色(地理院)', osm: 'OSM' };
+        div.innerHTML =
+            '<a href="#" id="gl-layer-toggle" title="地図の種類">' +
+            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<path d="M8 1 L15 5 L8 9 L1 5 Z" fill="none" stroke="currentColor" stroke-width="1.3"/>' +
+            '<path d="M2.5 7.8 L1 8.7 L8 12.7 L15 8.7 L13.5 7.8 L8 11 Z" fill="currentColor"/>' +
+            '</svg></a>' +
+            '<div class="gl-layer-list hidden">' +
+            Object.entries(names).map(([id, nm]) =>
+                `<label><input type="radio" name="gl-base-layer" value="${id}"${id === _glBaseLayerId ? ' checked' : ''}> ${nm}</label>`).join('') +
+            '</div>';
+        div.querySelector('#gl-layer-toggle').addEventListener('click', (ev) => {
+            ev.preventDefault();
+            div.querySelector('.gl-layer-list').classList.toggle('hidden');
+        });
+        div.querySelectorAll('input[name="gl-base-layer"]').forEach(r => r.addEventListener('change', () => {
+            _glBaseLayerId = r.value;
+            ['std', 'photo', 'pale', 'osm'].forEach(id =>
+                glMap.setLayoutProperty('base-' + id, 'visibility', id === r.value ? 'visible' : 'none'));
+        }));
+        return div;
+    }), 'top-left');
+    glMap.addControl(_glDivControl(() => {
+        const div = document.createElement('div');
+        div.className = 'maplibregl-ctrl leaflet-bar map-center-control';
+        div.innerHTML =
+            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
+            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
+            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
+            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
+            '</svg></a>';
+        div.querySelector('#map-center-point').addEventListener('click', (ev) => {
+            ev.preventDefault();
+            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
+        });
+        return div;
+    }), 'top-left');
+    glMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+    glMap.addControl(_glDivControl(() => {
+        const div = document.createElement('div');
+        div.className = 'maplibregl-ctrl map-pan-control';
+        div.innerHTML =
+            '<div class="leaflet-bar map-pan-h">' +
+            '<a href="#" id="map-pan-left" title="地図を左へ移動(半画面)">◀</a>' +
+            '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
+            '<div class="leaflet-bar map-pan-v">' +
+            '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
+            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
+        [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
+            div.querySelector('#' + id).addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const s = mapAdapter.getSize();
+                mapAdapter.panBy(dx * s.x / 2, dy * s.y / 2);
+            });
+        });
+        return div;
+    }), 'top-left');
+    glMap.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
+
+    // クリック/ダブルクリック: 座標をLeaflet互換({latlng})に正規化して共通ハンドラへ
+    glMap.on('click', (e) => { onMapClick({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: e.originalEvent }); });
+    glMap.on('dblclick', (e) => { onMapDblClick({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: e.originalEvent }); });
+    // シャドウ地図の視野を追従させる(未移行機能の内部計算の整合用)
+    glMap.on('moveend', () => {
+        if (typeof map !== 'undefined' && map) {
+            const c = glMap.getCenter();
+            map.setView([c.lat, c.lng], _lfZoom(glMap.getZoom()), { animate: false });
+        }
+    });
+
+    // 「移行中」表示(未移行機能の案内。R2〜R5の進行に合わせて文言を更新する)
+    const badge = document.createElement('div');
+    badge.id = 'gl-migration-badge';
+    badge.textContent = 'MapLibre移行中(R1): マーカー/辻ライン/検索の地図表示/辻メッシュは未移行(R2〜R5で対応)';
+    mapEl.appendChild(badge);
+}
+
 function initMap() {
     const mapEl = document.getElementById('map');
     if (!mapEl) return;
+
+    // 手順3の移行フラグON: 可視地図はMapLibre、未移行機能の描画先はシャドウLeaflet
+    if (USE_MAPLIBRE) {
+        initMapGL(mapEl);
+        initShadowMap();
+        return;
+    }
 
     const gsiStd = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
         attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
@@ -1757,7 +1956,7 @@ function registerLocation(type) {
         
         // ★親切機能: 地図もその場所へ移動させる
         const target = (type === 'start') ? appState.start : appState.end;
-        map.setView([target.lat, target.lng]);
+        mapAdapter.setView(target.lat, target.lng);
 
         btn.classList.remove('active');
         btn.title = `現在の${type==='start'?'観測点':'目的点'}を初期値として登録`;
@@ -1791,7 +1990,7 @@ function registerLocation(type) {
         // ★修正: fitBounds(全体表示) ではなく setView(その場所に移動)
         // これにより、観測点を呼び出したときに目的点まで引いてしまうのを防ぐ
         const target = (type === 'start') ? appState.start : appState.end;
-        map.setView([target.lat, target.lng]);
+        mapAdapter.setView(target.lat, target.lng);
         
         alert('登録済みの場所を呼び出しました');
     }
@@ -2364,7 +2563,7 @@ async function applyLocationCoords(coords, isStart) {
     const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
     document.getElementById(inputId).blur();
 
-    map.setView(coords);
+    mapAdapter.setView(coords.lat, coords.lng);
     saveAppState();
     updateAll();
 }
@@ -2630,7 +2829,7 @@ function useGPS() {
     navigator.geolocation.getCurrentPosition(pos => {
         appState.start.lat = pos.coords.latitude; 
         appState.start.lng = pos.coords.longitude;
-        map.setView([appState.start.lat, appState.start.lng], 10);
+        mapAdapter.setView(appState.start.lat, appState.start.lng, 10);
         getElevation(appState.start.lat, appState.start.lng).then(elev => {
             if(elev !== null) {
                 appState.start.elev = elev;
@@ -2733,8 +2932,8 @@ async function moveToNearestPeak() {
         // 選定ピクセル → 緯度経度。選択中の点に反映し、移動先を画面中心にズーム
         const dest = _globalPixelToLatLng(minGX + best.i, minGY + best.j, chosen.zoom);
         await applyLocationCoords({ lat: dest.lat, lng: dest.lng }, isStart);
-        const maxZ = (map && map.getMaxZoom) ? map.getMaxZoom() : 17;
-        map.setView([dest.lat, dest.lng], Math.min(17, maxZ));
+        const maxZ = mapAdapter.ready() ? mapAdapter.getMaxZoom() : 17;
+        mapAdapter.setView(dest.lat, dest.lng, Math.min(17, maxZ));
     } catch (e) {
         alert('準最高地点の探索に失敗しました: ' + (e && e.message ? e.message : e));
     } finally {
@@ -3268,10 +3467,10 @@ async function onMapClick(e) {
     }
     // スマホ: 自前のダブルタップ判定(前回タップから400ms以内かつ40px以内)
     const now = Date.now();
-    const pt = map.latLngToContainerPoint(e.latlng);
-    if (_mapLastTapPt && (now - _mapLastTapMs) <= 400 && pt.distanceTo(_mapLastTapPt) <= 40) {
+    const pt = mapAdapter.latLngToContainerPoint(e.latlng);
+    if (_mapLastTapPt && (now - _mapLastTapMs) <= 400 && Math.hypot(pt.x - _mapLastTapPt.x, pt.y - _mapLastTapPt.y) <= 40) {
         _mapLastTapMs = 0; _mapLastTapPt = null;
-        map.closePopup();
+        mapAdapter.closePopup();
         await applyMapPointAction(e.latlng);
         return;
     }
@@ -4804,7 +5003,7 @@ function applyMyPoint(type) {
     saveAppState();
     updateAll();
     // 地図の中心を移動
-    if (typeof map !== 'undefined') map.setView([pt.lat, pt.lng], map.getZoom());
+    if (mapAdapter.ready()) mapAdapter.setView(pt.lat, pt.lng);
 }
 
 /** 観測点取得 / 目的点取得 */
@@ -7925,6 +8124,9 @@ function drawTsujiMeshGoldSet(perPix, big) {
  *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
  *  画素ヒットなしは false(通常の地図操作として処理)。 */
 function _tmShowPixelPopup(latlng) {
+    // MapLibre移行中(R1〜R4)は辻メッシュ表示が未移行のため、ポップアップは出さず
+    // 地図クリックの後続動作(観測点/目的点の移動)へ流す
+    if (USE_MAPLIBRE) return false;
     if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
     let pix = _tmPixAtLatLng(latlng);
     const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
@@ -9042,9 +9244,14 @@ async function startTsujiMeshSearch() {
             if (!el || el.classList.contains('hidden')) continue;
             coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
         }
-        const zoom = (map.getMaxZoom ? map.getMaxZoom() : 18) - 3;
-        const obsPt = map.project([start.lat, start.lng], zoom);
-        map.setView(map.unproject(obsPt.add(L.point(0, coveredPx / 2)), zoom), zoom);
+        const zoom = mapAdapter.getMaxZoom() - 3;
+        if (USE_MAPLIBRE) {
+            // 観測点が可視領域(下部パネルを除く)の中央に来るよう、中心をcoveredPx/2だけ上へオフセット
+            glMap.jumpTo({ center: [start.lng, start.lat], zoom: _glZoom(zoom), offset: [0, -coveredPx / 2] });
+        } else {
+            const obsPt = map.project([start.lat, start.lng], zoom);
+            map.setView(map.unproject(obsPt.add(L.point(0, coveredPx / 2)), zoom), zoom);
+        }
     }
 }
 
@@ -9429,8 +9636,8 @@ function syncBottomPanels() {
 let _recenterRAF = null;
 /** 指定地点を可視領域(下部パネルを除く)の中央に表示する(ズームは変えずパンのみ) */
 function recenterPointInView(p, animate = true) {
-    if (typeof map === 'undefined' || !map || !p) return;
-    const size = map.getSize();
+    if (!mapAdapter.ready() || !p) return;
+    const size = mapAdapter.getSize();
     // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
     // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
     let coveredPx = 0;
@@ -9440,6 +9647,11 @@ function recenterPointInView(p, animate = true) {
         coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
     }
     const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
+    if (USE_MAPLIBRE) {
+        // 隠れ領域は下端側。地点を中心から size.y*coveredFrac/2 上に置くと可視領域の中央に来る
+        glMap.easeTo({ center: [p.lng, p.lat], offset: [0, -size.y * coveredFrac / 2], duration: animate ? 250 : 0 });
+        return;
+    }
     const z = map.getZoom();
     const px = map.project([p.lat, p.lng], z);
     // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと地点が可視領域の中央に来る
@@ -15373,7 +15585,7 @@ async function applyFwCoords(coords) {
     appState.fwLng = coords.lng;
     appState.fwHeight = 0;
     _fwShells = [];   // 位置が変わったら打ち上げ直す
-    if (typeof map !== 'undefined' && map) map.setView([coords.lat, coords.lng]);
+    if (mapAdapter.ready()) mapAdapter.setView(coords.lat, coords.lng);
     fwSyncUI(); saveAppState(); fwUpdateMapMarker();
     if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
     let elev = 0;

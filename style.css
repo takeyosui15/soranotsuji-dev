@@ -2418,3 +2418,39 @@ input[type="range"] {
     text-align: center;
     text-shadow: 0 0 3px #000;
 }
+
+/* ==== MapLibre移行(手順3・?maplibre=1)専用 ==== */
+/* 移行中バッジ: 未移行機能の案内(右上。R2〜R5の進行で文言更新、R6で撤去) */
+#gl-migration-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 800;
+    max-width: 46vw;
+    padding: 4px 8px;
+    background: rgba(42, 90, 138, 0.85);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1.4;
+    border-radius: 6px;
+    pointer-events: none;
+}
+/* レイヤ切替(MapLibre版): アイコンボタン+開閉式のラジオリスト */
+.gl-layer-control { position: relative; }
+.gl-layer-control > a { display: flex; align-items: center; justify-content: center; color: black; }
+.gl-layer-control > a svg { display: block; }
+.gl-layer-list {
+    position: absolute;
+    left: 30px;
+    top: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+}
+.gl-layer-list.hidden { display: none; }
+.gl-layer-list label { display: block; font-size: 12px; color: #000; margin: 2px 0; cursor: pointer; }
+/* MapLibreの角コンテナ内でもLeaflet風コントロールの白背景/枠線を維持する */
+.maplibregl-ctrl.leaflet-bar { background: transparent; }

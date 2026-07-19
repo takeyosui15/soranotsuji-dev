@@ -1,0 +1,182 @@
+// 第25ラウンド検証: 本体地図のMapLibre移行R1(手順3) — アダプタ+ベース地図/コントロール(?maplibre=1)
+// フラグOFF(Leaflet既定)の不変とフラグON(MapLibre)の同等性を検証する。
+// ローカルハーネス(vendor)。外部への実アクセスは行わない(route abort)。
+const { chromium } = require('playwright-core');
+const fs = require('fs');
+const path = require('path');
+const EXE='/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const BASE='http://127.0.0.1:8099';
+const ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--no-sandbox'];
+let PASS=0, FAIL=0;
+const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); ok?PASS++:FAIL++; };
+(async()=>{
+  {
+    const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
+    check('O0 APP_VERSION 1.28.0', src.includes("APP_VERSION = '1.28.0'"));
+  }
+  const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
+  const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
+  await ctx.route('**/*', route => {   // テスト方針: ローカル以外への実アクセスを遮断
+    route.request().url().startsWith(BASE) ? route.continue() : route.abort();
+  });
+
+  // ---- Part A: フラグOFF(既定=Leaflet)の不変 ----
+  {
+    const p=await ctx.newPage();
+    const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+    await p.goto(BASE+'/index.html',{waitUntil:'load'});
+    await p.waitForFunction(()=>typeof mapAdapter==='object'&&typeof map!=='undefined'&&!!map,{timeout:8000});
+    await p.waitForTimeout(400);
+    const r=await p.evaluate(()=>({
+      engine: mapAdapter.engine(),
+      glNull: glMap===null,
+      noBadge: !document.getElementById('gl-migration-badge'),
+      noShadow: !document.getElementById('map-shadow'),
+      leafletPane: !!document.querySelector('#map .leaflet-map-pane'),
+      zoomEq: mapAdapter.getZoom()===map.getZoom(),
+      sizeEq: JSON.stringify(mapAdapter.getSize())===JSON.stringify({x:map.getSize().x,y:map.getSize().y}),
+      maxZ: mapAdapter.getMaxZoom(),
+    }));
+    check('A1 フラグOFF: Leafletエンジン(バッジ/シャドウ無し)', r.engine==='leaflet'&&r.glNull&&r.noBadge&&r.noShadow&&r.leafletPane);
+    check('A2 フラグOFF: アダプタのgetZoom/getSize/getMaxZoomがLeaflet値', r.zoomEq&&r.sizeEq&&r.maxZ===18, `maxZ=${r.maxZ}`);
+    const r2=await p.evaluate(()=>{
+      mapAdapter.setView(34.5, 133.5, 11);
+      const c=map.getCenter();
+      return { lat:c.lat, lng:c.lng, z:map.getZoom() };
+    });
+    check('A3 フラグOFF: adapter.setViewがLeaflet地図を移動', Math.abs(r2.lat-34.5)<1e-6&&Math.abs(r2.lng-133.5)<1e-6&&r2.z===11);
+    check('A4 フラグOFF: ページエラーなし', errs.length===0, errs.slice(0,2).join(' | '));
+    await p.close();
+  }
+
+  // ---- Part B: フラグON(?maplibre=1)=MapLibre ----
+  const p=await ctx.newPage();
+  const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+  await p.goto(BASE+'/index.html?maplibre=1',{waitUntil:'load'});
+  await p.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&typeof map!=='undefined'&&!!map,{timeout:8000});
+  await p.waitForTimeout(600);
+
+  // B1: MapLibre本体+シャドウLeaflet+バッジ
+  {
+    const r=await p.evaluate(()=>({
+      engine: mapAdapter.engine(),
+      canvas: !!document.querySelector('#map .maplibregl-canvas'),
+      badge: (document.getElementById('gl-migration-badge')||{}).textContent||'',
+      shadow: !!document.querySelector('#map-shadow .leaflet-map-pane'),
+      layers: ['std','photo','pale','osm'].map(id=>glMap.getLayoutProperty('base-'+id,'visibility')).join(','),
+    }));
+    check('B1 MapLibre本体+シャドウLeaflet+移行中バッジ', r.engine==='maplibre'&&r.canvas&&/移行中/.test(r.badge)&&r.shadow);
+    check('B1 ベース4種(標準のみ可視)', r.layers==='visible,none,none,none', r.layers);
+  }
+
+  // B2: レイヤ切替コントロール(開閉+写真へ切替)
+  {
+    await p.click('#gl-layer-toggle');
+    const opened=await p.evaluate(()=>!document.querySelector('.gl-layer-list').classList.contains('hidden'));
+    await p.click('.gl-layer-list input[value="photo"]');
+    const r=await p.evaluate(()=>['std','photo','pale','osm'].map(id=>glMap.getLayoutProperty('base-'+id,'visibility')).join(','));
+    check('B2 レイヤ切替: リスト開閉+写真(地理院)へ切替', opened&&r==='none,visible,none,none', r);
+    await p.click('.gl-layer-list input[value="std"]');
+    await p.click('#gl-layer-toggle');   // 閉じる
+  }
+
+  // B3: ズーム値の換算(アプリ内部=Leaflet換算)とズームコントロール
+  {
+    const r=await p.evaluate(()=>({ ad: mapAdapter.getZoom(), gl: glMap.getZoom(), maxZ: mapAdapter.getMaxZoom() }));
+    check('B3 ズーム換算(adapter=GL+1・maxZoom18)', Math.abs(r.ad-(r.gl+1))<1e-9&&r.maxZ===18, JSON.stringify(r));
+    const z0=r.ad;
+    await p.click('.maplibregl-ctrl-zoom-in');
+    await p.waitForTimeout(700);
+    const z1=await p.evaluate(()=>mapAdapter.getZoom());
+    check('B3 ズームコントロール(+)で拡大', z1>z0, `z ${z0}→${z1}`);
+  }
+
+  // B4: パンコントロール(▶=東へ・▲=北へ)
+  {
+    const c0=await p.evaluate(()=>mapAdapter.getCenter());
+    await p.click('#map-pan-right');
+    await p.waitForTimeout(700);
+    const c1=await p.evaluate(()=>mapAdapter.getCenter());
+    await p.click('#map-pan-up');
+    await p.waitForTimeout(700);
+    const c2=await p.evaluate(()=>mapAdapter.getCenter());
+    check('B4 パン: ▶で東へ・▲で北へ(半画面)', c1.lng>c0.lng&&Math.abs(c1.lat-c0.lat)<0.02&&c2.lat>c1.lat,
+      `lng ${c0.lng.toFixed(3)}→${c1.lng.toFixed(3)}, lat ${c1.lat.toFixed(3)}→${c2.lat.toFixed(3)}`);
+  }
+
+  // B5: ダブルクリックで観測点移動(シングルでは動かない)
+  {
+    const before=await p.evaluate(()=>({ ...appState.start, mode:(appState.locMode='start', _mapDblClickMode) }));
+    await p.mouse.click(500, 300);
+    await p.waitForTimeout(500);
+    const afterSingle=await p.evaluate(()=>({ lat:appState.start.lat, lng:appState.start.lng }));
+    const exp=await p.evaluate(()=>{ const ll=glMap.unproject([500,300]); return { lat:ll.lat, lng:ll.lng }; });
+    await p.mouse.dblclick(500, 300);
+    await p.waitForFunction(pv=>Math.abs(appState.start.lat-pv.lat)>1e-9||Math.abs(appState.start.lng-pv.lng)>1e-9,
+      {lat:before.lat,lng:before.lng},{timeout:5000}).catch(()=>{});
+    const after=await p.evaluate(()=>({ lat:appState.start.lat, lng:appState.start.lng }));
+    const singleKept = before.mode ? (afterSingle.lat===before.lat&&afterSingle.lng===before.lng) : true;
+    check('B5 シングルクリックでは移動しない(PCモード)', singleKept);
+    check('B5 ダブルクリックで観測点がクリック地点へ移動', Math.abs(after.lat-exp.lat)<0.002&&Math.abs(after.lng-exp.lng)<0.002,
+      `start=(${after.lat.toFixed(4)},${after.lng.toFixed(4)}) exp=(${exp.lat.toFixed(4)},${exp.lng.toFixed(4)})`);
+  }
+
+  // B6: ⌖(選択中マーカーの中央表示)
+  {
+    await p.evaluate(()=>{ glMap.jumpTo({ center:[141.0,43.0], zoom:glMap.getZoom() }); });
+    await p.click('#map-center-point');
+    await p.waitForTimeout(700);
+    const r=await p.evaluate(()=>({ c: mapAdapter.getCenter(), s: appState.start }));
+    check('B6 ⌖で観測点が画面中央へ', Math.abs(r.c.lat-r.s.lat)<0.01&&Math.abs(r.c.lng-r.s.lng)<0.01,
+      `center=(${r.c.lat.toFixed(3)},${r.c.lng.toFixed(3)}) start=(${r.s.lat.toFixed(3)},${r.s.lng.toFixed(3)})`);
+  }
+
+  // B7: 下部パネル表示中のrecenter(easeTo offsetの向き=地点が中心より上に来る)
+  {
+    const r=await p.evaluate(async()=>{
+      const pnl=document.getElementById('tsujisearch-panel');
+      pnl.classList.remove('hidden');
+      recenterPointInView(appState.start, false);
+      await new Promise(res=>setTimeout(res,300));
+      const size=mapAdapter.getSize();
+      const pt=mapAdapter.latLngToContainerPoint({lat:appState.start.lat,lng:appState.start.lng});
+      pnl.classList.add('hidden');
+      return { y: pt.y, half: size.y/2 };
+    });
+    check('B7 パネル併用時のrecenterで地点が中心より上', r.y < r.half - 20, `y=${Math.round(r.y)} half=${Math.round(r.half)}`);
+  }
+
+  // B8: 未移行機能の安全無効化(マーカーはシャドウ地図に描画・可視地図には出ない)
+  {
+    const r=await p.evaluate(()=>{
+      updateAll();
+      return {
+        shadowMarkers: document.querySelectorAll('#map-shadow .location-marker').length,
+        glMarkers: document.querySelectorAll('#map .location-marker').length,
+        tmPopup: _tmShowPixelPopup({lat:35,lng:138}),
+      };
+    });
+    check('B8 マーカーはシャドウのみ(可視地図0)+メッシュポップアップ抑止', r.shadowMarkers>=2&&r.glMarkers===0&&r.tmPopup===false,
+      `shadow=${r.shadowMarkers} gl=${r.glMarkers}`);
+  }
+
+  // B9: adapter.setViewの往復(GL座標順/ズーム換算)+シャドウ地図の追従
+  {
+    const r=await p.evaluate(async()=>{
+      mapAdapter.setView(36.2, 137.9, 12);
+      await new Promise(res=>setTimeout(res,300));
+      const c=glMap.getCenter();
+      const sc=map.getCenter();
+      return { lat:c.lat, lng:c.lng, glz:glMap.getZoom(), adz:mapAdapter.getZoom(), shLat:sc.lat, shLng:sc.lng, shZ:map.getZoom() };
+    });
+    check('B9 adapter.setView(36.2,137.9,12)がGLに反映(zoom=GL11)', Math.abs(r.lat-36.2)<1e-6&&Math.abs(r.lng-137.9)<1e-6&&Math.abs(r.glz-11)<1e-9&&Math.abs(r.adz-12)<1e-9);
+    check('B9 シャドウ地図が視野に追従', Math.abs(r.shLat-36.2)<0.01&&Math.abs(r.shLng-137.9)<0.01&&r.shZ===12,
+      `shadow=(${r.shLat.toFixed(3)},${r.shLng.toFixed(3)},z${r.shZ})`);
+  }
+
+  check('B10 フラグONでページエラーなし', errs.length===0, errs.slice(0,3).join(' | '));
+
+  await b.close();
+  console.log(`\n結果: PASS=${PASS} FAIL=${FAIL}`);
+  process.exit(FAIL?1:0);
+})().catch(e=>{ console.error('FATAL', e); process.exit(1); });
