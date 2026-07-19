@@ -13,3 +13,4 @@ Claude(AI)が大きめの差分に対して実施したコミット前レビュ�
 | `2026-07-19-round25-review.md` | 第25ラウンド(v1.28.0 本体地図MapLibre移行R1): 未移行機能の安全無効化=シャドウLeaflet方式の設計判断・メッシュポップアップのダブルクリック飲み込み対処・ズーム±1/offset/panByの符号の実測検証 |
 | `2026-07-19-round26-review.md` | 第26ラウンド(v1.29.0 本体地図MapLibre移行R2): divIcon移植はラッパーdiv必須(CSS transform衝突)・優辻はR5送りの判断・移行ラウンドが旧verifyの「未移行」表明を壊す保守パターン |
 | `2026-07-19-round27-review.md` | 第27ラウンド(v1.30.0 本体地図MapLibre移行R3): 破線種はdash種別キー+レイヤfilter(dasharrayは線幅倍単位)・時刻ラベルはglyphs不要のDOMマーカー採用・方位線をR3に一括の判断 |
+| `2026-07-19-round28-review.md` | 第28ラウンド(v1.31.0 本体地図MapLibre移行R4): 辻マーカー=辻メッシュ要素の確認(R4の実体は宙検索オーバーレイ)・消去のssClearMapOverlay集約・ホバーツールチップの実マウス検証 |

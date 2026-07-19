@@ -10,9 +10,10 @@ const ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftsha
 let PASS=0, FAIL=0;
 const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); ok?PASS++:FAIL++; };
 (async()=>{
+  // 版数ピンは最新のverify(現在は112)のみに置く(テスト方針)。ここでは存在だけ確認する
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('Q0 APP_VERSION 1.30.0', src.includes("APP_VERSION = '1.30.0'"));
+    check('Q0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});

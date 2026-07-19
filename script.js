@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.31.0 - 2026-07-19: feat: 本体地図のMapLibre移行R4(機能群4=宙検索オーバーレイ) — ?maplibre=1時の視界扇形(fill+lineレイヤ。輪郭は標本化と同じ簡易平面近似)・扇形標本点(circleレイヤ。塗りデータ駆動=行選択時にその時刻の雲量で白〜濃灰着色)・標本点ホバーのツールチップ(格子/重み/層別雲量。mousemove+mouseleaveのPopup)・パネル✕/再検索での消去。計画書の機能群4のうち「辻マーカー」は辻メッシュ機能の一部のためR5で移行(計画書に注記)
 Version 1.30.0 - 2026-07-19: feat: 本体地図のMapLibre移行R3(機能群3=辻ライン/方位線) — ?maplibre=1時の方位線(等角航法3000km。色/不透明度[地平線下0.3]はデータ駆動・実線/破線の2レイヤ)・辻ライン(前日/翌日=点線・当日=実線・精度境界±0.125°=破線/±視半径=一点鎖線/±1°=二点鎖線をdash種別レイヤ+filterで描き分け。方位急変>5°での区切りはLeaflet版と同一)・5分毎の時刻点(circleレイヤ)+時刻ラベル(DOMマーカー。縁取り文字も同一)・辻ライン365(色データ駆動・薄実線。天体別の表示切替と逐次表示をRAF合流のsetDataで再現)・dashArray(px)→line-dasharray(線幅倍)の換算を記録
 Version 1.29.0 - 2026-07-19: feat: 本体地図のMapLibre移行R2(機能群2=マーカー/ポップアップ) — ?maplibre=1時の観測点(青)/目的点(赤)マーカー+位置情報ポップアップ・観測点-目的点の2本線(見かけの直線=破線/大圏航路=実線。GeoJSONソース+lineレイヤ)・My観測点(緑)/My目的点(橙)マーカー(ポップアップ+クリックで観測点/目的点に適用)・🎆打ち上げ点マーカー+ばらつき範囲円(fillレイヤ)・マーカーはグループ管理(_glMarkerGroups=LeafletのlayerGroup相当)・divIconのCSS transformとMapLibre位置決めtransformの衝突をラッパー要素で回避・アダプタclosePopupのMapLibre側対応・移行中バッジをR2完了表記に更新
 Version 1.28.0 - 2026-07-19: feat: 本体地図のMapLibre移行R1(手順3開始。docs/maplibre-migration.md) — URLフラグ?maplibre=1で本体地図をMapLibre GL JSに切替(既定はLeafletのまま変更なし)・地図アダプタmapAdapter新設(座標順[lat,lng]⇄[lng,lat]とズーム値差[MapLibre=Leaflet−1]を境界で吸収)・ベース地図4種(地理院 標準/写真/淡色+OSM)のラスタレイヤ+レイヤ切替/ズーム/スケール/⌖中央表示/パン◀▶▲▼の各コントロール・クリック(ダブルクリック/ダブルタップ)の観測点/目的点移動・recenterPointInViewの両エンジン対応(MapLibreはeaseTo+offset)・未移行機能(マーカー/辻ライン/検索の地図表示/辻メッシュ)はシャドウLeaflet(非表示・タイル無し)へ描画して安全に無効化+地図右上に移行中バッジ表示
@@ -90,7 +91,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.30.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.31.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -919,6 +920,28 @@ function initMapGL(mapEl) {
         glMap.addLayer({ id: 'dp-time-dots', type: 'circle', source: 'dp-times',
             paint: { 'circle-radius': 4, 'circle-color': ['get', 'color'],
                      'circle-stroke-color': ['get', 'color'], 'circle-stroke-width': 1 } });
+        // R4: 宙検索オーバーレイ(視界扇形+扇形標本点。点の塗りはデータ駆動=行選択時の雲量着色)
+        glMap.addSource('ss-fan', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'ss-fan-fill', type: 'fill', source: 'ss-fan',
+            paint: { 'fill-color': '#7ec8ff', 'fill-opacity': 0.06 } });
+        glMap.addLayer({ id: 'ss-fan-line', type: 'line', source: 'ss-fan',
+            paint: { 'line-color': '#7ec8ff', 'line-width': 2 } });
+        glMap.addSource('ss-points', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'ss-point-circles', type: 'circle', source: 'ss-points',
+            paint: { 'circle-radius': 6, 'circle-color': ['get', 'fill'], 'circle-opacity': 0.95,
+                     'circle-stroke-color': '#2a5a8a', 'circle-stroke-width': 1.5 } });
+        // 標本点のホバーツールチップ(LeafletのbindTooltip相当)
+        glMap.on('mousemove', 'ss-point-circles', (e) => {
+            const f = e.features && e.features[0];
+            if (!f) return;
+            glMap.getCanvas().style.cursor = 'pointer';
+            if (!_glSsTipPopup) _glSsTipPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+            _glSsTipPopup.setLngLat(f.geometry.coordinates.slice()).setText(f.properties.tip).addTo(glMap);
+        });
+        glMap.on('mouseleave', 'ss-point-circles', () => {
+            glMap.getCanvas().style.cursor = '';
+            _glSsHideTip();
+        });
         // スタイル準備前に描画された分をやり直す(マーカーはDOMなので影響なし・線/円が対象)
         if (typeof appState === 'object' && appState.start) {
             try { updateLocationDisplay(); } catch (e) { console.warn('MapLibre(R2) 初回再描画:', e); }
@@ -929,7 +952,7 @@ function initMapGL(mapEl) {
     // 「移行中」表示(未移行機能の案内。R3〜R5の進行に合わせて文言を更新する)
     const badge = document.createElement('div');
     badge.id = 'gl-migration-badge';
-    badge.textContent = 'MapLibre移行中(R3まで完了): 辻検索・宙検索の地図表示/辻メッシュは未移行(R4〜R5で対応)';
+    badge.textContent = 'MapLibre移行中(R4まで完了): 辻メッシュの地図表示は未移行(R5で対応)';
     mapEl.appendChild(badge);
 }
 
@@ -1123,6 +1146,53 @@ function _glDp365Flush() {
         _glDp365Visible.forEach(id => (_glDp365Features[id] || []).forEach(f => feats.push(f)));
         _glSetSourceData('dp365-lines', feats);
     });
+}
+
+// ==== R4: MapLibre宙検索オーバーレイ(機能群4) ====
+let _glSsTipPopup = null;   // 標本点のホバーツールチップ
+function _glSsHideTip() {
+    if (_glSsTipPopup) { _glSsTipPopup.remove(); _glSsTipPopup = null; }
+}
+
+/** 視界扇形+扇形標本点(ssUpdateMapOverlayのMapLibre版。輪郭/着色/ツールチップの仕様は同一) */
+function glSsUpdateMapOverlay(snap, selRow) {
+    if (!glMap) return;
+    ssClearMapOverlay();
+    if (!snap || !appState.isSoraSearchActive) return;
+    const oLat = snap.oLat, oLng = snap.oLng;
+    const R = snap.rangeKm * 1000, fan = snap.fanDeg, az0 = snap.az0;
+    // 扇形の輪郭(標本化と同じ簡易平面近似=標本点と輪郭が一致する)
+    const ring = [[oLng, oLat]];
+    const n = Math.max(2, Math.ceil(fan / 3));
+    for (let k = 0; k <= n; k++) {
+        const az = (az0 - fan / 2 + fan * k / n) * Math.PI / 180;
+        ring.push([oLng + R * Math.sin(az) / (111320 * Math.cos(oLat * Math.PI / 180)),
+                   oLat + R * Math.cos(az) / 111320]);
+    }
+    ring.push([oLng, oLat]);   // GeoJSONポリゴンは閉じる
+    _glSetSourceData('ss-fan', [{ type: 'Feature', properties: {},
+        geometry: { type: 'Polygon', coordinates: [ring] } }]);
+    // 扇形標本の点(格子中心)。行選択時はその時刻の雲量で白〜濃灰に着色
+    const feats = [];
+    for (const p of snap.points) {
+        let fill = '#ffffff';
+        let tip = `格子 ${p.key} / 重み ${p.w.toFixed(2)}`;
+        if (selRow) {
+            const c = snap.clouds[p.key];
+            const iH = selRow.hourIdx;
+            if (c && c.low[iH] !== undefined && c.low[iH] !== null) {
+                const cov = 1 - (1 - c.low[iH] / 100) * (1 - c.mid[iH] / 100) * (1 - c.high[iH] / 100);
+                const g = Math.round(255 - cov * 200);
+                fill = `rgb(${g},${g},${g})`;
+                tip += ` / 雲 低${Math.round(c.low[iH])}% 中${Math.round(c.mid[iH])}% 高${Math.round(c.high[iH])}%`;
+            } else {
+                tip += ' / 雲量データなし';
+            }
+        }
+        feats.push({ type: 'Feature', properties: { fill, tip },
+            geometry: { type: 'Point', coordinates: [p.lng, p.lat] } });
+    }
+    _glSetSourceData('ss-points', feats);
 }
 
 /** 🎆打ち上げ点マーカー+ばらつき範囲円(fwUpdateMapMarkerのMapLibre版) */
@@ -16618,6 +16688,7 @@ function ssHideDetail() {
 
 /** 地図オーバーレイ: 視界扇形の輪郭+扇形標本の点。行選択時は標本毎の雲量を点の色(白=快晴〜濃灰=曇天)で表示 */
 function ssUpdateMapOverlay(snap, selRow) {
+    if (USE_MAPLIBRE) { glSsUpdateMapOverlay(snap, selRow); return; }   // MapLibre移行済み(R4)
     if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
     ssClearMapOverlay();
     if (!snap || !appState.isSoraSearchActive) return;
@@ -16655,6 +16726,12 @@ function ssUpdateMapOverlay(snap, selRow) {
 function ssClearMapOverlay() {
     if (_ssMapLayer && typeof map !== 'undefined' && map) map.removeLayer(_ssMapLayer);
     _ssMapLayer = null;
+    // MapLibre移行済み(R4): GL側のオーバーレイも消去
+    if (USE_MAPLIBRE && glMap) {
+        _glSetSourceData('ss-fan', []);
+        _glSetSourceData('ss-points', []);
+        _glSsHideTip();
+    }
 }
 
 /** 宙検索結果パネルを開く(辻検索/辻メッシュ検索とは排他=同じ下部1/3の枠を使うため) */
