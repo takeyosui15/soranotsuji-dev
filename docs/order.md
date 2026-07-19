@@ -1026,3 +1026,34 @@ macOSは、ターミナルから起動したプログラム(node)が「ダウン
 #### スクリプト側の改善(今回のコミット)
 
 `EPERM/EACCES` を検出した場合に、上記の対処A/B(とiCloudプレースホルダの注意)をその場で表示するようにしました。READMEにもトラブルシューティング章(EPERM・zshの山括弧・npm installの場所)を追加しています。動作はEPERM経路のシミュレーションとSELFTESTで確認済みです。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 461e651
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-07-19)
+Claudeさん、いつもありがとうございます。
+
+書類フォルダに移動して、やってみても、エラーが出ました。
+
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % node lp-preprocess.js --in ~/Documents/World_Atlas_2015.tif
+RangeError [ERR_FS_FILE_TOO_LARGE]: File size (3012927014) is greater than 2 GiB
+    at tryCreateBuffer (node:fs:402:13)
+    at Object.readFileSync (node:fs:455:14)
+    at preprocess (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:46:18)
+    at /Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:182:11
+    at Object.<anonymous> (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:188:3)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  code: 'ERR_FS_FILE_TOO_LARGE'
+}
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % 
+
+よろしくお願いします。
