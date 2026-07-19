@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.30.0 - 2026-07-19: feat: 本体地図のMapLibre移行R3(機能群3=辻ライン/方位線) — ?maplibre=1時の方位線(等角航法3000km。色/不透明度[地平線下0.3]はデータ駆動・実線/破線の2レイヤ)・辻ライン(前日/翌日=点線・当日=実線・精度境界±0.125°=破線/±視半径=一点鎖線/±1°=二点鎖線をdash種別レイヤ+filterで描き分け。方位急変>5°での区切りはLeaflet版と同一)・5分毎の時刻点(circleレイヤ)+時刻ラベル(DOMマーカー。縁取り文字も同一)・辻ライン365(色データ駆動・薄実線。天体別の表示切替と逐次表示をRAF合流のsetDataで再現)・dashArray(px)→line-dasharray(線幅倍)の換算を記録
 Version 1.29.0 - 2026-07-19: feat: 本体地図のMapLibre移行R2(機能群2=マーカー/ポップアップ) — ?maplibre=1時の観測点(青)/目的点(赤)マーカー+位置情報ポップアップ・観測点-目的点の2本線(見かけの直線=破線/大圏航路=実線。GeoJSONソース+lineレイヤ)・My観測点(緑)/My目的点(橙)マーカー(ポップアップ+クリックで観測点/目的点に適用)・🎆打ち上げ点マーカー+ばらつき範囲円(fillレイヤ)・マーカーはグループ管理(_glMarkerGroups=LeafletのlayerGroup相当)・divIconのCSS transformとMapLibre位置決めtransformの衝突をラッパー要素で回避・アダプタclosePopupのMapLibre側対応・移行中バッジをR2完了表記に更新
 Version 1.28.0 - 2026-07-19: feat: 本体地図のMapLibre移行R1(手順3開始。docs/maplibre-migration.md) — URLフラグ?maplibre=1で本体地図をMapLibre GL JSに切替(既定はLeafletのまま変更なし)・地図アダプタmapAdapter新設(座標順[lat,lng]⇄[lng,lat]とズーム値差[MapLibre=Leaflet−1]を境界で吸収)・ベース地図4種(地理院 標準/写真/淡色+OSM)のラスタレイヤ+レイヤ切替/ズーム/スケール/⌖中央表示/パン◀▶▲▼の各コントロール・クリック(ダブルクリック/ダブルタップ)の観測点/目的点移動・recenterPointInViewの両エンジン対応(MapLibreはeaseTo+offset)・未移行機能(マーカー/辻ライン/検索の地図表示/辻メッシュ)はシャドウLeaflet(非表示・タイル無し)へ描画して安全に無効化+地図右上に移行中バッジ表示
 Version 1.27.0 - 2026-07-19: feat: 宙断面ビューの肉付け(デッサン19の未決①〜④) — ⛶最大化+結果パネル(辻検索/辻メッシュ/宙検索)併用時の1/3化(積み上げ規則を全天儀と同型に)・雲格子を0.1°×9×9に細分化・時間スライダー(基準時刻+12時間・10分刻み・時間の間は線形補間・▶で500ms毎+10分のアニメーション)・気圧面輪切りモード(取得できる最多の16面×実高度の薄板。気象庁降水強度配色のグラデーション+凡例。初回切替時に取得・キャッシュ)・モード切替ラジオ(3層/輪切り)
@@ -89,7 +90,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.29.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.30.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -893,6 +894,31 @@ function initMapGL(mapEl) {
             paint: { 'fill-color': '#ffb74d', 'fill-opacity': 0.15 } });
         glMap.addLayer({ id: 'fw-circle-line', type: 'line', source: 'fw-circle',
             paint: { 'line-color': '#ff8f00', 'line-width': 1 } });
+        // R3: 方位線(色/不透明度はデータ駆動。実線と破線[isDashed]の2レイヤ)
+        glMap.addSource('dir-lines', { type: 'geojson', data: emptyFC });
+        const dirPaint = { 'line-color': ['get', 'color'], 'line-width': 6, 'line-opacity': ['get', 'opacity'] };
+        glMap.addLayer({ id: 'dir-solid', type: 'line', source: 'dir-lines',
+            filter: ['==', ['get', 'dashed'], false], paint: dirPaint });
+        glMap.addLayer({ id: 'dir-dashed', type: 'line', source: 'dir-lines',
+            filter: ['==', ['get', 'dashed'], true], paint: { ...dirPaint, 'line-dasharray': [1.7, 1.7] } });
+        // R3: 辻ライン(dash種別毎のレイヤ。dasharrayの単位は線幅倍のためpx値/5で換算)
+        glMap.addSource('dp-lines', { type: 'geojson', data: emptyFC });
+        const dpDashes = { solid: null, dot: [0.2, 2.6], dash: [2.6, 2.6],
+                           dashdot: [0.2, 2.6, 2.6, 2.6], dashdotdot: [0.2, 2.6, 0.2, 2.6, 2.6, 2.6] };
+        Object.entries(dpDashes).forEach(([key, dash]) => {
+            const paint = { 'line-color': ['get', 'color'], 'line-width': 5, 'line-opacity': 0.8 };
+            if (dash) paint['line-dasharray'] = dash;
+            glMap.addLayer({ id: 'dp-' + key, type: 'line', source: 'dp-lines',
+                filter: ['==', ['get', 'dash'], key], paint });
+        });
+        // R3: 辻ライン365(実線・薄め)と5分毎の時刻点(ラベルはDOMマーカー)
+        glMap.addSource('dp365-lines', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'dp365', type: 'line', source: 'dp365-lines',
+            paint: { 'line-color': ['get', 'color'], 'line-width': 7, 'line-opacity': 0.5 } });
+        glMap.addSource('dp-times', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'dp-time-dots', type: 'circle', source: 'dp-times',
+            paint: { 'circle-radius': 4, 'circle-color': ['get', 'color'],
+                     'circle-stroke-color': ['get', 'color'], 'circle-stroke-width': 1 } });
         // スタイル準備前に描画された分をやり直す(マーカーはDOMなので影響なし・線/円が対象)
         if (typeof appState === 'object' && appState.start) {
             try { updateLocationDisplay(); } catch (e) { console.warn('MapLibre(R2) 初回再描画:', e); }
@@ -903,7 +929,7 @@ function initMapGL(mapEl) {
     // 「移行中」表示(未移行機能の案内。R3〜R5の進行に合わせて文言を更新する)
     const badge = document.createElement('div');
     badge.id = 'gl-migration-badge';
-    badge.textContent = 'MapLibre移行中(R2まで完了): 辻ライン/辻検索・宙検索の地図表示/辻メッシュは未移行(R3〜R5で対応)';
+    badge.textContent = 'MapLibre移行中(R3まで完了): 辻検索・宙検索の地図表示/辻メッシュは未移行(R4〜R5で対応)';
     mapEl.appendChild(badge);
 }
 
@@ -918,13 +944,13 @@ function _glClearMarkerGroup(name) {
  *  MapLibreが位置決めに使うインラインtransformの衝突を避けるため必ずラップする) */
 function _glAddMarker(name, lat, lng, html, opts = {}) {
     const wrap = document.createElement('div');
-    wrap.style.width = (opts.w || 24) + 'px';
-    wrap.style.height = (opts.h || 24) + 'px';
+    if (opts.w !== null) wrap.style.width = (opts.w || 24) + 'px';   // w:null=自動幅(時刻ラベル等)
+    if (opts.h !== null) wrap.style.height = (opts.h || 24) + 'px';
     if (opts.className) wrap.className = opts.className;
     if (opts.zIndex !== undefined) wrap.style.zIndex = String(opts.zIndex);
     if (opts.interactive === false) wrap.style.pointerEvents = 'none';
     wrap.innerHTML = html;
-    const mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom' })
+    const mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom', offset: opts.offset || [0, 0] })
         .setLngLat([lng, lat]).addTo(glMap);
     if (opts.popupHtml) {
         mk.setPopup(new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml));
@@ -993,6 +1019,109 @@ function glUpdateMyPointMarkers() {
         if (re) re.checked = true;
         saveAppState();
         updateAll();
+    });
+}
+
+// ==== R3: MapLibre辻ライン/方位線(機能群3) ====
+// 線はGeoJSONソース+lineレイヤ。破線種(dashArray)はデータ駆動にできないため、
+// dash種別のキーをfeatureに持たせ、種別毎のレイヤ+filterで描き分ける。
+// 時刻ラベルはLeafletと同じDOM(マーカー)、時刻点はcircleレイヤ。
+let _glDirFeatures = [];        // 方位線(linesLayer相当)
+let _glDpFeatures = [];         // 辻ライン(dpLayer相当)
+let _glDpTimeFeatures = [];     // 5分毎の時刻点
+let _glDp365Features = {};      // bodyId -> 辻ライン365のfeature配列
+let _glDp365Visible = new Set();
+let _glDp365FlushReq = null;
+
+/** LeafletのdashArray(px)をレイヤキーに正規化する */
+function _glDashKey(dashArray) {
+    if (!dashArray) return 'solid';
+    const k = String(dashArray).replace(/\s/g, '');
+    return { '1,13': 'dot', '13,13': 'dash', '1,13,13,13': 'dashdot', '1,13,1,13,13,13': 'dashdotdot' }[k] || 'dash';
+}
+
+function _glLinesReset(which) {   // 'dir' | 'dp'
+    if (!glMap) return;
+    if (which === 'dir') {
+        _glDirFeatures = [];
+        _glSetSourceData('dir-lines', []);
+    } else {
+        _glDpFeatures = [];
+        _glDpTimeFeatures = [];
+        _glSetSourceData('dp-lines', []);
+        _glSetSourceData('dp-times', []);
+        _glClearMarkerGroup('dptime');
+    }
+}
+
+/** 辻ライン(drawDPPathのMapLibre版。区切り/精度境界/時刻マーカーの仕様は同一) */
+function glDrawDPPath(points, color, dashArray, withMarkers, azOffset) {
+    if (points.length === 0) return;
+    const targetPt = appState.end;
+    const offset = azOffset || 0;
+    const dashKey = _glDashKey(dashArray);
+    let segments = [];
+    let cur = [];
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        let dest;
+        if (offset === 0 && p.lat != null && p.lng != null) {
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
+        if (cur.length > 0 && Math.abs(p.az - points[i - 1].az) > 5) { segments.push(cur); cur = []; }
+        cur.push([dest.lng, dest.lat]);
+        if (withMarkers && p.time.getMinutes() % 5 === 0 && p.time.getSeconds() === 0) {
+            _glDpTimeFeatures.push({ type: 'Feature', properties: { color },
+                geometry: { type: 'Point', coordinates: [dest.lng, dest.lat] } });
+            const timeStr = formatTimeHM(p.time);
+            _glAddMarker('dptime', dest.lat, dest.lng,
+                `<div style="font-size:14px;font-weight:bold;color:${color};text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;">${timeStr}</div>`,
+                { anchor: 'top-left', offset: [10, -7], w: null, h: null, className: 'dp-label-icon', interactive: false });
+        }
+    }
+    if (cur.length > 0) segments.push(cur);
+    segments.forEach(seg => _glDpFeatures.push({ type: 'Feature', properties: { color, dash: dashKey },
+        geometry: { type: 'LineString', coordinates: seg } }));
+    _glSetSourceData('dp-lines', _glDpFeatures);
+    _glSetSourceData('dp-times', _glDpTimeFeatures);
+}
+
+/** 辻ライン365(drawDP365PathのMapLibre版)。RAFで合流して一括setDataする */
+function glDrawDP365Path(points, color, bodyId) {
+    if (!points || points.length === 0) return;
+    const targetPt = appState.end;
+    let segments = [];
+    let cur = [];
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        let dest;
+        if (p.lat != null && p.lng != null) {
+            dest = { lat: p.lat, lng: p.lng };
+        } else {
+            const desiredBearing = ((p.az) % 360 + 360) % 360;
+            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
+        }
+        if (cur.length > 0 && Math.abs(p.az - points[i - 1].az) > 5) { segments.push(cur); cur = []; }
+        cur.push([dest.lng, dest.lat]);
+    }
+    if (cur.length > 0) segments.push(cur);
+    const list = (_glDp365Features[bodyId] = _glDp365Features[bodyId] || []);
+    segments.forEach(seg => list.push({ type: 'Feature', properties: { color },
+        geometry: { type: 'LineString', coordinates: seg } }));
+    _glDp365Visible.add(bodyId);   // Leaflet版の「計算でき次第layerをmapへ」と同じ逐次表示
+    _glDp365Flush();
+}
+
+function _glDp365Flush() {
+    if (!glMap || _glDp365FlushReq) return;
+    _glDp365FlushReq = requestAnimationFrame(() => {
+        _glDp365FlushReq = null;
+        const feats = [];
+        _glDp365Visible.forEach(id => (_glDp365Features[id] || []).forEach(f => feats.push(f)));
+        _glSetSourceData('dp365-lines', feats);
     });
 }
 
@@ -2233,6 +2362,7 @@ function updateAll() {
         updateDPLines();
     } else {
         dpLayer.clearLayers();
+        if (USE_MAPLIBRE) _glLinesReset('dp');
     }
 
     updateTsujiSearchInputs();
@@ -2321,6 +2451,7 @@ function updateLocationDisplay() {
 
 function updateCalculation() {
     linesLayer.clearLayers();
+    if (USE_MAPLIBRE) _glLinesReset('dir');   // MapLibre移行済み(R3): 方位線の描き直し
     const obsDate = appState.currentDate;
     const startOfDay = new Date(obsDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -2488,6 +2619,7 @@ async function updateDPLines() {
     const generation = ++dpCurrentGeneration;
     dpPoolCancelQueued('dp');
     dpLayer.clearLayers();
+    if (USE_MAPLIBRE) _glLinesReset('dp');   // MapLibre移行済み(R3)
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
@@ -2580,6 +2712,11 @@ async function updateDP365Lines() {
             if (!map.hasLayer(layer)) layer.addTo(map);
         }
     });
+    // MapLibre移行済み(R3): 表示天体の切替を反映(計算中の天体はglDrawDP365Pathが逐次追加する)
+    if (USE_MAPLIBRE) {
+        _glDp365Visible = new Set([...visibleIds].filter(id => dp365CalculatedBodies.has(id)));
+        _glDp365Flush();
+    }
 
     // 未計算の天体だけを計算対象に
     const newBodies = visibleBodies.filter(b => !dp365CalculatedBodies.has(b.id));
@@ -2609,7 +2746,7 @@ async function updateDP365Lines() {
                         if (generation !== dp365CurrentGeneration) return;
                         const layer = ensureDP365LayerForBody(body.id);
                         if (!map.hasLayer(layer)) layer.addTo(map);
-                        drawDP365Path(pts, body.color, layer);
+                        drawDP365Path(pts, body.color, layer, body.id);
                         doneWork++;
                         updateLabel();
                     }));
@@ -2630,7 +2767,8 @@ async function updateDP365Lines() {
 
 /** 辻ライン365 用の軽量描画 (◎破線のみ、マーカー無し)。
  *  指定された targetLayer (天体ごとの L.layerGroup) に追加する。 */
-function drawDP365Path(points, color, targetLayer) {
+function drawDP365Path(points, color, targetLayer, bodyId) {
+    if (USE_MAPLIBRE) { glDrawDP365Path(points, color, bodyId); return; }   // MapLibre移行済み(R3)
     if (!points || points.length === 0) return;
     const targetPt = appState.end;
     let segments = [];
@@ -2957,6 +3095,12 @@ function clearAllDP365Layers() {
     });
     dp365LayerByBody = {};
     dp365CalculatedBodies.clear();
+    // MapLibre移行済み(R3): キャッシュと表示を全消去
+    if (USE_MAPLIBRE) {
+        _glDp365Features = {};
+        _glDp365Visible = new Set();
+        _glDp365Flush();
+    }
 }
 
 function toggleDP365() {
@@ -3102,9 +3246,16 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
     // これにより、地図上で「指定した方位」に向かって真っ直ぐ線が引かれます
     const endPos = getDestinationRhumb(lat, lng, azimuth, 3000000); // 3000km
 
-    const opacity = altitude < 0 ? 0.3 : 1.0; 
+    const opacity = altitude < 0 ? 0.3 : 1.0;
+    if (USE_MAPLIBRE) {   // MapLibre移行済み(R3)
+        _glDirFeatures.push({ type: 'Feature',
+            properties: { color: body.color, opacity, dashed: !!body.isDashed },
+            geometry: { type: 'LineString', coordinates: [[lng, lat], [endPos.lng, endPos.lat]] } });
+        _glSetSourceData('dir-lines', _glDirFeatures);
+        return;
+    }
     const dashArray = body.isDashed ? '10, 10' : null;
-    
+
     L.polyline([[lat, lng], [endPos.lat, endPos.lng]], {
         color: body.color,
         weight: 6,
@@ -3290,6 +3441,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
 }
 
 function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
+    if (USE_MAPLIBRE) { glDrawDPPath(points, color, dashArray, withMarkers, azOffset); return; }   // MapLibre移行済み(R3)
     if (points.length === 0) return;
     const targetPt = appState.end;
     let segments = [];
