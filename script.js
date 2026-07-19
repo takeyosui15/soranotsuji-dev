@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.32.0 - 2026-07-19: feat: 本体地図のMapLibre移行R5(機能群5=辻メッシュ。最重量) — ?maplibre=1時のメッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)をimageソース+rasterレイヤ(raster-resampling:nearestでpixelated相当のシャープ表示・更新はupdateImage)・金ドット(選択行のヒット画素×最大5000)をcircleレイヤ化(クリックで観測点設定+ホバーで精度角距離のツールチップをレイヤイベントで再現)・優辻ピン(DOMマーカー。クリックでポップアップ/ホバーで精細化ツールチップ)・画素/ピンのポップアップ(クリックで観測点移動する内容ブロック・メッシュ確定中の詳細リスト固定と閉で解除)・ホバーツールチップ(map mousemove連動)・観測点マーカーの詳細リスト連動(ホバー/ポップアップ固定/常に開くクリック)・表示切替(チェックボックス+天体表示)をレイヤvisibilityで再現・金ドット上のクリックは一般クリック(地点移動)に流さない(queryRenderedFeatures)・レイヤ表示状態の共通問い合わせ口_tmLayerShown(mesh/gold)を新設しhasLayer5箇所を置換
 Version 1.31.0 - 2026-07-19: feat: 本体地図のMapLibre移行R4(機能群4=宙検索オーバーレイ) — ?maplibre=1時の視界扇形(fill+lineレイヤ。輪郭は標本化と同じ簡易平面近似)・扇形標本点(circleレイヤ。塗りデータ駆動=行選択時にその時刻の雲量で白〜濃灰着色)・標本点ホバーのツールチップ(格子/重み/層別雲量。mousemove+mouseleaveのPopup)・パネル✕/再検索での消去。計画書の機能群4のうち「辻マーカー」は辻メッシュ機能の一部のためR5で移行(計画書に注記)
 Version 1.30.0 - 2026-07-19: feat: 本体地図のMapLibre移行R3(機能群3=辻ライン/方位線) — ?maplibre=1時の方位線(等角航法3000km。色/不透明度[地平線下0.3]はデータ駆動・実線/破線の2レイヤ)・辻ライン(前日/翌日=点線・当日=実線・精度境界±0.125°=破線/±視半径=一点鎖線/±1°=二点鎖線をdash種別レイヤ+filterで描き分け。方位急変>5°での区切りはLeaflet版と同一)・5分毎の時刻点(circleレイヤ)+時刻ラベル(DOMマーカー。縁取り文字も同一)・辻ライン365(色データ駆動・薄実線。天体別の表示切替と逐次表示をRAF合流のsetDataで再現)・dashArray(px)→line-dasharray(線幅倍)の換算を記録
 Version 1.29.0 - 2026-07-19: feat: 本体地図のMapLibre移行R2(機能群2=マーカー/ポップアップ) — ?maplibre=1時の観測点(青)/目的点(赤)マーカー+位置情報ポップアップ・観測点-目的点の2本線(見かけの直線=破線/大圏航路=実線。GeoJSONソース+lineレイヤ)・My観測点(緑)/My目的点(橙)マーカー(ポップアップ+クリックで観測点/目的点に適用)・🎆打ち上げ点マーカー+ばらつき範囲円(fillレイヤ)・マーカーはグループ管理(_glMarkerGroups=LeafletのlayerGroup相当)・divIconのCSS transformとMapLibre位置決めtransformの衝突をラッパー要素で回避・アダプタclosePopupのMapLibre側対応・移行中バッジをR2完了表記に更新
@@ -91,7 +92,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.31.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.32.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -735,6 +736,7 @@ const mapAdapter = {
                 const pp = m.getPopup && m.getPopup();
                 if (pp && pp.isOpen()) pp.remove();
             }));
+            if (_glTmPopup) _glTmPopup.remove();   // 辻メッシュのポップアップ(R5)
         }
     },
 };
@@ -868,8 +870,21 @@ function initMapGL(mapEl) {
     glMap.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
     // クリック/ダブルクリック: 座標をLeaflet互換({latlng})に正規化して共通ハンドラへ
-    glMap.on('click', (e) => { onMapClick({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: e.originalEvent }); });
+    glMap.on('click', (e) => {
+        // 金ドット(辻メッシュのヒット画素)上のクリックはレイヤ側で観測点設定するため、
+        // 一般クリック(画素ポップアップ/地点移動)へは流さない(Leafletのマーカー優先と同じ)
+        if (_glTmGoldShown && glMap.getLayer('tm-gold-dots') &&
+            glMap.queryRenderedFeatures(e.point, { layers: ['tm-gold-dots'] }).length) return;
+        onMapClick({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: e.originalEvent });
+    });
     glMap.on('dblclick', (e) => { onMapDblClick({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: e.originalEvent }); });
+    // 辻メッシュのメッシュ/辻マーカーのホバーツールチップ(PCのみ。Leaflet版のmousemoveと同じ。
+    // コントロール上では反応させない)
+    glMap.on('mousemove', (e) => {
+        if (!_mapDblClickMode) return;
+        const t = e.originalEvent ? e.originalEvent.target : null;
+        handleTsujiMeshGoldHover((t && t.closest && t.closest('.maplibregl-ctrl')) ? null : { lat: e.lngLat.lat, lng: e.lngLat.lng });
+    });
     // シャドウ地図の視野を追従させる(未移行機能の内部計算の整合用)
     glMap.on('moveend', () => {
         if (typeof map !== 'undefined' && map) {
@@ -942,6 +957,35 @@ function initMapGL(mapEl) {
             glMap.getCanvas().style.cursor = '';
             _glSsHideTip();
         });
+        // R5: 辻メッシュ(メッシュ画像/辻マーカー画像=imageソース+rasterレイヤ・金ドット=circleレイヤ)
+        const dummyQuad = [[0, 0], [0.001, 0], [0.001, -0.001], [0, -0.001]];
+        ['tm-mesh-img', 'tm-gold-img'].forEach(id => {
+            glMap.addSource(id, { type: 'image', url: _GL_BLANK_PX, coordinates: dummyQuad });
+            glMap.addLayer({ id, type: 'raster', source: id, layout: { visibility: 'none' },
+                paint: { 'raster-fade-duration': 0, 'raster-resampling': 'nearest' } });   // 画素をシャープに(.tm-mesh-overlayのpixelated相当)
+        });
+        glMap.addSource('tm-gold-dots-src', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'tm-gold-dots', type: 'circle', source: 'tm-gold-dots-src',
+            paint: { 'circle-radius': 4, 'circle-color': '#ffd700', 'circle-stroke-color': '#b8860b', 'circle-stroke-width': 1 } });
+        // 金ドットのクリックで観測点に設定(Leaflet版circleMarkerのclickと同じ)
+        glMap.on('click', 'tm-gold-dots', (e) => {
+            const f = e.features && e.features[0];
+            if (!f || !_glTmGoldShown) return;
+            const pr = f.properties;
+            appState.start = { lat: +pr.lat, lng: +pr.lng, elev: +pr.elev + _tsujiMeshPixHeightUsed };
+            appState.startApiElev = +pr.elev;
+            appState.startHeight = _tsujiMeshPixHeightUsed;
+            saveAppState();
+            updateAll();
+        });
+        glMap.on('mousemove', 'tm-gold-dots', (e) => {
+            const f = e.features && e.features[0];
+            if (!f || !_glTmGoldShown) return;
+            glMap.getCanvas().style.cursor = 'pointer';
+            _glTmShowTip(+f.properties.lat, +f.properties.lng,
+                `精度角距離 ${(+f.properties.dist).toFixed(5)}°<br>クリックで観測点に設定`, 8);
+        });
+        glMap.on('mouseleave', 'tm-gold-dots', () => { glMap.getCanvas().style.cursor = ''; _glTmHideTip(); });
         // スタイル準備前に描画された分をやり直す(マーカーはDOMなので影響なし・線/円が対象)
         if (typeof appState === 'object' && appState.start) {
             try { updateLocationDisplay(); } catch (e) { console.warn('MapLibre(R2) 初回再描画:', e); }
@@ -952,7 +996,7 @@ function initMapGL(mapEl) {
     // 「移行中」表示(未移行機能の案内。R3〜R5の進行に合わせて文言を更新する)
     const badge = document.createElement('div');
     badge.id = 'gl-migration-badge';
-    badge.textContent = 'MapLibre移行中(R4まで完了): 辻メッシュの地図表示は未移行(R5で対応)';
+    badge.textContent = 'MapLibre版(R5まで移行完了): お気づきの差異があればお知らせください(R6で既定切替予定)';
     mapEl.appendChild(badge);
 }
 
@@ -973,10 +1017,26 @@ function _glAddMarker(name, lat, lng, html, opts = {}) {
     if (opts.zIndex !== undefined) wrap.style.zIndex = String(opts.zIndex);
     if (opts.interactive === false) wrap.style.pointerEvents = 'none';
     wrap.innerHTML = html;
+    // Leafletのマーカー同様、クリック/ダブルクリックを地図(一般クリック=地点移動/画素ポップアップ)へ
+    // 伝播させない(伝播すると「マーカー操作+地図操作」が同時に起きてしまう)
+    if (opts.interactive !== false) {
+        wrap.addEventListener('click', (ev) => ev.stopPropagation());
+        wrap.addEventListener('dblclick', (ev) => ev.stopPropagation());
+    }
     const mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom', offset: opts.offset || [0, 0] })
         .setLngLat([lng, lat]).addTo(glMap);
     if (opts.popupHtml) {
-        mk.setPopup(new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml));
+        const pp = new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml);
+        // ポップアップ内のクリックも地図へ伝播させない(Leafletのポップアップと同じ)
+        pp.on('open', () => {
+            const el = pp.getElement();
+            if (el && !el.__stopWired) {
+                el.__stopWired = true;
+                el.addEventListener('click', (ev) => ev.stopPropagation());
+                el.addEventListener('dblclick', (ev) => ev.stopPropagation());
+            }
+        });
+        mk.setPopup(pp);
     }
     if (opts.onClick) wrap.addEventListener('click', () => opts.onClick());
     (_glMarkerGroups[name] = _glMarkerGroups[name] || []).push(mk);
@@ -992,8 +1052,22 @@ function _glSetSourceData(srcId, features) {
 function glUpdateLocationDisplay() {
     _glClearMarkerGroup('location');
     const s = appState.start, e = appState.end;
-    _glAddMarker('location', s.lat, s.lng, '<div class="location-marker location-marker-observer"></div>',
+    const obsMk = _glAddMarker('location', s.lat, s.lng, '<div class="location-marker location-marker-observer"></div>',
         { zIndex: 1000, popupHtml: createLocationPopup('観測点', s, e, appState.startApiElev, appState.startHeight) });
+    // 辻メッシュ(R5): 観測点マーカーのホバー/ポップアップで詳細リスト連動(Leaflet版と同じ)
+    const obsEl = obsMk.getElement();
+    obsEl.addEventListener('mouseenter', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
+    const obsPp = obsMk.getPopup();
+    if (obsPp) {
+        // ポップアップ表示中は詳細リストを観測点の情報に固定(閉じると解除=通常のホバー更新に戻る)
+        obsPp.on('open', () => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = obsPp; });
+        obsPp.on('close', () => { if (_tmDetailLockPopup === obsPp) _tmDetailLockPopup = null; });
+        // クリック(タップ)では常にポップアップを開く(既定のトグルで閉じてしまい機能が無効に見えるのを防ぐ)
+        obsEl.addEventListener('click', () => setTimeout(() => {
+            if (!obsPp.isOpen() && (_glMarkerGroups.location || []).includes(obsMk)) obsMk.togglePopup();
+        }, 0));
+    }
+    _tmObsMarker = obsMk;
     _glAddMarker('location', e.lat, e.lng, '<div class="location-marker location-marker-target"></div>',
         { zIndex: 1000, popupHtml: createLocationPopup('目的点', e, s, appState.endApiElev, appState.endHeight) });
     const gc = calculateGreatCirclePoints(s, e);
@@ -1193,6 +1267,112 @@ function glSsUpdateMapOverlay(snap, selRow) {
             geometry: { type: 'Point', coordinates: [p.lng, p.lat] } });
     }
     _glSetSourceData('ss-points', feats);
+}
+
+// ==== R5: MapLibre辻メッシュ(機能群5) ====
+// メッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)は imageソース+rasterレイヤ、
+// 金ドット(選択行のヒット画素)は circleレイヤ、優辻ピンはDOMマーカー。
+// ヒットテスト(_tmPixAtLatLng)は自前mathのため両エンジン共通。
+let _glTmMeshShown = false, _glTmGoldShown = false;   // レイヤ表示状態(Leafletのmap.hasLayer相当)
+let _glTmPopup = null;      // 辻メッシュのポップアップ(Leaflet同様、地図上に1つだけ)
+let _glTmHoverTip = null;   // ホバーツールチップ(1個を使い回す)
+const _GL_BLANK_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+/** メッシュレイヤの表示状態(エンジン共通の問い合わせ口) */
+function _tmLayerShown(which) {   // 'mesh' | 'gold'
+    if (USE_MAPLIBRE) return which === 'mesh' ? _glTmMeshShown : _glTmGoldShown;
+    if (typeof map === 'undefined' || !map) return false;
+    const l = which === 'mesh' ? tsujiMeshLayer : _tsujiMeshGoldLayer;
+    return !!(l && map.hasLayer(l));
+}
+function _glTmHideTip() {
+    if (_glTmHoverTip) { _glTmHoverTip.remove(); _glTmHoverTip = null; }
+}
+function _glTmShowTip(lat, lng, html, offset) {
+    if (!glMap) return;
+    if (!_glTmHoverTip) _glTmHoverTip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: offset || 8 });
+    _glTmHoverTip.setLngLat([lng, lat]).setHTML(html).addTo(glMap);
+}
+/** 辻メッシュのポップアップを開く(既存を閉じてから=Leafletのpopup1つ運用と同じ) */
+function _glTmOpenPopup(lat, lng, div, offsetY) {
+    if (_glTmPopup) { _glTmPopup.remove(); _glTmPopup = null; }
+    const popup = new maplibregl.Popup({ offset: [0, offsetY || -4], maxWidth: '320px' })
+        .setLngLat([lng, lat]).setDOMContent(div).addTo(glMap);
+    popup.on('close', () => {
+        if (_tmDetailLockPopup === popup) _tmDetailLockPopup = null;
+        if (_glTmPopup === popup) _glTmPopup = null;
+    });
+    // ポップアップ内のクリック(内容ブロックの観測点設定など)を地図へ伝播させない
+    const el = popup.getElement();
+    if (el) {
+        el.addEventListener('click', (ev) => ev.stopPropagation());
+        el.addEventListener('dblclick', (ev) => ev.stopPropagation());
+    }
+    _glTmPopup = popup;
+    return popup;
+}
+/** imageソースの画像を更新する(data null=非表示)。
+ *  注意: updateImageのcoordinatesは反映されない(MapLibre 4.x)ため、setCoordinatesを併用する */
+function _glTmSetImage(id, data) {
+    if (!glMap || !glMap.getSource(id)) return;
+    if (!data) { glMap.setLayoutProperty(id, 'visibility', 'none'); return; }
+    const src = glMap.getSource(id);
+    src.updateImage({ url: data.url });
+    if (src.setCoordinates) src.setCoordinates(data.coordinates);
+    glMap.setLayoutProperty(id, 'visibility', 'visible');
+}
+/** LeafletのlatLngBounds→imageソースの四隅([[W,N],[E,N],[E,S],[W,S]]) */
+function _tmGlCoords(bounds) {
+    const w = bounds.getWest(), e = bounds.getEast(), n2 = bounds.getNorth(), s = bounds.getSouth();
+    return [[w, n2], [e, n2], [e, s], [w, s]];
+}
+function _glTmClearGold() {
+    _glSetSourceData('tm-gold-dots-src', []);
+    _glTmSetImage('tm-gold-img', null);
+    _glClearMarkerGroup('tmpin');
+    _glTmHideTip();
+}
+
+/** 選択行のヒット画素=金ドット(updateTsujiMeshGoldMarkersのMapLibre版。クリック/ホバーはレイヤイベント) */
+function glUpdateTsujiMeshGoldMarkers() {
+    if (!glMap) return;
+    _glTmClearGold();
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    if (!row || !_tsujiMeshPix) return;
+    const n = Math.min(row.pixIdx.length, 5000);
+    const feats = [];
+    for (let i = 0; i < n; i++) {
+        const pix = row.pixIdx[i];
+        feats.push({ type: 'Feature',
+            properties: { dist: row.pixDist[i], lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix], elev: _tsujiMeshPix.elev[pix] },
+            geometry: { type: 'Point', coordinates: [_tsujiMeshPix.lng[pix], _tsujiMeshPix.lat[pix]] } });
+    }
+    _glSetSourceData('tm-gold-dots-src', feats);
+    applyTsujiMeshLayerVisibility();
+}
+
+/** 辻マーカー集合(天体色の画像)+優辻ピン(drawTsujiMeshGoldSetのMapLibre版) */
+function glDrawTsujiMeshGoldSet(perPix, big) {
+    if (!glMap || !_tsujiMeshPix) return;
+    _glTmClearGold();
+    _tsujiMeshGoldSet = perPix;
+    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
+    const [cr, cg, cb] = _tmCssColorToRGB(row && row.body ? row.body.color : '#ffd700');
+    const overlay = _tmBuildOverlay((put) => { for (const pix of perPix.keys()) put(pix); }, [cr, cg, cb, 235]);
+    _glTmSetImage('tm-gold-img', overlay);
+    if (big && big.pix >= 0) {
+        const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix];
+        const mk = _glAddMarker('tmpin', lat, lng, '<div class="location-marker location-marker-tsujigold"></div>', { zIndex: 900 });
+        const el = mk.getElement();
+        el.addEventListener('click', () => _tmShowPinPopup(big));   // クリック/タップでポップアップ(観測点は移動しない)
+        el.addEventListener('mouseenter', () => {
+            // ツールチップは開く時に画素の最良辻時刻(0.01秒精度)を精細化して表示する(Leaflet版と同じ)
+            const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
+            _glTmShowTip(lat, lng, _tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist), 26);
+        });
+        el.addEventListener('mouseleave', _glTmHideTip);
+    }
+    applyTsujiMeshLayerVisibility();
 }
 
 /** 🎆打ち上げ点マーカー+ばらつき範囲円(fwUpdateMapMarkerのMapLibre版) */
@@ -8068,6 +8248,21 @@ function applyTsujiMeshLayerVisibility() {
     // 辻マーカー(集合+ピン)は、表示天体メニューで選択行の天体がオフなら非表示にする
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
     const bodyVisible = !row || !row.body || row.body.visible !== false;
+    if (USE_MAPLIBRE) {   // MapLibre移行済み(R5): レイヤのvisibilityとピンの表示で切り替える
+        if (!glMap) return;
+        _glTmMeshShown = _tsujiMeshLayerVisible;
+        _glTmGoldShown = _tsujiMeshLayerVisible && bodyVisible;
+        const setVis = (ids, on) => ids.forEach(id => {
+            if (glMap.getLayer(id)) glMap.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+        });
+        // メッシュ画像/辻マーカー画像は「中身が空」の時はvisibleにしない(_glTmSetImageがnone化した状態を尊重)
+        if (!_glTmMeshShown) setVis(['tm-mesh-img'], false);
+        if (!_glTmGoldShown) setVis(['tm-gold-img'], false);
+        setVis(['tm-gold-dots'], _glTmGoldShown);
+        (_glMarkerGroups.tmpin || []).forEach(m => { m.getElement().style.display = _glTmGoldShown ? '' : 'none'; });
+        if (!_glTmGoldShown && !_glTmMeshShown) _glTmHideTip();
+        return;
+    }
     [[tsujiMeshLayer, _tsujiMeshLayerVisible], [_tsujiMeshGoldLayer, _tsujiMeshLayerVisible && bodyVisible]].forEach(([l, vis]) => {
         if (!l) return;
         if (vis) { if (!map.hasLayer(l)) l.addTo(map); }
@@ -8077,6 +8272,12 @@ function applyTsujiMeshLayerVisibility() {
 function clearTsujiMeshMarkers() {
     if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
     if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
+    // MapLibre移行済み(R5): 画像/金ドット/ピン/ポップアップも消去
+    if (USE_MAPLIBRE && glMap) {
+        _glTmClearGold();
+        _glTmSetImage('tm-mesh-img', null);
+        if (_glTmPopup) _glTmPopup.remove();
+    }
     _tsujiMeshGoldSet = null;
     _tsujiMeshWhiteRow = null; _tsujiMeshWhiteTime = null; _tsujiMeshWhiteDist = null; _tsujiMeshWhiteRows = null;
     if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
@@ -8099,6 +8300,8 @@ function _tmBuildOverlay(paint, rgba) {
         data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
     });
     ctx.putImageData(img, 0, 0);
+    // MapLibre移行済み(R5): imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す)
+    if (USE_MAPLIBRE) return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
     return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false });
 }
 
@@ -8161,6 +8364,8 @@ function _tmBuildGradientOverlay() {
         }
     }
     ctx.putImageData(img, 0, 0);
+    // MapLibre移行済み(R5): imageソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
+    if (USE_MAPLIBRE) return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
     return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false, className: 'tm-mesh-overlay' });
 }
 
@@ -8217,7 +8422,10 @@ function drawTsujiMeshMarkers() {
     _tsujiMeshPixEntries = { start: csrStart, row: csrRow, pos: csrPos };
     // 件数グラデーションタイル(1件=天体色〜最大=金色・最大値は金赤斜め縞)
     const overlay = _tmBuildGradientOverlay();
-    if (overlay) overlay.addTo(tsujiMeshLayer);
+    if (USE_MAPLIBRE) {   // MapLibre移行済み(R5): imageソースへ(nullなら非表示)
+        _glTmSetImage('tm-mesh-img', overlay);
+        applyTsujiMeshLayerVisibility();
+    } else if (overlay) overlay.addTo(tsujiMeshLayer);
 }
 
 /** 全件索引から画素の全ヒット(表示天体毎→日付順)を取り出す。各要素 {row, timeMs, dist, best}。
@@ -8239,6 +8447,7 @@ function _tmPixAllHits(pix) {
 /** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
 function updateTsujiMeshGoldMarkers() {
     ensureTsujiMeshLayers();
+    if (USE_MAPLIBRE) { glUpdateTsujiMeshGoldMarkers(); return; }   // MapLibre移行済み(R5)
     if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
     _tsujiMeshGoldLayer.clearLayers();
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
@@ -8467,6 +8676,7 @@ function _tmFmtTimeMs2(ms) {
 }
 function drawTsujiMeshGoldSet(perPix, big) {
     ensureTsujiMeshLayers();
+    if (USE_MAPLIBRE) { glDrawTsujiMeshGoldSet(perPix, big); return; }   // MapLibre移行済み(R5)
     if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
     _tsujiMeshGoldLayer.clearLayers();
     _tsujiMeshGoldSet = perPix;
@@ -8498,21 +8708,18 @@ function drawTsujiMeshGoldSet(perPix, big) {
  *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
  *  画素ヒットなしは false(通常の地図操作として処理)。 */
 function _tmShowPixelPopup(latlng) {
-    // MapLibre移行中(R1〜R4)は辻メッシュ表示が未移行のため、ポップアップは出さず
-    // 地図クリックの後続動作(観測点/目的点の移動)へ流す
-    if (USE_MAPLIBRE) return false;
     if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
     let pix = _tmPixAtLatLng(latlng);
     const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
     const div = document.createElement('div');
     let meshPin = false;
-    if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+    if (pix >= 0 && _tsujiMeshGoldSet && _tmLayerShown('gold') && _tsujiMeshGoldSet.has(pix)) {
         // 辻マーカー: 内容(1ブロック)をクリック→観測点をこの画素に移動+選択中の行をリストで表示
         const ref = _tmRefinePixelTime(pix);
         if (!ref) return false;
         div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, action)}</div>`;
         div.querySelector('.tm-popup-block').addEventListener('click', () => {
-            map.closePopup();
+            mapAdapter.closePopup();
             _tmSetObserverToPix(pix);
             const row = _tsujiMeshRows[_tsujiMeshSelIdx];
             if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
@@ -8520,7 +8727,7 @@ function _tmShowPixelPopup(latlng) {
     } else {
         // メッシュマーカー: ポップアップは件数のみ(ホバー中と同じ。全ヒットの詳細は詳細リストと重複するため)
         const wpix = pix;
-        if (wpix < 0 || !_tsujiMeshWhiteRow || !map.hasLayer(tsujiMeshLayer) || _tsujiMeshWhiteRow[wpix] < 0) return false;
+        if (wpix < 0 || !_tsujiMeshWhiteRow || !_tmLayerShown('mesh') || _tsujiMeshWhiteRow[wpix] < 0) return false;
         pix = wpix;
         const E = _tsujiMeshPixEntries;
         const cnt = E ? E.start[pix + 1] - E.start[pix] : 0;
@@ -8528,6 +8735,12 @@ function _tmShowPixelPopup(latlng) {
         _tmUpdateDetailList(pix);
         div.innerHTML = `<strong>メッシュマーカー(${cnt}件)</strong>`;
         meshPin = true;
+    }
+    // MapLibre移行済み(R5): 開く時に既存を閉じる(close→固定解除)ため、固定は開いた後に設定する
+    if (USE_MAPLIBRE) {
+        const popup = _glTmOpenPopup(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix], div, -4);
+        if (meshPin) _tmDetailLockPopup = popup;
+        return true;
     }
     const popup = L.popup({ offset: [0, -4] })
         .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
@@ -8542,17 +8755,22 @@ function _tmShowPixelPopup(latlng) {
 /** 優辻マーカー(金色ピン)のポップアップ(クリック/タップで開く。観測点は移動しない)。
  *  内容をクリック/タップすると観測点をその画素に移動し、選択中の行をリストで表示する。 */
 function _tmShowPinPopup(big) {
-    if (typeof map === 'undefined' || !map) return;
+    if (!mapAdapter.ready()) return;
     const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
     const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
     const div = document.createElement('div');
     div.innerHTML = `<div class="tm-popup-block">${_tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist, action)}</div>`;
     div.querySelector('.tm-popup-block').addEventListener('click', () => {
-        map.closePopup();
+        mapAdapter.closePopup();
         _tmSetObserverToPix(big.pix);
         const row = _tsujiMeshRows[_tsujiMeshSelIdx];
         if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
     });
+    // MapLibre移行済み(R5)
+    if (USE_MAPLIBRE) {
+        _glTmOpenPopup(_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix], div, -20);
+        return;
+    }
     L.popup({ offset: [0, -20] })
         .setLatLng([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]])
         .setContent(div)
@@ -8862,7 +9080,7 @@ function _tmResetDetailList() {
 function _tmShowDetailForObserver() {
     if (_tmDetailLockPopup) return false;
     if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
-    if (!_tsujiMeshWhiteRow || !tsujiMeshLayer || !map.hasLayer(tsujiMeshLayer)) return false;
+    if (!_tsujiMeshWhiteRow || !_tmLayerShown('mesh')) return false;
     const pix = _tmPixAtLatLng(L.latLng(appState.start.lat, appState.start.lng));
     if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return false;
     _tmUpdateDetailList(pix);
@@ -8873,14 +9091,17 @@ function _tmShowDetailForObserver() {
  *  辻マーカー(表示中の集合)を優先し、集合外の白マーカー画素は最良の行の値を表示する。 */
 let _tmHoverTooltip = null;
 function handleTsujiMeshGoldHover(latlng) {
-    const hide = () => { if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; } };
+    const hide = () => {
+        if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
+        if (USE_MAPLIBRE) _glTmHideTip();
+    };
     if (!latlng || !_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
     const pix = _tmPixAtLatLng(latlng);
     let content = null, atPix = pix;
-    if (pix >= 0 && _tsujiMeshGoldSet && map.hasLayer(_tsujiMeshGoldLayer) && _tsujiMeshGoldSet.has(pix)) {
+    if (pix >= 0 && _tsujiMeshGoldSet && _tmLayerShown('gold') && _tsujiMeshGoldSet.has(pix)) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
-    } else if (_tsujiMeshWhiteRow && map.hasLayer(tsujiMeshLayer)) {
+    } else if (_tsujiMeshWhiteRow && _tmLayerShown('mesh')) {
         // ポップアップは件数のみ(詳細は詳細リストへ)
         const wpix = pix;
         if (wpix >= 0 && _tsujiMeshWhiteRow[wpix] >= 0) {
@@ -8892,6 +9113,11 @@ function handleTsujiMeshGoldHover(latlng) {
         }
     }
     if (!content) { hide(); return; }
+    // MapLibre移行済み(R5): ツールチップは使い回しのPopupで表示
+    if (USE_MAPLIBRE) {
+        _glTmShowTip(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix], content, 8);
+        return;
+    }
     const at = L.latLng(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix]);
     // 地図クリック(preclick)でLeafletが非permanentツールチップを閉じるため、
     // 参照が残っていても地図から外れていたら作り直す(クリック後にホバーが再表示されない不具合の修正)

@@ -66,7 +66,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       shadow: !!document.querySelector('#map-shadow .leaflet-map-pane'),
       layers: ['std','photo','pale','osm'].map(id=>glMap.getLayoutProperty('base-'+id,'visibility')).join(','),
     }));
-    check('B1 MapLibre本体+シャドウLeaflet+移行中バッジ', r.engine==='maplibre'&&r.canvas&&/移行中/.test(r.badge)&&r.shadow);
+    check('B1 MapLibre本体+シャドウLeaflet+移行バッジ', r.engine==='maplibre'&&r.canvas&&/移行/.test(r.badge)&&r.shadow);   // 文言はラウンド毎に更新される(R5〜は「R5まで移行完了」)
     check('B1 ベース4種(標準のみ可視)', r.layers==='visible,none,none,none', r.layers);
   }
 

@@ -14,3 +14,4 @@ Claude(AI)が大きめの差分に対して実施したコミット前レビュ�
 | `2026-07-19-round26-review.md` | 第26ラウンド(v1.29.0 本体地図MapLibre移行R2): divIcon移植はラッパーdiv必須(CSS transform衝突)・優辻はR5送りの判断・移行ラウンドが旧verifyの「未移行」表明を壊す保守パターン |
 | `2026-07-19-round27-review.md` | 第27ラウンド(v1.30.0 本体地図MapLibre移行R3): 破線種はdash種別キー+レイヤfilter(dasharrayは線幅倍単位)・時刻ラベルはglyphs不要のDOMマーカー採用・方位線をR3に一括の判断 |
 | `2026-07-19-round28-review.md` | 第28ラウンド(v1.31.0 本体地図MapLibre移行R4): 辻マーカー=辻メッシュ要素の確認(R4の実体は宙検索オーバーレイ)・消去のssClearMapOverlay集約・ホバーツールチップの実マウス検証 |
+| `2026-07-19-round29-review.md` | 第29ラウンド(v1.32.0 本体地図MapLibre移行R5=辻メッシュ): updateImageはcoordinates非反映(setCoordinates併用の実バグ発見)・クリック伝播の既定差をstopPropagation/queryRenderedFeaturesで吸収・表示判定の_tmLayerShown集約 |

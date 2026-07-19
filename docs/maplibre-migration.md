@@ -58,6 +58,14 @@
    「辻マーカー」は辻検索ではなく辻メッシュ機能の要素(集合マーカー/ピン)のためR5で移行。
    検証: tests/verify112.js(7チェック)。
 5. **R5: 機能群5(辻メッシュ)** — 最重量。imageソース化とホバー/クリックの再結線。
+   **【完了 v1.32.0】** メッシュ画像/辻マーカー画像はimageソース+rasterレイヤ
+   (`raster-resampling: nearest`でpixelated相当)。**MapLibre 4.xのupdateImageは
+   coordinatesを反映しない**ため`setCoordinates`併用が必須(検証で発見した実バグ)。
+   金ドット(最大5000)はcircleレイヤ+レイヤイベント(クリック=観測点設定/ホバー=ツールチップ)。
+   優辻ピンはDOMマーカー。マーカー/ポップアップのクリックは地図へ伝播しないよう
+   stopPropagationで遮断(Leafletは既定で遮断される差異)。金ドット上の一般クリックは
+   queryRenderedFeaturesで抑止。レイヤ表示状態はmap.hasLayerの代わりに共通の問い合わせ口
+   `_tmLayerShown('mesh'|'gold')`に集約。検証: tests/verify113.js(14チェック)。
 6. **R6: 既定切替+手順4(Leaflet撤去)** — 実機確認後に既定をMapLibreへ。Leafletのタグ・
    アダプタの旧分岐・`L.*`を撤去し、ズーム連続値化などの挙動差を最終調整。
 
