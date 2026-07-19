@@ -1002,3 +1002,27 @@ Error: EPERM: operation not permitted, open '/Users/watanabetakeyoshi/Downloads/
 watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % 
 
 よろしくお願いいたします。
+
+### 回答 (2026-07-19 その10) — EPERMエラーの原因と対処
+
+Claudeさん(AI)より回答です。ログありがとうございます。**手順は完璧でした**(cd→npm install→SELFTEST PASSまで全て成功しています)。最後の`EPERM`はスクリプトや手順の問題ではなく、**macOSのプライバシー保護(TCC)**が原因です。
+
+#### 原因
+
+macOSは、ターミナルから起動したプログラム(node)が「ダウンロード」フォルダ等の保護されたフォルダを読むことを、許可があるまでブロックします。その拒否が `EPERM: operation not permitted` として現れています(ファイルは存在していて、スクリプトも正常です)。
+
+#### 対処(どちらか一方でOKです)
+
+- **対処A(お勧め・簡単)**: Finderで `World_Atlas_2015.tif` を `tools/lightpollution` フォルダへドラッグして移動し、ターミナルで:
+  ```
+  node lp-preprocess.js --in ./World_Atlas_2015.tif
+  ```
+  (プロジェクトのフォルダは既にアクセスできている=npm installが通っているので、これで確実に読めます)
+- **対処B**: システム設定 → プライバシーとセキュリティ → ファイルとフォルダ → ターミナル → 「ダウンロードフォルダ」をオン → **ターミナルを再起動**して、先ほどのコマンドをそのまま再実行。
+- それでも同じエラーが出る場合は、ファイルがiCloudのプレースホルダ(Finderで雲アイコン)になっていないかご確認ください(一度開いてローカルに実体化してから実行)。
+
+成功すると `入力: 43200×…px` のような表示の後、`data/lp-japan.bin` と `data/lp-japan.json` が生成されます(全球30秒角の大きなファイルなので読み込みに1〜2分かかることがあります)。生成されたらこの2ファイルをコミットしてください。フェーズ3でスコアへの組み込みを実装します。
+
+#### スクリプト側の改善(今回のコミット)
+
+`EPERM/EACCES` を検出した場合に、上記の対処A/B(とiCloudプレースホルダの注意)をその場で表示するようにしました。READMEにもトラブルシューティング章(EPERM・zshの山括弧・npm installの場所)を追加しています。動作はEPERM経路のシミュレーションとSELFTESTで確認済みです。

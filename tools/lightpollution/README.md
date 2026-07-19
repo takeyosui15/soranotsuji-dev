@@ -35,6 +35,19 @@ SQM(mag/arcsec²)に変換してUint8量子化した軽量アセットを生成�
    - オプション: `--out <dir>` 出力先 / `--downsample 4` 縮約率(既定4 → 約2分角≒3.7km格子・数百KB) /
      `--west/--south/--east/--north` 切り出し範囲(既定 E122〜154, N24〜46)
 
+## トラブルシューティング
+
+- **`EPERM: operation not permitted, open '~/Downloads/...'`**
+  - macOSのプライバシー保護(TCC)で、ターミナル(node)がダウンロードフォルダにアクセスできない状態です。
+  - 対処A(簡単): Finderで .tif ファイルを `tools/lightpollution` フォルダへドラッグして移動し、
+    `node lp-preprocess.js --in ./World_Atlas_2015.tif` のように相対パスで実行する
+  - 対処B: システム設定 → プライバシーとセキュリティ → ファイルとフォルダ → ターミナル →
+    「ダウンロードフォルダ」をオン → ターミナルを再起動して再実行
+  - それでも出る場合: ファイルがiCloudのプレースホルダ(雲アイコン)になっていないか確認
+    (一度開く等でローカルに実体化してから実行)
+- **`zsh: parse error near '\n'`** — `<GeoTIFF>` の山括弧は穴埋め表記です。`<>`ごと入力せず実パスに置き換えてください
+- **`geotiff が見つかりません`** — `tools/lightpollution` の中で `npm install` を実行してください
+
 ## 変換式と実行時の参照
 
 - 自然光 22.0 mag/arcsec² = 0.171168465 mcd/m² / total = artificial + 0.171168465 /

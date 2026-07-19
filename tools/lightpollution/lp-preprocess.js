@@ -41,7 +41,27 @@ function quantize(sqm) {
 
 async function preprocess({ inPath, outDir, bbox, downsample }) {
     const { fromArrayBuffer } = require('geotiff');
-    const buf = fs.readFileSync(inPath);
+    let buf;
+    try {
+        buf = fs.readFileSync(inPath);
+    } catch (e) {
+        if (e.code === 'EPERM' || e.code === 'EACCES') {
+            console.error(`エラー: macOSのプライバシー保護により、このフォルダのファイルを開けませんでした: ${inPath}`);
+            console.error('');
+            console.error('対処(どちらか一方でOK):');
+            console.error('  A. 【簡単】Finderで対象の .tif ファイルを、この tools/lightpollution フォルダへ');
+            console.error('     ドラッグして移動し、次のように実行する:');
+            console.error('       node lp-preprocess.js --in ./World_Atlas_2015.tif');
+            console.error('  B. ターミナルにダウンロードフォルダへのアクセスを許可する:');
+            console.error('     システム設定 → プライバシーとセキュリティ → ファイルとフォルダ →');
+            console.error('     ターミナル → 「ダウンロードフォルダ」をオン → ターミナルを再起動して再実行');
+            console.error('');
+            console.error('  ※ それでも同じエラーの場合は、ファイルがiCloudのプレースホルダ(雲アイコン)に');
+            console.error('     なっていないかご確認ください(Finderでダブルクリック等で一度ローカルに実体化します)');
+            process.exit(1);
+        }
+        throw e;
+    }
     const tiff = await fromArrayBuffer(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
     const img = await tiff.getImage();
     const [ox, oy] = img.getOrigin();               // 左上コーナー (lng, lat)
