@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.21.1 - 2026-07-19: fix: 花火モード — 打ち上げ点の初期値を目的点と同じに(座標表示+標高も目的点に追従。明示設定で確定)・花火点(+)と基準視高度の開花高度基準を「色々=40号の高い方/固定=選択号数の高い方」に(デッサン06)
 Version 1.21.0 - 2026-07-19: feat: 宙の窓に花火モード(デッサン06 55〜70段目+ctrl41〜53段目) — 打ち上げ点(地名/住所/緯度経度+標高+高さ+領域半径)から号数別の開花高度へ軌跡が上がり開花直径の放射状の華が七色で開くシミュレーション。実寸ENU配置で手前の山に遮蔽され写る大きさも実寸。色々/固定+ばらつき(u^γ重み)、花火点(+)マーカー、打ち上げ点の地図マーカー(🎆)+領域円、基準方位角/視高度の算出表示、メニュー/ctrl双方向連動、URL記憶・復元(シード辞書v9)
 Version 1.20.22 - 2026-07-19: fix: 全天儀の透過オフを「外側から見た構図」に修正(不透明+深度書込の両面描画。従来は奥半球の内面が見えていた)・回転方向の既定を水平に+ラジオ順序を水平/地軸/自由に(デッサン01)・辻メッシュFile取得の行内並びを日時(日付+辻時刻)順に・動画書き出しの出力診断表示を削除(v1.20.20の動作へ復元)
 Version 1.20.21 - 2026-07-19: feat: 辻メッシュFile取得を全ヒット画素出力に(観測点ID=画素ID・詳細結果リスト相当・行内は精度昇順)・処理中表示を🕛アニメーションに統一・全天儀コントロール2〜4段目(前景/後景/透過・自由/水平/地軸・北奥/目的点前)+最大化ボタン(領域2/3⇄1/3・最大化100%⇄66.67%)・動画書き出しに出力診断表示(形式/サイズ/メタデータ長)
@@ -79,7 +80,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.21.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.21.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -14368,7 +14369,17 @@ function setupSoramadoControls() {
         }); });
     fwChk(['chk-sora-fw', 'chk-sora-ctrl-fw'], 'fwEnabled');
     fwChk(['chk-sora-fw-point', 'chk-sora-ctrl-fw-point'], 'fwShowPoint');
-    fwNum(['input-fw-api-elev', 'input-fw-ctrl-api-elev'], 'fwElev', -500, 9000);
+    // 打ち上げ点標高: 未設定(目的点追従)中に手動編集されたら、その時点の目的点座標で打ち上げ点を確定してから適用する
+    ['input-fw-api-elev', 'input-fw-ctrl-api-elev'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            const v = parseFloat(el.value);
+            if (!isNaN(v)) {
+                if (appState.fwLat === null || appState.fwLng === null) { appState.fwLat = appState.end.lat; appState.fwLng = appState.end.lng; }
+                appState.fwElev = Math.max(-500, Math.min(9000, v));
+            }
+            _fwShells = [];
+            fwAfter();
+        }); });
     fwNum(['input-fw-height', 'input-fw-ctrl-height'], 'fwHeight', -1000, 10000);
     fwNum(['input-fw-radius', 'input-fw-ctrl-radius'], 'fwRadius', 0, 10000);
     ['sel-fw-size', 'sel-fw-ctrl-size'].forEach(id => { const el = document.getElementById(id);
@@ -14948,11 +14959,20 @@ let _fwTickDraw = false;      // アニメtick中はdrawSoramadoの静的再構�
 
 function fwSelectedShell() { return FW_SHELLS.find(s => s.key === String(appState.fwSize)) || FW_SHELLS[3]; }
 
-/** 打ち上げ点の緯度経度(未設定時は目的点を使う) */
+/** 花火点(+)の基準にする号数(デッサン06): 色々=40号(最大)の開花高度、固定=リスト選択の号数の開花高度 */
+function fwPointShell() { return appState.fwMode === 'fixed' ? fwSelectedShell() : FW_SHELLS[FW_SHELLS.length - 1]; }
+
+/** 打ち上げ点の緯度経度(初期値=位置情報メニューの目的点。明示設定するまで目的点に追従する) */
 function fwLaunchPoint() {
     const la = parseFloat(appState.fwLat), ln = parseFloat(appState.fwLng);
     if (isFinite(la) && isFinite(ln)) return { lat: la, lng: ln };
     return { lat: appState.end.lat, lng: appState.end.lng };
+}
+
+/** 打ち上げ点標高の実効値(m): 未設定の間は目的点の標高(endApiElev)を使う(初期値=目的点と同じ) */
+function fwEffElev() {
+    if (appState.fwLat !== null && appState.fwLng !== null) return Number(appState.fwElev) || 0;
+    return Number(appState.endApiElev) || 0;
 }
 
 /** 打ち上げ点の指定総標高(標高+高さ+開花高度等)の実寸ENU座標(m)。
@@ -14990,7 +15010,7 @@ function _fwSpawnShell(now) {
     const rr = Math.max(0, Number(appState.fwRadius) || 0) * Math.sqrt(Math.random());
     const th = Math.random() * 2 * Math.PI;
     const offE = rr * Math.sin(th), offN = rr * Math.cos(th);
-    const groundTot = (Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0);
+    const groundTot = fwEffElev() + (Number(appState.fwHeight) || 0);
     const g = _fwEnu(groundTot);
     const b = _fwEnu(groundTot + bloomAlt);
     // 開花の粒: 球面一様ランダムの方向ベクトル
@@ -15070,10 +15090,11 @@ function _fwUpdateScene(now) {
             _fwGrp.add(pts);
         }
     }
-    // 花火点(+): 開花の中心点(打ち上げ点の緯度経度・標高・高さ+選択中号数の開花高度の高い方)
+    // 花火点(+): 開花の中心点(打ち上げ点の緯度経度・標高・高さ+開花高度)。
+    // 開花高度の基準は色々モード=40号の高い方、固定モード=リスト選択の号数の高い方(デッサン06)
     if (appState.fwShowPoint && typeof _smCrossTex === 'function') {
-        const spec = fwSelectedShell();
-        const c0 = _fwEnu((Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0) + spec.altHi);
+        const spec = fwPointShell();
+        const c0 = _fwEnu(fwEffElev() + (Number(appState.fwHeight) || 0) + spec.altHi);
         const cs = _SM_CROSS_PX * 2 * Math.tan((_smCamera ? _smCamera.fov : 40) * Math.PI / 360) / Math.max(1, _smFinderH);
         const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#FFA726'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
         cross.scale.set(cs, cs, 1);
@@ -15136,9 +15157,9 @@ function fwSyncUI() {
     const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     chk('chk-sora-fw', appState.fwEnabled); chk('chk-sora-ctrl-fw', appState.fwEnabled);
     const p = fwLaunchPoint();
-    const locStr = (appState.fwLat !== null && appState.fwLng !== null) ? `${p.lat}, ${p.lng}` : '';
+    const locStr = `${p.lat}, ${p.lng}`;   // 初期値(未設定)は目的点の座標を表示(デッサン06)
     set('input-fw-latlng', locStr); set('input-fw-ctrl-latlng', locStr);
-    set('input-fw-api-elev', appState.fwElev); set('input-fw-ctrl-api-elev', appState.fwElev);
+    set('input-fw-api-elev', fwEffElev()); set('input-fw-ctrl-api-elev', fwEffElev());
     set('input-fw-height', appState.fwHeight); set('input-fw-ctrl-height', appState.fwHeight);
     set('input-fw-radius', appState.fwRadius); set('input-fw-ctrl-radius', appState.fwRadius);
     set('sel-fw-size', String(appState.fwSize)); set('sel-fw-ctrl-size', String(appState.fwSize));
@@ -15156,10 +15177,11 @@ function fwSyncUI() {
     set('input-fw-spread', sp); set('input-fw-ctrl-spread', sp);
     txt('fw-spread-label', (sp > 0 ? '+' : '') + sp); txt('fw-ctrl-spread-label', (sp > 0 ? '+' : '') + sp);
     chk('chk-sora-fw-point', appState.fwShowPoint); chk('chk-sora-ctrl-fw-point', appState.fwShowPoint);
-    // 位置情報: 観測点→花火点(開花高度の高い方)の基準方位角/基準視高度(算出値。辻検索とは非連動)
+    // 位置情報: 観測点→花火点の基準方位角/基準視高度(算出値。辻検索とは非連動)。
+    // 開花高度の基準は花火点(+)と同じ(色々=40号/固定=選択号数の高い方)
     const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, p.lat, p.lng);
     const az = calculateBearing(appState.start.lat, appState.start.lng, p.lat, p.lng);
-    const fwTot = (Number(appState.fwElev) || 0) + (Number(appState.fwHeight) || 0) + spec.altHi;
+    const fwTot = fwEffElev() + (Number(appState.fwHeight) || 0) + fwPointShell().altHi;
     const alt = calculateApparentAltitude(dist, Number(appState.start.elev) || 0, fwTot, appState.start.lat, p.lat);
     set('input-fw-base-az', az.toFixed(2));
     set('input-fw-base-alt', alt.toFixed(2));

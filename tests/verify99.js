@@ -10,7 +10,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('F0 APP_VERSION 1.21.0', src.includes("APP_VERSION = '1.21.0'"));
+    check('F0 APP_VERSION 1.21.1', src.includes("APP_VERSION = '1.21.1'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
@@ -89,6 +89,11 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const r=await p.evaluate(async()=>{
       appState.start={lat:35.30,lng:138.60,elev:500}; appState.startApiElev=500; appState.startHeight=0;
       appState.end={lat:35.3606,lng:138.7274,elev:3776}; appState.endApiElev=3776; appState.endHeight=0;
+      // 初期値(未設定): 打ち上げ点=目的点の座標を表示し、標高も目的点(endApiElev)に追従
+      fwSyncUI();
+      const initLoc=document.getElementById('input-fw-latlng').value;
+      const initElev=document.getElementById('input-fw-api-elev').value;
+      const initOk=(appState.fwLat===null)&&/35\.3606, 138\.7274/.test(initLoc)&&parseFloat(initElev)===3776&&fwEffElev()===3776;
       const el=document.getElementById('input-fw-latlng');
       el.value='35.36, 138.72'; el.dispatchEvent(new Event('change'));
       await new Promise(r=>setTimeout(r,600));   // getElevation(オフラインでnull→0)を待つ
@@ -98,11 +103,12 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const az=calculateBearing(35.30,138.60,35.36,138.72);
       const azShown=parseFloat(document.getElementById('input-fw-base-az').value);
       const altShown=parseFloat(document.getElementById('input-fw-base-alt').value);
-      return { lat:appState.fwLat, lng:appState.fwLng, elev:appState.fwElev,
+      return { initOk, lat:appState.fwLat, lng:appState.fwLng, elev:appState.fwElev,
                ctrlLoc:document.getElementById('input-fw-ctrl-latlng').value,
                marker:!!_fwMapMarker, circle:!!_fwMapCircle,
                azOk:Math.abs(azShown-az)<0.05, altFinite:isFinite(altShown), enabled:appState.fwEnabled };
     });
+    check('F4 初期値=目的点(座標表示+標高がendApiElevに追従)', r.initOk);
     check('F4 打ち上げ点の直入力→状態+ctrl表示', r.lat===35.36&&r.lng===138.72&&/35\.36, 138\.72/.test(r.ctrlLoc), r.ctrlLoc);
     check('F4 花火モードONで地図マーカー🎆+領域円', r.enabled&&r.marker&&r.circle);
     check('F4 基準方位角=観測点→花火点の方位・視高度が算出される', r.azOk&&r.altFinite);
@@ -116,21 +122,36 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const shells=_fwShells.length, children=_fwGrp?_fwGrp.children.length:0;
       const anim=_fwAnimReq!==null;
       // 花火点(+)は depthTest:false のスプライト
-      const cross=_fwGrp?_fwGrp.children.find(c=>c.isSprite):null;
+      const findCross=()=>_fwGrp?_fwGrp.children.find(c=>c.isSprite):null;
+      // 色々モード(既定): 花火点=40号の開花高度の高い方(750m)
+      let cross=findCross();
       let crossOk=false;
       if(cross){
-        const spec=FW_SHELLS.find(s=>s.key==='10');
-        const c0=_fwEnu(appState.fwElev+appState.fwHeight+spec.altHi);
+        const c0=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS[5].altHi);
         crossOk=Math.abs(cross.position.x-c0.E)<1&&Math.abs(cross.position.y-c0.N)<1&&Math.abs(cross.position.z-c0.z)<1;
       }
+      // 固定モード+10号: 花火点=10号の開花高度(330m)へ移動
+      const fixed=document.querySelector('input[name="fw-mode"][value="fixed"]');
+      fixed.checked=true; fixed.dispatchEvent(new Event('change'));
+      appState.fwSize='10';
+      _fwUpdateScene(performance.now());
+      cross=findCross();
+      let crossFixedOk=false;
+      if(cross){
+        const c1=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS[3].altHi);
+        crossFixedOk=Math.abs(cross.position.z-c1.z)<1;
+      }
+      const vary=document.querySelector('input[name="fw-mode"][value="vary"]');
+      vary.checked=true; vary.dispatchEvent(new Event('change'));
       // 実寸: 打ち上げ点までの距離 ≈ getDistanceWGS84
       const d=getDistanceWGS84(appState.start.lat,appState.start.lng,35.36,138.72);
       const g=_fwEnu(0);
       const distOk=Math.abs(Math.hypot(g.E,g.N)-d)<1;
-      return { shells, children, anim, crossOk, distOk };
+      return { shells, children, anim, crossOk, crossFixedOk, distOk };
     });
     check('F5 アニメーションループ起動+花火玉が打ち上がる', r.anim&&r.shells>0&&r.children>0, `shells=${r.shells} children=${r.children}`);
-    check('F5 花火点(+)が開花中心(高い方の開花高度)に一致', r.crossOk);
+    check('F5 花火点(+)=色々モードは40号の開花高度(750m)', r.crossOk);
+    check('F5 花火点(+)=固定モードは選択号数の開花高度(10号330m)', r.crossFixedOk);
     check('F5 実寸ENU(打ち上げ点距離=測地線距離)', r.distOk);
   }
 
