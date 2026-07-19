@@ -25,8 +25,9 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     window.confirm=()=>true; window.alert=()=>{};
     window.__cloudCalls=0;
     const t0=new Date(); t0.setHours(0,0,0,0);
-    window.fetch=async(url)=>{
-      const u=String(url);
+    const __origFetch=window.fetch.bind(window);
+    window.fetch=async(url,opt)=>{
+      const u=typeof url==='string'?url:((url&&url.url)||String(url));
       const json=(o)=>new Response(JSON.stringify(o),{status:200,headers:{'Content-Type':'application/json'}});
       if(u.includes('air-quality-api')||u.includes('archive-api')) return json({hourly:null});
       if(u.includes('cloud_cover_1000hPa')) return json({hourly:null});
@@ -39,7 +40,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
                                cloud_cover_high:time.map(()=>0), relative_humidity_2m:time.map(()=>40)}});
         return json(nLoc>1?Array.from({length:nLoc},mk):mk());
       }
-      throw new Error('unexpected fetch: '+u);
+      return __origFetch(url,opt);   // 未知URL(ローカル資産/タイル)は元fetchへ(外部はroute abortで遮断)
     };
     try{ indexedDB.deleteDatabase('soranotsuji-wx'); }catch(_){}
     _ssDbReady=null;

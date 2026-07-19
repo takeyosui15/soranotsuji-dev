@@ -12,7 +12,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
     check('V0 ⏳ eliminated from script.js', !src.includes('⏳'));
-    check('V0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
+    check('V0 APP_VERSION 1.26.0', src.includes("APP_VERSION = '1.26.0'"));
     check('V0 出力診断コードは削除済み(履歴コメント以外に無し)', !src.replace(/^[\s\S]*?\*\//,'').includes('出力診断'));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});

@@ -37,6 +37,43 @@ html {
     z-index: 0;
 }
 
+/* --- 宙断面ビューパネル (骨格。標高グラフ/全天儀/宙の窓と排他・下2/3) --- */
+#soradanmen-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 66.67%;
+    background-color: rgba(30, 30, 30, 0.95);
+    border-top: 1px solid #2a8a5a;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    color: #eee;
+}
+#soradanmen-panel.hidden { display: none; }
+#soradanmen-header {
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #7effc8;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+}
+#btn-soradanmen-close {
+    float: right;
+    padding: 0 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#btn-soradanmen-close:hover { background: rgba(120, 60, 60, 0.8); }
+#soradanmen-map { flex: 1 1 0; min-height: 0; }
+
 /* --- 断面標高図パネル --- */
 /* --- 辻検索パネル --- */
 #tsujisearch-panel {

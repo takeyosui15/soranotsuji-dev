@@ -10,7 +10,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('L0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
+    check('L0 APP_VERSION 1.26.0', src.includes("APP_VERSION = '1.26.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'});

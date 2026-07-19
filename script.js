@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.26.0 - 2026-07-19: feat: 宙断面ビューの骨格(MapLibre GL JS初導入 — 地図全面移行計画の手順2。デッサン19) — 位置情報メニューに宙断面ボタン(標高グラフ/全天儀/宙の窓と排他・下2/3パネル)・地理院淡色ラスタ+地理院DEM(dem_png→terrain-RGB変換のgsidemカスタムプロトコル)の3D地形を斜め俯瞰(pitch65°・観測点→目的点の方位・鉛直誇張1.2)・Open-Meteo 3層雲量(観測点周辺0.2°×5×5格子。宙検索とキャッシュ共有)を実高度の空中スラブ(fill-extrusion。厚み=雲量比例・30%未満は非表示)で低/中/高層に重畳・観測点(青)/目的点(赤)マーカー・日時変更(時単位)で自動更新・閉じるとMapLibreを破棄。本体地図のLeafletとは併存
 Version 1.25.0 - 2026-07-19: feat: MyセットにMy宙検索を追加(5シート構成) — シート同期(保存/読込/存在確認の自動作成)・セット切り替え・新規作成の対象にMy宙検索を追加。旧4シート構成の既存スプレッドシートは保存/読込時にMy宙検索タブが自動追加される。シート行はリストCSVと同じ22列(コメント行温存の慣習も共通)
 Version 1.24.0 - 2026-07-19: feat: 宙検索フェーズ3残り+フェーズ4(デッサン18) — 透明度にAOD(air-quality API・7日先まで。湿度との悪い方で霞み度)・雲海度(気圧面8面の雲量×実高度から雲頂を推定し観測点が上なら眼下雲量×充足度。狙うモードで加点因子化・詳細に気圧面プロファイル)・上空風300hPa(シーイングの目安・詳細表示)・統計チェック有効化(ERA5の同月日±7日×過去10年の夜間晴天率を統計行に)・My宙検索メニュー新設(メニュー分割ポリシー: 宙検索=現在の1組/My宙検索=My観測点×My目的点の複数組。宙検索取得・リスト編集・一括選択/一括計算/File取得・行操作・CSV入出力・バックアップ対象)・一括結果は宙検索結果パネルに宙検索ID/名の2列付きで表示(シード辞書v11)
 Version 1.23.0 - 2026-07-19: feat: 宙検索フェーズ2(本UI。デッサン18) — 専用の宙検索結果パネル(下1/3・最大化⛶・✕・辻検索/辻メッシュと排他・積み上げ規則共通)・結果リスト18列(時間帯/晴天度/雲海度[F3]/透明度/月齢を追加。全列ソート可・宙スコア/信頼度色分け)・行クリックで詳細リスト(因子別の係数内訳+扇形標本毎の方位/距離/重み/層別雲量)・地図に視界扇形+標本点オーバーレイ(行選択でその時刻の雲量を白〜濃灰で着色)・重みスライダー群(プリセット連動・変更でカスタム)+月/雲海の避ける/狙うラジオ+時間帯チェック(夜/薄明/GH・BH/昼)・File取得(CSV: 18列+位置情報+評価尺度+検索条件)・URL取得/localStorageに全項目記憶(シード辞書v10)
@@ -85,7 +86,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.25.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.26.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -365,6 +366,9 @@ let appState = {
     fwMode: 'vary',              // 表示モード: 'vary'=色々(ランダム) / 'fixed'=固定(リストの号数のみ)
     fwSpread: 0,                 // ばらつき -100〜+100 (+100=40号のみ / 0=均等 / -100=2.5号のみ)
     fwShowPoint: true,           // 花火点(+)マーカーの表示
+
+    // 宙断面ビュー (骨格。MapLibre初導入 — デッサン19)
+    isSoradanmenActive: false,   // 宙断面ビューパネルの表示状態(セッション内のみ)
 
     // 宙検索 (デッサン18。isSoraSearchActive以外は全てlocalStorage保存・URL記憶)
     isSoraSearchActive: false,   // 宙検索結果パネルの表示状態(セッション内のみ)
@@ -1126,6 +1130,8 @@ function setupUI() {
     setupSoraSearchControls();
     // My宙検索: 一括検索メニュー(フェーズ4)
     setupMySoraControls();
+    // 宙断面ビュー(骨格。MapLibre)
+    setupSoradanmenControls();
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -1896,6 +1902,8 @@ function updateAll() {
         drawSoramado();
     }
     fwUpdateMapMarker();   // 花火モードの打ち上げ点マーカー(未設定時は目的点に追従。同内容なら何もしない)
+    // 宙断面ビュー: 日時が時単位で変わったら雲スラブを更新(同時刻なら何もしない)
+    if (appState.isSoradanmenActive) _sdUpdateClouds();
 }
 
 function updateLocationDisplay() {
@@ -7025,9 +7033,10 @@ function toggleElevation() {
     appState.isElevationActive = !appState.isElevationActive;
 
     if (appState.isElevationActive) {
-        // 全天儀・宙の窓とは画面下1/3を排他利用するため、開いていれば閉じる
+        // 全天儀・宙の窓・宙断面とは画面下部を排他利用するため、開いていれば閉じる
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
         if (appState.isSoramadoActive) closeSoramado();
+        if (appState.isSoradanmenActive) closeSoradanmen();
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         startElevationFetch();
@@ -7045,9 +7054,10 @@ function toggleMilkyWayInstrument() {
     if (appState.isMilkyWayActive) {
         closeMilkyWayInstrument();
     } else {
-        // 標高グラフ・宙の窓とは排他: 開いていれば閉じる
+        // 標高グラフ・宙の窓・宙断面とは排他: 開いていれば閉じる
         if (appState.isElevationActive) toggleElevation();
         if (appState.isSoramadoActive) closeSoramado();
+        if (appState.isSoradanmenActive) closeSoradanmen();
         appState.isMilkyWayActive = true;
         document.getElementById('btn-milkyway').classList.add('active');
         document.getElementById('milkyway-panel').classList.remove('hidden');
@@ -9410,7 +9420,7 @@ function recenterPointInView(p, animate = true) {
     // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
     // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
     let coveredPx = 0;
-    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel', 'sorasearch-panel']) {
+    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel', 'sorasearch-panel', 'soradanmen-panel']) {
         const el = document.getElementById(id);
         if (!el || el.classList.contains('hidden')) continue;
         coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
@@ -14582,9 +14592,10 @@ function toggleSoramado() {
     if (appState.isSoramadoActive) {
         closeSoramado();
     } else {
-        // 標高グラフ・全天儀とは画面下1/3を排他利用
+        // 標高グラフ・全天儀・宙断面とは画面下部を排他利用
         if (appState.isElevationActive) toggleElevation();
         if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+        if (appState.isSoradanmenActive) closeSoradanmen();
         appState.isSoramadoActive = true;
         saveAppState();
         soraSyncUI();
@@ -16304,6 +16315,198 @@ function setupSoraSearchControls() {
     const closeBtn = document.getElementById('btn-sorasearch-close');
     if (closeBtn) closeBtn.addEventListener('click', closeSoraSearchPanel);
     syncSoraSearchUI();
+}
+
+// ============================================================
+// 宙断面ビュー (骨格。MapLibre GL JS初導入 — 地図全面移行計画の手順2。デッサン19)
+//  地理院淡色ラスタ+地理院DEM(dem_png→terrain-RGB変換のカスタムプロトコル)による3D地形の斜め俯瞰に、
+//  Open-Meteoの3層雲量(観測点周辺0.2°格子)を実高度の空中スラブ(fill-extrusion)で重ねる。
+//  本体地図のLeafletには一切触れない(併存)。雲量の取得・キャッシュは宙検索と共有(ssFetchClouds)。
+// ============================================================
+let _sdMap = null;            // MapLibre Mapインスタンス(開いている間のみ保持)
+let _sdProtocolAdded = false; // gsidemプロトコルの登録済みフラグ
+let _sdLastHourKey = '';      // 雲スラブを描画済みの時刻(時単位。日時変更の検出用)
+let _sdClouds = null;         // 取得済みの雲量格子 { points, clouds } (開いている間のみ)
+const SD_EX = 1.2;            // 鉛直誇張(地形と雲スラブで同じ係数にして位置関係を保つ)
+const SD_BANDS = { low: [600, 2000], mid: [3000, 8000], high: [8000, 12000] };   // 層別の高度帯(m)
+
+/** 地理院DEM(dem_png)タイルをMapbox terrain-RGBへ変換するカスタムプロトコル(gsidem://)。
+ *  地理院: x=R*2^16+G*2^8+B, 高さ=x<2^23 ? x*0.01m : (x-2^24)*0.01m, 無効値=2^23(→0m扱い)。
+ *  terrain-RGB: 高さ=-10000+(R*2^16+G*2^8+B)*0.1m */
+function _sdEnsureProtocol() {
+    if (_sdProtocolAdded) return;
+    maplibregl.addProtocol('gsidem', async (params) => {
+        const url = params.url.replace('gsidem://', '');
+        const img = await new Promise((ok, ng) => {
+            const i = new Image();
+            i.crossOrigin = 'anonymous';
+            i.onload = () => ok(i);
+            i.onerror = () => ng(new Error('DEMタイル取得失敗'));
+            i.src = url;
+        });
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height);
+        const px = d.data;
+        for (let i = 0; i < px.length; i += 4) {
+            const x = px[i] * 65536 + px[i + 1] * 256 + px[i + 2];
+            const h = x === 8388608 ? 0 : (x < 8388608 ? x * 0.01 : (x - 16777216) * 0.01);
+            const v = Math.max(0, Math.round((h + 10000) / 0.1));
+            px[i] = (v >> 16) & 255; px[i + 1] = (v >> 8) & 255; px[i + 2] = v & 255; px[i + 3] = 255;
+        }
+        g.putImageData(d, 0, 0);
+        const blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
+        return { data: await blob.arrayBuffer() };
+    });
+    _sdProtocolAdded = true;
+}
+
+function toggleSoradanmen() {
+    if (appState.isSoradanmenActive) closeSoradanmen();
+    else openSoradanmen();
+}
+
+/** 宙断面ビューを開く(標高グラフ/全天儀/宙の窓とは下部領域を排他利用) */
+function openSoradanmen() {
+    if (typeof maplibregl === 'undefined') {
+        alert('MapLibre GL JSを読み込めませんでした(ネットワーク接続をご確認の上、再読み込みしてください)');
+        return;
+    }
+    if (appState.isElevationActive) toggleElevation();
+    if (appState.isMilkyWayActive) closeMilkyWayInstrument();
+    if (appState.isSoramadoActive) closeSoramado();
+    appState.isSoradanmenActive = true;
+    document.getElementById('btn-soradanmen').classList.add('active');
+    document.getElementById('soradanmen-panel').classList.remove('hidden');
+    syncBottomPanels();
+    _sdInitMap();
+}
+
+/** 宙断面ビューを閉じる(MapLibreインスタンスと取得済み雲量を破棄) */
+function closeSoradanmen() {
+    if (!appState.isSoradanmenActive) return;
+    appState.isSoradanmenActive = false;
+    document.getElementById('btn-soradanmen').classList.remove('active');
+    document.getElementById('soradanmen-panel').classList.add('hidden');
+    if (_sdMap) { try { _sdMap.remove(); } catch (_) {} _sdMap = null; }
+    _sdLastHourKey = '';
+    _sdClouds = null;
+    syncBottomPanels();
+}
+
+/** MapLibreマップの初期化: 地理院淡色+DEM terrain+雲スラブ3層+観測点/目的点マーカー。
+ *  カメラは観測点→目的点の中点を、観測点→目的点の方位で斜め(pitch65°)に見下ろす */
+function _sdInitMap() {
+    if (_sdMap) { _sdMap.resize(); _sdUpdateClouds(true); return; }
+    _sdEnsureProtocol();
+    const o = appState.start, e = appState.end;
+    const bearing = calculateBearing(o.lat, o.lng, e.lat, e.lng);
+    _sdMap = new maplibregl.Map({
+        container: 'soradanmen-map',
+        style: {
+            version: 8,
+            sources: {
+                gsi: {
+                    type: 'raster',
+                    tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+                    tileSize: 256, maxzoom: 18,
+                    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> | 雲: <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> (CC BY 4.0)',
+                },
+                gsidem: {
+                    type: 'raster-dem',
+                    tiles: ['gsidem://https://cyberjapandata.gsi.go.jp/xyz/dem_png/{z}/{x}/{y}.png'],
+                    tileSize: 256, maxzoom: 14, encoding: 'mapbox',
+                },
+                clouds: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+            },
+            layers: [
+                { id: 'base', type: 'raster', source: 'gsi' },
+                { id: 'cloud-high', type: 'fill-extrusion', source: 'clouds', filter: ['==', ['get', 'layer'], 'high'],
+                  paint: { 'fill-extrusion-color': '#e8eef7', 'fill-extrusion-opacity': 0.25, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
+                { id: 'cloud-mid', type: 'fill-extrusion', source: 'clouds', filter: ['==', ['get', 'layer'], 'mid'],
+                  paint: { 'fill-extrusion-color': '#c3d2e8', 'fill-extrusion-opacity': 0.3, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
+                { id: 'cloud-low', type: 'fill-extrusion', source: 'clouds', filter: ['==', ['get', 'layer'], 'low'],
+                  paint: { 'fill-extrusion-color': '#9db8d6', 'fill-extrusion-opacity': 0.35, 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'] } },
+            ],
+        },
+        center: [(o.lng + e.lng) / 2, (o.lat + e.lat) / 2],
+        zoom: 9.5, pitch: 65, bearing, maxPitch: 85,
+    });
+    _sdMap.on('error', (ev) => { console.warn('宙断面 MapLibre:', ev && ev.error && ev.error.message); });   // タイル欠け等は警告のみ(致命にしない)
+    // 注意: 'load'はタイル取得が失敗し続ける環境では発火しないことがあるため、初期化は'style.load'で行う
+    // (インラインスタイルなので確実に発火し、terrain設定・cloudsソースへのsetDataもこの時点で可能)
+    _sdMap.once('style.load', () => {
+        try { _sdMap.setTerrain({ source: 'gsidem', exaggeration: SD_EX }); } catch (err) { console.warn('宙断面 terrain:', err); }
+        try {
+            new maplibregl.Marker({ color: '#1565c0' }).setLngLat([o.lng, o.lat]).addTo(_sdMap);   // 観測点(青)
+            new maplibregl.Marker({ color: '#c62828' }).setLngLat([e.lng, e.lat]).addTo(_sdMap);   // 目的点(赤)
+        } catch (err) { console.warn('宙断面 マーカー:', err); }
+        _sdUpdateClouds(true);
+    });
+}
+
+/** 雲スラブの更新: 観測点周辺0.2°×5×5格子の3層雲量(宙検索とキャッシュ共有)を、
+ *  日時情報メニューの現在時刻(時単位)で層別の空中スラブに描く。force=falseは時刻が変わった時だけ更新 */
+async function _sdUpdateClouds(force) {
+    if (!_sdMap || !appState.isSoradanmenActive) return;
+    const statusEl = document.getElementById('soradanmen-status');
+    const dt = new Date(appState.currentDate);
+    dt.setMinutes(0, 0, 0);
+    const p2 = v => ('00' + v).slice(-2);
+    const hourKey = `${dt.getFullYear()}-${p2(dt.getMonth() + 1)}-${p2(dt.getDate())}T${p2(dt.getHours())}:00`;
+    if (!force && hourKey === _sdLastHourKey) return;
+    _sdLastHourKey = hourKey;
+    try {
+        if (!_sdClouds) {
+            if (statusEl) statusEl.innerHTML = '<span class="clock-anim">🕛</span> 雲量を取得中…';
+            const o = appState.start;
+            const points = [];
+            const seen = new Set();
+            for (let iy = -2; iy <= 2; iy++) for (let ix = -2; ix <= 2; ix++) {
+                const lat = +(Math.round((o.lat + iy * 0.2) / 0.05) * 0.05).toFixed(2);
+                const lng = +(Math.round((o.lng + ix * 0.2) / 0.05) * 0.05).toFixed(2);
+                const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                points.push({ key, lat, lng, w: 1 });
+            }
+            const clouds = await ssFetchClouds(points, 3);   // IndexedDBキャッシュを宙検索と共有(TTL2時間)
+            _sdClouds = { points, clouds };
+        }
+        const feats = [];
+        for (const p of _sdClouds.points) {
+            const c = _sdClouds.clouds[p.key];
+            if (!c || !c.time) continue;
+            const i = c.time.indexOf(hourKey);
+            if (i < 0) continue;
+            for (const [layer, [b, t]] of Object.entries(SD_BANDS)) {
+                const cov = layer === 'low' ? c.low[i] : (layer === 'mid' ? c.mid[i] : c.high[i]);
+                if (cov === null || cov === undefined || cov < 30) continue;   // 雲量30%未満は描かない
+                const h = 0.1;   // 0.2°格子セルの半幅
+                feats.push({
+                    type: 'Feature',
+                    properties: { layer, cov, base: b * SD_EX, top: (b + (t - b) * Math.min(1, cov / 100)) * SD_EX },   // 厚み=雲量に比例
+                    geometry: { type: 'Polygon', coordinates: [[[p.lng - h, p.lat - h], [p.lng + h, p.lat - h], [p.lng + h, p.lat + h], [p.lng - h, p.lat + h], [p.lng - h, p.lat - h]]] },
+                });
+            }
+        }
+        const src = _sdMap.getSource('clouds');
+        if (src) src.setData({ type: 'FeatureCollection', features: feats });
+        if (statusEl) statusEl.textContent = `${hourKey.replace('T', ' ')} の雲(雲量30%以上: ${feats.length}面。低=濃/中/高=淡)`;
+    } catch (err) {
+        console.error('宙断面 雲量:', err);
+        if (statusEl) statusEl.textContent = '雲量を取得できませんでした(地形のみ表示。Open-Meteoへの接続をご確認ください)';
+    }
+}
+
+/** 宙断面ビューのコントロール結線(init時に1回) */
+function setupSoradanmenControls() {
+    const btn = document.getElementById('btn-soradanmen');
+    if (btn) btn.onclick = toggleSoradanmen;
+    const closeBtn = document.getElementById('btn-soradanmen-close');
+    if (closeBtn) closeBtn.onclick = closeSoradanmen;
 }
 
 // ============================================================

@@ -11,7 +11,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('P0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
+    check('P0 APP_VERSION 1.26.0', src.includes("APP_VERSION = '1.26.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -32,8 +32,9 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const timeArr=(n,start)=>{ const a=[]; for(let i=0;i<n;i++){ const d=new Date((start||t0.getTime())+i*3600e3); const p2=v=>('00'+v).slice(-2);
       a.push(`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:00`);} return a; };
     const GH={1000:110,975:340,950:570,925:800,900:1030,850:1500,800:2000,700:3000};
-    window.fetch=async(url)=>{
-      const u=String(url);
+    const __origFetch=window.fetch.bind(window);
+    window.fetch=async(url,opt)=>{
+      const u=typeof url==='string'?url:((url&&url.url)||String(url));
       const json=(o)=>new Response(JSON.stringify(o),{status:200,headers:{'Content-Type':'application/json'}});
       if(u.includes('air-quality-api.open-meteo.com')){
         __calls.aod++;
@@ -65,7 +66,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
                                cloud_cover_high:time.map(()=>0), relative_humidity_2m:time.map(()=>40)}});
         return json(nLoc>1?Array.from({length:nLoc},mk):mk());
       }
-      throw new Error('unexpected fetch: '+u);
+      return __origFetch(url,opt);   // 未知URL(ローカル資産/タイル)は元fetchへ(外部はroute abortで遮断)
     };
   });
 

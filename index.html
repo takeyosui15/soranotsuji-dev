@@ -60,6 +60,10 @@ GNU General Public License for more details.
 
     <!-- 全天儀(3D天体儀)用。グローバル THREE を公開する UMD 最終版(r161でUMD廃止のため0.160.0に固定) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <!-- 宙断面ビュー用(MapLibre GL JS初導入 — 地図全面移行計画の手順2。本体地図のLeafletとは併存) -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body>
 
@@ -149,6 +153,11 @@ GNU General Public License for more details.
             <div id="sorasearch-detail-header">詳細リスト</div>
             <div id="sorasearch-detail-body"></div>
         </div>
+    </div>
+
+    <div id="soradanmen-panel" class="hidden">
+        <div id="soradanmen-header"><span id="soradanmen-title">宙断面ビュー(骨格)</span> <span id="soradanmen-status"></span> <button id="btn-soradanmen-close" title="宙断面ビューを閉じる">✕</button></div>
+        <div id="soradanmen-map"></div>
     </div>
 
     <div id="elevation-panel" class="hidden">
@@ -539,6 +548,9 @@ GNU General Public License for more details.
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
                         <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
                         <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
+                    </div>
+                    <div class="control-row main-buttons-row">
+                        <button id="btn-soradanmen" class="nav-btn main-btn" title="宙断面ビュー(骨格): 地形の3D斜め俯瞰に現在時刻の雲(低/中/高層)を実高度の空中スラブで重ねて表示します(MapLibre)">宙断面</button>
                     </div>
                 </div>
             </div>

@@ -25,6 +25,8 @@ Claude(AI)が各開発ラウンドで実行している検証スクリプトの�
 | `verify103.js` | 第21 | 宙検索フェーズ2(メニュー拡張[重み8+ラジオ2組+時間帯4+File取得]・プリセット連動と自動カスタム・専用パネル18列・ソート▲▼・行クリック[日時移動+詳細リスト+地図扇形/標本点の雲量着色]・排他[辻検索⇄宙検索]・CSV44列BOM・URL v10以降往復。ローカル完結=route abortで外部遮断) |
 | `verify104.js` | 第22 | 宙検索フェーズ3残り(雲海度の推定[雲頂570m×観測点1500m=90/雲中=0/データなし=null]・AOD霞み因子と雲海の狙う/避ける・E2Eで雲海度90%/透明度0%列・詳細の気圧面プロファイル+上空風+AOD・ERA5統計行[晴天率50%・10年10コール→キャッシュ0・クリック不動作]) |
 | `verify105.js` | 第22 | 宙検索フェーズ4=My宙検索(メニュー14要素・宙検索取得でMy観測点/目的点自動作成・行編集[カスタム化で重み取り込み]・一括計算[20列・複数エントリ・行クリックで行のスナップショット詳細/地図]・一括CSV51列・リストCSV22列往復・一括選択/全て登録の参照検証) |
+| `verify106.js` | 第23 | MyセットにMy宙検索を追加=5シート構成(シート行22列・旧4シートへの保存でタブ自動追加・読込往復[カスタム重み/時間帯/範囲・行末空セル落ち耐性]・セット切り替え[旧スナップショット安全適用]。Drive/Sheetsはインメモリエミュレータ) |
+| `verify107.js` | 第23 | 宙断面ビュー骨格=MapLibre初導入(読込・開閉・排他[全天儀/宙の窓⇄宙断面]・terrain[gsidem変換]設定・雲スラブ25格子×3層=75面[base/top=雲量比例×誇張1.2]・日時変更の時単位追従・✕でマップ破棄) |
 
 ## 実行方法(ローカルハーネス)
 
@@ -33,7 +35,8 @@ Claude(AI)が各開発ラウンドで実行している検証スクリプトの�
 1. 作業ディレクトリ(例 `apptest/`)にリポジトリのアプリ一式(`index.html` `script.js` `style.css` 各ワーカー)をコピー
 2. `vendor/` に以下を配置し、`index.html`とワーカーのCDN参照をvendorパスへ書き換える
    - leaflet 1.9.4 (`leaflet.js` `leaflet.css`) / astronomy-engine 2.1.19 (`astronomy.browser.min.js`)
-   - three 0.160.0 (`three.min.js`) / geographiclib-geodesic / geographiclib-dms (いずれもnpmから取得可)
+   - three 0.160.0 (`three.min.js`) / geographiclib-geodesic / geographiclib-dms
+   - maplibre-gl 4.7.1 (`maplibre-gl.js` `maplibre-gl.css`。宙断面ビュー=verify107以降) (いずれもnpmから取得可)
 3. `python3 -m http.server 8099 --bind 127.0.0.1` で配信
 4. `node tests/verify99.js` のように実行(要 `playwright-core` とChromium。CIやサンドボックスでは
    `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader` でWebGLをソフトウェア実行)
