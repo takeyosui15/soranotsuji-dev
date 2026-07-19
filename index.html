@@ -933,16 +933,7 @@ GNU General Public License for more details.
                         <span id="ss-status" class="sora-val"></span>
                     </div>
                     <div class="control-row left-row">
-                        <input type="checkbox" id="chk-ss-stat" class="body-checkbox" disabled><label for="chk-ss-stat" class="ss-disabled-label" title="検索期間の先についてERA5の過去統計から同時期の晴天率を統計行として追加します(フェーズ3で有効化)">:統計(フェーズ3)</label>
-                    </div>
-                    <div class="control-row left-row">
-                        <label class="baseopt-group-label" title="検索の対象(観測点×目的点の組)">対象</label>
-                    </div>
-                    <div class="control-row left-row">
-                        <label class="baseopt-radio" title="現在の位置情報の観測点×目的点で検索します"><input type="radio" name="ss-target" value="current" checked>:現在の観測点×目的点</label>
-                    </div>
-                    <div class="control-row left-row">
-                        <label class="baseopt-radio ss-disabled-label" title="My観測点×My目的点の一括検索(フェーズ4で有効化)"><input type="radio" name="ss-target" value="batch" disabled>:My観測点×My目的点(フェーズ4)</label>
+                        <input type="checkbox" id="chk-ss-stat" class="body-checkbox"><label for="chk-ss-stat" title="検索期間の先の計画用に、ERA5の過去統計から同時期(同月日±7日×過去10年)の夜間晴天率を「統計」行として結果リスト末尾に追加します(初回は取得に少し時間がかかります)">:統計(過去10年の同時期の晴天率)</label>
                     </div>
                 </div>
             </div>
@@ -1532,6 +1523,40 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-mytsuji-url" class="nav-btn main-btn">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-mysora')">
+                    <span>My宙検索</span> <span id="icon-sec-mysora">▼</span>
+                </div>
+                <div id="sec-mysora" class="section-content closed">
+                    <div class="control-row">
+                        <button id="btn-mysora-toggle-all" class="nav-btn main-btn" title="全行のチェックを一括でオン/オフします">一括選択</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mysora-batch" class="nav-btn main-btn" title="チェックした行の観測点×目的点を一括で宙検索し、結果を宙検索結果パネルにまとめて表示します">一括計算</button>
+                        <button id="btn-mysora-file" class="nav-btn main-btn" title="チェックした行を一括で宙検索し、結果をCSVでFile取得します">File取得</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mysora-get" class="nav-btn main-btn" title="現在の観測点/目的点と宙検索メニューの条件(狙い・重み・期間等)を1件のMy宙検索として追加します">宙検索取得</button>
+                        <button id="btn-mysora-regall" class="nav-btn main-btn" title="全行を検証して確定します(未入力があるとエラー表示)">全て登録</button>
+                    </div>
+                    <div id="mysora-error" class="mypoint-error"></div>
+                    <div id="mysora-list" class="mypoint-list"></div>
+                    <div class="control-row">
+                        <button id="btn-mysora-up" class="nav-btn main-btn">▲上へ</button>
+                        <button id="btn-mysora-down" class="nav-btn main-btn">▼下へ</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mysora-addrow" class="nav-btn main-btn">行追加</button>
+                        <button id="btn-mysora-delrow" class="nav-btn main-btn">行削除</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-mysora-csv-import" class="nav-btn main-btn" title="CSVでMy宙検索リストを全置換します">全CSV入力</button>
+                        <button id="btn-mysora-csv-append" class="nav-btn main-btn" title="CSVの行をMy宙検索リストに追記します">追加CSV入力</button>
+                        <button id="btn-mysora-csv-export" class="nav-btn main-btn" title="My宙検索リストをCSVで出力します">CSV出力</button>
                     </div>
                 </div>
             </div>

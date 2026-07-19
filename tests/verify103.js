@@ -11,7 +11,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('U0 APP_VERSION 1.23.0', src.includes("APP_VERSION = '1.23.0'"));
+    check('U0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -40,15 +40,13 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
         customOpt:[...sel.options].some(o=>o.value==='custom'),
         moonRadios:document.querySelectorAll('input[name="ss-moon-mode"]').length,
         unkaiRadios:document.querySelectorAll('input[name="ss-unkai-mode"]').length,
-        statDisabled:document.getElementById('chk-ss-stat').disabled,
-        batchDisabled:(document.querySelector('input[name="ss-target"][value="batch"]')||{}).disabled===true,
-        currentChecked:(document.querySelector('input[name="ss-target"][value="current"]')||{}).checked===true,
+        statEnabled:!document.getElementById('chk-ss-stat').disabled,   // フェーズ3で有効化
         hiddenInit, openAfter, arrow,
         bandInit:document.getElementById('chk-ss-band-night').checked&&!document.getElementById('chk-ss-band-twilight').checked&&!document.getElementById('chk-ss-band-ghbh').checked&&!document.getElementById('chk-ss-band-day').checked };
     });
     check('U1 メニュー16要素+カスタム選択肢+ラジオ2組', r.missing===''&&r.customOpt&&r.moonRadios===2&&r.unkaiRadios===2, r.missing);
     check('U1 重みセクション: 初期閉→タップで開(▲)', r.hiddenInit&&r.openAfter&&r.arrow==='▲');
-    check('U1 統計/My一括はdisabled(フェーズ3/4)+対象=現在+時間帯初期値=夜のみ', r.statDisabled&&r.batchDisabled&&r.currentChecked&&r.bandInit);
+    check('U1 統計チェック有効(フェーズ3)+時間帯初期値=夜のみ', r.statEnabled&&r.bandInit);
   }
 
   // U2: プリセット連動(選択→スライダー反映 / スライダー変更→カスタム / 再選択で復元)
@@ -237,10 +235,12 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const qs=buildCommonUrlParams(false).toString();
       const enc=encodeQueryParam(qs);
       const dec=decodeQueryParam(enc);
+      const vm=/^~(\d+)~/.exec(enc);
       return { hasKeys:['ssPreset=custom','ssWL=77','ssRange=45','ssBandNight=','ssFan=','ssDays='].every(k=>qs.includes(k)),
-               v10:enc.startsWith('~10~'), roundtrip:dec===qs };
+               v10:!!vm&&parseInt(vm[1])>=10,   // v10以降(新機能で辞書版が増えても宙検索URLは読める)
+               roundtrip:dec===qs };
     });
-    check('U9 URLに宙検索の全項目+短縮URL辞書v10往復', r.hasKeys&&r.v10&&r.roundtrip);
+    check('U9 URLに宙検索の全項目+短縮URL辞書v10以降の往復', r.hasKeys&&r.v10&&r.roundtrip);
   }
 
   check('E ページエラーなし', errs.length===0, errs.join(' | ').slice(0,300));

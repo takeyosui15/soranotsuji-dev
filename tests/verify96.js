@@ -8,6 +8,9 @@ const check=(name,ok,detail)=>{ console.log(`${ok?'PASS':'FAIL'} ${name}${detail
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'});
+  await ctx.route('**/*', route => {   // テスト方針: ローカル以外への実アクセスを遮断
+    route.request().url().startsWith(BASE) ? route.continue() : route.abort();
+  });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto(BASE+'/index.html',{waitUntil:'load'});

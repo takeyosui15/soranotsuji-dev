@@ -12,11 +12,15 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
     check('V0 ⏳ eliminated from script.js', !src.includes('⏳'));
-    check('V0 APP_VERSION 1.23.0', src.includes("APP_VERSION = '1.23.0'"));
+    check('V0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
     check('V0 出力診断コードは削除済み(履歴コメント以外に無し)', !src.replace(/^[\s\S]*?\*\//,'').includes('出力診断'));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
-  const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
+  const ctx=await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'});
+  await ctx.route('**/*', route => {   // テスト方針: ローカル以外への実アクセスを遮断
+    route.request().url().startsWith(BASE) ? route.continue() : route.abort();
+  });
+  const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto(BASE+'/index.html',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof toggleMilkyWayInstrument==='function',{timeout:8000});

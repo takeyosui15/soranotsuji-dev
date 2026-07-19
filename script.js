@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.24.0 - 2026-07-19: feat: 宙検索フェーズ3残り+フェーズ4(デッサン18) — 透明度にAOD(air-quality API・7日先まで。湿度との悪い方で霞み度)・雲海度(気圧面8面の雲量×実高度から雲頂を推定し観測点が上なら眼下雲量×充足度。狙うモードで加点因子化・詳細に気圧面プロファイル)・上空風300hPa(シーイングの目安・詳細表示)・統計チェック有効化(ERA5の同月日±7日×過去10年の夜間晴天率を統計行に)・My宙検索メニュー新設(メニュー分割ポリシー: 宙検索=現在の1組/My宙検索=My観測点×My目的点の複数組。宙検索取得・リスト編集・一括選択/一括計算/File取得・行操作・CSV入出力・バックアップ対象)・一括結果は宙検索結果パネルに宙検索ID/名の2列付きで表示(シード辞書v11)
 Version 1.23.0 - 2026-07-19: feat: 宙検索フェーズ2(本UI。デッサン18) — 専用の宙検索結果パネル(下1/3・最大化⛶・✕・辻検索/辻メッシュと排他・積み上げ規則共通)・結果リスト18列(時間帯/晴天度/雲海度[F3]/透明度/月齢を追加。全列ソート可・宙スコア/信頼度色分け)・行クリックで詳細リスト(因子別の係数内訳+扇形標本毎の方位/距離/重み/層別雲量)・地図に視界扇形+標本点オーバーレイ(行選択でその時刻の雲量を白〜濃灰で着色)・重みスライダー群(プリセット連動・変更でカスタム)+月/雲海の避ける/狙うラジオ+時間帯チェック(夜/薄明/GH・BH/昼)・File取得(CSV: 18列+位置情報+評価尺度+検索条件)・URL取得/localStorageに全項目記憶(シード辞書v10)
 Version 1.22.1 - 2026-07-19: feat: 宙検索に光害を組み込み(フェーズ3前半) — 同梱アセット(data/lp-japan: Falchi 2016のSQM格子)の遅延読み込み・観測点の天頂SQM+扇形標本の方向光害(重み付き平均)・宙スコアに光害因子(SQM16〜22→暗さ0〜1、天頂6:方向4合成、プリセットの光害重みで反映)・暫定リストに光害(SQM)/方向光害列。アセット未配置/範囲外は'-'表示でスキップ
 Version 1.22.0 - 2026-07-19: feat: 宙検索フェーズ1(データ層。デッサン18) — 視界扇形の標本化(0.05°格子丸め+距離減衰重み)・Open-Meteo /v1/jma 3層雲量のバッチ取得+IndexedDBキャッシュ(TTL2h)+12〜16日はbest_match延長・狙いプリセット5種(天の川/星景/雲海×月夜/パール/朝焼け夕焼け)の乗算型宙スコア(雲×月[避/狙]×対象高度×湿度)・時間帯フィルタ・信頼度(高/中/低)・暫定リスト表示(辻検索パネル間借り・行クリックで日時移動)
@@ -83,7 +84,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.23.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.24.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -384,6 +385,12 @@ let appState = {
     ssInterval: 1,               // 間隔(時間) 1 or 3
     ssFan: 24,                   // 扇角(°) 1〜180
     ssRange: null,               // 範囲(km) null=相手距離の切り上げに追従 / 数値=手動上書き
+    ssStat: false,               // 統計: ERA5の同時期(同月日±7日×過去10年)の夜間晴天率を統計行として追加
+
+    // My宙検索 (メニュー分割ポリシー: 宙検索=1組 / My宙検索=複数組の一括。localStorage保存)
+    mySoraSearches: [],          // { id, name, obsId, tgtId, preset(SS_PRESETSキー|'custom'),
+                                 //   weights(カスタム時の重み一式{wL,wM,wH,moon,wMoon,unkai,wUnkai,wLp,wTr,obj,wObj}|null),
+                                 //   days, interval, fan, range(null=自動), checked, memo }
 
     // 基本オプション (全てlocalStorage保存)
     baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
@@ -1114,8 +1121,10 @@ function setupUI() {
     }
     document.getElementById('btn-url-tsujimesh').onclick = () => toggleUrlPanel('tsujimesh');
 
-    // 宙検索: メニュー+結果パネルのコントロール一式(フェーズ2)
+    // 宙検索: メニュー+結果パネルのコントロール一式(フェーズ2/3)
     setupSoraSearchControls();
+    // My宙検索: 一括検索メニュー(フェーズ4)
+    setupMySoraControls();
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -1467,6 +1476,8 @@ function saveAppState() {
         ssWLp: appState.ssWLp, ssWTr: appState.ssWTr, ssObj: appState.ssObj, ssWObj: appState.ssWObj,
         ssBandNight: appState.ssBandNight, ssBandTwilight: appState.ssBandTwilight, ssBandGhbh: appState.ssBandGhbh, ssBandDay: appState.ssBandDay,
         ssDays: appState.ssDays, ssInterval: appState.ssInterval, ssFan: appState.ssFan, ssRange: appState.ssRange,
+        ssStat: appState.ssStat,
+        mySoraSearches: appState.mySoraSearches,
         // 標高関連（API標高とユーザー入力高）
         startApiElev: appState.startApiElev,
         endApiElev: appState.endApiElev,
@@ -1553,7 +1564,8 @@ function loadAppState() {
             if(saved.endHeight !== undefined) appState.endHeight = saved.endHeight;
             // 宙検索パラメータ復元
             ['ssPreset','ssWL','ssWM','ssWH','ssMoonMode','ssWMoon','ssUnkaiMode','ssWUnkai','ssWLp','ssWTr','ssObj','ssWObj',
-             'ssBandNight','ssBandTwilight','ssBandGhbh','ssBandDay','ssDays','ssInterval','ssFan','ssRange'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'ssBandNight','ssBandTwilight','ssBandGhbh','ssBandDay','ssDays','ssInterval','ssFan','ssRange','ssStat'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+            if (saved.mySoraSearches) appState.mySoraSearches = saved.mySoraSearches;
             // API標高とユーザー高さから内部計算用elevを再計算
             recalcElev('start');
             recalcElev('end');
@@ -1676,6 +1688,22 @@ function normalizeAppState() {
     appState.ssFan = num(appState.ssFan, 24, 1, 180);
     appState.ssRange = isFinite(parseFloat(appState.ssRange)) && parseFloat(appState.ssRange) > 0
         ? Math.min(300, Math.max(1, parseFloat(appState.ssRange))) : null;
+    appState.ssStat = !!appState.ssStat;
+    // My宙検索
+    if (!Array.isArray(appState.mySoraSearches)) appState.mySoraSearches = [];
+    appState.mySoraSearches = appState.mySoraSearches.filter(t => t && typeof t === 'object');
+    appState.mySoraSearches.forEach(t => {
+        if (!(t.preset in SS_PRESETS) && t.preset !== 'custom') t.preset = 'milkyway';
+        if (t.preset !== 'custom') t.weights = null;
+        else if (!t.weights || typeof t.weights !== 'object') { t.preset = 'milkyway'; t.weights = null; }
+        t.days = Math.round(num(t.days, 11, 1, 16));
+        t.interval = t.interval === 3 || t.interval === '3' ? 3 : 1;
+        t.fan = num(t.fan, 24, 1, 180);
+        t.range = isFinite(parseFloat(t.range)) && parseFloat(t.range) > 0 ? Math.min(300, Math.max(1, parseFloat(t.range))) : null;
+        t.checked = !!t.checked;
+        t.name = typeof t.name === 'string' ? t.name : '';
+        t.memo = typeof t.memo === 'string' ? t.memo : '';
+    });
     // 基本オプション
     if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
     appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
@@ -4467,7 +4495,7 @@ function registerSearchStar() {
 // ============================================================
 
 function exportBackup() {
-    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、設定のリストをバックアップファイルに全て出力しますか？')) return;
+    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、My宙検索、設定のリストをバックアップファイルに全て出力しますか？')) return;
     const data = {
         backupDate: new Date().toISOString(),
         homeStart: appState.homeStart,
@@ -4479,6 +4507,7 @@ function exportBackup() {
         myObservations: appState.myObservations,
         myTargets: appState.myTargets,
         myTsujiSearches: appState.myTsujiSearches,
+        mySoraSearches: appState.mySoraSearches,
         settings: {
             refractionEnabled: appState.refractionEnabled,
             meteo: { p: appState.meteo.p, t: appState.meteo.t, l: appState.meteo.l }
@@ -4495,7 +4524,7 @@ function exportBackup() {
 }
 
 function importBackup() {
-    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、設定のリストをバックアップファイルから全て上書き入力・登録しますか？')) return;
+    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、My宙検索、設定のリストをバックアップファイルから全て上書き入力・登録しますか？')) return;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -4525,6 +4554,7 @@ function importBackup() {
                 if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
                 if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
                 if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
+                if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
                 if (data.settings) {
                     if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
                     if (data.settings.meteo) {
@@ -4533,6 +4563,7 @@ function importBackup() {
                         if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
                     }
                 }
+                normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
                 saveAppState();
                 syncUIFromState();
                 // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
@@ -4557,6 +4588,7 @@ function importBackup() {
                 renderMyPointsList('obs');
                 renderMyPointsList('tgt');
                 renderMyTsujiSearches();
+                renderMySoraSearches();
                 updateMyPointMarkers();
                 updateAll();
                 alert('バックアップファイルからインポートしました。');
@@ -11727,7 +11759,9 @@ const _QP_SEEDS_V9 = _QP_SEEDS_V8.concat(['&fwEnabled=', '&fwLat=', '&fwLng=', '
 const _QP_SEEDS_V10 = _QP_SEEDS_V9.concat(['&ssPreset=', '&ssW', '&ssMoonMode=', '&ssUnkaiMode=', '&ssObj=', '&ssBand',
     '&ssDays=', '&ssInterval=', '&ssFan=', '&ssRange=',
     '=milkyway&', '=stars&', '=unkai&', '=pearl&', '=glow&', '=custom&', '=avoid&', '=want&', '=mw&', '=body&', '=moon&', '=none&']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10];   // 添字+1=版数。最新版でエンコードする
+// v11: v10の全シード + 宙検索の統計チェック(v10は発行済みURLのため凍結)
+const _QP_SEEDS_V11 = _QP_SEEDS_V10.concat(['&ssStat=']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11];   // 添字+1=版数。最新版でエンコードする
 
 function encodeQueryParam(str) {
     const bytes = new TextEncoder().encode(str);
@@ -11939,7 +11973,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
 
     // 宙検索メニューの全項目(デッサン18。範囲=自動追従(null)の場合は付与しない)
     ['ssPreset', 'ssWL', 'ssWM', 'ssWH', 'ssMoonMode', 'ssWMoon', 'ssUnkaiMode', 'ssWUnkai', 'ssWLp', 'ssWTr', 'ssObj', 'ssWObj',
-     'ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssDays', 'ssInterval', 'ssFan'].forEach(k => {
+     'ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssDays', 'ssInterval', 'ssFan', 'ssStat'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
@@ -12267,7 +12301,7 @@ function restoreFromUrl() {
     // 宙検索メニュー(デッサン18)
     soraStr('ssPreset'); soraStr('ssMoonMode'); soraStr('ssUnkaiMode'); soraStr('ssObj');
     ['ssWL', 'ssWM', 'ssWH', 'ssWMoon', 'ssWUnkai', 'ssWLp', 'ssWTr', 'ssWObj', 'ssDays', 'ssInterval', 'ssFan', 'ssRange'].forEach(soraNum);
-    ['ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay'].forEach(soraBool);
+    ['ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssStat'].forEach(soraBool);
     // 範囲=自動追従(null)はURLに付与されないため、宙検索パラメータ付きURLでssRangeが無い場合は自動へ戻す
     if (params.has('ssPreset') && !params.has('ssRange')) appState.ssRange = null;
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
@@ -15343,9 +15377,12 @@ async function _ssIdb(mode, fn) {
 /** 視界扇形の標本: 観測点直上1点+方位5本×距離3環。MSM格子(約5km)より粗くならないよう
  *  0.05°に丸めて重複除去する(実APIコールは数格子分に圧縮)。重み=距離減衰(近い雲ほど視界を塞ぐ)。
  *  観測点直上は頭上の雲が最も致命的なので最大重みにする(デッサン18) */
-function ssFanSamples(fanDeg, rangeKm) {
-    const oLat = appState.start.lat, oLng = appState.start.lng;
-    const az0 = calculateBearing(oLat, oLng, appState.end.lat, appState.end.lng);
+function ssFanSamples(fanDeg, rangeKm, oLatIn, oLngIn, eLatIn, eLngIn) {
+    const oLat = oLatIn !== undefined ? oLatIn : appState.start.lat;
+    const oLng = oLngIn !== undefined ? oLngIn : appState.start.lng;
+    const eLat = eLatIn !== undefined ? eLatIn : appState.end.lat;
+    const eLng = eLngIn !== undefined ? eLngIn : appState.end.lng;
+    const az0 = calculateBearing(oLat, oLng, eLat, eLng);
     const raw = [{ lat: oLat, lng: oLng, w: 1.2 }];
     for (const fA of [-1, -0.5, 0, 0.5, 1]) {
         const az = (az0 + fA * fanDeg / 2) * Math.PI / 180;
@@ -15415,6 +15452,121 @@ async function ssFetchClouds(points, days) {
     return results;
 }
 
+/** AOD(エアロゾル光学的厚さ)を観測点格子1点だけ取得する(空間変化が緩やかなため)。
+ *  air-quality APIの予報は7日上限。失敗・範囲外はnull(透明度は湿度のみの従来動作)。
+ *  戻り値: {timeIdx: Map(ISO→idx), aod:[..]} | null */
+async function ssFetchAod(point, days) {
+    const fd = Math.min(7, days);
+    const key = `aq:${point.key}:${fd}`;
+    try {
+        const hit = await _ssIdb('readonly', s => s.get(key)).catch(() => null);
+        let data = (hit && Date.now() - hit.t < SS_TTL && hit.data && hit.data.aod) ? hit.data : null;
+        if (!data) {
+            const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${point.lat}&longitude=${point.lng}&hourly=aerosol_optical_depth&forecast_days=${fd}&timezone=Asia%2FTokyo`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`AOD HTTP ${res.status}`);
+            const j = await res.json();
+            if (!j.hourly || !j.hourly.time || !j.hourly.aerosol_optical_depth) throw new Error('AOD形式');
+            data = { time: j.hourly.time, aod: j.hourly.aerosol_optical_depth };
+            _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, key)).catch(() => {});
+        }
+        const timeIdx = new Map();
+        data.time.forEach((t, i) => timeIdx.set(t, i));
+        return { timeIdx, aod: data.aod };
+    } catch (_) { return null; }
+}
+
+// 雲海判定に使う気圧面(低層)。JMAの気圧面雲量はRHからの近似(Sundqvist 1989)のため「目安」
+const SS_PL_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700];
+/** 気圧面の雲量×実高度(雲海判定用)+300hPa風速(シーイングの目安)を観測点格子1点だけ取得する。
+ *  戻り値: {timeIdx, cc:{lev:[..]}, gh:{lev:[..]}, wind300:[..]} | null */
+async function ssFetchPressure(point, days) {
+    const fd = Math.min(11, days);
+    const key = `pl:${point.key}:${fd}`;
+    try {
+        const hit = await _ssIdb('readonly', s => s.get(key)).catch(() => null);
+        let data = (hit && Date.now() - hit.t < SS_TTL) ? hit.data : null;
+        if (!data) {
+            const H = SS_PL_LEVELS.map(l => `cloud_cover_${l}hPa,geopotential_height_${l}hPa`).join(',') + ',wind_speed_300hPa';
+            const url = `https://api.open-meteo.com/v1/jma?latitude=${point.lat}&longitude=${point.lng}&hourly=${H}&forecast_days=${fd}&timezone=Asia%2FTokyo&wind_speed_unit=ms`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`PL HTTP ${res.status}`);
+            const j = await res.json();
+            const h = j.hourly;
+            if (!h || !h.time || !h[`cloud_cover_${SS_PL_LEVELS[0]}hPa`]) throw new Error('PL形式');
+            data = { time: h.time, cc: {}, gh: {}, wind300: h.wind_speed_300hPa || [] };
+            for (const l of SS_PL_LEVELS) { data.cc[l] = h[`cloud_cover_${l}hPa`]; data.gh[l] = h[`geopotential_height_${l}hPa`]; }
+            _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, key)).catch(() => {});
+        }
+        const timeIdx = new Map();
+        data.time.forEach((t, i) => timeIdx.set(t, i));
+        return { timeIdx, cc: data.cc, gh: data.gh, wind300: data.wind300 };
+    } catch (_) { return null; }
+}
+
+/** 雲海度(0〜100)の推定: 「観測点標高が低層雲の雲頂より上」×「眼下の低層雲量」(デッサン18)。
+ *  雲頂=雲量60%以上の気圧面のうち最も高い実高度(3500m未満の低層のみ)。
+ *  充足度=観測点が雲頂より50m以上高いことから150mで飽和する線形。気圧面雲量はRH近似のため目安。
+ *  戻り値: {deg, top, below} | null(気圧面データ無し・該当時刻無し) */
+function ssUnkaiHour(pl, timeStr, obsElev) {
+    if (!pl) return null;
+    const i = pl.timeIdx.get(timeStr);
+    if (i === undefined) return null;
+    let top = null, below = 0, any = false;
+    for (const l of SS_PL_LEVELS) {
+        const cc = pl.cc[l] && pl.cc[l][i], gh = pl.gh[l] && pl.gh[l][i];
+        if (cc === null || cc === undefined || gh === null || gh === undefined) continue;
+        any = true;
+        if (gh < 3500 && cc >= 60 && (top === null || gh > top)) top = gh;
+        if (gh < obsElev) below = Math.max(below, cc);
+    }
+    if (!any) return null;
+    if (top === null || obsElev < top + 50) return { deg: 0, top, below };
+    const fill = Math.min(1, (obsElev - top - 50) / 150 + 0.33);   // 50mで0.33、200m差で飽和
+    return { deg: Math.round(below * Math.min(1, Math.max(0, fill))), top, below };
+}
+
+/** ERA5過去統計: 同月日±7日×過去10年の夜間(20時〜翌4時の目安)晴天率(全雲量30%未満の割合)。
+ *  年毎にIndexedDBへキャッシュ(TTL7日)。戻り値 {rate, years, hours} | null */
+async function ssFetchEra5Stat(point, setBusy) {
+    const now = new Date();
+    const mmdd = `${('0' + (now.getMonth() + 1)).slice(-2)}${('0' + now.getDate()).slice(-2)}`;
+    let clearH = 0, nightH = 0, years = 0;
+    for (let k = 1; k <= 10; k++) {
+        const y = now.getFullYear() - k;
+        const key = `era5:${point.key}:${mmdd}:${y}`;
+        let data = null;
+        try {
+            const hit = await _ssIdb('readonly', s => s.get(key)).catch(() => null);
+            if (hit && Date.now() - hit.t < 7 * 86400e3) data = hit.data;
+            if (!data) {
+                if (setBusy) setBusy(`過去統計を取得中… (${y}年)`);
+                const c = new Date(y, now.getMonth(), now.getDate());
+                const d0 = new Date(c.getTime() - 7 * 86400e3), d1 = new Date(c.getTime() + 7 * 86400e3);
+                const f = d => `${d.getFullYear()}-${('0' + (d.getMonth() + 1)).slice(-2)}-${('0' + d.getDate()).slice(-2)}`;
+                const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${point.lat}&longitude=${point.lng}&start_date=${f(d0)}&end_date=${f(d1)}&hourly=cloud_cover&timezone=Asia%2FTokyo`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`ERA5 HTTP ${res.status}`);
+                const j = await res.json();
+                if (!j.hourly || !j.hourly.time) throw new Error('ERA5形式');
+                data = { time: j.hourly.time, cc: j.hourly.cloud_cover };
+                _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, key)).catch(() => {});
+            }
+        } catch (_) { continue; }
+        years++;
+        for (let i = 0; i < data.time.length; i++) {
+            const hh = parseInt(data.time[i].slice(11, 13));
+            if (!(hh >= 20 || hh < 4)) continue;   // 夜間の目安(20時〜翌4時)
+            const cc = data.cc[i];
+            if (cc === null || cc === undefined) continue;
+            nightH++;
+            if (cc < 30) clearH++;
+        }
+    }
+    if (!nightH) return null;
+    return { rate: Math.round(clearH / nightH * 1000) / 10, years, hours: nightH };
+}
+
 // --- 光害アセット(フェーズ3。tools/lightpollutionで生成した data/lp-japan.bin/.json) ---
 let _ssLpMeta = null, _ssLpBin = null, _ssLpTried = false;
 /** 光害アセットの遅延読み込み(1回だけ)。無い/壊れている場合はfalse(光害因子はスキップされる) */
@@ -15467,9 +15619,11 @@ function ssAggregateHour(points, clouds, hourIdx) {
     return { low: low / sw, mid: mid / sw, high: high / sw, rh: rh / sw };
 }
 
-/** 時刻毎の天文量: 太陽/月の高度・月輝面比・月齢・対象天体の高度(プリセットのobj種別に従う) */
-function ssAstroHour(date, preset) {
-    const obs = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+/** 時刻毎の天文量: 太陽/月の高度・月輝面比・月齢・対象天体の高度(プリセットのobj種別に従う)。
+ *  oPos(省略可)={lat,lng,elev}: 観測点の上書き(My宙検索の一括用。省略時は現在の観測点) */
+function ssAstroHour(date, preset, oPos) {
+    const o = oPos || appState.start;
+    const obs = new Astronomy.Observer(o.lat, o.lng, o.elev || 0);
     const hor = (id) => { const eq = Astronomy.Equator(id, date, obs, true, true); return Astronomy.Horizon(date, obs, eq.ra, eq.dec, 'normal'); };
     const sunAlt = hor('Sun').altitude;
     const moonH = hor('Moon');
@@ -15509,9 +15663,9 @@ const SS_BAND_LABELS = { night: '夜', twilight: '薄明', ghbh: 'GH・BH', day:
 const SS_OBJ_LABELS = { mw: '天の川中心', body: '表示天体', moon: '月', none: '(なし)' };
 
 /** 宙スコアの因子別内訳。乗算型: どれかの因子が致命的なら総合も低くなる(デッサン18)。
- *  雲(3層)×月×対象高度×透明度(地上湿度の簡易版)×光害(lp={zen,dir}のSQM。省略時はスキップ)。
- *  AOD・雲海度・統計はフェーズ3後半。戻り値 {clear,fMoon,fObj,fTr,fLp,humid,score} */
-function ssScoreParts(preset, agg, astro, lp) {
+ *  雲(3層)×月×対象高度×透明度(湿度+AOD)×光害(lp={zen,dir}のSQM。省略時はスキップ)×雲海(狙う時)。
+ *  env(省略可)={aodNorm:0〜1|null, unkai:0〜100|null}。戻り値 {clear,fMoon,fObj,fTr,fLp,fUnkai,humid,haze,score} */
+function ssScoreParts(preset, agg, astro, lp, env) {
     const clear = (1 - preset.wL / 100 * agg.low / 100) * (1 - preset.wM / 100 * agg.mid / 100) * (1 - preset.wH / 100 * agg.high / 100);
     let fMoon = 1;
     if (preset.wMoon > 0) {
@@ -15529,7 +15683,14 @@ function ssScoreParts(preset, agg, astro, lp) {
         fObj = (1 - preset.wObj / 100) + preset.wObj / 100 * g;
     }
     const humid = Math.max(0, Math.min(1, ((agg.rh || 0) - 60) / 40));      // 湿度60%以下は透明・100%で最大減点
-    const fTr = 1 - preset.wTr / 100 * 0.5 * humid;
+    // 霞み度0〜1: 湿度とAOD(0.1=澄む〜0.5=霞む)の悪い方(どちらかが悪ければ空は濁る)。AOD無しは湿度のみ
+    const aodNorm = env && env.aodNorm !== null && env.aodNorm !== undefined ? env.aodNorm : null;
+    const haze = aodNorm !== null ? Math.max(humid, aodNorm) : humid;
+    const fTr = 1 - preset.wTr / 100 * 0.5 * haze;
+    let fUnkai = 1;
+    if (preset.unkai === 'want' && preset.wUnkai > 0 && env && env.unkai !== null && env.unkai !== undefined) {
+        fUnkai = (1 - preset.wUnkai / 100) + preset.wUnkai / 100 * env.unkai / 100;   // 雲海度が高いほど加点
+    }
     let fLp = 1;
     if (preset.wLp > 0 && lp && lp.zen !== null && lp.zen !== undefined) {
         // 空の暗さ0〜1: SQM16(大都市)→0 / SQM22(自然の暗さ)→1。天頂6:視界方向4で合成
@@ -15537,8 +15698,8 @@ function ssScoreParts(preset, agg, astro, lp) {
         const dark = (lp.dir !== null && lp.dir !== undefined) ? 0.6 * dk(lp.zen) + 0.4 * dk(lp.dir) : dk(lp.zen);
         fLp = (1 - preset.wLp / 100) + preset.wLp / 100 * dark;
     }
-    const score = Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr * fLp) / 10));
-    return { clear, fMoon, fObj, fTr, fLp, humid, score };
+    const score = Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr * fLp * fUnkai) / 10));
+    return { clear, fMoon, fObj, fTr, fLp, fUnkai, humid, haze, score };
 }
 /** 宙スコア(0〜100)のみ返す従来形 (検証ハーネス・スコアの性質確認用) */
 function ssScoreHour(preset, agg, astro, lp) {
@@ -15581,7 +15742,70 @@ let _ssLast = null;     // 直近の検索スナップショット { rows, point
 let _ssSelRow = null;   // 選択中の結果行(オブジェクト参照。ソートで並びが変わっても追従)
 let _ssMapLayer = null; // 地図オーバーレイ(視界扇形+標本点)
 
-/** 宙検索の本体: フォーム→appState反映 → 扇形標本 → 雲量取得 → 時刻毎スコア。スナップショットを返す */
+/** 検索条件1組の実行: 扇形標本 → 雲量/AOD/気圧面の取得 → 時刻毎スコア(+統計行)。スナップショットを返す。
+ *  cond = { oLat,oLng,oElev, eLat,eLng, preset, days, stepH, fanDeg, rangeKm(null=相手距離), bands, stat } */
+async function ssRunSearchCore(cond, setBusy) {
+    const { oLat, oLng, oElev, eLat, eLng, preset, days, stepH, fanDeg, bands } = cond;
+    const distKm = getDistanceWGS84(oLat, oLng, eLat, eLng) / 1000;
+    const rangeKm = cond.rangeKm !== null && cond.rangeKm !== undefined ? cond.rangeKm : Math.max(1, Math.min(300, Math.ceil(distKm)));
+    setBusy('扇形標本を作成中…');
+    const points = ssFanSamples(fanDeg, rangeKm, oLat, oLng, eLat, eLng);
+    // 光害(静的アセット): 観測点の天頂SQMと、扇形に沿った方向光害。検索毎に1回だけ算出
+    await ssLoadLp();
+    const lp = { zen: ssLpSqm(oLat, oLng), dir: ssLpDirectional(points) };
+    setBusy(`雲量を取得中… (${points.length}格子)`);
+    const clouds = await ssFetchClouds(points, days);
+    const base = clouds[points[0].key];
+    if (!base || !base.time || !base.time.length) throw new Error('雲量データを取得できませんでした');
+    // フェーズ3: AOD(透明度)+気圧面(雲海度・上空風)は観測点格子1点。失敗しても検索は続行(該当因子はスキップ)
+    setBusy('AOD/気圧面を取得中…');
+    const [aq, pl] = await Promise.all([ssFetchAod(points[0], days), ssFetchPressure(points[0], days)]);
+    setBusy('宙スコアを計算中…');
+    const rows = [];
+    const now = Date.now();
+    const oPos = { lat: oLat, lng: oLng, elev: oElev || 0 };
+    for (let i = 0; i < base.time.length; i += stepH) {
+        const timeStr = base.time[i];
+        const dt = new Date(timeStr);
+        if (isNaN(dt.getTime()) || dt.getTime() < now - 3600e3) continue;
+        const agg = ssAggregateHour(points, clouds, i);
+        if (!agg) continue;
+        const astro = ssAstroHour(dt, preset, oPos);
+        const band = ssTimeBand(astro.sunAlt);
+        if (!bands[band]) continue;   // 時間帯チェックで絞る(全てオフなら0件)
+        const hoursAhead = (dt.getTime() - now) / 3600e3;
+        const conf = hoursAhead <= 72 ? '高' : (hoursAhead <= 264 ? '中' : '低');
+        const aodV = aq && aq.timeIdx.has(timeStr) ? aq.aod[aq.timeIdx.get(timeStr)] : null;
+        const aodNorm = aodV === null || aodV === undefined ? null : Math.max(0, Math.min(1, (aodV - 0.1) / 0.4));
+        const uk = ssUnkaiHour(pl, timeStr, oPos.elev);
+        const wind300 = pl && pl.timeIdx.has(timeStr) ? pl.wind300[pl.timeIdx.get(timeStr)] : null;
+        const env = { aodNorm, unkai: uk ? uk.deg : null };
+        const parts = ssScoreParts(preset, agg, astro, lp, env);
+        rows.push({ dt, hourIdx: i, timeStr, band, conf, agg, astro, env, aodV, uk, wind300, parts, score: parts.score });
+        if (rows.length % 200 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    const az0 = calculateBearing(oLat, oLng, eLat, eLng);
+    // 観測点も保存する(検索後に位置情報を動かしても、詳細/地図は検索時の観測点基準で一貫させる)
+    const snap = { rows, points, clouds, lp, aq, pl, preset, days, stepH, fanDeg, rangeKm, az0, oLat, oLng, oElev: oPos.elev, bands };
+    rows.forEach(r => { r._snap = snap; });
+    // 統計行: ERA5の同時期(同月日±7日×過去10年)の夜間晴天率を末尾に1行追加(取得失敗時はスキップ)
+    if (cond.stat) {
+        const st = await ssFetchEra5Stat(points[0], setBusy);
+        if (st) {
+            rows.push({
+                isStat: true, stat: st, _snap: snap, score: st.rate,
+                dt: new Date(8640000000000000), band: 'night', conf: '統計',
+                agg: { low: -1, mid: -1, high: -1, rh: -1 },
+                astro: { sunAlt: -99, moonAlt: -999, moonIllum: -1, moonAge: -1, objAlt: null },
+                env: { aodNorm: null, unkai: null },
+                parts: { clear: -1, fMoon: 1, fObj: 1, fTr: 1, fLp: 1, fUnkai: 1, humid: -1, haze: -1, score: st.rate },
+            });
+        }
+    }
+    return snap;
+}
+
+/** 宙検索の本体(単発): フォーム→appState反映 → 現在の観測点×目的点で実行。スナップショットを返す */
 async function ssExecuteSearch(setBusy) {
     // フォーム値をappStateへ反映(検証ハーネス等がフォームを直接書き換えた場合もここで同期)
     const sel = document.getElementById('sel-ss-preset');
@@ -15596,46 +15820,24 @@ async function ssExecuteSearch(setBusy) {
     const rangeIn = parseFloat(document.getElementById('input-ss-range').value);
     appState.ssDays = days; appState.ssInterval = stepH; appState.ssFan = fanDeg;
     appState.ssRange = isFinite(rangeIn) && rangeIn > 0 ? Math.max(1, Math.min(300, rangeIn)) : null;
-    const distKm = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng) / 1000;
-    const rangeKm = appState.ssRange !== null ? appState.ssRange : Math.max(1, Math.min(300, Math.ceil(distKm)));
-    const preset = ssEffectivePreset();
-    setBusy('扇形標本を作成中…');
-    const points = ssFanSamples(fanDeg, rangeKm);
-    // 光害(静的アセット): 観測点の天頂SQMと、扇形に沿った方向光害。検索毎に1回だけ算出
-    await ssLoadLp();
-    const lp = { zen: ssLpSqm(appState.start.lat, appState.start.lng), dir: ssLpDirectional(points) };
-    setBusy(`雲量を取得中… (${points.length}格子)`);
-    const clouds = await ssFetchClouds(points, days);
-    const base = clouds[points[0].key];
-    if (!base || !base.time || !base.time.length) throw new Error('雲量データを取得できませんでした');
-    setBusy('宙スコアを計算中…');
-    const rows = [];
-    const now = Date.now();
-    const bands = { night: appState.ssBandNight, twilight: appState.ssBandTwilight, ghbh: appState.ssBandGhbh, day: appState.ssBandDay };
-    for (let i = 0; i < base.time.length; i += stepH) {
-        const dt = new Date(base.time[i]);
-        if (isNaN(dt.getTime()) || dt.getTime() < now - 3600e3) continue;
-        const agg = ssAggregateHour(points, clouds, i);
-        if (!agg) continue;
-        const astro = ssAstroHour(dt, preset);
-        const band = ssTimeBand(astro.sunAlt);
-        if (!bands[band]) continue;   // 時間帯チェックで絞る(全てオフなら0件)
-        const hoursAhead = (dt.getTime() - now) / 3600e3;
-        const conf = hoursAhead <= 72 ? '高' : (hoursAhead <= 264 ? '中' : '低');
-        const parts = ssScoreParts(preset, agg, astro, lp);
-        rows.push({ dt, hourIdx: i, band, conf, agg, astro, parts, score: parts.score });
-        if (rows.length % 200 === 0) await new Promise(r => setTimeout(r, 0));
-    }
-    const az0 = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
-    // 観測点も保存する(検索後に位置情報を動かしても、詳細/地図は検索時の観測点基準で一貫させる)
-    _ssLast = { rows, points, clouds, lp, preset, days, stepH, fanDeg, rangeKm, az0, oLat: appState.start.lat, oLng: appState.start.lng };
+    const statChk = document.getElementById('chk-ss-stat');
+    if (statChk) appState.ssStat = statChk.checked;
+    const cond = {
+        oLat: appState.start.lat, oLng: appState.start.lng, oElev: appState.start.elev,
+        eLat: appState.end.lat, eLng: appState.end.lng,
+        preset: ssEffectivePreset(), days, stepH, fanDeg, rangeKm: appState.ssRange,
+        bands: { night: appState.ssBandNight, twilight: appState.ssBandTwilight, ghbh: appState.ssBandGhbh, day: appState.ssBandDay },
+        stat: appState.ssStat,
+    };
+    const snap = await ssRunSearchCore(cond, setBusy);
+    _ssLast = snap;
     _ssSelRow = null;
-    return _ssLast;
+    return snap;
 }
 
 /** 宙検索の実行(検索ボタン): 専用の宙検索結果パネルに表示し、地図に扇形+標本点を重ねる */
 async function soraSearchRun() {
-    if (_ssRunning) return;
+    if (_ssRunning || _mySoraBatchRunning) return;   // My宙検索の一括実行中は単発検索を受け付けない(パネル競合防止)
     _ssRunning = true;
     const statusEl = document.getElementById('ss-status');
     const setBusy = (t) => {
@@ -15646,7 +15848,7 @@ async function soraSearchRun() {
     try {
         openSoraSearchPanel();
         const snap = await ssExecuteSearch(setBusy);
-        ssRenderResults(snap);
+        ssRenderResults({ rows: snap.rows, title: `宙検索結果 (${snap.preset.label})`, batch: false });
         ssUpdateMapOverlay(snap, null);
         if (statusEl) statusEl.textContent = `${snap.rows.length}件 (${snap.points.length}格子)`;
         saveAppState();
@@ -15661,11 +15863,23 @@ async function soraSearchRun() {
     }
 }
 
-/** 結果行の表示用文字列(結果リストとCSVで共通)。列順=デッサン18の結果リスト18列 */
-function ssRowValues(snap, r) {
+/** 結果行の表示用文字列(結果リストとCSVで共通)。列順=デッサン18の結果リスト18列。
+ *  統計行(r.isStat)は「同時期±7日×過去10年の夜間晴天率」の特別表記 */
+function ssRowValues(r) {
     const p2 = v => ('00' + v).slice(-2);
     const dows = ['日', '月', '火', '水', '木', '金', '土'];
-    const lp = snap.lp;
+    const lp = r._snap.lp;
+    if (r.isStat) {
+        const now = new Date();
+        return [
+            `${p2(now.getMonth() + 1)}/${p2(now.getDate())}±7日`, '-', '-', '夜',
+            r.stat.rate.toFixed(1), r.stat.rate.toFixed(1),
+            '-', '-', '-', '-', '-', '-', '-', '-',
+            (lp && lp.zen !== null && lp.zen !== undefined) ? lp.zen.toFixed(2) : '-',
+            (lp && lp.dir !== null && lp.dir !== undefined) ? lp.dir.toFixed(2) : '-',
+            '-', '統計',
+        ];
+    }
     return [
         `${r.dt.getFullYear()}/${p2(r.dt.getMonth() + 1)}/${p2(r.dt.getDate())}`,
         dows[r.dt.getDay()],
@@ -15674,8 +15888,8 @@ function ssRowValues(snap, r) {
         r.score.toFixed(1),
         (r.parts.clear * 100).toFixed(1),
         `${Math.round(r.agg.low)}%`, `${Math.round(r.agg.mid)}%`, `${Math.round(r.agg.high)}%`,
-        '-',                                                   // 雲海度(気圧面データ=フェーズ3)
-        `${Math.round(100 - r.parts.humid * 100)}%`,           // 透明度の目安(湿度ベース。100%=乾燥・透明)
+        r.env && r.env.unkai !== null && r.env.unkai !== undefined ? `${r.env.unkai}%` : '-',   // 雲海度(気圧面から推定。目安)
+        `${Math.round(100 - r.parts.haze * 100)}%`,            // 透明度の目安(湿度+AODの悪い方。100%=澄む)
         r.astro.moonAge.toFixed(1),
         `${Math.round(r.astro.moonIllum * 100)}%`,
         `${r.astro.moonAlt.toFixed(1)}°`,
@@ -15687,31 +15901,35 @@ function ssRowValues(snap, r) {
 }
 const SS_LIST_HEADERS = ['日付', '曜日', '時刻', '時間帯', '宙スコア', '晴天度', '雲低', '雲中', '雲高', '雲海度', '透明度', '月齢', '月輝面比', '月高度', '光害(SQM)', '方向光害', '対象高度', '信頼度'];
 
-/** 宙検索結果パネルへの描画(全列ソート可・宙スコア色分け・信頼度色分け・行クリックで日時移動+詳細+地図連動) */
-function ssRenderResults(snap) {
+/** 宙検索結果パネルへの描画(全列ソート可・宙スコア色分け・信頼度色分け・行クリックで日時移動+詳細+地図連動)。
+ *  view = { rows, title, batch } : batch=trueで先頭に宙検索ID/宙検索名の2列を追加(My宙検索の一括) */
+function ssRenderResults(view) {
+    const rows = view.rows;
     const titleEl = document.getElementById('sorasearch-title');
-    if (titleEl) titleEl.textContent = `宙検索結果 (${snap.preset.label})`;
+    if (titleEl) titleEl.textContent = view.title;
     const statusEl = document.getElementById('sorasearch-status');
-    if (statusEl) statusEl.textContent = `(${snap.rows.length}件)`;
+    if (statusEl) statusEl.textContent = `(${rows.length}件)`;
     const contentEl = document.getElementById('sorasearch-content');
     contentEl.innerHTML = '';
     ssHideDetail();
-    if (!snap.rows.length) {
+    if (!rows.length) {
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する時刻がありません(時間帯チェック/検索期間を見直してください)</div>';
         return;
     }
     const renderRow = (r) => {
         const tr = document.createElement('tr');
         tr.className = 'td-data-row' + (r === _ssSelRow ? ' selected' : '');
-        const v = ssRowValues(snap, r);
+        const v = ssRowValues(r);
         const scoreColor = r.score >= 70 ? '#ffd700' : (r.score >= 40 ? '#eee' : '#888');
-        const confColor = r.conf === '高' ? '#8f8' : (r.conf === '中' ? '#ff8' : '#f88');
-        tr.innerHTML = `<td>${v[0]}</td><td>(${v[1]})</td><td>${v[2]}</td><td>${escapeHtml(v[3])}</td>` +
+        const confColor = r.conf === '高' ? '#8f8' : (r.conf === '中' ? '#ff8' : (r.conf === '統計' ? '#c9f' : '#f88'));
+        const head = view.batch ? `<td>${r._entry ? r._entry.id : '-'}</td><td>${escapeHtml(r._entry ? (r._entry.name || '') : '')}</td>` : '';
+        tr.innerHTML = head + `<td>${v[0]}</td><td>${r.isStat ? '-' : '(' + v[1] + ')'}</td><td>${v[2]}</td><td>${escapeHtml(v[3])}</td>` +
             `<td style="color:${scoreColor};font-weight:bold;">${v[4]}</td><td>${v[5]}</td>` +
             `<td>${v[6]}</td><td>${v[7]}</td><td>${v[8]}</td><td>${v[9]}</td><td>${v[10]}</td>` +
             `<td>${v[11]}</td><td>${v[12]}</td><td>${v[13]}</td><td>${v[14]}</td><td>${v[15]}</td><td>${v[16]}</td>` +
-            `<td style="color:${confColor};">${v[17]}</td>`;
+            `<td style="color:${confColor};">${escapeHtml(v[17])}</td>`;
         tr.addEventListener('click', () => {
+            if (r.isStat) return;   // 統計行は特定の日時を持たないため選択しない
             appState.currentDate = new Date(r.dt);
             syncUIFromState();
             updateAll();
@@ -15719,23 +15937,24 @@ function ssRenderResults(snap) {
             if (prev) prev.classList.remove('selected');
             tr.classList.add('selected');
             _ssSelRow = r;
-            ssShowDetail(snap, r);
-            ssUpdateMapOverlay(snap, r);
+            ssShowDetail(r._snap, r);
+            ssUpdateMapOverlay(r._snap, r);
         });
         return tr;
     };
     const table = document.createElement('table');
     table.className = 'td-table';
+    const headers = view.batch ? ['宙検索ID', '宙検索名'].concat(SS_LIST_HEADERS) : SS_LIST_HEADERS;
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr>' + SS_LIST_HEADERS.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
-    snap.rows.forEach(r => tbody.appendChild(renderRow(r)));
+    rows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
     contentEl.appendChild(table);
     const bandRank = { night: 0, twilight: 1, ghbh: 2, day: 3 };
     const confRank = { '高': 0, '中': 1, '低': 2, '統計': 3 };
-    setupTableSort(table, snap.rows, [
+    const columns = [
         { label: '日付', compare: (a, b) => a.dt - b.dt },
         { label: '曜日', compare: (a, b) => a.dt.getDay() - b.dt.getDay() },
         { label: '時刻', compare: (a, b) => a.dt.getHours() - b.dt.getHours() },
@@ -15745,16 +15964,22 @@ function ssRenderResults(snap) {
         { label: '雲低', compare: (a, b) => a.agg.low - b.agg.low },
         { label: '雲中', compare: (a, b) => a.agg.mid - b.agg.mid },
         { label: '雲高', compare: (a, b) => a.agg.high - b.agg.high },
-        { label: '雲海度', compare: () => 0 },
-        { label: '透明度', compare: (a, b) => b.parts.humid - a.parts.humid },
+        { label: '雲海度', compare: (a, b) => ((a.env && a.env.unkai) ?? -1) - ((b.env && b.env.unkai) ?? -1) },
+        { label: '透明度', compare: (a, b) => b.parts.haze - a.parts.haze },
         { label: '月齢', compare: (a, b) => a.astro.moonAge - b.astro.moonAge },
         { label: '月輝面比', compare: (a, b) => a.astro.moonIllum - b.astro.moonIllum },
         { label: '月高度', compare: (a, b) => a.astro.moonAlt - b.astro.moonAlt },
-        { label: '光害(SQM)', compare: () => 0 },
-        { label: '方向光害', compare: () => 0 },
+        { label: '光害(SQM)', compare: (a, b) => ((a._snap.lp && a._snap.lp.zen) ?? 0) - ((b._snap.lp && b._snap.lp.zen) ?? 0) },
+        { label: '方向光害', compare: (a, b) => ((a._snap.lp && a._snap.lp.dir) ?? 0) - ((b._snap.lp && b._snap.lp.dir) ?? 0) },
         { label: '対象高度', compare: (a, b) => (a.astro.objAlt ?? -999) - (b.astro.objAlt ?? -999) },
         { label: '信頼度', compare: (a, b) => confRank[a.conf] - confRank[b.conf] },
-    ], renderRow, []);
+    ];
+    if (view.batch) {
+        columns.unshift(
+            { label: '宙検索ID', compare: (a, b) => (a._entry ? a._entry.id : 0) - (b._entry ? b._entry.id : 0) },
+            { label: '宙検索名', compare: (a, b) => String(a._entry ? a._entry.name : '').localeCompare(String(b._entry ? b._entry.name : '')) });
+    }
+    setupTableSort(table, rows, columns, renderRow, []);
 }
 
 /** 詳細リスト: 選択行の因子別の加減点と、扇形標本毎の内訳(方位・距離・重み・層別雲量) */
@@ -15768,14 +15993,17 @@ function ssShowDetail(snap, r) {
     header.textContent = `詳細リスト (${r.dt.getFullYear()}/${p2(r.dt.getMonth() + 1)}/${p2(r.dt.getDate())} ${p2(r.dt.getHours())}:00 / 宙スコア ${r.score.toFixed(1)})`;
     const preset = snap.preset, parts = r.parts, lp = snap.lp;
     const f = x => '×' + x.toFixed(2);
-    // 因子別の加減点(乗算型の係数)。宙スコア = 100 × 晴天度 × 月 × 対象 × 透明度 × 光害
+    // 因子別の加減点(乗算型の係数)。宙スコア = 100 × 晴天度 × 月 × 対象 × 透明度 × 光害 × 雲海
+    const aodStr = r.aodV !== null && r.aodV !== undefined ? `AOD ${r.aodV.toFixed(2)}` : 'AODデータなし(7日超/取得不可)';
+    const ukStr = r.uk === null ? '気圧面データなし'
+        : `雲海度${r.env.unkai}% (雲頂${r.uk.top !== null ? Math.round(r.uk.top) + 'm' : 'なし'} / 観測点${Math.round(snap.oElev)}m / 眼下雲量${Math.round(r.uk.below)}%)`;
     const factorRows = [
         ['晴天度', `雲低${Math.round(r.agg.low)}% 雲中${Math.round(r.agg.mid)}% 雲高${Math.round(r.agg.high)}% (重み ${preset.wL}/${preset.wM}/${preset.wH})`, f(parts.clear)],
         ['月明かり', `${preset.moon === 'avoid' ? '避ける' : '狙う'}(重み${preset.wMoon}) 輝面比${Math.round(r.astro.moonIllum * 100)}% 月高度${r.astro.moonAlt.toFixed(1)}°`, f(parts.fMoon)],
         ['対象高度', `${SS_OBJ_LABELS[preset.obj] || preset.obj}(重み${preset.wObj}) 高度${r.astro.objAlt === null ? '-' : r.astro.objAlt.toFixed(1) + '°'}`, f(parts.fObj)],
-        ['透明度', `湿度${Math.round(r.agg.rh)}%の簡易版(重み${preset.wTr}。AODはフェーズ3)`, f(parts.fTr)],
+        ['透明度', `湿度${Math.round(r.agg.rh)}% / ${aodStr} → 霞み${Math.round(parts.haze * 100)}% (重み${preset.wTr})`, f(parts.fTr)],
         ['光害', `天頂SQM ${lp.zen !== null && lp.zen !== undefined ? lp.zen.toFixed(2) : '-'} / 方向 ${lp.dir !== null && lp.dir !== undefined ? lp.dir.toFixed(2) : '-'} (重み${preset.wLp})`, lp.zen !== null && lp.zen !== undefined ? f(parts.fLp) : '- (アセット範囲外)'],
-        ['雲海', `フェーズ3で有効化(気圧面の雲量×実高度から雲海度を推定)`, '-'],
+        ['雲海', `${preset.unkai === 'want' ? '狙う' : '避ける(低層雲の扱いに含む)'}(重み${preset.wUnkai}) ${ukStr}`, preset.unkai === 'want' && preset.wUnkai > 0 && r.env.unkai !== null ? f(parts.fUnkai) : '×1.00'],
     ];
     let html = '<table class="td-table"><thead><tr><th>因子</th><th>内訳</th><th>係数</th></tr></thead><tbody>';
     for (const [name, desc, coef] of factorRows) {
@@ -15796,7 +16024,20 @@ function ssShowDetail(snap, r) {
             `<td>${cell('low')}</td><td>${cell('mid')}</td><td>${cell('high')}</td><td>${cell('rh')}</td></tr>`;
     });
     html += '</tbody></table>';
-    html += '<div class="ss-detail-note">※気圧面プロファイル(高度×雲量。雲海判定の根拠)はフェーズ3で追加予定です。標本の雲量はMSM/GSM格子(約5km)の値、寄与重みは距離減衰×方位の中心寄り(直上=最大1.2)です。</div>';
+    // 気圧面プロファイル(雲海判定の根拠)+上空風(シーイングの目安)
+    const pl = snap.pl;
+    const pi = pl && r.timeStr !== undefined ? pl.timeIdx.get(r.timeStr) : undefined;
+    if (pl && pi !== undefined) {
+        html += '<table class="td-table"><thead><tr><th>気圧面</th>' + SS_PL_LEVELS.map(l => `<th>${l}hPa</th>`).join('') + '</tr></thead><tbody>';
+        html += '<tr><td>実高度</td>' + SS_PL_LEVELS.map(l => { const v = pl.gh[l] && pl.gh[l][pi]; return `<td>${v !== null && v !== undefined ? Math.round(v) + 'm' : '-'}</td>`; }).join('') + '</tr>';
+        html += '<tr><td>雲量</td>' + SS_PL_LEVELS.map(l => { const v = pl.cc[l] && pl.cc[l][pi]; return `<td>${v !== null && v !== undefined ? Math.round(v) + '%' : '-'}</td>`; }).join('') + '</tr>';
+        html += '</tbody></table>';
+        const w300 = r.wind300;
+        html += `<div class="ss-detail-note">上空風(300hPa): ${w300 !== null && w300 !== undefined ? w300.toFixed(1) + ' m/s' : '-'} — シーイングの目安(ジェット気流直下=約25m/s以上で星像が揺らぎやすい)。気圧面の雲量はRHからの近似(Sundqvist 1989)のため雲海度は目安です。</div>`;
+    } else {
+        html += '<div class="ss-detail-note">気圧面プロファイル: この時刻のデータはありません(気圧面は11日先まで)。</div>';
+    }
+    html += '<div class="ss-detail-note">標本の雲量はMSM/GSM格子(約5km)の値、寄与重みは距離減衰×方位の中心寄り(直上=最大1.2)です。透明度はAOD(エアロゾル)と湿度の悪い方から算出しています(AODは7日先まで)。</div>';
     body.innerHTML = html;
     detail.classList.remove('hidden');
     if (panel) panel.classList.add('with-detail');
@@ -15870,7 +16111,7 @@ function closeSoraSearchPanel() {
 
 /** File取得: 宙検索を実行し、結果リスト全列+位置情報+評価尺度(重み設定)をCSVでダウンロードする */
 async function fileSoraSearchCsv() {
-    if (_ssFileRunning || _ssRunning) return;
+    if (_ssFileRunning || _ssRunning || _mySoraBatchRunning) return;
     if (!confirm('宙検索を実行し、結果をCSVでFile取得しますか？')) return;
     _ssFileRunning = true;
     const btn = document.getElementById('btn-ss-file');
@@ -15884,7 +16125,7 @@ async function fileSoraSearchCsv() {
     try {
         openSoraSearchPanel();
         const snap = await ssExecuteSearch(setBusy);
-        ssRenderResults(snap);
+        ssRenderResults({ rows: snap.rows, title: `宙検索結果 (${snap.preset.label})`, batch: false });
         ssUpdateMapOverlay(snap, null);
         if (!snap.rows.length) {
             if (statusEl) statusEl.textContent = '0件';
@@ -15918,8 +16159,9 @@ async function ssDownloadCsv(snap) {
         return s;
     };
     const preset = snap.preset;
-    const bandsStr = ['ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay']
-        .map((k, i) => appState[k] ? Object.values(SS_BAND_LABELS)[i] : null).filter(Boolean).join('/');
+    const bandsStr = snap.bands
+        ? Object.keys(SS_BAND_LABELS).filter(k => snap.bands[k]).map(k => SS_BAND_LABELS[k]).join('/')
+        : '';
     const fixed = [
         appState.start.lat, appState.start.lng, appState.startApiElev || 0, appState.startHeight || 0,
         appState.end.lat, appState.end.lng, appState.endApiElev || 0, appState.endHeight || 0,
@@ -15932,7 +16174,7 @@ async function ssDownloadCsv(snap) {
     const bom = '\uFEFF';
     const parts = [bom + header.map(esc).join(',') + '\r\n'];
     for (let i = 0; i < snap.rows.length; i++) {
-        parts.push(ssRowValues(snap, snap.rows[i]).concat(fixed).map(esc).join(',') + '\r\n');
+        parts.push(ssRowValues(snap.rows[i]).concat(fixed).map(esc).join(',') + '\r\n');
         if ((i + 1) % 2000 === 0) await new Promise(res => setTimeout(res, 0));
     }
     const blob = new Blob([parts.join('')], { type: 'text/csv;charset=utf-8' });
@@ -15964,6 +16206,7 @@ function syncSoraSearchUI() {
     chk('chk-ss-band-twilight', appState.ssBandTwilight);
     chk('chk-ss-band-ghbh', appState.ssBandGhbh);
     chk('chk-ss-band-day', appState.ssBandDay);
+    chk('chk-ss-stat', appState.ssStat);
 }
 
 /** 宙検索メニュー+結果パネルのコントロール結線(init時に1回) */
@@ -16000,7 +16243,7 @@ function setupSoraSearchControls() {
     }
     document.querySelectorAll('input[name="ss-moon-mode"]').forEach(r => r.addEventListener('change', (e) => { appState.ssMoonMode = e.target.value; markCustom(); saveAppState(); }));
     document.querySelectorAll('input[name="ss-unkai-mode"]').forEach(r => r.addEventListener('change', (e) => { appState.ssUnkaiMode = e.target.value; markCustom(); saveAppState(); }));
-    [['chk-ss-band-night', 'ssBandNight'], ['chk-ss-band-twilight', 'ssBandTwilight'], ['chk-ss-band-ghbh', 'ssBandGhbh'], ['chk-ss-band-day', 'ssBandDay']].forEach(([id, key]) => {
+    [['chk-ss-band-night', 'ssBandNight'], ['chk-ss-band-twilight', 'ssBandTwilight'], ['chk-ss-band-ghbh', 'ssBandGhbh'], ['chk-ss-band-day', 'ssBandDay'], ['chk-ss-stat', 'ssStat']].forEach(([id, key]) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', (e) => { appState[key] = e.target.checked; saveAppState(); });
     });
@@ -16036,6 +16279,487 @@ function setupSoraSearchControls() {
     const closeBtn = document.getElementById('btn-sorasearch-close');
     if (closeBtn) closeBtn.addEventListener('click', closeSoraSearchPanel);
     syncSoraSearchUI();
+}
+
+// ============================================================
+// My宙検索 (フェーズ4。メニュー分割ポリシー: 宙検索=現在の1組 / My宙検索=My観測点×My目的点の複数組の一括)
+//  エントリは観測点ID/目的点IDでMyリストを参照し、狙い(プリセット or カスタム重み一式)と検索条件を保持する。
+//  Myセット(シート同期)・セット切り替えの対象には含めていない(対象化はシート構成の判断が必要なため)。
+// ============================================================
+let mySoraDirty = false;
+let _mySoraBatchRunning = false, _mySoraBatchCancel = false;
+
+function setMySoraDirty(val) {
+    mySoraDirty = val;
+    const btn = document.getElementById('btn-mysora-regall');
+    if (btn) btn.classList.toggle('dirty', !!val);
+}
+function getSelectedMySoraId() {
+    const radio = document.querySelector('input[name="mysora-select"]:checked');
+    return radio ? parseInt(radio.value) : null;
+}
+function getNextMySoraId() {
+    for (let i = 1; i <= 1000; i++) if (!appState.mySoraSearches.some(t => t.id === i)) return i;
+    alert('My宙検索の登録上限(1000件)に達しています');
+    return null;
+}
+/** 現在の宙検索メニューのカスタム重み一式(+時間帯)のスナップショット */
+function mySoraWeightsFromCurrent() {
+    return {
+        wL: appState.ssWL, wM: appState.ssWM, wH: appState.ssWH,
+        moon: appState.ssMoonMode, wMoon: appState.ssWMoon,
+        unkai: appState.ssUnkaiMode, wUnkai: appState.ssWUnkai,
+        wLp: appState.ssWLp, wTr: appState.ssWTr, obj: appState.ssObj, wObj: appState.ssWObj,
+        bands: { night: appState.ssBandNight, twilight: appState.ssBandTwilight, ghbh: appState.ssBandGhbh, day: appState.ssBandDay },
+    };
+}
+/** エントリ→検索条件1組(ssRunSearchCore用)。obs/tgtはMy観測点/My目的点の実体 */
+function mySoraEntryCond(t, obs, tgt) {
+    let preset, bands;
+    if (t.preset === 'custom' && t.weights) {
+        const w = t.weights;
+        preset = { key: 'custom', label: 'カスタム', wL: w.wL, wM: w.wM, wH: w.wH, moon: w.moon, wMoon: w.wMoon, unkai: w.unkai, wUnkai: w.wUnkai, wLp: w.wLp, wTr: w.wTr, obj: w.obj, wObj: w.wObj };
+        bands = w.bands || { night: true, twilight: false, ghbh: false, day: false };
+    } else {
+        const p = SS_PRESETS[t.preset] || SS_PRESETS.milkyway;
+        preset = { key: t.preset, label: p.label, ...p };
+        bands = { night: p.hours === 'night', twilight: false, ghbh: p.hours === 'ghbh', day: false };
+    }
+    return {
+        oLat: obs.lat, oLng: obs.lng, oElev: (obs.elev !== null && obs.elev !== undefined ? obs.elev : 0) + (Number(obs.height) || 0),
+        eLat: tgt.lat, eLng: tgt.lng,
+        preset, days: t.days, stepH: t.interval, fanDeg: t.fan, rangeKm: t.range,
+        bands, stat: false,
+    };
+}
+
+/** 宙検索取得: 現在の観測点/目的点と宙検索メニューの条件を1件のMy宙検索として追加 */
+function getMySoraFromSoraSearch() {
+    if (appState.mySoraSearches.length >= 1000) return alert('My宙検索の登録上限(1000件)に達しています');
+    if (!confirm('現在の観測点/目的点の位置情報(緯度経度・標高・高さ)と、宙検索メニューの条件(狙い・重み・期間等)を、My宙検索リストに追加しますか？')) return;
+    const id = getNextMySoraId();
+    if (id === null) return;
+    const obsId = findOrCreateMyObsFromCurrent();
+    if (obsId === null) return;
+    const tgtId = findOrCreateMyTgtFromCurrent();
+    if (tgtId === null) return;
+    appState.mySoraSearches.push({
+        id, name: '新規宙検索名', obsId, tgtId,
+        preset: appState.ssPreset,
+        weights: appState.ssPreset === 'custom' ? mySoraWeightsFromCurrent() : null,
+        days: appState.ssDays, interval: appState.ssInterval, fan: appState.ssFan, range: appState.ssRange,
+        checked: false, memo: '',
+    });
+    saveAppState();
+    setMySoraDirty(true);
+    renderMySoraSearches();
+    const radio = document.querySelector(`input[name="mysora-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 行追加(空のMy宙検索) */
+function addMySoraRow() {
+    if (appState.mySoraSearches.length >= 1000) return alert('My宙検索の登録上限(1000件)に達しています');
+    if (!confirm('My宙検索リストの末尾に宙検索の行を追加しますか？')) return;
+    const id = getNextMySoraId();
+    if (id === null) return;
+    appState.mySoraSearches.push({
+        id, name: '', obsId: null, tgtId: null,
+        preset: 'milkyway', weights: null,
+        days: 11, interval: 1, fan: 24, range: null,
+        checked: false, memo: '',
+    });
+    saveAppState();
+    setMySoraDirty(true);
+    renderMySoraSearches();
+    const radio = document.querySelector(`input[name="mysora-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+function deleteMySoraRow() {
+    const id = getSelectedMySoraId();
+    if (id === null) return alert('削除するMy宙検索を選択してください');
+    const t = appState.mySoraSearches.find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`My宙検索リストの宙検索（ID:${id}、${t.name || ''}）を削除しますか？`)) return;
+    appState.mySoraSearches = appState.mySoraSearches.filter(x => x.id !== id);
+    saveAppState();
+    setMySoraDirty(true);
+    renderMySoraSearches();
+}
+function moveMySora(delta) {
+    const id = getSelectedMySoraId();
+    if (id === null) return;
+    const list = appState.mySoraSearches;
+    const idx = list.findIndex(t => t.id === id);
+    const to = idx + delta;
+    if (idx < 0 || to < 0 || to >= list.length) return;
+    [list[idx], list[to]] = [list[to], list[idx]];
+    saveAppState();
+    setMySoraDirty(true);
+    renderMySoraSearches();
+    const radio = document.querySelector(`input[name="mysora-select"][value="${id}"]`);
+    if (radio) radio.checked = true;
+}
+
+/** 全て登録: 未入力の検証 + dirtyクリア */
+function registerAllMySora() {
+    const errEl = document.getElementById('mysora-error');
+    for (const t of appState.mySoraSearches) {
+        if (!t.name || t.obsId == null || t.tgtId == null) {
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            return;
+        }
+        if (!appState.myObservations.some(o => o.id === t.obsId)) {
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の観測点ID:${t.obsId}はMy観測点リストに存在しません。</span>`;
+            return;
+        }
+        if (!appState.myTargets.some(g => g.id === t.tgtId)) {
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の目的点ID:${t.tgtId}はMy目的点リストに存在しません。</span>`;
+            return;
+        }
+    }
+    if (errEl) errEl.innerHTML = '';
+    saveAppState();
+    setMySoraDirty(false);
+}
+
+/** リスト描画(My辻検索と同じ操作感の簡易版) */
+function renderMySoraSearches() {
+    const container = document.getElementById('mysora-list');
+    if (!container) return;
+    container.innerHTML = '';
+    const list = appState.mySoraSearches;
+    if (!list.length) {
+        container.innerHTML = '<div class="mystars-empty">My宙検索は登録されていません</div>';
+        return;
+    }
+    const presetOpts = Object.entries(SS_PRESETS).map(([k, p]) => [k, p.label]).concat([['custom', 'カスタム']]);
+    list.forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.className = 'mypoint-row';
+        row.innerHTML = `
+            <hr class="tsujisearch-separator">
+            <div class="mypoint-row-header">
+                <input type="radio" name="mysora-select" value="${t.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="body-checkbox mysora-check" data-id="${t.id}" ${t.checked ? 'checked' : ''}>
+                <span class="mypoint-id">ID:${String(t.id).padStart(4, ' ')}</span>
+            </div>
+            <div class="control-row">
+                <input type="text" class="mysora-name" value="${escapeHtml(t.name || '')}" placeholder="宙検索名" maxlength="150" data-id="${t.id}" autocomplete="off">
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">観測点ID:</label>
+                <input type="number" class="mysora-obsid" value="${t.obsId ?? ''}" placeholder="観測点ID(数字)" step="1" min="1" max="1000" data-id="${t.id}">
+                <label class="mytsuji-label">目的点ID:</label>
+                <input type="number" class="mysora-tgtid" value="${t.tgtId ?? ''}" placeholder="目的点ID(数字)" step="1" min="1" max="1000" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">狙い:</label>
+                <select class="mysora-preset" data-id="${t.id}" title="評価尺度。カスタムはこの行に保存された重み一式(登録/変更時点の宙検索メニューの値)を使います">
+                    ${presetOpts.map(([k, l]) => `<option value="${k}" ${t.preset === k ? 'selected' : ''}>${l}</option>`).join('')}
+                </select>
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">検索期間(日):</label>
+                <input type="number" class="mysora-days" value="${t.days}" step="1" min="1" max="16" data-id="${t.id}">
+                <label class="mytsuji-label">間隔:</label>
+                <select class="mysora-interval" data-id="${t.id}">
+                    <option value="1" ${t.interval !== 3 ? 'selected' : ''}>1時間</option>
+                    <option value="3" ${t.interval === 3 ? 'selected' : ''}>3時間</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <label class="mytsuji-label">扇角(°):</label>
+                <input type="number" class="mysora-fan" value="${t.fan}" step="1" min="1" max="180" data-id="${t.id}">
+                <label class="mytsuji-label">範囲(km):</label>
+                <input type="number" class="mysora-range" value="${t.range ?? ''}" placeholder="自動" step="1" min="1" max="300" data-id="${t.id}">
+            </div>
+            <div class="control-row">
+                <input type="text" class="mysora-memo" value="${escapeHtml(t.memo || '')}" placeholder="メモ" maxlength="150" data-id="${t.id}" autocomplete="off">
+            </div>`;
+        container.appendChild(row);
+    });
+    const upd = (id, fn) => {
+        const t = appState.mySoraSearches.find(x => x.id === id);
+        if (!t) return;
+        fn(t);
+        saveAppState();
+        setMySoraDirty(true);
+    };
+    container.querySelectorAll('.mysora-check').forEach(el => el.addEventListener('change', e => upd(parseInt(el.dataset.id), t => { t.checked = e.target.checked; })));
+    container.querySelectorAll('.mysora-name').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { t.name = el.value; })));
+    container.querySelectorAll('.mysora-memo').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { t.memo = el.value; })));
+    container.querySelectorAll('.mysora-obsid').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { const v = parseInt(el.value); t.obsId = isNaN(v) ? null : v; })));
+    container.querySelectorAll('.mysora-tgtid').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { const v = parseInt(el.value); t.tgtId = isNaN(v) ? null : v; })));
+    container.querySelectorAll('.mysora-preset').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => {
+        t.preset = el.value;
+        // カスタムへ変更した時点の宙検索メニューの重み一式をこの行へ取り込む(以後は行に固定)
+        t.weights = el.value === 'custom' ? (t.weights || mySoraWeightsFromCurrent()) : null;
+    })));
+    container.querySelectorAll('.mysora-days').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { t.days = Math.max(1, Math.min(16, parseInt(el.value) || 11)); el.value = t.days; })));
+    container.querySelectorAll('.mysora-interval').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { t.interval = parseInt(el.value) === 3 ? 3 : 1; })));
+    container.querySelectorAll('.mysora-fan').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => { t.fan = Math.max(1, Math.min(180, parseFloat(el.value) || 24)); el.value = t.fan; })));
+    container.querySelectorAll('.mysora-range').forEach(el => el.addEventListener('change', () => upd(parseInt(el.dataset.id), t => {
+        const v = parseFloat(el.value);
+        t.range = isFinite(v) && v > 0 ? Math.max(1, Math.min(300, v)) : null;
+        el.value = t.range ?? '';
+    })));
+}
+
+/** 一括計算/File取得(fileMode=true)。実行中の再押下はキャンセル。結果は宙検索結果パネル(宙検索ID/名の2列付き) */
+async function runMySoraBatch(fileMode) {
+    if (_mySoraBatchRunning) { _mySoraBatchCancel = true; return; }   // 実行中の再押下=キャンセル
+    if (_ssRunning || _ssFileRunning) return;   // 単発の宙検索/File取得の実行中は開始しない(パネル競合防止)
+    const errEl = document.getElementById('mysora-error');
+    if (errEl) errEl.innerHTML = '';
+    const checked = appState.mySoraSearches.filter(t => t.checked);
+    if (!checked.length) return alert('一括計算するMy宙検索にチェックを入れてください');
+    for (const t of checked) {
+        const obs = appState.myObservations.find(o => o.id === t.obsId);
+        const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+        if (!obs || !tgt) {
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の${!obs ? `観測点ID:${t.obsId}` : `目的点ID:${t.tgtId}`}がMyリストに存在しません。</span>`;
+            return;
+        }
+    }
+    if (fileMode && !confirm('チェックしたMy宙検索を一括で宙検索し、結果をCSVでFile取得しますか？')) return;
+    _mySoraBatchRunning = true;
+    _mySoraBatchCancel = false;
+    const btn = document.getElementById(fileMode ? 'btn-mysora-file' : 'btn-mysora-batch');
+    if (btn) btn.classList.add('active');
+    const statusEl = document.getElementById('sorasearch-status');
+    const setBusyBase = (t) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(t)}`; };
+    try {
+        openSoraSearchPanel();
+        const titleEl = document.getElementById('sorasearch-title');
+        if (titleEl) titleEl.textContent = '宙検索結果 (My宙検索一括)';
+        document.getElementById('sorasearch-content').innerHTML = '';
+        ssHideDetail();
+        ssClearMapOverlay();
+        _ssSelRow = null;
+        const allRows = [];
+        let errors = 0;
+        for (let i = 0; i < checked.length; i++) {
+            if (_mySoraBatchCancel) break;
+            const t = checked[i];
+            const obs = appState.myObservations.find(o => o.id === t.obsId);
+            const tgt = appState.myTargets.find(g => g.id === t.tgtId);
+            const label = t.name || `ID:${t.id}`;
+            try {
+                const snap = await ssRunSearchCore(mySoraEntryCond(t, obs, tgt), (msg) => setBusyBase(`(${i + 1}/${checked.length}) ${label}: ${msg}`));
+                snap.rows.forEach(r => { r._entry = t; r._obs = obs; r._tgt = tgt; });
+                allRows.push(...snap.rows);
+            } catch (e) {
+                console.error('My宙検索一括:', t.id, e);
+                errors++;
+            }
+        }
+        _ssLast = null;   // 一括の行はそれぞれ _snap を持つ(単発のスナップショットとは別管理)
+        ssRenderResults({ rows: allRows, title: `宙検索結果 (My宙検索一括${_mySoraBatchCancel ? '・中断' : ''})`, batch: true });
+        if (statusEl) statusEl.textContent = `(${allRows.length}件${errors ? `・${errors}件失敗` : ''})`;
+        if (fileMode && allRows.length && !_mySoraBatchCancel) {
+            setBusyBase(`CSV生成中… (${allRows.length}件)`);
+            await mySoraDownloadCsv(allRows);
+            if (statusEl) statusEl.textContent = `(${allRows.length}件・CSV出力完了)`;
+        }
+        if (!allRows.length && !_mySoraBatchCancel) alert('該当する時刻がありません(時間帯/検索期間/参照IDを見直してください)' + (errors ? `\n(${errors}件の検索でエラーが発生しました)` : ''));
+    } finally {
+        _mySoraBatchRunning = false;
+        if (btn) btn.classList.remove('active');
+    }
+}
+
+/** My宙検索一括のCSV(宙検索ID/名/メモ+観測点/目的点ID/名+結果18列+位置情報+評価尺度+検索条件) */
+async function mySoraDownloadCsv(rows) {
+    const header = ['宙検索ID', '宙検索名', '宙検索メモ', '観測点ID', '観測点名', '目的点ID', '目的点名'].concat(SS_LIST_HEADERS, [
+        '観測点緯度', '観測点経度', '観測点標高', '観測点高', '目的点緯度', '目的点経度', '目的点標高', '目的点高',
+        '狙い', '雲低重み', '雲中重み', '雲高重み', '月モード', '月重み', '雲海モード', '雲海重み', '光害重み', '透明度重み',
+        '対象', '対象重み', '時間帯フィルタ', '検索期間(日)', '間隔(時間)', '扇角(°)', '範囲(km)', '標本格子数']);
+    const esc = v => {
+        const s = String(v ?? '');
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    };
+    const bom = '\uFEFF';
+    const parts = [bom + header.map(esc).join(',') + '\r\n'];
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i], t = r._entry, obs = r._obs, tgt = r._tgt, snap = r._snap, p = snap.preset;
+        const bandsStr = snap.bands ? Object.keys(SS_BAND_LABELS).filter(k => snap.bands[k]).map(k => SS_BAND_LABELS[k]).join('/') : '';
+        const head7 = [t.id, t.name || '', t.memo || '', obs.id, obs.name || '', tgt.id, tgt.name || ''];
+        const fixed = [
+            obs.lat, obs.lng, obs.elev ?? 0, obs.height || 0, tgt.lat, tgt.lng, tgt.elev ?? 0, tgt.height || 0,
+            p.label, p.wL, p.wM, p.wH,
+            p.moon === 'avoid' ? '避ける' : '狙う', p.wMoon,
+            p.unkai === 'avoid' ? '避ける' : '狙う', p.wUnkai, p.wLp, p.wTr,
+            SS_OBJ_LABELS[p.obj] || p.obj, p.wObj, bandsStr,
+            snap.days, snap.stepH, snap.fanDeg, snap.rangeKm, snap.points.length,
+        ];
+        parts.push(head7.concat(ssRowValues(r), fixed).map(esc).join(',') + '\r\n');
+        if ((i + 1) % 2000 === 0) await new Promise(res => setTimeout(res, 0));
+    }
+    const blob = new Blob([parts.join('')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-My宙検索結果-${formatFileDateTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// --- My宙検索リストのCSV入出力(22列。狙い/モード/対象/時間帯はラベル表記) ---
+const MYSORA_CSV_HEADER = ['宙検索ID', '宙検索名', '観測点ID', '目的点ID', '狙い', '雲低重み', '雲中重み', '雲高重み', '月モード', '月重み', '雲海モード', '雲海重み', '光害重み', '透明度重み', '対象', '対象重み', '時間帯', '検索期間(日)', '間隔(時間)', '扇角(°)', '範囲(km)', 'メモ'];
+function exportMySoraCsv() {
+    if (!appState.mySoraSearches.length) return alert('My宙検索は登録されていません');
+    const bom = '\uFEFF';
+    let csv = bom + MYSORA_CSV_HEADER.join(',') + '\r\n';
+    for (const t of appState.mySoraSearches) {
+        const w = t.preset === 'custom' && t.weights ? t.weights : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway);
+        const bands = t.preset === 'custom' && t.weights && t.weights.bands ? t.weights.bands
+            : { night: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'night', twilight: false, ghbh: (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).hours === 'ghbh', day: false };
+        const bandsStr = Object.keys(SS_BAND_LABELS).filter(k => bands[k]).map(k => SS_BAND_LABELS[k]).join('/');
+        const label = t.preset === 'custom' ? 'カスタム' : (SS_PRESETS[t.preset] || SS_PRESETS.milkyway).label;
+        csv += [t.id, t.name || '', t.obsId ?? '', t.tgtId ?? '', label,
+            w.wL, w.wM, w.wH, w.moon === 'want' ? '狙う' : '避ける', w.wMoon,
+            w.unkai === 'want' ? '狙う' : '避ける', w.wUnkai, w.wLp, w.wTr,
+            SS_OBJ_LABELS[w.obj] || w.obj, w.wObj, bandsStr,
+            t.days, t.interval, t.fan, t.range ?? '', t.memo || ''].map(v => {
+            const s = String(v ?? '');
+            return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }).join(',') + '\r\n';
+    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `soranotsuji-My宙検索-${formatFileDateTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+/** CSV1行→エントリ(不正はalertしてnull) */
+function parseMySoraCsvLine(cols, lineNum) {
+    if (cols.length < 22) { alert(`${lineNum}行目: 列が不足しています(22列必要)`); return null; }
+    const id = parseInt(toHalfWidth(cols[0].trim()));
+    if (isNaN(id) || id < 1 || id > 1000) { alert(`${lineNum}行目: 宙検索IDが無効です(1〜1000)`); return null; }
+    const name = cols[1].trim();
+    const obsId = cols[2].trim() === '' ? null : parseInt(toHalfWidth(cols[2].trim()));
+    const tgtId = cols[3].trim() === '' ? null : parseInt(toHalfWidth(cols[3].trim()));
+    if (obsId !== null && (isNaN(obsId) || obsId < 1 || obsId > 1000)) { alert(`${lineNum}行目: 観測点IDが無効です(1〜1000)`); return null; }
+    if (tgtId !== null && (isNaN(tgtId) || tgtId < 1 || tgtId > 1000)) { alert(`${lineNum}行目: 目的点IDが無効です(1〜1000)`); return null; }
+    const labelToKey = Object.fromEntries(Object.entries(SS_PRESETS).map(([k, p]) => [p.label, k]));
+    const presetLabel = cols[4].trim();
+    let preset, weights = null;
+    if (presetLabel === 'カスタム') {
+        preset = 'custom';
+        const wNum = (i, def) => { const v = parseFloat(toHalfWidth(cols[i].trim())); return isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : def; };
+        const objKey = Object.entries(SS_OBJ_LABELS).find(([, l]) => l === cols[14].trim());
+        const bandLabels = cols[16].trim().split('/');
+        const bands = {};
+        Object.entries(SS_BAND_LABELS).forEach(([k, l]) => { bands[k] = bandLabels.includes(l); });
+        if (!bands.night && !bands.twilight && !bands.ghbh && !bands.day) bands.night = true;
+        weights = {
+            wL: wNum(5, 100), wM: wNum(6, 85), wH: wNum(7, 40),
+            moon: cols[8].trim() === '狙う' ? 'want' : 'avoid', wMoon: wNum(9, 80),
+            unkai: cols[10].trim() === '狙う' ? 'want' : 'avoid', wUnkai: wNum(11, 0),
+            wLp: wNum(12, 70), wTr: wNum(13, 40),
+            obj: objKey ? objKey[0] : 'mw', wObj: wNum(15, 60), bands,
+        };
+    } else if (presetLabel in labelToKey) {
+        preset = labelToKey[presetLabel];
+    } else { alert(`${lineNum}行目: 狙い「${presetLabel}」が不明です(プリセット名かカスタム)`); return null; }
+    const days = Math.max(1, Math.min(16, parseInt(toHalfWidth(cols[17].trim())) || 11));
+    const interval = parseInt(toHalfWidth(cols[18].trim())) === 3 ? 3 : 1;
+    const fan = Math.max(1, Math.min(180, parseFloat(toHalfWidth(cols[19].trim())) || 24));
+    const rv = parseFloat(toHalfWidth(cols[20].trim()));
+    const range = isFinite(rv) && rv > 0 ? Math.max(1, Math.min(300, rv)) : null;
+    const memo = cols[21].trim();
+    return { id, name, obsId, tgtId, preset, weights, days, interval, fan, range, checked: false, memo };
+}
+function importMySoraCsv() {
+    if (!confirm('CSVでMy宙検索リストを全て置き換えます。よろしいですか？')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const lines = String(reader.result).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
+            const entries = [];
+            const ids = new Set();
+            for (let i = 1; i < lines.length; i++) {   // 1行目=見出し
+                const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
+                if (!t) return;
+                if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
+                ids.add(t.id);
+                entries.push(t);
+            }
+            if (entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
+            appState.mySoraSearches = entries;
+            normalizeAppState();
+            saveAppState();
+            setMySoraDirty(false);
+            renderMySoraSearches();
+            alert(`${entries.length}件のMy宙検索を読み込みました`);
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+function appendMySoraCsv() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const lines = String(reader.result).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
+            const entries = [];
+            const ids = new Set();
+            for (let i = 1; i < lines.length; i++) {
+                const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
+                if (!t) return;
+                if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
+                if (appState.mySoraSearches.some(x => x.id === t.id)) { alert(`宙検索ID ${t.id} は既に登録されています`); return; }
+                ids.add(t.id);
+                entries.push(t);
+            }
+            if (appState.mySoraSearches.length + entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
+            appState.mySoraSearches.push(...entries);
+            normalizeAppState();
+            saveAppState();
+            setMySoraDirty(true);
+            renderMySoraSearches();
+            alert(`${entries.length}件のMy宙検索を追加しました`);
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+    input.click();
+}
+
+/** My宙検索メニューのコントロール結線(init時に1回) */
+function setupMySoraControls() {
+    const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    on('btn-mysora-toggle-all', () => {
+        const anyUnchecked = appState.mySoraSearches.some(t => !t.checked);
+        appState.mySoraSearches.forEach(t => { t.checked = anyUnchecked; });
+        saveAppState();
+        renderMySoraSearches();
+    });
+    on('btn-mysora-batch', () => runMySoraBatch(false));
+    on('btn-mysora-file', () => runMySoraBatch(true));
+    on('btn-mysora-get', getMySoraFromSoraSearch);
+    on('btn-mysora-regall', registerAllMySora);
+    on('btn-mysora-up', () => moveMySora(-1));
+    on('btn-mysora-down', () => moveMySora(1));
+    on('btn-mysora-addrow', addMySoraRow);
+    on('btn-mysora-delrow', deleteMySoraRow);
+    on('btn-mysora-csv-import', importMySoraCsv);
+    on('btn-mysora-csv-append', appendMySoraCsv);
+    on('btn-mysora-csv-export', exportMySoraCsv);
+    renderMySoraSearches();
 }
 
 function _smDiskTex(color) {

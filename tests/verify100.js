@@ -10,10 +10,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('S0 APP_VERSION 1.23.0', src.includes("APP_VERSION = '1.23.0'"));
+    check('S0 APP_VERSION 1.24.0', src.includes("APP_VERSION = '1.24.0'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
-  const p=await (await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'})).newPage();
+  const ctx=await b.newContext({viewport:{width:900,height:900},timezoneId:'Asia/Tokyo'});
+  await ctx.route('**/*', route => {   // テスト方針: ローカル以外への実アクセスを遮断
+    route.request().url().startsWith(BASE) ? route.continue() : route.abort();
+  });
+  const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto(BASE+'/index.html',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof soraSearchRun==='function',{timeout:8000});
@@ -99,7 +103,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const origFetch=window.fetch;
       window.fetch=async(url,opt)=>{
         if(String(url).includes('api.open-meteo.com')){
-          fetchCalls++;
+          if(String(url).includes('cloud_cover_low')) fetchCalls++;   // 3層雲量バッチのみ数える(気圧面/AODは別勘定)
           const nLoc=String(url).match(/latitude=([^&]*)/)[1].split(',').length;
           const body=JSON.stringify(nLoc>1?Array.from({length:nLoc},()=>mk(72)):mk(72));
           return new Response(body,{status:200,headers:{'Content-Type':'application/json'}});
@@ -156,7 +160,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
         const u=String(url);
         if(u.includes('api.open-meteo.com')){
           const nLoc=u.match(/latitude=([^&]*)/)[1].split(',').length;
-          const n=u.includes('/v1/jma')?(jmaCalls++,264):(fcCalls++,384);
+          const isCloud=u.includes('cloud_cover_low');   // 3層雲量バッチのみ数える(気圧面/AODは別勘定)
+          const n=u.includes('/v1/jma')?((isCloud&&jmaCalls++),264):((isCloud&&fcCalls++),384);
           const body=JSON.stringify(nLoc>1?Array.from({length:nLoc},()=>mk(n)):mk(n));
           return new Response(body,{status:200,headers:{'Content-Type':'application/json'}});
         }
