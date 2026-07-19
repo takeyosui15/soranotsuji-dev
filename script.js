@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.20.21 - 2026-07-19: feat: 辻メッシュFile取得を全ヒット画素出力に(観測点ID=画素ID・詳細結果リスト相当・行内は精度昇順)・処理中表示を🕛アニメーションに統一・全天儀コントロール2〜4段目(前景/後景/透過・自由/水平/地軸・北奥/目的点前)+最大化ボタン(領域2/3⇄1/3・最大化100%⇄66.67%)・動画書き出しに出力診断表示(形式/サイズ/メタデータ長)
 Version 1.20.20 - 2026-07-19: feat: 月輝面比列(結果リスト3種+詳細+CSV)・辻検索/辻メッシュのFile取得・メッシュ詳細リスト23列化・Myセット4シート存在確認・動画のフレーム同期録画(カクカク解消)+生成後の自己検証・天体検索/登録メニュー改修・全天儀コントロールメニュー(日時/速度/表示/オフセット)・焦点距離初期値24
 Version 1.20.19 - 2026-07-18: feat: 除外範囲をチェックボックス+目的点側15m/観測点側10mの両側方式に(デッサン02)・一括更新はシート未作成(😢)行をスキップ(作成はユーザー判断)・WebMに再生時間(Duration)を後付け(ストリーミング形式のみ)
 Version 1.20.18 - 2026-07-18: fix: WebM書き出しをVP9標準化(H.264入りWebM廃止・YouTube対応)・Myセット状態アイコンは再確認+表示のみに(保存/読込は実行しない)・宙の窓ctrlメニューにカメラ位置/焦点距離リスト/薄明ジャンプを追加(デッサン05)・バックアップメニュー初期閉+ドライブ日時を年月日(曜)形式に(デッサン16)
@@ -76,7 +77,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.20.20';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.20.21';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -6008,7 +6009,7 @@ async function runBatchMyTsujiSearch() {
         if (myGen !== myTsujiBatchGen) return; // 強制キャンセル済 (新規起動済)
         if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
-        statusEl.textContent = `⏳ 実行中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        statusEl.innerHTML = `<span class="clock-anim">🕛</span> 実行中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiBatchGen) return;
         if (!res) continue;
@@ -6150,36 +6151,41 @@ function fmtHms(d) {
 }
 
 /** decorated 結果1件分をCSV行の配列へ変換 */
-function buildMyTsujiCsvRow(r) {
+function buildMyTsujiCsvRow(r, preAstro) {
     const dt = r.time;
     const startOfDay = new Date(dt);
     startOfDay.setHours(0, 0, 0, 0);
     const observer = new Astronomy.Observer(r.obs.lat, r.obs.lng, (r.obs.elev || 0) + (r.obs.height || 0));
 
     let sr, ss, mr, ms;
-    try {
-        sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-        ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-        mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-        ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-    } catch (_) {}
-
     let astroDawn, nautDawn, yoake, civilDawn, civilDusk, higure, nautDusk, astroDusk;
     let bhEndGhStart, ghEnd, ghStart, ghEndBhStart;   // GH=ゴールデンアワー(±6°〜-4°) / BH=ブルーアワー(-4°〜-6°)
-    try {
-        astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
-        nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
-        yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
-        civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
-        bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);
-        ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);
-        ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);
-        ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);
-        civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
-        higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
-        nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
-        astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
-    } catch (_) {}
+    if (preAstro) {
+        // 大量行の一括出力(辻メッシュの全画素出力)用: 日単位で事前計算した出没・薄明・GH/BHを共有する
+        ({ sr, ss, mr, ms, astroDawn, nautDawn, yoake, civilDawn, bhEndGhStart, ghEnd,
+           ghStart, ghEndBhStart, civilDusk, higure, nautDusk, astroDusk } = preAstro);
+    } else {
+        try {
+            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+        } catch (_) {}
+        try {
+            astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
+            nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
+            yoake     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -7.361111);
+            civilDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -6);
+            bhEndGhStart = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -4);
+            ghEnd     = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, 6);
+            ghStart   = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, 6);
+            ghEndBhStart = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -4);
+            civilDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -6);
+            higure    = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -7.361111);
+            nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
+            astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
+        } catch (_) {}
+    }
 
     let raStr = '', decStr = '';
     try {
@@ -6322,7 +6328,7 @@ async function fileBatchMyTsujiSearch() {
         if (myGen !== myTsujiFileGen) return;
         if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
         const t = checked[i];
-        statusEl.textContent = `⏳ File出力処理中... ${i+1}/${checked.length} (ID:${t.id} ${t.name || ''})`;
+        statusEl.innerHTML = `<span class="clock-anim">🕛</span> File出力処理中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiFileGen) return;
         if (!res) continue;
@@ -6351,12 +6357,14 @@ async function fileBatchMyTsujiSearch() {
     }
 
     statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
-    downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
+    await downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
     statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
 }
 
-/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通) */
-function downloadTsujiResultCsv(decorated, filename) {
+/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通)。
+ *  行毎の事前計算(r._preAstro)があれば利用。大量行でもUIが固まらないよう2000行毎にyieldし、
+ *  onProgress(done, total) で進捗を通知する(省略可) */
+async function downloadTsujiResultCsv(decorated, filename, onProgress) {
     const header = [
         '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
@@ -6381,10 +6389,16 @@ function downloadTsujiResultCsv(decorated, filename) {
         return s;
     };
     const bom = '\uFEFF';
-    let csv = bom + header.map(esc).join(',') + '\r\n';
-    decorated.forEach(r => {
-        csv += buildMyTsujiCsvRow(r).map(esc).join(',') + '\r\n';
-    });
+    const parts = [bom + header.map(esc).join(',') + '\r\n'];
+    for (let i = 0; i < decorated.length; i++) {
+        const r = decorated[i];
+        parts.push(buildMyTsujiCsvRow(r, r._preAstro).map(esc).join(',') + '\r\n');
+        if ((i + 1) % 2000 === 0) {
+            if (onProgress) onProgress(i + 1, decorated.length);
+            await new Promise(res => setTimeout(res, 0));
+        }
+    }
+    const csv = parts.join('');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -6430,7 +6444,7 @@ async function fileTsujiSearchCsv() {
         showTsujiPanelForMyTsuji('辻検索結果 (File出力)');
         const statusEl = document.getElementById('tsujisearch-status');
         document.getElementById('tsujisearch-content').innerHTML = '';
-        statusEl.textContent = '⏳ File出力処理中...';
+        statusEl.innerHTML = '<span class="clock-anim">🕛</span> File出力処理中...';
         const batchStartDate = new Date(appState.currentDate);
         batchStartDate.setHours(0, 0, 0, 0);
         const totalChunks = Math.max(1, visibleBodies.length) * Math.max(1, Math.ceil((t.days || 0) / TSUJI_CHUNK_DAYS));
@@ -6446,7 +6460,7 @@ async function fileTsujiSearchCsv() {
         const decorated = await decorateMyTsujiResults(allResults);
         if (!decorated.length) { statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
         statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
-        downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
+        await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
         statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
     } catch (e) {
         console.error('fileTsujiSearchCsv:', e);
@@ -8977,44 +8991,128 @@ function hideTsujiMeshProgress() {
     if (bar) bar.classList.add('hidden');
 }
 
-/** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に結果行をCSVでダウンロードする。
- *  観測点ID=最良画素の画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
+/** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に全ヒット画素をCSVでダウンロードする。
+ *  詳細結果リストの内容の全画素出力。観測点ID=画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
 let _tmFileCsvPending = false;
 function fileTsujiMeshCsv() {
-    if (!confirm('辻メッシュ検索を実行し、結果をCSVでFile取得しますか？')) return;
+    if (!confirm('辻メッシュ検索を実行し、結果(全ヒット画素)をCSVでFile取得しますか？')) return;
     _tmFileCsvPending = true;
     if (!appState.isTsujiMeshActive) toggleTsujiMesh();   // OFFなら開始(完了時にCSV出力)
     else startTsujiMeshSearch();                          // ONなら現在の条件で再検索
 }
 
-/** 辻メッシュ検索の結果行 → CSV(共通列構成)。各行の観測点=その行の最良画素(画素中央の緯度経度) */
+/** 辻メッシュ検索の結果行 → CSV(共通列構成)。結果リストの表示行(最良画素)だけでなく、
+ *  詳細結果リストと同じく各行の全ヒット画素を1画素=1行(0.01秒精細化後の値)で出力する。
+ *  観測点ID=画素ID(メッシュ全体で一意。同じIDの行は同じ観測点緯度経度)。行内は精度角距離の昇順。
+ *  出没・薄明・GH/BH・時間帯は検索の共通観測点で日単位に、月齢/輝面比は分単位にキャッシュを共有して
+ *  大量行でも現実的な時間で出力する(画素間の位置差による出没時刻差は高々数十秒なので無視できる) */
 async function _tmExportMeshRowsCsv(rows) {
     if (!rows.length) { alert('該当する日時はありません'); return; }
     const C = _tsujiMeshCalc;
+    if (!C || !_tsujiMeshPix) { alert('検索結果がありません'); return; }
     const height = Number(appState.startHeight) || 0;
-    const list = rows.map(r => {
-        const pix = r.bestPix;
-        return {
-            tsuji: {
-                id: '', name: '', memo: '',
-                baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
-                offsetAz: Number(C.offsetAz) || 0, offsetAlt: Number(C.offsetAlt) || 0,
-                centerMode: C.centerMode,
-                mwOffsetAngle: Number(appState.mwOffsetAngle) || 0
-            },
-            obs: { id: pix, name: '', lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix],
-                   elev: _tsujiMeshPix.elev[pix], height, memo: '' },
-            tgt: { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng,
-                   elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' },
-            body: r.body, time: new Date(r.dateObj), azimuth: r.azimuth, altitude: r.altitude, dist: r.dist,
-            _row: r
-        };
-    });
-    const decorated = await decorateMyTsujiResults(list);
-    // メッシュ固有の値で上書き: 精度記号(◎×N)・標高グラフ(検索時の可視判定)
-    decorated.forEach(d => { d.symbol = d._row.symbol; d.elevationStatus = d._row.elevationStatus; });
-    if (!decorated.length) { alert('該当する日時はありません'); return; }
-    downloadTsujiResultCsv(decorated, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`);
+    const totalPixRows = rows.reduce((s, r) => s + (r.pixIdx ? r.pixIdx.length : 0), 0);
+    if (totalPixRows > 50000 &&
+        !confirm(`全ヒット画素 ${totalPixRows.toLocaleString()}行をCSVに出力します(生成に時間がかかる場合があります)。続行しますか？`)) return;
+    const statusEl = document.getElementById('tsujimesh-status');
+    const prevStatus = statusEl ? statusEl.textContent : '';
+    const setBusy = (txt) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(txt)}`; };
+    const obsCommon = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    // 日毎の出没・薄明・GH/BH(共通観測点)。buildMyTsujiCsvRowへ _preAstro として渡して行毎の再計算を省く
+    const dayCache = new Map();   // dayMs -> { day, tw, pre }
+    const astroOf = (dt) => {
+        const d0 = new Date(dt); d0.setHours(0, 0, 0, 0);
+        let a = dayCache.get(d0.getTime());
+        if (!a) {
+            a = { day: d0, tw: computeDayTwilight(d0, obsCommon), pre: {} };
+            const p = a.pre;
+            try {
+                p.sr = Astronomy.SearchRiseSet('Sun', obsCommon, +1, d0, 1);
+                p.ss = Astronomy.SearchRiseSet('Sun', obsCommon, -1, d0, 1);
+                p.mr = Astronomy.SearchRiseSet('Moon', obsCommon, +1, d0, 2);
+                p.ms = Astronomy.SearchRiseSet('Moon', obsCommon, -1, d0, 2);
+            } catch (_) {}
+            try {
+                p.astroDawn = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -18);
+                p.nautDawn  = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -12);
+                p.yoake     = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -7.361111);
+                p.civilDawn = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -6);
+                p.bhEndGhStart = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, -4);
+                p.ghEnd     = Astronomy.SearchAltitude('Sun', obsCommon, +1, d0, 1, 6);
+                p.ghStart   = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, 6);
+                p.ghEndBhStart = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -4);
+                p.civilDusk = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -6);
+                p.higure    = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -7.361111);
+                p.nautDusk  = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -12);
+                p.astroDusk = Astronomy.SearchAltitude('Sun', obsCommon, -1, d0, 1, -18);
+            } catch (_) {}
+            dayCache.set(d0.getTime(), a);
+        }
+        return a;
+    };
+    // 月齢/月齢アイコン/輝面比: 分単位キャッシュ(表示精度0.1に対し1分の変化は月齢0.00002・輝面比0.01%程度)
+    const moonIcons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+    const moonCache = new Map();   // minuteMs -> { moonAge, moonIcon, moonIllum }
+    const moonOf = (timeMs) => {
+        const key = Math.floor(timeMs / 60000);
+        let m = moonCache.get(key);
+        if (!m) {
+            const d = new Date(key * 60000);
+            const phase = Astronomy.MoonPhase(d);
+            m = { moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum: 0 };
+            try { m.moonIllum = Astronomy.Illumination('Moon', d).phase_fraction * 100; } catch (_) {}
+            moonCache.set(key, m);
+        }
+        return m;
+    };
+    const visFlags = window._tmLastVisFlags;
+    const elevOn = !!appState.tsujiMeshElevationOption && !!visFlags;
+    const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng,
+                  elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
+    const mwOff = Number(appState.mwOffsetAngle) || 0;
+    const offAz = Number(C.offsetAz) || 0, offAlt = Number(C.offsetAlt) || 0;
+    const list = [];
+    let done = 0;
+    for (const r of rows) {
+        const n = r.pixIdx ? r.pixIdx.length : 0;
+        if (!n) continue;
+        // 行内の出力順=精度角距離の昇順(詳細結果リストの既定順と同じ。最良画素が先頭)
+        const order = Array.from({ length: n }, (_, i) => i).sort((x, y) => r.pixDist[x] - r.pixDist[y]);
+        for (const i of order) {
+            const pix = r.pixIdx[i];
+            const ref = _tmRefinePixelTimeFast(pix, r.pixTime[i], r.body);
+            const timeMs = ref ? ref.timeMs : r.pixTime[i];
+            const dist = ref ? ref.dist : r.pixDist[i];
+            const dt = new Date(timeMs);
+            const a = astroOf(dt);
+            const m = moonOf(timeMs);
+            list.push({
+                tsuji: { id: '', name: '', memo: '',
+                         baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
+                         offsetAz: offAz, offsetAlt: offAlt,
+                         centerMode: C.centerMode, mwOffsetAngle: mwOff },
+                obs: { id: pix, name: '', lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix],
+                       elev: _tsujiMeshPix.elev[pix], height, memo: '' },
+                tgt,
+                body: r.body, time: dt,
+                azimuth: ref ? ref.az : r.azimuth, altitude: ref ? ref.alt : r.altitude, dist,
+                symbol: _tmAccSymbol(dist),
+                moonAge: m.moonAge, moonIcon: m.moonIcon, moonIllum: m.moonIllum,
+                timeCategory: classifyTimeCategory(dt, a.tw, a.day),
+                elevationStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-',
+                _preAstro: a.pre,
+            });
+            if (++done % 500 === 0) {
+                setBusy(`File出力処理中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
+                await new Promise(res => setTimeout(res, 0));
+            }
+        }
+    }
+    if (!list.length) { alert('該当する日時はありません'); return; }
+    setBusy(`CSV生成中… 0/${list.length.toLocaleString()}行`);
+    await downloadTsujiResultCsv(list, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`,
+        (i, total) => setBusy(`CSV生成中… ${i.toLocaleString()}/${total.toLocaleString()}行`));
+    if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${list.length.toLocaleString()}行)`;
 }
 
 function toggleTsujiMesh() {
@@ -9147,6 +9245,16 @@ function syncBottomPanels() {
         if (tmPnl) tmPnl.classList.toggle('with-soramado-max',
             appState.isTsujiMeshActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
         resizeSoramado();   // 高さ変更に合わせてプレビューを再描画
+    }
+    // 全天儀領域(宙の窓と同じ規則: 通常2/3⇄辻検索と併用1/3、最大化100%⇄辻検索と併用66.67%)
+    const mwPnl = document.getElementById('milkyway-panel');
+    if (mwPnl) {
+        mwPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive);
+        tdPnl.classList.toggle('with-milkyway-max',
+            appState.isTsujiSearchActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
+        if (tmPnl) tmPnl.classList.toggle('with-milkyway-max',
+            appState.isTsujiMeshActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
+        resizeMilkyWayGlobe();   // 高さ変更に合わせて全天儀を再描画
     }
     // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
     recenterObserverInView();
@@ -10643,7 +10751,9 @@ function _mySetSheetRows(data, commentsBySheet) {
 /** 4シート(My辻検索/My観測点/My目的点/My天体)の存在を確認し、無いシートは作成する。
  *  ユーザーがスプレッドシート上でタブを削除/改名していても、保存/読込がエラーにならないようにする。
  *  writeInitial=trueなら作成したシートに初期状態(既定コメント3行+見出し行)も書き込む(読込用。
- *  保存経路は直後に全面書き込みするため不要) */
+ *  保存経路は直後に全面書き込みするため不要)。
+ *  【方針】既定名(MYSET_SHEET_NAMES)の4シート以外には一切触らない: ユーザーが独自に作成した
+ *  タブ(名前を問わず)は列挙するだけで、作成・改名・削除・書き込みの対象にしない */
 async function _mySetEnsureSheets(s, writeInitial) {
     const meta = await sheetsApiFetch(`spreadsheets/${s.sheetId}?fields=sheets.properties.title`, 'GET');
     const titles = new Set((meta.sheets || []).map(sh => sh.properties && sh.properties.title));
@@ -12132,6 +12242,9 @@ const MW_CONSTELLATIONS = [
 const _MW_TILT = 38 * _MW_D2R;             // 初期俯瞰角(北が上・東が右になる固定カメラ)
 const _MW_DIST0 = 3.4;                     // 初期カメラ距離
 let _mwDist = _MW_DIST0;                    // ホイールズーム用
+// コントロールメニュー2〜3段目(デッサン01): 前景/後景/透過の表示と回転方向の固定
+let _mwShowFront = true, _mwShowBack = true, _mwThrough = true;
+let _mwRotMode = 'free';                   // 'free'(自由) / 'horizontal'(水平) / 'axis'(地軸)
 
 /** 銀河座標(l,b 度) → 赤道座標 J2000 {ra(時), dec(度)} (固定回転行列) */
 function galacticToEquatorial(lDeg, bDeg) {
@@ -12776,6 +12889,42 @@ function _mwUpdateCamera() {
     _mwCamera.lookAt(0, 0, 0);
 }
 
+/** 前景/後景/透過(コントロールメニュー2段目)を反映する。
+ *  前景/後景は視線に垂直な原点通過のクリップ面で手前/奥の半球を切り(カメラ固定なので面も固定)、
+ *  透過オフは球のマテリアルを不透明(表面のみ・通常合成・深度書込)に切り替えて内側を見せない */
+function _mwApplyViewOptions() {
+    if (!_mwRenderer) return;
+    const ct = Math.cos(_MW_TILT), st = Math.sin(_MW_TILT);
+    const viewDir = new THREE.Vector3(ct, -st, 0);   // カメラ→原点 の視線方向(単位ベクトル)
+    const planes = [];
+    // クリップ面は「法線の負側」が描画されない。前景(カメラ側半分)を消す=奥側だけ残す
+    if (!_mwShowFront) planes.push(new THREE.Plane(viewDir.clone(), 0));
+    if (!_mwShowBack) planes.push(new THREE.Plane(viewDir.clone().negate(), 0));
+    _mwRenderer.clippingPlanes = planes;
+    if (_mwMaterial) {
+        _mwMaterial.side = _mwThrough ? THREE.DoubleSide : THREE.FrontSide;
+        _mwMaterial.transparent = _mwThrough;
+        _mwMaterial.depthWrite = !_mwThrough;
+        _mwMaterial.blending = _mwThrough ? THREE.AdditiveBlending : THREE.NormalBlending;
+        _mwMaterial.needsUpdate = true;
+    }
+    _mwRender();
+}
+
+/** 位置リセット(コントロールメニュー4段目): kind='north'→北が奥(初期姿勢)、
+ *  'target'→目的点の方位が手前(天頂軸まわりのヨー回転のみで水平は保つ) */
+function _mwResetOrientation(kind) {
+    if (!_mwWorld) return;
+    if (kind === 'target') {
+        // 方位azの水平方向ベクトル(cos az, 0, sin az)が手前(-X=南側のカメラ方向)を向くヨー角
+        const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
+        _mwWorld.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), az * _MW_D2R - Math.PI);
+    } else {
+        _mwWorld.quaternion.identity();   // 初期姿勢=北が奥(上)
+    }
+    _mwRender();
+}
+
 function _mwRender() {
     if (_mwRenderer && _mwScene && _mwCamera) _mwRenderer.render(_mwScene, _mwCamera);
     _mwUpdateLabels();   // 名称ラベル/引き出し線をドラッグ・ズームに追従
@@ -12805,8 +12954,18 @@ function _mwAttachDrag(cv) {
         if (pts.size < need) return;
         const after = centroid();
         // 外側から掴んで回す操作感: 前面(カメラ側)が指に追従するよう回転。水平は +dx(=東軸まわり)。
-        _mwWorld.rotateOnWorldAxis(upAxis, (after.x - before.x) * 0.006);
-        _mwWorld.rotateOnWorldAxis(rightAxis, (after.y - before.y) * 0.006);
+        // 回転方向モード(コントロールメニュー3段目): 水平=天頂軸のみ・地軸=天の北極軸のみ(横ドラッグで回す)
+        const dx = (after.x - before.x) * 0.006, dy = (after.y - before.y) * 0.006;
+        if (_mwRotMode === 'horizontal') {
+            const zenith = new THREE.Vector3(0, 1, 0).applyQuaternion(_mwWorld.quaternion);
+            _mwWorld.rotateOnWorldAxis(zenith.normalize(), dx);
+        } else if (_mwRotMode === 'axis') {
+            const pole = new THREE.Vector3(0, 0, 1).applyQuaternion(_mwGlobe.quaternion).applyQuaternion(_mwWorld.quaternion);
+            _mwWorld.rotateOnWorldAxis(pole.normalize(), dx);
+        } else {
+            _mwWorld.rotateOnWorldAxis(upAxis, dx);
+            _mwWorld.rotateOnWorldAxis(rightAxis, dy);
+        }
         _mwRender();
     });
     const end = e => { pts.delete(e.pointerId); };
@@ -12860,6 +13019,38 @@ function setupMilkyWayCtrl() {
         document.getElementById('milkyway-ctrl-arrow').textContent = open ? '▲' : '▼';
         document.getElementById('milkyway-ctrl').classList.toggle('open', open);   // 開=全天儀画面と縦1/2分割
         resizeMilkyWayGlobe();   // 全天儀画面のサイズが変わるので再描画
+    });
+    // 前景/後景/透過(2段目)
+    const viewChk = (id, setter) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { setter(el.checked); _mwApplyViewOptions(); });
+    };
+    viewChk('chk-mwctrl-front', v => { _mwShowFront = v; });
+    viewChk('chk-mwctrl-back', v => { _mwShowBack = v; });
+    viewChk('chk-mwctrl-through', v => { _mwThrough = v; });
+    // 回転方向(3段目): 自由/水平/地軸
+    document.querySelectorAll('input[name="mwctrl-rot"]').forEach(r => {
+        r.addEventListener('change', () => { if (r.checked) _mwRotMode = r.value; });
+    });
+    // 北奥/目的点前(4段目): オンにするとリセットを実行してすぐオフに戻る(デッサン01の制約)
+    const resetChk = (id, kind) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            if (!el.checked) return;
+            _mwResetOrientation(kind);
+            setTimeout(() => { el.checked = false; }, 250);
+        });
+    };
+    resetChk('chk-mwctrl-north-back', 'north');
+    resetChk('chk-mwctrl-target-front', 'target');
+    // 最大化ボタン(全天儀画面0段目): 全面(辻検索ONなら下2/3)⇄通常。状態は保存しない(初期値オフ)
+    const mwMaxBtn = document.getElementById('btn-milkyway-max');
+    if (mwMaxBtn) mwMaxBtn.addEventListener('click', () => {
+        const panel = document.getElementById('milkyway-panel');
+        const on = panel.classList.toggle('maximized');
+        mwMaxBtn.classList.toggle('active', on);
+        mwMaxBtn.title = on ? '全天儀を元のサイズに戻す' : '全天儀を画面いっぱいに最大化';
+        syncBottomPanels();   // 辻検索結果の位置替え(最大化中は上1/3)・全天儀再描画・地図センタリング
     });
     const btnH = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
     btnH('btn-mw-ctrl-month-prev', () => addMonth(-1));
@@ -13754,6 +13945,7 @@ function _soraRecordMovVideo(picked, w, h, owner, label, onDone) {
 }
 
 /** 生成した動画Blobが再生可能か自己検証する(メタデータが読めて長さが正なら良品)。
+ *  戻り値 {ok, duration}: durationはメタデータから読めた再生時間(秒。読めなければNaN)。
  *  スマホでVP9等のソフトウェアエンコードが破綻して壊れたファイルになるケースの検出用 */
 function _soraVerifyBlobPlayable(blob) {
     return new Promise(resolve => {
@@ -13761,12 +13953,12 @@ function _soraVerifyBlobPlayable(blob) {
             const v = document.createElement('video');
             v.preload = 'metadata';
             const url = URL.createObjectURL(blob);
-            const done = ok => { URL.revokeObjectURL(url); resolve(ok); };
-            const to = setTimeout(() => done(false), 5000);
-            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true); };
-            v.onerror = () => { clearTimeout(to); done(false); };
+            const done = (ok, duration) => { URL.revokeObjectURL(url); resolve({ ok, duration }); };
+            const to = setTimeout(() => done(false, NaN), 5000);
+            v.onloadedmetadata = () => { clearTimeout(to); done(isFinite(v.duration) ? v.duration > 0 : true, v.duration); };
+            v.onerror = () => { clearTimeout(to); done(false, NaN); };
             v.src = url;
-        } catch (e) { resolve(true); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
+        } catch (e) { resolve({ ok: true, duration: NaN }); }   // 検証自体が出来ない環境では良品扱い(ダウンロードは行う)
     });
 }
 
@@ -13792,9 +13984,18 @@ function soraExportVideo(fmt) {
         if (!blob) return;   // 中止時は破棄
         if (blob.size === 0) { alert('動画の生成に失敗しました。'); return; }
         // 自己検証: この端末で壊れず録画できたか(スマホのソフトウェアVP9破綻等の検出)
-        const playable = await _soraVerifyBlobPlayable(blob);
-        if (!playable) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
+        const chk = await _soraVerifyBlobPlayable(blob);
+        if (!chk.ok) alert('生成した動画の自己検証に失敗しました。この端末では選択したコーデックでの録画に対応していない可能性があります。\n出力フォーマット「:H.264 8-bit(MP4)」、または小さい出力画像サイズをお試しください。\n(ファイルは念のためダウンロードします)');
         soraExportDownload(blob, picked.mime.includes('mp4') ? 'mp4' : 'webm');
+        // 出力診断(スマホ等での再生不良の切り分け用): 実際の形式・サイズ・メタデータ長を約15秒表示する。
+        // ここで長さが正しく読めていれば、ファイル自体には長さ情報が入っている(=再生側の対応の問題)
+        const metaDur = isFinite(chk.duration) && chk.duration > 0 ? `${chk.duration.toFixed(2)}秒` : '不明';
+        const diag = `出力診断: ${picked.mime} / ${(blob.size / 1048576).toFixed(2)}MB / ${n}コマ ${fps}fps / メタデータ長 ${metaDur} / 自己検証 ${chk.ok ? 'OK' : 'NG'}`;
+        soraExpProgress(diag);
+        setTimeout(() => {
+            const el = document.getElementById('soramado-export-progress');
+            if (el && el.textContent === diag) soraExpProgress(null);   // 別の表示に切り替わっていたら消さない
+        }, 15000);
     });
     if (ok && btn) { btn.classList.add('active'); btn.textContent = '中止'; }
 }
@@ -13813,8 +14014,8 @@ function soraMovPlayVideo() {
     const ok = _soraRecordMovVideo(picked, w, h, 'play', '動画生成中', async blob => {
         if (!blob || blob.size === 0) { soraMovStop(); if (blob) alert('動画の生成に失敗しました。'); return; }
         // 自己検証: 壊れたファイルをプレビューに重ねない(スマホのソフトウェアエンコード破綻等)
-        const playable = await _soraVerifyBlobPlayable(blob);
-        if (!playable) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
+        const chk = await _soraVerifyBlobPlayable(blob);
+        if (!chk.ok) { soraMovStop(); alert('生成した動画の再生検証に失敗しました。\n再生オプション「:アニメーション」をご利用いただくか、フレームレート/出力サイズを下げてお試しください。'); return; }
         const el = document.createElement('video');
         el.id = 'soramado-movplay-video';
         el.muted = true; el.playsInline = true; el.autoplay = true;

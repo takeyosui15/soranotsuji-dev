@@ -65,8 +65,9 @@ html {
     bottom: 33.33%;
 }
 
-/* 宙の窓が最大化中: 上1/3=辻検索結果、下2/3=プレビュー領域 */
-#tsujisearch-panel.with-soramado-max {
+/* 宙の窓/全天儀が最大化中: 上1/3=辻検索結果、下2/3=プレビュー/全天儀領域 */
+#tsujisearch-panel.with-soramado-max,
+#tsujisearch-panel.with-milkyway-max {
     bottom: 66.67%;
 }
 
@@ -97,8 +98,9 @@ html {
 #tsujimesh-panel.with-elevation,
 #tsujimesh-panel.with-milkyway,
 #tsujimesh-panel.with-soramado { bottom: 33.33%; }
-/* 宙の窓が最大化中: 上1/3=辻メッシュ結果、下2/3=プレビュー領域 */
-#tsujimesh-panel.with-soramado-max { bottom: 66.67%; }
+/* 宙の窓/全天儀が最大化中: 上1/3=辻メッシュ結果、下2/3=プレビュー/全天儀領域 */
+#tsujimesh-panel.with-soramado-max,
+#tsujimesh-panel.with-milkyway-max { bottom: 66.67%; }
 /* 最大化: 下に別パネルが無ければ2/3、あれば1/3のまま(地図1/3は常に確保) */
 #tsujimesh-panel.maximized { height: 66.67%; }
 #tsujimesh-panel.maximized.with-elevation,
@@ -312,12 +314,14 @@ html {
 }
 
 /* 全天儀パネル(標高グラフと同じ画面下1/3) */
+/* 全天儀領域 (最大化×辻検索の組み合わせで高さが変わる。デッサン01)
+   通常+辻検索OFF: 下2/3 / 通常+辻検索ON: 下1/3 / 最大化+辻検索OFF: 全面 / 最大化+辻検索ON: 下2/3 */
 #milkyway-panel {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 33.33%;
+    height: 66.67%;
     background-color: #000;
     border-top: 1px solid #555;
     z-index: 900;
@@ -327,6 +331,10 @@ html {
     box-sizing: border-box;
     overflow: hidden;
 }
+#milkyway-panel.with-tsuji { height: 33.33%; }   /* 地図1/3+辻検索1/3+全天儀1/3 */
+/* 全天儀の最大化(トグル): 辻検索OFFなら全面、ONなら上1/3=辻検索結果+下2/3=全天儀領域 */
+#milkyway-panel.maximized { height: 100%; border-top: none; }
+#milkyway-panel.maximized.with-tsuji { height: 66.67%; }
 /* 全天儀画面(コントロールメニューを除いた上部)。ラベルSVG・クレジットはこの中で位置決め */
 #milkyway-view {
     position: relative;
@@ -345,6 +353,8 @@ html {
     min-height: 0;
 }
 #milkyway-ctrl.open { height: 50%; }
+/* 最大化+辻検索OFF時: 全天儀画面2/3・コントロールメニュー1/3(デッサン01) */
+#milkyway-panel.maximized:not(.with-tsuji) #milkyway-ctrl.open { height: 33.333%; }
 #milkyway-ctrl-header {
     display: flex;
     justify-content: space-between;
@@ -465,7 +475,8 @@ html {
     overflow: hidden;
 }
 
-/* 画面最大化トグルボタン(パネル左上) */
+/* 画面最大化トグルボタン(パネル左上。宙の窓/全天儀共通) */
+#btn-milkyway-max,
 #btn-soramado-max {
     position: absolute;
     top: 8px;
@@ -482,7 +493,9 @@ html {
     border-radius: 4px;
     cursor: pointer;
 }
+#btn-milkyway-max:hover,
 #btn-soramado-max:hover { background: rgba(70, 70, 70, 0.85); }
+#btn-milkyway-max.active,
 #btn-soramado-max.active { background: #b8860b; border-color: #ffd700; }
 
 /* プレビュー内コントロールメニュー(プレビュー画面と縦分割・開閉式・不透明グレー)
