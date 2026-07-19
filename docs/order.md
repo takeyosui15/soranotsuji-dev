@@ -935,3 +935,70 @@ node lp-preprocess.js --in ~/Downloads/World_Atlas_2015.tif
 #### ネットワーク設定(全て追加ありがとうございます)
 
 現在のセッションからはまだ403のままでした(ポリシーは新セッションから有効のため想定どおりです)。おっしゃる通り、**このセッションを終了して新規セッションに切り替え**ていただければ、次回から私の側でもOpen-Meteoの実応答検証や、必要ならGFZからのダウンロード〜前処理の代行が可能になる見込みです。ローカル(Mac)で前処理を実行して環境をお手元に持つ方針にも賛成です — 上の手順でうまくいくはずですので、お試しください。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 1dd648a
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-07-19)
+Claudeさん、いつもありがとうございます。
+
+エラーが出ました。
+
+watanabetakeyoshi@watanabetakeyoshinoMac-mini soranotsuji-dev-local % cd tools/lightpollution
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % npm install
+
+added 9 packages, and audited 10 packages in 4s
+
+2 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % node lp-preprocess.js --selftest
+入力: 720×360px 原点(-180,90) 解像度(0.5°,0.5°)
+切り出し窓: x 604..668, y 88..132 (64×44px) → 1/1 に縮約
+出力: /var/folders/7_/b2r1rfqj7gs98jbk8rhfl4n80000gn/T/lp-selftest-out/lp-japan.bin (3KB, 64×44px)
+メタ: /var/folders/7_/b2r1rfqj7gs98jbk8rhfl4n80000gn/T/lp-selftest-out/lp-japan.json
+selftest: 寸法64×44=true / SQM(暗所)=19.91 (期待19.91) SQM(東京相当)=16.37 (期待16.38) 変換=true
+SELFTEST PASS
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % node lp-preprocess.js --in ~/Downloads/World_Atlas_2015.tif
+Error: EPERM: operation not permitted, open '/Users/watanabetakeyoshi/Downloads/World_Atlas_2015.tif'
+    at Object.openSync (node:fs:560:18)
+    at Object.readFileSync (node:fs:444:35)
+    at preprocess (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:44:20)
+    at /Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:162:11
+    at Object.<anonymous> (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:168:3)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  errno: -1,
+  code: 'EPERM',
+  syscall: 'open',
+  path: '/Users/watanabetakeyoshi/Downloads/World_Atlas_2015.tif'
+}
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % node lp-preprocess.js --in ~/Downloads/World_Atlas_2015.tif
+Error: EPERM: operation not permitted, open '/Users/watanabetakeyoshi/Downloads/World_Atlas_2015.tif'
+    at Object.openSync (node:fs:560:18)
+    at Object.readFileSync (node:fs:444:35)
+    at preprocess (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:44:20)
+    at /Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:162:11
+    at Object.<anonymous> (/Users/watanabetakeyoshi/Library/Mobile Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local/tools/lightpollution/lp-preprocess.js:168:3)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  errno: -1,
+  code: 'EPERM',
+  syscall: 'open',
+  path: '/Users/watanabetakeyoshi/Downloads/World_Atlas_2015.tif'
+}
+watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % 
+
+よろしくお願いいたします。
