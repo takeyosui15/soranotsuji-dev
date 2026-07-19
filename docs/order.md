@@ -1057,3 +1057,31 @@ RangeError [ERR_FS_FILE_TOO_LARGE]: File size (3012927014) is greater than 2 GiB
 watanabetakeyoshi@watanabetakeyoshinoMac-mini lightpollution % 
 
 よろしくお願いします。
+
+### 回答 (2026-07-19 その11) — 2GiB上限エラーの修正
+
+Claudeさん(AI)より回答です。ログありがとうございます。ファイルへのアクセス自体は成功するようになりました(書類フォルダへの移動が効いています)。今回の `ERR_FS_FILE_TOO_LARGE` は**私のスクリプトの不備**でした。修正済みです。
+
+#### 原因
+
+全球のGeoTIFFは約2.8GB(3,012,927,014バイト)あり、旧版スクリプトの「ファイル全体を一括で読む」方式(readFileSync)はNode.jsのバッファ上限2GiBを超えてエラーになっていました。selftestの小さな合成ファイルでは踏めない、実データサイズならではの問題です。
+
+#### 修正(今回のコミット)
+
+ファイル全体を読む方式をやめ、**必要な帯(日本域の切り出し窓)だけをランダムアクセスで読む方式(geotiffのfromFile)**に変更しました。メモリに載るのは切り出し結果(約40MB)だけになり、2.8GBの入力でも問題ありません。selftestも引き続きPASSしています。
+
+#### 再実行の手順
+
+1. ローカルリポジトリを最新にする(このコミットを取り込む):
+   ```
+   cd ~/Library/Mobile\ Documents/com~apple~CloudDocs/Documents/soranotsuji-dev-local
+   git pull
+   cd tools/lightpollution
+   ```
+2. そのまま再実行(ファイルは書類フォルダのままでOKです):
+   ```
+   node lp-preprocess.js --in ~/Documents/World_Atlas_2015.tif
+   ```
+   「切り出し帯を読み込み中…」の表示の後、大きなファイルのため数分かかることがあります。成功すると `data/lp-japan.bin` と `data/lp-japan.json` が生成されるので、この2ファイルのコミットをお願いします。
+
+READMEのトラブルシューティングにもこのエラーの項目(対処=git pullで最新化)を追記しました。度々お手数をおかけしてすみません — 実データでしか踏めない問題が続きましたが、これで読み込み方式は実サイズ前提になったので、次は通る見込みです。

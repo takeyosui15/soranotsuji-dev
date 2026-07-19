@@ -37,6 +37,10 @@ SQM(mag/arcsec²)に変換してUint8量子化した軽量アセットを生成�
 
 ## トラブルシューティング
 
+- **`ERR_FS_FILE_TOO_LARGE: File size ... is greater than 2 GiB`**
+  - 旧版スクリプトの既知の問題です(全球GeoTIFFは約2.8GBで、ファイル全体読みの上限2GiBを超える)。
+  - 現行版は必要な帯だけをランダムアクセスで読む方式(fromFile)に修正済みです。
+    ローカルリポジトリで `git pull` して最新のスクリプトに更新してから再実行してください。
 - **`EPERM: operation not permitted, open '~/Downloads/...'`**
   - macOSのプライバシー保護(TCC)で、ターミナル(node)がダウンロードフォルダにアクセスできない状態です。
   - 対処A(簡単): Finderで .tif ファイルを `tools/lightpollution` フォルダへドラッグして移動し、

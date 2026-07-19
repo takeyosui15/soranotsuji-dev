@@ -40,10 +40,12 @@ function quantize(sqm) {
 }
 
 async function preprocess({ inPath, outDir, bbox, downsample }) {
-    const { fromArrayBuffer } = require('geotiff');
-    let buf;
+    // fromFile はファイル全体をメモリに読まず、必要なタイル/ストリップだけをランダムアクセスで読む。
+    // 全球GeoTIFFは2GiB超(readFileSyncのBuffer上限を超える)ため、この方式が必須
+    const { fromFile } = require('geotiff');
+    let tiff;
     try {
-        buf = fs.readFileSync(inPath);
+        tiff = await fromFile(inPath);
     } catch (e) {
         if (e.code === 'EPERM' || e.code === 'EACCES') {
             console.error(`エラー: macOSのプライバシー保護により、このフォルダのファイルを開けませんでした: ${inPath}`);
@@ -62,7 +64,6 @@ async function preprocess({ inPath, outDir, bbox, downsample }) {
         }
         throw e;
     }
-    const tiff = await fromArrayBuffer(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
     const img = await tiff.getImage();
     const [ox, oy] = img.getOrigin();               // 左上コーナー (lng, lat)
     const [sx, syRaw] = img.getResolution();        // 度/画素 (syは負のことが多い)
@@ -76,6 +77,7 @@ async function preprocess({ inPath, outDir, bbox, downsample }) {
     if (x1 <= x0 || y1 <= y0) throw new Error('切り出し範囲がGeoTIFFの範囲外です');
     console.log(`入力: ${W}×${H}px 原点(${ox},${oy}) 解像度(${sx}°,${sy}°)`);
     console.log(`切り出し窓: x ${x0}..${x1}, y ${y0}..${y1} (${x1 - x0}×${y1 - y0}px) → 1/${downsample} に縮約`);
+    console.log('切り出し帯を読み込み中… (ファイル全体ではなく必要な帯だけを読みます。大きなファイルでは数分かかることがあります)');
     const raster = (await img.readRasters({ window: [x0, y0, x1, y1] }))[0];
     const cw = x1 - x0, ch = y1 - y0;
     const ow = Math.floor(cw / downsample), oh = Math.floor(ch / downsample);
