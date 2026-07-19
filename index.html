@@ -817,6 +817,53 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-sorasearch')">
+                    <span>宙検索</span>
+                    <span id="icon-sec-sorasearch">▼</span>
+                </div>
+                <div id="sec-sorasearch" class="section-content closed">
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="フェーズ1(データ層)の暫定UI。結果リスト/詳細/地図扇形の本実装はフェーズ2で行います(デッサン18)">宙検索(フェーズ1・暫定)</label>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">狙い:</label>
+                        <select id="sel-ss-preset" title="評価尺度(重み)のプリセット(デッサン18のプリセット値表)">
+                            <option value="milkyway" selected>天の川</option>
+                            <option value="stars">星景(表示天体)</option>
+                            <option value="unkai">雲海×月夜</option>
+                            <option value="pearl">パール(満月)</option>
+                            <option value="glow">朝焼け・夕焼け</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">検索期間(日):</label>
+                        <input type="number" id="input-ss-days" value="11" min="1" max="16" step="1" placeholder="1〜16日" title="何日先まで検索するか(12日以降は信頼度低の延長予報)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">間隔:</label>
+                        <select id="sel-ss-interval" title="リストアップする時刻の刻み">
+                            <option value="1" selected>1時間</option>
+                            <option value="3">3時間</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">扇角(°):</label>
+                        <input type="number" id="input-ss-fan" value="24" min="1" max="180" step="1" title="視界扇形の扇角(観測点→目的点の方位が中心)">
+                    </div>
+                    <div class="control-row">
+                        <label class="input-label">範囲(km):</label>
+                        <input type="number" id="input-ss-range" min="1" max="300" step="1" placeholder="初期値=相手距離" title="視界扇形の半径(未入力は相手距離kmの切り上げ)">
+                    </div>
+                    <div class="control-row main-buttons-row">
+                        <button id="btn-ss-run" class="nav-btn main-btn" title="宙検索を実行し、結果を辻検索結果パネルに暫定表示します(Open-Meteoの3層雲量+月+対象天体で宙スコアを算出)">検索</button>
+                    </div>
+                    <div class="control-row left-row">
+                        <span id="ss-status" class="sora-val"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
                 <div class="section-header" onclick="toggleSection('sec-soramado')">
                     <span>宙の窓</span>
                     <span id="icon-sec-soramado">▼</span>

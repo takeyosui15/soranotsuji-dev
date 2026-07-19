@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.22.0 - 2026-07-19: feat: 宙検索フェーズ1(データ層。デッサン18) — 視界扇形の標本化(0.05°格子丸め+距離減衰重み)・Open-Meteo /v1/jma 3層雲量のバッチ取得+IndexedDBキャッシュ(TTL2h)+12〜16日はbest_match延長・狙いプリセット5種(天の川/星景/雲海×月夜/パール/朝焼け夕焼け)の乗算型宙スコア(雲×月[避/狙]×対象高度×湿度)・時間帯フィルタ・信頼度(高/中/低)・暫定リスト表示(辻検索パネル間借り・行クリックで日時移動)
 Version 1.21.1 - 2026-07-19: fix: 花火モード — 打ち上げ点の初期値を目的点と同じに(座標表示+標高も目的点に追従。明示設定で確定)・花火点(+)と基準視高度の開花高度基準を「色々=40号の高い方/固定=選択号数の高い方」に(デッサン06)
 Version 1.21.0 - 2026-07-19: feat: 宙の窓に花火モード(デッサン06 55〜70段目+ctrl41〜53段目) — 打ち上げ点(地名/住所/緯度経度+標高+高さ+領域半径)から号数別の開花高度へ軌跡が上がり開花直径の放射状の華が七色で開くシミュレーション。実寸ENU配置で手前の山に遮蔽され写る大きさも実寸。色々/固定+ばらつき(u^γ重み)、花火点(+)マーカー、打ち上げ点の地図マーカー(🎆)+領域円、基準方位角/視高度の算出表示、メニュー/ctrl双方向連動、URL記憶・復元(シード辞書v9)
 Version 1.20.22 - 2026-07-19: fix: 全天儀の透過オフを「外側から見た構図」に修正(不透明+深度書込の両面描画。従来は奥半球の内面が見えていた)・回転方向の既定を水平に+ラジオ順序を水平/地軸/自由に(デッサン01)・辻メッシュFile取得の行内並びを日時(日付+辻時刻)順に・動画書き出しの出力診断表示を削除(v1.20.20の動作へ復元)
@@ -80,7 +81,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.21.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.22.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1089,6 +1090,10 @@ function setupUI() {
         syncTsujiMeshTimeFilter();
     }
     document.getElementById('btn-url-tsujimesh').onclick = () => toggleUrlPanel('tsujimesh');
+
+    // 宙検索(フェーズ1・暫定): 検索ボタン
+    const ssRunBtn = document.getElementById('btn-ss-run');
+    if (ssRunBtn) ssRunBtn.onclick = soraSearchRun;
 
     // 登録ボタン
     document.getElementById('btn-reg-start').onclick = () => registerLocation('start');
@@ -15212,6 +15217,274 @@ async function applyFwCoords(coords) {
     _fwShells = [];
     fwSyncUI(); saveAppState();
     if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
+}
+
+// ============================================================
+// 宙検索 (Sora Search) フェーズ1: データ層 (デッサン18)
+//  視界扇形の標本化 → Open-Meteo /v1/jma の3層雲量(バッチ取得+IndexedDBキャッシュ)
+//  → 狙いプリセットの重みで宙スコア(0〜100)を時刻毎に算出 → 暫定リスト表示。
+//  光害・AOD・雲海度(気圧面)・ERA5統計はフェーズ3、本UIと一括対象はフェーズ2/4。
+// ============================================================
+// プリセット値表(デッサン18と同期。w系=0〜100の重み / moon,unkai='avoid'|'want' / hours='night'|'ghbh')
+const SS_PRESETS = {
+    milkyway: { label: '天の川',        wL: 100, wM: 85, wH: 40, moon: 'avoid', wMoon: 80, unkai: 'avoid', wUnkai: 0,  wLp: 70, wTr: 40, obj: 'mw',    wObj: 60, hours: 'night' },
+    stars:    { label: '星景(表示天体)', wL: 100, wM: 85, wH: 50, moon: 'avoid', wMoon: 50, unkai: 'avoid', wUnkai: 0,  wLp: 40, wTr: 30, obj: 'body',  wObj: 80, hours: 'night' },
+    unkai:    { label: '雲海×月夜',     wL: 30,  wM: 90, wH: 50, moon: 'want',  wMoon: 60, unkai: 'want',  wUnkai: 90, wLp: 10, wTr: 20, obj: 'none',  wObj: 0,  hours: 'night' },
+    pearl:    { label: 'パール(満月)',   wL: 100, wM: 90, wH: 50, moon: 'want',  wMoon: 90, unkai: 'avoid', wUnkai: 0,  wLp: 0,  wTr: 20, obj: 'moon',  wObj: 90, hours: 'night' },
+    glow:     { label: '朝焼け・夕焼け', wL: 80,  wM: 40, wH: 20, moon: 'avoid', wMoon: 0,  unkai: 'avoid', wUnkai: 0,  wLp: 0,  wTr: 30, obj: 'none',  wObj: 0,  hours: 'ghbh' },
+};
+
+// --- IndexedDB キャッシュ (DB: soranotsuji-wx / store: fc / TTL 2時間。ローカル使い捨て・Drive同期対象外) ---
+const SS_TTL = 2 * 3600e3;
+let _ssDbReady = null;
+function _ssDb() {
+    if (_ssDbReady) return _ssDbReady;
+    _ssDbReady = new Promise((ok, ng) => {
+        try {
+            const req = indexedDB.open('soranotsuji-wx', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('fc');
+            req.onsuccess = () => ok(req.result);
+            req.onerror = () => ng(req.error);
+        } catch (e) { ng(e); }
+    });
+    return _ssDbReady;
+}
+async function _ssIdb(mode, fn) {
+    const db = await _ssDb();
+    return new Promise((ok, ng) => {
+        const r = fn(db.transaction('fc', mode).objectStore('fc'));
+        r.onsuccess = () => ok(r.result);
+        r.onerror = () => ng(r.error);
+    });
+}
+
+/** 視界扇形の標本: 観測点直上1点+方位5本×距離3環。MSM格子(約5km)より粗くならないよう
+ *  0.05°に丸めて重複除去する(実APIコールは数格子分に圧縮)。重み=距離減衰(近い雲ほど視界を塞ぐ)。
+ *  観測点直上は頭上の雲が最も致命的なので最大重みにする(デッサン18) */
+function ssFanSamples(fanDeg, rangeKm) {
+    const oLat = appState.start.lat, oLng = appState.start.lng;
+    const az0 = calculateBearing(oLat, oLng, appState.end.lat, appState.end.lng);
+    const raw = [{ lat: oLat, lng: oLng, w: 1.2 }];
+    for (const fA of [-1, -0.5, 0, 0.5, 1]) {
+        const az = (az0 + fA * fanDeg / 2) * Math.PI / 180;
+        for (const fR of [0.25, 0.6, 1.0]) {
+            const d = rangeKm * 1000 * fR;
+            const lat = oLat + d * Math.cos(az) / 111320;
+            const lng = oLng + d * Math.sin(az) / (111320 * Math.cos(oLat * Math.PI / 180));
+            const w = (1 / (1 + fR)) * (Math.abs(fA) === 1 ? 0.7 : 1.0);   // 距離減衰×方位の中心寄り
+            raw.push({ lat, lng, w });
+        }
+    }
+    const byKey = new Map();
+    for (const p of raw) {
+        const gl = Math.round(p.lat / 0.05) * 0.05, gn = Math.round(p.lng / 0.05) * 0.05;
+        const key = `${gl.toFixed(2)},${gn.toFixed(2)}`;
+        const cur = byKey.get(key);
+        if (!cur) byKey.set(key, { key, lat: +gl.toFixed(2), lng: +gn.toFixed(2), w: p.w });
+        else cur.w = Math.max(cur.w, p.w);   // 同一格子に落ちた標本は最大重みを代表にする
+    }
+    return [...byKey.values()];
+}
+
+/** Open-Meteoの時刻別3層雲量+地上湿度を、キャッシュ優先+未取得分のみ複数地点バッチで取得する。
+ *  days≦11は /v1/jma (気象庁GSM+MSM)。12〜16日は /v1/forecast (best_match) で延長(信頼度低)。
+ *  戻り値: {key → {time:[ISO..], low:[..], mid:[..], high:[..], rh:[..]}} */
+async function ssFetchClouds(points, days) {
+    const d1 = Math.min(11, days);
+    const results = {};
+    const misses = [];
+    for (const p of points) {
+        let hit = null;
+        try { hit = await _ssIdb('readonly', s => s.get(`jma:${p.key}:${days}`)); } catch (_) {}
+        if (hit && Date.now() - hit.t < SS_TTL) results[p.key] = hit.data;
+        else misses.push(p);
+    }
+    if (misses.length) {
+        const lats = misses.map(p => p.lat).join(','), lngs = misses.map(p => p.lng).join(',');
+        const H = 'cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m';
+        const fetchArr = async (base, fd) => {
+            const url = `${base}?latitude=${lats}&longitude=${lngs}&hourly=${H}&forecast_days=${fd}&timezone=Asia%2FTokyo`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
+            const data = await res.json();
+            return Array.isArray(data) ? data : [data];
+        };
+        const arr = await fetchArr('https://api.open-meteo.com/v1/jma', d1);
+        let ext = null;
+        if (days > 11) {
+            try { ext = await fetchArr('https://api.open-meteo.com/v1/forecast', Math.min(16, days)); } catch (_) { ext = null; }
+        }
+        misses.forEach((p, i) => {
+            const h = arr[i] && arr[i].hourly;
+            if (!h) return;
+            const data = { time: h.time, low: h.cloud_cover_low, mid: h.cloud_cover_mid, high: h.cloud_cover_high, rh: h.relative_humidity_2m };
+            // 12日目以降は best_match の延長分を継ぎ足す(同時刻はJMA優先)
+            const eh = ext && ext[i] && ext[i].hourly;
+            if (eh) for (let k = 0; k < eh.time.length; k++) {
+                if (eh.time[k] > data.time[data.time.length - 1]) {
+                    data.time.push(eh.time[k]); data.low.push(eh.cloud_cover_low[k]); data.mid.push(eh.cloud_cover_mid[k]);
+                    data.high.push(eh.cloud_cover_high[k]); data.rh.push(eh.relative_humidity_2m[k]);
+                }
+            }
+            results[p.key] = data;
+            _ssIdb('readwrite', s => s.put({ t: Date.now(), data }, `jma:${p.key}:${days}`)).catch(() => {});
+        });
+    }
+    return results;
+}
+
+/** 標本毎の雲量を重み付き平均して扇形雲量(層別0〜100)に合成する */
+function ssAggregateHour(points, clouds, hourIdx) {
+    let sw = 0, low = 0, mid = 0, high = 0, rh = 0;
+    for (const p of points) {
+        const c = clouds[p.key];
+        if (!c || c.low[hourIdx] === undefined || c.low[hourIdx] === null) continue;
+        sw += p.w;
+        low += p.w * c.low[hourIdx]; mid += p.w * c.mid[hourIdx]; high += p.w * c.high[hourIdx]; rh += p.w * (c.rh[hourIdx] || 0);
+    }
+    if (!sw) return null;
+    return { low: low / sw, mid: mid / sw, high: high / sw, rh: rh / sw };
+}
+
+/** 時刻毎の天文量: 太陽/月の高度・月輝面比・対象天体の高度(プリセットのobj種別に従う) */
+function ssAstroHour(date, preset) {
+    const obs = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+    const hor = (id) => { const eq = Astronomy.Equator(id, date, obs, true, true); return Astronomy.Horizon(date, obs, eq.ra, eq.dec, 'normal'); };
+    const sunAlt = hor('Sun').altitude;
+    const moonH = hor('Moon');
+    let moonIllum = 0;
+    try { moonIllum = Astronomy.Illumination('Moon', date).phase_fraction; } catch (_) {}
+    let objAlt = null;
+    if (preset.obj === 'mw') {
+        const gc = galacticToEquatorial(0, 0);   // 天の川中心(いて座付近)
+        objAlt = Astronomy.Horizon(date, obs, gc.ra, gc.dec, 'normal').altitude;
+    } else if (preset.obj === 'moon') {
+        objAlt = moonH.altitude;
+    } else if (preset.obj === 'body') {
+        // 表示天体の中で最も高いもの(フェーズ1の簡易版)
+        let best = null;
+        for (const b of appState.bodies.filter(b => b.visible)) {
+            try {
+                const h = isFixedStar(b.id)
+                    ? (() => { const rd = getFixedStarRaDec(b.id); return Astronomy.Horizon(date, obs, rd.ra, rd.dec, 'normal'); })()
+                    : hor(b.id);
+                if (best === null || h.altitude > best) best = h.altitude;
+            } catch (_) {}
+        }
+        objAlt = best;
+    }
+    return { sunAlt, moonAlt: moonH.altitude, moonIllum, objAlt };
+}
+
+/** 宙スコア(0〜100)。乗算型: どれかの因子が致命的なら総合も低くなる(デッサン18)。
+ *  フェーズ1は 雲(3層)×月×対象高度×透明度(地上湿度の簡易版)。光害・AOD・雲海度はフェーズ3 */
+function ssScoreHour(preset, agg, astro) {
+    const clear = (1 - preset.wL / 100 * agg.low / 100) * (1 - preset.wM / 100 * agg.mid / 100) * (1 - preset.wH / 100 * agg.high / 100);
+    let fMoon = 1;
+    if (preset.wMoon > 0) {
+        if (preset.moon === 'avoid') {
+            const moonUp = Math.max(0, Math.sin(astro.moonAlt * Math.PI / 180)) * astro.moonIllum;   // 月明かりの強さ0〜1
+            fMoon = 1 - preset.wMoon / 100 * moonUp;
+        } else {
+            const seen = astro.moonAlt > 0 ? astro.moonIllum : 0;   // 月が出ていて明るいほど良い
+            fMoon = (1 - preset.wMoon / 100) + preset.wMoon / 100 * seen;
+        }
+    }
+    let fObj = 1;
+    if (preset.wObj > 0 && astro.objAlt !== null) {
+        const g = astro.objAlt <= 0 ? 0 : Math.min(1, astro.objAlt / 20);   // 高度20°以上で満点・地平線下で0
+        fObj = (1 - preset.wObj / 100) + preset.wObj / 100 * g;
+    }
+    const humid = Math.max(0, Math.min(1, ((agg.rh || 0) - 60) / 40));      // 湿度60%以下は透明・100%で最大減点
+    const fTr = 1 - preset.wTr / 100 * 0.5 * humid;
+    return Math.max(0, Math.min(100, Math.round(1000 * clear * fMoon * fObj * fTr) / 10));
+}
+
+/** 宙検索フェーズ1の実行: 扇形標本→雲量取得→時刻毎スコア→暫定リスト表示(辻検索結果パネル) */
+let _ssRunning = false;
+async function soraSearchRun() {
+    if (_ssRunning) return;
+    _ssRunning = true;
+    const statusEl = document.getElementById('ss-status');
+    const setBusy = (t) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(t)}`; };
+    try {
+        const preset = SS_PRESETS[document.getElementById('sel-ss-preset').value] || SS_PRESETS.milkyway;
+        const days = Math.max(1, Math.min(16, parseInt(document.getElementById('input-ss-days').value) || 11));
+        const stepH = parseInt(document.getElementById('sel-ss-interval').value) || 1;
+        const fanDeg = Math.max(1, Math.min(180, parseFloat(document.getElementById('input-ss-fan').value) || 24));
+        const rangeIn = parseFloat(document.getElementById('input-ss-range').value);
+        const distKm = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng) / 1000;
+        const rangeKm = Math.max(1, Math.min(300, isFinite(rangeIn) && rangeIn > 0 ? rangeIn : Math.ceil(distKm)));
+        setBusy('扇形標本を作成中…');
+        const points = ssFanSamples(fanDeg, rangeKm);
+        setBusy(`雲量を取得中… (${points.length}格子)`);
+        const clouds = await ssFetchClouds(points, days);
+        const base = clouds[points[0].key];
+        if (!base || !base.time || !base.time.length) throw new Error('雲量データを取得できませんでした');
+        setBusy('宙スコアを計算中…');
+        const rows = [];
+        const now = Date.now();
+        for (let i = 0; i < base.time.length; i += stepH) {
+            const dt = new Date(base.time[i]);
+            if (isNaN(dt.getTime()) || dt.getTime() < now - 3600e3) continue;
+            const agg = ssAggregateHour(points, clouds, i);
+            if (!agg) continue;
+            const astro = ssAstroHour(dt, preset);
+            // 時間帯フィルタ: 夜=天文薄明相当(太陽高度<-18°) / GH/BH=太陽高度±6°帯
+            if (preset.hours === 'night' && astro.sunAlt > -18) continue;
+            if (preset.hours === 'ghbh' && Math.abs(astro.sunAlt) > 6) continue;
+            const hoursAhead = (dt.getTime() - now) / 3600e3;
+            const conf = hoursAhead <= 72 ? '高' : (hoursAhead <= 264 ? '中' : '低');
+            rows.push({ dt, score: ssScoreHour(preset, agg, astro), agg, astro, conf });
+            if (rows.length % 200 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+        ssRenderInterim(rows, preset);
+        if (statusEl) statusEl.textContent = `${rows.length}件 (${points.length}格子)`;
+    } catch (e) {
+        console.error('soraSearchRun:', e);
+        if (statusEl) statusEl.textContent = 'エラー: ' + (e && e.message ? e.message : e);
+        alert('宙検索に失敗しました: ' + (e && e.message ? e.message : e) + '\n(Open-Meteoへの接続をご確認ください)');
+    } finally {
+        _ssRunning = false;
+    }
+}
+
+/** フェーズ1の暫定リスト表示(辻検索結果パネルを間借り。本UIはフェーズ2)。行クリックで日時移動 */
+function ssRenderInterim(rows, preset) {
+    showTsujiPanelForMyTsuji(`宙検索結果 (${preset.label} / フェーズ1・暫定)`);
+    const statusEl = document.getElementById('tsujisearch-status');
+    if (statusEl) statusEl.textContent = `(${rows.length}件)`;
+    const contentEl = document.getElementById('tsujisearch-content');
+    contentEl.innerHTML = '';
+    if (!rows.length) {
+        contentEl.innerHTML = '<div style="padding:8px;color:#999;">該当する時刻がありません(時間帯フィルタ/期間を見直してください)</div>';
+        return;
+    }
+    const dows = ['日', '月', '火', '水', '木', '金', '土'];
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    table.innerHTML = '<thead><tr><th>日付</th><th>曜日</th><th>時刻</th><th>宙スコア</th><th>雲低</th><th>雲中</th><th>雲高</th><th>湿度</th><th>月輝面比</th><th>月高度</th><th>対象高度</th><th>信頼度</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    const p2 = v => ('00' + v).slice(-2);
+    for (const r of rows) {
+        const tr = document.createElement('tr');
+        tr.className = 'td-data-row';
+        const scoreColor = r.score >= 70 ? '#ffd700' : (r.score >= 40 ? '#eee' : '#888');
+        const confColor = r.conf === '高' ? '#8f8' : (r.conf === '中' ? '#ff8' : '#f88');
+        tr.innerHTML = `<td>${r.dt.getFullYear()}/${p2(r.dt.getMonth() + 1)}/${p2(r.dt.getDate())}</td><td>(${dows[r.dt.getDay()]})</td>` +
+            `<td>${p2(r.dt.getHours())}:00</td><td style="color:${scoreColor};font-weight:bold;">${r.score.toFixed(1)}</td>` +
+            `<td>${Math.round(r.agg.low)}%</td><td>${Math.round(r.agg.mid)}%</td><td>${Math.round(r.agg.high)}%</td><td>${Math.round(r.agg.rh)}%</td>` +
+            `<td>${Math.round(r.astro.moonIllum * 100)}%</td><td>${r.astro.moonAlt.toFixed(1)}°</td>` +
+            `<td>${r.astro.objAlt === null ? '-' : r.astro.objAlt.toFixed(1) + '°'}</td><td style="color:${confColor};">${r.conf}</td>`;
+        tr.addEventListener('click', () => {
+            appState.currentDate = new Date(r.dt);
+            syncUIFromState();
+            updateAll();
+        });
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    contentEl.appendChild(table);
 }
 
 function _smDiskTex(color) {
