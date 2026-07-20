@@ -11,8 +11,8 @@
 ### 必ず読む（毎回）
 | ドキュメント | 目的 |
 |---|---|
-| `docs/order.md` | 最新の依頼・回答履歴。前回の作業状態を把握する |
-| `docs/todo.md` | やることリスト・優先タスクを確認する |
+| `docs/order.md` | 最新の依頼・回答履歴。前回の作業状態を把握する(Claudeさんの引き継ぎ書) |
+| `docs/todo.md` | やることリスト・優先タスクを確認する(Claudeさんの付箋) |
 | `docs/order-to-me.md` | 依頼者の備忘録。運用ルール・注意事項を確認する |
 
 ### 必要に応じて読む
@@ -24,8 +24,11 @@
 | `docs/dessin/` | 機能設計・実装の詳細を確認したいとき |
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |
+| `reviews/README.md` | Claudeさんの実験ノート |
+| `tests/README.md` | Claudeさんの指差し確認 |
 | `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
 | `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
+| `docs/order-log/order-2026-07-20.md` | Claudeさんとのお茶の時間のお約束について |
 
 ### セッション開始の会話文（必ずこれで始める）
 ```
