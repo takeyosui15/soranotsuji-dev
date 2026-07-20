@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.39.0 - 2026-07-20: feat: 第37ラウンド — URL由来値のセッション限定化(依頼者決定)+懸案対応+細部修正 ①共有URLで開いたセッションでは「URLによって実際に変わった項目」を保存しない(URL適用前の自分の保存値で凍結して書き出す。通常の再訪では自分の保存値のまま=共有URLを開いても保存条件が置き換わらない) ②表示中セットのMy系編集(観測点/目的点/辻検索/宙検索のdirty・My天体の追加/削除)でMyセットメニューの行アイコンを即👎(差あり)に(シート側変更しか検知しない片方向監視の解消・依頼者提案) ③Drive同期の指紋を「実際にアップロードした内容」から計算(アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの考え方) ④宙の窓ctrlの「:花火モード」ラベルを金字に(.control-row labelの#333に負けていた) ⑤onloadの辻ライン365ボタン点灯分岐(到達不能の死にコード)を整理
 Version 1.38.0 - 2026-07-20: feat: 第36ラウンド — 後日課題の全実施+保存/初期値/URL再現の整合性調査と修正+閉じるボタン ①作法改善の本丸: 辻メッシュ画像をimageソース+toBlob(PNG)+objectURLの自前パイプラインから標準canvasソース(type:'canvas', animate:false)へ置換(PNG変換・非同期ロード・失敗経路が消え描画が同期に。使い回しcanvas2枚+表示時flush) ②辻ライン時刻ラベル(1天体約140個のDOMマーカー)をsymbolレイヤ+ローカルglyphs(リポジトリ同梱のSDFフォントPBF。生成ツールtests/build-glyphs.js)へ=パン時の再配置がGPU側に ③観測点/目的点/My地点/優辻ピンをMapLibre標準ピン(色指定)へ置換(承認済み)+観測点/目的点マーカーの永続化(毎updateAll破棄→再生成をやめsetLngLat+setHTML更新。表示中ポップアップが更新で閉じる副作用も解消) ④辻メッシュの時刻/色スライダーをrAF合流・冗長setData除去・モバイルのワーカー台数上限(≤6)・OSM単一ホスト化・refreshExpiredTiles:false ⑤整合性修正: 花火モード設定が保存されるのに復元されない実装漏れ・Myセットの空データでシートを上書きし得るデータ消失経路をガード・Drive同期の[New]判定を「前回同期からの変更有無」へ(簿記保存で常にローカル優位になる偏りを解消)・シート同期簿記が指紋に混入して常時「差あり」になる干渉を除外・機能封鎖中のシート読込でMy宙検索が消える片方向消去を温存に・URLの辻検索基準方位角/視高度が自動再計算で上書きされ再現されない競合を保護・保存の容量超過を無音にしない・辻検索期間の正規化追加 ⑥全天儀/標高グラフ/辻検索/辻メッシュ/宙の窓に閉じるボタン(✕)を追加
 Version 1.37.2 - 2026-07-20: fix: 描画監査(第35ラウンド第3弾=当初調査ワークフローの完走分)の残指摘対応 — ①辻メッシュ画像ソースのロード失敗が無音だった: updateImage後のロードが失敗すると「中身あり」フラグのまま透明/旧画像が固定され「描画されないのに操作だけ効く」状態になり得た(不具合(3)の残存経路)。mapのerrorイベント(sourceId付き)で検知してフラグを戻し、ステータス欄に表示 ②クレジット(ⓘ)の重複表示を解消: ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、customAttributionは地図ソースでないデータ(標高=国土地理院・気象=Open-Meteo)のみに
 Version 1.37.1 - 2026-07-20: fix: 描画監査(第35ラウンド第2弾)の指摘対応 — マルチエージェント監査(タッチ操作経路+MapLibre作法+指摘毎の反証検証)で確認された3件を修正 ①優辻ピンのmouseenterに_mapDblClickModeガードが無く、スマホのタップで合成mouseenterが発火してツールチップがポップアップと二重表示・残留し、精細化スキャンがタップ応答を遅くしていた(観測点マーカーと同じガードを追加) ②DEMタイルキャッシュ(_tileCache)が無制限で、地域を変えた再検索の繰り返しでメモリが単調増加していた(上限192枚≈48MBのLRUへ) ③辻メッシュ検索完了後にワーカープールを解放していなかった(initデータの複製がワーカー台数分常駐。完了時にterminateAll・再検索時は再init)。あわせてホバーツールチップのoffsetが初回生成時しか反映されない位置ズレと、ソース未初期化時に画像描画が無音で捨てられるエッジの可視化(console.warn)も修正
@@ -101,7 +102,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.38.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.39.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -571,9 +572,8 @@ window.onload = async function() {
     if (appState.isDPActive) {
         document.getElementById('btn-dp').classList.add('active');
     }
-    if (appState.isDP365Active) {
-        document.getElementById('btn-dp365').classList.add('active');
-    }
+    // 辻ライン365(isDP365Active)のボタン点灯分岐は置かない: この状態は意図的に保存もURL復元もしない
+    // (起動時の51万点再計算を防ぐ)ため起動時は常にfalseで、旧分岐は到達不能の死にコードだった(第37ラウンドで整理)
     
     // 登録ボタンの見た目 (登録データがあるかどうかで判定)
     if(appState.homeStart) {
@@ -2139,10 +2139,11 @@ function setupUI() {
 // 5. 設定の保存・読み込み (Single Storage Key)
 // ============================================================
 
-/** 全状態を保存 */
-function saveAppState() {
+/** 保存対象の状態オブジェクトを組み立てる(saveAppStateの本体。
+ *  URLセッション限定化の凍結スナップショット(restoreFromUrl)からも使う) */
+function buildStateToSave() {
     // 保存したいデータだけを抽出
-    const stateToSave = {
+    return {
         appSchema: APP_SCHEMA,   // localStorageスキーマ版数（将来のマイグレーション/診断用）
         savedAt: Date.now(),     // ローカルストレージの最終更新日時（ドライブ同期の新旧比較用）
         start: appState.start,
@@ -2244,6 +2245,21 @@ function saveAppState() {
         endHeight: appState.endHeight
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
+}
+
+/** URLで開いたセッションの凍結値: キー→URL適用前(=自分の保存値)のスナップショット。
+ *  restoreFromUrlが「URLで実際に変わったキー」だけを記録する(第37ラウンド: 依頼者決定
+ *  「URL由来の値はそのセッション限りにする」。共有URLを開いても自分の保存条件は置き換わらない) */
+let _urlSessionFrozen = null;
+
+/** 全状態を保存 */
+function saveAppState() {
+    const stateToSave = buildStateToSave();
+    if (_urlSessionFrozen) {
+        // URL由来の項目は保存しない: URL適用前の保存値で上書きして書き出す
+        // (このセッション中の当該項目への手動編集も保存されない=セッション限りの明快な規則)
+        for (const k of Object.keys(_urlSessionFrozen)) stateToSave[k] = _urlSessionFrozen[k];
+    }
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
@@ -4752,6 +4768,7 @@ function addMyStar(name, ra, dec) {
         color: '#DDA0DD',
         isDashed: true
     });
+    _mySetMarkCurrentEdited();   // My天体はdirtyフラグを持たない(即時保存)ため、ここでセット行を👎へ
     syncMyStarsToBodies();
     saveAppState();
     renderMyStarsList();
@@ -4815,6 +4832,7 @@ function deleteMyStar() {
     if (!star) return;
     if (!confirm(`My天体リストの天体(ID:${id}, ${star.name})を削除しますか？`)) return;
     appState.myStars = appState.myStars.filter(s => s.id !== id);
+    _mySetMarkCurrentEdited();   // My天体はdirtyフラグを持たない(即時保存)ため、ここでセット行を👎へ
     syncMyStarsToBodies();
     saveAppState();
     renderMyStarsList();
@@ -5266,9 +5284,23 @@ function getNextMyPointId(type) {
 }
 
 /** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
+/** 表示中セットのMy系が編集されたら、Myセットメニューの行アイコンを即👎(差あり)にする
+ *  (第37ラウンド・依頼者提案: シート側の変更しか検知しない片方向監視だったため、
+ *  端末側で編集してもシート同期済み表示(👍)のままになっていた)。シート未紐付けの行は対象外 */
+function _mySetMarkCurrentEdited() {
+    const id = appState.mySetCurrentId;
+    const s = (id === 0) ? appState.mySetHome : (appState.mySets || []).find(m => m.id === id);
+    if (!s || !s.sheetId) return;
+    if (mySetSheetStates[id] === 'ok') {
+        mySetSheetStates[id] = 'stale';
+        renderMySetList();
+    }
+}
+
 function setMyPointDirty(type, val) {
     const cfg = myPointConfig(type);
     cfg.setDirty(val);
+    if (val) _mySetMarkCurrentEdited();
     const btn = document.getElementById(`btn-${cfg.prefix}-regall`);
     if (btn) {
         if (val) { btn.classList.add('dirty'); }
@@ -5762,6 +5794,7 @@ let myTsujiDirty = false;
 /** dirty flag 更新 → 「全て登録」ボタンのスタイル変更 */
 function setMyTsujiDirty(val) {
     myTsujiDirty = val;
+    if (val) _mySetMarkCurrentEdited();
     const btn = document.getElementById('btn-mytsuji-regall');
     if (btn) {
         if (val) { btn.classList.add('dirty'); }
@@ -11022,8 +11055,11 @@ function collectLocalStorageAll() {
 }
 
 /** ローカル内容の指紋 (savedAt/googleDriveの同期簿記を除いたFNV-1aハッシュ)。同期後の一致判定用 */
-function localContentFingerprint() {
-    const all = collectLocalStorageAll();
+function localContentFingerprint(allOverride) {
+    // allOverride: 指紋の対象を明示指定する(Driveへ実際にアップロードした内容から計算する用。
+    // 第37ラウンド: アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの
+    // 「準備した内容を確定する」考え方。省略時は現在のlocalStorageから)
+    const all = allOverride || collectLocalStorageAll();
     try {
         const s = JSON.parse(all[STORAGE_KEY]);
         delete s.savedAt;
@@ -11071,7 +11107,8 @@ async function saveAppToDrive() {
         saveAppState();   // savedAtを最新化してから吸い上げる
         await ensureSoraFolders();
         await resolveAppFile();
-        const content = JSON.stringify(collectLocalStorageAll(), null, 2);
+        const uploadedAll = collectLocalStorageAll();   // アップロード内容をここで確定(指紋もこれから計算する)
+        const content = JSON.stringify(uploadedAll, null, 2);
         const res = gd.appFileId
             ? await driveUploadJson(gd.appFileId, null, null, content)
             : await driveUploadJson(null, SORA_APP_FILENAME, [gd.settingsFolderId], content, { soranotsuji: 'appjson' });
@@ -11084,7 +11121,9 @@ async function saveAppToDrive() {
         gd.lastDriveModifiedTime = res.modifiedTime;
         gd.lastDriveSize = Number(res.size);
         gd.lastSyncDriveModifiedTime = res.modifiedTime;
-        gd.lastSyncFingerprint = localContentFingerprint();
+        // 指紋は「実際にアップロードした内容」から計算する(アップロード中(await中)の編集が
+        // あれば現在のlocalStorageと不一致になり、次のチェックで正しく👎が付く)
+        gd.lastSyncFingerprint = localContentFingerprint(uploadedAll);
         googleSyncState = 'ok';
         saveAppState();
         updateGoogleLoginIcon();
@@ -12742,6 +12781,9 @@ function restoreFromUrl() {
     if (!params.has('mode')) return;
 
     const mode = params.get('mode');
+    // URLセッション限定化(第37ラウンド・依頼者決定): URL適用前の保存対象状態を控えておき、
+    // 関数末尾で「URLによって実際に変わったキー」だけを凍結する(saveAppStateが凍結値で書き出す)
+    const preUrlSnap = JSON.parse(JSON.stringify(buildStateToSave()));
 
     // 位置情報
     if (params.has('startLat')) { const v = parseFloat(params.get('startLat')); if (!isNaN(v)) appState.start.lat = v; }
@@ -12956,6 +12998,16 @@ function restoreFromUrl() {
             appState._lastTsujiMeshPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
         }
     }
+
+    // URLで実際に値が変わったキーだけを凍結する(変わらなかった項目は普段どおり保存され続ける)。
+    // 凍結キーはこのセッション中の手動編集も保存されない(=「URL由来の値はセッション限り」の明快な規則)
+    const postSnap = buildStateToSave();
+    _urlSessionFrozen = {};
+    for (const k of Object.keys(postSnap)) {
+        if (k === 'appSchema' || k === 'savedAt') continue;
+        if (JSON.stringify(postSnap[k]) !== JSON.stringify(preUrlSnap[k])) _urlSessionFrozen[k] = preUrlSnap[k];
+    }
+    if (Object.keys(_urlSessionFrozen).length === 0) _urlSessionFrozen = null;
 }
 
 // ============================================================
@@ -17223,6 +17275,7 @@ let _mySoraBatchRunning = false, _mySoraBatchCancel = false;
 
 function setMySoraDirty(val) {
     mySoraDirty = val;
+    if (val) _mySetMarkCurrentEdited();
     const btn = document.getElementById('btn-mysora-regall');
     if (btn) btn.classList.toggle('dirty', !!val);
 }

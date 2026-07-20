@@ -768,6 +768,9 @@ html {
     font-size: 12px;
     color: #ffd700;
 }
+/* チェックボックスのラベルにグループ見出し色を使う場合(.control-row labelの#333より優先させる。
+   第37ラウンド: ctrlの「:花火モード」が黒字で沈んでいた修正) */
+.control-row label.soramado-ctrl-group { color: #ffd700; }
 #soramado-ctrl-body .sora-mov-num { width: 90px; }
 /* ctrlの日時コントロール: 日時情報メニューと同じボタンサイズ(34px)に統一し、
    日付/時刻ピッカーを行いっぱいに伸ばして両行の縦のラインを揃える */
