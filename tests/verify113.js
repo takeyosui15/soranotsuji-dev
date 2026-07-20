@@ -77,10 +77,12 @@ const SETUP=`(() => {
   await p.evaluate(()=>{ glMap.jumpTo({ center:[138.8025,35.5025], zoom:_glZoom(15) }); });
   await p.waitForTimeout(400);
 
-  // S1: メッシュ画像(件数グラデーション)がimageソースへ・白索引の構築
+  // S1: メッシュ画像(件数グラデーション)がimageソースへ・白索引の構築(toBlob非同期反映を待つ)
   {
-    const r=await p.evaluate(()=>{
+    const r=await p.evaluate(async()=>{
       drawTsujiMeshMarkers();
+      // toBlob→objectURL反映待ち(第35ラウンドで非同期化)。固定sleepは負荷時に不足するため上限付きポーリング
+      for(let i=0;i<30&&!_glTmHasImg['tm-mesh-img'];i++) await new Promise(res=>setTimeout(res,100));
       const lyrVis=glMap.getLayoutProperty('tm-mesh-img','visibility');
       const srcCoords=glMap.getSource('tm-mesh-img').coordinates;
       const desc=_tmBuildGradientOverlay();   // 記述子の四隅=bounds(変換関数の検証)
@@ -89,24 +91,25 @@ const SETUP=`(() => {
                    Math.abs(desc.coordinates[2][0]-B.east)<1e-9&&Math.abs(desc.coordinates[2][1]-B.south)<1e-9;
       const okSrc=srcCoords&&Math.abs(srcCoords[0][0]-B.west)<1e-6&&Math.abs(srcCoords[0][1]-B.north)<1e-6;
       const whiteHits=[0,1,2,3].filter(px=>_tsujiMeshWhiteRow[px]>=0).length;
-      return { lyrVis, whiteHits, okDesc, okSrc, srcCoords: JSON.stringify(srcCoords&&srcCoords[0]),
+      const blobUrl=(_glTmImgUrl['tm-mesh-img']||'').startsWith('blob:');
+      return { lyrVis, whiteHits, okDesc, okSrc, blobUrl, srcCoords: JSON.stringify(srcCoords&&srcCoords[0]),
                shown: _tmLayerShown('mesh') };
     });
-    check('S1 メッシュ画像がvisible・四隅=bounds(記述子+ソース反映)・白索引4画素',
-      r.lyrVis==='visible'&&r.okDesc&&r.okSrc&&r.whiteHits===4&&r.shown, JSON.stringify(r));
+    check('S1 メッシュ画像がvisible(blob URL)・四隅=bounds・白索引4画素',
+      r.lyrVis==='visible'&&r.okDesc&&r.okSrc&&r.blobUrl&&r.whiteHits===4&&r.shown, JSON.stringify(r));
   }
 
-  // S2: 表示切替(チェックボックス相当)でレイヤvisibilityが追従
+  // S2: 表示切替(チェックボックス相当)OFF→ONで**再描画なしに**復帰する
+  //     (旧テストはONの後に手動でdrawTsujiMeshMarkers()を呼んでいてスマホ不具合(2)を見逃した)
   {
     const r=await p.evaluate(()=>{
       _tsujiMeshLayerVisible=false; applyTsujiMeshLayerVisibility();
       const off={ mesh:glMap.getLayoutProperty('tm-mesh-img','visibility'), shown:_tmLayerShown('mesh') };
-      _tsujiMeshLayerVisible=true; applyTsujiMeshLayerVisibility();
-      drawTsujiMeshMarkers();   // 画像を描き直して再表示
+      _tsujiMeshLayerVisible=true; applyTsujiMeshLayerVisibility();   // 再描画は呼ばない
       const on={ mesh:glMap.getLayoutProperty('tm-mesh-img','visibility'), shown:_tmLayerShown('mesh') };
       return { off, on };
     });
-    check('S2 表示OFF→none/ON→visible(問い合わせ口も追従)', r.off.mesh==='none'&&r.off.shown===false&&r.on.mesh==='visible'&&r.on.shown===true,
+    check('S2 表示OFF→none/ON→visible(再描画なしで復帰=不具合(2)の回帰)', r.off.mesh==='none'&&r.off.shown===false&&r.on.mesh==='visible'&&r.on.shown===true,
       JSON.stringify(r));
   }
 
@@ -139,7 +142,8 @@ const SETUP=`(() => {
     const r=await p.evaluate(async()=>{
       const perPix=new Map([[0,0.011],[2,0.201]]);
       drawTsujiMeshGoldSet(perPix,{pix:0,dist:0.011,timeMs:Date.now?undefined:0, ...( {timeMs:_tsujiMeshRows[0].pixTime[1]} )});
-      await new Promise(res=>setTimeout(res,200));
+      // toBlob非同期反映待ち(上限付きポーリング)
+      for(let i=0;i<30&&!_glTmHasImg['tm-gold-img'];i++) await new Promise(res=>setTimeout(res,100));
       const goldVis=glMap.getLayoutProperty('tm-gold-img','visibility');
       const pin=document.querySelectorAll('#map .location-marker-tsujigold').length;
       // ピンクリック→ポップアップ
@@ -198,8 +202,9 @@ const SETUP=`(() => {
 
   // S7: 消去(clearTsujiMeshMarkers)で画像/金ドット/ピンが全て消える
   {
-    const r=await p.evaluate(()=>{
+    const r=await p.evaluate(async()=>{
       clearTsujiMeshMarkers();
+      await new Promise(res=>setTimeout(res,200));
       return { mesh: glMap.getLayoutProperty('tm-mesh-img','visibility'),
                gold: glMap.getLayoutProperty('tm-gold-img','visibility'),
                dots: glMap.getSource('tm-gold-dots-src')._data.features.length,
@@ -218,9 +223,11 @@ const SETUP=`(() => {
     await p2.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&glMap.isStyleLoaded&&glMap.isStyleLoaded(),{timeout:10000});
     await p2.waitForTimeout(400);
     await p2.evaluate(SETUP);
-    const r=await p2.evaluate(()=>{
+    const r=await p2.evaluate(async()=>{
       drawTsujiMeshMarkers();
       updateTsujiMeshGoldMarkers();
+      // toBlob非同期反映待ち: 固定sleepだと負荷時に不足する(実測400〜800ms)ため、反映を上限付きで待つ
+      for(let i=0;i<30&&!_glTmHasImg['tm-mesh-img'];i++) await new Promise(res=>setTimeout(res,100));
       return { meshVis: glMap.getLayoutProperty('tm-mesh-img','visibility'),
                dots: glMap.getSource('tm-gold-dots-src')._data.features.length,
                popupOk: _tmShowPixelPopup({lat:_tsujiMeshPix.lat[1],lng:_tsujiMeshPix.lng[1]}),

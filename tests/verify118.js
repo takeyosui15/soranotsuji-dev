@@ -17,7 +17,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
     const html=fs.readFileSync(path.join(__dirname, '..', 'index.html'),'utf8');
     const ff=fs.readFileSync(path.join(__dirname, '..', 'forecast-features.html'),'utf8');
-    check('X0 APP_VERSION 1.36.0', src.includes("APP_VERSION = '1.36.0'"));
+    // 版数ピンは最新のverify(現在は119)のみに置く(テスト方針)。ここでは存在だけ確認する
+    check('X0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
     const gone=['btn-ss-run','sec-sorasearch','sec-mysora','btn-soradanmen','sorasearch-panel','soradanmen-panel']
       .every(id=>!html.includes(`id="${id}"`));
     const slots=['sorasearch-panel','soradanmen-panel','soradanmen-btn','sorasearch-menu','mysora-menu']

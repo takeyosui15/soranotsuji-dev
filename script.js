@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.37.0 - 2026-07-20: fix: スマホでの辻メッシュ3不具合の修正+MapLibre作法の改善(描画方式の再検討) — ①検索エリア5×5で落ちる/再検索で描画されない: メッシュ画像のキャンバスが最大6144×6144(151MB)でiPhoneのキャンバス面積・GPUテクスチャ上限を超えていたため、上限設計を「最大辺2048px」に変更(3×3=1536/5×5=1280。拡大時のシャープさはrasterレイヤのnearest補間が担うため見た目は維持)。画像の受け渡しもtoDataURL(巨大base64文字列)からtoBlob+objectURLへ変更し、旧URLのrevoke+非同期の世代ガードでメモリリークと追い越しを防止。消去時は1×1透明PNGへ差し替えて旧画像のGPUテクスチャも解放し、画像生成失敗(toBlob=null)はステータス欄に表示して無音で消えないようにした ②メッシュマーカーレイヤーのチェックボックスON/OFFが反映されない: OFF→ONで画像レイヤをvisibleに戻すコードが無かった(旧テストは手動再描画でこのバグを見逃していた)。「画像に中身があるか」を_glTmHasImgで持ち、表示状態をapplyTsujiMeshLayerVisibilityに一元化して両方向に設定 ③クレジット表示をⓘアイコン(compact)に変更(タップで展開) ④MapLibre作法: ループ内で繰り返していたsetDataをバッチ化(方位線=天体毎→updateCalculationで1回・辻ライン=線種毎→updateDPLinesで1回)
 Version 1.36.0 - 2026-07-20: feat: 封鎖UIのindex.htmlからの分離+地図コントロールのボタンサイズ統一 — ①封鎖中の予測系機能(宙検索/My宙検索/宙断面)のボタン/メニュー/パネルのHTML(5ブロック・約160行)をindex.htmlから削除しforecast-features.htmlへ分離。index.htmlには空スロット(ff-slot-*)のみ残し、開発時(?forecast=1)はloadForecastFeaturesがfetch+templateで各スロットへ注入して完全復元(注入はsetupUIより前のため配線もそのまま効く)。既定ページのDOMには封鎖機能の要素が一切存在しない ②左上コントロールのボタンサイズ統一: 自作ボタン(⌖/レイヤ切替/パン)26pxとMapLibre標準ズームボタン29pxが不揃いだったため全て29pxに統一(レイヤリストの位置も追従)
 Version 1.35.0 - 2026-07-20: feat: リリース方針による予測系機能の一時封鎖+地図ボタンのアイコン中心ズレ修正 — ①「確実なものから提供する」方針(たけちゃんさん判断)により、予測が関係する宙検索・My宙検索・宙断面ビューを非表示(機能封鎖)に。メニュー/ボタンを隠し実行もガード。Myセットのシートも従来の4シート構成(My宙検索タブは作成も読み書きもしない。既存タブには触れない)。コードとデータ構造は温存し、開発時はURLに?forecast=1で表示可能(公開判断後は既定をtrueに戻すだけ)。今回のリリース対象=全天儀/辻メッシュ検索/宙の窓/Myセット(+従来機能) ②左上の⌖(中央表示)/レイヤ切替ボタンのアイコン中心ズレを修正(.gl-bar aのdisplay:blockが後続のflex中央寄せを上書きしていた手順4の移植回帰。flex中央寄せに統一)
 Version 1.34.0 - 2026-07-20: feat: 地図全面移行計画 完了(手順4=Leaflet撤去) — Leaflet本体(scriptタグ/CSS/L.*約120箇所)とシャドウ地図・エンジン分岐(USE_MAPLIBRE)を全撤去し、本体地図はMapLibre GL JSのみに。旧URLフラグ?maplibre=0/1は無視(過去の共有URLでも無害)。L.latLng().distanceTo()の純計算用途はLeaflet互換のHaversine(_geoDistM。R=6371000)へ置換して従来の数値を維持・地図コントロールの地スタイル(白ボタン/角丸/影)は旧leaflet.css相当をstyle.cssの.gl-barへ移植・辻メッシュ詳細リストの行ジャンプで観測点ポップアップが開かない潜在バグ(Leaflet APIのopenPopup残り)を修正・ペイロードはleaflet撤去分(約42KB gzip)軽量化
@@ -97,7 +98,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.36.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.37.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -803,7 +804,7 @@ function initMapGL(mapEl) {
         attributionControl: false,
     });
     glMap.addControl(new maplibregl.AttributionControl({
-        compact: false,
+        compact: true,   // ⓘアイコンで折りたたみ(タップ/クリックで展開。常時1行表示より省スペース)
         customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
     }), 'bottom-right');
     // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)
@@ -1174,10 +1175,9 @@ function glDrawDPPath(points, color, dashArray, withMarkers, azOffset) {
         }
     }
     if (cur.length > 0) segments.push(cur);
+    // ソースへの反映は呼び出し元(updateDPLines)が全天体・全線種をまとめて1回行う(作法: setDataのバッチ化)
     segments.forEach(seg => _glDpFeatures.push({ type: 'Feature', properties: { color, dash: dashKey },
         geometry: { type: 'LineString', coordinates: seg } }));
-    _glSetSourceData('dp-lines', _glDpFeatures);
-    _glSetSourceData('dp-times', _glDpTimeFeatures);
 }
 
 /** 辻ライン365(drawDP365PathのMapLibre版)。
@@ -1343,15 +1343,53 @@ function _glTmOpenPopup(lat, lng, div, offsetY) {
     _glTmPopup = popup;
     return popup;
 }
-/** imageソースの画像を更新する(data null=非表示)。
- *  注意: updateImageのcoordinatesは反映されない(MapLibre 4.x)ため、setCoordinatesを併用する */
+/** imageソースの画像を更新する(data null=消去)。
+ *  - 画像はcanvas.toBlob→objectURLで渡す(toDataURLの巨大base64文字列はスマホのメモリを圧迫するため廃止)。
+ *    旧objectURLはrevokeし、非同期変換中に次の更新が来たら古い方を破棄する(世代ガード)。
+ *  - 「画像に中身があるか」は_glTmHasImgに記録し、レイヤのvisibilityはapplyTsujiMeshLayerVisibilityに
+ *    一元化する(チェックボックスOFF→ONで再表示されないバグの再発防止)。
+ *  - 注意: updateImageのcoordinatesは反映されない(MapLibre 4.x)ため、setCoordinatesを併用する */
+const _glTmHasImg = { 'tm-mesh-img': false, 'tm-gold-img': false };
+const _glTmImgUrl = {};   // id -> 表示中のobjectURL(revoke用)
+const _glTmImgSeq = {};   // id -> 世代(非同期toBlobの追い越し防止)
 function _glTmSetImage(id, data) {
     if (!glMap || !glMap.getSource(id)) return;
-    if (!data) { glMap.setLayoutProperty(id, 'visibility', 'none'); return; }
-    const src = glMap.getSource(id);
-    src.updateImage({ url: data.url });
-    if (src.setCoordinates) src.setCoordinates(data.coordinates);
-    glMap.setLayoutProperty(id, 'visibility', 'visible');
+    const seq = (_glTmImgSeq[id] = (_glTmImgSeq[id] || 0) + 1);
+    const apply = (url) => {
+        if (seq !== _glTmImgSeq[id] || !glMap || !glMap.getSource(id)) {   // 追い越された/破棄済み
+            if (url) URL.revokeObjectURL(url);
+            return;
+        }
+        if (_glTmImgUrl[id]) { URL.revokeObjectURL(_glTmImgUrl[id]); delete _glTmImgUrl[id]; }
+        if (!url) {
+            _glTmHasImg[id] = false;
+            // 消去時は旧画像の実体(デコード済み画像/GPUテクスチャ)もソースから追い出す。
+            // 隠すだけだと前回検索の大きな画像が常駐し、再検索中のメモリピークと重なって
+            // スマホでクラッシュしやすくなる(1×1透明PNGに差し替えて解放させる)
+            const src = glMap.getSource(id);
+            if (src && src.updateImage) src.updateImage({ url: _GL_BLANK_PX });
+        } else {
+            const src = glMap.getSource(id);
+            src.updateImage({ url });
+            if (src.setCoordinates) src.setCoordinates(data.coordinates);
+            _glTmImgUrl[id] = url;
+            _glTmHasImg[id] = true;
+        }
+        applyTsujiMeshLayerVisibility();
+    };
+    if (!data) { apply(null); return; }
+    data.canvas.toBlob((blob) => {
+        if (!blob) {
+            // iOS等でキャンバスが大きすぎる/メモリ不足だとtoBlobがnullを返す。無音で空になると
+            // 「描画されない」不具合の切り分けができないため、ステータスに表示して記録する
+            console.warn('辻メッシュ画像の生成に失敗(toBlob=null): ' + id + ' ' + data.canvas.width + 'px');
+            const st = document.getElementById('tsujimesh-status');
+            if (st) st.textContent = 'メッシュ画像の生成に失敗しました(端末のメモリ不足の可能性)';
+            apply(null);
+            return;
+        }
+        apply(URL.createObjectURL(blob));
+    }, 'image/png');
 }
 /** 検索範囲bounds({west,east,north,south})→imageソースの四隅([[W,N],[E,N],[E,S],[W,S]]) */
 function _tmGlCoords(bounds) {
@@ -2701,6 +2739,7 @@ function updateCalculation() {
             drawDirectionLine(appState.start.lat, appState.start.lng, hor.azimuth, hor.altitude, body);
         }
     });
+    _glSetSourceData('dir-lines', _glDirFeatures);   // 全天体分をまとめて1回反映(setDataのバッチ化)
 
     updateShortcutsData(startOfDay, observer);
     updateTwilightData(startOfDay, observer);
@@ -2795,6 +2834,9 @@ async function updateDPLines() {
         drawDPPath(pCurr, body.color, dashDotDot, false, +1);
         drawDPPath(pCurr, body.color, dashDotDot, false, -1);
     });
+    // 全天体・全線種をまとめて1回で反映(作法: ループ内setDataの禁止)
+    _glSetSourceData('dp-lines', _glDpFeatures);
+    _glSetSourceData('dp-times', _glDpTimeFeatures);
 }
 
 async function updateDP365Lines() {
@@ -3299,10 +3341,10 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
     const endPos = getDestinationRhumb(lat, lng, azimuth, 3000000); // 3000km
 
     const opacity = altitude < 0 ? 0.3 : 1.0;
+    // ソースへの反映は呼び出し元(updateCalculation)が全天体分をまとめて1回行う(作法: setDataのバッチ化)
     _glDirFeatures.push({ type: 'Feature',
         properties: { color: body.color, opacity, dashed: !!body.isDashed },
         geometry: { type: 'LineString', coordinates: [[lng, lat], [endPos.lng, endPos.lat]] } });
-    _glSetSourceData('dir-lines', _glDirFeatures);
 }
 
 // ============================================================
@@ -7909,9 +7951,10 @@ function applyTsujiMeshLayerVisibility() {
     const setVis = (ids, on) => ids.forEach(id => {
         if (glMap.getLayer(id)) glMap.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     });
-    // メッシュ画像/辻マーカー画像は「中身が空」の時はvisibleにしない(_glTmSetImageがnone化した状態を尊重)
-    if (!_glTmMeshShown) setVis(['tm-mesh-img'], false);
-    if (!_glTmGoldShown) setVis(['tm-gold-img'], false);
+    // 画像レイヤは「チェックボックスON かつ 画像に中身がある」時だけ表示(両方向に設定する。
+    // OFF→ONで戻らないバグの修正: 表示状態はここに一元化し、_glTmSetImageは中身フラグだけ更新する)
+    setVis(['tm-mesh-img'], _glTmMeshShown && _glTmHasImg['tm-mesh-img']);
+    setVis(['tm-gold-img'], _glTmGoldShown && _glTmHasImg['tm-gold-img']);
     setVis(['tm-gold-dots'], _glTmGoldShown);
     (_glMarkerGroups.tmpin || []).forEach(m => { m.getElement().style.display = _glTmGoldShown ? '' : 'none'; });
     if (!_glTmGoldShown && !_glTmMeshShown) _glTmHideTip();
@@ -7944,8 +7987,8 @@ function _tmBuildOverlay(paint, rgba) {
         data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
     });
     ctx.putImageData(img, 0, 0);
-    // imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す)
-    return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
+    // imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す。canvasのままtoBlobで受け渡す)
+    return { canvas, coordinates: _tmGlCoords(C.bounds) };
 }
 
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
@@ -7954,14 +7997,15 @@ function _tmBuildOverlay(paint, rgba) {
  *  件数比で線形補間する(既定では白→金のグラデーション)。最大件数=1タイルに含まれる全表示天体での
  *  合計件数をタイル間で比べた最大値。最大件数(2件以上ある時)のタイルは金色と赤色の斜め縞模様
  *  (縞はグローバル座標基準で、隣接する最大値タイル同士で連続する)。0件の画素は無色(描かない)。
- *  1タイル=8×8ピクセルで高精細に描く(検索エリアが広い場合はキャンバス上限のため4×4/2×2へ自動縮小)。
- *  pixelatedで拡大してもシャープに保ち、描画は検索/表示変更時の1回のみでズームには自動追従する。 */
+ *  1タイルのピクセル数Sは「キャンバス最大辺2048px」に収まるよう自動決定する(スマホのキャンバス面積
+ *  上限/GPUテクスチャ上限対策。旧実装の最大6144pxはiPhoneで描画失敗/クラッシュの原因だった)。
+ *  拡大時のシャープさはrasterレイヤのnearest補間が担うため、Sが小さくても見た目は保たれる。 */
 function _tmBuildGradientOverlay() {
     const C = _tsujiMeshCalc, E = _tsujiMeshPixEntries;
     if (!C || !C.grid || !E) return null;
     const W = C.gridW;
-    // 1タイルあたりのピクセル数(3×3=8、4×4/5×5=4、6×6=2。キャンバスのメモリ上限のため)
-    const S = W <= 768 ? 8 : (W <= 1280 ? 4 : 2);
+    // 1タイルあたりのピクセル数: 最大辺2048pxに収まる最大のS(1/2/4/8)
+    const S = Math.max(1, Math.min(8, Math.floor(2048 / W)));
     const n = _tsujiMeshPix.lat.length;
     let maxCnt = 1;
     for (let p2 = 0; p2 < n; p2++) {
@@ -8008,7 +8052,7 @@ function _tmBuildGradientOverlay() {
     }
     ctx.putImageData(img, 0, 0);
     // imageソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
-    return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
+    return { canvas, coordinates: _tmGlCoords(C.bounds) };
 }
 
 function _tmPixAtLatLng(latlng) {
