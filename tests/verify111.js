@@ -79,31 +79,36 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     check('Q3 辻ラインOFFで線/時刻点/ラベルが全て消える', r.nf===0&&r.nt===0&&r.labels===0, JSON.stringify(r));
   }
 
-  // Q4: 辻ライン365 — GL描画経路(セグメント分割/逐次表示/表示切替/全消去)
+  // Q4: 辻ライン365 — GL描画経路(1日=1 MultiLineString[第31Rでクラッシュ対策の増分更新化]・
+  //     セグメント分割・逐次表示・表示切替・全消去)
   {
     const r=await p.evaluate(async()=>{
+      const gd=async()=>{ const s=glMap.getSource('dp365-lines');
+        return s.getData ? await s.getData() : s._data; };   // updateData後は_dataが古いためgetDataで読む
       const pts=[];
       // 方位が5°超で飛ぶ点を1つ入れて2セグメントに割れることを確認する
       for(let i=0;i<10;i++) pts.push({ lat:35+i*0.01, lng:138+i*0.01, az:100+(i>=5?10:0)+i*0.1, dist:50000 });
-      glDrawDP365Path(pts, '#00c800', 'Moon');
-      await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
-      const after=glMap.getSource('dp365-lines')._data.features.length;
+      glDrawDP365Path(pts, '#00c800', 'Moon');   // 先頭呼び出しは即時反映(leading)
+      await new Promise(res=>setTimeout(res,300));
+      const d1=await gd();
+      const after=d1.features.length;
+      const segs=after===1?d1.features[0].geometry.coordinates.length:0;
       // 表示切替: Moonを非表示にした状態のsync(=visibleから除外)
       _glDp365Visible=new Set();
       _glDp365Flush();
-      await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
-      const hidden=glMap.getSource('dp365-lines')._data.features.length;
+      await new Promise(res=>setTimeout(res,200));
+      const hidden=(await gd()).features.length;
       // 再表示(キャッシュから)
       _glDp365Visible=new Set(['Moon']);
       _glDp365Flush();
-      await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
-      const reshown=glMap.getSource('dp365-lines')._data.features.length;
+      await new Promise(res=>setTimeout(res,200));
+      const reshown=(await gd()).features.length;
       clearAllDP365Layers();
-      await new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(res)));
-      const cleared=glMap.getSource('dp365-lines')._data.features.length;
-      return { after, hidden, reshown, cleared, lyr: !!glMap.getLayer('dp365') };
+      await new Promise(res=>setTimeout(res,200));
+      const cleared=(await gd()).features.length;
+      return { after, segs, hidden, reshown, cleared, lyr: !!glMap.getLayer('dp365') };
     });
-    check('Q4 辻ライン365: 2セグメント逐次表示→切替0→再表示→全消去', r.after===2&&r.hidden===0&&r.reshown===2&&r.cleared===0&&r.lyr,
+    check('Q4 辻ライン365: 1日=1feature(2セグメント)逐次表示→切替0→再表示→全消去', r.after===1&&r.segs===2&&r.hidden===0&&r.reshown===1&&r.cleared===0&&r.lyr,
       JSON.stringify(r));
   }
 

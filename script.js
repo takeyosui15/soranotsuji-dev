@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.33.1 - 2026-07-19: fix: 辻ライン365(辻ボタン)の描画中にブラウザの描画プロセスが落ちる不具合(Macの「エラーコード5」)を修正 — MapLibre版の辻ライン365は描画のたびに全データ(太陽827点/日+月581点/日×365日≈51万点)のGeoJSONを作り直してsetDataしており、成長する巨大データの全再インデックスが計算中に何十回も走ってメモリ/GPUを圧迫していた。1日分を1つのMultiLineString featureにまとめ、ソースへはupdateDataの増分追加(先頭は即時・以後1秒毎にまとめるleading+trailingスロットル)で反映する方式に変更(全再構築は表示天体の切替/全消去時のみ)。updateData非対応環境ではスロットル済みの全再構築にフォールバック
 Version 1.33.0 - 2026-07-19: feat: 本体地図のMapLibre移行R6(既定切替) — 本体地図の既定エンジンをLeafletからMapLibre GL JSへ切替(全5機能群の移行完了を受けた手順3の仕上げ)。URLに?maplibre=0を付けると旧Leaflet地図に戻せる(実機確認期間の保険。共有URLには付与されない)・移行中バッジを撤去・localStorage/短縮URLの状態は両エンジンで共通(エンジンを跨いでも位置/設定が保たれる)。Leaflet本体の撤去(手順4)は実機確認後に実施予定(旧動作のverify96〜108は?maplibre=0で歴史的挙動を検証し続ける)
 Version 1.32.0 - 2026-07-19: feat: 本体地図のMapLibre移行R5(機能群5=辻メッシュ。最重量) — ?maplibre=1時のメッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)をimageソース+rasterレイヤ(raster-resampling:nearestでpixelated相当のシャープ表示・更新はupdateImage)・金ドット(選択行のヒット画素×最大5000)をcircleレイヤ化(クリックで観測点設定+ホバーで精度角距離のツールチップをレイヤイベントで再現)・優辻ピン(DOMマーカー。クリックでポップアップ/ホバーで精細化ツールチップ)・画素/ピンのポップアップ(クリックで観測点移動する内容ブロック・メッシュ確定中の詳細リスト固定と閉で解除)・ホバーツールチップ(map mousemove連動)・観測点マーカーの詳細リスト連動(ホバー/ポップアップ固定/常に開くクリック)・表示切替(チェックボックス+天体表示)をレイヤvisibilityで再現・金ドット上のクリックは一般クリック(地点移動)に流さない(queryRenderedFeatures)・レイヤ表示状態の共通問い合わせ口_tmLayerShown(mesh/gold)を新設しhasLayer5箇所を置換
 Version 1.31.0 - 2026-07-19: feat: 本体地図のMapLibre移行R4(機能群4=宙検索オーバーレイ) — ?maplibre=1時の視界扇形(fill+lineレイヤ。輪郭は標本化と同じ簡易平面近似)・扇形標本点(circleレイヤ。塗りデータ駆動=行選択時にその時刻の雲量で白〜濃灰着色)・標本点ホバーのツールチップ(格子/重み/層別雲量。mousemove+mouseleaveのPopup)・パネル✕/再検索での消去。計画書の機能群4のうち「辻マーカー」は辻メッシュ機能の一部のためR5で移行(計画書に注記)
@@ -93,7 +94,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.33.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.33.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1182,7 +1183,14 @@ function glDrawDPPath(points, color, dashArray, withMarkers, azOffset) {
     _glSetSourceData('dp-times', _glDpTimeFeatures);
 }
 
-/** 辻ライン365(drawDP365PathのMapLibre版)。RAFで合流して一括setDataする */
+/** 辻ライン365(drawDP365PathのMapLibre版)。
+ *  365日×天体で計50万点規模になるため、1呼び出し(=1日分)を1つのMultiLineStringにまとめ、
+ *  ソースへは**updateDataの増分追加**で反映する(全再構築のsetDataを描画毎に繰り返すと
+ *  巨大GeoJSONの再インデックスが何十回も走り、メモリ/GPU圧迫で描画プロセスが落ちる
+ *  [Macの「エラーコード5」]。第31ラウンドの不具合修正)。 */
+let _glDp365Seq = 0;          // feature id(updateDataは一意idが必要)
+let _glDp365Pending = [];     // 増分追加待ちのfeature
+let _glDp365LastFlush = 0;
 function glDrawDP365Path(points, color, bodyId) {
     if (!points || points.length === 0) return;
     const targetPt = appState.end;
@@ -1201,21 +1209,55 @@ function glDrawDP365Path(points, color, bodyId) {
         cur.push([dest.lng, dest.lat]);
     }
     if (cur.length > 0) segments.push(cur);
-    const list = (_glDp365Features[bodyId] = _glDp365Features[bodyId] || []);
-    segments.forEach(seg => list.push({ type: 'Feature', properties: { color },
-        geometry: { type: 'LineString', coordinates: seg } }));
+    if (segments.length === 0) return;
+    const feat = { type: 'Feature', id: ++_glDp365Seq, properties: { color, body: bodyId },
+        geometry: { type: 'MultiLineString', coordinates: segments } };
+    (_glDp365Features[bodyId] = _glDp365Features[bodyId] || []).push(feat);
     _glDp365Visible.add(bodyId);   // Leaflet版の「計算でき次第layerをmapへ」と同じ逐次表示
-    _glDp365Flush();
+    _glDp365Pending.push(feat);
+    _glDp365ScheduleFlush();
 }
 
-function _glDp365Flush() {
-    if (!glMap || _glDp365FlushReq) return;
-    _glDp365FlushReq = requestAnimationFrame(() => {
+/** 増分追加の反映。先頭は即時、以後は1秒毎にまとめて流す(leading+trailingスロットル) */
+function _glDp365ScheduleFlush() {
+    if (!glMap) return;
+    const now = Date.now();
+    if (now - _glDp365LastFlush > 1000) {
+        _glDp365LastFlush = now;
+        _glDp365ApplyPending();
+        return;
+    }
+    if (_glDp365FlushReq) return;
+    _glDp365FlushReq = setTimeout(() => {
         _glDp365FlushReq = null;
-        const feats = [];
-        _glDp365Visible.forEach(id => (_glDp365Features[id] || []).forEach(f => feats.push(f)));
-        _glSetSourceData('dp365-lines', feats);
-    });
+        _glDp365LastFlush = Date.now();
+        _glDp365ApplyPending();
+    }, 1000);
+}
+function _glDp365ApplyPending() {
+    const src = glMap && glMap.getSource('dp365-lines');
+    if (!src) return;
+    if (!_glDp365Pending.length) return;
+    if (src.updateData) {
+        src.updateData({ add: _glDp365Pending });   // 既存インデックスへの増分追加(全再構築なし)
+        _glDp365Pending = [];
+    } else {
+        _glDp365Pending = [];                       // updateData非対応時: スロットル済みの全再構築
+        _glDp365RebuildAll();
+    }
+}
+function _glDp365RebuildAll() {
+    const feats = [];
+    _glDp365Visible.forEach(id => (_glDp365Features[id] || []).forEach(f => feats.push(f)));
+    _glSetSourceData('dp365-lines', feats);
+}
+
+/** 表示集合の変更(天体切替)/全消去時: 保留を破棄してキャッシュから即時に全再構築する */
+function _glDp365Flush() {
+    if (!glMap) return;
+    if (_glDp365FlushReq) { clearTimeout(_glDp365FlushReq); _glDp365FlushReq = null; }
+    _glDp365Pending = [];
+    _glDp365RebuildAll();
 }
 
 // ==== R4: MapLibre宙検索オーバーレイ(機能群4) ====

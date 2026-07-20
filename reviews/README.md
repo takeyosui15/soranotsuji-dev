@@ -16,3 +16,4 @@ Claude(AI)が大きめの差分に対して実施したコミット前レビュ�
 | `2026-07-19-round28-review.md` | 第28ラウンド(v1.31.0 本体地図MapLibre移行R4): 辻マーカー=辻メッシュ要素の確認(R4の実体は宙検索オーバーレイ)・消去のssClearMapOverlay集約・ホバーツールチップの実マウス検証 |
 | `2026-07-19-round29-review.md` | 第29ラウンド(v1.32.0 本体地図MapLibre移行R5=辻メッシュ): updateImageはcoordinates非反映(setCoordinates併用の実バグ発見)・クリック伝播の既定差をstopPropagation/queryRenderedFeaturesで吸収・表示判定の_tmLayerShown集約 |
 | `2026-07-19-round30-review.md` | 第30ラウンド(v1.33.0 本体地図MapLibre移行R6=既定切替): 既定切替とLeaflet撤去の二段分離(?maplibre=0の退避保険)・旧verifyのフラグピン留め=歴史的挙動の検証・エンジン跨ぎの状態互換確認 |
+| `2026-07-19-round31-review.md` | 第31ラウンド(v1.33.1 辻ライン365クラッシュ修正): 実機の「エラーコード5」=51万点の全再構築setData繰り返しが原因(増分→全量置き換えの移植ミス)・updateData増分+スロットルへ・実測規模の合成負荷テストの必要性 |
