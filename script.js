@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.36.0 - 2026-07-20: feat: 封鎖UIのindex.htmlからの分離+地図コントロールのボタンサイズ統一 — ①封鎖中の予測系機能(宙検索/My宙検索/宙断面)のボタン/メニュー/パネルのHTML(5ブロック・約160行)をindex.htmlから削除しforecast-features.htmlへ分離。index.htmlには空スロット(ff-slot-*)のみ残し、開発時(?forecast=1)はloadForecastFeaturesがfetch+templateで各スロットへ注入して完全復元(注入はsetupUIより前のため配線もそのまま効く)。既定ページのDOMには封鎖機能の要素が一切存在しない ②左上コントロールのボタンサイズ統一: 自作ボタン(⌖/レイヤ切替/パン)26pxとMapLibre標準ズームボタン29pxが不揃いだったため全て29pxに統一(レイヤリストの位置も追従)
 Version 1.35.0 - 2026-07-20: feat: リリース方針による予測系機能の一時封鎖+地図ボタンのアイコン中心ズレ修正 — ①「確実なものから提供する」方針(たけちゃんさん判断)により、予測が関係する宙検索・My宙検索・宙断面ビューを非表示(機能封鎖)に。メニュー/ボタンを隠し実行もガード。Myセットのシートも従来の4シート構成(My宙検索タブは作成も読み書きもしない。既存タブには触れない)。コードとデータ構造は温存し、開発時はURLに?forecast=1で表示可能(公開判断後は既定をtrueに戻すだけ)。今回のリリース対象=全天儀/辻メッシュ検索/宙の窓/Myセット(+従来機能) ②左上の⌖(中央表示)/レイヤ切替ボタンのアイコン中心ズレを修正(.gl-bar aのdisplay:blockが後続のflex中央寄せを上書きしていた手順4の移植回帰。flex中央寄せに統一)
 Version 1.34.0 - 2026-07-20: feat: 地図全面移行計画 完了(手順4=Leaflet撤去) — Leaflet本体(scriptタグ/CSS/L.*約120箇所)とシャドウ地図・エンジン分岐(USE_MAPLIBRE)を全撤去し、本体地図はMapLibre GL JSのみに。旧URLフラグ?maplibre=0/1は無視(過去の共有URLでも無害)。L.latLng().distanceTo()の純計算用途はLeaflet互換のHaversine(_geoDistM。R=6371000)へ置換して従来の数値を維持・地図コントロールの地スタイル(白ボタン/角丸/影)は旧leaflet.css相当をstyle.cssの.gl-barへ移植・辻メッシュ詳細リストの行ジャンプで観測点ポップアップが開かない潜在バグ(Leaflet APIのopenPopup残り)を修正・ペイロードはleaflet撤去分(約42KB gzip)軽量化
 Version 1.33.1 - 2026-07-19: fix: 辻ライン365(辻ボタン)の描画中にブラウザの描画プロセスが落ちる不具合(Macの「エラーコード5」)を修正 — MapLibre版の辻ライン365は描画のたびに全データ(太陽827点/日+月581点/日×365日≈51万点)のGeoJSONを作り直してsetDataしており、成長する巨大データの全再インデックスが計算中に何十回も走ってメモリ/GPUを圧迫していた。1日分を1つのMultiLineString featureにまとめ、ソースへはupdateDataの増分追加(先頭は即時・以後1秒毎にまとめるleading+trailingスロットル)で反映する方式に変更(全再構築は表示天体の切替/全消去時のみ)。updateData非対応環境ではスロットル済みの全再構築にフォールバック
@@ -96,7 +97,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.35.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.36.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -247,25 +248,30 @@ const FEATURE_FORECAST_ENABLED = (() => {
     try { return new URLSearchParams(window.location.search).get('forecast') === '1'; } catch (e) { return false; }
 })();
 
-/** 封鎖中の予測系機能(宙検索/My宙検索/宙断面)のUIを隠す(initから呼ぶ) */
-function applyForecastFeatureVisibility() {
-    if (FEATURE_FORECAST_ENABLED) return;
-    // メニュー(ヘッダ+内容): 宙検索・My宙検索
-    ['sec-sorasearch', 'sec-mysora'].forEach(id => {
-        const sec = document.getElementById(id);
-        if (!sec) return;
-        sec.classList.add('hidden');
-        if (sec.previousElementSibling) sec.previousElementSibling.classList.add('hidden');
-    });
-    // 宙断面ボタン(行ごと隠す)
-    const sdBtn = document.getElementById('btn-soradanmen');
-    if (sdBtn && sdBtn.parentElement) sdBtn.parentElement.classList.add('hidden');
-    // Myセットの説明文からMy宙検索を外す
-    const sw = document.getElementById('btn-myset-switch');
-    if (sw && sw.title) sw.title = sw.title.replace('/My天体/My宙検索', '/My天体');
-    // 前回セッションの残り状態を無効化(パネルが復元で開かないように)
-    appState.isSoraSearchActive = false;
-    appState.isSoradanmenActive = false;
+/** 封鎖中の予測系機能のUIはindex.htmlから分離済み(forecast-features.html)。
+ *  開発時(?forecast=1)のみ、各スロット(ff-slot-*)へfetchで注入して復元する。
+ *  initのsetupUIより前にawaitで呼ぶ(注入後は通常の配線がそのまま効く)。 */
+async function loadForecastFeatures() {
+    if (!FEATURE_FORECAST_ENABLED) {
+        // 封鎖中: 前回セッションの残り状態を無効化(パネルが復元で開かないように)
+        appState.isSoraSearchActive = false;
+        appState.isSoradanmenActive = false;
+        return;
+    }
+    try {
+        const res = await fetch('forecast-features.html');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        doc.querySelectorAll('template[data-ff-slot]').forEach(tpl => {
+            const slot = document.getElementById('ff-slot-' + tpl.dataset.ffSlot);
+            if (slot) slot.replaceWith(tpl.content);
+        });
+        // Myセットの説明文にMy宙検索を戻す(index.htmlは4シート表記が既定)
+        const sw = document.getElementById('btn-myset-switch');
+        if (sw && sw.title) sw.title = sw.title.replace('/My天体を', '/My天体/My宙検索を');
+    } catch (e) {
+        console.warn('forecast-features.html の読込に失敗(封鎖UIは表示されません):', e);
+    }
 }
 // PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
 // (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
@@ -522,7 +528,7 @@ let currentRiseSetData = {};
 // 3. 初期化プロセス
 // ============================================================
 
-window.onload = function() {
+window.onload = async function() {
     console.log(`宙の辻: 起動 (v${getAppVersion()})`);
     const verEl = document.getElementById('app-version');
     if (verEl) verEl.textContent = 'v' + getAppVersion();   // フッターのバージョン表示もAPP_VERSIONから反映
@@ -548,14 +554,14 @@ window.onload = function() {
     // 2.5. URLパラメータからの復元（LocalStorageより優先）
     restoreFromUrl();
 
+    // 2.7. 封鎖中の予測系機能: 開発時(?forecast=1)のみUIを注入(既定は何もしない)
+    await loadForecastFeatures();
+
     // 3. 地図初期化
     initMap();
 
     // 4. UI構築
     setupUI();
-
-    // 4.5. リリース方針による予測系機能の封鎖(宙検索/My宙検索/宙断面の非表示)
-    applyForecastFeatureVisibility();
 
     // 5. 初期状態反映
     if (appState.isDPActive) {

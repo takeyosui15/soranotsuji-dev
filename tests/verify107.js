@@ -14,7 +14,9 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
     // 版数ピンは最新のverifyのみに置く運用(第24ラウンド〜。バージョン更新漏れは最新verifyが検知する)
     const html=fs.readFileSync(path.join(__dirname, '..', 'index.html'),'utf8');
-    check('D0 index.htmlにMapLibreタグ+宙断面ボタン+パネル', /maplibre-gl@[\d.]+\/dist\/maplibre-gl\.js/.test(html)&&html.includes('btn-soradanmen')&&html.includes('soradanmen-panel'));
+    // 宙断面のボタン/パネルは第34ラウンドでforecast-features.htmlへ分離(封鎖UI)
+    const ff=fs.readFileSync(path.join(__dirname, '..', 'forecast-features.html'),'utf8');
+    check('D0 MapLibreタグ(index.html)+宙断面ボタン/パネル(forecast-features.html)', /maplibre-gl@[\d.]+\/dist\/maplibre-gl\.js/.test(html)&&ff.includes('btn-soradanmen')&&ff.includes('soradanmen-panel'));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});

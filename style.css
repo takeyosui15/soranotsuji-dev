@@ -2426,7 +2426,7 @@ input[type="range"] {
 .gl-layer-control > a svg { display: block; }
 .gl-layer-list {
     position: absolute;
-    left: 30px;
+    left: 33px;
     top: 0;
     background: #fff;
     border: 1px solid #ccc;
@@ -2445,8 +2445,8 @@ input[type="range"] {
     display: flex;               /* SVGアイコン/文字をボタン中央へ(blockだと後続のflex指定を上書きしてずれる) */
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 29px;                 /* MapLibre標準のズームボタン(29px)とサイズを統一 */
+    height: 29px;
     background-color: #fff;
     border-bottom: 1px solid #ccc;
     color: black;

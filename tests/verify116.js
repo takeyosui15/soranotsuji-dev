@@ -86,7 +86,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const bar=document.querySelector('.gl-bar');
       return { hasBar: !!bar, bg: cs?cs.backgroundColor:'', w: cs?cs.width:'' };
     });
-    check('V4 .gl-barスタイル移植(白背景26pxボタン)', r.hasBar&&r.bg==='rgb(255, 255, 255)'&&r.w==='26px', JSON.stringify(r));
+    check('V4 .gl-barスタイル移植(白背景29pxボタン。第34ラウンドでMapLibre標準と統一)', r.hasBar&&r.bg==='rgb(255, 255, 255)'&&r.w==='29px', JSON.stringify(r));
   }
 
   // V5: 一連の主要操作がエラーなく動く(地点移動→recenter→辻ライン→メッシュ合成→宙断面開閉)

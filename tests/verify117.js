@@ -12,9 +12,10 @@ const ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftsha
 let PASS=0, FAIL=0;
 const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); ok?PASS++:FAIL++; };
 (async()=>{
+  // 版数ピンは最新のverify(現在は118)のみに置く(テスト方針)。ここでは存在だけ確認する
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('W0 APP_VERSION 1.35.0', src.includes("APP_VERSION = '1.35.0'"));
+    check('W0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -29,21 +30,15 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   await p.waitForFunction(()=>typeof glMap==='object'&&glMap!==null,{timeout:10000});
   await p.waitForTimeout(600);
 
-  // W1: 3機能のUIが非表示(メニューのヘッダ+内容・宙断面ボタン行)
+  // W1: 3機能のUIがDOMに存在しない(第34ラウンドでindex.htmlから物理削除。詳細検証はverify118)
   {
-    const r=await p.evaluate(()=>{
-      const hidden=(el)=>!el||el.classList.contains('hidden')||getComputedStyle(el).display==='none';
-      const sec=(id)=>{ const c=document.getElementById(id); return { c: hidden(c), h: hidden(c&&c.previousElementSibling) }; };
-      const sd=document.getElementById('btn-soradanmen');
-      return {
-        flag: FEATURE_FORECAST_ENABLED,
-        sora: sec('sec-sorasearch'), mysora: sec('sec-mysora'),
-        sdRowHidden: hidden(sd&&sd.parentElement),
-        switchTitle: document.getElementById('btn-myset-switch').title,
-      };
-    });
-    check('W1 宙検索/My宙検索メニューと宙断面ボタンが非表示', !r.flag&&r.sora.c&&r.sora.h&&r.mysora.c&&r.mysora.h&&r.sdRowHidden,
-      JSON.stringify({sora:r.sora,mysora:r.mysora,sd:r.sdRowHidden}));
+    const r=await p.evaluate(()=>({
+      flag: FEATURE_FORECAST_ENABLED,
+      gone: ['sec-sorasearch','sec-mysora','btn-soradanmen','sorasearch-panel','soradanmen-panel']
+        .every(id=>!document.getElementById(id)),
+      switchTitle: document.getElementById('btn-myset-switch').title,
+    }));
+    check('W1 宙検索/My宙検索/宙断面のUIがDOMに存在しない', !r.flag&&r.gone, JSON.stringify(r));
     check('W1 Myセット説明からMy宙検索が外れる', /My天体を切り替えます/.test(r.switchTitle)&&!/My宙検索/.test(r.switchTitle), r.switchTitle);
   }
 
