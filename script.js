@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.35.0 - 2026-07-20: feat: リリース方針による予測系機能の一時封鎖+地図ボタンのアイコン中心ズレ修正 — ①「確実なものから提供する」方針(たけちゃんさん判断)により、予測が関係する宙検索・My宙検索・宙断面ビューを非表示(機能封鎖)に。メニュー/ボタンを隠し実行もガード。Myセットのシートも従来の4シート構成(My宙検索タブは作成も読み書きもしない。既存タブには触れない)。コードとデータ構造は温存し、開発時はURLに?forecast=1で表示可能(公開判断後は既定をtrueに戻すだけ)。今回のリリース対象=全天儀/辻メッシュ検索/宙の窓/Myセット(+従来機能) ②左上の⌖(中央表示)/レイヤ切替ボタンのアイコン中心ズレを修正(.gl-bar aのdisplay:blockが後続のflex中央寄せを上書きしていた手順4の移植回帰。flex中央寄せに統一)
 Version 1.34.0 - 2026-07-20: feat: 地図全面移行計画 完了(手順4=Leaflet撤去) — Leaflet本体(scriptタグ/CSS/L.*約120箇所)とシャドウ地図・エンジン分岐(USE_MAPLIBRE)を全撤去し、本体地図はMapLibre GL JSのみに。旧URLフラグ?maplibre=0/1は無視(過去の共有URLでも無害)。L.latLng().distanceTo()の純計算用途はLeaflet互換のHaversine(_geoDistM。R=6371000)へ置換して従来の数値を維持・地図コントロールの地スタイル(白ボタン/角丸/影)は旧leaflet.css相当をstyle.cssの.gl-barへ移植・辻メッシュ詳細リストの行ジャンプで観測点ポップアップが開かない潜在バグ(Leaflet APIのopenPopup残り)を修正・ペイロードはleaflet撤去分(約42KB gzip)軽量化
 Version 1.33.1 - 2026-07-19: fix: 辻ライン365(辻ボタン)の描画中にブラウザの描画プロセスが落ちる不具合(Macの「エラーコード5」)を修正 — MapLibre版の辻ライン365は描画のたびに全データ(太陽827点/日+月581点/日×365日≈51万点)のGeoJSONを作り直してsetDataしており、成長する巨大データの全再インデックスが計算中に何十回も走ってメモリ/GPUを圧迫していた。1日分を1つのMultiLineString featureにまとめ、ソースへはupdateDataの増分追加(先頭は即時・以後1秒毎にまとめるleading+trailingスロットル)で反映する方式に変更(全再構築は表示天体の切替/全消去時のみ)。updateData非対応環境ではスロットル済みの全再構築にフォールバック
 Version 1.33.0 - 2026-07-19: feat: 本体地図のMapLibre移行R6(既定切替) — 本体地図の既定エンジンをLeafletからMapLibre GL JSへ切替(全5機能群の移行完了を受けた手順3の仕上げ)。URLに?maplibre=0を付けると旧Leaflet地図に戻せる(実機確認期間の保険。共有URLには付与されない)・移行中バッジを撤去・localStorage/短縮URLの状態は両エンジンで共通(エンジンを跨いでも位置/設定が保たれる)。Leaflet本体の撤去(手順4)は実機確認後に実施予定(旧動作のverify96〜108は?maplibre=0で歴史的挙動を検証し続ける)
@@ -95,7 +96,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.34.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.35.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -236,6 +237,36 @@ const COLOR_MAP = [
 // 旧URLフラグ ?maplibre=0/1 は無視される(過去の共有URLに付いていても無害)。
 let glMap = null;            // MapLibre本体
 let _glBaseLayerId = 'std';  // 表示中のベースレイヤ(std/photo/pale/osm)
+
+// ==== リリース方針(2026-07-20 たけちゃんさん判断): 予測系機能の一時封鎖 ====
+// 宙検索・My宙検索・宙断面ビューは「確実なものから提供する」方針により、今回のリリースでは
+// 非表示(機能封鎖)にする。コードとデータ構造は温存し、開発時はURLに ?forecast=1 を付けると
+// 表示できる。公開の判断が出たら既定を true に戻すだけで再有効化できる。
+// 封鎖中はMyセットのシートも従来の4シート構成(My宙検索タブは作成も読み書きもしない)。
+const FEATURE_FORECAST_ENABLED = (() => {
+    try { return new URLSearchParams(window.location.search).get('forecast') === '1'; } catch (e) { return false; }
+})();
+
+/** 封鎖中の予測系機能(宙検索/My宙検索/宙断面)のUIを隠す(initから呼ぶ) */
+function applyForecastFeatureVisibility() {
+    if (FEATURE_FORECAST_ENABLED) return;
+    // メニュー(ヘッダ+内容): 宙検索・My宙検索
+    ['sec-sorasearch', 'sec-mysora'].forEach(id => {
+        const sec = document.getElementById(id);
+        if (!sec) return;
+        sec.classList.add('hidden');
+        if (sec.previousElementSibling) sec.previousElementSibling.classList.add('hidden');
+    });
+    // 宙断面ボタン(行ごと隠す)
+    const sdBtn = document.getElementById('btn-soradanmen');
+    if (sdBtn && sdBtn.parentElement) sdBtn.parentElement.classList.add('hidden');
+    // Myセットの説明文からMy宙検索を外す
+    const sw = document.getElementById('btn-myset-switch');
+    if (sw && sw.title) sw.title = sw.title.replace('/My天体/My宙検索', '/My天体');
+    // 前回セッションの残り状態を無効化(パネルが復元で開かないように)
+    appState.isSoraSearchActive = false;
+    appState.isSoradanmenActive = false;
+}
 // PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
 // (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
 let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
@@ -522,6 +553,9 @@ window.onload = function() {
 
     // 4. UI構築
     setupUI();
+
+    // 4.5. リリース方針による予測系機能の封鎖(宙検索/My宙検索/宙断面の非表示)
+    applyForecastFeatureVisibility();
 
     // 5. 初期状態反映
     if (appState.isDPActive) {
@@ -11206,7 +11240,9 @@ async function sheetsApiFetch(path, method, bodyObj) {
     return resp.json();
 }
 
-const MYSET_SHEET_NAMES = ['My辻検索', 'My観測点', 'My目的点', 'My天体', 'My宙検索'];
+const MYSET_SHEET_NAMES = FEATURE_FORECAST_ENABLED
+    ? ['My辻検索', 'My観測点', 'My目的点', 'My天体', 'My宙検索']
+    : ['My辻検索', 'My観測点', 'My目的点', 'My天体'];   // 封鎖中はMy宙検索タブを作成/読み書きしない(既存タブには触れない)
 
 /** Myセットの内容 → 5シート分の2次元セル配列 (CSV出力と同じ列構成+先頭にコメント行)。
  *  commentsBySheet(シート名→温存する既存コメント行)があればそれを、無ければ既定の2行を先頭に置く */
@@ -16191,6 +16227,7 @@ async function ssExecuteSearch(setBusy) {
 
 /** 宙検索の実行(検索ボタン): 専用の宙検索結果パネルに表示し、地図に扇形+標本点を重ねる */
 async function soraSearchRun() {
+    if (!FEATURE_FORECAST_ENABLED) return;   // 封鎖中(リリース方針)
     if (_ssRunning || _mySoraBatchRunning) return;   // My宙検索の一括実行中は単発検索を受け付けない(パネル競合防止)
     _ssRunning = true;
     const statusEl = document.getElementById('ss-status');
@@ -16659,6 +16696,7 @@ function _sdEnsureProtocol() {
 }
 
 function toggleSoradanmen() {
+    if (!FEATURE_FORECAST_ENABLED) return;   // 封鎖中(リリース方針)
     if (appState.isSoradanmenActive) closeSoradanmen();
     else openSoradanmen();
 }

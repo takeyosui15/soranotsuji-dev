@@ -15,7 +15,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
     const html=fs.readFileSync(path.join(__dirname, '..', 'index.html'),'utf8');
-    check('V0 APP_VERSION 1.34.0', src.includes("APP_VERSION = '1.34.0'"));
+    // 版数ピンは最新のverify(現在は117)のみに置く(テスト方針)。ここでは存在だけ確認する
+    check('V0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
     check('V0 index.htmlにleafletのタグ参照なし', !/leaflet\.(js|css)|unpkg\.com\/leaflet/i.test(html));
     // コメント行(// / *)とVersion History(冒頭コメント)を除いた実コードにLeaflet APIが無いこと
     const codeLines=src.split('\n').filter(l=>{ const t=l.trim(); return !(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')||t.startsWith('Version ')); });
@@ -29,7 +30,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?forecast=1',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&glMap.isStyleLoaded&&glMap.isStyleLoaded(),{timeout:10000});
   await p.waitForTimeout(800);
 

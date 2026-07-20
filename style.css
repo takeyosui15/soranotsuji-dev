@@ -373,7 +373,7 @@ html {
 /* ◀▶と▲▼の間隔は他のコントロールの間隔(Leaflet既定10px)と同じにする */
 .map-pan-control .map-pan-h { display: flex; flex-direction: row; margin-bottom: 10px; }
 /* ◀▶のサイズは指定しない(▲▼と同じLeaflet標準のボタンサイズを継承する) */
-.map-pan-control .map-pan-h a { display: inline-block; text-align: center; }
+.map-pan-control .map-pan-h a { display: flex; align-items: center; justify-content: center; }
 .map-pan-control .map-pan-h a:first-child { border-radius: 4px 0 0 4px; border-bottom: none; border-right: 1px solid #ccc; }
 .map-pan-control .map-pan-h a:last-child { border-radius: 0 4px 4px 0; }
 .map-pan-control a { font-size: 12px; color: black; text-decoration: none; }
@@ -2442,11 +2442,11 @@ input[type="range"] {
 /* 旧leaflet.cssのコントロール地スタイル相当(手順4のLeaflet撤去でここへ移植) */
 .gl-bar { border-radius: 4px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65); }
 .gl-bar a {
-    display: block;
+    display: flex;               /* SVGアイコン/文字をボタン中央へ(blockだと後続のflex指定を上書きしてずれる) */
+    align-items: center;
+    justify-content: center;
     width: 26px;
     height: 26px;
-    line-height: 26px;
-    text-align: center;
     background-color: #fff;
     border-bottom: 1px solid #ccc;
     color: black;

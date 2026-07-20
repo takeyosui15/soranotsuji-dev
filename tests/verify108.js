@@ -21,7 +21,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?forecast=1',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof toggleSoradanmen==='function',{timeout:8000});
   await p.waitForTimeout(800);
 

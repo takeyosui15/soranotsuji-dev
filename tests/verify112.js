@@ -23,7 +23,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html?maplibre=1',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?forecast=1',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&glMap.isStyleLoaded&&glMap.isStyleLoaded(),{timeout:10000});
   await p.waitForTimeout(600);
 
