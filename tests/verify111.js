@@ -54,16 +54,19 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const src=glMap.getSource('dp-lines');
       const feats=src?src._data.features:[];
       const dashes=[...new Set(feats.map(f=>f.properties.dash))].sort();
-      const times=glMap.getSource('dp-times')._data.features.length;
-      const labels=(_glMarkerGroups.dptime||[]).length;
+      const timeFeats=glMap.getSource('dp-times')._data.features;
+      const times=timeFeats.length;
+      // 時刻ラベルは第36ラウンドでDOMマーカー→symbolレイヤ(labelプロパティ)へ
+      const labels=timeFeats.filter(f=>/^\d{1,2}:\d{2}$/.test(f.properties.label||'')).length;
       const moonColor=appState.bodies.find(b2=>b2.id==='Moon').color;
       return { nf: feats.length, dashes: dashes.join(','), times, labels,
+               lblLayer: !!glMap.getLayer('dp-time-labels'),
                colorOk: feats.every(f=>f.properties.color===moonColor),
                lyrs: ['solid','dot','dash','dashdot','dashdotdot'].every(k=>!!glMap.getLayer('dp-'+k)) };
     });
     check('Q2 辻ライン: dash5種(実線/点線/破線/一点鎖線/二点鎖線)+月色', /dash,dashdot,dashdotdot,dot,solid/.test(r.dashes)&&r.colorOk&&r.lyrs,
       `dashes=${r.dashes} nf=${r.nf}`);
-    check('Q2 時刻マーカー: 5分毎の点+ラベルが同数で存在', r.times>0&&r.labels===r.times, `times=${r.times} labels=${r.labels}`);
+    check('Q2 時刻マーカー: 5分毎の点全てにHH:MMラベル(symbolレイヤ)', r.times>0&&r.labels===r.times&&r.lblLayer, `times=${r.times} labels=${r.labels}`);
   }
 
   // Q3: 辻ラインOFFで消える(updateAllのelse経路)
@@ -73,10 +76,9 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       updateAll();
       await new Promise(res=>setTimeout(res,200));
       return { nf: glMap.getSource('dp-lines')._data.features.length,
-               nt: glMap.getSource('dp-times')._data.features.length,
-               labels: (_glMarkerGroups.dptime||[]).length };
+               nt: glMap.getSource('dp-times')._data.features.length };
     });
-    check('Q3 辻ラインOFFで線/時刻点/ラベルが全て消える', r.nf===0&&r.nt===0&&r.labels===0, JSON.stringify(r));
+    check('Q3 辻ラインOFFで線/時刻点(=ラベル)が全て消える', r.nf===0&&r.nt===0, JSON.stringify(r));
   }
 
   // Q4: 辻ライン365 — GL描画経路(1日=1 MultiLineString[第31Rでクラッシュ対策の増分更新化]・

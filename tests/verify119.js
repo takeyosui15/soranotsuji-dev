@@ -18,7 +18,8 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('Y0 APP_VERSION 1.37.2', src.includes("APP_VERSION = '1.37.2'"));
+    // 版数ピンは最新のverify(現在は120)のみに置く(テスト方針)。ここでは存在だけ確認する
+    check('Y0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -53,26 +54,24 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
   await p.evaluate(()=>{ glMap.jumpTo({ center:[138.8025,35.5025], zoom:_glZoom(15) }); });
   await p.waitForTimeout(300);
 
-  // Y2: 再検索の繰り返し(描画→消去→描画×3)で毎回表示され、旧objectURLがrevokeされる
+  // Y2: 再検索の繰り返し(描画→消去→描画×3)で毎回**同期で**表示される
+  //     (第36ラウンドでcanvasソース化: PNG変換/objectURLが完全に廃止=生成0件を表明)
   {
-    const r=await p.evaluate(async()=>{
-      const revoked=[];
-      const origRevoke=URL.revokeObjectURL.bind(URL);
-      URL.revokeObjectURL=(u)=>{ revoked.push(u); return origRevoke(u); };
+    const r=await p.evaluate(()=>{
+      let objUrls=0;
+      const oc=URL.createObjectURL.bind(URL);
+      URL.createObjectURL=(x)=>{ objUrls++; return oc(x); };
       const visSeq=[];
       for(let i=0;i<3;i++){
         clearTsujiMeshMarkers();
         drawTsujiMeshMarkers();
-        // toBlob非同期反映待ち: 固定sleepは負荷時に不足する(実測400〜800ms)ため上限付きポーリング
-        for(let w=0;w<30&&!_glTmHasImg['tm-mesh-img'];w++) await new Promise(res=>setTimeout(res,100));
-        visSeq.push(glMap.getLayoutProperty('tm-mesh-img','visibility'));
+        visSeq.push(glMap.getLayoutProperty('tm-mesh-img','visibility'));   // 同期反映
       }
-      URL.revokeObjectURL=origRevoke;
-      return { visSeq: visSeq.join(','), revokedCnt: revoked.filter(u=>String(u).startsWith('blob:')).length,
-               liveUrl: (_glTmImgUrl['tm-mesh-img']||'').startsWith('blob:') };
+      URL.createObjectURL=oc;
+      return { visSeq: visSeq.join(','), objUrls, srcType: glMap.getSource('tm-mesh-img').serialize().type };
     });
-    check('Y2 3回の再検索で毎回visible(不具合(3)の回帰)', r.visSeq==='visible,visible,visible', r.visSeq);
-    check('Y2 旧objectURLがrevokeされ現行はblob URL', r.revokedCnt>=2&&r.liveUrl, `revoked=${r.revokedCnt}`);
+    check('Y2 3回の再検索で毎回同期でvisible(不具合(3)の回帰)', r.visSeq==='visible,visible,visible', r.visSeq);
+    check('Y2 canvasソース化でobjectURL生成が0件(PNG変換の廃止)', r.objUrls===0&&r.srcType==='canvas', JSON.stringify(r));
   }
 
   // Y3: レイヤ表示OFF→ONで再描画なしに復帰(不具合(2)の回帰。実チェックボックス経由)
@@ -123,8 +122,9 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
       appState.isDPActive=false; updateAll();
       return { dirCalls, dpCalls };
     });
-    // リセット(空)+一括反映の計2回が正。旧実装は天体毎/線種毎に呼んでいた(3天体で方位線4回・辻ライン30回超)
-    check('Y5 setDataは天体数に依らずリセット+一括の2回ずつ', r.dirCalls===2&&r.dpCalls===2, JSON.stringify(r));
+    // 方位線=一括1回(同期関数のためリセットの空setDataは省略=第36ラウンド)・辻ライン=リセット+一括の2回。
+    // 旧実装は天体毎/線種毎に呼んでいた(3天体で方位線4回・辻ライン30回超)
+    check('Y5 setDataは天体数に依らず方位線1回+辻ライン2回', r.dirCalls===1&&r.dpCalls===2, JSON.stringify(r));
   }
 
   // Y7: DEMタイルキャッシュのLRU上限(v1.37.1)。上限超過で最古を追い出し、使ったものは残す
@@ -189,25 +189,28 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
       r.before==='visible'&&r.off==='none'&&r.on==='visible', JSON.stringify(r));
   }
 
-  // Y11: 画像ロード失敗の安全網 — 失敗を検知して「中身あり」フラグを戻し、レイヤ非表示+ステータス表示
-  //      (無音だと「描画されないのに操作だけ効く」状態が固定される。v1.37.2)
+  // Y11: canvasソースのライフサイクル — 消去でcanvasが1×1へ縮む(実体解放)・
+  //      非表示中の描き込みが再表示時にflushされる(テクスチャ更新は表示中しか走らないための対策)・
+  //      flush後はpauseされ連続再描画ループにならない
   {
     const r=await p.evaluate(async()=>{
-      const st=document.getElementById('tsujimesh-status'); if(st) st.textContent='';
-      const hadImg=_glTmHasImg['tm-mesh-img'];
-      glMap.getSource('tm-mesh-img').updateImage({url:'blob:'+location.origin+'/00000000-dead-beef-0000-000000000000'});
-      for(let w=0;w<30&&_glTmHasImg['tm-mesh-img'];w++) await new Promise(res=>setTimeout(res,100));
-      const flagCleared=!_glTmHasImg['tm-mesh-img'];
-      const vis=glMap.getLayoutProperty('tm-mesh-img','visibility');
-      const msg=st?st.textContent:'';
-      // 後始末: 正常描画に戻す
+      clearTsujiMeshMarkers();
+      const clearedW=_glTmCanvas['tm-mesh-img'].width;   // 1×1=解放
+      // 非表示中に描く→表示に切り替えるとflushされる
+      const chk=document.getElementById('chk-tsujimesh-marker-layer');
+      chk.checked=false; chk.dispatchEvent(new Event('change',{bubbles:true}));
       drawTsujiMeshMarkers();
-      for(let w=0;w<30&&!_glTmHasImg['tm-mesh-img'];w++) await new Promise(res=>setTimeout(res,100));
-      const recovered=glMap.getLayoutProperty('tm-mesh-img','visibility');
-      return { hadImg, flagCleared, vis, msgOk:/失敗/.test(msg), recovered };
+      const hiddenVis=glMap.getLayoutProperty('tm-mesh-img','visibility');   // 中身はあるが非表示
+      const hiddenHas=_glTmHasImg['tm-mesh-img'];
+      chk.checked=true; chk.dispatchEvent(new Event('change',{bubbles:true}));
+      const shownVis=glMap.getLayoutProperty('tm-mesh-img','visibility');
+      await new Promise(res=>setTimeout(res,400));   // flushの1フレーム(play→render→pause)を待つ
+      const playing=glMap.getSource('tm-mesh-img')._playing;
+      return { clearedW, hiddenVis, hiddenHas, shownVis, playing };
     });
-    check('Y11 画像ロード失敗でフラグ解除+レイヤnone+ステータス表示→再描画で復帰',
-      r.hadImg&&r.flagCleared&&r.vis==='none'&&r.msgOk&&r.recovered==='visible', JSON.stringify(r));
+    check('Y11 消去でcanvas1×1・非表示中の描画→表示でflush・flush後はpause',
+      r.clearedW===1&&r.hiddenVis==='none'&&r.hiddenHas===true&&r.shownVis==='visible'&&r.playing===false,
+      JSON.stringify(r));
   }
 
   // Y9: 検索完了後のワーカープール解放+描画スキップの可視化(ソース検査)

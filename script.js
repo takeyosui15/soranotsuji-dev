@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.38.0 - 2026-07-20: feat: 第36ラウンド — 後日課題の全実施+保存/初期値/URL再現の整合性調査と修正+閉じるボタン ①作法改善の本丸: 辻メッシュ画像をimageソース+toBlob(PNG)+objectURLの自前パイプラインから標準canvasソース(type:'canvas', animate:false)へ置換(PNG変換・非同期ロード・失敗経路が消え描画が同期に。使い回しcanvas2枚+表示時flush) ②辻ライン時刻ラベル(1天体約140個のDOMマーカー)をsymbolレイヤ+ローカルglyphs(リポジトリ同梱のSDFフォントPBF。生成ツールtests/build-glyphs.js)へ=パン時の再配置がGPU側に ③観測点/目的点/My地点/優辻ピンをMapLibre標準ピン(色指定)へ置換(承認済み)+観測点/目的点マーカーの永続化(毎updateAll破棄→再生成をやめsetLngLat+setHTML更新。表示中ポップアップが更新で閉じる副作用も解消) ④辻メッシュの時刻/色スライダーをrAF合流・冗長setData除去・モバイルのワーカー台数上限(≤6)・OSM単一ホスト化・refreshExpiredTiles:false ⑤整合性修正: 花火モード設定が保存されるのに復元されない実装漏れ・Myセットの空データでシートを上書きし得るデータ消失経路をガード・Drive同期の[New]判定を「前回同期からの変更有無」へ(簿記保存で常にローカル優位になる偏りを解消)・シート同期簿記が指紋に混入して常時「差あり」になる干渉を除外・機能封鎖中のシート読込でMy宙検索が消える片方向消去を温存に・URLの辻検索基準方位角/視高度が自動再計算で上書きされ再現されない競合を保護・保存の容量超過を無音にしない・辻検索期間の正規化追加 ⑥全天儀/標高グラフ/辻検索/辻メッシュ/宙の窓に閉じるボタン(✕)を追加
 Version 1.37.2 - 2026-07-20: fix: 描画監査(第35ラウンド第3弾=当初調査ワークフローの完走分)の残指摘対応 — ①辻メッシュ画像ソースのロード失敗が無音だった: updateImage後のロードが失敗すると「中身あり」フラグのまま透明/旧画像が固定され「描画されないのに操作だけ効く」状態になり得た(不具合(3)の残存経路)。mapのerrorイベント(sourceId付き)で検知してフラグを戻し、ステータス欄に表示 ②クレジット(ⓘ)の重複表示を解消: ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、customAttributionは地図ソースでないデータ(標高=国土地理院・気象=Open-Meteo)のみに
 Version 1.37.1 - 2026-07-20: fix: 描画監査(第35ラウンド第2弾)の指摘対応 — マルチエージェント監査(タッチ操作経路+MapLibre作法+指摘毎の反証検証)で確認された3件を修正 ①優辻ピンのmouseenterに_mapDblClickModeガードが無く、スマホのタップで合成mouseenterが発火してツールチップがポップアップと二重表示・残留し、精細化スキャンがタップ応答を遅くしていた(観測点マーカーと同じガードを追加) ②DEMタイルキャッシュ(_tileCache)が無制限で、地域を変えた再検索の繰り返しでメモリが単調増加していた(上限192枚≈48MBのLRUへ) ③辻メッシュ検索完了後にワーカープールを解放していなかった(initデータの複製がワーカー台数分常駐。完了時にterminateAll・再検索時は再init)。あわせてホバーツールチップのoffsetが初回生成時しか反映されない位置ズレと、ソース未初期化時に画像描画が無音で捨てられるエッジの可視化(console.warn)も修正
 Version 1.37.0 - 2026-07-20: fix: スマホでの辻メッシュ3不具合の修正+MapLibre作法の改善(描画方式の再検討) — ①検索エリア5×5で落ちる/再検索で描画されない: メッシュ画像のキャンバスが最大6144×6144(151MB)でiPhoneのキャンバス面積・GPUテクスチャ上限を超えていたため、上限設計を「最大辺2048px」に変更(3×3=1536/5×5=1280。拡大時のシャープさはrasterレイヤのnearest補間が担うため見た目は維持)。画像の受け渡しもtoDataURL(巨大base64文字列)からtoBlob+objectURLへ変更し、旧URLのrevoke+非同期の世代ガードでメモリリークと追い越しを防止。消去時は1×1透明PNGへ差し替えて旧画像のGPUテクスチャも解放し、画像生成失敗(toBlob=null)はステータス欄に表示して無音で消えないようにした ②メッシュマーカーレイヤーのチェックボックスON/OFFが反映されない: OFF→ONで画像レイヤをvisibleに戻すコードが無かった(旧テストは手動再描画でこのバグを見逃していた)。「画像に中身があるか」を_glTmHasImgで持ち、表示状態をapplyTsujiMeshLayerVisibilityに一元化して両方向に設定 ③クレジット表示をⓘアイコン(compact)に変更(タップで展開) ④MapLibre作法: ループ内で繰り返していたsetDataをバッチ化(方位線=天体毎→updateCalculationで1回・辻ライン=線種毎→updateDPLinesで1回)
@@ -100,7 +101,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.37.2';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.38.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -784,12 +785,15 @@ function initMapGL(mapEl) {
         container: mapEl,
         style: {
             version: 8,
+            // 時刻ラベル等のsymbolレイヤ用ローカルフォント(リポジトリ同梱のSDF PBF。外部フォント配信に依存しない。
+            // 生成ツール: tests/build-glyphs.js)
+            glyphs: 'fonts/{fontstack}/{range}.pbf',
             sources: {
                 'base-std': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'], gsiAttr, 18),
                 'base-photo': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg'], gsiAttr, 18),
                 'base-pale': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'], gsiAttr, 18),
-                'base-osm': rasterSrc(
-                    ['a', 'b', 'c'].map(s => `https://${s}.tile.openstreetmap.org/{z}/{x}/{y}.png`),
+                // OSMは単一ホストが現行推奨(HTTP/2下でa/b/cサブドメイン分割は接続数が増えるだけで逆効果)
+                'base-osm': rasterSrc(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>', 19),
             },
             layers: [
@@ -803,6 +807,7 @@ function initMapGL(mapEl) {
         zoom: _glZoom(9),
         maxZoom: _glZoom(18),
         doubleClickZoom: false,     // 地点移動をダブルクリックに割り当てるため(Leaflet版と同じ)
+        refreshExpiredTiles: false, // 地理院/OSMタイルは実質不変のため期限切れ再取得をしない(通信節約)
         attributionControl: false,
     });
     glMap.addControl(new maplibregl.AttributionControl({
@@ -812,22 +817,9 @@ function initMapGL(mapEl) {
         customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
     }), 'bottom-right');
     // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)。
-    // 辻メッシュ画像ソースのロード失敗は例外: 「中身あり」フラグのまま透明/旧画像が
-    // 固定される(=描画されないのに操作だけ効く)のを防ぐため、フラグを戻して可視化する
-    glMap.on('error', (e) => {
-        const id = e && e.sourceId;
-        if (id && Object.prototype.hasOwnProperty.call(_glTmHasImg, id)) {
-            console.warn('辻メッシュ画像のロードに失敗: ' + id, e.error && (e.error.message || e.error));
-            if (_glTmHasImg[id]) {
-                _glTmHasImg[id] = false;
-                applyTsujiMeshLayerVisibility();
-                const st = document.getElementById('tsujimesh-status');
-                if (st) st.textContent = 'メッシュ画像の表示に失敗しました(端末のメモリ不足の可能性)';
-            }
-            return;
-        }
-        if (e && e.error) console.warn('MapLibre(本体地図):', e.error.message || e.error);
-    });
+    // ※辻メッシュ画像は第36ラウンドでcanvasソース化し非同期ロード自体が無くなったため、
+    //   v1.37.2の「画像ロード失敗の安全網」は不要になり撤去した(失敗経路が存在しない)
+    glMap.on('error', (e) => { if (e && e.error) console.warn('MapLibre(本体地図):', e.error.message || e.error); });
 
     // コントロール(左上)。Leaflet版と同順: レイヤ切替 → ⌖ → ズーム → パン
     glMap.addControl(_glDivControl(() => {
@@ -946,7 +938,7 @@ function initMapGL(mapEl) {
             glMap.addLayer({ id: 'dp-' + key, type: 'line', source: 'dp-lines',
                 filter: ['==', ['get', 'dash'], key], paint });
         });
-        // R3: 辻ライン365(実線・薄め)と5分毎の時刻点(ラベルはDOMマーカー)
+        // R3: 辻ライン365(実線・薄め)と5分毎の時刻点+時刻ラベル
         glMap.addSource('dp365-lines', { type: 'geojson', data: emptyFC });
         glMap.addLayer({ id: 'dp365', type: 'line', source: 'dp365-lines',
             paint: { 'line-color': ['get', 'color'], 'line-width': 7, 'line-opacity': 0.5 } });
@@ -954,6 +946,15 @@ function initMapGL(mapEl) {
         glMap.addLayer({ id: 'dp-time-dots', type: 'circle', source: 'dp-times',
             paint: { 'circle-radius': 4, 'circle-color': ['get', 'color'],
                      'circle-stroke-color': ['get', 'color'], 'circle-stroke-width': 1 } });
+        // 時刻ラベル(第36ラウンドでDOMマーカー(1天体約140個)からsymbolレイヤへ=作法。
+        // パン/ズームの再配置がGPU側になり、モバイルのパン時のメインスレッド負荷が消える。
+        // 旧DOM見た目の再現: 14px太字・天体色・黒縁取り(halo)・anchor top-left+offset[10,-7]px(=em換算)・
+        // 全数表示(旧実装は間引きなし)=allow-overlap+ignore-placement(衝突計算も省ける)
+        glMap.addLayer({ id: 'dp-time-labels', type: 'symbol', source: 'dp-times',
+            layout: { 'text-field': ['get', 'label'], 'text-font': ['SoraSans'], 'text-size': 14,
+                      'text-anchor': 'top-left', 'text-offset': [10 / 14, -7 / 14],
+                      'text-allow-overlap': true, 'text-ignore-placement': true },
+            paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000', 'text-halo-width': 1.2 } });
         // R4: 宙検索オーバーレイ(視界扇形+扇形標本点。点の塗りはデータ駆動=行選択時の雲量着色)
         glMap.addSource('ss-fan', { type: 'geojson', data: emptyFC });
         glMap.addLayer({ id: 'ss-fan-fill', type: 'fill', source: 'ss-fan',
@@ -976,10 +977,11 @@ function initMapGL(mapEl) {
             glMap.getCanvas().style.cursor = '';
             _glSsHideTip();
         });
-        // R5: 辻メッシュ(メッシュ画像/辻マーカー画像=imageソース+rasterレイヤ・金ドット=circleレイヤ)
+        // R5: 辻メッシュ(メッシュ画像/辻マーカー画像=canvasソース+rasterレイヤ・金ドット=circleレイヤ)
+        // canvasソース(標準)は描き込んだcanvasが直接テクスチャになる(PNG変換・非同期ロード無し)
         const dummyQuad = [[0, 0], [0.001, 0], [0.001, -0.001], [0, -0.001]];
         ['tm-mesh-img', 'tm-gold-img'].forEach(id => {
-            glMap.addSource(id, { type: 'image', url: _GL_BLANK_PX, coordinates: dummyQuad });
+            glMap.addSource(id, { type: 'canvas', canvas: _glTmCanvasFor(id), coordinates: dummyQuad, animate: false });
             glMap.addLayer({ id, type: 'raster', source: id, layout: { visibility: 'none' },
                 paint: { 'raster-fade-duration': 0, 'raster-resampling': 'nearest' } });   // 画素をシャープに(.tm-mesh-overlayのpixelated相当)
         });
@@ -1021,35 +1023,68 @@ function _glClearMarkerGroup(name) {
     (_glMarkerGroups[name] || []).forEach(m => m.remove());
     _glMarkerGroups[name] = [];
 }
-/** divIcon相当のマーカーを追加する。htmlはラッパーdivの中身(CSSのtransformと、
- *  MapLibreが位置決めに使うインラインtransformの衝突を避けるため必ずラップする) */
+/** スライダー等のinput連打を1フレーム1回に合流するrAFスロットル(常に最後の状態で1回実行) */
+function _rafThrottle(fn) {
+    let pending = false;
+    return () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => { pending = false; fn(); });
+    };
+}
+/** ポップアップ内のクリックを地図へ伝播させない配線(Leafletのポップアップと同じ) */
+function _glWirePopupStop(pp) {
+    pp.on('open', () => {
+        const el = pp.getElement();
+        if (el && !el.__stopWired) {
+            el.__stopWired = true;
+            el.addEventListener('click', (ev) => ev.stopPropagation());
+            el.addEventListener('dblclick', (ev) => ev.stopPropagation());
+        }
+    });
+}
+/** マーカーを追加する。
+ *  - opts.pin='<色>' の時はMapLibre標準ピン(maplibregl.Marker({color}))。第36ラウンドで
+ *    観測点/目的点/My地点/優辻のCSS自作ピンから置換(依頼者承認済み)。ポップアップのoffsetは
+ *    ライブラリがマーカー高から自動計算する。classNameは識別/テスト互換のため要素に付与する。
+ *  - それ以外はdivIcon相当: htmlはラッパーdivの中身(CSSのtransformと、MapLibreが位置決めに
+ *    使うインラインtransformの衝突を避けるため必ずラップする) */
 function _glAddMarker(name, lat, lng, html, opts = {}) {
+    let mk;
+    if (opts.pin) {
+        mk = new maplibregl.Marker({ color: opts.pin }).setLngLat([lng, lat]).addTo(glMap);
+        const el = mk.getElement();
+        if (opts.className) opts.className.split(' ').forEach(c => el.classList.add(c));
+        if (opts.zIndex !== undefined) el.style.zIndex = String(opts.zIndex);
+        // クリック/ダブルクリックを地図(一般クリック=地点移動/画素ポップアップ)へ伝播させない
+        el.addEventListener('click', (ev) => ev.stopPropagation());
+        el.addEventListener('dblclick', (ev) => ev.stopPropagation());
+        if (opts.popupHtml) {
+            const pp = new maplibregl.Popup({ maxWidth: '300px' }).setHTML(opts.popupHtml);   // offset=自動
+            _glWirePopupStop(pp);
+            mk.setPopup(pp);
+        }
+        if (opts.onClick) el.addEventListener('click', () => opts.onClick());
+        (_glMarkerGroups[name] = _glMarkerGroups[name] || []).push(mk);
+        return mk;
+    }
     const wrap = document.createElement('div');
-    if (opts.w !== null) wrap.style.width = (opts.w || 24) + 'px';   // w:null=自動幅(時刻ラベル等)
+    if (opts.w !== null) wrap.style.width = (opts.w || 24) + 'px';   // w:null=自動幅
     if (opts.h !== null) wrap.style.height = (opts.h || 24) + 'px';
     if (opts.className) wrap.className = opts.className;
     if (opts.zIndex !== undefined) wrap.style.zIndex = String(opts.zIndex);
     if (opts.interactive === false) wrap.style.pointerEvents = 'none';
     wrap.innerHTML = html;
-    // Leafletのマーカー同様、クリック/ダブルクリックを地図(一般クリック=地点移動/画素ポップアップ)へ
-    // 伝播させない(伝播すると「マーカー操作+地図操作」が同時に起きてしまう)
+    // Leafletのマーカー同様、クリック/ダブルクリックを地図へ伝播させない
     if (opts.interactive !== false) {
         wrap.addEventListener('click', (ev) => ev.stopPropagation());
         wrap.addEventListener('dblclick', (ev) => ev.stopPropagation());
     }
-    const mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom', offset: opts.offset || [0, 0] })
+    mk = new maplibregl.Marker({ element: wrap, anchor: opts.anchor || 'bottom', offset: opts.offset || [0, 0] })
         .setLngLat([lng, lat]).addTo(glMap);
     if (opts.popupHtml) {
         const pp = new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml);
-        // ポップアップ内のクリックも地図へ伝播させない(Leafletのポップアップと同じ)
-        pp.on('open', () => {
-            const el = pp.getElement();
-            if (el && !el.__stopWired) {
-                el.__stopWired = true;
-                el.addEventListener('click', (ev) => ev.stopPropagation());
-                el.addEventListener('dblclick', (ev) => ev.stopPropagation());
-            }
-        });
+        _glWirePopupStop(pp);
         mk.setPopup(pp);
     }
     if (opts.onClick) wrap.addEventListener('click', () => opts.onClick());
@@ -1062,28 +1097,37 @@ function _glSetSourceData(srcId, features) {
     if (src) src.setData({ type: 'FeatureCollection', features });
 }
 
-/** 観測点/目的点マーカー+2本の線(updateLocationDisplayのMapLibre版) */
+/** 観測点/目的点マーカー+2本の線(updateLocationDisplayのMapLibre版)。
+ *  マーカーは標準ピンを初回だけ生成して使い回し、以後はsetLngLat+ポップアップのsetHTMLで更新する
+ *  (作法: updateAll毎[アニメ中は毎秒]の破棄→再生成をやめる。表示中のポップアップが
+ *  更新のたびに閉じる副作用も無くなる) */
+let _glLocMarkers = null;   // { obs, tgt } 永続マーカー
 function glUpdateLocationDisplay() {
-    _glClearMarkerGroup('location');
     const s = appState.start, e = appState.end;
-    const obsMk = _glAddMarker('location', s.lat, s.lng, '<div class="location-marker location-marker-observer"></div>',
-        { zIndex: 1000, popupHtml: createLocationPopup('観測点', s, e, appState.startApiElev, appState.startHeight) });
-    // 辻メッシュ(R5): 観測点マーカーのホバー/ポップアップで詳細リスト連動(Leaflet版と同じ)
-    const obsEl = obsMk.getElement();
-    obsEl.addEventListener('mouseenter', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
-    const obsPp = obsMk.getPopup();
-    if (obsPp) {
+    if (!_glLocMarkers) {
+        const obsMk = _glAddMarker('location', s.lat, s.lng, null,
+            { pin: '#2196F3', className: 'location-marker location-marker-observer', zIndex: 1000,
+              popupHtml: createLocationPopup('観測点', s, e, appState.startApiElev, appState.startHeight) });
+        // 辻メッシュ(R5): 観測点マーカーのホバー/ポップアップで詳細リスト連動(Leaflet版と同じ)
+        const obsEl = obsMk.getElement();
+        obsEl.addEventListener('mouseenter', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
+        const obsPp = obsMk.getPopup();
         // ポップアップ表示中は詳細リストを観測点の情報に固定(閉じると解除=通常のホバー更新に戻る)
         obsPp.on('open', () => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = obsPp; });
         obsPp.on('close', () => { if (_tmDetailLockPopup === obsPp) _tmDetailLockPopup = null; });
         // クリック(タップ)では常にポップアップを開く(既定のトグルで閉じてしまい機能が無効に見えるのを防ぐ)
-        obsEl.addEventListener('click', () => setTimeout(() => {
-            if (!obsPp.isOpen() && (_glMarkerGroups.location || []).includes(obsMk)) obsMk.togglePopup();
-        }, 0));
+        obsEl.addEventListener('click', () => setTimeout(() => { if (!obsPp.isOpen()) obsMk.togglePopup(); }, 0));
+        _tmObsMarker = obsMk;
+        const tgtMk = _glAddMarker('location', e.lat, e.lng, null,
+            { pin: '#F44336', className: 'location-marker location-marker-target', zIndex: 1000,
+              popupHtml: createLocationPopup('目的点', e, s, appState.endApiElev, appState.endHeight) });
+        _glLocMarkers = { obs: obsMk, tgt: tgtMk };
+    } else {
+        _glLocMarkers.obs.setLngLat([s.lng, s.lat]);
+        _glLocMarkers.tgt.setLngLat([e.lng, e.lat]);
+        _glLocMarkers.obs.getPopup().setHTML(createLocationPopup('観測点', s, e, appState.startApiElev, appState.startHeight));
+        _glLocMarkers.tgt.getPopup().setHTML(createLocationPopup('目的点', e, s, appState.endApiElev, appState.endHeight));
     }
-    _tmObsMarker = obsMk;
-    _glAddMarker('location', e.lat, e.lng, '<div class="location-marker location-marker-target"></div>',
-        { zIndex: 1000, popupHtml: createLocationPopup('目的点', e, s, appState.endApiElev, appState.endHeight) });
     const gc = calculateGreatCirclePoints(s, e);
     _glSetSourceData('location-lines', [
         { type: 'Feature', properties: { kind: 'mercator' },
@@ -1096,9 +1140,10 @@ function glUpdateLocationDisplay() {
 /** My観測点(緑)/My目的点(橙)マーカー(updateMyPointMarkersのMapLibre版) */
 function glUpdateMyPointMarkers() {
     _glClearMarkerGroup('mypoint');
-    const addPts = (list, cls, title, apply) => list.forEach(pt => {
+    const addPts = (list, cls, pinColor, title, apply) => list.forEach(pt => {
         if (pt.lat === null || pt.lat === undefined) return;
-        _glAddMarker('mypoint', pt.lat, pt.lng, `<div class="location-marker ${cls}"></div>`, {
+        _glAddMarker('mypoint', pt.lat, pt.lng, null, {
+            pin: pinColor, className: `location-marker ${cls}`,
             popupHtml: `
             <b>${title}</b><br>
             ${escapeHtml(pt.name)}<br>
@@ -1111,7 +1156,7 @@ function glUpdateMyPointMarkers() {
             onClick: () => apply(pt),
         });
     });
-    addPts(appState.myObservations, 'location-marker-myobs', 'My観測点', (pt) => {
+    addPts(appState.myObservations, 'location-marker-myobs', '#4CAF50', 'My観測点', (pt) => {
         appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
         appState.startApiElev = pt.elev || 0;
         appState.startHeight = pt.height || 0;
@@ -1121,7 +1166,7 @@ function glUpdateMyPointMarkers() {
         saveAppState();
         updateAll();
     });
-    addPts(appState.myTargets, 'location-marker-mytgt', 'My目的点', (pt) => {
+    addPts(appState.myTargets, 'location-marker-mytgt', '#FF9800', 'My目的点', (pt) => {
         appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
         appState.endApiElev = pt.elev || 0;
         appState.endHeight = pt.height || 0;
@@ -1161,7 +1206,6 @@ function _glLinesReset(which) {   // 'dir' | 'dp'
         _glDpTimeFeatures = [];
         _glSetSourceData('dp-lines', []);
         _glSetSourceData('dp-times', []);
-        _glClearMarkerGroup('dptime');
     }
 }
 
@@ -1185,12 +1229,9 @@ function glDrawDPPath(points, color, dashArray, withMarkers, azOffset) {
         if (cur.length > 0 && Math.abs(p.az - points[i - 1].az) > 5) { segments.push(cur); cur = []; }
         cur.push([dest.lng, dest.lat]);
         if (withMarkers && p.time.getMinutes() % 5 === 0 && p.time.getSeconds() === 0) {
-            _glDpTimeFeatures.push({ type: 'Feature', properties: { color },
+            // 時刻ラベルはsymbolレイヤ(dp-time-labels)がlabelプロパティを描く(DOMマーカー廃止=第36ラウンド)
+            _glDpTimeFeatures.push({ type: 'Feature', properties: { color, label: formatTimeHM(p.time) },
                 geometry: { type: 'Point', coordinates: [dest.lng, dest.lat] } });
-            const timeStr = formatTimeHM(p.time);
-            _glAddMarker('dptime', dest.lat, dest.lng,
-                `<div style="font-size:14px;font-weight:bold;color:${color};text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;">${timeStr}</div>`,
-                { anchor: 'top-left', offset: [10, -7], w: null, h: null, className: 'dp-label-icon', interactive: false });
         }
     }
     if (cur.length > 0) segments.push(cur);
@@ -1330,7 +1371,6 @@ function glSsUpdateMapOverlay(snap, selRow) {
 let _glTmMeshShown = false, _glTmGoldShown = false;   // レイヤ表示状態(チェックボックス+天体表示の合成)
 let _glTmPopup = null;      // 辻メッシュのポップアップ(Leaflet同様、地図上に1つだけ)
 let _glTmHoverTip = null;   // ホバーツールチップ(1個を使い回す)
-const _GL_BLANK_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 /** メッシュレイヤの表示状態(エンジン共通の問い合わせ口) */
 function _tmLayerShown(which) {   // 'mesh' | 'gold'
@@ -1365,15 +1405,33 @@ function _glTmOpenPopup(lat, lng, div, offsetY) {
     _glTmPopup = popup;
     return popup;
 }
-/** imageソースの画像を更新する(data null=消去)。
- *  - 画像はcanvas.toBlob→objectURLで渡す(toDataURLの巨大base64文字列はスマホのメモリを圧迫するため廃止)。
- *    旧objectURLはrevokeし、非同期変換中に次の更新が来たら古い方を破棄する(世代ガード)。
+/** 辻メッシュ画像はMapLibre標準のcanvasソースで持つ(第36ラウンドで作法本丸のimageソース+
+ *  toBlob(PNG)+objectURL自前パイプラインから置換)。描き込んだcanvasがそのままGPUテクスチャに
+ *  なるため、PNGエンコード/デコード・objectURLのrevoke管理・非同期ロードと失敗経路が存在せず、
+ *  描画は同期で完結する。canvasはソース毎に1枚を使い回し、消去時は1×1へ縮めて実体を解放する。
  *  - 「画像に中身があるか」は_glTmHasImgに記録し、レイヤのvisibilityはapplyTsujiMeshLayerVisibilityに
- *    一元化する(チェックボックスOFF→ONで再表示されないバグの再発防止)。
- *  - 注意: updateImageのcoordinatesは反映されない(MapLibre 4.x)ため、setCoordinatesを併用する */
+ *    一元化する(チェックボックスOFF→ONで再表示されないバグの再発防止) */
 const _glTmHasImg = { 'tm-mesh-img': false, 'tm-gold-img': false };
-const _glTmImgUrl = {};   // id -> 表示中のobjectURL(revoke用)
-const _glTmImgSeq = {};   // id -> 世代(非同期toBlobの追い越し防止)
+const _glTmCanvas = {};   // id -> 使い回しcanvas(2ソースで別々に持つ。1枚共用だとサイズ違いで毎回再確保になる)
+function _glTmCanvasFor(id) {
+    if (!_glTmCanvas[id]) {
+        const c = document.createElement('canvas');
+        c.width = 1; c.height = 1;   // canvasソースは追加時に寸法>0が必須
+        _glTmCanvas[id] = c;
+    }
+    return _glTmCanvas[id];
+}
+/** canvasの内容変更をGPUテクスチャへ反映する。MapLibreのテクスチャ更新(prepare)は
+ *  「表示中レイヤが使うソース」しか走らないため、表示中の時だけ1フレームplay→描画後にpauseする。
+ *  非表示中は何もしない(表示に切り替わる時にapplyTsujiMeshLayerVisibilityが再度flushする) */
+function _glTmFlushCanvas(id) {
+    if (!glMap) return;
+    const src = glMap.getSource(id);
+    if (!src || typeof src.play !== 'function') return;   // 追加直後は初回prepareの寸法変化検知で反映される
+    src.play();
+    glMap.triggerRepaint();
+    glMap.once('render', () => { if (typeof src.pause === 'function') src.pause(); });
+}
 function _glTmSetImage(id, data) {
     if (!glMap || !glMap.getSource(id)) {
         // ソース未初期化(style.load前)での描画要求は破棄される。無音だと「描画されない」の
@@ -1381,42 +1439,19 @@ function _glTmSetImage(id, data) {
         if (data) console.warn('辻メッシュ画像: ソース未初期化のため描画をスキップ: ' + id);
         return;
     }
-    const seq = (_glTmImgSeq[id] = (_glTmImgSeq[id] || 0) + 1);
-    const apply = (url) => {
-        if (seq !== _glTmImgSeq[id] || !glMap || !glMap.getSource(id)) {   // 追い越された/破棄済み
-            if (url) URL.revokeObjectURL(url);
-            return;
-        }
-        if (_glTmImgUrl[id]) { URL.revokeObjectURL(_glTmImgUrl[id]); delete _glTmImgUrl[id]; }
-        if (!url) {
-            _glTmHasImg[id] = false;
-            // 消去時は旧画像の実体(デコード済み画像/GPUテクスチャ)もソースから追い出す。
-            // 隠すだけだと前回検索の大きな画像が常駐し、再検索中のメモリピークと重なって
-            // スマホでクラッシュしやすくなる(1×1透明PNGに差し替えて解放させる)
-            const src = glMap.getSource(id);
-            if (src && src.updateImage) src.updateImage({ url: _GL_BLANK_PX });
-        } else {
-            const src = glMap.getSource(id);
-            src.updateImage({ url });
-            if (src.setCoordinates) src.setCoordinates(data.coordinates);
-            _glTmImgUrl[id] = url;
-            _glTmHasImg[id] = true;
-        }
-        applyTsujiMeshLayerVisibility();
-    };
-    if (!data) { apply(null); return; }
-    data.canvas.toBlob((blob) => {
-        if (!blob) {
-            // iOS等でキャンバスが大きすぎる/メモリ不足だとtoBlobがnullを返す。無音で空になると
-            // 「描画されない」不具合の切り分けができないため、ステータスに表示して記録する
-            console.warn('辻メッシュ画像の生成に失敗(toBlob=null): ' + id + ' ' + data.canvas.width + 'px');
-            const st = document.getElementById('tsujimesh-status');
-            if (st) st.textContent = 'メッシュ画像の生成に失敗しました(端末のメモリ不足の可能性)';
-            apply(null);
-            return;
-        }
-        apply(URL.createObjectURL(blob));
-    }, 'image/png');
+    const canvas = _glTmCanvasFor(id);
+    if (!data) {
+        _glTmHasImg[id] = false;
+        canvas.width = 1; canvas.height = 1;   // バッキングストアを解放(前回検索の大画像を常駐させない)
+    } else {
+        canvas.width = data.img.width;
+        canvas.height = data.img.height;
+        canvas.getContext('2d').putImageData(data.img, 0, 0);
+        const src = glMap.getSource(id);
+        if (src.setCoordinates) src.setCoordinates(data.coordinates);
+        _glTmHasImg[id] = true;
+    }
+    applyTsujiMeshLayerVisibility();   // 表示判定+表示中ならflush(テクスチャ反映)
 }
 /** 検索範囲bounds({west,east,north,south})→imageソースの四隅([[W,N],[E,N],[E,S],[W,S]]) */
 function _tmGlCoords(bounds) {
@@ -1434,6 +1469,7 @@ function _glTmClearGold() {
 function glUpdateTsujiMeshGoldMarkers() {
     if (!glMap) return;
     _glTmClearGold();
+    _tsujiMeshGoldSet = null;   // ドット表示に切り替わる時は旧集合を破棄(古い集合でのポップアップ誤表示防止)
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
     if (!row || !_tsujiMeshPix) return;
     const n = Math.min(row.pixIdx.length, 5000);
@@ -1459,7 +1495,8 @@ function glDrawTsujiMeshGoldSet(perPix, big) {
     _glTmSetImage('tm-gold-img', overlay);
     if (big && big.pix >= 0) {
         const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix];
-        const mk = _glAddMarker('tmpin', lat, lng, '<div class="location-marker location-marker-tsujigold"></div>', { zIndex: 900 });
+        const mk = _glAddMarker('tmpin', lat, lng, null,
+            { pin: '#ffd700', className: 'location-marker location-marker-tsujigold', zIndex: 900 });
         const el = mk.getElement();
         el.addEventListener('click', () => _tmShowPinPopup(big));   // クリック/タップでポップアップ(観測点は移動しない)
         el.addEventListener('mouseenter', () => {
@@ -2207,7 +2244,17 @@ function saveAppState() {
         endHeight: appState.endHeight
         // currentDateは保存せず、毎回起動時にリセット(日の出等)する方針
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (e) {
+        // 容量超過(QuotaExceeded)等。呼び出し元(全UIハンドラ約200箇所)を例外で
+        // 巻き込まない+無音で保存されない状態を作らない(第36ラウンドの整合性調査)
+        if (!saveAppState._warned) {
+            saveAppState._warned = true;
+            alert('設定の保存に失敗しました(ブラウザの保存容量不足の可能性)。\nMyセットのオフライン保持を減らすか、reset.htmlで使用量をご確認ください。');
+        }
+        console.error('saveAppState failed:', e);
+    }
 }
 
 /** 全状態を復元 */
@@ -2288,6 +2335,10 @@ function loadAppState() {
             ['ssPreset','ssWL','ssWM','ssWH','ssMoonMode','ssWMoon','ssUnkaiMode','ssWUnkai','ssWLp','ssWTr','ssObj','ssWObj',
              'ssBandNight','ssBandTwilight','ssBandGhbh','ssBandDay','ssDays','ssInterval','ssFan','ssRange','ssStat'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             if (saved.mySoraSearches) appState.mySoraSearches = saved.mySoraSearches;
+            // 花火モードパラメータ復元(第36ラウンドの整合性調査で発見した実装漏れの修正:
+            // 保存はされていたのに復元が無く、毎起動で初期値に戻っていた。設計コメントどおり保存+復元へ)
+            ['fwEnabled','fwLat','fwLng','fwElev','fwHeight','fwRadius','fwSize','fwMode','fwSpread','fwShowPoint']
+                .forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // API標高とユーザー高さから内部計算用elevを再計算
             recalcElev('start');
             recalcElev('end');
@@ -2351,6 +2402,8 @@ function normalizeAppState() {
     // ヒットのみ保持するため○△-のデータが存在せず、オン/オフに意味が無い)。保存値・URL値も無視する
     appState.tsujiMeshSymO = false; appState.tsujiMeshSymTri = false; appState.tsujiMeshSymDash = false;
     appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
+    // 辻検索の期間も同じ上限で丸める(第36ラウンド: URL経由の範囲外値が素通りしていた兄弟間の非対称を解消)
+    appState.tsujiSearchDays = Math.min(Math.max(parseInt(appState.tsujiSearchDays) || 365, 1), 36500);
     if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
     // 宙の窓: 数値の範囲・型
@@ -2598,7 +2651,8 @@ function updateAll() {
     
     if (appState.isDPActive) {
         updateDPLines();
-    } else {
+    } else if (_glDpFeatures.length || _glDpTimeFeatures.length) {
+        // 既に空なら何もしない(アニメ中のupdateAll毎秒で空→空のsetDataを繰り返さない)
         _glLinesReset('dp');
     }
 
@@ -2643,7 +2697,7 @@ function updateLocationDisplay() {
 }
 
 function updateCalculation() {
-    _glLinesReset('dir');   // 方位線の描き直し
+    _glDirFeatures = [];   // 方位線の描き直し(この関数は同期で末尾の一括setDataまで走るため、空setDataのリセットは不要)
     const obsDate = appState.currentDate;
     const startOfDay = new Date(obsDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -7992,8 +8046,14 @@ function applyTsujiMeshLayerVisibility() {
     });
     // 画像レイヤは「チェックボックスON かつ 画像に中身がある」時だけ表示(両方向に設定する。
     // OFF→ONで戻らないバグの修正: 表示状態はここに一元化し、_glTmSetImageは中身フラグだけ更新する)
-    setVis(['tm-mesh-img'], _glTmMeshShown && _glTmHasImg['tm-mesh-img']);
-    setVis(['tm-gold-img'], _glTmGoldShown && _glTmHasImg['tm-gold-img']);
+    const meshOn = _glTmMeshShown && _glTmHasImg['tm-mesh-img'];
+    const goldOn = _glTmGoldShown && _glTmHasImg['tm-gold-img'];
+    setVis(['tm-mesh-img'], meshOn);
+    setVis(['tm-gold-img'], goldOn);
+    // canvasソースのテクスチャ更新は表示中しか走らないため、表示になったソースは毎回flushする
+    // (非表示中に描き込まれた内容が、再表示時に古いテクスチャのまま出るのを防ぐ)
+    if (meshOn) _glTmFlushCanvas('tm-mesh-img');
+    if (goldOn) _glTmFlushCanvas('tm-gold-img');
     setVis(['tm-gold-dots'], _glTmGoldShown);
     (_glMarkerGroups.tmpin || []).forEach(m => { m.getElement().style.display = _glTmGoldShown ? '' : 'none'; });
     if (!_glTmGoldShown && !_glTmMeshShown) _glTmHideTip();
@@ -8015,19 +8075,15 @@ function _tmBuildOverlay(paint, rgba) {
     const C = _tsujiMeshCalc;
     if (!C || !C.grid) return null;
     const W = C.gridW;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = W;
-    const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(W, W);
+    const img = new ImageData(W, W);   // 一時canvasは作らない(_glTmSetImageが使い回しcanvasへputする)
     const data = img.data;
     const [r, g, b, a] = rgba;
     paint((pix) => {
         const o = C.gridPos[pix] * 4;
         data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
     });
-    ctx.putImageData(img, 0, 0);
-    // imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す。canvasのままtoBlobで受け渡す)
-    return { canvas, coordinates: _tmGlCoords(C.bounds) };
+    // canvasソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す)
+    return { img, coordinates: _tmGlCoords(C.bounds) };
 }
 
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
@@ -8054,12 +8110,9 @@ function _tmBuildGradientOverlay() {
     const GOLD = [255, 215, 0], RED = [255, 0, 0];
     const STRIPE = 4;   // 斜め縞の周期(2px金+2px赤)
     const v = Math.round(255 * (1 - _tmMeshGray / 100));   // メッシュマーカー色(1件の色)
-    const canvas = document.createElement('canvas');
-    canvas.width = W * S; canvas.height = W * S;
-    const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(canvas.width, canvas.height);
+    const img = new ImageData(W * S, W * S);   // 一時canvasは作らない(_glTmSetImageが使い回しcanvasへputする)
     const data = img.data;
-    const CW = canvas.width;
+    const CW = img.width;
     for (let gy = 0; gy < W; gy++) {
         for (let gx = 0; gx < W; gx++) {
             const idx = C.grid[gy * W + gx];
@@ -8089,9 +8142,8 @@ function _tmBuildGradientOverlay() {
             }
         }
     }
-    ctx.putImageData(img, 0, 0);
-    // imageソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
-    return { canvas, coordinates: _tmGlCoords(C.bounds) };
+    // canvasソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
+    return { img, coordinates: _tmGlCoords(C.bounds) };
 }
 
 function _tmPixAtLatLng(latlng) {
@@ -9751,6 +9803,20 @@ function setupTsujiMeshPanelControls() {
         document.getElementById('btn-tsujisearch-max').classList.toggle('active', on);
         syncBottomPanels();
     });
+    // 閉じるボタン(第36ラウンド: 各パネル右上の✕。既存のトグル/クローズ関数を呼ぶだけ)
+    document.getElementById('btn-tsujisearch-close').addEventListener('click', () => {
+        if (appState.isTsujiSearchActive) toggleTsujiSearch();
+    });
+    document.getElementById('btn-tsujimesh-close').addEventListener('click', () => closeTsujiMesh());
+    document.getElementById('btn-milkyway-close').addEventListener('click', () => {
+        if (appState.isMilkyWayActive) toggleMilkyWayInstrument();
+    });
+    document.getElementById('btn-soramado-close').addEventListener('click', () => {
+        if (appState.isSoramadoActive) toggleSoramado();
+    });
+    document.getElementById('btn-elevation-close').addEventListener('click', () => {
+        if (appState.isElevationActive) toggleElevation();
+    });
     document.getElementById('tsujimesh-ctrl-header').addEventListener('click', () => {
         const body = document.getElementById('tsujimesh-ctrl-body');
         const open = !body.classList.toggle('hidden');
@@ -9761,10 +9827,13 @@ function setupTsujiMeshPanelControls() {
         _tsujiMeshLayerVisible = e.target.checked;
         applyTsujiMeshLayerVisibility();
     });
-    // 辻時刻コントロール: スライダーに追従してライブ再計算(手動操作はサブ秒を0にリセット=秒単位)
+    // 辻時刻コントロール: スライダーに追従してライブ再計算(手動操作はサブ秒を0にリセット=秒単位)。
+    // ドラッグ中のinput連打は1フレーム1回に合流する(再計算=全画素スイープ+画像再生成が重いため。
+    // 常に最後の値で実行されるので取りこぼしはない)
+    const recalcGoldThrottled = _rafThrottle(recalcTsujiMeshGoldAtTime);
     document.getElementById('tsujimesh-time-slider').addEventListener('input', () => {
         _tmCtrlFracMs = 0;
-        recalcTsujiMeshGoldAtTime();
+        recalcGoldThrottled();
     });
     document.getElementById('input-tsujimesh-time-width').addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
@@ -9787,14 +9856,16 @@ function setupTsujiMeshPanelControls() {
         _tmCtrlEps = parseFloat(e.target.value) || 0.125;
         recalcTsujiMeshGoldAtTime();
     });
-    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール(グラデーションの基準色=1件の色)。追従して再描画
+    // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール(グラデーションの基準色=1件の色)。追従して再描画。
+    // ラベル/サンプル色は即時、重い再描画(CSR再構築+最大2048²の画像生成)はrAFで1フレーム1回に合流
+    const redrawMeshThrottled = _rafThrottle(() => { if (_tsujiMeshRows.length) drawTsujiMeshMarkers(); });
     document.getElementById('tsujimesh-mesh-gray').addEventListener('input', (e) => {
         _tmMeshGray = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 100);
         const lbl = document.getElementById('tsujimesh-mesh-gray-label');
         if (lbl) lbl.textContent = `${_tmMeshGray}%`;
         const smp = document.getElementById('tsujimesh-mesh-gray-sample');
         if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
-        if (_tsujiMeshRows.length) drawTsujiMeshMarkers();
+        redrawMeshThrottled();
     });
     // 行選択後オプション: 優辻マーカー(ピン)の初期位置。切替時は現在の選択行に即適用する
     document.querySelectorAll('input[name="tsujimesh-post-mode"]').forEach(r => {
@@ -9981,7 +10052,11 @@ function isAzimuthInRange(az, targetAz, tolerance) {
 // 一度作成したワーカーは再利用され、起動オーバーヘッドを削減する。
 // 辻検索 / My辻検索 は同一プールを共有 (排他実行が前提)
 const TSUJI_CHUNK_DAYS = 365;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+// スマホはワーカー台数を抑える: initで検索データ(型付き配列一式)が台数分だけ構造化クローン複製される
+// ため、台数がそのままメモリピークに効く(タッチ環境判定はホバー無し/粗ポインタ)
+const _IS_TOUCH_ENV = (typeof window !== 'undefined' && window.matchMedia)
+    ? window.matchMedia('(hover: none), (pointer: coarse)').matches : false;
+const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, _IS_TOUCH_ENV ? 6 : 31));
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
@@ -10953,6 +11028,14 @@ function localContentFingerprint() {
         const s = JSON.parse(all[STORAGE_KEY]);
         delete s.savedAt;
         delete s.googleDrive;
+        // Myセットのシート同期簿記も除外する(第36ラウンド: シートの保存/読込のたびに
+        // app.jsonの指紋が変わり、内容を変えていないのに👎(差あり)が付き続けていた)
+        if (Array.isArray(s.mySets)) s.mySets = s.mySets.map(m => {
+            const c = { ...m }; delete c.lastSyncSheetTime; delete c.updatedAt; return c;
+        });
+        if (s.mySetHome && typeof s.mySetHome === 'object') {
+            const h = { ...s.mySetHome }; delete h.lastSyncSheetTime; delete h.updatedAt; s.mySetHome = h;
+        }
         all[STORAGE_KEY] = JSON.stringify(s);
     } catch (e) { /* STORAGE_KEYが無い/壊れている場合はそのまま */ }
     const str = JSON.stringify(all);
@@ -11097,13 +11180,23 @@ function openGdriveSyncDialog() {
     if (!dlg) return;
     let localSavedAt = null;
     try { localSavedAt = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').savedAt || null; } catch (e) {}
-    const driveTime = appState.googleDrive.lastDriveModifiedTime ? new Date(appState.googleDrive.lastDriveModifiedTime).getTime() : null;
-    const newerLocal = localSavedAt !== null && (driveTime === null || localSavedAt >= driveTime);
+    const gd = appState.googleDrive;
+    const driveTime = gd.lastDriveModifiedTime ? new Date(gd.lastDriveModifiedTime).getTime() : null;
+    // [New]は「前回同期からの変更の有無」で判定する(第36ラウンドの整合性調査:
+    // 旧実装のsavedAt比較は、内容が変わらない簿記保存でもsavedAtが進むため常にローカル優位に偏り、
+    // 他端末で保存したDriveの内容に[New]が付かず誤って上書きする誘導になっていた)。
+    // ローカル側=同期時の指紋との差 / Drive側=同期時のmodifiedTimeとの差。両方に付くこともある。
+    const localChanged = gd.lastSyncFingerprint
+        ? localContentFingerprint() !== gd.lastSyncFingerprint
+        : localSavedAt !== null;   // 一度も同期していない時は従来どおり
+    const driveChanged = (gd.lastDriveModifiedTime && gd.lastSyncDriveModifiedTime)
+        ? gd.lastDriveModifiedTime !== gd.lastSyncDriveModifiedTime
+        : driveTime !== null && !gd.lastSyncDriveModifiedTime;
     const NEW_MARK = ' <span class="gdrive-sync-new">[New]</span>';
     document.getElementById('gdrive-sync-local').innerHTML =
-        `更新: ${formatMySetDateTime(localSavedAt)}${newerLocal ? NEW_MARK : ''}`;
+        `更新: ${formatMySetDateTime(localSavedAt)}${localChanged ? NEW_MARK : ''}`;
     document.getElementById('gdrive-sync-drive').innerHTML =
-        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${!newerLocal && driveTime ? NEW_MARK : ''}`;
+        `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${driveChanged ? NEW_MARK : ''}`;
     dlg.classList.remove('hidden');
 }
 
@@ -11534,6 +11627,14 @@ async function _mySetFetchSheetData(s) {
         myStars: _mySetParseStars(byIdx(3)),
         mySoraSearches: _mySetParseMySora(byIdx(4))
     };
+    // 機能封鎖中(My宙検索タブを読まない)にシートを読み込むと、端末側のMy宙検索が
+    // 空で置き換えられて片方向消去になるため、封鎖中はそのセットが端末に持つ現値を温存する(第36ラウンド)
+    if (!FEATURE_FORECAST_ENABLED) {
+        const held = (s.id === appState.mySetCurrentId) ? appState.mySoraSearches
+            : (s.id === 0) ? (appState.mySetHomeData && appState.mySetHomeData.mySoraSearches)
+            : (s.data && s.data.mySoraSearches);
+        data.mySoraSearches = held || [];
+    }
     const meta = await driveGetMeta(s.sheetId);
     return { data, meta };
 }
@@ -11569,6 +11670,16 @@ async function mySetSaveToSheet(s, opts = {}) {
         if (!isGoogleLoggedIn()) { const ok = await googleLogin(); if (!ok) return false; }
         mySetSheetStates[s.id] = 'checking';
         renderMySetList();
+        // データ消失ガード(第36ラウンドの整合性調査): 同期済み・非オフラインの非表示セットは端末の
+        // 内容をpurge済み(s.data=null)のため、そのまま保存するとシートを空で全面上書きしてしまう。
+        // この状態での保存は中止して「読み込み」を促す(表示中セット/既定セット/オフラインセットの
+        // 「空にして保存」は従来どおり可能)
+        if (s.id !== appState.mySetCurrentId && s.id !== 0 && !s.offline && !s.data && s.lastSyncSheetTime) {
+            alert(`「${s.name}」の内容は端末に保持されていません(同期済みのためシート側が正)。\n保存する前に、一度「読み込み」でシートの内容を取得してください。`);
+            mySetSheetStates[s.id] = 'stale';
+            renderMySetList();
+            return false;
+        }
         if (s.sheetId) {
             const meta = await driveGetMeta(s.sheetId);
             if (!meta || meta.trashed) s.sheetId = null;
@@ -12830,6 +12941,11 @@ function restoreFromUrl() {
     // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に）
     if (mode === 'tsujisearch') {
         appState._pendingTsujiSearch = true;
+        // URLの基準方位角/視高度を自動再計算で上書きしない(辻メッシュ/宙の窓と同じ保護。
+        // 第36ラウンドの整合性調査: 作成者が手動編集した基準値が閲覧側で再現されなかった)
+        if (params.has('tsujiAz') || params.has('tsujiAlt')) {
+            appState._lastTsujiPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+        }
     }
     // mode=tsujimeshの場合は辻メッシュ検索を自動実行（UIが準備できた後に）
     if (mode === 'tsujimesh') {

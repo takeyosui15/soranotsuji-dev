@@ -319,6 +319,20 @@ html {
 #btn-tsujimesh-max.active,
 #btn-tsujisearch-max.active { background: #b8860b; border-color: #ffd700; }
 
+/* 閉じるボタン(パネルヘッダの右端。第36ラウンド: 最大化⛶と対の✕) */
+.panel-close-btn {
+    float: right;
+    padding: 0 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.panel-close-btn:hover { background: rgba(120, 60, 60, 0.9); }
+
 #tsujimesh-content {
     flex: 1 1 0;
     min-height: 0;
@@ -687,6 +701,25 @@ html {
 #btn-soramado-max:hover { background: rgba(70, 70, 70, 0.85); }
 #btn-milkyway-max.active,
 #btn-soramado-max.active { background: #b8860b; border-color: #ffd700; }
+
+/* 閉じるボタン(パネル右上。第36ラウンド: 左上の最大化⛶と対の✕。全天儀/宙の窓/標高グラフ共通) */
+.panel-close-btn-abs {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 930;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 30px;
+    color: #fff;
+    background: rgba(30, 30, 30, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.panel-close-btn-abs:hover { background: rgba(120, 60, 60, 0.9); }
 
 /* プレビュー内コントロールメニュー(プレビュー画面と縦分割・開閉式・不透明グレー)
    開: パネル高さの1/2(最大化+辻検索OFF時は1/3) / 閉: ヘッダー行のみが一番下に残る */
@@ -2122,24 +2155,9 @@ input[type="range"] {
 }
 
 /* 地図マーカー */
-.location-marker {
-    width: 24px;
-    height: 24px;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
-    translate: -1.3px -13px;
-    border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-}
-.location-marker-observer {
-    background-color: #2196F3;
-}
-.location-marker-tsujigold {
-    background-color: #ffd700;
-}
-.location-marker-target {
-    background-color: #F44336;
-}
+/* 地点ピン(観測点/目的点/My地点/優辻)は第36ラウンドでMapLibre標準ピン(maplibregl.Marker({color}))へ
+   置換した。.location-marker-* クラスは種別の識別子としてマーカー要素に残る(装飾はライブラリ側)。
+   色: 観測点#2196F3 / 目的点#F44336 / My観測点#4CAF50 / My目的点#FF9800 / 優辻#ffd700 */
 
 /* --- 天体検索ポップアップ --- */
 .starsearch-popup {
@@ -2347,14 +2365,7 @@ input[type="range"] {
 }
 
 /* My観測点マーカー (緑) */
-.location-marker-myobs {
-    background-color: #4CAF50;
-}
-
-/* My目的点マーカー (橙) */
-.location-marker-mytgt {
-    background-color: #FF9800;
-}
+/* My観測点/My目的点ピンも標準ピン化(クラスは識別子のみ。上のlocation-marker注記を参照) */
 
 
 /* 辻メッシュ: マーカーのポップアップの内容ブロック(辻・優辻)。

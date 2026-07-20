@@ -62,13 +62,13 @@ GNU General Public License for more details.
     <div id="map"></div>
 
     <div id="tsujisearch-panel" class="hidden">
-        <div id="tsujisearch-header"><button id="btn-tsujisearch-max" title="検索結果表示領域を最大化">⛶</button> <span id="tsujisearch-title">辻検索結果</span> <span id="tsujisearch-status"></span></div>
+        <div id="tsujisearch-header"><button id="btn-tsujisearch-max" title="検索結果表示領域を最大化">⛶</button> <span id="tsujisearch-title">辻検索結果</span> <span id="tsujisearch-status"></span><button id="btn-tsujisearch-close" class="panel-close-btn" title="辻検索結果を閉じる">✕</button></div>
         <div id="tsujisearch-progress" class="tsuji-progress-bar hidden"><div id="tsujisearch-progress-fill"></div></div>
         <div id="tsujisearch-content"></div>
     </div>
 
     <div id="tsujimesh-panel" class="hidden">
-        <div id="tsujimesh-header"><button id="btn-tsujimesh-max" title="検索結果表示領域を最大化">⛶</button> 辻メッシュ検索結果 <span id="tsujimesh-status"></span></div>
+        <div id="tsujimesh-header"><button id="btn-tsujimesh-max" title="検索結果表示領域を最大化">⛶</button> 辻メッシュ検索結果 <span id="tsujimesh-status"></span><button id="btn-tsujimesh-close" class="panel-close-btn" title="辻メッシュ検索結果を閉じる">✕</button></div>
         <div id="tsujimesh-progress" class="tsuji-progress-bar hidden"><div id="tsujimesh-progress-fill"></div></div>
         <div id="tsujimesh-content"></div>
         <div id="tsujimesh-detail" class="hidden">
@@ -144,6 +144,7 @@ GNU General Public License for more details.
 
     <div id="elevation-panel" class="hidden">
         <canvas id="elevation-canvas"></canvas>
+        <button id="btn-elevation-close" class="panel-close-btn-abs" title="標高グラフを閉じる">✕</button>
 
         <div id="progress-overlay" class="hidden">
             <div class="progress-label">データ取得中... <span id="progress-text">0%</span></div>
@@ -159,6 +160,7 @@ GNU General Public License for more details.
             <svg id="milkyway-labels"></svg>
             <div id="milkyway-credit"></div>
             <button id="btn-milkyway-max" title="全天儀を画面いっぱいに最大化">⛶</button>
+            <button id="btn-milkyway-close" class="panel-close-btn-abs" title="全天儀を閉じる">✕</button>
         </div>
         <div id="milkyway-ctrl">
             <div id="milkyway-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="milkyway-ctrl-arrow">▼</span></div>
@@ -231,6 +233,7 @@ GNU General Public License for more details.
             <div id="soramado-progress" class="hidden"><div id="soramado-progress-fill"></div></div>
             <div id="soramado-export-progress" class="hidden"></div>
             <button id="btn-soramado-max" title="プレビューを画面いっぱいに最大化">⛶</button>
+            <button id="btn-soramado-close" class="panel-close-btn-abs" title="宙の窓を閉じる">✕</button>
         </div>
         <div id="soramado-ctrl">
             <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>

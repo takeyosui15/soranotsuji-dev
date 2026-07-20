@@ -77,13 +77,13 @@ const SETUP=`(() => {
   await p.evaluate(()=>{ glMap.jumpTo({ center:[138.8025,35.5025], zoom:_glZoom(15) }); });
   await p.waitForTimeout(400);
 
-  // S1: メッシュ画像(件数グラデーション)がimageソースへ・白索引の構築(toBlob非同期反映を待つ)
+  // S1: メッシュ画像(件数グラデーション)がcanvasソースへ**同期で**反映・白索引の構築
+  //     (第36ラウンドでtoBlob+objectURLの非同期パイプラインを標準canvasソースへ置換=待ち不要)
   {
-    const r=await p.evaluate(async()=>{
+    const r=await p.evaluate(()=>{
       drawTsujiMeshMarkers();
-      // toBlob→objectURL反映待ち(第35ラウンドで非同期化)。固定sleepは負荷時に不足するため上限付きポーリング
-      for(let i=0;i<30&&!_glTmHasImg['tm-mesh-img'];i++) await new Promise(res=>setTimeout(res,100));
-      const lyrVis=glMap.getLayoutProperty('tm-mesh-img','visibility');
+      const lyrVis=glMap.getLayoutProperty('tm-mesh-img','visibility');   // 同期でvisibleになる
+      const srcType=glMap.getSource('tm-mesh-img').serialize().type;
       const srcCoords=glMap.getSource('tm-mesh-img').coordinates;
       const desc=_tmBuildGradientOverlay();   // 記述子の四隅=bounds(変換関数の検証)
       const B=_tsujiMeshCalc.bounds;
@@ -91,12 +91,11 @@ const SETUP=`(() => {
                    Math.abs(desc.coordinates[2][0]-B.east)<1e-9&&Math.abs(desc.coordinates[2][1]-B.south)<1e-9;
       const okSrc=srcCoords&&Math.abs(srcCoords[0][0]-B.west)<1e-6&&Math.abs(srcCoords[0][1]-B.north)<1e-6;
       const whiteHits=[0,1,2,3].filter(px=>_tsujiMeshWhiteRow[px]>=0).length;
-      const blobUrl=(_glTmImgUrl['tm-mesh-img']||'').startsWith('blob:');
-      return { lyrVis, whiteHits, okDesc, okSrc, blobUrl, srcCoords: JSON.stringify(srcCoords&&srcCoords[0]),
+      return { lyrVis, whiteHits, okDesc, okSrc, srcType, srcCoords: JSON.stringify(srcCoords&&srcCoords[0]),
                shown: _tmLayerShown('mesh') };
     });
-    check('S1 メッシュ画像がvisible(blob URL)・四隅=bounds・白索引4画素',
-      r.lyrVis==='visible'&&r.okDesc&&r.okSrc&&r.blobUrl&&r.whiteHits===4&&r.shown, JSON.stringify(r));
+    check('S1 メッシュ画像が同期でvisible(canvasソース)・四隅=bounds・白索引4画素',
+      r.lyrVis==='visible'&&r.okDesc&&r.okSrc&&r.srcType==='canvas'&&r.whiteHits===4&&r.shown, JSON.stringify(r));
   }
 
   // S2: 表示切替(チェックボックス相当)OFF→ONで**再描画なしに**復帰する
@@ -142,8 +141,7 @@ const SETUP=`(() => {
     const r=await p.evaluate(async()=>{
       const perPix=new Map([[0,0.011],[2,0.201]]);
       drawTsujiMeshGoldSet(perPix,{pix:0,dist:0.011,timeMs:Date.now?undefined:0, ...( {timeMs:_tsujiMeshRows[0].pixTime[1]} )});
-      // toBlob非同期反映待ち(上限付きポーリング)
-      for(let i=0;i<30&&!_glTmHasImg['tm-gold-img'];i++) await new Promise(res=>setTimeout(res,100));
+      // canvasソースは同期反映(第36ラウンド)
       const goldVis=glMap.getLayoutProperty('tm-gold-img','visibility');
       const pin=document.querySelectorAll('#map .location-marker-tsujigold').length;
       // ピンクリック→ポップアップ
@@ -188,7 +186,9 @@ const SETUP=`(() => {
   // S6: ホバーツールチップ(辻マーカー集合の画素=精細化内容/null=消える)
   {
     const r=await p.evaluate(async()=>{
-      _tsujiMeshSelIdx=0;   // S5で外した行選択を戻す(集合はS4のperPix={0,2}のまま)
+      _tsujiMeshSelIdx=0;   // S5で外した行選択を戻す
+      // 集合はS5のドット表示切替でnull化される(第36ラウンド: 古い集合の持ち越しを廃止)ため描き直す
+      drawTsujiMeshGoldSet(new Map([[0,0.011],[2,0.201]]),{pix:0,dist:0.011,timeMs:_tsujiMeshRows[0].pixTime[1]});
       if(_glTmPopup)_glTmPopup.remove();
       handleTsujiMeshGoldHover({lat:_tsujiMeshPix.lat[0],lng:_tsujiMeshPix.lng[0]});
       await new Promise(res=>setTimeout(res,200));
@@ -226,8 +226,7 @@ const SETUP=`(() => {
     const r=await p2.evaluate(async()=>{
       drawTsujiMeshMarkers();
       updateTsujiMeshGoldMarkers();
-      // toBlob非同期反映待ち: 固定sleepだと負荷時に不足する(実測400〜800ms)ため、反映を上限付きで待つ
-      for(let i=0;i<30&&!_glTmHasImg['tm-mesh-img'];i++) await new Promise(res=>setTimeout(res,100));
+      // canvasソースは同期反映(第36ラウンド。旧toBlob時代の反映待ちは不要になった)
       return { meshVis: glMap.getLayoutProperty('tm-mesh-img','visibility'),
                dots: glMap.getSource('tm-gold-dots-src')._data.features.length,
                popupOk: _tmShowPixelPopup({lat:_tsujiMeshPix.lat[1],lng:_tsujiMeshPix.lng[1]}),
