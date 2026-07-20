@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.37.2 - 2026-07-20: fix: 描画監査(第35ラウンド第3弾=当初調査ワークフローの完走分)の残指摘対応 — ①辻メッシュ画像ソースのロード失敗が無音だった: updateImage後のロードが失敗すると「中身あり」フラグのまま透明/旧画像が固定され「描画されないのに操作だけ効く」状態になり得た(不具合(3)の残存経路)。mapのerrorイベント(sourceId付き)で検知してフラグを戻し、ステータス欄に表示 ②クレジット(ⓘ)の重複表示を解消: ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、customAttributionは地図ソースでないデータ(標高=国土地理院・気象=Open-Meteo)のみに
 Version 1.37.1 - 2026-07-20: fix: 描画監査(第35ラウンド第2弾)の指摘対応 — マルチエージェント監査(タッチ操作経路+MapLibre作法+指摘毎の反証検証)で確認された3件を修正 ①優辻ピンのmouseenterに_mapDblClickModeガードが無く、スマホのタップで合成mouseenterが発火してツールチップがポップアップと二重表示・残留し、精細化スキャンがタップ応答を遅くしていた(観測点マーカーと同じガードを追加) ②DEMタイルキャッシュ(_tileCache)が無制限で、地域を変えた再検索の繰り返しでメモリが単調増加していた(上限192枚≈48MBのLRUへ) ③辻メッシュ検索完了後にワーカープールを解放していなかった(initデータの複製がワーカー台数分常駐。完了時にterminateAll・再検索時は再init)。あわせてホバーツールチップのoffsetが初回生成時しか反映されない位置ズレと、ソース未初期化時に画像描画が無音で捨てられるエッジの可視化(console.warn)も修正
 Version 1.37.0 - 2026-07-20: fix: スマホでの辻メッシュ3不具合の修正+MapLibre作法の改善(描画方式の再検討) — ①検索エリア5×5で落ちる/再検索で描画されない: メッシュ画像のキャンバスが最大6144×6144(151MB)でiPhoneのキャンバス面積・GPUテクスチャ上限を超えていたため、上限設計を「最大辺2048px」に変更(3×3=1536/5×5=1280。拡大時のシャープさはrasterレイヤのnearest補間が担うため見た目は維持)。画像の受け渡しもtoDataURL(巨大base64文字列)からtoBlob+objectURLへ変更し、旧URLのrevoke+非同期の世代ガードでメモリリークと追い越しを防止。消去時は1×1透明PNGへ差し替えて旧画像のGPUテクスチャも解放し、画像生成失敗(toBlob=null)はステータス欄に表示して無音で消えないようにした ②メッシュマーカーレイヤーのチェックボックスON/OFFが反映されない: OFF→ONで画像レイヤをvisibleに戻すコードが無かった(旧テストは手動再描画でこのバグを見逃していた)。「画像に中身があるか」を_glTmHasImgで持ち、表示状態をapplyTsujiMeshLayerVisibilityに一元化して両方向に設定 ③クレジット表示をⓘアイコン(compact)に変更(タップで展開) ④MapLibre作法: ループ内で繰り返していたsetDataをバッチ化(方位線=天体毎→updateCalculationで1回・辻ライン=線種毎→updateDPLinesで1回)
 Version 1.36.0 - 2026-07-20: feat: 封鎖UIのindex.htmlからの分離+地図コントロールのボタンサイズ統一 — ①封鎖中の予測系機能(宙検索/My宙検索/宙断面)のボタン/メニュー/パネルのHTML(5ブロック・約160行)をindex.htmlから削除しforecast-features.htmlへ分離。index.htmlには空スロット(ff-slot-*)のみ残し、開発時(?forecast=1)はloadForecastFeaturesがfetch+templateで各スロットへ注入して完全復元(注入はsetupUIより前のため配線もそのまま効く)。既定ページのDOMには封鎖機能の要素が一切存在しない ②左上コントロールのボタンサイズ統一: 自作ボタン(⌖/レイヤ切替/パン)26pxとMapLibre標準ズームボタン29pxが不揃いだったため全て29pxに統一(レイヤリストの位置も追従)
@@ -99,7 +100,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.37.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.37.2';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -806,10 +807,27 @@ function initMapGL(mapEl) {
     });
     glMap.addControl(new maplibregl.AttributionControl({
         compact: true,   // ⓘアイコンで折りたたみ(タップ/クリックで展開。常時1行表示より省スペース)
-        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
+        // ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、ここには
+        // 地図ソースでないデータの出典のみ載せる(標高タイル=国土地理院・気象=Open-Meteo。重複表示の防止)
+        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
     }), 'bottom-right');
-    // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)
-    glMap.on('error', (e) => { if (e && e.error) console.warn('MapLibre(本体地図):', e.error.message || e.error); });
+    // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)。
+    // 辻メッシュ画像ソースのロード失敗は例外: 「中身あり」フラグのまま透明/旧画像が
+    // 固定される(=描画されないのに操作だけ効く)のを防ぐため、フラグを戻して可視化する
+    glMap.on('error', (e) => {
+        const id = e && e.sourceId;
+        if (id && Object.prototype.hasOwnProperty.call(_glTmHasImg, id)) {
+            console.warn('辻メッシュ画像のロードに失敗: ' + id, e.error && (e.error.message || e.error));
+            if (_glTmHasImg[id]) {
+                _glTmHasImg[id] = false;
+                applyTsujiMeshLayerVisibility();
+                const st = document.getElementById('tsujimesh-status');
+                if (st) st.textContent = 'メッシュ画像の表示に失敗しました(端末のメモリ不足の可能性)';
+            }
+            return;
+        }
+        if (e && e.error) console.warn('MapLibre(本体地図):', e.error.message || e.error);
+    });
 
     // コントロール(左上)。Leaflet版と同順: レイヤ切替 → ⌖ → ズーム → パン
     glMap.addControl(_glDivControl(() => {

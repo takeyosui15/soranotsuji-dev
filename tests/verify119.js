@@ -18,7 +18,7 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('Y0 APP_VERSION 1.37.1', src.includes("APP_VERSION = '1.37.1'"));
+    check('Y0 APP_VERSION 1.37.2', src.includes("APP_VERSION = '1.37.2'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -90,14 +90,20 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
     check('Y3 実チェックボックスOFF→none/ON→visible(再描画なし)', r.off==='none'&&r.on==='visible', JSON.stringify(r));
   }
 
-  // Y4: attributionがⓘ(compact)になっている
+  // Y4: attributionがⓘ(compact)+重複なし(ベース地図の出典はソース側・customは標高/気象のみ)
   {
     const r=await p.evaluate(()=>{
       const el=document.querySelector('.maplibregl-ctrl-attrib');
+      const inner=document.querySelector('.maplibregl-ctrl-attrib-inner');
+      const txt=inner?inner.textContent:'';
       return { compact: !!el&&el.classList.contains('maplibregl-compact'),
-               btn: !!document.querySelector('.maplibregl-ctrl-attrib-button') };
+               btn: !!document.querySelector('.maplibregl-ctrl-attrib-button'),
+               txt, gsiOnce: (txt.match(/地理院タイル/g)||[]).length===1,
+               noDup: !/(^|[^(標高])国土地理院[^(]/.test(txt) };
     });
-    check('Y4 クレジット表示がⓘアイコン(compact)', r.compact&&r.btn, JSON.stringify(r));
+    check('Y4 クレジット表示がⓘアイコン(compact)', r.compact&&r.btn, JSON.stringify({compact:r.compact,btn:r.btn}));
+    check('Y4 クレジットの重複なし(ベース=地理院タイル1回+custom=標高/Open-Meteoのみ)',
+      r.gsiOnce&&r.txt.includes('国土地理院(標高)')&&r.txt.includes('Open-Meteo'), r.txt);
   }
 
   // Y5: setDataのバッチ化 — updateCalculationで方位線1回・updateDPLinesで辻ライン1回
@@ -163,6 +169,45 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
     });
     check('Y8 タッチではツールチップ非表示/ホバーでは表示+offsetが毎回反映(26→8)',
       r.noTipOnTouch&&r.tipOnHover&&r.pinOffset===26&&r.defOffset===8, JSON.stringify(r));
+  }
+
+  // Y10: 表示天体OFF→ONの往復で辻マーカー画像(tm-gold-img)が再描画なしに復帰する
+  //      (旧実装はONに戻す経路が無く画像だけ欠けた。v1.37.0の表示一元化の回帰)
+  {
+    const r=await p.evaluate(async()=>{
+      drawTsujiMeshGoldSet(new Map([[0,0.011]]),{pix:0,dist:0.011,timeMs:_tsujiMeshRows[0].pixTime[0]});
+      for(let w=0;w<30&&!_glTmHasImg['tm-gold-img'];w++) await new Promise(res=>setTimeout(res,100));
+      const before=glMap.getLayoutProperty('tm-gold-img','visibility');
+      const sun=appState.bodies.find(b=>b.id==='Sun');
+      sun.visible=false; applyTsujiMeshLayerVisibility();
+      const off=glMap.getLayoutProperty('tm-gold-img','visibility');
+      sun.visible=true; applyTsujiMeshLayerVisibility();   // 再描画は呼ばない
+      const on=glMap.getLayoutProperty('tm-gold-img','visibility');
+      return { before, off, on };
+    });
+    check('Y10 表示天体OFF→ONで辻マーカー画像が復帰(再描画なし)',
+      r.before==='visible'&&r.off==='none'&&r.on==='visible', JSON.stringify(r));
+  }
+
+  // Y11: 画像ロード失敗の安全網 — 失敗を検知して「中身あり」フラグを戻し、レイヤ非表示+ステータス表示
+  //      (無音だと「描画されないのに操作だけ効く」状態が固定される。v1.37.2)
+  {
+    const r=await p.evaluate(async()=>{
+      const st=document.getElementById('tsujimesh-status'); if(st) st.textContent='';
+      const hadImg=_glTmHasImg['tm-mesh-img'];
+      glMap.getSource('tm-mesh-img').updateImage({url:'blob:'+location.origin+'/00000000-dead-beef-0000-000000000000'});
+      for(let w=0;w<30&&_glTmHasImg['tm-mesh-img'];w++) await new Promise(res=>setTimeout(res,100));
+      const flagCleared=!_glTmHasImg['tm-mesh-img'];
+      const vis=glMap.getLayoutProperty('tm-mesh-img','visibility');
+      const msg=st?st.textContent:'';
+      // 後始末: 正常描画に戻す
+      drawTsujiMeshMarkers();
+      for(let w=0;w<30&&!_glTmHasImg['tm-mesh-img'];w++) await new Promise(res=>setTimeout(res,100));
+      const recovered=glMap.getLayoutProperty('tm-mesh-img','visibility');
+      return { hadImg, flagCleared, vis, msgOk:/失敗/.test(msg), recovered };
+    });
+    check('Y11 画像ロード失敗でフラグ解除+レイヤnone+ステータス表示→再描画で復帰',
+      r.hadImg&&r.flagCleared&&r.vis==='none'&&r.msgOk&&r.recovered==='visible', JSON.stringify(r));
   }
 
   // Y9: 検索完了後のワーカープール解放+描画スキップの可視化(ソース検査)
