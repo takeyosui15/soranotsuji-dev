@@ -14,7 +14,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('W0 APP_VERSION 1.39.0', src.includes("APP_VERSION = '1.39.0'"));
+    // 版数ピンは最新のverify(現在は122)のみに置く(テスト方針)。ここでは存在だけ確認する
+    check('W0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
     check('W0 onloadのDP365死に分岐が整理されている', !/isDP365Active\) \{\s*\n\s*document\.getElementById\('btn-dp365'\)\.classList\.add/.test(src));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
