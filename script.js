@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
-Version 1.39.0 - 2026-07-20: feat: 第37ラウンド — URL由来値のセッション限定化(依頼者決定)+懸案対応+細部修正 ①共有URLで開いたセッションでは「URLによって実際に変わった項目」を保存しない(URL適用前の自分の保存値で凍結して書き出す。通常の再訪では自分の保存値のまま=共有URLを開いても保存条件が置き換わらない) ②表示中セットのMy系編集(観測点/目的点/辻検索/宙検索のdirty・My天体の追加/削除)でMyセットメニューの行アイコンを即👎(差あり)に(シート側変更しか検知しない片方向監視の解消・依頼者提案) ③Drive同期の指紋を「実際にアップロードした内容」から計算(アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの考え方) ④宙の窓ctrlの「:花火モード」ラベルを金字に(.control-row labelの#333に負けていた) ⑤onloadの辻ライン365ボタン点灯分岐(到達不能の死にコード)を整理
+Version 1.39.0 - 2026-07-20: feat: 第37ラウンド — 海外対応(全球DEM)+URL由来値のセッション限定化(依頼者決定)+懸案対応+細部修正 ⓪海外対応: 標高データに全球DEM(AWS Open DataのTerrariumタイル。SRTM/EU-DEM等30m級)を最終フォールバックとして追加し、海外でも宙の窓の山プレビュー/標高グラフ/可視判定/辻メッシュ検索/宙断面が動くように。Terrariumはロード時にGSI符号へ正規化するため下流のデコード/ワーカーは共通。国内の結果を一切変えないよう「日本域外のタイル/地点のみ」にゲート(国内の海は従来どおり)。あわせて「標高グラフが固まる」の対策: 日本域外のGSIタイルは取得自体をスキップ(海外での404嵐の解消)・タイル取得12秒タイムアウト・失敗のネガティブキャッシュ ①共有URLで開いたセッションでは「URLによって実際に変わった項目」を保存しない(URL適用前の自分の保存値で凍結して書き出す。通常の再訪では自分の保存値のまま=共有URLを開いても保存条件が置き換わらない) ②表示中セットのMy系編集(観測点/目的点/辻検索/宙検索のdirty・My天体の追加/削除)でMyセットメニューの行アイコンを即👎(差あり)に(シート側変更しか検知しない片方向監視の解消・依頼者提案) ③Drive同期の指紋を「実際にアップロードした内容」から計算(アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの考え方) ④宙の窓ctrlの「:花火モード」ラベルを金字に(.control-row labelの#333に負けていた) ⑤onloadの辻ライン365ボタン点灯分岐(到達不能の死にコード)を整理
 Version 1.38.0 - 2026-07-20: feat: 第36ラウンド — 後日課題の全実施+保存/初期値/URL再現の整合性調査と修正+閉じるボタン ①作法改善の本丸: 辻メッシュ画像をimageソース+toBlob(PNG)+objectURLの自前パイプラインから標準canvasソース(type:'canvas', animate:false)へ置換(PNG変換・非同期ロード・失敗経路が消え描画が同期に。使い回しcanvas2枚+表示時flush) ②辻ライン時刻ラベル(1天体約140個のDOMマーカー)をsymbolレイヤ+ローカルglyphs(リポジトリ同梱のSDFフォントPBF。生成ツールtests/build-glyphs.js)へ=パン時の再配置がGPU側に ③観測点/目的点/My地点/優辻ピンをMapLibre標準ピン(色指定)へ置換(承認済み)+観測点/目的点マーカーの永続化(毎updateAll破棄→再生成をやめsetLngLat+setHTML更新。表示中ポップアップが更新で閉じる副作用も解消) ④辻メッシュの時刻/色スライダーをrAF合流・冗長setData除去・モバイルのワーカー台数上限(≤6)・OSM単一ホスト化・refreshExpiredTiles:false ⑤整合性修正: 花火モード設定が保存されるのに復元されない実装漏れ・Myセットの空データでシートを上書きし得るデータ消失経路をガード・Drive同期の[New]判定を「前回同期からの変更有無」へ(簿記保存で常にローカル優位になる偏りを解消)・シート同期簿記が指紋に混入して常時「差あり」になる干渉を除外・機能封鎖中のシート読込でMy宙検索が消える片方向消去を温存に・URLの辻検索基準方位角/視高度が自動再計算で上書きされ再現されない競合を保護・保存の容量超過を無音にしない・辻検索期間の正規化追加 ⑥全天儀/標高グラフ/辻検索/辻メッシュ/宙の窓に閉じるボタン(✕)を追加
 Version 1.37.2 - 2026-07-20: fix: 描画監査(第35ラウンド第3弾=当初調査ワークフローの完走分)の残指摘対応 — ①辻メッシュ画像ソースのロード失敗が無音だった: updateImage後のロードが失敗すると「中身あり」フラグのまま透明/旧画像が固定され「描画されないのに操作だけ効く」状態になり得た(不具合(3)の残存経路)。mapのerrorイベント(sourceId付き)で検知してフラグを戻し、ステータス欄に表示 ②クレジット(ⓘ)の重複表示を解消: ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、customAttributionは地図ソースでないデータ(標高=国土地理院・気象=Open-Meteo)のみに
 Version 1.37.1 - 2026-07-20: fix: 描画監査(第35ラウンド第2弾)の指摘対応 — マルチエージェント監査(タッチ操作経路+MapLibre作法+指摘毎の反証検証)で確認された3件を修正 ①優辻ピンのmouseenterに_mapDblClickModeガードが無く、スマホのタップで合成mouseenterが発火してツールチップがポップアップと二重表示・残留し、精細化スキャンがタップ応答を遅くしていた(観測点マーカーと同じガードを追加) ②DEMタイルキャッシュ(_tileCache)が無制限で、地域を変えた再検索の繰り返しでメモリが単調増加していた(上限192枚≈48MBのLRUへ) ③辻メッシュ検索完了後にワーカープールを解放していなかった(initデータの複製がワーカー台数分常駐。完了時にterminateAll・再検索時は再init)。あわせてホバーツールチップのoffsetが初回生成時しか反映されない位置ズレと、ソース未初期化時に画像描画が無音で捨てられるエッジの可視化(console.warn)も修正
@@ -814,7 +814,7 @@ function initMapGL(mapEl) {
         compact: true,   // ⓘアイコンで折りたたみ(タップ/クリックで展開。常時1行表示より省スペース)
         // ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、ここには
         // 地図ソースでないデータの出典のみ載せる(標高タイル=国土地理院・気象=Open-Meteo。重複表示の防止)
-        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
+        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高)</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
     }), 'bottom-right');
     // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)。
     // ※辻メッシュ画像は第36ラウンドでcanvasソース化し非同期ロード自体が無くなったため、
@@ -3347,9 +3347,10 @@ async function moveToNearestPeak() {
     const btn = document.getElementById('btn-move-peak');
     if (btn) { btn.disabled = true; btn.textContent = '⌛'; }
     try {
-        // 現在点を覆うDEMソースを選定 (5A→5B→5C→10B)。現在標高と現在グローバルピクセルを取得
+        // 現在点を覆うDEMソースを選定 (5A→5B→5C→10B→[海外のみ]全球DEM)。現在標高と現在グローバルピクセルを取得
         let chosen = null, curElev = null, gpx0 = 0, gpy0 = 0;
         for (const dem of GSI_DEM_SOURCES) {
+            if (dem.global && _pointInsideJapan(cur.lat, cur.lng)) continue;   // 国内の値を変えない
             const ti = _getTileInfo(cur.lat, cur.lng, dem.zoom);
             const imgData = await _getTileImageData(_makeTileUrl(dem, ti.x, ti.y));
             if (!imgData) continue;
@@ -4024,7 +4025,45 @@ const GSI_DEM_SOURCES = [
     { title: "DEM5B", url: "https://cyberjapandata.gsi.go.jp/xyz/dem5b_png/{z}/{x}/{y}.png", zoom: 15, fixed: 1 },
     { title: "DEM5C", url: "https://cyberjapandata.gsi.go.jp/xyz/dem5c_png/{z}/{x}/{y}.png", zoom: 15, fixed: 1 },
     { title: "DEM10B", url: "https://cyberjapandata.gsi.go.jp/xyz/dem_png/{z}/{x}/{y}.png", zoom: 14, fixed: 0 },
+    // 海外対応(第37ラウンド): 全球DEM(AWS Open DataのTerrariumタイル。SRTM/EU-DEM等30m級)。
+    // 常に最終フォールバック(global:trueはz15画素チェーンで国内のDEM10Bより先に来ないよう除外印)。
+    // タイルはロード時にGSI符号へ正規化される(_getTileImageData)ため下流のデコードは共通
+    { title: "Terrarium", url: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", zoom: 15, fixed: 1, global: true },
 ];
+
+// GSIのDEMタイルは日本域のみ。この範囲外のGSI URLは取得自体をスキップする(海外での404嵐=
+// 「標高グラフが固まって見える」主因の対策。範囲は離島含め広めに取る: 南鳥島154.0E/沖ノ鳥島20.4N)
+const _GSI_BBOX = { latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 };
+function _pointInsideJapan(lat, lng) {
+    return lat >= _GSI_BBOX.latMin && lat <= _GSI_BBOX.latMax && lng >= _GSI_BBOX.lngMin && lng <= _GSI_BBOX.lngMax;
+}
+function _tileOutsideJapan(z, x, y) {
+    const n = Math.pow(2, z);
+    const lngW = x / n * 360 - 180, lngE = (x + 1) / n * 360 - 180;
+    const latN = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+    const latS = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+    return latN < _GSI_BBOX.latMin || latS > _GSI_BBOX.latMax || lngE < _GSI_BBOX.lngMin || lngW > _GSI_BBOX.lngMax;
+}
+function _gsiTileOutsideJapan(url) {
+    if (!url.includes('cyberjapandata.gsi.go.jp')) return false;
+    const m = url.match(/\/(\d+)\/(\d+)\/(\d+)\.png$/);
+    if (!m) return false;
+    return _tileOutsideJapan(+m[1], +m[2], +m[3]);
+}
+
+/** TerrariumタイルのImageDataをGSI符号へ正規化する(標高=(R*256+G+B/256)-32768 → 0.01m単位の24bit)。
+ *  下流のデコード(_elevFromRGB/ワーカー転送/バイリニア)を一切変えずに全球DEMを流すための変換。
+ *  Terrariumに無効値は無い(海=負の水深)ため、GSI無効値(128,0,0)と衝突しない */
+function _terrariumToGsi(imgData) {
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+        const h = (d[i] * 256 + d[i + 1] + d[i + 2] / 256) - 32768;
+        let v = Math.round(h * 100);
+        if (v < 0) v += 16777216;   // 2の補数(24bit)
+        d[i] = (v >> 16) & 255; d[i + 1] = (v >> 8) & 255; d[i + 2] = v & 255;
+    }
+    return imgData;
+}
 
 const POW2_8 = Math.pow(2, 8);
 const POW2_16 = Math.pow(2, 16);
@@ -4095,8 +4134,11 @@ function _loadTileImage(url) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("Tile load failed"));
+        // 応答が返らない接続で永久待ちにならないよう上限を設ける(1本のストールが
+        // 標高グラフ全体の「終わらない」に化けるのを防ぐ。第37ラウンド)
+        const timer = setTimeout(() => { img.src = ''; reject(new Error("Tile load timeout")); }, 12000);
+        img.onload = () => { clearTimeout(timer); resolve(img); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error("Tile load failed")); };
         img.src = url;
     });
 }
@@ -4115,12 +4157,18 @@ function _elevFromRGB(r, g, b) {
 const _TILE_CACHE_MAX = 192;   // ≈48MB(5×5検索1回で最大約100枚を使う想定に余裕を持たせた値)
 const _tileCache = new Map();  // url -> ImageData(Mapの挿入順をLRU順として使う)
 
+const _TILE_FAIL = 'FAIL';     // 失敗のネガティブキャッシュ印(同じ404を何度も踏まない。第37ラウンド)
 async function _getTileImageData(tileUrl) {
     const hit = _tileCache.get(tileUrl);
     if (hit) {
         _tileCache.delete(tileUrl);
         _tileCache.set(tileUrl, hit);   // 使ったものを末尾へ(LRU更新)
-        return hit;
+        return hit === _TILE_FAIL ? null : hit;
+    }
+    // GSIタイルの日本域外は取得自体をスキップ(海外での404嵐対策)
+    if (_gsiTileOutsideJapan(tileUrl)) {
+        _tileCache.set(tileUrl, _TILE_FAIL);
+        return null;
     }
     try {
         const img = await _loadTileImage(tileUrl);
@@ -4129,11 +4177,14 @@ async function _getTileImageData(tileUrl) {
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        const imgData = ctx.getImageData(0, 0, 256, 256);
+        let imgData = ctx.getImageData(0, 0, 256, 256);
+        if (tileUrl.includes('/terrarium/')) imgData = _terrariumToGsi(imgData);   // 全球DEMはGSI符号へ正規化
         _tileCache.set(tileUrl, imgData);
         if (_tileCache.size > _TILE_CACHE_MAX) _tileCache.delete(_tileCache.keys().next().value);   // 最古を追い出す
         return imgData;
     } catch (e) {
+        _tileCache.set(tileUrl, _TILE_FAIL);
+        if (_tileCache.size > _TILE_CACHE_MAX) _tileCache.delete(_tileCache.keys().next().value);
         return null;
     }
 }
@@ -4158,6 +4209,8 @@ async function _getElevationFromOpenMeteo(lat, lng) {
 // 1地点の標高取得 (DEM5A→5B→5C→10B の順にフォールバック、全て失敗時はOpen-Meteo)
 async function getElevation(lat, lng) {
     for (const dem of GSI_DEM_SOURCES) {
+        // 全球DEMは日本域外のみ使う(国内の海=GSI無効値は従来どおりOpen-Meteoへ。国内の値を変えない)
+        if (dem.global && _pointInsideJapan(lat, lng)) continue;
         const ti = _getTileInfo(lat, lng, dem.zoom);
         const url = _makeTileUrl(dem, ti.x, ti.y);
         const imgData = await _getTileImageData(url);
@@ -4184,6 +4237,8 @@ async function fetchAllElevations(points, onProgress) {
         const tileGroups = {};
         for (let i = 0; i < points.length; i++) {
             if (points[i].fetched) continue;
+            // 全球DEMは日本域外の点のみ(国内の海は従来どおりOpen-Meteo/0へ。国内の値を変えない)
+            if (dem.global && _pointInsideJapan(points[i].lat, points[i].lng)) continue;
             const ti = _getTileInfo(points[i].lat, points[i].lng, dem.zoom);
             const key = `${ti.x}_${ti.y}`;
             if (!tileGroups[key]) {
@@ -9007,7 +9062,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     const coords15 = listTiles(15);
 
     let elevAtPix15;   // (z15グローバル画素int) → 標高 or null (標高グラフのgetElevationと同じチェーン)
-    let maps15 = null, map14 = null;   // 実DEM時のタイルキャッシュ(ワーカーへの符号化にも使う)
+    let maps15 = null, map14 = null, mapT = null;   // 実DEM時のタイルキャッシュ(ワーカーへの符号化にも使う。mapT=全球DEM)
     if (synthetic) {
         // テスト用: z15合成(あれば)→z14合成
         elevAtPix15 = (gx, gy) => {
@@ -9038,9 +9093,10 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             await Promise.all(Array.from({ length: 8 }, loop));
         };
         const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
-        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15 && !d.global);   // 全球DEMは通常チェーンから除外(z14より先に来ない)
         map14 = new Map();
         maps15 = z15Sources.map(() => new Map());
+        mapT = new Map();
         await fetchInto(map14, dem14, coords14, dem14.title);
         if (generation !== tsujiMeshGeneration) return null;
         for (let si = 0; si < z15Sources.length; si++) {
@@ -9051,6 +9107,20 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             if (need.length === 0) break;
             await fetchInto(maps15[si], z15Sources[si], need, z15Sources[si].title);
             if (generation !== tsujiMeshGeneration) return null;
+        }
+        // 海外対応(第37ラウンド): GSIのz15が全滅かつz14親タイルも無い座標だけ全球DEM(Terrarium)で補う
+        // (国内はz14が必ずあるため取得されず、既存の結果は一切変わらない)
+        const demT = GSI_DEM_SOURCES.find(d => d.global);
+        if (demT) {
+            const needT = coords15.filter(({ tx, ty }) => {
+                if (!_tileOutsideJapan(15, tx, ty)) return false;   // 国内は従来どおり(結果を変えない)
+                for (let p = 0; p < z15Sources.length; p++) if (maps15[p].get(tx * 32768 + ty)) return false;
+                return !map14.get((tx >> 1) * 32768 + (ty >> 1));
+            });
+            if (needT.length) {
+                await fetchInto(mapT, demT, needT, demT.title);
+                if (generation !== tsujiMeshGeneration) return null;
+            }
         }
         elevAtPix15 = (gx, gy) => {
             const key = (gx >> 8) * 32768 + (gy >> 8);
@@ -9063,10 +9133,16 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             }
             const gx14 = gx >> 1, gy14 = gy >> 1;
             const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
-            if (!t14) return null;
-            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
-            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
-            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+            if (t14) {
+                const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+                const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+                if (e14 !== null) return Math.round(e14);   // DEM10B(z14): 1m丸め
+            }
+            const tT = mapT.get(key);   // 全球DEM(海外のみ。GSI符号へ正規化済み)
+            if (!tT) return null;
+            const oT = ((gy & 255) * 256 + (gx & 255)) << 2;
+            const eT = _elevFromRGB(tT.data[oT], tT.data[oT + 1], tT.data[oT + 2]);
+            return (eT === null) ? null : Math.round(eT * 10) / 10;
         };
     }
 
@@ -9144,6 +9220,9 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
                     const img = maps15[si].get(tx * 32768 + ty);
                     if (img) _tmPackTileDm(img, out, false);
                 }
+                // 全球DEM(海外のみ取得済み。z14親が無いタイル限定なのでワーカー側の優先順は国内と不変)
+                const imgT = mapT && mapT.get(tx * 32768 + ty);
+                if (imgT) _tmPackTileDm(imgT, out, false);
             }
             return { key: tx * 32768 + ty, dm: out };
         };
@@ -9266,6 +9345,15 @@ async function startTsujiMeshSearch() {
         } else {
             const url = dem.url.replace('{z}', TSUJIMESH_ZOOM).replace('{x}', tiles[i].x).replace('{y}', tiles[i].y);
             try { img = await _getTileImageData(url); } catch (_) { img = null; }   // 海上等でタイルが無い場合はスキップ
+            if (!img && _gsiTileOutsideJapan(url)) {
+                // 海外対応(第37ラウンド): 日本域外のタイルのみ全球DEM(同じz14タイル)で補う
+                // (国内の海タイルは従来どおりスキップ=国内の検索結果を一切変えない)
+                const demT = GSI_DEM_SOURCES.find(d => d.global);
+                if (demT) {
+                    const urlT = demT.url.replace('{z}', TSUJIMESH_ZOOM).replace('{x}', tiles[i].x).replace('{y}', tiles[i].y);
+                    try { img = await _getTileImageData(urlT); } catch (_) { img = null; }
+                }
+            }
         }
         tileData.push(img);
         setTsujiMeshProgress(i + 1, progTotal);
@@ -10687,10 +10775,11 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
                 keys15.add((gx >> 8) * 32768 + (gy >> 8));
             }
         }
-        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15);
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15 && !d.global);   // 全球DEMはz14の後の最終段
         const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
         const maps15 = z15Sources.map(() => new Map());
         const map14 = new Map();
+        const mapT = new Map();
         let pend = [...keys15];
         for (let si = 0; si < z15Sources.length && pend.length; si++) {
             const next = [];
@@ -10712,6 +10801,20 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
             try { img = await _getTileImageData(_makeTileUrl(dem14, tx, ty)); } catch (_) {}
             map14.set(key14, img);
         }));
+        // 海外対応: 日本域外で、GSI z15が全滅かつz14親も無いタイルのみ全球DEMで補う(国内は結果不変)
+        const demT = GSI_DEM_SOURCES.find(d => d.global);
+        if (demT && pend.length) {
+            await Promise.all(pend.filter(key => {
+                const tx = Math.floor(key / 32768), ty = key % 32768;
+                if (!_tileOutsideJapan(15, tx, ty)) return false;
+                return !map14.get((tx >> 1) * 32768 + (ty >> 1));
+            }).map(async (key) => {
+                const tx = Math.floor(key / 32768), ty = key % 32768;
+                let img = null;
+                try { img = await _getTileImageData(_makeTileUrl(demT, tx, ty)); } catch (_) {}
+                mapT.set(key, img);
+            }));
+        }
         elevAtPix15 = (gx, gy) => {
             const key = (gx >> 8) * 32768 + (gy >> 8);
             for (let si = 0; si < maps15.length; si++) {
@@ -10723,10 +10826,16 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
             }
             const gx14 = gx >> 1, gy14 = gy >> 1;
             const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
-            if (!t14) return null;
-            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
-            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
-            return (e14 === null) ? null : Math.round(e14);   // DEM10B(z14): 1m丸め
+            if (t14) {
+                const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+                const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+                if (e14 !== null) return Math.round(e14);   // DEM10B(z14): 1m丸め
+            }
+            const tT = mapT.get(key);   // 全球DEM(海外のみ)
+            if (!tT) return null;
+            const oT = ((gy & 255) * 256 + (gx & 255)) << 2;
+            const eT = _elevFromRGB(tT.data[oT], tT.data[oT + 1], tT.data[oT + 2]);
+            return (eT === null) ? null : Math.round(eT * 10) / 10;
         };
     }
     return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
@@ -16931,14 +17040,27 @@ const SD_PL_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 30
 function _sdEnsureProtocol() {
     if (_sdProtocolAdded) return;
     maplibregl.addProtocol('gsidem', async (params) => {
-        const url = params.url.replace('gsidem://', '');
-        const img = await new Promise((ok, ng) => {
+        const load = (u) => new Promise((ok, ng) => {
             const i = new Image();
             i.crossOrigin = 'anonymous';
             i.onload = () => ok(i);
             i.onerror = () => ng(new Error('DEMタイル取得失敗'));
-            i.src = url;
+            i.src = u;
         });
+        const url = params.url.replace('gsidem://', '');
+        let img = null, isTerrarium = false;
+        // 海外対応(第37ラウンド): 日本域外のタイルのみ全球DEM(Terrarium)の同座標タイルで補う
+        // (国内はGSIのみ=従来どおり。域外はGSIを踏まず直接Terrariumへ)
+        const outside = _gsiTileOutsideJapan(url);
+        if (!outside) {
+            img = await load(url);   // 失敗はrejectのまま(従来挙動)
+        } else {
+            const demT = GSI_DEM_SOURCES.find(sd => sd.global);
+            const m = url.match(/\/(\d+)\/(\d+)\/(\d+)\.png$/);
+            if (!demT || !m) throw new Error('DEMタイル取得失敗');
+            img = await load(demT.url.replace('{z}', m[1]).replace('{x}', m[2]).replace('{y}', m[3]));
+            isTerrarium = true;
+        }
         const c = document.createElement('canvas');
         c.width = img.width; c.height = img.height;
         const g = c.getContext('2d', { willReadFrequently: true });
@@ -16946,8 +17068,13 @@ function _sdEnsureProtocol() {
         const d = g.getImageData(0, 0, c.width, c.height);
         const px = d.data;
         for (let i = 0; i < px.length; i += 4) {
-            const x = px[i] * 65536 + px[i + 1] * 256 + px[i + 2];
-            const h = x === 8388608 ? 0 : (x < 8388608 ? x * 0.01 : (x - 16777216) * 0.01);
+            let h;
+            if (isTerrarium) {
+                h = (px[i] * 256 + px[i + 1] + px[i + 2] / 256) - 32768;   // Terrarium符号
+            } else {
+                const x = px[i] * 65536 + px[i + 1] * 256 + px[i + 2];
+                h = x === 8388608 ? 0 : (x < 8388608 ? x * 0.01 : (x - 16777216) * 0.01);
+            }
             const v = Math.max(0, Math.round((h + 10000) / 0.1));
             px[i] = (v >> 16) & 255; px[i + 1] = (v >> 8) & 255; px[i + 2] = v & 255; px[i + 3] = 255;
         }
@@ -17017,7 +17144,7 @@ function _sdInitMap() {
                     type: 'raster',
                     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
                     tileSize: 256, maxzoom: 18,
-                    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a> | 雲: <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> (CC BY 4.0)',
+                    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a> | 雲: <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> (CC BY 4.0)',
                 },
                 gsidem: {
                     type: 'raster-dem',
@@ -18123,11 +18250,15 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         let g = groups[k];
         if (!g) {
             g = groups[k] = { pts: [] };
+            // 海外対応: 日本域外のタイルのみ全球DEMの第2フォールバックを付ける(国内の見た目を変えない)
+            const demT = _tileOutsideJapan(zoom, ti.x, ti.y) ? GSI_DEM_SOURCES.find(sc => sc.global) : null;
             if (zoom === 15) {
-                g.urls = GSI_DEM_SOURCES.filter(sc => sc.zoom === 15).map(sc => sc.url.replace('{z}', 15).replace('{x}', ti.x).replace('{y}', ti.y));
+                g.urls = GSI_DEM_SOURCES.filter(sc => sc.zoom === 15 && !sc.global).map(sc => sc.url.replace('{z}', 15).replace('{x}', ti.x).replace('{y}', ti.y));
                 g.fbUrl = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/${ti.x >> 1}/${ti.y >> 1}.png`;
+                if (demT) g.fb2Url = demT.url.replace('{z}', 15).replace('{x}', ti.x).replace('{y}', ti.y);
             } else {
                 g.url = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${zoom}/${ti.x}/${ti.y}.png`;
+                if (demT) g.fb2Url = demT.url.replace('{z}', zoom).replace('{x}', ti.x).replace('{y}', ti.y);
             }
         }
         const pt = { idx, pX: ti.pX, pY: ti.pY, fX: ti.fX, fY: ti.fY };
@@ -18152,7 +18283,7 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
         await Promise.all(keys.map(async (k) => {
             if (gen !== _smTerrainGen) return;
             const g = groups[k];
-            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, urls: g.urls, fbUrl: g.fbUrl, pts: g.pts });
+            const res = await _smTerrainPoolRun({ reqId: `${seq0}_${k}`, url: g.url, urls: g.urls, fbUrl: g.fbUrl, fb2Url: g.fb2Url, pts: g.pts });
             if (gen !== _smTerrainGen) return;
             for (const e of res.elevs) samples[e.idx].elev = e.elev;
             tileDone();
@@ -18165,19 +18296,28 @@ async function _smFetchTerrain(centerAz, aovH, rangeKm, zoom) {
                 // z15チェーン+z14フォールバック(欠損画素のみ次のソースを参照。タイルは必要になるまで取得しない)
                 const imgs = new Array(g.urls.length).fill(undefined);
                 const getI = async (i) => { if (imgs[i] === undefined) imgs[i] = await _getTileImageData(g.urls[i]); return imgs[i]; };
-                let fbImg;
+                let fbImg, fb2Img;
                 for (const pt of g.pts) {
                     let v = null;
                     for (let i = 0; i < g.urls.length && v === null; i++) { const im = await getI(i); if (im) v = _smSampleElevFromImg(im.data, pt.fX, pt.fY, pt.nearest); }
                     if (v === null) { if (fbImg === undefined) fbImg = await _getTileImageData(g.fbUrl); if (fbImg) v = _smSampleElevFromImg(fbImg.data, pt.fbX, pt.fbY, pt.nearest); }
+                    if (v === null && g.fb2Url) {   // 全球DEM(海外のみ実質有効)
+                        if (fb2Img === undefined) fb2Img = await _getTileImageData(g.fb2Url);
+                        if (fb2Img) v = _smSampleElevFromImg(fb2Img.data, pt.fX, pt.fY, pt.nearest);
+                    }
                     samples[pt.idx].elev = (v === null) ? 0 : v;
                 }
             } else {
                 const img = await _getTileImageData(g.url);
+                let img2;
                 for (const pt of g.pts) {
-                    let h = 0;
-                    if (img) { const v = _smSampleElevFromImg(img.data, pt.fX, pt.fY, pt.nearest); h = (v === null) ? 0 : v; }
-                    samples[pt.idx].elev = h;
+                    let v = null;
+                    if (img) v = _smSampleElevFromImg(img.data, pt.fX, pt.fY, pt.nearest);
+                    if (v === null && g.fb2Url) {   // 全球DEM(同じz/x/yタイル。座標もそのまま)
+                        if (img2 === undefined) img2 = await _getTileImageData(g.fb2Url);
+                        if (img2) v = _smSampleElevFromImg(img2.data, pt.fX, pt.fY, pt.nearest);
+                    }
+                    samples[pt.idx].elev = (v === null) ? 0 : v;
                 }
             }
             tileDone();

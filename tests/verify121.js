@@ -99,6 +99,71 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     check('W4 宙の窓ctrlの花火モードラベルが金字(#ffd700)', r==='rgb(255, 215, 0)', r);
   }
 
+  // W5: 海外DEM対応 — モックTerrariumタイル(全画素3000m)で、海外はスポット標高/標高グラフ/可視判定が
+  //     動き、国内の海はゲートにより従来どおり(Terrariumを使わない)
+  {
+    const gen=await ctx.newPage();
+    await gen.goto('about:blank');
+    const pngB64=await gen.evaluate(()=>{
+      const c=document.createElement('canvas'); c.width=c.height=256;
+      const g=c.getContext('2d');
+      const v=3000+32768;   // Terrarium: h=(R*256+G+B/256)-32768
+      g.fillStyle=`rgb(${(v>>8)&255},${v&255},0)`; g.fillRect(0,0,256,256);
+      return c.toDataURL('image/png').split(',')[1];
+    });
+    await gen.close();
+    const pngBuf=Buffer.from(pngB64,'base64');
+    let demGsiReqs=0, terrReqs=0;
+    const p3=await ctx.newPage();
+    await p3.route('**/*', route => {
+      const u=route.request().url();
+      if (u.startsWith(BASE)) return route.continue();
+      if (/dem5?[abc]?_?png|dem_png/.test(u)) { demGsiReqs++; return route.abort(); }
+      if (u.includes('/terrarium/')) { terrReqs++; return route.fulfill({contentType:'image/png', body:pngBuf}); }
+      return route.abort();
+    });
+    await p3.goto(BASE+'/index.html',{waitUntil:'load'});
+    await p3.waitForFunction(()=>typeof glMap==='object'&&glMap!==null,{timeout:10000});
+    const r=await p3.evaluate(async()=>{
+      const img=new ImageData(1,1);
+      const v=3000+32768; img.data[0]=(v>>8)&255; img.data[1]=v&255; img.data[2]=0; img.data[3]=255;
+      _terrariumToGsi(img);
+      const rt=_elevFromRGB(img.data[0],img.data[1],img.data[2]);   // 往復=3000m
+      const elevAbroad=await getElevation(45.976, 7.658);           // マッターホルン(海外)
+      const pts=[{lat:46.5,lng:7.5},{lat:46.4,lng:7.6},{lat:46.3,lng:7.7}].map(q=>({...q,elev:0,fetched:false}));
+      await fetchAllElevations(pts, ()=>{});                        // 海外の標高グラフ点
+      const graphOk=pts.every(q=>q.fetched&&q.elev===3000);
+      const vis=await computePathVisibility(46.948, 7.447, 2000, 45.976, 7.658, 2500);   // 全域3000m→直線(2000-2500m)は遮られる
+      return { rt, elevAbroad, graphOk, visNG: vis.visible===false };
+    });
+    // ここまで(海外の操作のみ)でGSI DEMへのリクエストが0であること=404嵐の解消
+    const demGsiAbroad=demGsiReqs;
+    const elevSea=await p3.evaluate(async()=>getElevation(34.0, 140.5));   // 国内の海(GSIは従来どおり試す→Terrarium不使用→0)
+    check('W5 海外: 変換往復3000m・スポット/グラフ/可視判定がTerrariumで動作・国内海は従来どおり0',
+      r.rt===3000&&r.elevAbroad===3000&&elevSea===0&&r.graphOk&&r.visNG, JSON.stringify({...r, elevSea}));
+    check('W5 日本域外のGSI DEMタイルは取得自体をスキップ(404嵐=固まりの解消)・国内はGSIを試す',
+      demGsiAbroad===0&&demGsiReqs>0, `abroad=${demGsiAbroad} afterSea=${demGsiReqs} terr=${terrReqs}`);
+    await p3.close();
+  }
+
+  // W6: 固まり対策のソース検査+失敗ネガティブキャッシュの実測
+  {
+    const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
+    check('W6 タイル取得に12秒タイムアウト+失敗ネガティブキャッシュ(ソース検査)',
+      src.includes('Tile load timeout')&&src.includes('_TILE_FAIL'));
+    const r=await p.evaluate(async()=>{
+      let n=0;
+      const orig=_loadTileImage;
+      _loadTileImage=async(u)=>{ n++; throw new Error('x'); };
+      _tileCache.clear();
+      await _getTileImageData('https://example.invalid/t/1/2/3.png');
+      await _getTileImageData('https://example.invalid/t/1/2/3.png');   // 2回目はキャッシュで再fetchしない
+      _loadTileImage=orig; _tileCache.clear();
+      return n;
+    });
+    check('W6 同じ失敗URLを再fetchしない(ネガティブキャッシュ実測)', r===1, `fetches=${r}`);
+  }
+
   check('W9 ページエラーなし', errs.length===0, errs.slice(0,3).join(' | '));
 
   await b.close();

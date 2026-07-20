@@ -63,11 +63,41 @@ function bilinearElev(data, fX, fY) {
     return v00 * (1 - wx) * (1 - wy) + v10 * wx * (1 - wy) + v01 * (1 - wx) * wy + v11 * wx * wy;
 }
 
+// GSIのDEMタイルは日本域のみ。範囲外のGSI URLは取得自体をスキップする(海外での404嵐対策。
+// script.js の _gsiTileOutsideJapan と同一ロジック)
+const GSI_BBOX = { latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 };
+function gsiTileOutsideJapan(url) {
+    if (!url.includes('cyberjapandata.gsi.go.jp')) return false;
+    const m = url.match(/\/(\d+)\/(\d+)\/(\d+)\.png$/);
+    if (!m) return false;
+    const z = +m[1], x = +m[2], y = +m[3];
+    const n = Math.pow(2, z);
+    const lngW = x / n * 360 - 180, lngE = (x + 1) / n * 360 - 180;
+    const latN = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+    const latS = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+    return latN < GSI_BBOX.latMin || latS > GSI_BBOX.latMax || lngE < GSI_BBOX.lngMin || lngW > GSI_BBOX.lngMax;
+}
+
+// TerrariumタイルをGSI符号へ正規化(script.js の _terrariumToGsi と同一式)。以降のデコードは共通
+function terrariumToGsi(data) {
+    for (let i = 0; i < data.length; i += 4) {
+        const h = (data[i] * 256 + data[i + 1] + data[i + 2] / 256) - 32768;
+        let v = Math.round(h * 100);
+        if (v < 0) v += 16777216;
+        data[i] = (v >> 16) & 255; data[i + 1] = (v >> 8) & 255; data[i + 2] = v & 255;
+    }
+    return data;
+}
+
 // タイル画像キャッシュ (ワーカーは再利用されるため、z14親タイル等の重複取得を避ける。上限8枚・先入れ先出し)
 const _tileCache = new Map();   // url -> Uint8ClampedArray(256×256×4) | null(取得失敗)
 async function loadTileData(url) {
     if (_tileCache.has(url)) return _tileCache.get(url);
     let data = null;
+    if (gsiTileOutsideJapan(url)) {
+        _tileCache.set(url, null);
+        return null;
+    }
     try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -77,6 +107,7 @@ async function loadTileData(url) {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(bmp, 0, 0, 256, 256);
         data = ctx.getImageData(0, 0, 256, 256).data;
+        if (url.includes('/terrarium/')) data = terrariumToGsi(data);   // 全球DEMはGSI符号へ正規化
         if (bmp.close) bmp.close();
     } catch (err) { data = null; }
     if (_tileCache.size >= 8) _tileCache.delete(_tileCache.keys().next().value);
@@ -85,13 +116,14 @@ async function loadTileData(url) {
 }
 
 self.onmessage = async (e) => {
-    const { reqId, url, urls, fbUrl, pts } = e.data;
+    const { reqId, url, urls, fbUrl, fb2Url, pts } = e.data;
     const out = new Array(pts.length);
     if (urls) {
-        // z15チェーン(DEM5A→5B→5C)+z14親タイルフォールバック。タイルは必要になるまで取得しない
+        // z15チェーン(DEM5A→5B→5C)+z14親タイル+全球DEM(fb2Url。海外のみ実質有効)。
+        // タイルは必要になるまで取得しない
         const chainImgs = new Array(urls.length).fill(undefined);
         const getChain = async (c) => { if (chainImgs[c] === undefined) chainImgs[c] = await loadTileData(urls[c]); return chainImgs[c]; };
-        let fbImg;
+        let fbImg, fb2Img;
         for (let i = 0; i < pts.length; i++) {
             const p = pts[i];
             let v = null;
@@ -103,12 +135,17 @@ self.onmessage = async (e) => {
                 if (fbImg === undefined) fbImg = await loadTileData(fbUrl);
                 if (fbImg) v = sampleElev(fbImg, p.fbX, p.fbY, p.nearest);
             }
+            if (v === null && fb2Url) {   // 全球DEM(同じz15タイル。座標はそのまま)
+                if (fb2Img === undefined) fb2Img = await loadTileData(fb2Url);
+                if (fb2Img) v = sampleElev(fb2Img, p.fX, p.fY, p.nearest);
+            }
             out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
         }
         self.postMessage({ reqId, elevs: out });
         return;
     }
     const img = await loadTileData(url);
+    let fb2ImgS;
     for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
         let v = null;
@@ -116,6 +153,14 @@ self.onmessage = async (e) => {
             v = (p.fX !== undefined)
                 ? sampleElev(img, p.fX, p.fY, p.nearest)
                 : elevFromRGB(img[(p.pY * 256 + p.pX) * 4], img[(p.pY * 256 + p.pX) * 4 + 1], img[(p.pY * 256 + p.pX) * 4 + 2]);
+        }
+        if (v === null && fb2Url) {   // 全球DEM(同じz/x/yタイル。座標はそのまま)
+            if (fb2ImgS === undefined) fb2ImgS = await loadTileData(fb2Url);
+            if (fb2ImgS) {
+                v = (p.fX !== undefined)
+                    ? sampleElev(fb2ImgS, p.fX, p.fY, p.nearest)
+                    : elevFromRGB(fb2ImgS[(p.pY * 256 + p.pX) * 4], fb2ImgS[(p.pY * 256 + p.pX) * 4 + 1], fb2ImgS[(p.pY * 256 + p.pX) * 4 + 2]);
+            }
         }
         out[i] = { idx: p.idx, elev: (v === null) ? 0 : v };
     }

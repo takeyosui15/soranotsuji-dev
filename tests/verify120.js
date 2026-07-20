@@ -14,7 +14,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('Z0 APP_VERSION 1.38.0', src.includes("APP_VERSION = '1.38.0'"));
+    // 版数ピンは最新のverify(現在は121)のみに置く(テスト方針)。ここでは存在だけ確認する
+    check('Z0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
     check('Z0 ローカルglyphs同梱(fonts/SoraSans/0-255.pbf)', fs.existsSync(path.join(__dirname,'..','fonts','SoraSans','0-255.pbf')));
     check('Z0 モバイルはワーカー台数上限6(ソース検査)', /_IS_TOUCH_ENV \? 6 : 31/.test(src));
   }
