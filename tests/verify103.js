@@ -20,7 +20,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof soraSearchRun==='function',{timeout:8000});
   await p.waitForTimeout(800);
 
@@ -153,13 +153,15 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const bodyTables=document.querySelectorAll('#sorasearch-detail-body table');
       const factorRows=bodyTables[0]?bodyTables[0].querySelectorAll('tbody tr').length:0;
       const sampleRows=bodyTables[1]?bodyTables[1].querySelectorAll('tbody tr').length:0;
-      const layers=_ssMapLayer?_ssMapLayer.getLayers():[];
+      const fanFeats=glMap.getSource('ss-fan')._data.features;
+      const ptFeats=glMap.getSource('ss-points')._data.features;
       return { moved,
         selected:row.classList.contains('selected'),
         detailShown:!detail.classList.contains('hidden')&&document.getElementById('sorasearch-panel').classList.contains('with-detail'),
         header:document.getElementById('sorasearch-detail-header').textContent,
-        factorRows, sampleRows, nPoints:_ssLast.points.length, nLayers:layers.length,
-        hasFanPolygon:layers.some(l=>l instanceof L.Polygon&&!(l instanceof L.Rectangle)) };
+        factorRows, sampleRows, nPoints:_ssLast.points.length,
+        nLayers:fanFeats.length+ptFeats.length,
+        hasFanPolygon:fanFeats.length===1&&fanFeats[0].geometry.type==='Polygon' };
     });
     check('U5 行クリックで日時移動+選択ハイライト', r.moved&&r.selected);
     check('U5 詳細リスト(因子7行+標本行=格子数+ヘッダに宙スコア)', r.detailShown&&r.factorRows===7&&r.sampleRows===r.nPoints&&/宙スコア/.test(r.header), `factor=${r.factorRows} sample=${r.sampleRows}/${r.nPoints}`);
@@ -171,7 +173,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const r=await p.evaluate(()=>{
       const rows=[...document.querySelectorAll('#sorasearch-content tbody tr')];
       const pick=(parity)=>rows.find(tr=>parseInt(tr.children[0].textContent.split('/')[2])%2===parity);
-      const fills=()=>_ssMapLayer.getLayers().filter(l=>l instanceof L.CircleMarker).map(l=>l.options.fillColor);
+      const fills=()=>glMap.getSource('ss-points')._data.features.map(f=>f.properties.fill);
       const clearRow=pick(1), cloudyRow=pick(0);
       let clearFills=[], cloudyFills=[];
       if(clearRow){ clearRow.click(); clearFills=fills(); }
@@ -190,7 +192,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     const r=await p.evaluate(async()=>{
       showTsujiPanelForMyTsuji('テスト');
       const afterTsuji={ ss:appState.isSoraSearchActive, ssHidden:document.getElementById('sorasearch-panel').classList.contains('hidden'),
-                         layerCleared:_ssMapLayer===null, tsuji:appState.isTsujiSearchActive };
+                         layerCleared:glMap.getSource('ss-points')._data.features.length===0&&glMap.getSource('ss-fan')._data.features.length===0,
+                         tsuji:appState.isTsujiSearchActive };
       // 再度宙検索(キャッシュヒットでモック不要)
       await soraSearchRun();
       const afterSora={ ss:appState.isSoraSearchActive, tsuji:appState.isTsujiSearchActive,

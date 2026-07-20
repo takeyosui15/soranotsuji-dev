@@ -1,5 +1,5 @@
 // 第27ラウンド検証: 本体地図のMapLibre移行R3(機能群3=辻ライン/方位線)
-// ?maplibre=1時の方位線・辻ライン(実線/点線/精度境界)・時刻マーカー・辻ライン365と、フラグOFFの不変。
+// (手順4のLeaflet撤去後に保守: 旧フラグは無視され常にMapLibre)
 // ローカルハーネス(vendor)。外部への実アクセスは行わない(route abort)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
@@ -112,21 +112,20 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       JSON.stringify(r));
   }
 
-  // Q5: フラグOFF(Leaflet)の不変 — 方位線はlinesLayerに描かれGL配列は使われない
+  // Q5: 旧フラグ?maplibre=0は無視される(手順4でLeaflet撤去済み) — 方位線はGLソースに出る
   {
     const p2=await ctx.newPage();
     const errs2=[]; p2.on('pageerror',e=>errs2.push(e.message));
     await p2.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
-    await p2.waitForFunction(()=>typeof map!=='undefined'&&!!map,{timeout:8000});
+    await p2.waitForFunction(()=>typeof glMap==='object'&&glMap!==null,{timeout:8000});
     await p2.waitForTimeout(600);
     const r=await p2.evaluate(()=>{
       updateAll();
-      return { lines: linesLayer.getLayers().length,
-               visCnt: appState.bodies.filter(b2=>b2.visible).length,
-               glDir: _glDirFeatures.length };
+      return { n: glMap.getSource('dir-lines')._data.features.length,
+               visCnt: appState.bodies.filter(b2=>b2.visible).length };
     });
-    check('Q5 フラグOFF: 方位線はLeaflet(linesLayer)のまま', r.lines===r.visCnt&&r.lines>=2&&r.glDir===0, JSON.stringify(r));
-    check('Q5 フラグOFF: ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
+    check('Q5 ?maplibre=0でも方位線はMapLibre(GLソース)', r.n===r.visCnt&&r.n>=2, JSON.stringify(r));
+    check('Q5 ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
     await p2.close();
   }
 

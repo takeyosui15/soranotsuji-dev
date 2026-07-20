@@ -35,6 +35,7 @@ Claude(AI)が各開発ラウンドで実行している検証スクリプトの�
 | `verify113.js` | 第29 | 本体地図MapLibre移行R5=辻メッシュ(合成4画素でメッシュ画像の四隅=bounds[updateImage+setCoordinates]・表示切替・金ドット3画素の実クリックで観測点設定+一般クリック抑止・辻マーカー画像+優辻ピンのポップアップ→内容クリック移動・画素クリックのメッシュ件数ポップアップ+詳細固定/解除・ホバー精細化ツールチップ・消去・フラグOFFのLeaflet同機能スモーク) |
 | `verify114.js` | 第30 | 本体地図MapLibre移行R6=既定切替(フラグ無し=MapLibre[マーカー/コントロール/バッジ無し]・?maplibre=0=旧Leaflet・?maplibre=1=明示MapLibre・エンジンを跨いだlocalStorage状態の互換[両方向]・共有URLにフラグが乗らない) |
 | `verify115.js` | 第31 | 辻ライン365の描画クラッシュ修正(Macのエラーコード5)=実測規模51万点(827+581点/日×365日)の合成流し込みで全再構築setData0回・updateData増分1〜3回のみ・730feature/513,920点の反映・表示切替は切替毎に再構築1回・全消去・ページエラーなし |
+| `verify116.js` | 第32 | 地図全面移行計画 完了(手順4=Leaflet撤去)=ソースにleafletタグ/L.*なし・実行環境にLグローバル/シャドウ/leaflet-DOMなし・_geoDistM凍結値(東京→大阪403.06km)・.gl-barスタイル移植・主要操作一連(地点移動/recenter/辻ライン/宙断面開閉)・旧フラグ無視 |
 
 ## 実行方法(ローカルハーネス)
 
@@ -42,18 +43,19 @@ Claude(AI)が各開発ラウンドで実行している検証スクリプトの�
 
 1. 作業ディレクトリ(例 `apptest/`)にリポジトリのアプリ一式(`index.html` `script.js` `style.css` 各ワーカー)をコピー
 2. `vendor/` に以下を配置し、`index.html`とワーカーのCDN参照をvendorパスへ書き換える
-   - leaflet 1.9.4 (`leaflet.js` `leaflet.css`) / astronomy-engine 2.1.19 (`astronomy.browser.min.js`)
-   - three 0.160.0 (`three.min.js`) / geographiclib-geodesic / geographiclib-dms
-   - maplibre-gl 4.7.1 (`maplibre-gl.js` `maplibre-gl.css`。宙断面ビュー=verify107以降) (いずれもnpmから取得可)
+   - astronomy-engine 2.1.19 (`astronomy.browser.min.js`) / three 0.160.0 (`three.min.js`)
+   - geographiclib-geodesic / geographiclib-dms
+   - maplibre-gl 4.7.1 (`maplibre-gl.js` `maplibre-gl.css`) (いずれもnpmから取得可)
+   - ※leaflet 1.9.4は第32ラウンド(手順4)の撤去に伴い不要になった(verify102の実ネットワーク検証を旧版で行う場合のみ歴史的に必要)
 3. `python3 -m http.server 8099 --bind 127.0.0.1` で配信
 4. `node tests/verify99.js` のように実行(要 `playwright-core` とChromium。CIやサンドボックスでは
    `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader` でWebGLをソフトウェア実行)
 
 - Google Drive/Sheets を使うテスト(verify96のT3等)は `window.fetch` をテスト内でモックしています(実アカウント不要)
 - 全verifyはPlaywrightのroute abortでローカル(127.0.0.1)以外への実アクセスを遮断しています(第22ラウンドから。テスト方針の仕組み化)
-- APP_VERSIONの版数ピンは**最新のverifyのみ**に置きます(第24ラウンド〜。旧verifyのピンを毎回更新する保守を廃止。現在のピンはverify115)
-- 第30ラウンド(既定=MapLibre化)から、**verify96〜108は`?maplibre=0`を明示**して旧Leaflet挙動を検証し続けます(手順4のLeaflet撤去時にMapLibre前提へ移植予定)。MapLibre側の検証はverify109〜115
-- 視覚検証・実時間アニメ・実マウス操作系のverify(97/98/99/113など)は、全スイート連続実行の負荷でまれに1〜2チェック落ちることがあります(単独再実行でPASSすればフレーク。頻発時は待ち時間を延長する)
+- APP_VERSIONの版数ピンは**最新のverifyのみ**に置きます(第24ラウンド〜。旧verifyのピンを毎回更新する保守を廃止。現在のピンはverify116)
+- 第32ラウンド(手順4=Leaflet撤去)で、全verifyがMapLibre上で走ります。Leaflet内部を検査していた3本(99/103/105)はGLソース/DOMの等価チェックへ移植済み。`?maplibre=0/1`は無視されます
+- 視覚検証・実時間アニメ・実マウス操作系のverify(97/98/99/113など)は、実行負荷でまれに1〜2チェック落ちることがあります(単独再実行でPASSすればフレーク。頻発時は待ち時間を延長する。verify113のドットクリックは描画完了のポーリング待ちで対策済み)
 - 判定は `PASS/FAIL` を標準出力に出し、FAILが1つでもあれば終了コード1
 
 ## 実行方法(実ネットワークハーネス。verify102以降)

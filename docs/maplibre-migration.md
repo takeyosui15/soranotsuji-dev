@@ -1,4 +1,7 @@
-# 本体地図のMapLibre移行 実施計画書(手順3)
+# 本体地図のMapLibre移行 実施計画書(手順3〜4)
+
+> **✅ 計画完了(2026-07-20 v1.34.0)**: 手順1〜4の全工程が完了し、地図はMapLibre GL JSに
+> 一本化された(Leaflet撤去済み)。本書は経緯の記録として保存する。
 
 地図全面移行計画(Leaflet → MapLibre GL JS → 将来Custom Layerでthree.js資産の注入)の
 **手順3=本体地図の機能単位の段階移行**の実施計画です。
@@ -73,12 +76,17 @@
    移行中バッジは撤去。localStorage/短縮URLの状態は両エンジン共通(跨いでも保持)。
    検証: tests/verify114.js(7チェック)。旧Leaflet挙動のverify96〜108は
    `?maplibre=0`を明示して歴史的挙動を検証し続ける。
-   **【手順4=Leaflet撤去は未実施】** 後戻りしにくい削除のため、実機確認
-   (スマホのタップ操作・辻メッシュ表示・全体の操作感)の後に実施する。
-   撤去時は`?maplibre=0`分岐・シャドウ地図・`L.*`約120箇所・leafletタグを除去し、
-   純math用途のL.latLng().distanceTo()は自前のHaversine/測地線へ置換、
-   `_tmLayerShown`等のエンジン分岐を畳み、verify96〜108の地図依存チェックを
-   MapLibre前提に移植(または宙断面など機能別verifyへ整理)する。
+   **【手順4=Leaflet撤去 完了 v1.34.0】** 実機確認(v1.33.1で全項目OK)の後に実施。
+   - `?maplibre=0/1`分岐(USE_MAPLIBRE)・シャドウ地図・`L.*`約120箇所・leafletタグを全撤去
+     (旧フラグは無視される=過去の共有URLでも無害)
+   - 純math用途のL.latLng().distanceTo()はLeaflet互換Haversine(`_geoDistM`。R=6371000)へ置換し
+     従来の数値を凍結(東京→大阪=403.06kmをverify116で回帰固定)
+   - 地図コントロールの地スタイル(白ボタン/角丸/影)は旧leaflet.css相当を`style.css`の`.gl-bar`へ移植
+   - 旧verify96〜108はフラグ無しに戻し、**全てMapLibre上で従来のチェックにPASS**
+     (Leaflet内部を見ていた3本[99/103/105]はGLソース/DOMの等価チェックへ移植)
+   - 副産物: 辻メッシュ詳細リストの行ジャンプで観測点ポップアップが開かない潜在バグ
+     (Leaflet APIのopenPopup残り)を発見・修正
+   - 検証: tests/verify116.js(10チェック)+全20本265チェックPASS
 
 ## 検証方法
 

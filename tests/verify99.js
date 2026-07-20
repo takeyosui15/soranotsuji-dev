@@ -19,7 +19,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof drawSoramado==='function',{timeout:8000});
   await p.waitForTimeout(800);
 
@@ -109,7 +109,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const altShown=parseFloat(document.getElementById('input-fw-base-alt').value);
       return { initOk, lat:appState.fwLat, lng:appState.fwLng, elev:appState.fwElev,
                ctrlLoc:document.getElementById('input-fw-ctrl-latlng').value,
-               marker:!!_fwMapMarker, circle:!!_fwMapCircle,
+               marker:document.querySelectorAll('#map .fw-map-icon').length===1,
+               circle:glMap.getSource('fw-circle')._data.features.length===1,
                azOk:Math.abs(azShown-az)<0.05, altFinite:isFinite(altShown), enabled:appState.fwEnabled };
     });
     check('F4 初期値=目的点(座標表示+標高がendApiElevに追従)', r.initOk);
@@ -207,7 +208,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const chk=document.getElementById('chk-sora-ctrl-fw');
       chk.checked=false; chk.dispatchEvent(new Event('change'));
       await new Promise(r=>setTimeout(r,150));
-      return { anim:_fwAnimReq===null, children:_fwGrp.children.length, marker:!_fwMapMarker,
+      return { anim:_fwAnimReq===null, children:_fwGrp.children.length,
+               marker:document.querySelectorAll('#map .fw-map-icon').length===0,
                mainChk:!document.getElementById('chk-sora-fw').checked };
     });
     check('F8 OFFでアニメ停止+花火/マーカー消去+メニュー側チェック連動', r.anim&&r.children===0&&r.marker&&r.mainChk, JSON.stringify(r));

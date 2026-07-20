@@ -16,7 +16,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html',{waitUntil:'load'});
   await p.waitForFunction(()=>typeof runMySoraBatch==='function',{timeout:8000});
   await p.waitForTimeout(800);
 
@@ -105,7 +105,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       let detailOk=false, layerOk=false;
       if(row2){ row2.click();
         detailOk=!document.getElementById('sorasearch-detail').classList.contains('hidden');
-        layerOk=_ssMapLayer!==null&&_ssMapLayer.getLayers().length>1; }
+        layerOk=glMap.getSource('ss-points')._data.features.length>0&&glMap.getSource('ss-fan')._data.features.length===1; }
       return { title, nCols:head.length, first2:head.slice(0,2).join(','), nRows:rows.length,
                bothIds:idSet.has('1')&&idSet.has('2'), detailOk, layerOk };
     });

@@ -1,5 +1,5 @@
 // 第26ラウンド検証: 本体地図のMapLibre移行R2(機能群2=マーカー/ポップアップ)
-// ?maplibre=1時の観測点/目的点/My地点/🎆マーカー・ポップアップ・2本線・範囲円と、フラグOFFの不変。
+// (手順4のLeaflet撤去後に保守: 旧フラグは無視され常にMapLibre)
 // ローカルハーネス(vendor)。外部への実アクセスは行わない(route abort)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
@@ -135,24 +135,23 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       JSON.stringify(r.lineStart));
   }
 
-  // P7: フラグOFF(Leaflet)の不変 — マーカーはLeafletに出てGL関数は使われない
+  // P7: 旧フラグ?maplibre=0は無視される(手順4でLeaflet撤去済み) — マーカーはMapLibreに出る
   {
     const p2=await ctx.newPage();
     const errs2=[]; p2.on('pageerror',e=>errs2.push(e.message));
     await p2.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
-    await p2.waitForFunction(()=>typeof map!=='undefined'&&!!map,{timeout:8000});
+    await p2.waitForFunction(()=>typeof glMap==='object'&&glMap!==null,{timeout:8000});
     await p2.waitForTimeout(600);
     const r=await p2.evaluate(()=>{
       updateAll();
       return {
-        lfObs: document.querySelectorAll('#map .location-marker-observer').length,
-        lfPoly: document.querySelectorAll('#map path.leaflet-interactive, #map .leaflet-overlay-pane path').length,
-        glGroups: Object.keys(_glMarkerGroups).length,
-        err0: true,
+        engine: mapAdapter.engine(),
+        glObs: document.querySelectorAll('#map .location-marker-observer').length,
+        noLeaflet: typeof L==='undefined',
       };
     });
-    check('P7 フラグOFF: Leafletマーカー/線のまま(GLグループ未使用)', r.lfObs===1&&r.lfPoly>=2&&r.glGroups===0, JSON.stringify(r));
-    check('P7 フラグOFF: ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
+    check('P7 ?maplibre=0でもMapLibreマーカー(Leaflet撤去済み)', r.engine==='maplibre'&&r.glObs===1&&r.noLeaflet, JSON.stringify(r));
+    check('P7 ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
     await p2.close();
   }
 

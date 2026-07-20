@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.34.0 - 2026-07-20: feat: 地図全面移行計画 完了(手順4=Leaflet撤去) — Leaflet本体(scriptタグ/CSS/L.*約120箇所)とシャドウ地図・エンジン分岐(USE_MAPLIBRE)を全撤去し、本体地図はMapLibre GL JSのみに。旧URLフラグ?maplibre=0/1は無視(過去の共有URLでも無害)。L.latLng().distanceTo()の純計算用途はLeaflet互換のHaversine(_geoDistM。R=6371000)へ置換して従来の数値を維持・地図コントロールの地スタイル(白ボタン/角丸/影)は旧leaflet.css相当をstyle.cssの.gl-barへ移植・辻メッシュ詳細リストの行ジャンプで観測点ポップアップが開かない潜在バグ(Leaflet APIのopenPopup残り)を修正・ペイロードはleaflet撤去分(約42KB gzip)軽量化
 Version 1.33.1 - 2026-07-19: fix: 辻ライン365(辻ボタン)の描画中にブラウザの描画プロセスが落ちる不具合(Macの「エラーコード5」)を修正 — MapLibre版の辻ライン365は描画のたびに全データ(太陽827点/日+月581点/日×365日≈51万点)のGeoJSONを作り直してsetDataしており、成長する巨大データの全再インデックスが計算中に何十回も走ってメモリ/GPUを圧迫していた。1日分を1つのMultiLineString featureにまとめ、ソースへはupdateDataの増分追加(先頭は即時・以後1秒毎にまとめるleading+trailingスロットル)で反映する方式に変更(全再構築は表示天体の切替/全消去時のみ)。updateData非対応環境ではスロットル済みの全再構築にフォールバック
 Version 1.33.0 - 2026-07-19: feat: 本体地図のMapLibre移行R6(既定切替) — 本体地図の既定エンジンをLeafletからMapLibre GL JSへ切替(全5機能群の移行完了を受けた手順3の仕上げ)。URLに?maplibre=0を付けると旧Leaflet地図に戻せる(実機確認期間の保険。共有URLには付与されない)・移行中バッジを撤去・localStorage/短縮URLの状態は両エンジンで共通(エンジンを跨いでも位置/設定が保たれる)。Leaflet本体の撤去(手順4)は実機確認後に実施予定(旧動作のverify96〜108は?maplibre=0で歴史的挙動を検証し続ける)
 Version 1.32.0 - 2026-07-19: feat: 本体地図のMapLibre移行R5(機能群5=辻メッシュ。最重量) — ?maplibre=1時のメッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)をimageソース+rasterレイヤ(raster-resampling:nearestでpixelated相当のシャープ表示・更新はupdateImage)・金ドット(選択行のヒット画素×最大5000)をcircleレイヤ化(クリックで観測点設定+ホバーで精度角距離のツールチップをレイヤイベントで再現)・優辻ピン(DOMマーカー。クリックでポップアップ/ホバーで精細化ツールチップ)・画素/ピンのポップアップ(クリックで観測点移動する内容ブロック・メッシュ確定中の詳細リスト固定と閉で解除)・ホバーツールチップ(map mousemove連動)・観測点マーカーの詳細リスト連動(ホバー/ポップアップ固定/常に開くクリック)・表示切替(チェックボックス+天体表示)をレイヤvisibilityで再現・金ドット上のクリックは一般クリック(地点移動)に流さない(queryRenderedFeatures)・レイヤ表示状態の共通問い合わせ口_tmLayerShown(mesh/gold)を新設しhasLayer5箇所を置換
@@ -94,7 +95,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.33.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.34.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -230,26 +231,15 @@ const COLOR_MAP = [
 // 2. グローバル変数 & アプリケーション状態 (appState)
 // ============================================================
 
-let map;
-let linesLayer;
-let locationLayer;
-let dpLayer;
-// ==== 手順3: 本体地図のMapLibre移行(R6で既定切替済み) ====
-// 本体地図は既定でMapLibre GL JS。URLに ?maplibre=0 を付けると旧Leaflet地図に戻せる
-// (実機確認期間の保険。手順4=Leaflet撤去まで残す)。
-// Leaflet時代のコード(L.*)は残っており、MapLibre時は非表示のシャドウLeaflet地図
-// (タイル読込なし)が受け皿になる。手順4でシャドウ地図ごとLeafletを撤去する。
-const USE_MAPLIBRE = (() => {
-    try { return new URLSearchParams(window.location.search).get('maplibre') !== '0'; } catch (e) { return true; }
-})();
-let glMap = null;            // MapLibre本体(フラグON時のみ)
+// ==== 本体地図: MapLibre GL JS(手順4でLeaflet撤去済み) ====
+// 地図全面移行計画(手順1〜4)完了。座標順やズーム値の換算はmapAdapterに集約している。
+// 旧URLフラグ ?maplibre=0/1 は無視される(過去の共有URLに付いていても無害)。
+let glMap = null;            // MapLibre本体
 let _glBaseLayerId = 'std';  // 表示中のベースレイヤ(std/photo/pale/osm)
 // PC(マウス操作)判定: trueなら地図の観測点/目的点移動とメッシュ/辻マーカー選択をダブルクリックで行う
 // (ドラッグ中の誤クリックによる観測点移動の防止。スマホ・タブレットは従来どおりタップ)
 let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
     ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : false;
-// 辻ライン365 — 天体ごとに L.layerGroup を保持し、表示天体メニューの切替に高速応答する
-let dp365LayerByBody = {}; // body.id -> L.layerGroup (mapに追加されている時のみ表示中)
 let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
 let dp365CurrentGeneration = 0;
 
@@ -699,66 +689,41 @@ function cleanupOldStorage() {
     });
 }
 
-// ==== 地図アダプタ(手順3): LeafletとMapLibreの差異を吸収する薄い層 ====
-// 座標順([lat,lng]⇄[lng,lat])とズーム値の差(MapLibreはLeaflet−1)はここでのみ変換し、
-// アプリ内部は従来どおり[lat,lng]・Leaflet換算ズームで統一する。
-function _glZoom(leafletZoom) { return leafletZoom - 1; }
+// ==== 地図アダプタ: MapLibreとアプリ内部単位の境界層 ====
+// 座標順([lat,lng]⇄[lng,lat])とズーム値の換算(MapLibre=従来値−1。tileSize256のラスタで同縮尺)を
+// ここに集約し、アプリ内部は従来どおり[lat,lng]・従来換算ズームで統一する。
+function _glZoom(appZoom) { return appZoom - 1; }
 function _lfZoom(glZoom) { return glZoom + 1; }
 const mapAdapter = {
-    engine() { return USE_MAPLIBRE ? 'maplibre' : 'leaflet'; },
-    ready() { return USE_MAPLIBRE ? !!glMap : (typeof map !== 'undefined' && !!map); },
-    getZoom() { return USE_MAPLIBRE ? _lfZoom(glMap.getZoom()) : map.getZoom(); },
-    getMaxZoom() {
-        if (USE_MAPLIBRE) return _lfZoom(glMap.getMaxZoom());
-        return (map && map.getMaxZoom) ? map.getMaxZoom() : 18;
-    },
-    getCenter() { const c = USE_MAPLIBRE ? glMap.getCenter() : map.getCenter(); return { lat: c.lat, lng: c.lng }; },
-    getSize() {
-        if (USE_MAPLIBRE) { const el = glMap.getContainer(); return { x: el.clientWidth, y: el.clientHeight }; }
-        const s = map.getSize(); return { x: s.x, y: s.y };
-    },
+    engine() { return 'maplibre'; },
+    ready() { return !!glMap; },
+    getZoom() { return _lfZoom(glMap.getZoom()); },
+    getMaxZoom() { return _lfZoom(glMap.getMaxZoom()); },
+    getCenter() { const c = glMap.getCenter(); return { lat: c.lat, lng: c.lng }; },
+    getSize() { const el = glMap.getContainer(); return { x: el.clientWidth, y: el.clientHeight }; },
     setView(lat, lng, zoom) {
-        if (USE_MAPLIBRE) {
-            glMap.jumpTo({ center: [lng, lat], zoom: (zoom !== undefined) ? _glZoom(zoom) : glMap.getZoom() });
-        } else if (zoom !== undefined) {
-            map.setView([lat, lng], zoom);
-        } else {
-            map.setView([lat, lng]);
-        }
+        glMap.jumpTo({ center: [lng, lat], zoom: (zoom !== undefined) ? _glZoom(zoom) : glMap.getZoom() });
     },
-    panBy(dx, dy) { if (USE_MAPLIBRE) glMap.panBy([dx, dy]); else map.panBy([dx, dy]); },
-    latLngToContainerPoint(latlng) {
-        if (USE_MAPLIBRE) { const p = glMap.project([latlng.lng, latlng.lat]); return { x: p.x, y: p.y }; }
-        const p = map.latLngToContainerPoint(latlng); return { x: p.x, y: p.y };
-    },
+    panBy(dx, dy) { glMap.panBy([dx, dy]); },
+    latLngToContainerPoint(latlng) { const p = glMap.project([latlng.lng, latlng.lat]); return { x: p.x, y: p.y }; },
     closePopup() {
-        if (typeof map !== 'undefined' && map) map.closePopup();
-        if (USE_MAPLIBRE) {
-            Object.values(_glMarkerGroups).forEach(list => list.forEach(m => {
-                const pp = m.getPopup && m.getPopup();
-                if (pp && pp.isOpen()) pp.remove();
-            }));
-            if (_glTmPopup) _glTmPopup.remove();   // 辻メッシュのポップアップ(R5)
-        }
+        Object.values(_glMarkerGroups).forEach(list => list.forEach(m => {
+            const pp = m.getPopup && m.getPopup();
+            if (pp && pp.isOpen()) pp.remove();
+        }));
+        if (_glTmPopup) _glTmPopup.remove();   // 辻メッシュのポップアップ
     },
 };
 
-// 未移行機能の描画先となるシャドウLeaflet地図(フラグON時のみ。非表示・タイル無しで通信も発生しない)
-function initShadowMap() {
-    const div = document.createElement('div');
-    div.id = 'map-shadow';
-    div.style.cssText = 'position:absolute;left:-10000px;top:0;width:640px;height:480px;overflow:hidden;';
-    div.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(div);
-    map = L.map(div, {
-        center: [appState.start.lat, appState.start.lng],
-        zoom: 9,
-        zoomControl: false,
-        attributionControl: false
-    });
-    linesLayer = L.layerGroup().addTo(map);
-    locationLayer = L.layerGroup().addTo(map);
-    dpLayer = L.layerGroup().addTo(map);
+// Leaflet CRS.Earth.distance互換のHaversine距離(m)。R=6371000。
+// 手順4のLeaflet撤去にあたり、L.latLng().distanceTo()を使っていた箇所の数値を変えないため
+// 同じ式・同じ半径で置き換える(可視判定・検索条件表示などで従来値と一致させる)
+function _geoDistM(lat1, lng1, lat2, lng2) {
+    const rad = Math.PI / 180, R = 6371000;
+    const sinDLat = Math.sin((lat2 - lat1) * rad / 2);
+    const sinDLng = Math.sin((lng2 - lng1) * rad / 2);
+    const a = sinDLat * sinDLat + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * sinDLng * sinDLng;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // MapLibre用の小型コントロール(IControl)。Leaflet版と同じマークアップ/IDを使い、CSSと配線を共有する
@@ -807,7 +772,7 @@ function initMapGL(mapEl) {
     // コントロール(左上)。Leaflet版と同順: レイヤ切替 → ⌖ → ズーム → パン
     glMap.addControl(_glDivControl(() => {
         const div = document.createElement('div');
-        div.className = 'maplibregl-ctrl leaflet-bar gl-layer-control';
+        div.className = 'maplibregl-ctrl gl-bar gl-layer-control';
         const names = { std: '標準(地理院)', photo: '写真(地理院)', pale: '淡色(地理院)', osm: 'OSM' };
         div.innerHTML =
             '<a href="#" id="gl-layer-toggle" title="地図の種類">' +
@@ -832,7 +797,7 @@ function initMapGL(mapEl) {
     }), 'top-left');
     glMap.addControl(_glDivControl(() => {
         const div = document.createElement('div');
-        div.className = 'maplibregl-ctrl leaflet-bar map-center-control';
+        div.className = 'maplibregl-ctrl gl-bar map-center-control';
         div.innerHTML =
             '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
             '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
@@ -854,10 +819,10 @@ function initMapGL(mapEl) {
         const div = document.createElement('div');
         div.className = 'maplibregl-ctrl map-pan-control';
         div.innerHTML =
-            '<div class="leaflet-bar map-pan-h">' +
+            '<div class="gl-bar map-pan-h">' +
             '<a href="#" id="map-pan-left" title="地図を左へ移動(半画面)">◀</a>' +
             '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
-            '<div class="leaflet-bar map-pan-v">' +
+            '<div class="gl-bar map-pan-v">' +
             '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
             '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
         [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
@@ -887,14 +852,6 @@ function initMapGL(mapEl) {
         const t = e.originalEvent ? e.originalEvent.target : null;
         handleTsujiMeshGoldHover((t && t.closest && t.closest('.maplibregl-ctrl')) ? null : { lat: e.lngLat.lat, lng: e.lngLat.lng });
     });
-    // シャドウ地図の視野を追従させる(未移行機能の内部計算の整合用)
-    glMap.on('moveend', () => {
-        if (typeof map !== 'undefined' && map) {
-            const c = glMap.getCenter();
-            map.setView([c.lat, c.lng], _lfZoom(glMap.getZoom()), { animate: false });
-        }
-    });
-
     // 移行済み機能用のソース/レイヤ(スタイル読込後に追加し、初回描画をやり直す)
     glMap.on('style.load', () => {
         const emptyFC = { type: 'FeatureCollection', features: [] };
@@ -1311,17 +1268,14 @@ function glSsUpdateMapOverlay(snap, selRow) {
 // メッシュ画像(件数グラデーション)/辻マーカー画像(天体色の集合)は imageソース+rasterレイヤ、
 // 金ドット(選択行のヒット画素)は circleレイヤ、優辻ピンはDOMマーカー。
 // ヒットテスト(_tmPixAtLatLng)は自前mathのため両エンジン共通。
-let _glTmMeshShown = false, _glTmGoldShown = false;   // レイヤ表示状態(Leafletのmap.hasLayer相当)
+let _glTmMeshShown = false, _glTmGoldShown = false;   // レイヤ表示状態(チェックボックス+天体表示の合成)
 let _glTmPopup = null;      // 辻メッシュのポップアップ(Leaflet同様、地図上に1つだけ)
 let _glTmHoverTip = null;   // ホバーツールチップ(1個を使い回す)
 const _GL_BLANK_PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 /** メッシュレイヤの表示状態(エンジン共通の問い合わせ口) */
 function _tmLayerShown(which) {   // 'mesh' | 'gold'
-    if (USE_MAPLIBRE) return which === 'mesh' ? _glTmMeshShown : _glTmGoldShown;
-    if (typeof map === 'undefined' || !map) return false;
-    const l = which === 'mesh' ? tsujiMeshLayer : _tsujiMeshGoldLayer;
-    return !!(l && map.hasLayer(l));
+    return which === 'mesh' ? _glTmMeshShown : _glTmGoldShown;
 }
 function _glTmHideTip() {
     if (_glTmHoverTip) { _glTmHoverTip.remove(); _glTmHoverTip = null; }
@@ -1359,10 +1313,10 @@ function _glTmSetImage(id, data) {
     if (src.setCoordinates) src.setCoordinates(data.coordinates);
     glMap.setLayoutProperty(id, 'visibility', 'visible');
 }
-/** LeafletのlatLngBounds→imageソースの四隅([[W,N],[E,N],[E,S],[W,S]]) */
+/** 検索範囲bounds({west,east,north,south})→imageソースの四隅([[W,N],[E,N],[E,S],[W,S]]) */
 function _tmGlCoords(bounds) {
-    const w = bounds.getWest(), e = bounds.getEast(), n2 = bounds.getNorth(), s = bounds.getSouth();
-    return [[w, n2], [e, n2], [e, s], [w, s]];
+    return [[bounds.west, bounds.north], [bounds.east, bounds.north],
+            [bounds.east, bounds.south], [bounds.west, bounds.south]];
 }
 function _glTmClearGold() {
     _glSetSourceData('tm-gold-dots-src', []);
@@ -1442,120 +1396,7 @@ function glFwUpdateMapMarker() {
 function initMap() {
     const mapEl = document.getElementById('map');
     if (!mapEl) return;
-
-    // 手順3の移行フラグON: 可視地図はMapLibre、未移行機能の描画先はシャドウLeaflet
-    if (USE_MAPLIBRE) {
-        initMapGL(mapEl);
-        initShadowMap();
-        return;
-    }
-
-    const gsiStd = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-        attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
-        maxZoom: 18
-    });
-    const gsiPhoto = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg', {
-        attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
-        maxZoom: 18
-    });
-    const gsiPale = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-        attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
-        maxZoom: 18
-    });
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
-    });
-
-    map = L.map('map', {
-        center: [appState.start.lat, appState.start.lng],
-        zoom: 9, 
-        layers: [gsiStd], 
-        zoomControl: false
-    });
-    map.attributionControl.addAttribution('<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>');
-
-    L.control.layers({
-        "標準(地理院)": gsiStd,
-        "写真(地理院)": gsiPhoto,
-        "淡色(地理院)": gsiPale,
-        "OSM": osm
-    }, null, { position: 'topleft' }).addTo(map);
-
-    // ⌖(マーカー中央表示): 地図レイヤー選択ボタンとズームボタンの間に配置
-    // (スマホで結果リストを最大化した時に隠れず操作しやすい位置)
-    const centerControl = L.control({ position: 'topleft' });
-    centerControl.onAdd = () => {
-        const div = L.DomUtil.create('div', 'leaflet-bar map-center-control');
-        div.innerHTML =
-            '<a href="#" id="map-center-point" title="位置情報メニューで選択中のマーカー(観測点/目的点)を画面中心に表示">' +
-            // ⌖(照準)の文字はフォント依存で描画位置が下にずれる端末があるため、SVGで描いてflexで正確に中央配置する
-            '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' +
-            '<circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="8" y1="0.5" x2="8" y2="3.5" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="8" y1="12.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="0.5" y1="8" x2="3.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
-            '<line x1="12.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.5"/>' +
-            '<circle cx="8" cy="8" r="1.2" fill="currentColor"/>' +
-            '</svg></a>';
-        L.DomEvent.disableClickPropagation(div);
-        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
-        // 位置情報メニューの観測点/目的点切替ボタンで選択中のマーカーを可視領域(下部パネルを除く)の中央へ
-        L.DomEvent.on(div.querySelector('#map-center-point'), 'click', (ev) => {
-            L.DomEvent.preventDefault(ev);
-            recenterPointInView(appState.locMode === 'end' ? appState.end : appState.start);
-        });
-        return div;
-    };
-    centerControl.addTo(map);
-
-    L.control.zoom({ position: 'topleft' }).addTo(map);
-    L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
-
-    // 地図パンボタン(◀▶/▲▼): ドラッグせずに半画面ずつスクロールできる(左上・ズームコントロールの下)
-    const panControl = L.control({ position: 'topleft' });
-    panControl.onAdd = () => {
-        const div = L.DomUtil.create('div', 'map-pan-control');
-        div.innerHTML =
-            '<div class="leaflet-bar map-pan-h">' +
-            '<a href="#" id="map-pan-left" title="地図を左へ移動(半画面)">◀</a>' +
-            '<a href="#" id="map-pan-right" title="地図を右へ移動(半画面)">▶</a></div>' +
-            '<div class="leaflet-bar map-pan-v">' +
-            '<a href="#" id="map-pan-up" title="地図を上へ移動(半画面)">▲</a>' +
-            '<a href="#" id="map-pan-down" title="地図を下へ移動(半画面)">▼</a></div>';
-        L.DomEvent.disableClickPropagation(div);
-        L.DomEvent.on(div, 'dblclick', L.DomEvent.stopPropagation);
-        const pan = (dx, dy) => {
-            const s = map.getSize();
-            map.panBy([dx * s.x / 2, dy * s.y / 2]);
-        };
-        [['map-pan-left', -1, 0], ['map-pan-right', 1, 0], ['map-pan-up', 0, -1], ['map-pan-down', 0, 1]].forEach(([id, dx, dy]) => {
-            L.DomEvent.on(div.querySelector('#' + id), 'click', (ev) => { L.DomEvent.preventDefault(ev); pan(dx, dy); });
-        });
-        return div;
-    };
-    panControl.addTo(map);
-
-    linesLayer = L.layerGroup().addTo(map);
-    locationLayer = L.layerGroup().addTo(map);
-    dpLayer = L.layerGroup().addTo(map);
-
-    map.on('click', onMapClick);
-    // PC/スマホとも、ドラッグ/スクロール中の誤クリック(誤タップ)で観測点が動かないよう、
-    // 観測点/目的点の移動はダブルクリック(ダブルタップ)で行う(ダブルクリックズームは無効化)
-    map.doubleClickZoom.disable();
-    map.on('dblclick', onMapDblClick);
-    // 辻メッシュのメッシュ/辻マーカーのホバーツールチップ(PCのみ)。
-    // スマホはタップ経路(_tmShowPixelPopup)で処理する: タップ時に合成されるmousemoveで
-    // ツールチップを出すと、iOSが「ホバーでDOMが変化した」とみなしてズームボタン等への
-    // クリックを飲み込み、ズームできなくなるため(合成mousemoveはボタンから地図へバブリングする)。
-    // PCでもズームボタン等のコントロール上ではホバーを反応させない(ボタン越しの誤反応防止)。
-    map.on('mousemove', (e) => {
-        if (!_mapDblClickMode) return;
-        const t = e.originalEvent ? e.originalEvent.target : null;
-        handleTsujiMeshGoldHover((t && t.closest && t.closest('.leaflet-control')) ? null : e.latlng);
-    });
-    // メッシュマーカーの確定ポップアップが閉じたら、詳細リストの固定を解除する
-    map.on('popupclose', (e) => { if (e.popup === _tmDetailLockPopup) _tmDetailLockPopup = null; });
+    initMapGL(mapEl);
 }
 
 
@@ -2635,7 +2476,7 @@ function syncUIFromState() {
 }
 
 function updateAll() {
-    if (!map) return;
+    if (!glMap) return;
 
     if (appState.isMoving) {
         syncUIFromState();
@@ -2649,8 +2490,7 @@ function updateAll() {
     if (appState.isDPActive) {
         updateDPLines();
     } else {
-        dpLayer.clearLayers();
-        if (USE_MAPLIBRE) _glLinesReset('dp');
+        _glLinesReset('dp');
     }
 
     updateTsujiSearchInputs();
@@ -2673,7 +2513,6 @@ function updateAll() {
 }
 
 function updateLocationDisplay() {
-    locationLayer.clearLayers();
 
     const fmt = (pos) => `${pos.lat}, ${pos.lng}`;
     
@@ -2691,55 +2530,11 @@ function updateLocationDisplay() {
     document.getElementById('input-start-elev').value = appState.startHeight;
     document.getElementById('input-end-elev').value = appState.endHeight;
 
-    // MapLibre移行済み(R2): マーカー/線はMapLibre側に描画する(入力欄の更新は上の共通部で済み)
-    if (USE_MAPLIBRE) { glUpdateLocationDisplay(); return; }
-
-    const sPt = L.latLng(appState.start.lat, appState.start.lng);
-    const ePt = L.latLng(appState.end.lat, appState.end.lng);
-    
-    // マーカーの設置（観測点:青、目的点:赤）— My観測点/My目的点マーカーより常に上に表示するためzIndexOffsetを高く設定
-    const observerIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-observer"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-    const targetIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-target"></div>', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-    const obsMarker = L.marker(sPt, { icon: observerIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("観測点", appState.start, appState.end, appState.startApiElev, appState.startHeight));
-    // 辻メッシュの結果があれば、観測点マーカーのホバー(PC)/タップ(スマホ)で
-    // 観測点の位置を含むメッシュ画素の情報を詳細リストに表示する
-    // ホバーでの更新はPCのみ(スマホのタップはpopupopen経路で処理する。タップ時に合成される
-    // mouseoverでDOMを変化させると、iOSがホバー扱いにしてポップアップを開くクリックを飲み込むため)
-    obsMarker.on('mouseover', () => { if (_mapDblClickMode) _tmShowDetailForObserver(); });
-    // 観測点マーカーのポップアップ(位置情報)の表示中は、詳細リストを観測点の情報に固定する
-    // (他のメッシュマーカーをホバーしても切り替わらない。ポップアップを閉じると解除=通常のホバー更新に戻る)
-    obsMarker.on('popupopen', (e) => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = e.popup; });
-    // クリック(タップ)では常にポップアップを開く: Leaflet既定のトグルだと、既に開いている時
-    // (行選択後の自動表示中など)にマーカーを押すと閉じてしまい、機能が無効に見えるため。
-    // 既定のトグル(click)が閉じた後に開き直す(閉じていた場合は既定の動作で開くので何もしない)
-    obsMarker.on('click', () => { setTimeout(() => {
-        if (_tmObsMarker === obsMarker && !obsMarker.isPopupOpen()) obsMarker.openPopup();
-    }, 0); });
-    _tmObsMarker = obsMarker;
-    L.marker(ePt, { icon: targetIcon, zIndexOffset: 1000 }).addTo(locationLayer).bindPopup(createLocationPopup("目的点", appState.end, appState.start, appState.endApiElev, appState.endHeight));
-    
-    // 1. メルカトル図法の直線 (地図上の見かけの線) -> 黒い破線
-    L.polyline([sPt, ePt], {
-        color: 'black',
-        weight: 2,          // 少し細めにして
-        opacity: 0.5,       // 薄くする（補助線的な意味合い）
-        dashArray: '10, 10' // 破線で描画
-    }).addTo(locationLayer);
-
-    // 2. 大圏航路 (地球上の実際の最短ルート) -> 黒い実線
-    const pathPoints = calculateGreatCirclePoints(appState.start, appState.end);
-    
-    L.polyline(pathPoints, {
-        color: 'black',
-        weight: 4,    // 太く強調
-        opacity: 0.8
-        // dashArrayを指定しない＝実線
-    }).addTo(locationLayer);
+    glUpdateLocationDisplay();
 }
 
 function updateCalculation() {
-    linesLayer.clearLayers();
-    if (USE_MAPLIBRE) _glLinesReset('dir');   // MapLibre移行済み(R3): 方位線の描き直し
+    _glLinesReset('dir');   // 方位線の描き直し
     const obsDate = appState.currentDate;
     const startOfDay = new Date(obsDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -2906,8 +2701,7 @@ async function updateDPLines() {
     // 新しい世代を発番し、既存キューにある古い世代の通常辻ラインタスクをキャンセル(辻ライン365は巻き添えにしない)
     const generation = ++dpCurrentGeneration;
     dpPoolCancelQueued('dp');
-    dpLayer.clearLayers();
-    if (USE_MAPLIBRE) _glLinesReset('dp');   // MapLibre移行済み(R3)
+    _glLinesReset('dp');
 
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
@@ -2963,19 +2757,6 @@ async function updateDPLines() {
     });
 }
 
-/** 天体IDのlayerGroupを取得(無ければ作成) */
-function ensureDP365LayerForBody(bodyId) {
-    if (!dp365LayerByBody[bodyId]) {
-        dp365LayerByBody[bodyId] = L.layerGroup();
-    }
-    return dp365LayerByBody[bodyId];
-}
-
-/** 辻ライン365 — 直近1年(365日分)の◎精度の辻ラインを破線のみで描画。
- *  各天体ごとに L.layerGroup を作成し、表示天体メニューの切替で:
- *  - チェック→ レイヤーが既に計算済みなら即時 mapに追加 (高速)、未計算なら新規計算
- *  - チェック解除→ そのレイヤーを mapから外す (キャッシュは保持、再表示で復元)
- *  非表示の天体や、観測点/目的点/日付変更後の再計算は OFF→ON で実施。 */
 async function updateDP365Lines() {
     const generation = ++dp365CurrentGeneration;
     // 前回実行の残キュー(旧世代の辻ライン365タスク)を破棄してから開始
@@ -2987,24 +2768,9 @@ async function updateDP365Lines() {
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const visibleIds = new Set(visibleBodies.map(b => b.id));
 
-    // 非表示になった天体のレイヤーを map から外す (キャッシュは残す)
-    Object.entries(dp365LayerByBody).forEach(([id, layer]) => {
-        if (!visibleIds.has(id) && map.hasLayer(layer)) {
-            layer.removeFrom(map);
-        }
-    });
-    // 計算済み・表示中の天体は即座にレイヤーをmapに追加 (高速)
-    visibleBodies.forEach(body => {
-        if (dp365CalculatedBodies.has(body.id)) {
-            const layer = ensureDP365LayerForBody(body.id);
-            if (!map.hasLayer(layer)) layer.addTo(map);
-        }
-    });
-    // MapLibre移行済み(R3): 表示天体の切替を反映(計算中の天体はglDrawDP365Pathが逐次追加する)
-    if (USE_MAPLIBRE) {
-        _glDp365Visible = new Set([...visibleIds].filter(id => dp365CalculatedBodies.has(id)));
-        _glDp365Flush();
-    }
+    // 表示天体の切替を反映(計算中の天体はglDrawDP365Pathが逐次追加する)
+    _glDp365Visible = new Set([...visibleIds].filter(id => dp365CalculatedBodies.has(id)));
+    _glDp365Flush();
 
     // 未計算の天体だけを計算対象に
     const newBodies = visibleBodies.filter(b => !dp365CalculatedBodies.has(b.id));
@@ -3032,9 +2798,7 @@ async function updateDP365Lines() {
                 for (const body of newBodies) {
                     batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true, owner: 'dp365' }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
-                        const layer = ensureDP365LayerForBody(body.id);
-                        if (!map.hasLayer(layer)) layer.addTo(map);
-                        drawDP365Path(pts, body.color, layer, body.id);
+                        drawDP365Path(pts, body.color, null, body.id);
                         doneWork++;
                         updateLabel();
                     }));
@@ -3054,41 +2818,9 @@ async function updateDP365Lines() {
 }
 
 /** 辻ライン365 用の軽量描画 (◎破線のみ、マーカー無し)。
- *  指定された targetLayer (天体ごとの L.layerGroup) に追加する。 */
+ *  日毎のfeatureとしてMapLibreのdp365-linesソースへ増分追加する。 */
 function drawDP365Path(points, color, targetLayer, bodyId) {
-    if (USE_MAPLIBRE) { glDrawDP365Path(points, color, bodyId); return; }   // MapLibre移行済み(R3)
-    if (!points || points.length === 0) return;
-    const targetPt = appState.end;
-    let segments = [];
-    let currentSegment = [];
-    for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        let dest;
-        if (p.lat != null && p.lng != null) {
-            dest = { lat: p.lat, lng: p.lng };
-        } else {
-            const desiredBearing = ((p.az) % 360 + 360) % 360;
-            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
-        }
-        const pt = [dest.lat, dest.lng];
-        if (currentSegment.length > 0) {
-            const prev = points[i - 1];
-            if (Math.abs(p.az - prev.az) > 5) {
-                segments.push(currentSegment);
-                currentSegment = [];
-            }
-        }
-        currentSegment.push(pt);
-    }
-    if (currentSegment.length > 0) segments.push(currentSegment);
-    segments.forEach(seg => {
-        L.polyline(seg, {
-            color: color,
-            weight: 7,
-            opacity: 0.5  // 透けて見える程度に薄く (365日重ねて表示するため控えめに)
-            // dashArray なし = 実線
-        }).addTo(targetLayer);
-    });
+    glDrawDP365Path(points, color, bodyId);   // targetLayerはLeaflet時代の名残(未使用)
 }
 
 
@@ -3377,18 +3109,10 @@ function toggleDP() {
 
 /** 全ての辻ライン365レイヤーをmapから外し、キャッシュをクリア */
 function clearAllDP365Layers() {
-    Object.values(dp365LayerByBody).forEach(layer => {
-        if (map.hasLayer(layer)) layer.removeFrom(map);
-        layer.clearLayers();
-    });
-    dp365LayerByBody = {};
     dp365CalculatedBodies.clear();
-    // MapLibre移行済み(R3): キャッシュと表示を全消去
-    if (USE_MAPLIBRE) {
-        _glDp365Features = {};
-        _glDp365Visible = new Set();
-        _glDp365Flush();
-    }
+    _glDp365Features = {};
+    _glDp365Visible = new Set();
+    _glDp365Flush();
 }
 
 function toggleDP365() {
@@ -3535,21 +3259,10 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
     const endPos = getDestinationRhumb(lat, lng, azimuth, 3000000); // 3000km
 
     const opacity = altitude < 0 ? 0.3 : 1.0;
-    if (USE_MAPLIBRE) {   // MapLibre移行済み(R3)
-        _glDirFeatures.push({ type: 'Feature',
-            properties: { color: body.color, opacity, dashed: !!body.isDashed },
-            geometry: { type: 'LineString', coordinates: [[lng, lat], [endPos.lng, endPos.lat]] } });
-        _glSetSourceData('dir-lines', _glDirFeatures);
-        return;
-    }
-    const dashArray = body.isDashed ? '10, 10' : null;
-
-    L.polyline([[lat, lng], [endPos.lat, endPos.lng]], {
-        color: body.color,
-        weight: 6,
-        opacity: opacity,
-        dashArray: dashArray
-    }).addTo(linesLayer);
+    _glDirFeatures.push({ type: 'Feature',
+        properties: { color: body.color, opacity, dashed: !!body.isDashed },
+        geometry: { type: 'LineString', coordinates: [[lng, lat], [endPos.lng, endPos.lat]] } });
+    _glSetSourceData('dir-lines', _glDirFeatures);
 }
 
 // ============================================================
@@ -3729,64 +3442,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
 }
 
 function drawDPPath(points, color, dashArray, withMarkers, azOffset) {
-    if (USE_MAPLIBRE) { glDrawDPPath(points, color, dashArray, withMarkers, azOffset); return; }   // MapLibre移行済み(R3)
-    if (points.length === 0) return;
-    const targetPt = appState.end;
-    let segments = [];
-    let currentSegment = [];
-    const offset = azOffset || 0;
-
-    for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        let dest;
-        if (offset === 0 && p.lat != null && p.lng != null) {
-            dest = { lat: p.lat, lng: p.lng };
-        } else {
-            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
-            dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
-        }
-        const pt = [dest.lat, dest.lng];
-
-        if (currentSegment.length > 0) {
-            const prev = points[i-1];
-            if (Math.abs(p.az - prev.az) > 5) {
-                segments.push(currentSegment);
-                currentSegment = [];
-            }
-        }
-        currentSegment.push(pt);
-        
-        if (withMarkers && p.time.getMinutes() % 5 === 0 && p.time.getSeconds() === 0) {
-            L.circleMarker(pt, {
-                radius: 4,
-                color: color,
-                fillColor: color,
-                fillOpacity: 1.0,
-                weight: 1
-            }).addTo(dpLayer);
-            
-            const timeStr = formatTimeHM(p.time);
-            L.marker(pt, {
-                icon: L.divIcon({
-                    className: 'dp-label-icon',
-                    html: `<div style="font-size:14px;font-weight:bold;color:${color};text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap;">${timeStr}</div>`,
-                    iconSize: [null, null],
-                    iconAnchor: [-10, 7]
-                })
-            }).addTo(dpLayer);
-        }
-    }
-    
-    if (currentSegment.length > 0) segments.push(currentSegment);
-    
-    segments.forEach(seg => {
-        L.polyline(seg, {
-            color: color,
-            weight: 5,
-            opacity: 0.8,
-            dashArray: dashArray
-        }).addTo(dpLayer);
-    });
+    glDrawDPPath(points, color, dashArray, withMarkers, azOffset);
 }
 
 // ------------------------------------------------------
@@ -4475,7 +4131,7 @@ function calculateBearing(lat1, lng1, lat2, lng2) {
 }
 
 /** 2地点間の WGS84 楕円体上の geodesic 距離 (m)。
- *  L.latLng().distanceTo() は球面 (Haversine) で精度がやや低いため、
+ *  Haversine(旧L.latLng().distanceTo()相当)は球面近似で精度がやや低いため、
  *  辻検索の baseAlt 計算など精度が必要な場面ではこちらを使う。 */
 function getDistanceWGS84(lat1, lng1, lat2, lng2) {
     return geodesic.Geodesic.WGS84.Inverse(lat1, lng1, lat2, lng2).s12;
@@ -5407,7 +5063,6 @@ function importBackup() {
 
 let myObsDirty = false;
 let myTgtDirty = false;
-let myPointMarkerLayer = null; // マーカー用レイヤー
 
 /** 型情報を返す */
 function myPointConfig(type) {
@@ -5920,71 +5575,7 @@ function getMyPointUrl(type) {
 
 /** マーカー更新 (My観測点 + My目的点) */
 function updateMyPointMarkers() {
-    if (USE_MAPLIBRE) { glUpdateMyPointMarkers(); return; }   // MapLibre移行済み(R2)
-    if (!myPointMarkerLayer) {
-        myPointMarkerLayer = L.layerGroup().addTo(map);
-    }
-    myPointMarkerLayer.clearLayers();
-    // My観測点マーカー (緑)
-    appState.myObservations.forEach(pt => {
-        if (pt.lat === null || pt.lat === undefined) return;
-        const icon = L.divIcon({
-            className: '',
-            html: '<div class="location-marker location-marker-myobs"></div>',
-            iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24]
-        });
-        const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(myPointMarkerLayer);
-        marker.bindPopup(`
-            <b>My観測点</b><br>
-            ${escapeHtml(pt.name)}<br>
-            ID: ${pt.id}<br>
-            緯度: ${pt.lat}°<br>
-            経度: ${pt.lng}°<br>
-            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
-            高さ: ${pt.height || 0} m
-        `);
-        marker.on('click', () => {
-            appState.start = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
-            appState.startApiElev = pt.elev || 0;
-            appState.startHeight = pt.height || 0;
-            // 位置情報メニューのラジオボタンも観測点選択へ移動する
-            appState.locMode = 'start';
-            const rs = document.getElementById('radio-start');
-            if (rs) rs.checked = true;
-            saveAppState();
-            updateAll();
-        });
-    });
-    // My目的点マーカー (橙)
-    appState.myTargets.forEach(pt => {
-        if (pt.lat === null || pt.lat === undefined) return;
-        const icon = L.divIcon({
-            className: '',
-            html: '<div class="location-marker location-marker-mytgt"></div>',
-            iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24]
-        });
-        const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(myPointMarkerLayer);
-        marker.bindPopup(`
-            <b>My目的点</b><br>
-            ${escapeHtml(pt.name)}<br>
-            ID: ${pt.id}<br>
-            緯度: ${pt.lat}°<br>
-            経度: ${pt.lng}°<br>
-            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
-            高さ: ${pt.height || 0} m
-        `);
-        marker.on('click', () => {
-            appState.end = { lat: pt.lat, lng: pt.lng, elev: (pt.elev || 0) + (pt.height || 0) };
-            appState.endApiElev = pt.elev || 0;
-            appState.endHeight = pt.height || 0;
-            // 位置情報メニューのラジオボタンも目的点選択へ移動する
-            appState.locMode = 'end';
-            const re = document.getElementById('radio-end');
-            if (re) re.checked = true;
-            saveAppState();
-            updateAll();
-        });
-    });
+    glUpdateMyPointMarkers();
 }
 
 // ============================================================
@@ -7873,8 +7464,7 @@ function updateTsujiSearchInputs() {
     if (posKey === appState._lastTsujiPosKey) return;
     appState._lastTsujiPosKey = posKey;
 
-    const dist = L.latLng(appState.start.lat, appState.start.lng)
-                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const dist = _geoDistM(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     const az = calculateBearing(appState.start.lat, appState.start.lng,
                                 appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
@@ -7901,8 +7491,7 @@ function calcOffsetRotation(offsetAz, offsetAlt) {
 
 /** オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
 function updateOffsetDistances() {
-    const dist = L.latLng(appState.start.lat, appState.start.lng)
-                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const dist = _geoDistM(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     const offsetAz = appState.tsujiSearchOffsetAz;
     const offsetAlt = appState.tsujiSearchOffsetAlt;
     const azDist = dist * Math.tan(offsetAz * Math.PI / 180);
@@ -7980,8 +7569,7 @@ function updateTsujiMeshSearchInputs() {
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
     if (posKey === appState._lastTsujiMeshPosKey) return;
     appState._lastTsujiMeshPosKey = posKey;
-    const dist = L.latLng(appState.start.lat, appState.start.lng)
-                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const dist = _geoDistM(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     const az = calculateBearing(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     const alt = calculateApparentAltitude(dist, appState.start.elev, appState.end.elev, appState.start.lat, appState.end.lat);
     appState.tsujiMeshBaseAz = az;
@@ -7996,8 +7584,7 @@ function updateTsujiMeshSearchInputs() {
 
 /** 辻メッシュの辻オフセット方位距離・視高距離・回転角・回転仰角を再計算してUIに反映 */
 function updateTsujiMeshOffsetDistances() {
-    const dist = L.latLng(appState.start.lat, appState.start.lng)
-                  .distanceTo(L.latLng(appState.end.lat, appState.end.lng));
+    const dist = _geoDistM(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
     const offsetAz = appState.tsujiMeshOffsetAz;
     const offsetAlt = appState.tsujiMeshOffsetAlt;
     const baseAz = appState.tsujiMeshBaseAz;
@@ -8114,7 +7701,6 @@ let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
 let _tsujiMeshSelIdx = -1;     // 選択中の行index
 let _tsujiMeshPix = null;      // 対象画素 { lat:Float64Array, lng:Float64Array, elev:Float32Array(DEM標高) } (プレフィルタ後)
 let _tsujiMeshPixHeightUsed = 0;   // 検索時に使った観測点高(金色マーカーの観測点設定・標高判定に使用)
-let tsujiMeshLayer = null, _tsujiMeshGoldLayer = null, _tsujiMeshCanvasRenderer = null;
 let _tsujiMeshLayerVisible = true;   // マーカーレイヤーの表示/非表示(コントロールのチェックボックス)
 let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用スナップショット(画素索引+検索条件。検索毎に更新)
 let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + スライダー(その日の通算秒) + サブ秒
@@ -8271,54 +7857,34 @@ function _tmPackTileDm(img, out, round1) {
     }
 }
 
-function ensureTsujiMeshLayers() {
-    if (!tsujiMeshLayer && typeof map !== 'undefined' && map) {
-        _tsujiMeshCanvasRenderer = L.canvas({ padding: 0.3 });   // 多数の小マーカー用にCanvas描画
-        tsujiMeshLayer = L.layerGroup().addTo(map);
-        _tsujiMeshGoldLayer = L.layerGroup().addTo(map);
-        applyTsujiMeshLayerVisibility();
-    }
-}
 
 /** マーカーレイヤー(白/金)の表示/非表示をチェックボックスの状態に合わせる */
 function applyTsujiMeshLayerVisibility() {
-    if (typeof map === 'undefined' || !map) return;
+    if (!glMap) return;
     // 辻マーカー(集合+ピン)は、表示天体メニューで選択行の天体がオフなら非表示にする
     const row = _tsujiMeshRows[_tsujiMeshSelIdx];
     const bodyVisible = !row || !row.body || row.body.visible !== false;
-    if (USE_MAPLIBRE) {   // MapLibre移行済み(R5): レイヤのvisibilityとピンの表示で切り替える
-        if (!glMap) return;
-        _glTmMeshShown = _tsujiMeshLayerVisible;
-        _glTmGoldShown = _tsujiMeshLayerVisible && bodyVisible;
-        const setVis = (ids, on) => ids.forEach(id => {
-            if (glMap.getLayer(id)) glMap.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-        });
-        // メッシュ画像/辻マーカー画像は「中身が空」の時はvisibleにしない(_glTmSetImageがnone化した状態を尊重)
-        if (!_glTmMeshShown) setVis(['tm-mesh-img'], false);
-        if (!_glTmGoldShown) setVis(['tm-gold-img'], false);
-        setVis(['tm-gold-dots'], _glTmGoldShown);
-        (_glMarkerGroups.tmpin || []).forEach(m => { m.getElement().style.display = _glTmGoldShown ? '' : 'none'; });
-        if (!_glTmGoldShown && !_glTmMeshShown) _glTmHideTip();
-        return;
-    }
-    [[tsujiMeshLayer, _tsujiMeshLayerVisible], [_tsujiMeshGoldLayer, _tsujiMeshLayerVisible && bodyVisible]].forEach(([l, vis]) => {
-        if (!l) return;
-        if (vis) { if (!map.hasLayer(l)) l.addTo(map); }
-        else if (map.hasLayer(l)) { map.removeLayer(l); }
+    _glTmMeshShown = _tsujiMeshLayerVisible;
+    _glTmGoldShown = _tsujiMeshLayerVisible && bodyVisible;
+    const setVis = (ids, on) => ids.forEach(id => {
+        if (glMap.getLayer(id)) glMap.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     });
+    // メッシュ画像/辻マーカー画像は「中身が空」の時はvisibleにしない(_glTmSetImageがnone化した状態を尊重)
+    if (!_glTmMeshShown) setVis(['tm-mesh-img'], false);
+    if (!_glTmGoldShown) setVis(['tm-gold-img'], false);
+    setVis(['tm-gold-dots'], _glTmGoldShown);
+    (_glMarkerGroups.tmpin || []).forEach(m => { m.getElement().style.display = _glTmGoldShown ? '' : 'none'; });
+    if (!_glTmGoldShown && !_glTmMeshShown) _glTmHideTip();
 }
+
 function clearTsujiMeshMarkers() {
-    if (tsujiMeshLayer) tsujiMeshLayer.clearLayers();
-    if (_tsujiMeshGoldLayer) _tsujiMeshGoldLayer.clearLayers();
-    // MapLibre移行済み(R5): 画像/金ドット/ピン/ポップアップも消去
-    if (USE_MAPLIBRE && glMap) {
+    if (glMap) {
         _glTmClearGold();
         _glTmSetImage('tm-mesh-img', null);
         if (_glTmPopup) _glTmPopup.remove();
     }
     _tsujiMeshGoldSet = null;
     _tsujiMeshWhiteRow = null; _tsujiMeshWhiteTime = null; _tsujiMeshWhiteDist = null; _tsujiMeshWhiteRows = null;
-    if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
 }
 
 /** ヒット画素集合を検索エリア(N×256四方)のオーバーレイ画像に描いて返す(1画像画素=DEM1画素の実寸表示)。
@@ -8338,9 +7904,8 @@ function _tmBuildOverlay(paint, rgba) {
         data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
     });
     ctx.putImageData(img, 0, 0);
-    // MapLibre移行済み(R5): imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す)
-    if (USE_MAPLIBRE) return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
-    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false });
+    // imageソース用の記述子を返す(呼び出し元が_glTmSetImageへ渡す)
+    return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
 }
 
 /** 地図座標→対象画素index(集合の当たり判定用)。対象外は -1 */
@@ -8402,9 +7967,8 @@ function _tmBuildGradientOverlay() {
         }
     }
     ctx.putImageData(img, 0, 0);
-    // MapLibre移行済み(R5): imageソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
-    if (USE_MAPLIBRE) return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
-    return L.imageOverlay(canvas.toDataURL(), C.bounds, { interactive: false, className: 'tm-mesh-overlay' });
+    // imageソース用の記述子を返す(シャープ表示はraster-resampling:nearestが担う)
+    return { url: canvas.toDataURL(), coordinates: _tmGlCoords(C.bounds) };
 }
 
 function _tmPixAtLatLng(latlng) {
@@ -8423,9 +7987,7 @@ function _tmPixAtLatLng(latlng) {
 /** 全結果行のヒット画素の和集合を白のオーバーレイで描画(全画素表示・上限なし)。
  *  あわせて「画素→最良の行(最小dist)とその辻時刻・精度角距離」の索引を構築する(ホバー/クリック用)。 */
 function drawTsujiMeshMarkers() {
-    ensureTsujiMeshLayers();
-    if (!tsujiMeshLayer || !_tsujiMeshPix) return;
-    tsujiMeshLayer.clearLayers();
+    if (!_tsujiMeshPix) return;
     const n = _tsujiMeshPix.lat.length;
     _tsujiMeshWhiteRow = new Int32Array(n).fill(-1);
     _tsujiMeshWhiteTime = new Float64Array(n);
@@ -8460,10 +8022,8 @@ function drawTsujiMeshMarkers() {
     _tsujiMeshPixEntries = { start: csrStart, row: csrRow, pos: csrPos };
     // 件数グラデーションタイル(1件=天体色〜最大=金色・最大値は金赤斜め縞)
     const overlay = _tmBuildGradientOverlay();
-    if (USE_MAPLIBRE) {   // MapLibre移行済み(R5): imageソースへ(nullなら非表示)
-        _glTmSetImage('tm-mesh-img', overlay);
-        applyTsujiMeshLayerVisibility();
-    } else if (overlay) overlay.addTo(tsujiMeshLayer);
+    _glTmSetImage('tm-mesh-img', overlay);   // null=非表示
+    applyTsujiMeshLayerVisibility();
 }
 
 /** 全件索引から画素の全ヒット(表示天体毎→日付順)を取り出す。各要素 {row, timeMs, dist, best}。
@@ -8484,29 +8044,7 @@ function _tmPixAllHits(pix) {
 
 /** 選択行のヒット画素を金色マーカーで描画(クリックで観測点に設定できる) */
 function updateTsujiMeshGoldMarkers() {
-    ensureTsujiMeshLayers();
-    if (USE_MAPLIBRE) { glUpdateTsujiMeshGoldMarkers(); return; }   // MapLibre移行済み(R5)
-    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
-    _tsujiMeshGoldLayer.clearLayers();
-    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
-    if (!row) return;
-    const n = Math.min(row.pixIdx.length, 5000);
-    for (let i = 0; i < n; i++) {
-        const pix = row.pixIdx[i];
-        const lat = _tsujiMeshPix.lat[pix], lng = _tsujiMeshPix.lng[pix], elev = _tsujiMeshPix.elev[pix];
-        L.circleMarker([lat, lng], {
-            renderer: _tsujiMeshCanvasRenderer,
-            radius: 4, color: '#b8860b', weight: 1, fillColor: '#ffd700', fillOpacity: 1,
-        }).on('click', () => {
-            // 金色マーカーを選択すると観測点に設定できる(位置情報を取得。観測点高=検索時の観測点高)
-            appState.start = { lat, lng, elev: elev + _tsujiMeshPixHeightUsed };
-            appState.startApiElev = elev;
-            appState.startHeight = _tsujiMeshPixHeightUsed;
-            saveAppState();
-            updateAll();
-        }).bindTooltip(`精度角距離 ${row.pixDist[i].toFixed(5)}°<br>クリックで観測点に設定`, { direction: 'top' })
-          .addTo(_tsujiMeshGoldLayer);
-    }
+    glUpdateTsujiMeshGoldMarkers();
 }
 
 /** 辻時刻コントロールの実効辻時刻(ms)。スライダー(選択行の日0:00からの通算秒)+サブ秒 から求める */
@@ -8713,30 +8251,7 @@ function _tmFmtTimeMs2(ms) {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
 }
 function drawTsujiMeshGoldSet(perPix, big) {
-    ensureTsujiMeshLayers();
-    if (USE_MAPLIBRE) { glDrawTsujiMeshGoldSet(perPix, big); return; }   // MapLibre移行済み(R5)
-    if (!_tsujiMeshGoldLayer || !_tsujiMeshPix) return;
-    _tsujiMeshGoldLayer.clearLayers();
-    _tsujiMeshGoldSet = perPix;
-    // 辻マーカーは選択行の天体色で描く(複数天体の検索でどの天体の集合か分かるように)
-    const row = _tsujiMeshRows[_tsujiMeshSelIdx];
-    const [cr, cg, cb] = _tmCssColorToRGB(row && row.body ? row.body.color : '#ffd700');
-    const overlay = _tmBuildOverlay((put) => { for (const pix of perPix.keys()) put(pix); }, [cr, cg, cb, 235]);
-    if (overlay) overlay.addTo(_tsujiMeshGoldLayer);
-    // 最良精度の画素: 観測点マーカーと同じ大きさの金色ピン(優辻マーカー)で指し示す
-    if (big && big.pix >= 0) {
-        const goldIcon = L.divIcon({ className: '', html: '<div class="location-marker location-marker-tsujigold"></div>', iconSize: [24, 24], iconAnchor: [12, 24] });
-        const marker = L.marker([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]], { icon: goldIcon, zIndexOffset: 900 })
-            .on('click', () => _tmShowPinPopup(big))   // クリック/タップでポップアップ(観測点は移動しない)
-            .bindTooltip('…', { direction: 'top' })
-            .addTo(_tsujiMeshGoldLayer);
-        // ツールチップは開いた時に画素の最良辻時刻(0.01秒精度)を精細化して表示する
-        marker.on('tooltipopen', () => {
-            const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
-            marker.setTooltipContent(_tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist));
-        });
-    }
-    applyTsujiMeshLayerVisibility();
+    glDrawTsujiMeshGoldSet(perPix, big);
 }
 
 /** メッシュ/辻マーカーの画素のポップアップを開く(PC=クリック・スマホ=タップ共通)。
@@ -8746,7 +8261,7 @@ function drawTsujiMeshGoldSet(perPix, big) {
  *  辻マーカーのポップアップは内容をクリック/タップすると該当行を表示して観測点を移動する。
  *  画素ヒットなしは false(通常の地図操作として処理)。 */
 function _tmShowPixelPopup(latlng) {
-    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
+    if (!_tsujiMeshLayerVisible || !glMap) return false;
     let pix = _tmPixAtLatLng(latlng);
     const action = _mapDblClickMode ? 'クリックで観測点に設定' : 'タップで観測点に設定';
     const div = document.createElement('div');
@@ -8774,18 +8289,8 @@ function _tmShowPixelPopup(latlng) {
         div.innerHTML = `<strong>メッシュマーカー(${cnt}件)</strong>`;
         meshPin = true;
     }
-    // MapLibre移行済み(R5): 開く時に既存を閉じる(close→固定解除)ため、固定は開いた後に設定する
-    if (USE_MAPLIBRE) {
-        const popup = _glTmOpenPopup(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix], div, -4);
-        if (meshPin) _tmDetailLockPopup = popup;
-        return true;
-    }
-    const popup = L.popup({ offset: [0, -4] })
-        .setLatLng(L.latLng(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix]))
-        .setContent(div)
-        .openOn(map);
-    // 確定中は他の画素をホバーしても詳細リストを更新しない(ポップアップを閉じると解除)。
-    // openOn が先に旧ポップアップを閉じて popupclose で固定を解くため、固定は openOn の後に設定する。
+    // 開く時に既存を閉じる(close→固定解除)ため、固定は開いた後に設定する
+    const popup = _glTmOpenPopup(_tsujiMeshPix.lat[pix], _tsujiMeshPix.lng[pix], div, -4);
     if (meshPin) _tmDetailLockPopup = popup;
     return true;
 }
@@ -8804,15 +8309,7 @@ function _tmShowPinPopup(big) {
         const row = _tsujiMeshRows[_tsujiMeshSelIdx];
         if (row && row.__tr) row.__tr.scrollIntoView({ block: 'nearest' });
     });
-    // MapLibre移行済み(R5)
-    if (USE_MAPLIBRE) {
-        _glTmOpenPopup(_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix], div, -20);
-        return;
-    }
-    L.popup({ offset: [0, -20] })
-        .setLatLng([_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix]])
-        .setContent(div)
-        .openOn(map);
+    _glTmOpenPopup(_tsujiMeshPix.lat[big.pix], _tsujiMeshPix.lng[big.pix], div, -20);
 }
 
 /** 画素×天体の角距離評価関数(ms→°)を作る。判定は検索本体と同一(回転補正+点/線の検索中心)。
@@ -8957,7 +8454,7 @@ function _tmAccSymbolRank(sym) {
  *  移動後は観測点マーカーのポップアップ(位置情報)を開き、詳細リストを
  *  観測点(=選択した画素)の情報のまま固定する(ポップアップを閉じると解除)。 */
 function _tmJumpToHit(pix, h) {
-    if (typeof map !== 'undefined' && map) map.closePopup();
+    mapAdapter.closePopup();
     const ref = _tmRefinePixelTimeFast(pix, h.timeMs, h.row.body);
     const timeMs = ref ? ref.timeMs : h.timeMs;
     appState.currentDate = new Date(timeMs);
@@ -8965,7 +8462,10 @@ function _tmJumpToHit(pix, h) {
     _tmSetObserverToPix(pix);   // saveAppState+updateAll(日時・観測点の変更をまとめて反映)
     const idx = _tsujiMeshRows.indexOf(h.row);
     if (idx >= 0) selectTsujiMeshRow(idx, { pix, timeMs, dist: ref ? ref.dist : h.dist });
-    if (_tmObsMarker) _tmObsMarker.openPopup();
+    // 観測点マーカーのポップアップを開く(updateAllで作り直された最新のマーカーを開く)
+    if (_tmObsMarker && _tmObsMarker.getPopup && _tmObsMarker.getPopup() && !_tmObsMarker.getPopup().isOpen()) {
+        _tmObsMarker.togglePopup();
+    }
 }
 
 /** 詳細リスト(結果リスト表示領域とコントロール領域の間): ホバー(PC)/タップ(スマホ)中の
@@ -9117,9 +8617,9 @@ function _tmResetDetailList() {
  *  戻り値: 観測点の画素の情報を表示できたか(観測点ポップアップ表示中の固定の判定に使用)。 */
 function _tmShowDetailForObserver() {
     if (_tmDetailLockPopup) return false;
-    if (!_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) return false;
+    if (!_tsujiMeshLayerVisible || !glMap) return false;
     if (!_tsujiMeshWhiteRow || !_tmLayerShown('mesh')) return false;
-    const pix = _tmPixAtLatLng(L.latLng(appState.start.lat, appState.start.lng));
+    const pix = _tmPixAtLatLng({ lat: appState.start.lat, lng: appState.start.lng });
     if (pix < 0 || _tsujiMeshWhiteRow[pix] < 0) return false;
     _tmUpdateDetailList(pix);
     return _tmDetailPix === pix;
@@ -9127,13 +8627,9 @@ function _tmShowDetailForObserver() {
 
 /** 辻マーカー/白マーカー上のホバーでポップアップを表示する(地図のmousemoveから)。
  *  辻マーカー(表示中の集合)を優先し、集合外の白マーカー画素は最良の行の値を表示する。 */
-let _tmHoverTooltip = null;
 function handleTsujiMeshGoldHover(latlng) {
-    const hide = () => {
-        if (_tmHoverTooltip) { _tmHoverTooltip.remove(); _tmHoverTooltip = null; }
-        if (USE_MAPLIBRE) _glTmHideTip();
-    };
-    if (!latlng || !_tsujiMeshLayerVisible || typeof map === 'undefined' || !map) { hide(); return; }
+    const hide = () => _glTmHideTip();
+    if (!latlng || !_tsujiMeshLayerVisible || !glMap) { hide(); return; }
     const pix = _tmPixAtLatLng(latlng);
     let content = null, atPix = pix;
     if (pix >= 0 && _tsujiMeshGoldSet && _tmLayerShown('gold') && _tsujiMeshGoldSet.has(pix)) {
@@ -9151,20 +8647,7 @@ function handleTsujiMeshGoldHover(latlng) {
         }
     }
     if (!content) { hide(); return; }
-    // MapLibre移行済み(R5): ツールチップは使い回しのPopupで表示
-    if (USE_MAPLIBRE) {
-        _glTmShowTip(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix], content, 8);
-        return;
-    }
-    const at = L.latLng(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix]);
-    // 地図クリック(preclick)でLeafletが非permanentツールチップを閉じるため、
-    // 参照が残っていても地図から外れていたら作り直す(クリック後にホバーが再表示されない不具合の修正)
-    if (!_tmHoverTooltip || !_tmHoverTooltip._map) {
-        if (_tmHoverTooltip) _tmHoverTooltip.remove();
-        _tmHoverTooltip = L.tooltip({ direction: 'top' }).setLatLng(at).setContent(content).addTo(map);
-    } else {
-        _tmHoverTooltip.setLatLng(at).setContent(content);
-    }
+    _glTmShowTip(_tsujiMeshPix.lat[atPix], _tsujiMeshPix.lng[atPix], content, 8);
 }
 
 /** 結果リストの選択行を変更(スライダー/◀▶/行クリックから) */
@@ -9416,14 +8899,14 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
         setStatus('(標高オプション 判定データ準備中…)');
         const latArr = new Float64Array(kept), lngArr = new Float64Array(kept), startTotals = new Float64Array(kept);
         let minDistM = Infinity, maxDistM = 0, minAbsLat = 90, maxAbsLat = 0;
-        const endLL = L.latLng(end.lat, end.lng);
+
         for (let i = 0; i < kept; i++) {
             const sLat = latA[i], sLng = lngA[i];
             latArr[i] = sLat; lngArr[i] = sLng;
             const sx15 = 128 * (sLng / 180 + 1) * scale15;
             const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
             startTotals[i] = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
-            const d = L.latLng(sLat, sLng).distanceTo(endLL);
+            const d = _geoDistM(sLat, sLng, end.lat, end.lng);
             if (d < minDistM) minDistM = d;
             if (d > maxDistM) maxDistM = d;
             const al = Math.abs(sLat);
@@ -9715,7 +9198,7 @@ async function startTsujiMeshSearch() {
         offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
         centerMode: appState.tsujiMeshCenterMode,
         grid, gridW, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
-        bounds: L.latLngBounds([se.lat, nw.lng], [nw.lat, se.lng]),
+        bounds: { west: nw.lng, east: se.lng, north: nw.lat, south: se.lat },
     };
     await tsujiMeshPool.init({ type: 'init', count: kept, baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180), minAlt, maxAlt, binSize, nBins, binIndex, binPixels });
     if (generation !== tsujiMeshGeneration) return;
@@ -9875,7 +9358,7 @@ async function startTsujiMeshSearch() {
     // 検索直後は行を自動選択せず、日時も移動しない
     // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
     // 初期画面: 最大ズーム-3で観測点を(下部パネルに隠れない領域の)中央に表示する
-    if (typeof map !== 'undefined' && map) {
+    if (glMap) {
         let coveredPx = 0;
         for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
             const el = document.getElementById(id);
@@ -9883,13 +9366,8 @@ async function startTsujiMeshSearch() {
             coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
         }
         const zoom = mapAdapter.getMaxZoom() - 3;
-        if (USE_MAPLIBRE) {
-            // 観測点が可視領域(下部パネルを除く)の中央に来るよう、中心をcoveredPx/2だけ上へオフセット
-            glMap.jumpTo({ center: [start.lng, start.lat], zoom: _glZoom(zoom), offset: [0, -coveredPx / 2] });
-        } else {
-            const obsPt = map.project([start.lat, start.lng], zoom);
-            map.setView(map.unproject(obsPt.add(L.point(0, coveredPx / 2)), zoom), zoom);
-        }
+        // 観測点が可視領域(下部パネルを除く)の中央に来るよう、中心をcoveredPx/2だけ上へオフセット
+        glMap.jumpTo({ center: [start.lng, start.lat], zoom: _glZoom(zoom), offset: [0, -coveredPx / 2] });
     }
 }
 
@@ -10285,24 +9763,16 @@ function recenterPointInView(p, animate = true) {
         coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
     }
     const coveredFrac = Math.min(0.9, Math.max(0, coveredPx / Math.max(1, size.y)));   // 全面時は動かしすぎない
-    if (USE_MAPLIBRE) {
-        // 隠れ領域は下端側。地点を中心から size.y*coveredFrac/2 上に置くと可視領域の中央に来る
-        glMap.easeTo({ center: [p.lng, p.lat], offset: [0, -size.y * coveredFrac / 2], duration: animate ? 250 : 0 });
-        return;
-    }
-    const z = map.getZoom();
-    const px = map.project([p.lat, p.lng], z);
-    // 隠れ領域は下端側。地図中心を南へ size.y*coveredFrac/2 ずらすと地点が可視領域の中央に来る
-    const centerPx = px.add([0, size.y * coveredFrac / 2]);
-    map.panTo(map.unproject(centerPx, z), { animate });
+    // 隠れ領域は下端側。地点を中心から size.y*coveredFrac/2 上に置くと可視領域の中央に来る
+    glMap.easeTo({ center: [p.lng, p.lat], offset: [0, -size.y * coveredFrac / 2], duration: animate ? 250 : 0 });
 }
 
 function recenterObserverInView(animate = true) {
-    if (typeof map === 'undefined' || !map || !appState.start) return;
+    if (!glMap || !appState.start) return;
     if (_recenterRAF) cancelAnimationFrame(_recenterRAF);
     _recenterRAF = requestAnimationFrame(() => {
         _recenterRAF = null;
-        if (!map || !appState.start) return;
+        if (!glMap || !appState.start) return;
         recenterPointInView(appState.start, animate);
     });
 }
@@ -10763,9 +10233,9 @@ async function startTsujiSearch() {
 
 async function startElevationFetch() {
     appState.elevationData.points = [];
-    const s = L.latLng(appState.start.lat, appState.start.lng);
-    const e = L.latLng(appState.end.lat, appState.end.lng);
-    const dist = s.distanceTo(e);
+    const s = { lat: appState.start.lat, lng: appState.start.lng };
+    const e = { lat: appState.end.lat, lng: appState.end.lng };
+    const dist = _geoDistM(s.lat, s.lng, e.lat, e.lng);
     const steps = 2000;
     const intervalM = dist / steps;
     appState.elevationData.intervalM = intervalM; // グラフ表示用に保持
@@ -10913,7 +10383,7 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
-    const distM = L.latLng(sLat, sLng).distanceTo(L.latLng(endLat, endLng));
+    const distM = _geoDistM(sLat, sLng, endLat, endLng);
     const stepM = 40075016.686 * Math.cos(sLat * Math.PI / 180) / (scale15 * 256) / 2;   // z15の半画素(≒2m)
     const steps = Math.max(2, Math.ceil(distM / stepM));
     const sx15 = 128 * (sLng / 180 + 1) * scale15;
@@ -10963,7 +10433,7 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
         };
     } else {
         // 経路が通るタイル座標を判定と同じ歩きで列挙し、必要なタイルだけ取得する
-        const distM = L.latLng(startLat, startLng).distanceTo(L.latLng(endLat, endLng));
+        const distM = _geoDistM(startLat, startLng, endLat, endLng);
         const stepM = 40075016.686 * Math.cos(startLat * Math.PI / 180) / (scale15 * 256) / 2;
         const steps = Math.max(2, Math.ceil(distM / stepM));
         const sx15 = 128 * (startLng / 180 + 1) * scale15;
@@ -16150,25 +15620,9 @@ function _fwSyncAnim() {
 }
 
 /** 打ち上げ点の地図マーカー(🎆)+領域半径の円。花火モードON中のみ表示(内容が同じなら何もしない) */
-let _fwMapMarker = null, _fwMapCircle = null, _fwMapKey = '';
+let _fwMapKey = '';
 function fwUpdateMapMarker() {
-    if (USE_MAPLIBRE) { glFwUpdateMapMarker(); return; }   // MapLibre移行済み(R2)
-    if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
-    const p0 = fwLaunchPoint();
-    const key = `${appState.fwEnabled}|${p0.lat},${p0.lng}|${Number(appState.fwRadius) || 0}`;
-    if (key === _fwMapKey) return;
-    _fwMapKey = key;
-    if (_fwMapMarker) { map.removeLayer(_fwMapMarker); _fwMapMarker = null; }
-    if (_fwMapCircle) { map.removeLayer(_fwMapCircle); _fwMapCircle = null; }
-    if (!appState.fwEnabled) return;
-    const p = fwLaunchPoint();
-    if (!isFinite(p.lat) || !isFinite(p.lng)) return;
-    _fwMapMarker = L.marker([p.lat, p.lng], {
-        icon: L.divIcon({ className: 'fw-map-icon', html: '🎆', iconSize: [24, 24], iconAnchor: [12, 12] }),
-        title: '打ち上げ点', interactive: false,
-    }).addTo(map);
-    const r = Number(appState.fwRadius) || 0;
-    if (r > 0) _fwMapCircle = L.circle([p.lat, p.lng], { radius: r, color: '#ff8f00', weight: 1, fillColor: '#ffb74d', fillOpacity: 0.15, interactive: false }).addTo(map);
+    glFwUpdateMapMarker();
 }
 
 /** appState → 花火モードのフォーム(宙の窓メニュー/ctrlメニューの両方)と算出表示を反映 */
@@ -16641,7 +16095,6 @@ let _ssRunning = false;
 let _ssFileRunning = false;
 let _ssLast = null;     // 直近の検索スナップショット { rows, points, clouds, lp, preset, days, stepH, fanDeg, rangeKm, az0 }
 let _ssSelRow = null;   // 選択中の結果行(オブジェクト参照。ソートで並びが変わっても追従)
-let _ssMapLayer = null; // 地図オーバーレイ(視界扇形+標本点)
 
 /** 検索条件1組の実行: 扇形標本 → 雲量/AOD/気圧面の取得 → 時刻毎スコア(+統計行)。スナップショットを返す。
  *  cond = { oLat,oLng,oElev, eLat,eLng, preset, days, stepH, fanDeg, rangeKm(null=相手距離), bands, stat } */
@@ -16952,50 +16405,13 @@ function ssHideDetail() {
 
 /** 地図オーバーレイ: 視界扇形の輪郭+扇形標本の点。行選択時は標本毎の雲量を点の色(白=快晴〜濃灰=曇天)で表示 */
 function ssUpdateMapOverlay(snap, selRow) {
-    if (USE_MAPLIBRE) { glSsUpdateMapOverlay(snap, selRow); return; }   // MapLibre移行済み(R4)
-    if (typeof map === 'undefined' || !map || typeof L === 'undefined') return;
-    ssClearMapOverlay();
-    if (!snap || !appState.isSoraSearchActive) return;
-    _ssMapLayer = L.layerGroup().addTo(map);
-    const oLat = snap.oLat, oLng = snap.oLng;
-    const R = snap.rangeKm * 1000, fan = snap.fanDeg, az0 = snap.az0;
-    // 扇形の輪郭(標本化と同じ簡易平面近似で描く=標本点と輪郭が一致する)
-    const pts = [[oLat, oLng]];
-    const n = Math.max(2, Math.ceil(fan / 3));
-    for (let k = 0; k <= n; k++) {
-        const az = (az0 - fan / 2 + fan * k / n) * Math.PI / 180;
-        pts.push([oLat + R * Math.cos(az) / 111320, oLng + R * Math.sin(az) / (111320 * Math.cos(oLat * Math.PI / 180))]);
-    }
-    L.polygon(pts, { color: '#7ec8ff', weight: 2, fillColor: '#7ec8ff', fillOpacity: 0.06, interactive: false }).addTo(_ssMapLayer);
-    // 扇形標本の点(格子中心)。行選択時はその時刻の雲量で白〜濃灰に着色
-    for (const p of snap.points) {
-        let fill = '#ffffff';
-        let tip = `格子 ${p.key} / 重み ${p.w.toFixed(2)}`;
-        if (selRow) {
-            const c = snap.clouds[p.key];
-            const iH = selRow.hourIdx;
-            if (c && c.low[iH] !== undefined && c.low[iH] !== null) {
-                const cov = 1 - (1 - c.low[iH] / 100) * (1 - c.mid[iH] / 100) * (1 - c.high[iH] / 100);
-                const g = Math.round(255 - cov * 200);
-                fill = `rgb(${g},${g},${g})`;
-                tip += ` / 雲 低${Math.round(c.low[iH])}% 中${Math.round(c.mid[iH])}% 高${Math.round(c.high[iH])}%`;
-            } else {
-                tip += ' / 雲量データなし';
-            }
-        }
-        L.circleMarker([p.lat, p.lng], { radius: 6, color: '#2a5a8a', weight: 1.5, fillColor: fill, fillOpacity: 0.95 })
-            .bindTooltip(tip).addTo(_ssMapLayer);
-    }
+    glSsUpdateMapOverlay(snap, selRow);
 }
 function ssClearMapOverlay() {
-    if (_ssMapLayer && typeof map !== 'undefined' && map) map.removeLayer(_ssMapLayer);
-    _ssMapLayer = null;
-    // MapLibre移行済み(R4): GL側のオーバーレイも消去
-    if (USE_MAPLIBRE && glMap) {
-        _glSetSourceData('ss-fan', []);
-        _glSetSourceData('ss-points', []);
-        _glSsHideTip();
-    }
+    if (!glMap) return;
+    _glSetSourceData('ss-fan', []);
+    _glSetSourceData('ss-points', []);
+    _glSsHideTip();
 }
 
 /** 宙検索結果パネルを開く(辻検索/辻メッシュ検索とは排他=同じ下部1/3の枠を使うため) */

@@ -35,15 +35,7 @@ GNU General Public License for more details.
     <link rel="icon" href="favicon.ico" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
-
     <link rel="stylesheet" href="style.css">
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
 
     <script
       type="text/javascript"
@@ -61,7 +53,7 @@ GNU General Public License for more details.
     <!-- 全天儀(3D天体儀)用。グローバル THREE を公開する UMD 最終版(r161でUMD廃止のため0.160.0に固定) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
-    <!-- 宙断面ビュー用(MapLibre GL JS初導入 — 地図全面移行計画の手順2。本体地図のLeafletとは併存) -->
+    <!-- 地図ライブラリ MapLibre GL JS(本体地図+宙断面ビュー。地図全面移行計画の手順4でLeafletを撤去し一本化) -->
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>

@@ -1,6 +1,6 @@
 // 第29ラウンド検証: 本体地図のMapLibre移行R5(機能群5=辻メッシュ。最重量)
 // verify98と同じ合成メッシュ(4画素)で表示系を駆動する: メッシュ画像・金ドット・辻マーカー集合・
-// 優辻ピン・ポップアップ・ホバー・表示切替・消去。フラグOFF(Leaflet)の同機能もスモーク確認。
+// 優辻ピン・ポップアップ・ホバー・表示切替・消去。(手順4のLeaflet撤去後に保守)
 // ローカルハーネス(vendor)。外部への実アクセスは行わない(route abort)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
@@ -37,7 +37,7 @@ const SETUP=`(() => {
     offsetAz:0, offsetAlt:0, centerMode:'point',
     observerData:obs, refractionEnabled:false,
     grid, gridPos, gridW:W, gxBase, gyBase,
-    bounds:L.latLngBounds([se.lat,nw.lng],[nw.lat,se.lng]),
+    bounds:{ west:nw.lng, east:se.lng, north:nw.lat, south:se.lat },
   };
   _tsujiMeshPix={ lat:lats, lng:lngs, elev:[900,910,920,930] };
   _tsujiMeshPixHeightUsed=1.5;
@@ -85,9 +85,9 @@ const SETUP=`(() => {
       const srcCoords=glMap.getSource('tm-mesh-img').coordinates;
       const desc=_tmBuildGradientOverlay();   // 記述子の四隅=bounds(変換関数の検証)
       const B=_tsujiMeshCalc.bounds;
-      const okDesc=desc&&Math.abs(desc.coordinates[0][0]-B.getWest())<1e-9&&Math.abs(desc.coordinates[0][1]-B.getNorth())<1e-9&&
-                   Math.abs(desc.coordinates[2][0]-B.getEast())<1e-9&&Math.abs(desc.coordinates[2][1]-B.getSouth())<1e-9;
-      const okSrc=srcCoords&&Math.abs(srcCoords[0][0]-B.getWest())<1e-6&&Math.abs(srcCoords[0][1]-B.getNorth())<1e-6;
+      const okDesc=desc&&Math.abs(desc.coordinates[0][0]-B.west)<1e-9&&Math.abs(desc.coordinates[0][1]-B.north)<1e-9&&
+                   Math.abs(desc.coordinates[2][0]-B.east)<1e-9&&Math.abs(desc.coordinates[2][1]-B.south)<1e-9;
+      const okSrc=srcCoords&&Math.abs(srcCoords[0][0]-B.west)<1e-6&&Math.abs(srcCoords[0][1]-B.north)<1e-6;
       const whiteHits=[0,1,2,3].filter(px=>_tsujiMeshWhiteRow[px]>=0).length;
       return { lyrVis, whiteHits, okDesc, okSrc, srcCoords: JSON.stringify(srcCoords&&srcCoords[0]),
                shown: _tmLayerShown('mesh') };
@@ -119,7 +119,10 @@ const SETUP=`(() => {
       return { n: feats.length, x:px.x, y:px.y, dists: feats.map(f=>+f.properties.dist.toFixed(3)).join(',') };
     });
     check('S3 金ドット=選択行の3画素', r.n===3, `n=${r.n} dists=${r.dists}`);
-    await p.waitForTimeout(700);   // circleの描画待ち(queryRenderedFeaturesのため)
+    // circleが実際にその座標へ描画されるまで待つ(描画完了前にクリックするとヒットしないフレーク対策)
+    await p.evaluate(()=>glMap.triggerRepaint());
+    await p.waitForFunction((pt)=>glMap.queryRenderedFeatures([pt.x,pt.y],{layers:['tm-gold-dots']}).length>0,
+      {x:r.x,y:r.y},{timeout:10000});
     await p.mouse.click(r.x, r.y);
     await p.waitForTimeout(500);
     const r2=await p.evaluate(()=>({
@@ -207,25 +210,26 @@ const SETUP=`(() => {
 
   check('S8 フラグONでページエラーなし', errs.length===0, errs.slice(0,3).join(' | '));
 
-  // S9: フラグOFF(Leaflet)の同機能スモーク(白オーバーレイ/金circleMarker/画素ポップアップ)
+  // S9: 旧フラグ?maplibre=0は無視される(手順4でLeaflet撤去済み) — メッシュ描画はMapLibreで動く
   {
     const p2=await ctx.newPage();
     const errs2=[]; p2.on('pageerror',e=>errs2.push(e.message));
     await p2.goto(BASE+'/index.html?maplibre=0',{waitUntil:'load'});
-    await p2.waitForFunction(()=>typeof map!=='undefined'&&!!map,{timeout:8000});
+    await p2.waitForFunction(()=>typeof glMap==='object'&&glMap!==null&&glMap.isStyleLoaded&&glMap.isStyleLoaded(),{timeout:10000});
     await p2.waitForTimeout(400);
     await p2.evaluate(SETUP);
     const r=await p2.evaluate(()=>{
       drawTsujiMeshMarkers();
       updateTsujiMeshGoldMarkers();
-      const overlayCnt=tsujiMeshLayer.getLayers().length;
-      const goldCnt=_tsujiMeshGoldLayer.getLayers().length;
-      const popupOk=_tmShowPixelPopup({lat:_tsujiMeshPix.lat[1],lng:_tsujiMeshPix.lng[1]});
-      return { overlayCnt, goldCnt, popupOk, leafletPopup: !!document.querySelector('#map .leaflet-popup-content') };
+      return { meshVis: glMap.getLayoutProperty('tm-mesh-img','visibility'),
+               dots: glMap.getSource('tm-gold-dots-src')._data.features.length,
+               popupOk: _tmShowPixelPopup({lat:_tsujiMeshPix.lat[1],lng:_tsujiMeshPix.lng[1]}),
+               glPopup: !!document.querySelector('#map .maplibregl-popup-content'),
+               noLeaflet: typeof L==='undefined' };
     });
-    check('S9 フラグOFF: Leafletのオーバーレイ1+金マーカー3+画素ポップアップ動作', r.overlayCnt===1&&r.goldCnt===3&&r.popupOk&&r.leafletPopup,
+    check('S9 ?maplibre=0でもメッシュ描画/金ドット/ポップアップはMapLibreで動く', r.meshVis==='visible'&&r.dots===3&&r.popupOk&&r.glPopup&&r.noLeaflet,
       JSON.stringify(r));
-    check('S9 フラグOFF: ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
+    check('S9 ページエラーなし', errs2.length===0, errs2.slice(0,2).join(' | '));
     await p2.close();
   }
 
