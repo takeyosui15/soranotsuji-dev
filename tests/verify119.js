@@ -2,6 +2,8 @@
 // (1)メッシュ画像キャンバスの上限設計(最大辺2048。旧6144はiPhoneのキャンバス/テクスチャ上限超えでクラッシュ)
 // (2)レイヤ表示OFF→ONの復帰(再描画なし) (3)再検索の繰り返しでも毎回描画+旧objectURLのrevoke
 // (4)attributionのⓘ(compact)化 (5)setDataのバッチ化(方位線/辻ライン=1回ずつ)
+// v1.37.1(監査第2弾): (6)DEMタイルキャッシュのLRU上限 (7)優辻ピンmouseenterのタッチガード+
+// ツールチップoffsetの毎回設定 (8)検索完了後のワーカープール解放(ソース検査)
 // ローカルハーネス(vendor)。外部への実アクセスは行わない(route abort)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
@@ -16,7 +18,7 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
-    check('Y0 APP_VERSION 1.37.0', src.includes("APP_VERSION = '1.37.0'"));
+    check('Y0 APP_VERSION 1.37.1', src.includes("APP_VERSION = '1.37.1'"));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});
@@ -117,6 +119,60 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
     });
     // リセット(空)+一括反映の計2回が正。旧実装は天体毎/線種毎に呼んでいた(3天体で方位線4回・辻ライン30回超)
     check('Y5 setDataは天体数に依らずリセット+一括の2回ずつ', r.dirCalls===2&&r.dpCalls===2, JSON.stringify(r));
+  }
+
+  // Y7: DEMタイルキャッシュのLRU上限(v1.37.1)。上限超過で最古を追い出し、使ったものは残す
+  {
+    const r=await p.evaluate(async()=>{
+      const orig=_loadTileImage;
+      _loadTileImage=async()=>{ const c=document.createElement('canvas'); c.width=c.height=256; return c; };
+      _tileCache.clear();
+      for(let i=0;i<_TILE_CACHE_MAX+10;i++){
+        await _getTileImageData('u'+i);
+        if(i===_TILE_CACHE_MAX-1) await _getTileImageData('u0');   // u0を使う→LRUで末尾へ(以後10回の追い出し対象から外れる)
+      }
+      const r2={ size:_tileCache.size, max:_TILE_CACHE_MAX,
+                 keptUsed:_tileCache.has('u0'), evictedOldest:!_tileCache.has('u1'), keptNewest:_tileCache.has('u'+(_TILE_CACHE_MAX+9)) };
+      _tileCache.clear(); _loadTileImage=orig;
+      return r2;
+    });
+    check('Y7 タイルキャッシュは上限枚数でLRU(最古を追い出し・使用分は保持)',
+      r.size===r.max&&r.keptUsed&&r.evictedOldest&&r.keptNewest, JSON.stringify(r));
+  }
+
+  // Y8: 優辻ピンのmouseenterはホバー環境のみ(タッチの合成mouseenterでツールチップを出さない)+
+  //     ツールチップのoffsetは表示毎に設定される(8⇄26の使い回しズレの回帰)
+  {
+    const r=await p.evaluate(async()=>{
+      drawTsujiMeshGoldSet(new Map([[0,0.011]]),{pix:0,dist:0.011,timeMs:_tsujiMeshRows[0].pixTime[0]});
+      const el=_glMarkerGroups.tmpin[0].getElement();
+      const orig=_mapDblClickMode;
+      _mapDblClickMode=false;   // スマホ相当
+      el.dispatchEvent(new MouseEvent('mouseenter'));
+      const noTipOnTouch=_glTmHoverTip===null;
+      _mapDblClickMode=true;    // PC相当
+      el.dispatchEvent(new MouseEvent('mouseenter'));
+      const tipOnHover=_glTmHoverTip!==null;
+      const pinOffset=tipOnHover?_glTmHoverTip.options.offset:null;   // ピンは26
+      _glTmShowTip(35.5025,138.8025,'x');                              // 既定は8(表示毎に設定)
+      const defOffset=_glTmHoverTip.options.offset;
+      _glTmHideTip(); _mapDblClickMode=orig;
+      clearTsujiMeshMarkers(); drawTsujiMeshMarkers();
+      await new Promise(res=>setTimeout(res,200));
+      return { noTipOnTouch, tipOnHover, pinOffset, defOffset };
+    });
+    check('Y8 タッチではツールチップ非表示/ホバーでは表示+offsetが毎回反映(26→8)',
+      r.noTipOnTouch&&r.tipOnHover&&r.pinOffset===26&&r.defOffset===8, JSON.stringify(r));
+  }
+
+  // Y9: 検索完了後のワーカープール解放+描画スキップの可視化(ソース検査)
+  {
+    const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
+    check('Y9 検索完了時にtsujiMeshPool.terminateAll(世代ガード後)+表示天体なし時も解放',
+      /検索完了: ワーカープールを解放[\s\S]{0,400}?tsujiMeshPool\.terminateAll\(\)/.test(src)&&
+      /検索せず終了: initデータを持ったまま常駐させない/.test(src));
+    check('Y9 ソース未初期化時の画像描画スキップがconsole.warnで可視化される',
+      src.includes('ソース未初期化のため描画をスキップ'));
   }
 
   check('Y6 ページエラーなし', errs.length===0, errs.slice(0,3).join(' | '));

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.37.1 - 2026-07-20: fix: 描画監査(第35ラウンド第2弾)の指摘対応 — マルチエージェント監査(タッチ操作経路+MapLibre作法+指摘毎の反証検証)で確認された3件を修正 ①優辻ピンのmouseenterに_mapDblClickModeガードが無く、スマホのタップで合成mouseenterが発火してツールチップがポップアップと二重表示・残留し、精細化スキャンがタップ応答を遅くしていた(観測点マーカーと同じガードを追加) ②DEMタイルキャッシュ(_tileCache)が無制限で、地域を変えた再検索の繰り返しでメモリが単調増加していた(上限192枚≈48MBのLRUへ) ③辻メッシュ検索完了後にワーカープールを解放していなかった(initデータの複製がワーカー台数分常駐。完了時にterminateAll・再検索時は再init)。あわせてホバーツールチップのoffsetが初回生成時しか反映されない位置ズレと、ソース未初期化時に画像描画が無音で捨てられるエッジの可視化(console.warn)も修正
 Version 1.37.0 - 2026-07-20: fix: スマホでの辻メッシュ3不具合の修正+MapLibre作法の改善(描画方式の再検討) — ①検索エリア5×5で落ちる/再検索で描画されない: メッシュ画像のキャンバスが最大6144×6144(151MB)でiPhoneのキャンバス面積・GPUテクスチャ上限を超えていたため、上限設計を「最大辺2048px」に変更(3×3=1536/5×5=1280。拡大時のシャープさはrasterレイヤのnearest補間が担うため見た目は維持)。画像の受け渡しもtoDataURL(巨大base64文字列)からtoBlob+objectURLへ変更し、旧URLのrevoke+非同期の世代ガードでメモリリークと追い越しを防止。消去時は1×1透明PNGへ差し替えて旧画像のGPUテクスチャも解放し、画像生成失敗(toBlob=null)はステータス欄に表示して無音で消えないようにした ②メッシュマーカーレイヤーのチェックボックスON/OFFが反映されない: OFF→ONで画像レイヤをvisibleに戻すコードが無かった(旧テストは手動再描画でこのバグを見逃していた)。「画像に中身があるか」を_glTmHasImgで持ち、表示状態をapplyTsujiMeshLayerVisibilityに一元化して両方向に設定 ③クレジット表示をⓘアイコン(compact)に変更(タップで展開) ④MapLibre作法: ループ内で繰り返していたsetDataをバッチ化(方位線=天体毎→updateCalculationで1回・辻ライン=線種毎→updateDPLinesで1回)
 Version 1.36.0 - 2026-07-20: feat: 封鎖UIのindex.htmlからの分離+地図コントロールのボタンサイズ統一 — ①封鎖中の予測系機能(宙検索/My宙検索/宙断面)のボタン/メニュー/パネルのHTML(5ブロック・約160行)をindex.htmlから削除しforecast-features.htmlへ分離。index.htmlには空スロット(ff-slot-*)のみ残し、開発時(?forecast=1)はloadForecastFeaturesがfetch+templateで各スロットへ注入して完全復元(注入はsetupUIより前のため配線もそのまま効く)。既定ページのDOMには封鎖機能の要素が一切存在しない ②左上コントロールのボタンサイズ統一: 自作ボタン(⌖/レイヤ切替/パン)26pxとMapLibre標準ズームボタン29pxが不揃いだったため全て29pxに統一(レイヤリストの位置も追従)
 Version 1.35.0 - 2026-07-20: feat: リリース方針による予測系機能の一時封鎖+地図ボタンのアイコン中心ズレ修正 — ①「確実なものから提供する」方針(たけちゃんさん判断)により、予測が関係する宙検索・My宙検索・宙断面ビューを非表示(機能封鎖)に。メニュー/ボタンを隠し実行もガード。Myセットのシートも従来の4シート構成(My宙検索タブは作成も読み書きもしない。既存タブには触れない)。コードとデータ構造は温存し、開発時はURLに?forecast=1で表示可能(公開判断後は既定をtrueに戻すだけ)。今回のリリース対象=全天儀/辻メッシュ検索/宙の窓/Myセット(+従来機能) ②左上の⌖(中央表示)/レイヤ切替ボタンのアイコン中心ズレを修正(.gl-bar aのdisplay:blockが後続のflex中央寄せを上書きしていた手順4の移植回帰。flex中央寄せに統一)
@@ -98,7 +99,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.37.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.37.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1322,7 +1323,10 @@ function _glTmHideTip() {
 }
 function _glTmShowTip(lat, lng, html, offset) {
     if (!glMap) return;
-    if (!_glTmHoverTip) _glTmHoverTip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: offset || 8 });
+    if (!_glTmHoverTip) _glTmHoverTip = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
+    // ツールチップは1個を使い回すため、offsetは表示の度に設定する(生成時のみだと
+    // メッシュ画素(8)⇄優辻ピン(26)の行き来で前回のoffsetが残り、位置がずれる)
+    _glTmHoverTip.setOffset(offset || 8);
     _glTmHoverTip.setLngLat([lng, lat]).setHTML(html).addTo(glMap);
 }
 /** 辻メッシュのポップアップを開く(既存を閉じてから=Leafletのpopup1つ運用と同じ) */
@@ -1353,7 +1357,12 @@ const _glTmHasImg = { 'tm-mesh-img': false, 'tm-gold-img': false };
 const _glTmImgUrl = {};   // id -> 表示中のobjectURL(revoke用)
 const _glTmImgSeq = {};   // id -> 世代(非同期toBlobの追い越し防止)
 function _glTmSetImage(id, data) {
-    if (!glMap || !glMap.getSource(id)) return;
+    if (!glMap || !glMap.getSource(id)) {
+        // ソース未初期化(style.load前)での描画要求は破棄される。無音だと「描画されない」の
+        // 切り分けができないため記録する(消去要求(data=null)は起動時に通り得るので黙って無視)
+        if (data) console.warn('辻メッシュ画像: ソース未初期化のため描画をスキップ: ' + id);
+        return;
+    }
     const seq = (_glTmImgSeq[id] = (_glTmImgSeq[id] || 0) + 1);
     const apply = (url) => {
         if (seq !== _glTmImgSeq[id] || !glMap || !glMap.getSource(id)) {   // 追い越された/破棄済み
@@ -1436,6 +1445,10 @@ function glDrawTsujiMeshGoldSet(perPix, big) {
         const el = mk.getElement();
         el.addEventListener('click', () => _tmShowPinPopup(big));   // クリック/タップでポップアップ(観測点は移動しない)
         el.addEventListener('mouseenter', () => {
+            // ホバー環境のみ(観測点マーカーの1054と同じガード)。スマホはタップで合成mouseenterが
+            // 飛ぶため、ガード無しだとツールチップがポップアップと二重に出て残留し、
+            // 精細化スキャン(±120秒×1秒)がタップ応答も遅くする
+            if (!_mapDblClickMode) return;
             // ツールチップは開く時に画素の最良辻時刻(0.01秒精度)を精細化して表示する(Leaflet版と同じ)
             const ref = _tmRefinePixelTime(big.pix) || { timeMs: big.timeMs, dist: big.dist };
             _glTmShowTip(lat, lng, _tmTooltipHtml('優辻マーカー(最良画素)', ref.timeMs, ref.dist), 26);
@@ -4009,11 +4022,18 @@ function _elevFromRGB(r, g, b) {
     return h;
 }
 
-// タイル画像キャッシュ (同一セッション内でタイル再利用)
-const _tileCache = {};
+// タイル画像キャッシュ (同一セッション内でタイル再利用)。ImageDataは1枚256KB(256×256×4)のため
+// 上限付きLRU: 無制限だと地域を変えた再検索の繰り返しでメモリが単調増加し、スマホのタブ上限に達し得る
+const _TILE_CACHE_MAX = 192;   // ≈48MB(5×5検索1回で最大約100枚を使う想定に余裕を持たせた値)
+const _tileCache = new Map();  // url -> ImageData(Mapの挿入順をLRU順として使う)
 
 async function _getTileImageData(tileUrl) {
-    if (_tileCache[tileUrl]) return _tileCache[tileUrl];
+    const hit = _tileCache.get(tileUrl);
+    if (hit) {
+        _tileCache.delete(tileUrl);
+        _tileCache.set(tileUrl, hit);   // 使ったものを末尾へ(LRU更新)
+        return hit;
+    }
     try {
         const img = await _loadTileImage(tileUrl);
         const canvas = document.createElement('canvas');
@@ -4022,7 +4042,8 @@ async function _getTileImageData(tileUrl) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         const imgData = ctx.getImageData(0, 0, 256, 256);
-        _tileCache[tileUrl] = imgData;
+        _tileCache.set(tileUrl, imgData);
+        if (_tileCache.size > _TILE_CACHE_MAX) _tileCache.delete(_tileCache.keys().next().value);   // 最古を追い出す
         return imgData;
     } catch (e) {
         return null;
@@ -9293,6 +9314,7 @@ async function startTsujiMeshSearch() {
         setStatus('(表示天体なし)');
         hideTsujiMeshProgress();
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">表示天体メニューで検索する天体をオンにしてください</div>';
+        tsujiMeshPool.terminateAll();   // 検索せず終了: initデータを持ったまま常駐させない
         return;
     }
     const days = appState.tsujiMeshDays;
@@ -9339,6 +9361,11 @@ async function startTsujiMeshSearch() {
         return { body, events };
     }));
     if (generation !== tsujiMeshGeneration) return;
+    // 検索完了: ワーカープールを解放する(initで各ワーカーへ複製配布した検索データを持ったまま
+    // 常駐させない=スマホのメモリ節約)。以後の再計算(辻時刻コントロール/0.01秒精細化/行選択)は
+    // 全てメインスレッド処理で、再検索時はstartTsujiMeshSearchが再initする。
+    // ※世代ガードの後に置く: 新しい検索が始まっていた場合はそちらがプールを使用中のため触らない
+    tsujiMeshPool.terminateAll();
 
     // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
     const observer = new Astronomy.Observer(start.lat, start.lng, start.elev);
