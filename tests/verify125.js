@@ -23,8 +23,8 @@ new Function('exports', src.slice(begin, end) +
   'exports.enc=encodeQueryParam; exports.dec=decodeQueryParam;')(qp);
 
 // ---- M0: 版数ピン(最新のverifyに集約)----
-check('M0 APP_VERSION 1.42.0', src.includes("APP_VERSION = '1.42.0'") || !!process.argv[2]);
-check('M0 Version Historyに1.42.0の行がある', src.includes('Version 1.42.0 - ') || !!process.argv[2]);
+check('M0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('M0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 check('M0 辞書は13版(v13が最新)', qp.VERSIONS.length === 13, `versions=${qp.VERSIONS.length}`);
 
 // ---- M1: 第3規則の形状(「&キー名=既定値」: 先頭&+キー名+1つの=+区切りなしの値) ----

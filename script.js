@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.43.0 - 2026-07-23: refactor: 第41ラウンド(中盤) — リファクタリングA: 既定値の単一情報源化(APP_DEFAULTS) 承認済みのリファクタリング資料A観点を実施。①スカラー149キーの既定値・範囲・列挙・真偽整形規則を1つの表APP_DEFAULTSに集約(appState初期値は表から展開・normalizeAppStateは表の規則を読む汎用パス+表で表せない個別コードのみ) ②挙動不変のcharacterizationで保証: 初期値161キーとnormalize挙動161キー×8種の崩れた値の計1288プローブを、リファクタ前に凍結標本として採取し、後で完全一致を確認(差分0件)。標本はtests/dataへ恒久化し、既定値・規則を意図的に変える時だけ標本を更新する運用に(verify126) ③保存キーリンターを表対応に拡張(verify123 K8: 保存されるスカラーキーは表に載っている・K3基準線を73個へ更新) ④発見と対処: 旧h265→h264移行コードは汎用列挙検査より先に走らないと一旦jpegへ潰れる(実装順の教訓。characterizationの標的プローブに追加) ⑤HTMLのvalue属性は「飾り」(起動時にJSが上書き)と明文化し、代表3入力欄で実測検査
 Version 1.42.0 - 2026-07-23: feat: 第41ラウンド(前半) — URL短縮辞書v13(第3規則)+MederuU器のデッサン+回帰スキル ①短縮辞書に第3規則「&キー名=既定値」を追加(v13。依頼者承認): キーと既定値のペア127個を丸ごと登録し、既定値のままの項目が1コードで表せるように(連続ペアの並びもLZWが学習)。実測で短縮URLが約半分に(辻検索1337→554文字・実運用相当1329→682文字)。ペアはv1.41.0時点の初期状態の実アプリ発行URLから導出して凍結(既定値が将来変わっても配列は変更しない=発行済みURL保護。作り直しはV14で)。v11/v12の発行済み標本+v13ゴールデン標本をtests/dataに封入 ②MederuU(ナレッジ引き継ぎの器)のデッサンをdocs/mederuu/00-dessin.mdへ起草(一方向ハブ・蒸留ワークフロー・man風ヘッダ規約・公開規約・スモールスタート手順) ③ハーネス構築をリポジトリへ昇格(tests/harness/sync-apptest.py)+次セッション宛スキル第1号(.claude/skills/kaiki=回帰の回し方)
 Version 1.41.0 - 2026-07-22: feat: 第40ラウンド — 地図レイヤーリストの縦4行化+URL短縮辞書の作り直し(v12) ①地図左上のレイヤー選択リストを縦4行に(スマホは横幅が狭く、横4列だと画面外へはみ出て宙の辻パネルの下に潜り「淡色/OSM」が押せなかった。原因は全メニュー共通のlabel:has(>input)=inline-flex(詳細度0,1,2)が「.gl-layer-list label」のdisplay:block(0,1,1)に勝っていたカスケード衝突=花火ラベルと同型) ②LZWのURL短縮辞書を2種規則で作り直し(v12): シードを「&キー名=」(全148キー)+「キー値」(列挙固定値104個)+定型3つ(%2B0900/00%3A00/%23)だけで構成(「=値&」のような区切り付き値シードを廃止=意味の明確な辞書に)。先頭キーだけ「&」が付かない問題は「仮想の先頭&」方式で解消(エンコード時に足し、デコード時に外す)。v1〜v11の辞書は発行済みURLの復号用に凍結(旧短縮URLは引き続き読める)。実測: プレビュー/宙の窓URLは旧辞書比±2%・辻検索/辻メッシュURLは+8〜10%(意味優先の設計判断。最長でも約1380文字) ③デッサン00のURL仕様を現実装に全面更新(sora系・fw系・ss系・tsujiMesh系キー・短縮URLの版数運用・各URL取得の先頭キーの明記)
 Version 1.40.0 - 2026-07-22: feat: 第39ラウンド — 道具箱の始動+Drive保存/バックアップの統一(承認済み方針) ①保存キー整合性リンター(tests/verify123.js): 「保存されるのに復元されない」等の3箇所の暗黙対応のズレを静的検査(花火バグの型の再発防止。対象ファイル引数で他プロジェクト再利用可) ②scratch/新設: 自作ツールの道具箱(中央寄せ画素チェッカーcenter-check.js等。CLAUDE.mdからリンク) ③Drive保存(soranotsuji-app.json)の吸い上げをsoranotsuji_プレフィックスのキー限定に(同一オリジンの他アプリのキー混入・肥大化の防止。読込側も同プレフィックスのみ書き戻し=混入済みキーは掃除される) ④メニューのバックアップ/インポートを生ダンプ形式(Drive/reset.htmlと同一構造)に一本化(旧形式の選択的バックアップは自動判別で後方互換取り込み)・reset.htmlも同じ絞り込みに統一 ⑤リファクタリング観点レビュー資料(docs/knowledge/refactoring-guide.md)を起案
@@ -106,7 +107,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.42.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.43.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -289,6 +290,165 @@ let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
 let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
 let dp365CurrentGeneration = 0;
 
+// ★ 既定値の単一情報源(リファクタリングA・第41ラウンド)。
+// appStateの初期値はこの表から組み立て、normalizeAppStateの範囲丸め・列挙検査もこの表を参照する。
+// HTMLのvalue属性は起動時にJSが上書きするため「飾り」(表との一致はverify126が検査)。
+// 各項目の形式:
+//   { def }                     … 初期値のみ(normalizeは触らない。現状の挙動を変えないため規則は追加しない)
+//   { def, min, max, round? }   … 数値: num()で範囲丸め(roundはMath.round)
+//   { def, enum: [...] }        … 列挙: 一覧に無ければdefへ
+//   { def, enumNum: [...] }     … 数値列挙: Number()化して一覧に無ければdefへ
+//   { def, bool: 'coerce'|'nf' }… 真偽: coerce=!!v / nf=(v!==false)=既定true(未指定・崩れはtrue)
+//   { def, force: true }        … 常に強制(廃止済みチェック等)
+//   { def, special: true }      … normalizeに個別コードがある(defや範囲はそこから参照される)
+const APP_DEFAULTS = {
+    // ---- 機能フラグ ----
+    isMoving: { def: false },
+    moveSpeed: { def: null },                 // 'month'|'day'|'hour'|'min'
+    isDPActive: { def: true },
+    isDP365Active: { def: false },
+    locMode: { def: 'start' },                // 'start'|'end' — 地図クリック時にどちらの地点を移動するか
+    isElevationActive: { def: false },
+    isMilkyWayActive: { def: false },
+    isSoramadoActive: { def: false },
+    isTsujiSearchActive: { def: false },
+    // ---- 宙の窓パラメータ (isSoramadoActive以外はlocalStorage保存) ----
+    soraSensorKey: { def: 'fullframe', special: true },   // SORA_SENSORSのkey(一覧は実行時参照)
+    soraAspectW: { def: 3, min: 1, max: 100 },
+    soraAspectH: { def: 2, min: 1, max: 100 },
+    soraFocal: { def: 24, min: 1, max: 3000 },
+    soraFNumberIdx: { def: 10, min: 0, special: true },   // F_NUMBERSのインデックス(10=2.8。maxは実行時にSORA_FNUMBERS長-1)
+    soraFocusDist: { def: 1000, min: 0, max: 300000 },
+    soraFisheye: { def: false, bool: 'coerce' },
+    soraPeaking: { def: false, bool: 'coerce' },          // フォーカスピーキング(デッサン38段目: 初期値オフ)
+    soraGrayscale: { def: true, force: true },            // 標高グレースケールは常時オン(適用度はスライダー; チェックは廃止)
+    soraBaseAz: { def: 0 },
+    soraBaseAlt: { def: 0 },
+    soraOffsetAz: { def: 0 },
+    soraOffsetAlt: { def: 0 },
+    soraViewRange: { def: 10, min: 1, max: 300 },
+    soraTraj: { def: true, bool: 'coerce' },
+    soraCenterCross: { def: true, bool: 'coerce' },
+    soraTargetCross: { def: true, bool: 'nf' },           // 目的点(+)マーカーの表示
+    soraSearchCenter: { def: true, bool: 'nf' },          // 検索中心(×)マーカーの表示
+    soraOrient: { def: 'landscape', enum: ['landscape', 'portrait'] },   // 'landscape'=横位置 / 'portrait'=縦位置
+    soraFisheyeStrength: { def: 50, min: 0, max: 100 },   // フィッシュアイの歪み(%)
+    soraFisheyeShape: { def: 'rect', enum: ['rect', 'circle'] },
+    soraPanorama: { def: false, bool: 'coerce' },
+    soraPanoAov: { def: 0, min: 0, max: 360 },            // パノラマの水平画角(°) 0=自動追従
+    soraMovInterval: { def: 15, min: 0.5, max: 86400 },   // インターバルMov: 撮影間隔(秒)
+    soraMovShots: { def: 1, min: 1, max: 99999, round: true },
+    soraMovFps: { def: 30, enumNum: [24, 25, 30, 50, 60] },
+    soraMovDispStep: { def: 0.3, enumNum: [0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1] },
+    soraMovImgMb: { def: 140, min: 1, max: 102400 },
+    soraMovPlayMode: { def: 'anim', enum: ['anim', 'video'] },
+    soraMwBrightness: { def: 100, min: 0, max: 100 },     // 天の川写真の明るさ(%)
+    soraElevShade: { def: 50, min: 0, max: 100 },         // 標高ヒルシェード適用度(%)
+    soraSunShade: { def: 50, min: 0, max: 100 },          // 太陽光ヒルシェード適用度(%)
+    soraExpFormat: { def: 'jpeg', enum: ['jpeg', 'png', 'h264', 'webm'] },   // 旧'h265'は個別コードでh264へ移行
+    soraExpW: { def: 300, min: 1, max: 8192, round: true },
+    soraExpH: { def: 200, min: 1, max: 8192, round: true },
+    soraLabelScale: { def: 100, min: 0, max: 1000, round: true },   // 表示天体名・星座名称の文字サイズ(%)
+    // ---- 花火モード (宙の窓メニュー55〜70段目) ----
+    fwEnabled: { def: false, bool: 'coerce' },
+    fwLat: { def: null, special: true },                  // 打ち上げ点(null=未設定→目的点。緯度経度は対で検査)
+    fwLng: { def: null, special: true },
+    fwElev: { def: 0, min: -500, max: 9000 },
+    fwHeight: { def: 0, min: -1000, max: 10000 },
+    fwRadius: { def: 50, min: 0, max: 10000 },
+    fwSize: { def: '10', special: true },                 // FW_SHELLSのkey(一覧は実行時参照。String化)
+    fwMode: { def: 'vary', enum: ['vary', 'fixed'] },
+    fwSpread: { def: 0, min: -100, max: 100, round: true },
+    fwShowPoint: { def: true, bool: 'nf' },               // 花火点(+)マーカーの表示
+    // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
+    isSoradanmenActive: { def: false },
+    isSoraSearchActive: { def: false },
+    // ---- 宙検索 (デッサン18) ----
+    ssPreset: { def: 'milkyway', special: true },         // SS_PRESETSのキー|'custom'(一覧は実行時参照)
+    ssWL: { def: 100, min: 0, max: 100, round: true },    // 雲(低)の重み
+    ssWM: { def: 85, min: 0, max: 100, round: true },     // 雲(中)の重み
+    ssWH: { def: 40, min: 0, max: 100, round: true },     // 雲(高)の重み
+    ssMoonMode: { def: 'avoid', enum: ['avoid', 'want'] },
+    ssWMoon: { def: 80, min: 0, max: 100, round: true },
+    ssUnkaiMode: { def: 'avoid', enum: ['avoid', 'want'] },
+    ssWUnkai: { def: 0, min: 0, max: 100, round: true },
+    ssWLp: { def: 70, min: 0, max: 100, round: true },    // 光害の重み
+    ssWTr: { def: 40, min: 0, max: 100, round: true },    // 透明度の重み
+    ssObj: { def: 'mw', enum: ['mw', 'body', 'moon', 'none'] },
+    ssWObj: { def: 60, min: 0, max: 100, round: true },
+    ssBandNight: { def: true, bool: 'nf' },               // 時間帯: 夜
+    ssBandTwilight: { def: false, bool: 'coerce' },
+    ssBandGhbh: { def: false, bool: 'coerce' },
+    ssBandDay: { def: false, bool: 'coerce' },
+    ssDays: { def: 11, min: 1, max: 16, round: true },    // 検索期間(日)。My宙検索の行既定にも使う
+    ssInterval: { def: 1, special: true },                // 間隔(時間) 1 or 3
+    ssFan: { def: 24, min: 1, max: 180 },                 // 扇角(°)
+    ssRange: { def: null, min: 1, max: 300, special: true },   // 範囲(km) null=自動追従
+    ssStat: { def: false, bool: 'coerce' },
+    // ---- 基本オプション ----
+    baseOptMwBase: { def: 'center', enum: ['center', 'offset'] },
+    mwOffsetAngle: { def: 0, min: -360, max: 360 },
+    mwShowBodies: { def: true, bool: 'coerce' },
+    mwShowBodyNames: { def: false, bool: 'coerce' },      // 初期値オフ(保存済みの設定は維持)
+    mwShowConstFig: { def: false, bool: 'coerce' },
+    mwShowConstBounds: { def: false, bool: 'coerce' },
+    mwShowConstNames: { def: false, bool: 'coerce' },
+    mwConstNameSort: { def: 'aiueo', enum: ['aiueo', 'pos'] },   // 50音順 / 座標順
+    elevExcludeEnabled: { def: true, bool: 'nf' },
+    elevExcludeRadius: { def: 15, min: 0, max: 10000 },   // 目的点側: 自己遮蔽+鋭峰の写り込みを吸収する既定15m
+    elevExcludeObsRadius: { def: 10, min: 0, max: 10000 },// 観測点側: 自己遮蔽を吸収しつつ足元の実在遮蔽を無視しすぎない既定10m
+    // ---- 辻検索 ----
+    tsujiSearchBaseAz: { def: 0 },
+    tsujiSearchOffsetAz: { def: 0 },
+    tsujiSearchToleranceAz: { def: 15 },
+    tsujiSearchBaseAlt: { def: 0 },
+    tsujiSearchOffsetAlt: { def: 0 },
+    tsujiSearchToleranceAlt: { def: 15 },
+    tsujiSearchDays: { def: 365, min: 1, max: 36500, special: true },   // parseIntで丸める(個別コード)
+    tsujiCenterMode: { def: 'point', enum: ['point', 'line'] },   // My辻検索の行既定にも使う
+    tsujiMoonFilterEnabled: { def: false },
+    tsujiMoonBase: { def: 14.8 },
+    tsujiMoonTolerance: { def: 2 },
+    tsujiAccuracyFilterEnabled: { def: false },
+    tsujiAccDblCircle: { def: false },
+    tsujiAccCircle: { def: false },
+    tsujiAccTriangle: { def: false },
+    tsujiAccDash: { def: false },
+    tsujiElevationOption: { def: false },
+    tsujiElevOK: { def: false },
+    tsujiElevNG: { def: false },
+    // ---- 辻検索: 時間フィルタ(Mode/PrePostDir/Time/Offsetの検査は専用ループ) ----
+    tsujiTimeFilter: { def: false, bool: 'coerce' },
+    tsujiStartMode: { def: 'sunset' }, tsujiStartTime: { def: '00:00' }, tsujiStartPrePost: { def: false },
+    tsujiStartPrePostDir: { def: 'before' }, tsujiStartOffset: { def: '00:00' },
+    tsujiEndMode: { def: 'sunrise' }, tsujiEndTime: { def: '00:00' }, tsujiEndPrePost: { def: false },
+    tsujiEndPrePostDir: { def: 'before' }, tsujiEndOffset: { def: '00:00' },
+    // ---- 辻メッシュ検索 ----
+    tsujiMeshDays: { def: 365, min: 1, max: 36500, special: true },
+    tsujiMeshBaseAz: { def: 0 }, tsujiMeshOffsetAz: { def: 0 }, tsujiMeshToleranceAz: { def: 15 },
+    tsujiMeshBaseAlt: { def: 0 }, tsujiMeshOffsetAlt: { def: 0 }, tsujiMeshToleranceAlt: { def: 15 },
+    tsujiMeshCenterMode: { def: 'point', enum: ['point', 'line'] },
+    tsujiMeshAccuracy: { def: 'x1', enum: ['x1', 'x2', 'x4', 'x8'] },   // ◎(±0.125)/±0.0625/±0.03125/±0.015625
+    tsujiMeshMoonFilterEnabled: { def: false },
+    tsujiMeshMoonBase: { def: 14.8 },
+    tsujiMeshMoonTolerance: { def: 2 },
+    tsujiMeshTimeFilter: { def: false, bool: 'coerce' },
+    tsujiMeshStartMode: { def: 'sunset' }, tsujiMeshStartTime: { def: '00:00' }, tsujiMeshStartPrePost: { def: false },
+    tsujiMeshStartPrePostDir: { def: 'before' }, tsujiMeshStartOffset: { def: '00:00' },
+    tsujiMeshEndMode: { def: 'sunrise' }, tsujiMeshEndTime: { def: '00:00' }, tsujiMeshEndPrePost: { def: false },
+    tsujiMeshEndPrePostDir: { def: 'before' }, tsujiMeshEndOffset: { def: '00:00' },
+    // 精度フィルタ○△-は読み取り専用・常時オフ(◎精度以上のヒットのみ保持するため対象データが無い)
+    tsujiMeshSymO: { def: false, force: true },
+    tsujiMeshSymTri: { def: false, force: true },
+    tsujiMeshSymDash: { def: false, force: true },
+    tsujiMeshElevationOption: { def: false }, tsujiMeshElevOK: { def: false }, tsujiMeshElevNG: { def: false },
+    isTsujiMeshActive: { def: false },        // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
+};
+/** APP_DEFAULTSの初期値だけを{キー:値}に展開する(appState初期化用) */
+function appDefaultValues() {
+    return Object.fromEntries(Object.entries(APP_DEFAULTS).map(([k, d]) => [k, d.def]));
+}
+
 // ★ 全てを管理する状態オブジェクト
 let appState = {
     // 現在表示中の場所（elevはapiElev + heightの合算値）
@@ -360,154 +520,14 @@ let appState = {
     // 組込天体は DEFAULT_BODIES から派生（単一情報源）。My天体は別途 myStars から追加される。
     bodies: DEFAULT_BODIES.map(b => ({ ...b })),
 
-    // 機能フラグ
-    isMoving: false,
-    moveSpeed: null,  // 'month', 'day', 'hour', 'min'
-    isDPActive: true,
-    isDP365Active: false,
-    locMode: 'start',  // 'start' or 'end' — 地図クリック時にどちらの地点を移動するか
-    isElevationActive: false,
-    isMilkyWayActive: false,
-    isSoramadoActive: false,
-    isTsujiSearchActive: false,
-
-    // 宙の窓パラメータ (isSoramadoActive以外はlocalStorage保存)
-    soraSensorKey: 'fullframe',
-    soraAspectW: 3,
-    soraAspectH: 2,
-    soraFocal: 24,
-    soraFNumberIdx: 10,   // F_NUMBERS のインデックス (10 = 2.8)
-    soraFocusDist: 1000,
-    soraFisheye: false,
-    soraPeaking: false,   // フォーカスピーキング(デッサン38段目: 初期値オフ)
-    soraGrayscale: true,
-    soraBaseAz: 0,
-    soraBaseAlt: 0,
-    soraOffsetAz: 0,
-    soraOffsetAlt: 0,
-    soraViewRange: 10,
-    soraTraj: true,
-    soraCenterCross: true,
-    soraTargetCross: true,       // 目的点(+)マーカーの表示
-    soraSearchCenter: true,      // 検索中心(×)マーカー(検索中心オプションが線なら目的点→オフセット点の線も)の表示
-    soraOrient: 'landscape',     // カメラ位置: 'landscape'=横位置 / 'portrait'=縦位置(アスペクトを回転)
-    soraFisheyeStrength: 50,     // フィッシュアイの歪み(%) 0〜100 (50=従来の見た目)
-    soraFisheyeShape: 'rect',    // フィッシュアイの画面形状: 'rect'=四角 / 'circle'=円形
-    soraPanorama: false,         // パノラマ撮影モード(アスペクト比可変・水平画角0〜360°)
-    soraPanoAov: 0,              // パノラマの水平画角(°) 0=レンズの水平画角(自動追従) / 1〜360=指定値
-    soraMovInterval: 15,         // インターバルMov: 撮影間隔(秒) 0.5〜86400
-    soraMovShots: 1,             // インターバルMov: 撮影回数 1〜99999
-    soraMovFps: 30,              // インターバルMov: フレームレート 24/25/30/50/60
-    soraMovDispStep: 0.3,        // インターバルMov: 表示間隔(秒) 0.12/0.24/0.25/0.3/0.5/0.6/1
-    soraMovImgMb: 140,           // インターバルMov: 画像サイズ(MB) 1〜102400
-    soraMovPlayMode: 'anim',     // 再生オプション: 'anim'=表示間隔サンプリングのアニメ / 'video'=MP4/WebM生成→動画再生
-    soraMwBrightness: 100,       // 天の川写真の明るさ(%) 0〜100 (黒レベル持ち上げ: 白は保ち暗色から先に沈む)
-    soraElevShade: 50,           // 標高ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
-    soraSunShade: 50,            // 太陽光ヒルシェード適用度(%) 0〜100 (50=従来の見た目)
-    soraExpFormat: 'jpeg',       // 書き出し形式: 'jpeg'/'png'(静止画) / 'h264'(動画MP4)/'webm'(動画WebM)
-    soraExpW: 300,               // 書き出し画像サイズ 横(px) 1〜8192 (縦とアスペクト連動)
-    soraExpH: 200,               // 書き出し画像サイズ 縦(px) 1〜8192
-    soraLabelScale: 100,         // 表示天体名・星座名称の文字サイズ(%) 0〜1000 (プレビュー基準100)
-
-    // 花火モード (デッサン06 55〜70段目。宙の窓メニュー/ctrlメニューで双方向連動・localStorage保存)
-    fwEnabled: false,            // 花火モード(打ち上げ花火のシミュレーション)
-    fwLat: null,                 // 打ち上げ点 緯度(null=未設定→目的点を使う)
-    fwLng: null,                 // 打ち上げ点 経度
-    fwElev: 0,                   // 打ち上げ点標高(m。緯度経度の設定で自動取得・手動上書き可)
-    fwHeight: 0,                 // 打ち上げ点高(m。追加高さ)
-    fwRadius: 50,                // 打ち上げ点領域(半径m。打ち上げ位置をこの円内でランダムに散らす)
-    fwSize: '10',                // 花火玉号数 ('2.5'/'3'/'5'/'10'/'30'/'40')
-    fwMode: 'vary',              // 表示モード: 'vary'=色々(ランダム) / 'fixed'=固定(リストの号数のみ)
-    fwSpread: 0,                 // ばらつき -100〜+100 (+100=40号のみ / 0=均等 / -100=2.5号のみ)
-    fwShowPoint: true,           // 花火点(+)マーカーの表示
-
-    // 宙断面ビュー (骨格。MapLibre初導入 — デッサン19)
-    isSoradanmenActive: false,   // 宙断面ビューパネルの表示状態(セッション内のみ)
-
-    // 宙検索 (デッサン18。isSoraSearchActive以外は全てlocalStorage保存・URL記憶)
-    isSoraSearchActive: false,   // 宙検索結果パネルの表示状態(セッション内のみ)
-    ssPreset: 'milkyway',        // 狙いプリセット: SS_PRESETSのキー | 'custom'(スライダー手動調整)
-    ssWL: 100, ssWM: 85, ssWH: 40,   // 雲(低/中/高)の重み 0〜100
-    ssMoonMode: 'avoid',         // 月明かり: 'avoid'=避ける / 'want'=狙う
-    ssWMoon: 80,                 // 月明かりの重み 0〜100
-    ssUnkaiMode: 'avoid',        // 雲海: 'avoid'=避ける(低層雲の扱いに含める) / 'want'=狙う(フェーズ3で有効化)
-    ssWUnkai: 0,                 // 雲海の重み 0〜100 (因子の適用はフェーズ3)
-    ssWLp: 70,                   // 光害の重み 0〜100
-    ssWTr: 40,                   // 透明度の重み 0〜100 (フェーズ2は地上湿度の簡易版。AODはフェーズ3)
-    ssObj: 'mw',                 // 対象天体: 'mw'=天の川中心 / 'body'=表示天体 / 'moon'=月 / 'none'(プリセットに追従)
-    ssWObj: 60,                  // 対象天体の高度の重み 0〜100
-    ssBandNight: true,           // 時間帯: 夜(太陽高度<-18°)
-    ssBandTwilight: false,       // 時間帯: 薄明(-18°≦太陽高度<-6°)
-    ssBandGhbh: false,           // 時間帯: GH・BH(-6°≦太陽高度<+6°。BH=-6〜-4°/GH=-4〜+6°の帯)
-    ssBandDay: false,            // 時間帯: 昼(太陽高度≧+6°)
-    ssDays: 11,                  // 検索期間(日) 1〜16
-    ssInterval: 1,               // 間隔(時間) 1 or 3
-    ssFan: 24,                   // 扇角(°) 1〜180
-    ssRange: null,               // 範囲(km) null=相手距離の切り上げに追従 / 数値=手動上書き
-    ssStat: false,               // 統計: ERA5の同時期(同月日±7日×過去10年)の夜間晴天率を統計行として追加
+    // 機能フラグ/宙の窓/花火/宙断面/宙検索のスカラー既定値はAPP_DEFAULTS(単一情報源)から展開する。
+    // (基本オプション/辻検索/辻メッシュ/時間フィルタの既定値も同じ表に含まれ、この1行で全て入る)
+    ...appDefaultValues(),
 
     // My宙検索 (メニュー分割ポリシー: 宙検索=1組 / My宙検索=複数組の一括。localStorage保存)
     mySoraSearches: [],          // { id, name, obsId, tgtId, preset(SS_PRESETSキー|'custom'),
                                  //   weights(カスタム時の重み一式{wL,wM,wH,moon,wMoon,unkai,wUnkai,wLp,wTr,obj,wObj}|null),
                                  //   days, interval, fan, range(null=自動), checked, memo }
-
-    // 基本オプション (全てlocalStorage保存)
-    baseOptMwBase: 'center',     // 天の川の基準点: 'center'=中心座標(いて座付近) / 'offset'=オフセット点
-    mwOffsetAngle: 0,            // オフセット中心角(°) -360〜+360。基本オプションと辻検索メニューで連動
-    mwShowBodies: true,          // 全天儀: 表示天体(天の川の写真・環・マーカー等)の表示
-    mwShowBodyNames: false,      // 全天儀の表示天体名+引き出し線、宙の窓プレビューの表示天体名の表示(初期値オフ)
-    mwShowConstFig: false,       // 全天儀: 星座線の表示
-    mwShowConstBounds: false,    // 全天儀: 星座領域の表示
-    mwShowConstNames: false,     // 全天儀: 星座名称の表示
-    mwConstNameSort: 'aiueo',    // 星座名称の表示順: 'aiueo'=50音順(左上から右下へ) / 'pos'=座標順(天頂+90°→-90°)
-    elevExcludeEnabled: true,    // 標高グラフ: 除外範囲チェックボックス(オフで目的点側/観測点側とも無効=一切無視しない)
-    elevExcludeRadius: 15,       // 標高グラフ: 目的点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定15m=目的点自身のDEM画素の自己遮蔽(z15対角≒5.5m、z14フォールバック時≒11m)+鋭峰の写り込みを吸収する値
-    elevExcludeObsRadius: 10,    // 標高グラフ: 観測点側の半径○m以内は可視判定のNGを無視 (0〜10000)。既定10m=観測点自身のDEM画素の自己遮蔽(最悪ケース対角5.5m/11m)を吸収しつつ、足元の実在遮蔽を無視しすぎない値
-
-    // 辻検索パラメータ (全てlocalStorage保存)
-    tsujiSearchBaseAz: 0,
-    tsujiSearchOffsetAz: 0,
-    tsujiSearchToleranceAz: 15,
-    tsujiSearchBaseAlt: 0,
-    tsujiSearchOffsetAlt: 0,
-    tsujiSearchToleranceAlt: 15,
-    tsujiSearchDays: 365,
-    tsujiCenterMode: 'point',    // 検索中心オプション: 'point'=オフセット点 / 'line'=基準点からオフセット点までの線
-
-    // 辻検索: 月齢フィルタ
-    tsujiMoonFilterEnabled: false,
-    tsujiMoonBase: 14.8,
-    tsujiMoonTolerance: 2,
-
-    // 精度フィルタ
-    tsujiAccuracyFilterEnabled: false,
-    tsujiAccDblCircle: false,
-    tsujiAccCircle: false,
-    tsujiAccTriangle: false,
-    tsujiAccDash: false,
-
-    // 標高オプション
-    tsujiElevationOption: false,
-    // 辻メッシュ検索パラメータ (全てlocalStorage保存。isTsujiMeshActiveのみセッション/URL)
-    tsujiMeshDays: 365,
-    tsujiMeshBaseAz: 0, tsujiMeshOffsetAz: 0, tsujiMeshToleranceAz: 15,
-    tsujiMeshBaseAlt: 0, tsujiMeshOffsetAlt: 0, tsujiMeshToleranceAlt: 15,
-    tsujiMeshCenterMode: 'point',   // 検索中心オプション: 'point'|'line'
-    tsujiMeshAccuracy: 'x1',        // 精度フィルタ: 'x1'=◎(±0.125) 'x2'(±0.0625) 'x4'(±0.03125) 'x8'(±0.015625)
-    tsujiMeshMoonFilterEnabled: false, tsujiMeshMoonBase: 14.8, tsujiMeshMoonTolerance: 2,
-    tsujiMeshTimeFilter: false,
-    tsujiMeshStartMode: 'sunset', tsujiMeshStartTime: '00:00', tsujiMeshStartPrePost: false, tsujiMeshStartPrePostDir: 'before', tsujiMeshStartOffset: '00:00',
-    tsujiMeshEndMode: 'sunrise', tsujiMeshEndTime: '00:00', tsujiMeshEndPrePost: false, tsujiMeshEndPrePostDir: 'before', tsujiMeshEndOffset: '00:00',
-    tsujiMeshSymO: false, tsujiMeshSymTri: false, tsujiMeshSymDash: false,   // 精度フィルタ(◎は常時オン・○△-は読み取り専用で常時オフ: メッシュは◎精度以上のヒットのみ保持するため対象データが無い)
-    tsujiMeshElevationOption: false, tsujiMeshElevOK: false, tsujiMeshElevNG: false,
-    isTsujiMeshActive: false,       // 辻メッシュ検索パネルの表示状態(セッションのみ・URL復元)
-    tsujiElevOK: false,
-    tsujiElevNG: false,
-
-    // 時間フィルタ
-    tsujiTimeFilter: false,
-    tsujiStartMode: 'sunset', tsujiStartTime: '00:00', tsujiStartPrePost: false, tsujiStartPrePostDir: 'before', tsujiStartOffset: '00:00',
-    tsujiEndMode: 'sunrise', tsujiEndTime: '00:00', tsujiEndPrePost: false, tsujiEndPrePostDir: 'before', tsujiEndOffset: '00:00',
 
     // 月齢 (計算値、appStateで管理)
     moonAge: 0,
@@ -2398,119 +2418,63 @@ function normalizeAppState() {
         return Math.max(min, Math.min(max, n));
     };
     const reTime = /^\d{1,2}:\d{2}$/;
-    // 時間フィルタ: モード・前後方向・時刻形式
-    ['Start', 'End'].forEach(G => {
-        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
-        if (!validModes.includes(appState['tsuji' + G + 'Mode'])) appState['tsuji' + G + 'Mode'] = defMode;
-        if (appState['tsuji' + G + 'PrePostDir'] !== 'before' && appState['tsuji' + G + 'PrePostDir'] !== 'after') appState['tsuji' + G + 'PrePostDir'] = 'before';
-        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsuji' + G + k])) appState['tsuji' + G + k] = '00:00'; });
-        appState['tsuji' + G + 'PrePost'] = !!appState['tsuji' + G + 'PrePost'];
+
+    // 旧H.265選択はH.264(MP4)へ移行。汎用パスの列挙検査より先に行う(後だとh265が一覧に無く一旦jpegへ
+    // 落ちてしまい、移行にならない)
+    if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';
+
+    // ---- 汎用パス: APP_DEFAULTS(単一情報源)の規則で数値の範囲丸め・列挙検査・真偽の整形を行う ----
+    // (規則の種類は表の定義コメントを参照。special付きと{def}のみの項目はここでは触らない=従来挙動の維持)
+    for (const [k, d] of Object.entries(APP_DEFAULTS)) {
+        if (d.special) continue;
+        if (d.force) { appState[k] = d.def; continue; }
+        if (d.enum) { if (!d.enum.includes(appState[k])) appState[k] = d.def; continue; }
+        if (d.enumNum) { const n = Number(appState[k]); appState[k] = d.enumNum.includes(n) ? n : d.def; continue; }
+        if (d.bool === 'coerce') { appState[k] = !!appState[k]; continue; }
+        if (d.bool === 'nf') { appState[k] = appState[k] !== false; continue; }
+        if (d.min !== undefined) { const v = num(appState[k], d.def, d.min, d.max); appState[k] = d.round ? Math.round(v) : v; }
+    }
+
+    // ---- ここから個別コード(表の規則で表せない検査。既定値・範囲はAPP_DEFAULTSを参照する) ----
+    // 時間フィルタ(辻検索/辻メッシュ): モード・前後方向・時刻形式
+    ['tsuji', 'tsujiMesh'].forEach(P => {
+        ['Start', 'End'].forEach(G => {
+            if (!validModes.includes(appState[P + G + 'Mode'])) appState[P + G + 'Mode'] = APP_DEFAULTS[P + G + 'Mode'].def;
+            if (appState[P + G + 'PrePostDir'] !== 'before' && appState[P + G + 'PrePostDir'] !== 'after') appState[P + G + 'PrePostDir'] = APP_DEFAULTS[P + G + 'PrePostDir'].def;
+            ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState[P + G + k])) appState[P + G + k] = APP_DEFAULTS[P + G + k].def; });
+            appState[P + G + 'PrePost'] = !!appState[P + G + 'PrePost'];
+        });
     });
-    appState.tsujiTimeFilter = !!appState.tsujiTimeFilter;
-    // 辻メッシュ検索
-    ['Start', 'End'].forEach(G => {
-        const defMode = G === 'Start' ? 'sunset' : 'sunrise';
-        if (!validModes.includes(appState['tsujiMesh' + G + 'Mode'])) appState['tsujiMesh' + G + 'Mode'] = defMode;
-        if (appState['tsujiMesh' + G + 'PrePostDir'] !== 'before' && appState['tsujiMesh' + G + 'PrePostDir'] !== 'after') appState['tsujiMesh' + G + 'PrePostDir'] = 'before';
-        ['Time', 'Offset'].forEach(k => { if (!reTime.test(appState['tsujiMesh' + G + k])) appState['tsujiMesh' + G + k] = '00:00'; });
-        appState['tsujiMesh' + G + 'PrePost'] = !!appState['tsujiMesh' + G + 'PrePost'];
-    });
-    appState.tsujiMeshTimeFilter = !!appState.tsujiMeshTimeFilter;
-    if (!['point', 'line'].includes(appState.tsujiMeshCenterMode)) appState.tsujiMeshCenterMode = 'point';
-    if (!['x1', 'x2', 'x4', 'x8'].includes(appState.tsujiMeshAccuracy)) appState.tsujiMeshAccuracy = 'x1';
-    // 精度フィルタ○△-は読み取り専用・常時オフ(メッシュマーカーは精度フィルタオプション以内=◎クラスの
-    // ヒットのみ保持するため○△-のデータが存在せず、オン/オフに意味が無い)。保存値・URL値も無視する
-    appState.tsujiMeshSymO = false; appState.tsujiMeshSymTri = false; appState.tsujiMeshSymDash = false;
-    appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || 365, 1), 36500);
-    // 辻検索の期間も同じ上限で丸める(第36ラウンド: URL経由の範囲外値が素通りしていた兄弟間の非対称を解消)
-    appState.tsujiSearchDays = Math.min(Math.max(parseInt(appState.tsujiSearchDays) || 365, 1), 36500);
-    if (!['point', 'line'].includes(appState.tsujiCenterMode)) appState.tsujiCenterMode = 'point';
-    appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = 'point'; });
-    // 宙の窓: 数値の範囲・型
-    appState.soraAspectW = num(appState.soraAspectW, 3, 1, 100);
-    appState.soraAspectH = num(appState.soraAspectH, 2, 1, 100);
-    appState.soraFocal = num(appState.soraFocal, 24, 1, 3000);
-    appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, 10, 0, SORA_FNUMBERS.length - 1));
-    appState.soraFocusDist = num(appState.soraFocusDist, 1000, 0, 300000);
-    appState.soraViewRange = num(appState.soraViewRange, 10, 1, 300);
-    ['soraFisheye', 'soraPeaking', 'soraTraj', 'soraCenterCross'].forEach(k => { appState[k] = !!appState[k]; });
-    appState.soraGrayscale = true;   // 標高グレースケールは常時オン(適用度は標高ヒルシェードスライダーで調整; チェックは廃止)
-    if (!SORA_SENSORS.some(s => s.key === appState.soraSensorKey)) appState.soraSensorKey = 'fullframe';
-    if (appState.soraOrient !== 'landscape' && appState.soraOrient !== 'portrait') appState.soraOrient = 'landscape';
-    appState.soraFisheyeStrength = num(appState.soraFisheyeStrength, 50, 0, 100);
-    if (appState.soraFisheyeShape !== 'rect' && appState.soraFisheyeShape !== 'circle') appState.soraFisheyeShape = 'rect';
-    appState.soraPanorama = !!appState.soraPanorama;
-    appState.soraPanoAov = num(appState.soraPanoAov, 0, 0, 360);
-    appState.soraMovInterval = num(appState.soraMovInterval, 15, 0.5, 86400);
-    appState.soraMovShots = Math.round(num(appState.soraMovShots, 1, 1, 99999));
-    if (![24, 25, 30, 50, 60].includes(Number(appState.soraMovFps))) appState.soraMovFps = 30; else appState.soraMovFps = Number(appState.soraMovFps);
-    if (![0.12, 0.24, 0.25, 0.3, 0.5, 0.6, 1].includes(Number(appState.soraMovDispStep))) appState.soraMovDispStep = 0.3; else appState.soraMovDispStep = Number(appState.soraMovDispStep);
-    appState.soraMovImgMb = num(appState.soraMovImgMb, 140, 1, 102400);
-    appState.soraMwBrightness = num(appState.soraMwBrightness, 100, 0, 100);
-    appState.soraElevShade = num(appState.soraElevShade, 50, 0, 100);
-    appState.soraSunShade = num(appState.soraSunShade, 50, 0, 100);
-    if (appState.soraExpFormat === 'h265') appState.soraExpFormat = 'h264';   // 旧H.265選択はH.264(MP4)へ移行
-    if (!['jpeg', 'png', 'h264', 'webm'].includes(appState.soraExpFormat)) appState.soraExpFormat = 'jpeg';
-    if (!['anim', 'video'].includes(appState.soraMovPlayMode)) appState.soraMovPlayMode = 'anim';
-    appState.soraExpW = Math.round(num(appState.soraExpW, 300, 1, 8192));
-    appState.soraExpH = Math.round(num(appState.soraExpH, 200, 1, 8192));
-    appState.soraLabelScale = Math.round(num(appState.soraLabelScale, 100, 0, 1000));
-    // 花火モード
-    appState.fwEnabled = !!appState.fwEnabled;
+    // 検索期間: parseIntで丸める(数値文字列の小数切り捨て・0や空は既定へ。その後に範囲丸め)
+    appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || APP_DEFAULTS.tsujiMeshDays.def, APP_DEFAULTS.tsujiMeshDays.min), APP_DEFAULTS.tsujiMeshDays.max);
+    appState.tsujiSearchDays = Math.min(Math.max(parseInt(appState.tsujiSearchDays) || APP_DEFAULTS.tsujiSearchDays.def, APP_DEFAULTS.tsujiSearchDays.min), APP_DEFAULTS.tsujiSearchDays.max);
+    appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = APP_DEFAULTS.tsujiCenterMode.def; });
+    // 宙の窓: 一覧が実行時にしか無いもの・インデックス上限が動的なもの
+    appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, APP_DEFAULTS.soraFNumberIdx.def, APP_DEFAULTS.soraFNumberIdx.min, SORA_FNUMBERS.length - 1));
+    if (!SORA_SENSORS.some(se => se.key === appState.soraSensorKey)) appState.soraSensorKey = APP_DEFAULTS.soraSensorKey.def;
+    // 花火モード: 緯度経度は対で検査・号数はFW_SHELLSの実行時一覧+String化
     if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng))) { appState.fwLat = null; appState.fwLng = null; }
-    appState.fwElev = num(appState.fwElev, 0, -500, 9000);
-    appState.fwHeight = num(appState.fwHeight, 0, -1000, 10000);
-    appState.fwRadius = num(appState.fwRadius, 50, 0, 10000);
-    if (!FW_SHELLS.some(s => s.key === String(appState.fwSize))) appState.fwSize = '10'; else appState.fwSize = String(appState.fwSize);
-    if (appState.fwMode !== 'fixed') appState.fwMode = 'vary';
-    appState.fwSpread = Math.round(num(appState.fwSpread, 0, -100, 100));
-    appState.fwShowPoint = appState.fwShowPoint !== false;
-    // 宙検索
-    if (!(appState.ssPreset in SS_PRESETS) && appState.ssPreset !== 'custom') appState.ssPreset = 'milkyway';
-    ['ssWL', 'ssWM', 'ssWH', 'ssWMoon', 'ssWUnkai', 'ssWLp', 'ssWTr', 'ssWObj'].forEach(k => {
-        const def = { ssWL: 100, ssWM: 85, ssWH: 40, ssWMoon: 80, ssWUnkai: 0, ssWLp: 70, ssWTr: 40, ssWObj: 60 }[k];
-        appState[k] = Math.round(num(appState[k], def, 0, 100));
-    });
-    if (appState.ssMoonMode !== 'want') appState.ssMoonMode = 'avoid';
-    if (appState.ssUnkaiMode !== 'want') appState.ssUnkaiMode = 'avoid';
-    if (!['mw', 'body', 'moon', 'none'].includes(appState.ssObj)) appState.ssObj = 'mw';
-    appState.ssBandNight = appState.ssBandNight !== false;
-    appState.ssBandTwilight = !!appState.ssBandTwilight;
-    appState.ssBandGhbh = !!appState.ssBandGhbh;
-    appState.ssBandDay = !!appState.ssBandDay;
-    appState.ssDays = Math.round(num(appState.ssDays, 11, 1, 16));
+    if (!FW_SHELLS.some(sh => sh.key === String(appState.fwSize))) appState.fwSize = APP_DEFAULTS.fwSize.def; else appState.fwSize = String(appState.fwSize);
+    // 宙検索: プリセット一覧は実行時参照・間隔は1or3・範囲はnull=自動追従
+    if (!(appState.ssPreset in SS_PRESETS) && appState.ssPreset !== 'custom') appState.ssPreset = APP_DEFAULTS.ssPreset.def;
     appState.ssInterval = appState.ssInterval === 3 || appState.ssInterval === '3' ? 3 : 1;
-    appState.ssFan = num(appState.ssFan, 24, 1, 180);
     appState.ssRange = isFinite(parseFloat(appState.ssRange)) && parseFloat(appState.ssRange) > 0
-        ? Math.min(300, Math.max(1, parseFloat(appState.ssRange))) : null;
-    appState.ssStat = !!appState.ssStat;
-    // My宙検索
+        ? Math.min(APP_DEFAULTS.ssRange.max, Math.max(APP_DEFAULTS.ssRange.min, parseFloat(appState.ssRange))) : null;
+    // My宙検索(行の既定は宙検索の既定と同じ=APP_DEFAULTSを参照)
     if (!Array.isArray(appState.mySoraSearches)) appState.mySoraSearches = [];
     appState.mySoraSearches = appState.mySoraSearches.filter(t => t && typeof t === 'object');
     appState.mySoraSearches.forEach(t => {
-        if (!(t.preset in SS_PRESETS) && t.preset !== 'custom') t.preset = 'milkyway';
+        if (!(t.preset in SS_PRESETS) && t.preset !== 'custom') t.preset = APP_DEFAULTS.ssPreset.def;
         if (t.preset !== 'custom') t.weights = null;
-        else if (!t.weights || typeof t.weights !== 'object') { t.preset = 'milkyway'; t.weights = null; }
-        t.days = Math.round(num(t.days, 11, 1, 16));
+        else if (!t.weights || typeof t.weights !== 'object') { t.preset = APP_DEFAULTS.ssPreset.def; t.weights = null; }
+        t.days = Math.round(num(t.days, APP_DEFAULTS.ssDays.def, APP_DEFAULTS.ssDays.min, APP_DEFAULTS.ssDays.max));
         t.interval = t.interval === 3 || t.interval === '3' ? 3 : 1;
-        t.fan = num(t.fan, 24, 1, 180);
-        t.range = isFinite(parseFloat(t.range)) && parseFloat(t.range) > 0 ? Math.min(300, Math.max(1, parseFloat(t.range))) : null;
+        t.fan = num(t.fan, APP_DEFAULTS.ssFan.def, APP_DEFAULTS.ssFan.min, APP_DEFAULTS.ssFan.max);
+        t.range = isFinite(parseFloat(t.range)) && parseFloat(t.range) > 0 ? Math.min(APP_DEFAULTS.ssRange.max, Math.max(APP_DEFAULTS.ssRange.min, parseFloat(t.range))) : null;
         t.checked = !!t.checked;
         t.name = typeof t.name === 'string' ? t.name : '';
         t.memo = typeof t.memo === 'string' ? t.memo : '';
     });
-    // 基本オプション
-    if (appState.baseOptMwBase !== 'center' && appState.baseOptMwBase !== 'offset') appState.baseOptMwBase = 'center';
-    appState.mwOffsetAngle = num(appState.mwOffsetAngle, 0, -360, 360);
-    appState.elevExcludeEnabled = appState.elevExcludeEnabled !== false;
-    appState.elevExcludeRadius = num(appState.elevExcludeRadius, 15, 0, 10000);
-    appState.elevExcludeObsRadius = num(appState.elevExcludeObsRadius, 10, 0, 10000);
-    appState.mwShowBodies = appState.mwShowBodies === undefined ? true : !!appState.mwShowBodies;
-    appState.mwShowBodyNames = appState.mwShowBodyNames === undefined ? false : !!appState.mwShowBodyNames;   // 初期値オフ(保存済みの設定は維持)
-    ['mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames'].forEach(k => { appState[k] = !!appState[k]; });
-    appState.soraTargetCross = appState.soraTargetCross !== false;
-    appState.soraSearchCenter = appState.soraSearchCenter !== false;
-    if (appState.mwConstNameSort !== 'aiueo' && appState.mwConstNameSort !== 'pos') appState.mwConstNameSort = 'aiueo';
     // 表示天体は loadAppState の「既定配列へマージ」方式により全既定天体が常に存在する
     // （saved.bodies に無い新天体=天の川等は既定のまま保持される）ため、ここでの補完は不要。
 }

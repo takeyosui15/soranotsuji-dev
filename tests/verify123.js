@@ -56,11 +56,25 @@ function loadKeys() {
   return keys;
 }
 
-// ---- 3) 正規化キー: normalizeAppState内で触れている appState.X (情報表示用) ----
+// ---- 3) 正規化キー: normalizeAppState内で触れている appState.X + APP_DEFAULTSの規則付き項目 ----
+// (第41ラウンドのリファクタリングAで正規化の大半は汎用パス=APP_DEFAULTSの規則参照になったため、
+//  表の規則(enum/enumNum/bool/force/special/min)を持つキーも「正規化されるキー」として数える)
+function appDefaultsEntries() {
+  const i = src.indexOf('const APP_DEFAULTS = {');
+  if (i < 0) return null;   // 他プロジェクト検査時: 表が無ければ従来どおり
+  const j = src.indexOf('\n};', i);
+  const entries = new Map();
+  for (const m of src.slice(i, j).matchAll(/(\w+): \{([^{}]*)\}/g)) entries.set(m[1], m[2]);
+  return entries;
+}
 function normKeys() {
   const body = fnBody('normalizeAppState');
   const keys = new Set();
   for (const m of body.matchAll(/appState\.(\w+)/g)) keys.add(m[1]);
+  const defs = appDefaultsEntries();
+  if (defs) for (const [k, fields] of defs) {
+    if (/\b(enum|enumNum|bool|force|special|min)\s*:/.test(fields)) keys.add(k);
+  }
   return keys;
 }
 
@@ -101,9 +115,34 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
 {
   const untouched = [...save].filter(k => !norm.has(k) && !SAVE_ONLY_OK.has(k));
   // 全キーの正規化は必須ではない(オブジェクト/文字列名/リストは正規化不要)ため、件数の急増だけを検知する。
-  // 基準線は現状の実測(88個)+少しの余白。フィールド追加で超えたら意図的にここを更新する
-  check('K3 正規化されない保存キーは既知の範囲(基準線: 92個以下)',
-    untouched.length <= 92, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
+  // 基準線は現状の実測(第41ラウンドのAPP_DEFAULTS化後: 73個)+少しの余白。超えたら意図的にここを更新する
+  check('K3 正規化されない保存キーは既知の範囲(基準線: 78個以下)',
+    untouched.length <= 78, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
+}
+
+// ---- リント4(第41ラウンド・リファクタリングA): APP_DEFAULTSに無い保存スカラーキーの検査 ----
+// 「保存されるスカラー値は既定値の単一情報源(APP_DEFAULTS)に載っているべき」。構造値・導出値・
+// メタ値は対象外として明示する(この一覧に無い新キーが表に載っていなければ検出される)。
+{
+  const defs = appDefaultsEntries();
+  if (defs) {
+    const NOT_SCALAR_OK = new Set([
+      'appSchema', 'savedAt',                                     // メタ
+      'start', 'end', 'homeStart', 'homeEnd',                     // 位置オブジェクト(既定はDEFAULT_START/END)
+      'startApiElev', 'endApiElev', 'startHeight', 'endHeight',   // 位置の導出スカラー(同上)
+      'refractionEnabled', 'refractionK', 'meteo',                // 大気差(既定は標準大気STD_*から導出)
+      'lastVisitDate', 'moonAge',                                 // 訪問履歴・計算値
+      'bodies', 'myStars', 'myObservations', 'myTargets',         // 構造値(既定はDEFAULT_BODIES/空配列)
+      'mySets', 'mySetCurrentId', 'mySetHomeData', 'mySetHome',   // Myセット構造
+      'soraFolderName', 'googleDrive',                            // Drive連携(構造+固定名)
+      'myTsujiSearches', 'mySoraSearches',                        // My検索リスト
+    ]);
+    const missing = [...save].filter(k => !defs.has(k) && !NOT_SCALAR_OK.has(k));
+    check('K8 保存されるスカラーキーはAPP_DEFAULTS(単一情報源)に載っている',
+      missing.length === 0, missing.length ? '表に無い: ' + missing.join(', ') : `defs=${defs.size}keys`);
+  } else {
+    check('K8 APP_DEFAULTS表なし(他プロジェクト検査のためスキップ)', true);
+  }
 }
 
 // ============================================================
