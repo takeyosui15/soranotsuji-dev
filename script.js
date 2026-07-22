@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.42.0 - 2026-07-23: feat: 第41ラウンド(前半) — URL短縮辞書v13(第3規則)+MederuU器のデッサン+回帰スキル ①短縮辞書に第3規則「&キー名=既定値」を追加(v13。依頼者承認): キーと既定値のペア127個を丸ごと登録し、既定値のままの項目が1コードで表せるように(連続ペアの並びもLZWが学習)。実測で短縮URLが約半分に(辻検索1337→554文字・実運用相当1329→682文字)。ペアはv1.41.0時点の初期状態の実アプリ発行URLから導出して凍結(既定値が将来変わっても配列は変更しない=発行済みURL保護。作り直しはV14で)。v11/v12の発行済み標本+v13ゴールデン標本をtests/dataに封入 ②MederuU(ナレッジ引き継ぎの器)のデッサンをdocs/mederuu/00-dessin.mdへ起草(一方向ハブ・蒸留ワークフロー・man風ヘッダ規約・公開規約・スモールスタート手順) ③ハーネス構築をリポジトリへ昇格(tests/harness/sync-apptest.py)+次セッション宛スキル第1号(.claude/skills/kaiki=回帰の回し方)
 Version 1.41.0 - 2026-07-22: feat: 第40ラウンド — 地図レイヤーリストの縦4行化+URL短縮辞書の作り直し(v12) ①地図左上のレイヤー選択リストを縦4行に(スマホは横幅が狭く、横4列だと画面外へはみ出て宙の辻パネルの下に潜り「淡色/OSM」が押せなかった。原因は全メニュー共通のlabel:has(>input)=inline-flex(詳細度0,1,2)が「.gl-layer-list label」のdisplay:block(0,1,1)に勝っていたカスケード衝突=花火ラベルと同型) ②LZWのURL短縮辞書を2種規則で作り直し(v12): シードを「&キー名=」(全148キー)+「キー値」(列挙固定値104個)+定型3つ(%2B0900/00%3A00/%23)だけで構成(「=値&」のような区切り付き値シードを廃止=意味の明確な辞書に)。先頭キーだけ「&」が付かない問題は「仮想の先頭&」方式で解消(エンコード時に足し、デコード時に外す)。v1〜v11の辞書は発行済みURLの復号用に凍結(旧短縮URLは引き続き読める)。実測: プレビュー/宙の窓URLは旧辞書比±2%・辻検索/辻メッシュURLは+8〜10%(意味優先の設計判断。最長でも約1380文字) ③デッサン00のURL仕様を現実装に全面更新(sora系・fw系・ss系・tsujiMesh系キー・短縮URLの版数運用・各URL取得の先頭キーの明記)
 Version 1.40.0 - 2026-07-22: feat: 第39ラウンド — 道具箱の始動+Drive保存/バックアップの統一(承認済み方針) ①保存キー整合性リンター(tests/verify123.js): 「保存されるのに復元されない」等の3箇所の暗黙対応のズレを静的検査(花火バグの型の再発防止。対象ファイル引数で他プロジェクト再利用可) ②scratch/新設: 自作ツールの道具箱(中央寄せ画素チェッカーcenter-check.js等。CLAUDE.mdからリンク) ③Drive保存(soranotsuji-app.json)の吸い上げをsoranotsuji_プレフィックスのキー限定に(同一オリジンの他アプリのキー混入・肥大化の防止。読込側も同プレフィックスのみ書き戻し=混入済みキーは掃除される) ④メニューのバックアップ/インポートを生ダンプ形式(Drive/reset.htmlと同一構造)に一本化(旧形式の選択的バックアップは自動判別で後方互換取り込み)・reset.htmlも同じ絞り込みに統一 ⑤リファクタリング観点レビュー資料(docs/knowledge/refactoring-guide.md)を起案
 Version 1.39.1 - 2026-07-20: fix: 観測点/目的点の検索ボックスの正規化規則を整理(海外地名検索を可能に) — 旧実装は入力全体を無条件に全角化していたため、英字の海外地名(Ayers Rock等)がOSMで検索できなかった。新規則: ①日本語(かな/カナ/漢字/半角カナ)を含む入力のみ従来どおり半角英数記号を全角化(住所の「1-2-3」の半角全角揺れ対策を維持) ②英字のみ/海外言語のみは無変換でそのまま検索(GSI→OSMの順は従来どおり) ③数値のみ(カンマ無し)は従来どおり検索スキップ(OSMが郵便番号と解釈して海外の地点[実測: チリ]へ飛ぶため。初期からのZipコード誤認防止を維持)。実ネットワークでGSI/OSMの各挙動(半角住所もGSIは同一結果を返す・OSMの郵便番号ジャンプ実在・Ayers Rock/Matterhornのヒット)を確認の上で設計
@@ -105,7 +106,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.41.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.42.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -12491,6 +12492,8 @@ function toggleAllMySets() {
 // 【v12からの辞書規則(第40ラウンドで作り直し)】シードは「&キー名=」(全キー)と「キー値」(列挙固定値)の
 //  2種類+定型3つのみで構成する(_QP_KEYS_V12/_QP_VALUES_V12参照)。v1〜v11の断片混在辞書は
 //  発行済みURLの復号専用として凍結。
+// 【v13の第3規則(第41ラウンド)】上記2種に「&キー名=既定値」(キーと既定値のペア。_QP_KEYDEFS_V13)を
+//  追加。既定値のままの項目が1コードになり、短縮URLが約半分になる。
 const _QP_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 // LZWの貪欲一致は接頭辞を辿るため、シードは全接頭辞(2文字以上)に展開して登録する
 function _qpSeedEntries(seeds) {
@@ -12613,7 +12616,56 @@ const _QP_VALUES_V12 = [
     '%2B0900', '00%3A00', '%23',
 ];
 const _QP_SEEDS_V12 = _QP_KEYS_V12.map(k => '&' + k + '=').concat(_QP_VALUES_V12);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12];   // 添字+1=版数。最新版でエンコードする
+// v13: 第3規則「&キー名=既定値」の追加(第41ラウンド・依頼者承認)。キーと既定値のペアを丸ごと
+// 登録すると、既定値のままの項目が1コードで表せる(さらに連続するペアの並びをLZWが学習する)。
+// 実測で短縮URLが約半分になった(辻検索1337→554文字・依頼者の実URL相当1329→682文字)。
+// ペアは「v1.41.0時点の初期状態の実アプリが発行したURL」から導出して凍結した。
+// 【重要】アプリの既定値が将来変わっても、この配列は変更しない(発行済みURLの復号を守る)。
+//  新しい既定値で作り直したくなったら、新版(V14)を作って_QP_SEED_VERSIONSへ積む。
+const _QP_KEYDEFS_V13 = [
+    // パネル表示の既定
+    '&dp=true', '&elevation=false', '&milkyway=false', '&soramado=false', '&tsujisearch=false', '&tsujimesh=false',
+    // 宙の窓+コントロールの既定
+    '&soraSensorKey=fullframe', '&soraAspectW=3', '&soraAspectH=2', '&soraOrient=landscape', '&soraFocal=24',
+    '&soraFNumberIdx=10', '&soraFocusDist=98000', '&soraFisheye=false', '&soraFisheyeStrength=50',
+    '&soraFisheyeShape=rect', '&soraPanorama=false', '&soraPanoAov=0', '&soraPeaking=false', '&soraTraj=true',
+    '&soraCenterCross=true', '&soraTargetCross=true', '&soraSearchCenter=true', '&soraOffsetAz=0', '&soraOffsetAlt=0',
+    '&soraMovInterval=15', '&soraMovShots=1', '&soraMovFps=30', '&soraMovDispStep=0.3', '&soraMovImgMb=140',
+    '&soraMovPlayMode=anim', '&soraMwBrightness=100', '&soraElevShade=50', '&soraSunShade=50', '&soraExpFormat=jpeg',
+    '&soraExpW=300', '&soraExpH=200',
+    // 花火モードの既定
+    '&fwEnabled=false', '&fwElev=0', '&fwHeight=0', '&fwRadius=50', '&fwSize=10',
+    '&fwMode=vary', '&fwSpread=0', '&fwShowPoint=true',
+    // 宙検索の既定
+    '&ssPreset=milkyway', '&ssWL=100', '&ssWM=85', '&ssWH=40',
+    '&ssMoonMode=avoid', '&ssWMoon=80', '&ssUnkaiMode=avoid', '&ssWUnkai=0', '&ssWLp=70', '&ssWTr=40', '&ssObj=mw',
+    '&ssWObj=60', '&ssBandNight=true', '&ssBandTwilight=false', '&ssBandGhbh=false', '&ssBandDay=false', '&ssDays=11',
+    '&ssInterval=1', '&ssFan=24', '&ssStat=false',
+    // 辻検索の既定
+    '&tsujiSearchDays=365', '&tsujiAzOffset=0', '&tsujiAltOffset=0',
+    '&tsujiAzTolerance=15', '&tsujiAltTolerance=15', '&tsujiCenterMode=point', '&tsujiMoonFilter=false',
+    '&tsujiMoonBase=14.8', '&tsujiMoonTolerance=2', '&tsujiAccuracyFilter=false', '&tsujiAccDblCircle=false',
+    '&tsujiAccCircle=false', '&tsujiAccTriangle=false', '&tsujiAccDash=false', '&tsujiElevationOption=false',
+    '&tsujiElevOK=false', '&tsujiElevNG=false', '&tsujiTimeFilter=false', '&tsujiStartMode=sunset',
+    '&tsujiStartTime=00%3A00', '&tsujiStartPrePost=false', '&tsujiStartPrePostDir=before', '&tsujiStartOffset=00%3A00',
+    '&tsujiEndMode=sunrise', '&tsujiEndTime=00%3A00', '&tsujiEndPrePost=false', '&tsujiEndPrePostDir=before',
+    '&tsujiEndOffset=00%3A00',
+    // 辻メッシュ検索の既定
+    '&tsujiMeshDays=365', '&tsujiMeshAzOffset=0', '&tsujiMeshAltOffset=0',
+    '&tsujiMeshAzTolerance=15', '&tsujiMeshAltTolerance=15', '&tsujiMeshCenterMode=point', '&tsujiMeshAccuracy=x1',
+    '&tsujiMeshSymO=false', '&tsujiMeshSymTri=false', '&tsujiMeshSymDash=false', '&tsujiMeshMoonFilter=false',
+    '&tsujiMeshMoonBase=14.8', '&tsujiMeshMoonTolerance=2', '&tsujiMeshElevationOption=false', '&tsujiMeshElevOK=false',
+    '&tsujiMeshElevNG=false', '&tsujiMeshTimeFilter=false', '&tsujiMeshStartMode=sunset', '&tsujiMeshStartTime=00%3A00',
+    '&tsujiMeshStartPrePost=false', '&tsujiMeshStartPrePostDir=before', '&tsujiMeshStartOffset=00%3A00',
+    '&tsujiMeshEndMode=sunrise', '&tsujiMeshEndTime=00%3A00', '&tsujiMeshEndPrePost=false',
+    '&tsujiMeshEndPrePostDir=before', '&tsujiMeshEndOffset=00%3A00',
+    // 既定は無いが値が列挙のペア(mode)・日本の標準タイムゾーン・既定の表示天体
+    '&mode=preview', '&mode=tsujisearch', '&mode=tsujimesh', '&timeZone=%2B0900',
+    '&starId=MilkyWay', '&starId=Sun', '&starId=Moon',
+];
+// v13のシード = v12の2種(キー・値)+第3規則(キー=既定値ペア)。v12の2配列は凍結済みのため再利用できる
+const _QP_SEEDS_V13 = _QP_KEYS_V12.map(k => '&' + k + '=').concat(_QP_VALUES_V12, _QP_KEYDEFS_V13);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {

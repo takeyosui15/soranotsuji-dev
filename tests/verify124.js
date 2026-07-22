@@ -19,9 +19,9 @@ new Function('exports', src.slice(begin, end) +
   'exports.VERSIONS=_QP_SEED_VERSIONS; exports.PRIME_FROM=_QP_PRIME_FROM;' +
   'exports.enc=encodeQueryParam; exports.dec=decodeQueryParam;')(qp);
 
-// ---- L0: 版数ピン(最新のverifyに集約)+Version History整合 ----
-check('L0 APP_VERSION 1.41.0', src.includes("APP_VERSION = '1.41.0'") || !!process.argv[2]);
-check('L0 Version Historyに1.41.0の行がある', src.includes('Version 1.41.0 - ') || !!process.argv[2]);
+// ---- L0: APP_VERSIONの存在(版数ピンは最新のverifyに集約=現在はverify125) ----
+check('L0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('L0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- L1: v12辞書の2種規則(①「&キー名=」の元は裸のキー名 ②「キー値」は区切りを含まない) ----
 const lintShape = (keys, values) => {
@@ -67,18 +67,18 @@ const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
 
 // ---- L3: 旧版の凍結(版数と旧辞書の存在)+旧v11短縮URLの復号(Node内で実行) ----
 {
-  check('L3 辞書は12版(v12が最新・旧版は凍結保管)', qp.VERSIONS.length === 12 && qp.PRIME_FROM === 12,
-    `versions=${qp.VERSIONS.length}`);
+  check('L3 辞書はv12以降(旧版は凍結保管。最新版数の等値ピンは最新のverifyが持つ)',
+    qp.VERSIONS.length >= 12 && qp.PRIME_FROM === 12, `versions=${qp.VERSIONS.length}`);
   // 第40ラウンド時点の実アプリで発行したv11短縮URL(凍結リグレッション)。
   // 旧辞書のシード列が1つでも変わるとこの復号が壊れる(発行済みURLを読む保証)。
   const legacy = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v11-sample.json'), 'utf8'));
   check('L3 発行済みv11短縮URLが復号できる(旧辞書の凍結保証)', qp.dec(legacy.short) === legacy.long,
     `short=${legacy.short.length}chars`);
-  // v12の基本往復(仮想の先頭&: 先頭キーに&なしで往復一致)
+  // 最新版の基本往復(仮想の先頭&: 先頭キーに&なしで往復一致)
   const s = 'mode=preview&dp=true&starId=Sun&starId=Moon';
   const e = qp.enc(s);
-  check('L3 v12の往復一致+版数プレフィックス', qp.dec(e) === s && e.startsWith('~12~'), e.slice(0, 12));
-  check('L3 空文字と壊れた入力の安全動作', qp.enc('') === '' && qp.dec('') === '' && qp.dec('~13~AAAA') === null);
+  check('L3 最新版の往復一致+版数プレフィックス', qp.dec(e) === s && e.startsWith(`~${qp.VERSIONS.length}~`), e.slice(0, 12));
+  check('L3 空文字と壊れた入力の安全動作', qp.enc('') === '' && qp.dec('') === '' && qp.dec(`~${qp.VERSIONS.length + 1}~AAAA`) === null);
 }
 
 // ============================================================
@@ -119,7 +119,7 @@ const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
     await p.click('#gl-layer-toggle');   // 閉じて後続へ
   }
 
-  // L5: 実ビルダーの短縮URL(全5種)が「~12~付き・復号すると長いURLと同一」
+  // L5: 実ビルダーの短縮URLが「版数プレフィックス付き・復号すると長いURLと同一」
   {
     const r = await p.evaluate(() => {
       appState.currentDate = new Date(2026, 6, 22, 20, 30, 0);
@@ -139,16 +139,16 @@ const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
         chk.checked = false; const long = grab(fn).split('?')[1];
         chk.checked = true; const short = grab(fn).split('?query=')[1];
         const dec = decodeQueryParam(decodeURIComponent(short));
-        out.push({ name, v12: decodeURIComponent(short).startsWith('~12~'), same: dec === long,
+        out.push({ name, v12: /^~\d+~/.test(decodeURIComponent(short)), same: dec === long,
                    shortLen: short.length, longLen: long.length });
       }
       return out;
     });
-    check('L5 短縮URLの5ケース(位置情報の日時あり/なし・宙の窓・辻検索・辻メッシュ)が復号で長いURLと一致(v12)',
+    check('L5 短縮URLの5ケース(位置情報の日時あり/なし・宙の窓・辻検索・辻メッシュ)が復号で長いURLと一致',
       r.every(x => x.v12 && x.same), r.map(x => `${x.name}:${x.longLen}→${x.shortLen}`).join(' '));
   }
 
-  // L6: v12短縮URLでの復元(仮想の先頭&が復元系を壊さない end-to-end)
+  // L6: 最新版の短縮URLでの復元(仮想の先頭&が復元系を壊さない end-to-end)
   {
     const q = 'date=20260101&time=120000&timeZone=%2B0900&startLat=34.56&startLng=135.43&dp=true&mode=preview';
     const e = qp.enc(q);
@@ -162,7 +162,7 @@ const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
       ymd: `${appState.currentDate.getFullYear()}${String(appState.currentDate.getMonth() + 1).padStart(2, '0')}${String(appState.currentDate.getDate()).padStart(2, '0')}`,
       hh: appState.currentDate.getHours(),
     }));
-    check('L6 v12短縮URLから状態復元(観測点/日時/辻ライン)',
+    check('L6 短縮URLから状態復元(観測点/日時/辻ライン)',
       r.lat === 34.56 && r.lng === 135.43 && r.dp === true && r.ymd === '20260101' && r.hh === 12,
       JSON.stringify(r));
     check('L6 短縮URL復元でページエラーなし', errs2.length === 0, errs2.slice(0, 3).join(' | '));
