@@ -298,7 +298,7 @@ let dp365CurrentGeneration = 0;
 //   { def, min, max, round? }   … 数値: num()で範囲丸め(roundはMath.round)
 //   { def, enum: [...] }        … 列挙: 一覧に無ければdefへ
 //   { def, enumNum: [...] }     … 数値列挙: Number()化して一覧に無ければdefへ
-//   { def, bool: 'coerce'|'nf' }… 真偽: coerce=!!v / nf=(v!==false)=既定true(未指定・崩れはtrue)
+//   { def, bool: 'coerce'|'nf'|'undef' }… 真偽: coerce=!!v / nf=(v!==false)=崩れはtrue / undef=(undefinedはdef、他は!!v)
 //   { def, force: true }        … 常に強制(廃止済みチェック等)
 //   { def, special: true }      … normalizeに個別コードがある(defや範囲はそこから参照される)
 const APP_DEFAULTS = {
@@ -388,7 +388,7 @@ const APP_DEFAULTS = {
     // ---- 基本オプション ----
     baseOptMwBase: { def: 'center', enum: ['center', 'offset'] },
     mwOffsetAngle: { def: 0, min: -360, max: 360 },
-    mwShowBodies: { def: true, bool: 'coerce' },
+    mwShowBodies: { def: true, bool: 'undef' },          // undef=undefinedならdef、他は!!v(旧実装の契約を維持)
     mwShowBodyNames: { def: false, bool: 'coerce' },      // 初期値オフ(保存済みの設定は維持)
     mwShowConstFig: { def: false, bool: 'coerce' },
     mwShowConstBounds: { def: false, bool: 'coerce' },
@@ -2432,6 +2432,7 @@ function normalizeAppState() {
         if (d.enumNum) { const n = Number(appState[k]); appState[k] = d.enumNum.includes(n) ? n : d.def; continue; }
         if (d.bool === 'coerce') { appState[k] = !!appState[k]; continue; }
         if (d.bool === 'nf') { appState[k] = appState[k] !== false; continue; }
+        if (d.bool === 'undef') { appState[k] = appState[k] === undefined ? d.def : !!appState[k]; continue; }
         if (d.min !== undefined) { const v = num(appState[k], d.def, d.min, d.max); appState[k] = d.round ? Math.round(v) : v; }
     }
 
