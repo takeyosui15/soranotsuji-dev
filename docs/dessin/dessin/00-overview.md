@@ -40,74 +40,140 @@
 ### 目的:
 - 簡単にURLにクエリストリングを渡してアクセスすることで、簡単に目的の状態のアプリを開くことが出来るようにする。
 ### 概要:
-- 機能概要
+- URLは2形式あり、どちらでも同じ状態を復元できる。
+  - **長いURL**: キー名・キー値がそのまま並ぶ形式(`?date=20260722&time=203000&...`)。
+  - **短いURL**: 全パラメータ文字列を可逆圧縮して`?query=`の1キーにまとめた形式。各URL取得の「短いURL」チェックボックス(初期値オン)で選ぶ。
+- モードは3種類: `mode=preview`(プレビュー) / `mode=tsujisearch`(辻検索の自動実行) / `mode=tsujimesh`(辻メッシュ検索の自動実行)。
+- **URL由来の値はそのセッション限り**(第37ラウンドの決定): URLによって実際に変わった項目はローカルストレージへ保存しない(URL適用前の自分の値で凍結)。共有URLを開いても普段の保存状態は置き換わらない。
 
-- URL仕様
-  - URLクエリのキーとその値の取りうる範囲
-  - URLをエンコードした短いURLと、URLがエンコードされていない(キー名やキー値がそのままの)長いURLがある。
-  - 短いURLでも、長いURLでも、どちらでもアクセスできる。
+#### 短いURL(queryキー)の仕組み
+- パラメータ文字列をLZW(共有シード辞書+可変コード幅9bit〜)で圧縮し、Base64URL(62文字+`-_`)で文字列化する。暗号化ではない(可逆圧縮のみ)。
+- 出力の先頭に辞書の版数`~N~`を付ける(v1のみ無印)。デコード側は版数で辞書を選ぶため、**発行済みの古い短縮URLもそのまま読める**(v1〜v11の辞書は凍結保管)。
+- **辞書の規則(v12〜・第40ラウンドで作り直し)**: シードは次の2種類+定型3つだけで構成する。
+  1. **「&キー名=」**: 全URLキー(148個)。キーは必ず「&」と「=」に挟まれて現れるため、区切りごと登録する。
+  2. **「キー値」**: 列挙可能な固定値(104個。true/false・天体ID・時刻モード・センサー種など)。値の前後の区切りは位置で変わるため、裸のまま登録する(「=値&」のような区切り付き値シードは意味が曖昧になるので置かない)。
+  3. 定型3つ: `%2B0900`(タイムゾーン+0900) / `00%3A00`(時刻00:00) / `%23`(色値の先頭「#」)。
+- **仮想の先頭「&」**: 先頭キーだけは「&」が付かず「&キー名=」の辞書に乗らないため、エンコード時に仮想の「&」を1つ足してから圧縮し、デコード時に外す(v12以降。URL上には現れない)。
+- キーを追加した時は、2配列(`_QP_KEYS_V12`/`_QP_VALUES_V12`)へ足した**新版**を作って版一覧へ積む(既存版は変更禁止=発行済みURLの復号用)。
 
-| キー名 | 取りうる値 | キーの省略可能 | 値の省略可能 | 複数指定可能 | 説明 | mode=previewの時有効 | mode=tsujisearchの時有効 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| query | URLクエリーの値に使用できる文字記号の羅列 | 可 | 不可 | 複数指定不可 | 目的は、長いURLクエリストリングをキーqueryの短いURLの一つにまとめるためのもの。キーquery以外で構成される長いURLでは、目的の状態のアプリを開くことができるが、長すぎるため、文字列の可逆圧縮変換や暗号化を用いて、URLストリングをエンコード/デコードして、なるべく短い文字列で表現するようにする。 | 無効 | 無効 |
-| mode | \[ preview \| tsujisearch \] | 不可 | いずれかの値を指定 | 複数指定不可 | preview=プレビューモードの時に使用する。tsujisearch=辻検索実行モードの時に使用する。 | 有効 | 有効 |
-| date | YYYYMMDD | 可 | 不可 | 複数指定不可 | 日付を指定。キー省略時は、現在日付が設定される。 | 有効 | 有効 |
-| time | hhmmss | 可 | 不可 | 複数指定不可 | 時刻を指定。キー省略時は、現在時刻が設定される。 | 有効 | 有効 |
-| timeZone | +0900 | 可 | 不可 | 複数指定不可 | タイムゾーンを指定。キー省略時は、日本(+09:00)が設定される。URLエンコードするのでURLには「+0900」を「%2B0900」と記載する。 | 有効 | 有効 |
-| startName | (空白) | 可 | 可 | 複数指定不可 | 観測点名を指定。キー省略時は、空白。最大150文字まで。日本語は、こちら(encodeURI.html)からエンコードして渡します。 | 有効 | 有効 |
-| startLat | 35.658582 | 可 | 不可 | 複数指定不可 | 観測点の緯度を指定。キー省略時は、東京タワーの緯度(35.658582)が設定される。 | 有効 | 有効 |
-| startLng | 139.745471 | 可 | 不可 | 複数指定不可 | 観測点の経度を指定。キー省略時は、東京タワーの経度(139.745471)が設定される。 | 有効 | 有効 |
-| startApiElv | 18.5 | 可 | 不可 | 複数指定不可 | 観測点の標高を指定。キー省略時は、東京タワーの標高(18.5)が設定される。 | 有効 | 有効 |
-| startElv | 150.0 | 可 | 不可 | 複数指定不可 | 観測点の高さを指定。キー省略時は、東京タワーの展望台の高さ(150.0)が設定される。 | 有効 | 有効 |
-| endName | (空白) | 可 | 可 | 複数指定不可 | 目的点名を指定。キー省略時は、空白。最大150文字まで。日本語は、こちら(encodeURI.html)からエンコードして渡します。 | 有効 | 有効 |
-| endLat | 35.362799 | 可 | 不可 | 複数指定不可 | 目的点の緯度を指定。キー省略時は、富士山の緯度(35.362799)が設定される。 | 有効 | 有効 |
-| endLng | 138.730781 | 可 | 不可 | 複数指定不可 | 目的点の経度を指定。キー省略時は、富士山の経度(138.730781)が設定される。 | 有効 | 有効 |
-| endApiElv | 3774.9 | 可 | 不可 | 複数指定不可 | 目的点の標高を指定。キー省略時は、富士山の標高(3774.9)が設定される。 | 有効 | 有効 |
-| endElv | 0 | 可 | 不可 | 複数指定不可 | 目的点の高さを指定。キー省略時は、富士山の追加の高さ(0)が設定される。 | 有効 | 有効 |
-| starId | \[ MilkyWay \| Sun \| Moon \| Mercury \| Venus \| Mars \| Jupiter \| Saturn \| Uranus \| Neptune \| Pluto \| Polaris \| Merak \| Mintaka \| Subaru \| M42 \| Vega \| Altair \| Deneb \| Betelgeuse \| Sirius \| Procyon \| Number \] | 可 | 不可 | 複数指定可能 | 既定の表示天体のIDか、My天体はID(数字)を指定する。キー省略時は、値「starId=Sun」「starId=Moon」が指定されているものとする。 | 有効 | 有効 |
-| starName | (空白) | 可 | 可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体名を指定。キー省略時は、空白。最大150文字まで。日本語は、こちら(encodeURI.html)からエンコードして渡します。 | 有効 | 有効 |
-| starRa | 0.000000 | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の赤経(h)を指定。 | 有効 | 有効 |
-| starDec | 0.000000 | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の赤緯(°)を指定。 | 有効 | 有効 |
-| starColor | \[ Red \| Pink \| Orange \| Yellow \| YellowGreen \| Green \| LightBlue \| Blue \| Indigo \| Purple \| LightPurple \| Brown \| DarkBrown \| White \| Black \] | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の線色を指定。 | 有効 | 有効 |
-| starIsDashed | \[ True \| False \] | 可 | 不可 | 複数指定可能 | starId=Numberが含まれるとき有効。天体の線種を指定。True=破線、False=実線。 | 有効 | 有効 |
-| dp | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 辻ライン(当日の辻ライン)の表示/非表示を指定。キー省略時は、復元しない(現状維持)。 | 有効 | 有効 |
-| elevation | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 標高グラフの表示/非表示を指定。true=表示。標高グラフ/全天儀/宙の窓は排他のため、trueは1つだけ有効。キー省略時は、復元しない。 | 有効 | 有効 |
-| milkyway | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 全天儀の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 有効 |
-| soramado | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 宙の窓の表示/非表示を指定。true=表示(排他のため1つだけ)。キー省略時は、復元しない。 | 有効 | 有効 |
-| tsujisearch | \[ true \| false \] | 可 | 不可 | 複数指定不可 | 辻検索パネルの表示/非表示を指定。true=辻検索を開いて実行(他パネルと共存可)。キー省略時は、復元しない。 | 有効 | 有効 |
-| tsujiSearchDays | 365 | 可 | 不可 | 複数指定不可 | 辻検索の検索期間を指定。キー省略時は、365が設定される。 | 無効 | 有効 |
-| tsujiAz | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索の基準方位角を指定。キー省略時は、観測点/目的点から算出される。 | 無効 | 有効 |
-| tsujiAlt | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索の基準視高度を指定。キー省略時は、観測点/目的点から算出される。 | 無効 | 有効 |
-| tsujiAzOffset | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索のオフセット方位角を指定。キー省略時は、0.00。 | 無効 | 有効 |
-| tsujiAltOffset | 0.00 | 可 | 不可 | 複数指定不可 | 辻検索のオフセット視高度を指定。キー省略時は、0.00。 | 無効 | 有効 |
-| tsujiAzTolerance | 15.00 | 可 | 不可 | 複数指定不可 | 辻検索の許容範囲方位角を指定。キー省略時は、15.00。 | 無効 | 有効 |
-| tsujiAltTolerance | 15.00 | 可 | 不可 | 複数指定不可 | 辻検索の許容範囲視高度を指定。キー省略時は、15.00。 | 無効 | 有効 |
-| tsujiMoonFilter | false | 可 | 不可| 複数指定不可 | 辻検索の月齢フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiMoonBase | 15.0 | 可 | 不可| 複数指定不可 | 辻検索の基準月齢を指定。キー省略時は、15.0。 | 無効 | 有効 |
-| tsujiMoonTolerance | 2.0 | 可 | 不可| 複数指定不可 | 辻検索の許容範囲月齢を指定。キー省略時は、2.0。 | 無効 | 有効 |
-| tsujiAccuracyFilter | false | 可 | 不可| 複数指定不可 | 辻検索の精度フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiAccDblCircle | false | 可 | 不可| 複数指定不可 | 辻検索の精度◎フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiAccCircle | false | 可 | 不可| 複数指定不可 | 辻検索の精度○フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiAccTriangle | false | 可 | 不可| 複数指定不可 | 辻検索の精度△フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiAccDash | false | 可 | 不可| 複数指定不可 | 辻検索の精度-フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiElevationOption | false | 可 | 不可| 複数指定不可 | 辻検索の標高オプションを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiElevOK | false | 可 | 不可| 複数指定不可 | 辻検索の標高OKフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiElevNG | false | 可 | 不可| 複数指定不可 | 辻検索の標高NGフィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiTimeFilter | false | 可 | 不可| 複数指定不可 | 辻検索の時間フィルタを指定。キー省略時は、false。 | 無効 | 有効 |
-| tsujiStartMode | sunset | 可 | 不可| 複数指定不可 | 時間フィルタ開始の時刻モード。fixed(時刻指定)/astroDawn(天文薄明[始])/nautDawn(航海薄明[始])/yoake(夜明)/civilDawn(常用薄明/BH[始])/bhEndGhStart(BH[終]/GH[始])/sunrise(日の出)/ghEnd(GH[終])/ghStart(GH[始])/sunset(日の入)/ghEndBhStart(GH[終]/BH[始])/civilDusk(常用薄明/BH[終])/higure(日暮)/nautDusk(航海薄明[終])/astroDusk(天文薄明[終])。キー省略時は、sunset。 | 無効 | 有効 |
-| tsujiStartTime | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ開始がfixedの時の時刻(HH:MM)。 | 無効 | 有効 |
-| tsujiStartPrePost | false | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後時刻指定を有効化。キー省略時は、false。 | 無効 | 有効 |
-| tsujiStartPrePostDir | before | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後方向。before(前)/after(後)。 | 無効 | 有効 |
-| tsujiStartOffset | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ開始の前後時間(HH:MM)。 | 無効 | 有効 |
-| tsujiEndMode | sunrise | 可 | 不可| 複数指定不可 | 時間フィルタ終了の時刻モード(値は tsujiStartMode と同様)。キー省略時は、sunrise。 | 無効 | 有効 |
-| tsujiEndTime | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ終了がfixedの時の時刻(HH:MM)。 | 無効 | 有効 |
-| tsujiEndPrePost | false | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後時刻指定を有効化。キー省略時は、false。 | 無効 | 有効 |
-| tsujiEndPrePostDir | before | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後方向。before(前)/after(後)。 | 無効 | 有効 |
-| tsujiEndOffset | 00:00 | 可 | 不可| 複数指定不可 | 時間フィルタ終了の前後時間(HH:MM)。 | 無効 | 有効 |
+#### URL取得の種類と先頭キー
+| URL取得 | 短縮 | 一番最初のキー |
+| --- | --- | --- |
+| 位置情報メニュー(現在の状態) | あり | `date`(日時固定/半固定) / `startLat`(日時なし) |
+| 宙の窓メニュー | あり | 同上 |
+| 辻検索メニュー | あり | 同上 |
+| 辻メッシュ検索メニュー | あり | 同上 |
+| My辻検索メニュー | あり | 同上 |
+| My観測点/My目的点メニュー | なし(長いURLのみ) | `mode` |
+| My辻検索の一括計算CSV内のプレビューURL | なし | `date` |
+
+#### 共通キー(どのmodeでも有効)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| query | 短縮URLの圧縮文字列 | 短いURL専用。他のキーとは併用しない。 |
+| mode | \[ preview \| tsujisearch \| tsujimesh \] | 動作モード。このキーが無いURLは復元処理を行わない。 |
+| date | YYYYMMDD | 日付。年0000は「アクセス年の月日」(半固定)。省略時は現在日付。 |
+| time | hhmmss | 時刻。省略時は現在時刻。 |
+| timeZone | +0900 (URL上は%2B0900) | URL作成者のタイムゾーン。別タイムゾーンの人が開いても同じ日時になる。 |
+| startLat / startLng | 35.658595 / 139.745446 | 観測点の緯度/経度。省略時は現在の設定のまま。 |
+| startApiElv / startElv | 25.9 / 148.6 | 観測点の標高/高さ。 |
+| endLat / endLng | 35.360638 / 138.727347 | 目的点の緯度/経度。 |
+| endApiElv / endElv | 3776 / 0 | 目的点の標高/高さ。 |
+| starId | 天体ID(MilkyWay/Sun/Moon/Mercury/Venus/Mars/Jupiter/Saturn/Uranus/Neptune/Pluto/Polaris/Merak/Mintaka/Subaru/M42/Vega/Altair/Deneb/Betelgeuse/Sirius/Procyon)またはMy天体のID(数字) | 表示天体。**複数指定可**(表示中の天体の数だけ並ぶ)。 |
+| starName | 文字列(URLエンコード) | My天体の名前。starIdが数字の時に対応順で**複数指定可**。 |
+| starRa / starDec | 5.919444 / 7.407 | My天体の赤経(h)/赤緯(°)。**複数指定可**。 |
+| starColor | %23RRGGBB(例 %23FF0000) | My天体の線色(#+16進6桁をURLエンコード)。**複数指定可**。 |
+| starIsDashed | \[ 1 \| 0 \] | My天体の線種(1=破線、0=実線)。**複数指定可**。 |
+| dp | \[ true \| false \] | 辻ラインの表示/非表示。省略時は現状維持。 |
+| elevation / milkyway / soramado | \[ true \| false \] | 標高グラフ/全天儀/宙の窓の表示。3つは排他のためtrueは1つだけ有効(elevation→milkyway→soramado優先)。省略時は現状維持。 |
+| tsujisearch | \[ true \| false \] | 辻検索パネルを開いて実行(他パネルと共存可)。省略時は現状維持。 |
+| tsujimesh | \[ true \| false \] | 辻メッシュ検索パネルを開いて実行(辻検索と排他。両方trueなら辻メッシュ優先)。省略時は現状維持。 |
+
+#### 宙の窓+コントロールのキー(どのmodeでも有効。省略時は現状維持)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| soraSensorKey | センサー種(fullframe/apsc/m43/one/ip_15_16 など`SORA_SENSORS`のkey) | カメラのセンサーサイズ。 |
+| soraAspectW / soraAspectH | 3 / 2 | アスペクト比。 |
+| soraOrient | \[ landscape \| portrait \] | 横/縦構図。 |
+| soraFocal | 50 | 焦点距離(mm)。 |
+| soraFNumberIdx | 12 | F値(インデックス)。 |
+| soraFocusDist | 3 | フォーカス距離。 |
+| soraFisheye | \[ true \| false \] | 魚眼。 |
+| soraFisheyeStrength / soraFisheyeShape | 100 / \[ rect \| circle \] | 魚眼の強さ/形状。 |
+| soraPanorama / soraPanoAov | \[ true \| false \] / 180 | パノラマ/その画角。 |
+| soraPeaking / soraTraj | \[ true \| false \] | ピーキング/軌跡。 |
+| soraCenterCross / soraTargetCross / soraSearchCenter | \[ true \| false \] | 中央十字/目的点十字/検索中心。 |
+| soraBaseAz / soraBaseAlt | 250.34 / 3.29 | 基準方位角/視高度(URL値のまま使い、位置からの自動再計算で上書きしない)。 |
+| soraOffsetAz / soraOffsetAlt | 0 / 0 | オフセット方位角/視高度。 |
+| soraViewRange | 60 | 視界範囲。 |
+| soraMovInterval / soraMovShots / soraMovFps / soraMovDispStep / soraMovImgMb | 10 / 250 / 30 / 0.3 / 2 | 再生(インターバル/枚数/fps/表示間隔/画像MB)。 |
+| soraMovPlayMode | \[ anim \| video \] | 再生方式。 |
+| soraMwBrightness / soraElevShade / soraSunShade | 60 / 60 / 60 | 天の川の明るさ/地形陰影/太陽陰影。 |
+| soraExpFormat / soraExpW / soraExpH | \[ jpeg \| png \| h264 \| webm \] / 1920 / 1280 | 書き出し形式/幅/高さ。 |
+
+#### 花火モードのキー(どのmodeでも有効。省略時は現状維持)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| fwEnabled | \[ true \| false \] | 花火モード。 |
+| fwLat / fwLng | 緯度/経度 | 打ち上げ点(設定済みの場合のみURLに付く)。 |
+| fwElev / fwHeight | 0 / 0 | 打ち上げ点の標高/高さ。 |
+| fwRadius / fwSpread | 50 (0〜10000) / 0 (-100〜100) | 開花直径/広がり。 |
+| fwSize | 号数(2.5/3/5/10/30/40) | 玉の号数。 |
+| fwMode | \[ vary \| fixed \] | 号数変化/固定。 |
+| fwShowPoint | \[ true \| false \] | 花火点(+)の表示。 |
+
+#### 宙検索メニューのキー(どのmodeでも有効。省略時は現状維持)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| ssPreset | \[ milkyway \| stars \| unkai \| pearl \| glow \| custom \] | プリセット。 |
+| ssWL / ssWM / ssWH | 重み(0〜100) | 低/中/高層雲の重み。 |
+| ssMoonMode / ssWMoon | \[ avoid \| want \] / 重み(0〜100) | 月の扱い/重み。 |
+| ssUnkaiMode / ssWUnkai | \[ avoid \| want \] / 重み(0〜100) | 雲海の扱い/重み。 |
+| ssWLp / ssWTr | 重み(0〜100) | 光害/透明度の重み。 |
+| ssObj / ssWObj | \[ mw \| body \| moon \| none \] / 重み(0〜100) | 対象天体/重み。 |
+| ssBandNight / ssBandTwilight / ssBandGhbh / ssBandDay | \[ true \| false \] | 時間帯(夜/薄明/GH・BH/昼)。 |
+| ssDays / ssInterval / ssFan / ssRange | 7 / \[ 1 \| 3 \] / 90 / 50 | 期間/間隔/扇角/範囲km。**ssRangeは範囲=自動追従(null)の時はURLに付かず、宙検索キーがあるのにssRangeが無いURLは自動へ戻す**。 |
+| ssStat | \[ true \| false \] | 統計チェック。 |
+
+#### 辻検索のキー(mode=tsujisearchの時のみ有効)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| tsujiSearchDays | 365 (1〜36500) | 検索期間。 |
+| tsujiAz / tsujiAlt | 250.34 / 3.29 | 基準方位角/視高度。**このキーがあるURLでは位置からの自動再計算で上書きしない**(作成者の手動編集値を尊重)。省略時は観測点/目的点から算出。 |
+| tsujiAzOffset / tsujiAltOffset | 0 / 0 | オフセット方位角/視高度。 |
+| tsujiAzTolerance / tsujiAltTolerance | 15 / 15 | 許容範囲方位角/視高度。 |
+| tsujiCenterMode | \[ point \| line \] | 検索中心(点/線)。 |
+| tsujiMoonFilter / tsujiMoonBase / tsujiMoonTolerance | false / 14.8 / 2 | 月齢フィルタ/基準月齢/許容範囲。 |
+| tsujiAccuracyFilter | \[ true \| false \] | 精度フィルタ。 |
+| tsujiAccDblCircle / tsujiAccCircle / tsujiAccTriangle / tsujiAccDash | \[ true \| false \] | 精度◎/○/△/-の各フィルタ。 |
+| tsujiElevationOption / tsujiElevOK / tsujiElevNG | \[ true \| false \] | 標高オプション/OK/NGフィルタ。 |
+| tsujiTimeFilter | \[ true \| false \] | 時間フィルタ。 |
+| tsujiStartMode | \[ fixed \| astroDawn \| nautDawn \| yoake \| civilDawn \| bhEndGhStart \| sunrise \| ghEnd \| ghStart \| sunset \| ghEndBhStart \| civilDusk \| higure \| nautDusk \| astroDusk \] | 時間フィルタ開始の時刻モード(fixed=時刻指定、他は薄明/日の出入り等)。省略時はsunset。 |
+| tsujiStartTime | 00:00 (URL上は00%3A00) | 開始がfixedの時の時刻。 |
+| tsujiStartPrePost / tsujiStartPrePostDir / tsujiStartOffset | false / \[ before \| after \] / 00:00 | 開始の前後指定/方向/時間。 |
+| tsujiEndMode / tsujiEndTime / tsujiEndPrePost / tsujiEndPrePostDir / tsujiEndOffset | (開始と同様。EndModeの省略時はsunrise) | 時間フィルタ終了side。 |
+
+#### 辻メッシュ検索のキー(mode=tsujimeshの時のみ有効)
+| キー名 | 取りうる値 | 説明 |
+| --- | --- | --- |
+| tsujiMeshDays | 365 | 検索期間。 |
+| tsujiMeshAz / tsujiMeshAlt | 250.34 / 3.29 | 基準方位角/視高度(辻検索と同じ上書き保護)。 |
+| tsujiMeshAzOffset / tsujiMeshAltOffset | 0 / 0 | オフセット方位角/視高度。 |
+| tsujiMeshAzTolerance / tsujiMeshAltTolerance | 15 / 15 | 許容範囲方位角/視高度。 |
+| tsujiMeshCenterMode | \[ point \| line \] | 検索中心。 |
+| tsujiMeshAccuracy | \[ x1 \| x2 \| x4 \| x8 \] | メッシュ精度。 |
+| tsujiMeshSymO / tsujiMeshSymTri / tsujiMeshSymDash | \[ true \| false \] | 精度○/△/-の集計対象。**URLに付くが復元では読み飛ばす**(現仕様では読み取り専用・常時オフのため。過去URL互換)。 |
+| tsujiMeshMoonFilter / tsujiMeshMoonBase / tsujiMeshMoonTolerance | false / 14.8 / 2 | 月齢フィルタ/基準月齢/許容範囲。 |
+| tsujiMeshElevationOption / tsujiMeshElevOK / tsujiMeshElevNG | \[ true \| false \] | 標高オプション/OK/NGフィルタ。 |
+| tsujiMeshTimeFilter | \[ true \| false \] | 時間フィルタ。 |
+| tsujiMeshStartMode / tsujiMeshStartTime / tsujiMeshStartPrePost / tsujiMeshStartPrePostDir / tsujiMeshStartOffset | (辻検索と同じ値域) | 時間フィルタ開始side。 |
+| tsujiMeshEndMode / tsujiMeshEndTime / tsujiMeshEndPrePost / tsujiMeshEndPrePostDir / tsujiMeshEndOffset | (辻検索と同じ値域) | 時間フィルタ終了side。 |
 
 ### 仕様詳細:
-- 上記表のキーで、「複数指定可能」となっているものは、URLSearchParams.getAll()で取得し、starIdと対応する他のキーの内容が一致するようにする。
+- 「複数指定可」のキー(starId/starName/starRa/starDec/starColor/starIsDashed)はURLSearchParams.getAll()で取得し、starIdと対応する他のキーの内容が一致するようにする(My天体はstarIdの数字と同じ並び順で対応)。
 - タイムゾーンは、URLを取得するときにそのブラウザが所属するタイムゾーンの情報を埋め込むことで、その作成されたURLを別のタイムゾーンの人が参照する時に、同じ日時情報の状態で参照できるようにするため。
+- 数値・列挙値はURL復元後にnormalizeAppState()で既定の範囲・選択肢に丸める(壊れた値・範囲外の値は既定値へ)。
+- 廃止キー: `tsujiMeshPixHeight`(項目廃止。旧URLでは無視される)。旧仕様にあった`startName`/`endName`(観測点名/目的点名)は実装していない(位置と天体定義だけで状態を復元する)。
 
 
 -------------------------------------------------------------------------------

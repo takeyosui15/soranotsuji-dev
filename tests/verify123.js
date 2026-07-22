@@ -78,7 +78,7 @@ const LOAD_ONLY_OK = new Set([
   'appSchema',   // saved.appSchema → appState._loadedSchema として読む(キー名が変わる)
 ]);
 
-check('K0 APP_VERSION 1.40.0', src.includes("APP_VERSION = '1.40.0'") || !!process.argv[2]);   // 引数指定時(他リポジトリ検査)はスキップ
+check('K0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);   // 引数指定時(他リポジトリ検査)はスキップ
 check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
   save.size > 30 && load.size > 30 && norm.size > 10,
   `save=${save.size} load=${load.size} norm=${norm.size}`);

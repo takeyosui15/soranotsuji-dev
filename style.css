@@ -2450,7 +2450,11 @@ input[type="range"] {
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
 }
 .gl-layer-list.hidden { display: none; }
-.gl-layer-list label { display: block; font-size: 12px; color: #000; margin: 2px 0; cursor: pointer; }
+.gl-layer-list label { font-size: 12px; color: #000; margin: 2px 0; cursor: pointer; }
+/* 選択肢は縦4行に積む(スマホは横幅が狭く、横4列だと画面外へはみ出て押せない)。
+   全メニュー共通の label:has(>input)=inline-flex(詳細度0,1,2)が「.gl-layer-list label」(0,1,1)に
+   勝って横並びへ戻すため、同じ:has形で詳細度(0,2,2)にして縦積みを確定させる */
+.gl-layer-list label:has(> input[type="radio"]) { display: flex; }
 /* MapLibreの角コンテナ内でもLeaflet風コントロールの白背景/枠線を維持する */
 .maplibregl-ctrl.gl-bar { background: transparent; }
 /* 旧leaflet.cssのコントロール地スタイル相当(手順4のLeaflet撤去でここへ移植) */

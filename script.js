@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.41.0 - 2026-07-22: feat: 第40ラウンド — 地図レイヤーリストの縦4行化+URL短縮辞書の作り直し(v12) ①地図左上のレイヤー選択リストを縦4行に(スマホは横幅が狭く、横4列だと画面外へはみ出て宙の辻パネルの下に潜り「淡色/OSM」が押せなかった。原因は全メニュー共通のlabel:has(>input)=inline-flex(詳細度0,1,2)が「.gl-layer-list label」のdisplay:block(0,1,1)に勝っていたカスケード衝突=花火ラベルと同型) ②LZWのURL短縮辞書を2種規則で作り直し(v12): シードを「&キー名=」(全148キー)+「キー値」(列挙固定値104個)+定型3つ(%2B0900/00%3A00/%23)だけで構成(「=値&」のような区切り付き値シードを廃止=意味の明確な辞書に)。先頭キーだけ「&」が付かない問題は「仮想の先頭&」方式で解消(エンコード時に足し、デコード時に外す)。v1〜v11の辞書は発行済みURLの復号用に凍結(旧短縮URLは引き続き読める)。実測: プレビュー/宙の窓URLは旧辞書比±2%・辻検索/辻メッシュURLは+8〜10%(意味優先の設計判断。最長でも約1380文字) ③デッサン00のURL仕様を現実装に全面更新(sora系・fw系・ss系・tsujiMesh系キー・短縮URLの版数運用・各URL取得の先頭キーの明記)
 Version 1.40.0 - 2026-07-22: feat: 第39ラウンド — 道具箱の始動+Drive保存/バックアップの統一(承認済み方針) ①保存キー整合性リンター(tests/verify123.js): 「保存されるのに復元されない」等の3箇所の暗黙対応のズレを静的検査(花火バグの型の再発防止。対象ファイル引数で他プロジェクト再利用可) ②scratch/新設: 自作ツールの道具箱(中央寄せ画素チェッカーcenter-check.js等。CLAUDE.mdからリンク) ③Drive保存(soranotsuji-app.json)の吸い上げをsoranotsuji_プレフィックスのキー限定に(同一オリジンの他アプリのキー混入・肥大化の防止。読込側も同プレフィックスのみ書き戻し=混入済みキーは掃除される) ④メニューのバックアップ/インポートを生ダンプ形式(Drive/reset.htmlと同一構造)に一本化(旧形式の選択的バックアップは自動判別で後方互換取り込み)・reset.htmlも同じ絞り込みに統一 ⑤リファクタリング観点レビュー資料(docs/knowledge/refactoring-guide.md)を起案
 Version 1.39.1 - 2026-07-20: fix: 観測点/目的点の検索ボックスの正規化規則を整理(海外地名検索を可能に) — 旧実装は入力全体を無条件に全角化していたため、英字の海外地名(Ayers Rock等)がOSMで検索できなかった。新規則: ①日本語(かな/カナ/漢字/半角カナ)を含む入力のみ従来どおり半角英数記号を全角化(住所の「1-2-3」の半角全角揺れ対策を維持) ②英字のみ/海外言語のみは無変換でそのまま検索(GSI→OSMの順は従来どおり) ③数値のみ(カンマ無し)は従来どおり検索スキップ(OSMが郵便番号と解釈して海外の地点[実測: チリ]へ飛ぶため。初期からのZipコード誤認防止を維持)。実ネットワークでGSI/OSMの各挙動(半角住所もGSIは同一結果を返す・OSMの郵便番号ジャンプ実在・Ayers Rock/Matterhornのヒット)を確認の上で設計
 Version 1.39.0 - 2026-07-20: feat: 第37ラウンド — 海外対応(全球DEM)+URL由来値のセッション限定化(依頼者決定)+懸案対応+細部修正 ⓪海外対応: 標高データに全球DEM(AWS Open DataのTerrariumタイル。SRTM/EU-DEM等30m級)を最終フォールバックとして追加し、海外でも宙の窓の山プレビュー/標高グラフ/可視判定/辻メッシュ検索/宙断面が動くように。Terrariumはロード時にGSI符号へ正規化するため下流のデコード/ワーカーは共通。国内の結果を一切変えないよう「日本域外のタイル/地点のみ」にゲート(国内の海は従来どおり)。あわせて「標高グラフが固まる」の対策: 日本域外のGSIタイルは取得自体をスキップ(海外での404嵐の解消)・タイル取得12秒タイムアウト・失敗のネガティブキャッシュ ①共有URLで開いたセッションでは「URLによって実際に変わった項目」を保存しない(URL適用前の自分の保存値で凍結して書き出す。通常の再訪では自分の保存値のまま=共有URLを開いても保存条件が置き換わらない) ②表示中セットのMy系編集(観測点/目的点/辻検索/宙検索のdirty・My天体の追加/削除)でMyセットメニューの行アイコンを即👎(差あり)に(シート側変更しか検知しない片方向監視の解消・依頼者提案) ③Drive同期の指紋を「実際にアップロードした内容」から計算(アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの考え方) ④宙の窓ctrlの「:花火モード」ラベルを金字に(.control-row labelの#333に負けていた) ⑤onloadの辻ライン365ボタン点灯分岐(到達不能の死にコード)を整理
@@ -104,7 +105,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.40.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.41.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -12485,8 +12486,11 @@ function toggleAllMySets() {
 //  - 辞書は _QP_SEED_VERSIONS に版ごとに保持し、既存の版は絶対に変更しない。
 //  - エンコードは常に最新版を使い、出力の先頭に「~版数~」を付ける(v1のみ無印=レガシー)。
 //  - デコードは先頭の「~版数~」で辞書を選ぶ(無印はv1)。
-//  - パラメータキーを追加/変更したら、新しい配列(_QP_SEEDS_V3, ...)を追加して
-//    _QP_SEED_VERSIONS に積み、エンコーダが自動で最新版を使う。古いURLはそのまま読める。
+//  - パラメータキーを追加/変更したら、新しい版の配列を追加して _QP_SEED_VERSIONS に積み、
+//    エンコーダが自動で最新版を使う。古いURLはそのまま読める。
+// 【v12からの辞書規則(第40ラウンドで作り直し)】シードは「&キー名=」(全キー)と「キー値」(列挙固定値)の
+//  2種類+定型3つのみで構成する(_QP_KEYS_V12/_QP_VALUES_V12参照)。v1〜v11の断片混在辞書は
+//  発行済みURLの復号専用として凍結。
 const _QP_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 // LZWの貪欲一致は接頭辞を辿るため、シードは全接頭辞(2文字以上)に展開して登録する
 function _qpSeedEntries(seeds) {
@@ -12542,12 +12546,82 @@ const _QP_SEEDS_V10 = _QP_SEEDS_V9.concat(['&ssPreset=', '&ssW', '&ssMoonMode=',
     '=milkyway&', '=stars&', '=unkai&', '=pearl&', '=glow&', '=custom&', '=avoid&', '=want&', '=mw&', '=body&', '=moon&', '=none&']);
 // v11: v10の全シード + 宙検索の統計チェック(v10は発行済みURLのため凍結)
 const _QP_SEEDS_V11 = _QP_SEEDS_V10.concat(['&ssStat=']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11];   // 添字+1=版数。最新版でエンコードする
+// v12: 辞書の作り直し(第40ラウンド・公開前のため再設計)。積み増しをやめ、2種類の規則だけで構成する:
+//   ①「&キー名=」… 全URLキー。区切りごと登録する(キーは必ず「&」と「=」に挟まれて現れるため意味を持つ。
+//      先頭キーだけは「&」が付かないので、エンコード時に仮想の先頭「&」を足して全キーを同形にする=_QP_PRIME_FROM)
+//   ②「キー値」… 列挙可能な固定値のみ。裸のまま登録する(値の前後の区切りは位置で変わるため付けない。
+//      「=値&」のような区切り付き値は意味が曖昧になるので登録しない)
+//   補: 値の定型3つ(%2B0900=タイムゾーン+0900 / 00%3A00=時刻00:00 / %23=色値の先頭「#」)のみ例外的に登録
+// キー追加時はこの2配列に足して新版(V13)を作り、_QP_SEED_VERSIONSへ積む(発行済みURLのため既存版は凍結)
+const _QP_KEYS_V12 = [
+    // 共通(モード/日時/位置/天体/パネル)
+    'mode', 'date', 'time', 'timeZone',
+    'startLat', 'startLng', 'startApiElv', 'startElv', 'endLat', 'endLng', 'endApiElv', 'endElv',
+    'starId', 'starName', 'starRa', 'starDec', 'starColor', 'starIsDashed',
+    'dp', 'elevation', 'milkyway', 'soramado', 'tsujisearch', 'tsujimesh',
+    // 宙の窓+コントロール
+    'soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
+    'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
+    'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter',
+    'soraBaseAz', 'soraBaseAlt', 'soraOffsetAz', 'soraOffsetAlt', 'soraViewRange',
+    'soraMovInterval', 'soraMovShots', 'soraMovFps', 'soraMovDispStep', 'soraMovImgMb', 'soraMovPlayMode',
+    'soraMwBrightness', 'soraElevShade', 'soraSunShade', 'soraExpFormat', 'soraExpW', 'soraExpH',
+    // 花火モード
+    'fwEnabled', 'fwLat', 'fwLng', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwSpread', 'fwShowPoint',
+    // 宙検索
+    'ssPreset', 'ssWL', 'ssWM', 'ssWH', 'ssMoonMode', 'ssWMoon', 'ssUnkaiMode', 'ssWUnkai', 'ssWLp', 'ssWTr',
+    'ssObj', 'ssWObj', 'ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay',
+    'ssDays', 'ssInterval', 'ssFan', 'ssRange', 'ssStat',
+    // 辻検索
+    'tsujiSearchDays', 'tsujiAz', 'tsujiAlt', 'tsujiAzOffset', 'tsujiAltOffset', 'tsujiAzTolerance', 'tsujiAltTolerance',
+    'tsujiCenterMode', 'tsujiMoonFilter', 'tsujiMoonBase', 'tsujiMoonTolerance',
+    'tsujiAccuracyFilter', 'tsujiAccDblCircle', 'tsujiAccCircle', 'tsujiAccTriangle', 'tsujiAccDash',
+    'tsujiElevationOption', 'tsujiElevOK', 'tsujiElevNG',
+    'tsujiTimeFilter', 'tsujiStartMode', 'tsujiStartTime', 'tsujiStartPrePost', 'tsujiStartPrePostDir', 'tsujiStartOffset',
+    'tsujiEndMode', 'tsujiEndTime', 'tsujiEndPrePost', 'tsujiEndPrePostDir', 'tsujiEndOffset',
+    // 辻メッシュ検索
+    'tsujiMeshDays', 'tsujiMeshAz', 'tsujiMeshAlt', 'tsujiMeshAzOffset', 'tsujiMeshAltOffset',
+    'tsujiMeshAzTolerance', 'tsujiMeshAltTolerance', 'tsujiMeshCenterMode', 'tsujiMeshAccuracy',
+    'tsujiMeshSymO', 'tsujiMeshSymTri', 'tsujiMeshSymDash',
+    'tsujiMeshMoonFilter', 'tsujiMeshMoonBase', 'tsujiMeshMoonTolerance',
+    'tsujiMeshElevationOption', 'tsujiMeshElevOK', 'tsujiMeshElevNG',
+    'tsujiMeshTimeFilter', 'tsujiMeshStartMode', 'tsujiMeshStartTime', 'tsujiMeshStartPrePost', 'tsujiMeshStartPrePostDir', 'tsujiMeshStartOffset',
+    'tsujiMeshEndMode', 'tsujiMeshEndTime', 'tsujiMeshEndPrePost', 'tsujiMeshEndPrePostDir', 'tsujiMeshEndOffset',
+];
+const _QP_VALUES_V12 = [
+    // 真偽値
+    'true', 'false',
+    // mode値
+    'preview', 'tsujisearch', 'tsujimesh',
+    // 天体ID(DEFAULT_BODIES)
+    'MilkyWay', 'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+    'Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon',
+    // 時刻モード(TSUJI_TIME_MODES+fixed。fixedはfwModeの値でもある)
+    'astroDawn', 'nautDawn', 'yoake', 'civilDawn', 'bhEndGhStart', 'sunrise', 'ghEnd', 'ghStart',
+    'sunset', 'ghEndBhStart', 'civilDusk', 'higure', 'nautDusk', 'astroDusk', 'fixed',
+    // 前後方向・中心モード・メッシュ精度
+    'before', 'after', 'point', 'line', 'x1', 'x2', 'x4', 'x8',
+    // 宙の窓の列挙値(センサーSORA_SENSORS/向き/魚眼形状/出力形式/再生モード)
+    'mediumformat', 'fullframe', 'apsh', 'apsc', 'apsc_canon', 'm43', 'one',
+    'type114', 'type128', 'type17', 'type20', 'type23', 'type255', 'type30', 'type36',
+    'ip_x_11', 'ip_12', 'ip_12pm', 'ip_13', 'ip_13p_14', 'ip_pro48', 'ip_15_16', 'ip_se', 'ipod7',
+    'px_4a_6a', 'px_6_7', 'px_7a_8a', 'px_8_9', 'xp_1ii_iv', 'xp_1v', 'xp_10',
+    'landscape', 'portrait', 'rect', 'circle', 'jpeg', 'png', 'h264', 'webm', 'anim', 'video',
+    // 花火・宙検索の列挙値
+    'vary', 'milkyway', 'stars', 'unkai', 'pearl', 'glow', 'custom', 'avoid', 'want', 'mw', 'body', 'moon', 'none',
+    // 値の定型(タイムゾーン+0900 / 時刻00:00 / 色値の先頭#)
+    '%2B0900', '00%3A00', '%23',
+];
+const _QP_SEEDS_V12 = _QP_KEYS_V12.map(k => '&' + k + '=').concat(_QP_VALUES_V12);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12];   // 添字+1=版数。最新版でエンコードする
+const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
-    const bytes = new TextEncoder().encode(str);
-    if (bytes.length === 0) return '';
+    if (str === '') return '';
     const version = _QP_SEED_VERSIONS.length;   // 常に最新版の辞書で圧縮
+    // v12以降: 仮想の先頭「&」を足してから圧縮する(先頭キーだけ「&」が無く「&キー名=」の辞書に
+    // 乗らないのを避ける。復号側が同じ規則で外すので、URLには現れない)
+    const bytes = new TextEncoder().encode(version >= _QP_PRIME_FROM ? '&' + str : str);
     // LZW圧縮 (初期辞書=1バイト256種, コード幅9bit開始で辞書拡大に応じて広げる)
     const dict = new Map();
     for (let i = 0; i < 256; i++) dict.set(String.fromCharCode(i), i);
@@ -12587,11 +12661,13 @@ function decodeQueryParam(s) {
         if (!s) return '';
         // 辞書版数プレフィックス(~N~)。無印はv1(レガシーURL)
         let seeds = _QP_SEEDS;
+        let version = 1;
         const vm = /^~(\d+)~/.exec(s);
         if (vm) {
             const v = parseInt(vm[1]);
             if (v < 2 || v > _QP_SEED_VERSIONS.length) return null;   // 未知の版(将来の新版URL)は復号不可
             seeds = _QP_SEED_VERSIONS[v - 1];
+            version = v;
             s = s.slice(vm[0].length);
             if (!s) return '';
         }
@@ -12642,7 +12718,10 @@ function decodeQueryParam(s) {
         // バイト列 → UTF-8文字列
         const bytes = new Uint8Array(res.length);
         for (let i = 0; i < res.length; i++) bytes[i] = res.charCodeAt(i);
-        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        // v12以降: エンコード側が足した仮想の先頭「&」を外す(無ければ壊れたURLとして復号失敗扱い)
+        if (version >= _QP_PRIME_FROM) return text[0] === '&' ? text.slice(1) : null;
+        return text;
     } catch (_) {
         return null;
     }
