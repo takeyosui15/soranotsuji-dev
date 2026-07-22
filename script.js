@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.40.0 - 2026-07-22: feat: 第39ラウンド — 道具箱の始動+Drive保存/バックアップの統一(承認済み方針) ①保存キー整合性リンター(tests/verify123.js): 「保存されるのに復元されない」等の3箇所の暗黙対応のズレを静的検査(花火バグの型の再発防止。対象ファイル引数で他プロジェクト再利用可) ②scratch/新設: 自作ツールの道具箱(中央寄せ画素チェッカーcenter-check.js等。CLAUDE.mdからリンク) ③Drive保存(soranotsuji-app.json)の吸い上げをsoranotsuji_プレフィックスのキー限定に(同一オリジンの他アプリのキー混入・肥大化の防止。読込側も同プレフィックスのみ書き戻し=混入済みキーは掃除される) ④メニューのバックアップ/インポートを生ダンプ形式(Drive/reset.htmlと同一構造)に一本化(旧形式の選択的バックアップは自動判別で後方互換取り込み)・reset.htmlも同じ絞り込みに統一 ⑤リファクタリング観点レビュー資料(docs/knowledge/refactoring-guide.md)を起案
 Version 1.39.1 - 2026-07-20: fix: 観測点/目的点の検索ボックスの正規化規則を整理(海外地名検索を可能に) — 旧実装は入力全体を無条件に全角化していたため、英字の海外地名(Ayers Rock等)がOSMで検索できなかった。新規則: ①日本語(かな/カナ/漢字/半角カナ)を含む入力のみ従来どおり半角英数記号を全角化(住所の「1-2-3」の半角全角揺れ対策を維持) ②英字のみ/海外言語のみは無変換でそのまま検索(GSI→OSMの順は従来どおり) ③数値のみ(カンマ無し)は従来どおり検索スキップ(OSMが郵便番号と解釈して海外の地点[実測: チリ]へ飛ぶため。初期からのZipコード誤認防止を維持)。実ネットワークでGSI/OSMの各挙動(半角住所もGSIは同一結果を返す・OSMの郵便番号ジャンプ実在・Ayers Rock/Matterhornのヒット)を確認の上で設計
 Version 1.39.0 - 2026-07-20: feat: 第37ラウンド — 海外対応(全球DEM)+URL由来値のセッション限定化(依頼者決定)+懸案対応+細部修正 ⓪海外対応: 標高データに全球DEM(AWS Open DataのTerrariumタイル。SRTM/EU-DEM等30m級)を最終フォールバックとして追加し、海外でも宙の窓の山プレビュー/標高グラフ/可視判定/辻メッシュ検索/宙断面が動くように。Terrariumはロード時にGSI符号へ正規化するため下流のデコード/ワーカーは共通。国内の結果を一切変えないよう「日本域外のタイル/地点のみ」にゲート(国内の海は従来どおり)。あわせて「標高グラフが固まる」の対策: 日本域外のGSIタイルは取得自体をスキップ(海外での404嵐の解消)・タイル取得12秒タイムアウト・失敗のネガティブキャッシュ ①共有URLで開いたセッションでは「URLによって実際に変わった項目」を保存しない(URL適用前の自分の保存値で凍結して書き出す。通常の再訪では自分の保存値のまま=共有URLを開いても保存条件が置き換わらない) ②表示中セットのMy系編集(観測点/目的点/辻検索/宙検索のdirty・My天体の追加/削除)でMyセットメニューの行アイコンを即👎(差あり)に(シート側変更しか検知しない片方向監視の解消・依頼者提案) ③Drive同期の指紋を「実際にアップロードした内容」から計算(アップロード中の編集が「同期済み👍」扱いになる競合の解消=2フェーズコミットの考え方) ④宙の窓ctrlの「:花火モード」ラベルを金字に(.control-row labelの#333に負けていた) ⑤onloadの辻ライン365ボタン点灯分岐(到達不能の死にコード)を整理
 Version 1.38.0 - 2026-07-20: feat: 第36ラウンド — 後日課題の全実施+保存/初期値/URL再現の整合性調査と修正+閉じるボタン ①作法改善の本丸: 辻メッシュ画像をimageソース+toBlob(PNG)+objectURLの自前パイプラインから標準canvasソース(type:'canvas', animate:false)へ置換(PNG変換・非同期ロード・失敗経路が消え描画が同期に。使い回しcanvas2枚+表示時flush) ②辻ライン時刻ラベル(1天体約140個のDOMマーカー)をsymbolレイヤ+ローカルglyphs(リポジトリ同梱のSDFフォントPBF。生成ツールtests/build-glyphs.js)へ=パン時の再配置がGPU側に ③観測点/目的点/My地点/優辻ピンをMapLibre標準ピン(色指定)へ置換(承認済み)+観測点/目的点マーカーの永続化(毎updateAll破棄→再生成をやめsetLngLat+setHTML更新。表示中ポップアップが更新で閉じる副作用も解消) ④辻メッシュの時刻/色スライダーをrAF合流・冗長setData除去・モバイルのワーカー台数上限(≤6)・OSM単一ホスト化・refreshExpiredTiles:false ⑤整合性修正: 花火モード設定が保存されるのに復元されない実装漏れ・Myセットの空データでシートを上書きし得るデータ消失経路をガード・Drive同期の[New]判定を「前回同期からの変更有無」へ(簿記保存で常にローカル優位になる偏りを解消)・シート同期簿記が指紋に混入して常時「差あり」になる干渉を除外・機能封鎖中のシート読込でMy宙検索が消える片方向消去を温存に・URLの辻検索基準方位角/視高度が自動再計算で上書きされ再現されない競合を保護・保存の容量超過を無音にしない・辻検索期間の正規化追加 ⑥全天儀/標高グラフ/辻検索/辻メッシュ/宙の窓に閉じるボタン(✕)を追加
@@ -103,7 +104,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.39.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.40.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -5207,25 +5208,12 @@ function registerSearchStar() {
 // ============================================================
 
 function exportBackup() {
-    if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、My宙検索、設定のリストをバックアップファイルに全て出力しますか？')) return;
-    const data = {
-        backupDate: new Date().toISOString(),
-        homeStart: appState.homeStart,
-        homeEnd: appState.homeEnd,
-        bodies: appState.bodies.filter(b => !b.isCustom).map(b => ({
-            id: b.id, visible: b.visible, color: b.color, isDashed: b.isDashed
-        })),
-        myStars: appState.myStars,
-        myObservations: appState.myObservations,
-        myTargets: appState.myTargets,
-        myTsujiSearches: appState.myTsujiSearches,
-        mySoraSearches: appState.mySoraSearches,
-        settings: {
-            refractionEnabled: appState.refractionEnabled,
-            meteo: { p: appState.meteo.p, t: appState.meteo.t, l: appState.meteo.l }
-        }
-    };
-    const json = JSON.stringify(data, null, 2);
+    // 第39ラウンド・承認済み方針: バックアップは生ダンプ形式(Drive app.json/reset.htmlと同一構造)に
+    // 一本化した。全設定・全Myリストが丸ごと入る(旧形式の選択的バックアップより広い)。
+    // インポート側は旧形式も自動判別して受け付ける(後方互換)
+    if (!confirm('この端末の全設定・全Myリスト(位置/検索条件/表示設定を含む全て)をバックアップファイルに出力しますか？\n(Googleドライブ保存・reset.htmlと同じ形式です)')) return;
+    saveAppState();   // 現在の状態を確定してから吸い上げる
+    const json = JSON.stringify(collectLocalStorageAll(), null, 2);
     const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -5247,6 +5235,16 @@ function importBackup() {
         reader.onload = (ev) => {
             try {
                 const data = JSON.parse(ev.target.result);
+                // 新形式(生ダンプ=Drive/reset.htmlと同一構造)を自動判別(第39ラウンド)
+                if (data && typeof data === 'object' && typeof data[STORAGE_KEY] === 'string') {
+                    JSON.parse(data[STORAGE_KEY]);   // 破損チェック(中身も検証)
+                    const n = _writeSoranotsujiKeys(data);
+                    if (n === 0) throw new Error('取り込めるキーがありません');
+                    alert('バックアップ(全設定)を取り込みました。ページを再読み込みします。');
+                    appReload();
+                    return;
+                }
+                // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)
                 if (data.homeStart) appState.homeStart = data.homeStart;
                 if (data.homeEnd) appState.homeEnd = data.homeEnd;
                 if (data.bodies && Array.isArray(data.bodies)) {
@@ -11163,12 +11161,28 @@ async function ensureSoraFolders() {
 
 /** ローカルストレージ全体を{キー:値}で集める (reset.htmlのバックアップと同一構造) */
 function collectLocalStorageAll() {
+    // soranotsuji_プレフィックスのキーだけを吸い上げる(第39ラウンド・承認済み方針:
+    // 同一オリジンの他アプリのキー混入とapp.json肥大化の防止。現在アプリのキーは実質soranotsuji_appの1個)
     const data = {};
     for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        data[k] = localStorage.getItem(k);
+        if (k && k.startsWith('soranotsuji_')) data[k] = localStorage.getItem(k);
     }
     return data;
+}
+
+/** 生ダンプ形式(Drive app.json/バックアップ共通)のオブジェクトからlocalStorageへ書き戻す。
+ *  soranotsuji_プレフィックスのキーだけを書き、混入した無関係キーは無視する(=読み込みで掃除される)。
+ *  Drive読込とバックアップインポートの両方が使う共通実装(第39ラウンド) */
+function _writeSoranotsujiKeys(obj) {
+    let n = 0;
+    for (const k of Object.keys(obj)) {
+        if (k.startsWith('soranotsuji_') && typeof obj[k] === 'string') {
+            localStorage.setItem(k, obj[k]);
+            n++;
+        }
+    }
+    return n;
 }
 
 /** ローカル内容の指紋 (savedAt/googleDriveの同期簿記を除いたFNV-1aハッシュ)。同期後の一致判定用 */
@@ -11279,7 +11293,7 @@ async function loadAppFromDrive() {
             return alert('Googleドライブのファイルが壊れているか、形式が不正です。\nGoogleドライブでファイルを開き「版を管理」から以前の版に戻して、再度お試しください。');
         }
         if (!confirm('Googleドライブの内容で、この端末の内容を上書きします。よろしいですか？\n(読み込み後にページを再読み込みします)')) return;
-        Object.keys(data).forEach(k => localStorage.setItem(k, String(data[k])));
+        _writeSoranotsujiKeys(data);   // soranotsuji_キーのみ書き戻す(過去に混入した無関係キーは無視)
         // 読み込んだ状態に、この端末の同期簿記(ファイルID・同期時点)を書き足す
         try {
             const s = JSON.parse(localStorage.getItem(STORAGE_KEY));

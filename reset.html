@@ -203,14 +203,17 @@ GNU General Public License for more details.
             return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
         }
 
-        // バックアップ: 全localStorageを {キー:値} のJSONにしてダウンロード（生データの完全コピー）
+        // バックアップ: soranotsuji_プレフィックスのlocalStorageを {キー:値} のJSONにしてダウンロード
+        // (第39ラウンド: 本体のバックアップ/Googleドライブ保存と同一形式・同一の絞り込みに統一。
+        //  同一オリジンの他アプリのキーを混入させない)
         document.getElementById('backupBtn').addEventListener('click', function() {
             if (localStorage.length === 0) { alert('保存されているデータがありません。'); return; }
             const data = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
-                data[k] = localStorage.getItem(k);
+                if (k && k.startsWith('soranotsuji_')) data[k] = localStorage.getItem(k);
             }
+            if (Object.keys(data).length === 0) { alert('宙の辻のデータ(soranotsuji_*)がありません。'); return; }
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -236,7 +239,8 @@ GNU General Public License for more details.
                     const data = JSON.parse(ev.target.result);
                     if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('バックアップの形式が不正です');
                     if (!confirm('バックアップの内容で現在のデータを上書きします。よろしいですか？')) return;
-                    Object.keys(data).forEach(k => { localStorage.setItem(k, String(data[k])); });
+                    // soranotsuji_キーのみ書き戻す(混入した無関係キーは無視=復元で掃除される。第39ラウンド)
+                    Object.keys(data).forEach(k => { if (k.startsWith('soranotsuji_') && typeof data[k] === 'string') localStorage.setItem(k, data[k]); });
                     renderStorageData();
                     const statusMsg = document.getElementById('statusMessage');
                     statusMsg.textContent = 'バックアップから復元しました。';

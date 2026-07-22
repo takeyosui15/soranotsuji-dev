@@ -26,6 +26,7 @@
 | `docs/operation/test-checklist.md` | テストを実施するとき |
 | `reviews/README.md` | Claudeさんの実験ノート |
 | `tests/README.md` | Claudeさんの指差し確認 |
+| `scratch/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
 | `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
 | `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 | `docs/order-log/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |
