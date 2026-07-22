@@ -28,6 +28,7 @@
 | `tests/README.md` | Claudeさんの指差し確認 |
 | `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
 | `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
+| `docs/order-log/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |
 | `docs/order-log/order-2026-07-20.md` | Claudeさんとのお茶の時間のお約束について |
 
 ### セッション開始の会話文（必ずこれで始める）
