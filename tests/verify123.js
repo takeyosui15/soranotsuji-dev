@@ -130,8 +130,10 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
       'appSchema', 'savedAt',                                     // メタ
       'start', 'end', 'homeStart', 'homeEnd',                     // 位置オブジェクト(既定はDEFAULT_START/END)
       'startApiElev', 'endApiElev', 'startHeight', 'endHeight',   // 位置の導出スカラー(同上)
-      'refractionEnabled', 'refractionK', 'meteo',                // 大気差(既定は標準大気STD_*から導出)
-      'lastVisitDate', 'moonAge',                                 // 訪問履歴・計算値
+      'refractionEnabled', 'meteo',                               // 大気差(既定は標準大気STD_*から導出)
+      'lastVisitDate',                                            // 訪問履歴
+      // 注: refractionK(導出値)とmoonAge(計算値)は保存キーではないため例外に載せない。
+      //     将来保存化されたらこのリンターが検出するので、その時に扱いを決める(事前免除にしない)
       'bodies', 'myStars', 'myObservations', 'myTargets',         // 構造値(既定はDEFAULT_BODIES/空配列)
       'mySets', 'mySetCurrentId', 'mySetHomeData', 'mySetHome',   // Myセット構造
       'soraFolderName', 'googleDrive',                            // Drive連携(構造+固定名)
