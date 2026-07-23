@@ -24,14 +24,12 @@ PAD(Problem Analysis Diagram・JIS X 0128)をMarkdownの箇条書きで書く記
 
 ```markdown
 - w. 繰り返し前判定
-  - 選択肢1
-  - 選択肢2
+  - 連接
 ```
 
 ```markdown
 - l. 繰り返し後判定
-  - 選択肢1
-  - 選択肢2
+  - 連接
 ```
 
 ```markdown

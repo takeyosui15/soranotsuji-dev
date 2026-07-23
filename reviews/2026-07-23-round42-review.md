@@ -36,53 +36,73 @@ createObjectURL 2箇所(用途が異なる)。
   - r:2.
     - c:1. importMyStarsCsv
     - c:2. 入力+行分割
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:3.
     - c:1. appendMyStarsCsv
     - c:2. 入力+行分割
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:4.
     - c:1. importBackup
     - c:2. 入力(.json)
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:5.
     - c:1. importMyPointsCsv / appendMyPointsCsv
     - c:2. 入力+行分割
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:6.
     - c:1. importMyTsujiCsv / appendMyTsujiCsv
     - c:2. 入力+行分割
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:7.
     - c:1. importMySoraCsv / appendMySoraCsv
     - c:2. 入力+行分割(String(reader.result)変種)
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:8.
     - c:1. exportMyStarsCsv / exportMyPointsCsv / exportMyTsujiCsv / exportMySoraCsv
     - c:2. 出力
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:9.
     - c:1. exportBackup
     - c:2. 出力(.json・mime指定)
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:10.
     - c:1. downloadTsujiResultCsv / ssDownloadCsv / mySoraDownloadCsv
     - c:2. 出力
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
   - r:11.
     - c:1. 殻の残骸ゼロ確認(createElement('input')=1箇所・text系createObjectURL=1箇所)
     - c:2. 無いことのテスト
-    - c:3. <checkbox:checked/>
-    - c:4. <checkbox:checked/>
+    - c:3.
+      - chb:on.
+    - c:4.
+      - chb:on.
 ```
 
 (チェック手順: 置換→node --check→対象verify→全て終えたら回帰。検証列は対象verifyのPASSで✓)

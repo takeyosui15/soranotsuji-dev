@@ -21,7 +21,7 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
 
 ### 基本の3層
 
-- 箇条書きの3層で表を書く: `t:`(table) → `r:`(row) → `c:`(cell)。
+- 箇条書きの3層で表を書く: `t:`(table) -> `r:`(row) -> `c:`(cell)。
 - **トークンは全て`.`で終端する**(第42ラウンド確定)。`.`の後がセルの内容。
 
 ```koushi
@@ -39,10 +39,10 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
 ### スパン(結合セル)と寄せ — `:`で繋ぐ属性
 
 - トークンは`:`で区切った属性の列。**x接頭=スパン、1文字=寄せ**。
-  - `c:1:xc2.` … 1列目からcolspan=2(横に2セル結合)
-  - `c:3:xr2.` … 3列目からrowspan=2(縦に2セル結合)
-  - `c:2:c.` … 水平寄せ(l=左 / c=中央 / r=右)
-  - `c:2:m.` … 垂直寄せ(t=上 / m=中央 / b=下)
+  - `c:1:xc2.` ... 1列目からcolspan=2(横に2セル結合)
+  - `c:3:xr2.` ... 3列目からrowspan=2(縦に2セル結合)
+  - `c:2:c.` ... 水平寄せ(l=左 / c=中央 / r=右)
+  - `c:2:m.` ... 垂直寄せ(t=上 / m=中央 / b=下)
 - 【提案・要レビュー】属性は**順不同で連結可**とする: `c:1:xc2:c:m.`(結合+中央寄せ)。
   読み手は「xで始まる=スパン、1文字=寄せ」で迷わない。
 
@@ -68,9 +68,49 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
 ```
 
 - **input要素**も書ける(デッサンのUIモック・チェックリストに使う):
-  - `<button>ボタン名</button>` … HTML片をそのまま
-  - `<checkbox:checked/>` / `<checkbox/>` … チェックボックスの短縮形。
-    **チェック状態がテキスト=リポジトリで管理される**(マトリックスチェックリストの核)。
+  **チェック状態がテキスト=リポジトリで管理される**(マトリックスチェックリストの核)。
+  - `btn.`
+    - `btn:"クリックしてね".` ... <input type="button" value="クリックしてね" />
+  - `chb.`
+    - `chb:on.` ... <input type="checkbox" checked />
+  - `clr.`
+    - `clr:"#ff0000".`... <input type="color" value="#ff0000" />
+  - `dat.`
+    - `dat:"2017-06-01".` ... <input type="date" value="2017-06-01" />
+  - `dtl.`
+    - `dtl:"2017-06-01T08:30".` ... <input type="datetime-local" value="2017-06-01T08:30" />
+  - `eml.`
+    - `eml:"sophie@example.com".` ... <input type="email" placeholder="sophie@example.com" />
+  - `fil.`
+    - `fil:multiple.` ... <input type="file" multiple />
+  - `hdn.`
+    - `hdn:"34657".` ... <input type="hidden" value="34657" />
+  - `img.`
+    - `img:"https://www.example.com/login.png".` ... <input type="image" src="https://www.example.com/login.png" />
+  - `mnt.`
+    - `mnt:"2001-06".` ... <input type="month" value="2001-06" />
+  - `nmb.`
+    - `nmb:"42".` ... <input type="number" value="42" />
+  - `pwd.` ... <input type="password" />
+  - `rad.`
+    - `rad:on.` ... <input type="radio" checked />
+  - `rng.`
+    - `rng:"90".` ... <input type="range" value="90" />
+  - `rst.`
+    - `rst:"フォームをリセット".` ... <input type="reset" value="フォームをリセット" />
+  - `src.` ... <input type="search" />
+  - `smt.`
+    - `smt:"リクエストを送信".` ... <input type="submit" value="リクエストを送信" />
+  - `tel.`
+    - `tel:"123-4567-8901".` ... <input type="tel" placeholder="123-4567-8901" />
+  - `txt.`
+    - `txt:"小文字で一語で".` ... <input type="text" placeholder="小文字で一語で" />
+  - `tim.`
+    - `tim:"13:30".` ... <input type="time" value="13:30" />
+  - `url.`
+    - `url:"http://www.example.com".` ... <input type="url" placeholder="http://www.example.com" />
+  - `wek.`
+    - `wek:"2017-W01".` ... <input type="week" value="2017-W01" />
 
 ### 依頼者サンプル(第40ラウンド原案を確定記法で書き直したもの)
 
@@ -87,17 +127,17 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
 ```
 
 -------------------------------------------------------------------------------
-## レンダラ計画(Koushi→HTML 片方向)
+## レンダラ計画(Koushi->HTML 片方向)
 -------------------------------------------------------------------------------
 
-- **スモールスタート**: 単一関数 `koushiToHtml(text) → html`(依存なしの素のJS)。
+- **スモールスタート**: 単一関数 `koushiToHtml(text) -> html`(依存なしの素のJS)。
   Markdown中の````koushi`フェンスを見つけてHTMLの`<table>`へ置き換える。
 - 実装順:
-  1. パーサ: 箇条書きのインデント木 → {table→rows→cells(attrs, 内容)}
+  1. パーサ: 箇条書きのインデント木 -> {table->rows->cells(attrs, 内容)}
   2. レンダラ: colspan/rowspan/寄せ(styleでなくclass出力=構造とスタイルの分離)
   3. `<checkbox:checked/>`等の短縮形展開
   4. セル内Markdown(最小: 強調・コード・リンク。入れ子tは再帰)
-- 検証は**ゴールデン方式**(入力→期待HTMLの標本を凍結。宙の辻の辞書ゴールデンと同じ作法)。
+- 検証は**ゴールデン方式**(入力->期待HTMLの標本を凍結。宙の辻の辞書ゴールデンと同じ作法)。
 - 置き場所: MederuU本体の`tools/koushi.js`。それまでは宙の辻の`scratch/`で開発・実証する。
 - 将来: VSCode拡張(プレビュー)。まず片方向レンダラが安定してから。
 
@@ -109,5 +149,5 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
   同じ規則で書けると良い。
 - 属性連結の順不同(上の【提案】)で良いか。
 - 表全体の属性(枠線の有無・幅)を`t:1:...`に書くか、当面はCSS任せにするか(当面CSS任せを推す)。
-- チェック状態の更新フロー: 表示したHTMLのチェックを操作→テキストへ書き戻す仕組みは
+- チェック状態の更新フロー: 表示したHTMLのチェックを操作->テキストへ書き戻す仕組みは
   Okute(編集側)の領分。Koushiは当面「表示専用+テキスト手編集」で始める。
