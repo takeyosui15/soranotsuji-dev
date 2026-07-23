@@ -119,4 +119,4 @@ createObjectURL 2箇所(用途が異なる)。
 - verify127(9チェック): 無いことのテスト4+版数2+端到端3(CSV出力のファイル名/BOMバイト/行内容・
   CSV入力のコメント行スキップ+登録・ページエラーなし)。
 - CSV/バックアップ関連の先行確認: verify98(40)・verify105(10)・verify110(14)・verify123(10)全PASS。
-- 回帰: 全31本(verify96〜127。verify102除く)。結果はorder.md回答に記載。
+- 回帰: 全31本(verify96〜127。verify102除く)=392チェック、全PASS(FAIL 0件)。
