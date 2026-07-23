@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.44.0 - 2026-07-23: refactor: 第42ラウンド — リファクタリングB第1弾: ファイル入出力の型の関数化(依頼者提案の移行チェックリスト方式を初採用。チェックリストはKoushi記法の実証第1号としてレビュー記録に) ①「ファイル選択+読込」の殻9箇所をpickTextFileへ(My天体/My観測点/My目的点/My辻検索/My宙検索の各CSV入力・追加入力+バックアップ読込。async変種と本体直接参照の変種も吸収) ②「CSV行分割」8箇所をsplitCsvLinesへ ③「Blob→ダウンロード」の末尾8箇所をdownloadTextFileへ(各CSV出力+バックアップ出力。動画/画像用のsoraExportDownloadは用途が異なるため対象外) ④エラー処理・確認ダイアログは呼び出し側の責務のまま=挙動不変。無いことのテスト(verify127)で殻の再増殖を検知。あわせてMederuUの器デッサンの図をMarkdown箇条書きへ(ASCII罫線はインデント崩れ)・ClaudeMederuUフォルダ方針・Koushi記法デッサン(01)・Markdown-PAD記法メモ(02)を起草
 Version 1.43.0 - 2026-07-23: refactor: 第41ラウンド(中盤) — リファクタリングA: 既定値の単一情報源化(APP_DEFAULTS) 承認済みのリファクタリング資料A観点を実施。①スカラー149キーの既定値・範囲・列挙・真偽整形規則を1つの表APP_DEFAULTSに集約(appState初期値は表から展開・normalizeAppStateは表の規則を読む汎用パス+表で表せない個別コードのみ) ②挙動不変のcharacterizationで保証: 初期値161キーとnormalize挙動161キー×8種の崩れた値の計1288プローブを、リファクタ前に凍結標本として採取し、後で完全一致を確認(差分0件)。標本はtests/dataへ恒久化し、既定値・規則を意図的に変える時だけ標本を更新する運用に(verify126) ③保存キーリンターを表対応に拡張(verify123 K8: 保存されるスカラーキーは表に載っている・K3基準線を73個へ更新) ④発見と対処: 旧h265→h264移行コードは汎用列挙検査より先に走らないと一旦jpegへ潰れる(実装順の教訓。characterizationの標的プローブに追加) ⑤HTMLのvalue属性は「飾り」(起動時にJSが上書き)と明文化し、代表3入力欄で実測検査
 Version 1.42.0 - 2026-07-23: feat: 第41ラウンド(前半) — URL短縮辞書v13(第3規則)+MederuU器のデッサン+回帰スキル ①短縮辞書に第3規則「&キー名=既定値」を追加(v13。依頼者承認): キーと既定値のペア127個を丸ごと登録し、既定値のままの項目が1コードで表せるように(連続ペアの並びもLZWが学習)。実測で短縮URLが約半分に(辻検索1337→554文字・実運用相当1329→682文字)。ペアはv1.41.0時点の初期状態の実アプリ発行URLから導出して凍結(既定値が将来変わっても配列は変更しない=発行済みURL保護。作り直しはV14で)。v11/v12の発行済み標本+v13ゴールデン標本をtests/dataに封入 ②MederuU(ナレッジ引き継ぎの器)のデッサンをdocs/mederuu/00-dessin.mdへ起草(一方向ハブ・蒸留ワークフロー・man風ヘッダ規約・公開規約・スモールスタート手順) ③ハーネス構築をリポジトリへ昇格(tests/harness/sync-apptest.py)+次セッション宛スキル第1号(.claude/skills/kaiki=回帰の回し方)
 Version 1.41.0 - 2026-07-22: feat: 第40ラウンド — 地図レイヤーリストの縦4行化+URL短縮辞書の作り直し(v12) ①地図左上のレイヤー選択リストを縦4行に(スマホは横幅が狭く、横4列だと画面外へはみ出て宙の辻パネルの下に潜り「淡色/OSM」が押せなかった。原因は全メニュー共通のlabel:has(>input)=inline-flex(詳細度0,1,2)が「.gl-layer-list label」のdisplay:block(0,1,1)に勝っていたカスケード衝突=花火ラベルと同型) ②LZWのURL短縮辞書を2種規則で作り直し(v12): シードを「&キー名=」(全148キー)+「キー値」(列挙固定値104個)+定型3つ(%2B0900/00%3A00/%23)だけで構成(「=値&」のような区切り付き値シードを廃止=意味の明確な辞書に)。先頭キーだけ「&」が付かない問題は「仮想の先頭&」方式で解消(エンコード時に足し、デコード時に外す)。v1〜v11の辞書は発行済みURLの復号用に凍結(旧短縮URLは引き続き読める)。実測: プレビュー/宙の窓URLは旧辞書比±2%・辻検索/辻メッシュURLは+8〜10%(意味優先の設計判断。最長でも約1380文字) ③デッサン00のURL仕様を現実装に全面更新(sora系・fw系・ss系・tsujiMesh系キー・短縮URLの版数運用・各URL取得の先頭キーの明記)
@@ -107,7 +108,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.43.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.44.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -4924,124 +4925,137 @@ function isCsvCommentLine(line) {
     return firstCell.trim().startsWith('#');
 }
 
-/** CSV入力 (My天体) */
-function importMyStarsCsv() {
-    if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
+// ============================================================
+// ファイル入出力の型 (リファクタリングB第1弾・第42ラウンド)
+//  「ファイル選択+読込」の殻9箇所・「CSV行分割」8箇所・「Blob→ダウンロード」の末尾8箇所の
+//  重複を関数化した。エラー処理・確認ダイアログは呼び出し側の責務のまま(挙動不変)。
+//  ※動画/画像Blob用のsoraExportDownload(遅延revoke)は用途が異なるため対象外
+// ============================================================
+/** ファイル選択ダイアログを開き、選んだテキストファイルの中身(UTF-8)をコールバックへ渡す */
+function pickTextFile(accept, onText) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv';
+    input.accept = accept;
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
-                if (lines.length > 1001) return alert('CSVの上限は1000件(見出し行+1000行)です');
-
-                const newStars = [];
-                const usedIds = new Set();
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
-                    const id = parseInt(toHalfWidth(cols[0].trim()));
-                    const name = cols[1].trim();
-                    const ra = parseFloat(toHalfWidth(cols[2].trim()));
-                    const dec = parseFloat(toHalfWidth(cols[3].trim()));
-                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-                    if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
-                    if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
-                    if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
-                    usedIds.add(id);
-                    newStars.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
-                }
-                // CSVの読み込み順で登録（ID昇順ソートはしない）
-                appState.myStars = newStars;
-                syncMyStarsToBodies();
-                saveAppState();
-                renderMyStarsList();
-                updateAll();
-                alert(`${newStars.length}件のMy天体を登録しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
-            }
-        };
+        reader.onload = (ev) => onText(String(ev.target.result));
         reader.readAsText(file, 'UTF-8');
     };
     input.click();
+}
+/** CSVテキストを行配列へ(改行コード統一・空行と#コメント行の除去) */
+function splitCsvLines(text) {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
+}
+/** テキストをファイルとしてダウンロードさせる */
+function downloadTextFile(filename, text, mime = 'text/csv;charset=utf-8') {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/** CSV入力 (My天体) */
+function importMyStarsCsv() {
+    if (!confirm('My天体リストにCSVファイルから全て上書き入力・登録しますか？')) return;
+    pickTextFile('.csv', (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
+        if (lines.length > 1001) return alert('CSVの上限は1000件(見出し行+1000行)です');
+
+        const newStars = [];
+        const usedIds = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
+            const id = parseInt(toHalfWidth(cols[0].trim()));
+            const name = cols[1].trim();
+            const ra = parseFloat(toHalfWidth(cols[2].trim()));
+            const dec = parseFloat(toHalfWidth(cols[3].trim()));
+            if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+            if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
+            if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
+            if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
+            usedIds.add(id);
+            newStars.push({ id, name, ra, dec, visible: false, color: '#DDA0DD', isDashed: true });
+        }
+        // CSVの読み込み順で登録（ID昇順ソートはしない）
+        appState.myStars = newStars;
+        syncMyStarsToBodies();
+        saveAppState();
+        renderMyStarsList();
+        updateAll();
+        alert(`${newStars.length}件のMy天体を登録しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** 追加CSV入力 (My天体 — 既存リストに追加) */
 function appendMyStarsCsv() {
     if (!confirm('My天体リストにCSVファイルから"追加"入力・登録しますか？')) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+    pickTextFile('.csv', (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
-                const csvEntries = [];
-                const csvIds = new Set();
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
-                    const id = parseInt(toHalfWidth(cols[0].trim()));
-                    const name = cols[1].trim();
-                    const ra = parseFloat(toHalfWidth(cols[2].trim()));
-                    const dec = parseFloat(toHalfWidth(cols[3].trim()));
-                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-                    if (csvIds.has(id)) { alert(`CSV内でID ${id} が重複しています`); return; }
-                    if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
-                    if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
-                    csvIds.add(id);
-                    csvEntries.push({ id, name, ra, dec });
-                }
+        const csvEntries = [];
+        const csvIds = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
+            const id = parseInt(toHalfWidth(cols[0].trim()));
+            const name = cols[1].trim();
+            const ra = parseFloat(toHalfWidth(cols[2].trim()));
+            const dec = parseFloat(toHalfWidth(cols[3].trim()));
+            if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+            if (csvIds.has(id)) { alert(`CSV内でID ${id} が重複しています`); return; }
+            if (!name) { alert(`${i + 1}行目: 天体名が空です`); return; }
+            if (isNaN(ra) || isNaN(dec)) { alert(`${i + 1}行目: 赤経/赤緯が無効です`); return; }
+            csvIds.add(id);
+            csvEntries.push({ id, name, ra, dec });
+        }
 
-                let addedCount = 0;
-                for (const entry of csvEntries) {
-                    // 上限チェック
-                    if (appState.myStars.length >= 1000) { alert('My天体の登録上限(1000件)に達しています'); return; }
+        let addedCount = 0;
+        for (const entry of csvEntries) {
+            // 上限チェック
+            if (appState.myStars.length >= 1000) { alert('My天体の登録上限(1000件)に達しています'); return; }
 
-                    // 赤経/赤緯が同じ既存エントリがあればスキップ
-                    const duplicate = appState.myStars.some(s => s.ra === entry.ra && s.dec === entry.dec);
-                    if (duplicate) continue;
+            // 赤経/赤緯が同じ既存エントリがあればスキップ
+            const duplicate = appState.myStars.some(s => s.ra === entry.ra && s.dec === entry.dec);
+            if (duplicate) continue;
 
-                    // ID重複チェック
-                    if (appState.myStars.some(s => s.id === entry.id)) {
-                        const ok = confirm(`My天体(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
-                        if (!ok) return;
-                        entry.id = getNextMyStarId();
-                        if (entry.id === null) { alert('My天体の登録上限(1000件)に達しています'); return; }
-                    }
-
-                    appState.myStars.push({
-                        id: entry.id, name: entry.name, ra: entry.ra, dec: entry.dec,
-                        visible: false, color: '#DDA0DD', isDashed: true
-                    });
-                    addedCount++;
-                }
-
-                syncMyStarsToBodies();
-                saveAppState();
-                renderMyStarsList();
-                updateAll();
-                alert(`${addedCount}件のMy天体を追加しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
+            // ID重複チェック
+            if (appState.myStars.some(s => s.id === entry.id)) {
+                const ok = confirm(`My天体(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                if (!ok) return;
+                entry.id = getNextMyStarId();
+                if (entry.id === null) { alert('My天体の登録上限(1000件)に達しています'); return; }
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+
+            appState.myStars.push({
+                id: entry.id, name: entry.name, ra: entry.ra, dec: entry.dec,
+                visible: false, color: '#DDA0DD', isDashed: true
+            });
+            addedCount++;
+        }
+
+        syncMyStarsToBodies();
+        saveAppState();
+        renderMyStarsList();
+        updateAll();
+        alert(`${addedCount}件のMy天体を追加しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** CSV出力 (My天体) */
@@ -5055,13 +5069,7 @@ function exportMyStarsCsv() {
     targets.forEach(s => {
         csv += `${s.id},${s.name},${s.ra},${s.dec}\r\n`;
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-My天体-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-My天体-${formatFileDateTime()}.csv`, csv);
 }
 
 // ============================================================
@@ -5181,101 +5189,85 @@ function exportBackup() {
     if (!confirm('この端末の全設定・全Myリスト(位置/検索条件/表示設定を含む全て)をバックアップファイルに出力しますか？\n(Googleドライブ保存・reset.htmlと同じ形式です)')) return;
     saveAppState();   // 現在の状態を確定してから吸い上げる
     const json = JSON.stringify(collectLocalStorageAll(), null, 2);
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-app-バックアップ-${formatFileDateTime()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-app-バックアップ-${formatFileDateTime()}.json`, json, 'application/json;charset=utf-8');
 }
 
 function importBackup() {
     if (!confirm('Homeボタン、推し山ボタン、表示天体、My天体、My観測点、My目的点、My辻検索、My宙検索、設定のリストをバックアップファイルから全て上書き入力・登録しますか？')) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                // 新形式(生ダンプ=Drive/reset.htmlと同一構造)を自動判別(第39ラウンド)
-                if (data && typeof data === 'object' && typeof data[STORAGE_KEY] === 'string') {
-                    JSON.parse(data[STORAGE_KEY]);   // 破損チェック(中身も検証)
-                    const n = _writeSoranotsujiKeys(data);
-                    if (n === 0) throw new Error('取り込めるキーがありません');
-                    alert('バックアップ(全設定)を取り込みました。ページを再読み込みします。');
-                    appReload();
-                    return;
+    pickTextFile('.json', (text) => {
+    try {
+        const data = JSON.parse(text);
+        // 新形式(生ダンプ=Drive/reset.htmlと同一構造)を自動判別(第39ラウンド)
+        if (data && typeof data === 'object' && typeof data[STORAGE_KEY] === 'string') {
+            JSON.parse(data[STORAGE_KEY]);   // 破損チェック(中身も検証)
+            const n = _writeSoranotsujiKeys(data);
+            if (n === 0) throw new Error('取り込めるキーがありません');
+            alert('バックアップ(全設定)を取り込みました。ページを再読み込みします。');
+            appReload();
+            return;
+        }
+        // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)
+        if (data.homeStart) appState.homeStart = data.homeStart;
+        if (data.homeEnd) appState.homeEnd = data.homeEnd;
+        if (data.bodies && Array.isArray(data.bodies)) {
+            data.bodies.forEach(b => {
+                const existing = appState.bodies.find(x => x.id === b.id && !x.isCustom);
+                if (existing) {
+                    if (b.visible !== undefined) existing.visible = b.visible;
+                    if (b.color !== undefined) existing.color = b.color;
+                    if (b.isDashed !== undefined) existing.isDashed = b.isDashed;
                 }
-                // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)
-                if (data.homeStart) appState.homeStart = data.homeStart;
-                if (data.homeEnd) appState.homeEnd = data.homeEnd;
-                if (data.bodies && Array.isArray(data.bodies)) {
-                    data.bodies.forEach(b => {
-                        const existing = appState.bodies.find(x => x.id === b.id && !x.isCustom);
-                        if (existing) {
-                            if (b.visible !== undefined) existing.visible = b.visible;
-                            if (b.color !== undefined) existing.color = b.color;
-                            if (b.isDashed !== undefined) existing.isDashed = b.isDashed;
-                        }
-                    });
-                }
-                if (data.myStars && Array.isArray(data.myStars)) {
-                    appState.myStars = data.myStars;
-                    syncMyStarsToBodies();
-                }
-                if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
-                if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
-                if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
-                if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
-                if (data.settings) {
-                    if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
-                    if (data.settings.meteo) {
-                        if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
-                        if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
-                        if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
-                    }
-                }
-                normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
-                saveAppState();
-                syncUIFromState();
-                // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
-                const btnRegStart = document.getElementById('btn-reg-start');
-                const btnRegEnd = document.getElementById('btn-reg-end');
-                if (appState.homeStart) {
-                    btnRegStart.classList.add('active');
-                    btnRegStart.title = '登録済みの観測点を呼び出し';
-                } else {
-                    btnRegStart.classList.remove('active');
-                    btnRegStart.title = '';
-                }
-                if (appState.homeEnd) {
-                    btnRegEnd.classList.add('active');
-                    btnRegEnd.title = '登録済みの目的点を呼び出し';
-                } else {
-                    btnRegEnd.classList.remove('active');
-                    btnRegEnd.title = '';
-                }
-                renderCelestialList();
-                renderMyStarsList();
-                renderMyPointsList('obs');
-                renderMyPointsList('tgt');
-                renderMyTsujiSearches();
-                renderMySoraSearches();
-                updateMyPointMarkers();
-                updateAll();
-                alert('バックアップファイルからインポートしました。');
-            } catch (err) {
-                alert('バックアップファイルの読み込みに失敗しました: ' + err.message);
+            });
+        }
+        if (data.myStars && Array.isArray(data.myStars)) {
+            appState.myStars = data.myStars;
+            syncMyStarsToBodies();
+        }
+        if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
+        if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
+        if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
+        if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
+        if (data.settings) {
+            if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
+            if (data.settings.meteo) {
+                if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
+                if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
+                if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+        }
+        normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
+        saveAppState();
+        syncUIFromState();
+        // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
+        const btnRegStart = document.getElementById('btn-reg-start');
+        const btnRegEnd = document.getElementById('btn-reg-end');
+        if (appState.homeStart) {
+            btnRegStart.classList.add('active');
+            btnRegStart.title = '登録済みの観測点を呼び出し';
+        } else {
+            btnRegStart.classList.remove('active');
+            btnRegStart.title = '';
+        }
+        if (appState.homeEnd) {
+            btnRegEnd.classList.add('active');
+            btnRegEnd.title = '登録済みの目的点を呼び出し';
+        } else {
+            btnRegEnd.classList.remove('active');
+            btnRegEnd.title = '';
+        }
+        renderCelestialList();
+        renderMyStarsList();
+        renderMyPointsList('obs');
+        renderMyPointsList('tgt');
+        renderMyTsujiSearches();
+        renderMySoraSearches();
+        updateMyPointMarkers();
+        updateAll();
+        alert('バックアップファイルからインポートしました。');
+    } catch (err) {
+        alert('バックアップファイルの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 // ============================================================
@@ -5614,148 +5606,126 @@ function getSelectedMyPointId(type) {
 function importMyPointsCsv(type) {
     const cfg = myPointConfig(type);
     if (!confirm(`${cfg.labelFull}リストにCSVファイルから全て上書き入力・登録しますか？`)) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
-                if (lines.length > 1001) return alert('CSVの上限は1000件です');
-                const newPoints = [];
-                const usedIds = new Set();
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
-                    const id = parseInt(toHalfWidth(cols[0].trim()));
-                    const name = cols[1].trim();
-                    const lat = parseFloat(toHalfWidth(cols[2].trim()));
-                    const lng = parseFloat(toHalfWidth(cols[3].trim()));
-                    let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
-                    const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-                    const memo = (cols[6] !== undefined ? cols[6] : '').trim();
-                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-                    if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
-                    if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
-                    usedIds.add(id);
-                    // 標高が空の場合は後で取得
-                    newPoints.push({ id, name, lat, lng, elev, height, memo });
-                }
-                // 標高が未設定の場合は取得
-                for (const pt of newPoints) {
-                    if (pt.elev === null || isNaN(pt.elev)) {
-                        const el = await getElevation(pt.lat, pt.lng);
-                        pt.elev = el !== null ? el : 0;
-                    }
-                }
-                cfg.setList(newPoints);
-                saveAppState();
-                setMyPointDirty(type, false);
-                renderMyPointsList(type);
-                updateMyPointMarkers();
-                alert(`${newPoints.length}件の${cfg.labelFull}を登録しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
+    pickTextFile('.csv', async (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
+        if (lines.length > 1001) return alert('CSVの上限は1000件です');
+        const newPoints = [];
+        const usedIds = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
+            const id = parseInt(toHalfWidth(cols[0].trim()));
+            const name = cols[1].trim();
+            const lat = parseFloat(toHalfWidth(cols[2].trim()));
+            const lng = parseFloat(toHalfWidth(cols[3].trim()));
+            let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
+            const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+            const memo = (cols[6] !== undefined ? cols[6] : '').trim();
+            if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+            if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
+            if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+            usedIds.add(id);
+            // 標高が空の場合は後で取得
+            newPoints.push({ id, name, lat, lng, elev, height, memo });
+        }
+        // 標高が未設定の場合は取得
+        for (const pt of newPoints) {
+            if (pt.elev === null || isNaN(pt.elev)) {
+                const el = await getElevation(pt.lat, pt.lng);
+                pt.elev = el !== null ? el : 0;
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+        }
+        cfg.setList(newPoints);
+        saveAppState();
+        setMyPointDirty(type, false);
+        renderMyPointsList(type);
+        updateMyPointMarkers();
+        alert(`${newPoints.length}件の${cfg.labelFull}を登録しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** 追加CSV入力 (既存リストに追加) */
 function appendMyPointsCsv(type) {
     const cfg = myPointConfig(type);
     if (!confirm(`${cfg.labelFull}リストにCSVファイルから"追加"入力・登録しますか？`)) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+    pickTextFile('.csv', async (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
-                const existingList = cfg.list();
-                const csvEntries = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
-                    const id = parseInt(toHalfWidth(cols[0].trim()));
-                    const name = cols[1].trim();
-                    const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
-                    const lat = parseFloat(latText);
-                    const lng = parseFloat(lngText);
-                    let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
-                    const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-                    const memo = (cols[6] !== undefined ? cols[6] : '').trim();
-                    if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-                    if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
-                    csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
-                }
+        const existingList = cfg.list();
+        const csvEntries = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
+            const id = parseInt(toHalfWidth(cols[0].trim()));
+            const name = cols[1].trim();
+            const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
+            const lat = parseFloat(latText);
+            const lng = parseFloat(lngText);
+            let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
+            const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
+            const memo = (cols[6] !== undefined ? cols[6] : '').trim();
+            if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
+            if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+            csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
+        }
 
-                // CSV内のID重複チェック
-                const csvIds = new Set();
-                for (const entry of csvEntries) {
-                    if (csvIds.has(entry.id)) { alert(`CSV内でID ${entry.id} が重複しています`); return; }
-                    csvIds.add(entry.id);
-                }
+        // CSV内のID重複チェック
+        const csvIds = new Set();
+        for (const entry of csvEntries) {
+            if (csvIds.has(entry.id)) { alert(`CSV内でID ${entry.id} が重複しています`); return; }
+            csvIds.add(entry.id);
+        }
 
-                let addedCount = 0;
-                for (const entry of csvEntries) {
-                    // 上限チェック
-                    if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
+        let addedCount = 0;
+        for (const entry of csvEntries) {
+            // 上限チェック
+            if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
 
-                    // 標高が未設定の場合は取得
-                    if (entry.elev === null || isNaN(entry.elev)) {
-                        const el = await getElevation(entry.lat, entry.lng);
-                        entry.elev = el !== null ? el : 0;
-                    }
-                    
-                    // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ。
-                    // 緯度/経度は数値(double)比較だとCSV生値の末尾1桁違いが同じ倍精度値に丸まって
-                    // 同一視されるため、CSVの生値文字列と登録値の文字列表現で比較する
-                    const duplicate = existingList.some(p =>
-                        String(p.lat) === entry.latText && String(p.lng) === entry.lngText &&
-                        p.elev === entry.elev && p.height === entry.height
-                    );
-                    if (duplicate) continue;
-
-                    // ID重複チェック
-                    if (existingList.some(p => p.id === entry.id)) {
-                        const ok = confirm(`${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
-                        if (!ok) return;
-                        entry.id = getNextMyPointId(type);
-                        if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
-                    }
-
-                    delete entry.latText;
-                    delete entry.lngText;
-                    existingList.push(entry);
-                    addedCount++;
-                }
-
-                saveAppState();
-                setMyPointDirty(type, false);
-                renderMyPointsList(type);
-                updateMyPointMarkers();
-                alert(`${addedCount}件の${cfg.labelFull}を追加しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
+            // 標高が未設定の場合は取得
+            if (entry.elev === null || isNaN(entry.elev)) {
+                const el = await getElevation(entry.lat, entry.lng);
+                entry.elev = el !== null ? el : 0;
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+            
+            // 緯度/経度/標高/高さが全て同じ既存エントリがあればスキップ。
+            // 緯度/経度は数値(double)比較だとCSV生値の末尾1桁違いが同じ倍精度値に丸まって
+            // 同一視されるため、CSVの生値文字列と登録値の文字列表現で比較する
+            const duplicate = existingList.some(p =>
+                String(p.lat) === entry.latText && String(p.lng) === entry.lngText &&
+                p.elev === entry.elev && p.height === entry.height
+            );
+            if (duplicate) continue;
+
+            // ID重複チェック
+            if (existingList.some(p => p.id === entry.id)) {
+                const ok = confirm(`${cfg.label}(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                if (!ok) return;
+                entry.id = getNextMyPointId(type);
+                if (entry.id === null) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
+            }
+
+            delete entry.latText;
+            delete entry.lngText;
+            existingList.push(entry);
+            addedCount++;
+        }
+
+        saveAppState();
+        setMyPointDirty(type, false);
+        renderMyPointsList(type);
+        updateMyPointMarkers();
+        alert(`${addedCount}件の${cfg.labelFull}を追加しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** CSV出力 */
@@ -5770,13 +5740,7 @@ function exportMyPointsCsv(type) {
     targets.forEach(pt => {
         csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${pt.memo || ''}\r\n`;
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-${cfg.labelFull}-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-${cfg.labelFull}-${formatFileDateTime()}.csv`, csv);
 }
 
 /** URL取得 */
@@ -6243,122 +6207,100 @@ function parseMyTsujiCsvLine(cols, lineNum) {
 /** 全CSV入力 (リスト全置換) */
 function importMyTsujiCsv() {
     if (!confirm('My辻検索リストにCSVファイルから全て上書き入力・登録しますか？')) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
-                if (lines.length > 1001) return alert('CSVの上限は1000件です(ヘッダー行を除く)');
-                const newList = [];
-                const usedIds = new Set();
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    const t = parseMyTsujiCsvLine(cols, i + 1);
-                    if (!t) return;
-                    if (usedIds.has(t.id)) { alert(`${i + 1}行目: 辻検索ID ${t.id} が重複しています`); return; }
-                    usedIds.add(t.id);
-                    // 基準方位角/視高度が空なら観測点ID/目的点IDから再計算
-                    if (t.baseAz === null || t.baseAlt === null) {
-                        calcMyTsujiBaseValues(t);
-                    }
-                    newList.push(t);
-                }
-                appState.myTsujiSearches = newList;
-                saveAppState();
-                setMyTsujiDirty(false);
-                renderMyTsujiSearches();
-                alert(`${newList.length}件のMy辻検索を登録しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
+    pickTextFile('.csv', (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
+        if (lines.length > 1001) return alert('CSVの上限は1000件です(ヘッダー行を除く)');
+        const newList = [];
+        const usedIds = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            const t = parseMyTsujiCsvLine(cols, i + 1);
+            if (!t) return;
+            if (usedIds.has(t.id)) { alert(`${i + 1}行目: 辻検索ID ${t.id} が重複しています`); return; }
+            usedIds.add(t.id);
+            // 基準方位角/視高度が空なら観測点ID/目的点IDから再計算
+            if (t.baseAz === null || t.baseAlt === null) {
+                calcMyTsujiBaseValues(t);
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+            newList.push(t);
+        }
+        appState.myTsujiSearches = newList;
+        saveAppState();
+        setMyTsujiDirty(false);
+        renderMyTsujiSearches();
+        alert(`${newList.length}件のMy辻検索を登録しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** 追加CSV入力 (既存リストに追加) */
 function appendMyTsujiCsv() {
     if (!confirm('My辻検索リストにCSVファイルから"追加"入力・登録しますか？')) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const text = ev.target.result;
-                const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-                if (lines.length < 2) return alert('CSVファイルにデータがありません');
+    pickTextFile('.csv', (text) => {
+    try {
+        const lines = splitCsvLines(text);
+        if (lines.length < 2) return alert('CSVファイルにデータがありません');
 
-                // 全行パース
-                const csvEntries = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(',');
-                    const t = parseMyTsujiCsvLine(cols, i + 1);
-                    if (!t) return;
-                    csvEntries.push(t);
-                }
-                // CSV内ID重複チェック
-                const csvIds = new Set();
-                for (const entry of csvEntries) {
-                    if (csvIds.has(entry.id)) { alert(`CSV内で辻検索ID ${entry.id} が重複しています`); return; }
-                    csvIds.add(entry.id);
-                }
+        // 全行パース
+        const csvEntries = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            const t = parseMyTsujiCsvLine(cols, i + 1);
+            if (!t) return;
+            csvEntries.push(t);
+        }
+        // CSV内ID重複チェック
+        const csvIds = new Set();
+        for (const entry of csvEntries) {
+            if (csvIds.has(entry.id)) { alert(`CSV内で辻検索ID ${entry.id} が重複しています`); return; }
+            csvIds.add(entry.id);
+        }
 
-                const existingList = appState.myTsujiSearches;
-                let addedCount = 0;
+        const existingList = appState.myTsujiSearches;
+        let addedCount = 0;
 
-                // 重複判定(辻検索IDと辻検索名以外が全て一致)
-                const isContentDup = (a, b) =>
-                    a.days === b.days && a.bodyIds === b.bodyIds &&
-                    a.obsId === b.obsId && a.tgtId === b.tgtId &&
-                    a.baseAz === b.baseAz && a.baseAlt === b.baseAlt &&
-                    a.offsetAz === b.offsetAz && a.offsetAlt === b.offsetAlt &&
-                    a.toleranceAz === b.toleranceAz && a.toleranceAlt === b.toleranceAlt &&
-                    a.moonFilter === b.moonFilter &&
-                    a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance;
+        // 重複判定(辻検索IDと辻検索名以外が全て一致)
+        const isContentDup = (a, b) =>
+            a.days === b.days && a.bodyIds === b.bodyIds &&
+            a.obsId === b.obsId && a.tgtId === b.tgtId &&
+            a.baseAz === b.baseAz && a.baseAlt === b.baseAlt &&
+            a.offsetAz === b.offsetAz && a.offsetAlt === b.offsetAlt &&
+            a.toleranceAz === b.toleranceAz && a.toleranceAlt === b.toleranceAlt &&
+            a.moonFilter === b.moonFilter &&
+            a.moonBase === b.moonBase && a.moonTolerance === b.moonTolerance;
 
-                for (const entry of csvEntries) {
-                    if (existingList.length >= 1000) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
-                    // 基準方位角/視高度が空なら再計算
-                    if (entry.baseAz === null || entry.baseAlt === null) {
-                        calcMyTsujiBaseValues(entry);
-                    }
-                    // 内容重複ならスキップ
-                    if (existingList.some(x => isContentDup(x, entry))) continue;
-                    // ID重複: 採番するか確認
-                    if (existingList.some(x => x.id === entry.id)) {
-                        const ok = confirm(`辻検索(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
-                        if (!ok) break;
-                        const newId = getNextMyTsujiId();
-                        if (newId === null) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
-                        entry.id = newId;
-                    }
-                    existingList.push(entry);
-                    addedCount++;
-                }
-
-                saveAppState();
-                setMyTsujiDirty(false);
-                renderMyTsujiSearches();
-                alert(`${addedCount}件のMy辻検索を追加しました`);
-            } catch (err) {
-                alert('CSVの読み込みに失敗しました: ' + err.message);
+        for (const entry of csvEntries) {
+            if (existingList.length >= 1000) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
+            // 基準方位角/視高度が空なら再計算
+            if (entry.baseAz === null || entry.baseAlt === null) {
+                calcMyTsujiBaseValues(entry);
             }
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+            // 内容重複ならスキップ
+            if (existingList.some(x => isContentDup(x, entry))) continue;
+            // ID重複: 採番するか確認
+            if (existingList.some(x => x.id === entry.id)) {
+                const ok = confirm(`辻検索(ID:${entry.id}、${entry.name})は、IDが重複しています。新規にIDを採番しますか？(OK→採番する、キャンセル→処理終了)`);
+                if (!ok) break;
+                const newId = getNextMyTsujiId();
+                if (newId === null) { alert('My辻検索の登録上限(1000件)に達しています'); break; }
+                entry.id = newId;
+            }
+            existingList.push(entry);
+            addedCount++;
+        }
+
+        saveAppState();
+        setMyTsujiDirty(false);
+        renderMyTsujiSearches();
+        alert(`${addedCount}件のMy辻検索を追加しました`);
+    } catch (err) {
+        alert('CSVの読み込みに失敗しました: ' + err.message);
+    }
+    });
 }
 
 /** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
@@ -6415,13 +6357,7 @@ function exportMyTsujiCsv() {
     if (targets.length === 0) return alert('CSV出力するMy辻検索が選択されていません');
     if (!confirm('チェックボックスで選択されたMy辻検索リストの登録内容をCSVファイルに出力しますか？')) return;
     const csv = '\uFEFF' + _buildMyTsujiCsv(targets);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-My辻検索-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-My辻検索-${formatFileDateTime()}.csv`, csv);
 }
 
 // ============================================================
@@ -7144,13 +7080,7 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress) {
     }
     const csv = parts.join('');
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(filename, csv);
 }
 
 /** 辻検索メニューのFile取得: 現在の辻検索条件で検索を実行し、結果をCSVでダウンロードする。
@@ -17028,13 +16958,7 @@ async function ssDownloadCsv(snap) {
         parts.push(ssRowValues(snap.rows[i]).concat(fixed).map(esc).join(',') + '\r\n');
         if ((i + 1) % 2000 === 0) await new Promise(res => setTimeout(res, 0));
     }
-    const blob = new Blob([parts.join('')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-宙検索結果-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-宙検索結果-${formatFileDateTime()}.csv`, parts.join(''));
 }
 
 /** 宙検索メニューのフォームをappStateから反映(スライダー値・ラジオ・チェック・プリセット) */
@@ -17827,13 +17751,7 @@ async function mySoraDownloadCsv(rows) {
         parts.push(head7.concat(ssRowValues(r), fixed).map(esc).join(',') + '\r\n');
         if ((i + 1) % 2000 === 0) await new Promise(res => setTimeout(res, 0));
     }
-    const blob = new Blob([parts.join('')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-My宙検索結果-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-My宙検索結果-${formatFileDateTime()}.csv`, parts.join(''));
 }
 
 // --- My宙検索リストのCSV入出力(22列。狙い/モード/対象/時間帯はラベル表記) ---
@@ -17861,13 +17779,7 @@ function exportMySoraCsv() {
             return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
         }).join(',') + '\r\n';
     }
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `soranotsuji-My宙検索-${formatFileDateTime()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(`soranotsuji-My宙検索-${formatFileDateTime()}.csv`, csv);
 }
 /** CSV1行→エントリ(不正はalertしてnull) */
 function parseMySoraCsvLine(cols, lineNum) {
@@ -17910,67 +17822,47 @@ function parseMySoraCsvLine(cols, lineNum) {
 }
 function importMySoraCsv() {
     if (!confirm('CSVでMy宙検索リストを全て置き換えます。よろしいですか？')) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            const lines = String(reader.result).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-            const entries = [];
-            const ids = new Set();
-            for (let i = 1; i < lines.length; i++) {   // 1行目=見出し
-                const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
-                if (!t) return;
-                if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
-                ids.add(t.id);
-                entries.push(t);
-            }
-            if (entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
-            appState.mySoraSearches = entries;
-            normalizeAppState();
-            saveAppState();
-            setMySoraDirty(false);
-            renderMySoraSearches();
-            alert(`${entries.length}件のMy宙検索を読み込みました`);
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+    pickTextFile('.csv', (text) => {
+    const lines = splitCsvLines(text);
+    const entries = [];
+    const ids = new Set();
+    for (let i = 1; i < lines.length; i++) {   // 1行目=見出し
+        const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
+        if (!t) return;
+        if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
+        ids.add(t.id);
+        entries.push(t);
+    }
+    if (entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
+    appState.mySoraSearches = entries;
+    normalizeAppState();
+    saveAppState();
+    setMySoraDirty(false);
+    renderMySoraSearches();
+    alert(`${entries.length}件のMy宙検索を読み込みました`);
+    });
 }
 function appendMySoraCsv() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv';
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            const lines = String(reader.result).replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
-            const entries = [];
-            const ids = new Set();
-            for (let i = 1; i < lines.length; i++) {
-                const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
-                if (!t) return;
-                if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
-                if (appState.mySoraSearches.some(x => x.id === t.id)) { alert(`宙検索ID ${t.id} は既に登録されています`); return; }
-                ids.add(t.id);
-                entries.push(t);
-            }
-            if (appState.mySoraSearches.length + entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
-            appState.mySoraSearches.push(...entries);
-            normalizeAppState();
-            saveAppState();
-            setMySoraDirty(true);
-            renderMySoraSearches();
-            alert(`${entries.length}件のMy宙検索を追加しました`);
-        };
-        reader.readAsText(file, 'UTF-8');
-    };
-    input.click();
+    pickTextFile('.csv', (text) => {
+    const lines = splitCsvLines(text);
+    const entries = [];
+    const ids = new Set();
+    for (let i = 1; i < lines.length; i++) {
+        const t = parseMySoraCsvLine(lines[i].split(','), i + 1);
+        if (!t) return;
+        if (ids.has(t.id)) { alert(`CSV内で宙検索ID ${t.id} が重複しています`); return; }
+        if (appState.mySoraSearches.some(x => x.id === t.id)) { alert(`宙検索ID ${t.id} は既に登録されています`); return; }
+        ids.add(t.id);
+        entries.push(t);
+    }
+    if (appState.mySoraSearches.length + entries.length > 1000) { alert('My宙検索の登録上限(1000件)を超えています'); return; }
+    appState.mySoraSearches.push(...entries);
+    normalizeAppState();
+    saveAppState();
+    setMySoraDirty(true);
+    renderMySoraSearches();
+    alert(`${entries.length}件のMy宙検索を追加しました`);
+    });
 }
 
 /** My宙検索メニューのコントロール結線(init時に1回) */
