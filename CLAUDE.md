@@ -20,14 +20,14 @@
 |---|---|
 | `docs/operation/branch-strategy.md` | ブランチ操作・リポジトリ構成を確認したいとき |
 | `docs/operation/deploy-guide.md` | デプロイ作業を行うとき |
-| `docs/knowledge/bugs.md` | バグ修正時。過去の教訓を参照する |
+| `ClaudeMederuU/knowledge/bugs.md` | バグ修正時。過去の教訓を参照する |
 | `docs/dessin/` | 機能設計・実装の詳細を確認したいとき |
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |
-| `reviews/README.md` | Claudeさんの実験ノート |
+| `ClaudeMederuU/reviews/README.md` | Claudeさんの実験ノート |
 | `tests/README.md` | Claudeさんの指差し確認 |
-| `scratch/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
-| `docs/mederuu/00-dessin.md` | MederuU(ナレッジ引き継ぎの器)のデッサン。MederuU関連の作業・お茶の時間の前に読む |
+| `ClaudeMederuU/tools/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
+| `ClaudeMederuU/dessin/00-dessin.md` | MederuU(ナレッジ引き継ぎの器)のデッサン。MederuU関連の作業・お茶の時間の前に読む |
 | `.claude/skills/kaiki/SKILL.md` | 回帰テストの回し方(ハーネス構築→回帰実行)。テストを回す前に読む |
 | `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
 | `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |

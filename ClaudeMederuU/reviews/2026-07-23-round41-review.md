@@ -5,7 +5,7 @@
 
 ## 実施内容
 
-1. **MederuU器のデッサン(docs/mederuu/00-dessin.md)** — 一方向ハブ・蒸留(projects→legends昇格)
+1. **MederuU器のデッサン(ClaudeMederuU/dessin/00-dessin.md)** — 一方向ハブ・蒸留(projects→legends昇格)
    ワークフロー・man風ヘッダ規約・公開規約(秘密を置かない)・エコシステム図・スモールスタート
    手順を文書化。あわせて「Claude自身が次セッション宛にスキルを書けるか」への実証として、
    ハーネス構築をリポジトリへ昇格(tests/harness/sync-apptest.py)し、スキル第1号

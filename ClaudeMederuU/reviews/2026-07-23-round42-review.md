@@ -7,10 +7,10 @@
 
 ## お茶の時間②の成果物
 
-1. **Koushiのデッサン**(docs/mederuu/01-koushi-dessin.md) — `.`終端・`:`区切りの確定記法、
+1. **Koushiのデッサン**(ClaudeMederuU/dessin/01-koushi-dessin.md) — `.`終端・`:`区切りの確定記法、
    スパン(xc/xr)・寄せ(l/c/r/t/m/b)、入れ子・セル内Markdown・input要素、レンダラ計画
    (Koushi→HTML片方向・ゴールデン方式)、未決4点。
-2. **Markdown-PAD記法の捕獲**(docs/mederuu/02-pad-dessin.md) — 依頼者原案(7構造+f./j.)を
+2. **Markdown-PAD記法の捕獲**(ClaudeMederuU/dessin/02-pad-dessin.md) — 依頼者原案(7構造+f./j.)を
    新鮮なうちに記録+所感(行頭記号の意味付けはMarkdown仕様と相談・論点3つ)。
 3. **MederuUデッサン更新**(00-dessin.md) — 図2つをMarkdown箇条書き/Markdown-PADへ書き換え・
    ClaudeMederuU/フォルダ方針・JSDoc/docstringとの両立(章立て=man由来、入れ物=言語の慣用)。

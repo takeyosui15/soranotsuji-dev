@@ -77,5 +77,5 @@
 - Drive保存がlocalStorageの**全キー**を含む(同一オリジンの他アプリのキーが混入し得る)・
   2種類のバックアップ(メニュー/reset.html)が同名パターンで非互換・
   Driveアップロード中の編集が「同期済み👍」を偽装し得る競合・
-  表示中セットの編集が行のupdatedAtに反映されない等 — reviews/2026-07-19-round36-review.md に一覧を記録。
+  表示中セットの編集が行のupdatedAtに反映されない等 — ClaudeMederuU/reviews/2026-07-19-round36-review.md に一覧を記録。
 - 既定値の二重定義(appState定義とnormalizeの数値・HTML属性値との食い違い)は仕組み課題として記録(実害のある箇所は今回修正済み)。

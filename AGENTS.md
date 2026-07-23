@@ -68,7 +68,7 @@
 |---|---|
 | `docs/operation/branch-strategy.md` | ブランチ操作・リポジトリ構成を確認したいとき |
 | `docs/operation/deploy-guide.md` | デプロイ作業を行うとき |
-| `docs/knowledge/bugs.md` | バグ修正時。過去の教訓を参照する |
+| `ClaudeMederuU/knowledge/bugs.md` | バグ修正時。過去の教訓を参照する |
 | `docs/dessin/` | 機能設計・実装の詳細を確認したいとき |
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |

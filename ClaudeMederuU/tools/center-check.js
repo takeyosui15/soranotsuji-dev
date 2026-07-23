@@ -1,7 +1,7 @@
 // 中央寄せ画素チェッカー — ボタン内アイコン等の「見た目の中央ズレ」を画素で実測する再利用ツール
-// (宙の辻 第33ラウンドのアイコン中心ズレ修正で手作りした画素実測の汎用化。scratch/README.md参照)
+// (宙の辻 第33ラウンドのアイコン中心ズレ修正で手作りした画素実測の汎用化。ClaudeMederuU/tools/README.md参照)
 //
-// 使い方(CLI):  node scratch/center-check.js <URL> <CSSセレクタ> [<CSSセレクタ>...]
+// 使い方(CLI):  node ClaudeMederuU/tools/center-check.js <URL> <CSSセレクタ> [<CSSセレクタ>...]
 //   各セレクタについて、(a)最初の子要素(svg/img等)の矩形中心と親の矩形中心のズレ、
 //   (b)要素スクリーンショットの「インク重心」(不透明画素の重心)と幾何中心のズレ、を出力する。
 //   どちらも±1.5px以内なら中央寄せOKの目安。
@@ -72,7 +72,7 @@ if (require.main === module) {
   (async () => {
     const [url, ...selectors] = process.argv.slice(2);
     if (!url || selectors.length === 0) {
-      console.log('使い方: node scratch/center-check.js <URL> <CSSセレクタ> [<CSSセレクタ>...]');
+      console.log('使い方: node ClaudeMederuU/tools/center-check.js <URL> <CSSセレクタ> [<CSSセレクタ>...]');
       process.exit(2);
     }
     const { chromium } = require('playwright-core');
