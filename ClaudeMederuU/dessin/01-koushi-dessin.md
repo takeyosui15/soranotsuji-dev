@@ -98,7 +98,7 @@ Markdownの表では書けない「結合セル・入れ子・入力要素つき
     - `rng:"90".` ... <input type="range" value="90" />
   - `rst.`
     - `rst:"フォームをリセット".` ... <input type="reset" value="フォームをリセット" />
-  - `src.` ... <input type="search" />
+  - `sch.` ... <input type="search" />
   - `smt.`
     - `smt:"リクエストを送信".` ... <input type="submit" value="リクエストを送信" />
   - `tel.`
