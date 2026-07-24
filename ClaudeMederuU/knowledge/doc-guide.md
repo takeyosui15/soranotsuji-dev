@@ -1,3 +1,11 @@
+---
+type: guide(旧体系)
+title: ドキュメント体系ガイド(旧spec/design体系。歴史資料)
+description: spec-*.md/design-*.md の命名・配置規約は採用されないまま現実がデッサン駆動開発(docs/dessin/+order.mdループ)へ発展した。現在の文書地図は CLAUDE.md と ClaudeMederuU/knowledge/dessin-driven-development.md を参照。
+timestamp: 2026-07-24
+freshness: 大部分歴史資料(第44ラウンドの棚卸しで判定。書き直すか統合するかは依頼者と協議中)
+---
+
 # プロジェクトのドキュメント体系
 
 このプロジェクトで使われるドキュメントの種類と、それぞれの役割の違いを説明します。

@@ -1,3 +1,11 @@
+---
+type: guide(歴史資料を含む)
+title: デッサンの書き方ガイド+My観測点の初期草稿(歴史資料)
+description: 書き方ガイド(ラフ/詳細の2レベル)は現役。後半のMy観測点の実例は初期草稿の歴史資料で、現行仕様は docs/dessin/dessin/11-myobservation.md が正。
+timestamp: 2026-07-24
+freshness: 一部歴史資料(第44ラウンドの棚卸しで判定。実際のデッサンは docs/dessin/dessin/00〜20 に描く)
+---
+
 # デッサン（Dessin）
 
 作りたい機能の構想・設計を描くファイルです。
