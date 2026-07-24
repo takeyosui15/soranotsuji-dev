@@ -13,6 +13,15 @@
 | ハーネス構築・同期 | `tests/harness/sync-apptest.py` | ローカル検証用apptest(アプリ一式+CDN→vendor書き換え)をゼロから構築/再同期する。ハーネス構築の知識がセッション初期化で消える不便(第41ラウンド)から昇格。ヘッダはman風書式(NAME/SYNOPSIS/…/HISTORY)の適用第1号 | `python3 tests/harness/sync-apptest.py <apptestディレクトリ>`。手順全体はスキル`.claude/skills/kaiki/`を参照 |
 | 回帰の回し方スキル | `.claude/skills/kaiki/SKILL.md` | 次のセッションのClaude宛の引き継ぎ書(ハーネス構築→サーバ→回帰実行→つまずきの記憶)。「Claude自身が次セッション宛にスキルを書けるか」(第41ラウンド)の実証第1号 | 新しいセッションで自動的に読み込まれる(Skillツールから`kaiki`で呼び出し)。他プロジェクトへはMederuUのskills/経由で配布想定 |
 
+## 候補(まだ作っていない道具。作る時はこの台帳へ昇格する)
+
+| 候補 | 用途 | 生まれた経緯 |
+|---|---|---|
+| coverage-report | PlaywrightのCoverage APIで、回帰(verify群)実行中のscript.jsの行/関数カバレッジを実測する。クローズ前の品質確認用 | 第43ラウンドの依頼者のカバレッジ質問(C0/C1/MC/DC)から |
+| css-why | ある要素のあるプロパティに、どの規則がカスケード順で効いているかを列挙する(人間のMDNホバーに当たるClaudeの目) | 第40ラウンドのレイヤーリスト縦4行のカスケード衝突調査から(手書き版はChromiumのネストCSS仕様で一度壊れた) |
+| index-gen | man風ヘッダ/JSDocタグ/docstringから目次・索引(index.md)を自動生成する(手書きの目次は腐る) | 第41ラウンドのscratch索引の依頼者アイデア+OKFのindex.md文化から |
+| anchor.js | 構造指紋+位置指紋の発行・検証・重複検出(デッサンはClaudeMederuU/dessin/03) | 第39ラウンドのパーマリンク案から |
+
 ## 運用メモ
 
 - ここに置くのは「**プロジェクト成果物ではない**が、開発の道具として今後も使うもの」。
