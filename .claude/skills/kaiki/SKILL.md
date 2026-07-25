@@ -48,6 +48,8 @@ for n in 96 97 98 99 100 101 103 ... ; do node tests/verify$n.js; done
 ```
 
 - 各verifyの対象と注意は `tests/README.md`(封鎖機能は`?forecast=1`、フレークの扱い等)。
+- 道具のテスト2本も一緒に回す(node単体・サーバ不要。第45〜):
+  `node ClaudeMederuU/tools/koushi.test.js` と `node ClaudeMederuU/tools/anchor.test.js`
 - APP_VERSIONの版数ピンは**最新のverifyだけ**が持つ。版数を上げたら最新verifyのピンを更新。
 - Chromium起動引数(全verify共通): `--use-gl=angle --use-angle=swiftshader
   --enable-unsafe-swiftshader --ignore-gpu-blocklist --no-sandbox`
