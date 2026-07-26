@@ -237,8 +237,10 @@
   - Macの中にインストールするのなら、このフォルダへのアクセスは禁止とかできるのであろうか。
   - インターネット検索は、全てできてしまうのであろうか。
   - Claude Codeのデスクトップ版と連携？(トークンの消費量がわかりやすいように連携できるのか。)できるのか。
+  - → **(2026-07-26) 3つの疑問に`docs/operation/mac-install-decision.md`のQ1/Q2/Q3で回答済み(第46ラウンド)**
 - [ ] どこかの段階で、MacにClaude Codeをインストールする。
   - Claudeさんの作業フォルダの/ClaudeRootを作成し、それ以下に/soranotsuji-devなどを配置する。
+  - → **(2026-07-26) 判断資料`docs/operation/mac-install-decision.md`+手順書`mac-migration-guide.md`を作成(第46ラウンド)。推奨=休暇明けすぐ。作業クローンはiCloud外の~/ClaudeRoot(この構想どおり)**
 
 ---
 
