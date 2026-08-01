@@ -73,6 +73,14 @@ for w in ['dp-line-worker.js', 'sora-mov-worker.js', 'tsuji-search-worker.js', '
         open(p, 'w', encoding='utf-8').write(t)
         wn += c
 
+# script.jsのCDN参照(Dracoデコーダ=都市モードのPLATEAU建物レイヤ)もvendorへ
+sp = os.path.join(APP, 'script.js')
+if os.path.exists(sp):
+    t = open(sp, encoding='utf-8').read()
+    t, c = re.subn(r"https://cdn\.jsdelivr\.net/npm/three@0\.160\.0/examples/jsm/libs/draco/", "vendor/draco/", t)
+    open(sp, 'w', encoding='utf-8').write(t)
+    wn += c
+
 # vendor/ の充足チェック(無ければ入手コマンドを案内。mathjax-stubはここで生成する)
 VENDOR = os.path.join(APP, 'vendor')
 os.makedirs(VENDOR, exist_ok=True)
@@ -86,7 +94,10 @@ NEED = {
     'three.min.js':    'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
     'geographiclib-geodesic.min.js': 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js',
     'geographiclib-dms.min.js':      'https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js',
+    'draco/draco_wasm_wrapper.js': 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/draco_wasm_wrapper.js',
+    'draco/draco_decoder.wasm':    'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/draco_decoder.wasm',
 }
+os.makedirs(os.path.join(VENDOR, 'draco'), exist_ok=True)
 missing = [(f, u) for f, u in NEED.items() if not os.path.exists(os.path.join(VENDOR, f))]
 print(f'synced (index.html {n}refs / workers {wn}refs rewritten) -> {APP}')
 if missing:

@@ -385,6 +385,14 @@ GNU General Public License for more details.
                 </div>
                 <hr class="baseopt-hr">
                 <div class="control-row left-row">
+                    <input type="checkbox" id="chk-sora-ctrl-bldg" class="body-checkbox" checked><label for="chk-sora-ctrl-bldg" class="soramado-ctrl-group" title="都市のビル群(PLATEAU)をプレビューに表示(宙の窓メニューと連動)">:都市モード</label>
+                    <span id="sora-ctrl-bldg-status" title="建物タイルの取得状況(タイル数/棟数)"></span>
+                </div>
+                <div class="control-row left-row">
+                    <input type="checkbox" id="chk-sora-ctrl-bldg-tex" class="body-checkbox" checked><label for="chk-sora-ctrl-bldg-tex" class="soramado-ctrl-group" title="建物に航空写真由来のテクスチャを貼る(宙の窓メニューと連動)">:テクスチャ</label>
+                </div>
+                <hr class="baseopt-hr">
+                <div class="control-row left-row">
                     <input type="checkbox" id="chk-sora-ctrl-fw" class="body-checkbox"><label for="chk-sora-ctrl-fw" class="soramado-ctrl-group" title="打ち上げ花火のシミュレーションをプレビューに表示(宙の窓メニューと連動)">:花火モード</label>
                 </div>
                 <div class="control-row left-row">
@@ -1008,6 +1016,17 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <input type="range" id="input-sora-label-scale" min="0" max="1000" value="100" step="1" title="表示天体名と星座名称の文字サイズ(プレビュー基準100%・0〜1000%)">
+                    </div>
+                    <hr class="baseopt-hr">
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="都市のビル群(国土交通省Project PLATEAU・CC BY 4.0)をプレビューに表示します(PLATEAU整備都市のみ)">都市ビル(PLATEAU)</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-bldg" class="body-checkbox" checked><label for="chk-sora-bldg" title="都市のビル群をプレビューに表示(PLATEAU整備都市のみ。地形と同じ実寸配置で天体や花火を遮蔽します)">:都市モード</label>
+                        <span id="sora-bldg-status" title="建物タイルの取得状況(タイル数/棟数)"></span>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-sora-bldg-tex" class="body-checkbox" checked><label for="chk-sora-bldg-tex" title="建物に航空写真由来のテクスチャを貼る(ON=テクスチャ付きLOD2/OFF=無テクスチャの単色+陰影)">:テクスチャ</label>
                     </div>
                     <hr class="baseopt-hr">
                     <div class="control-row left-row">
@@ -1875,6 +1894,13 @@ GNU General Public License for more details.
                         <li><strong>コントロールメニュー</strong>: プレビュー内下部の「コントロール」から焦点距離・日付/時刻・インターバルMov (タイムラプス再生: アニメ/動画) を操作できます。</li>
                         <li><strong>書き出し</strong>: 静止画 (JPEG/PNG)・動画 (MP4/WebM) をファイル出力。出力画像サイズ (pixel・1〜8192) を指定でき、右下に日時+クレジットが入ります。全天表示・パノラマ・フィッシュアイもそのまま出力され、<strong>表示天体名・星座名称の文字は出力サイズに比例してプレビューと同じ相対サイズ</strong>になります。</li>
                         <li><strong>URL/最大化</strong>: 「URL取得」で現在の宙の窓の状態を開くURLをコピー。⛶ボタンでプレビューを最大化できます。</li>
+                        <li><strong>都市モード (都市ビル)</strong>: 都市部のビル群をプレビューに表示します (宙の窓メニュー内。コントロールメニューにも同じ項目があり双方向連動)。ビルは地形と同じ実寸配置なので、ビルの稜線に沈む月やビルの谷間から上がる花火も構図どおりに写ります。
+                            <ul>
+                                <li><strong>表示されるのはPLATEAU整備都市のみ</strong>です (現在は新宿区・千代田区で試験公開中。順次拡大予定)。未整備の地域はビルが出ないだけで、地形は従来どおり表示されます。</li>
+                                <li><strong>:テクスチャ</strong>: ONで航空写真由来のテクスチャ付き (LOD2)、OFFで無テクスチャの単色+陰影になります。テクスチャは昼間の写真のため、夜のプレビューでは明るく見えることがあります。</li>
+                                <li>建物データの出典: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener noreferrer">国土交通省 Project PLATEAU</a> (CC BY 4.0)。配信中の3D都市モデル (建築物モデル) をストリーミング参照しています。メッシュ展開には<a href="https://github.com/google/draco" target="_blank" rel="noopener noreferrer">Google Draco</a> (Apache-2.0) を使用しています。</li>
+                            </ul>
+                        </li>
                         <li><strong>花火モード</strong>: 打ち上げ花火のシミュレーションをプレビューに表示します (宙の窓メニュー内。コントロールメニューにも同じ項目があり双方向連動)。
                             <ul>
                                 <li><strong>打ち上げ点</strong>: 地名・住所・「緯度,経度」で設定 (未設定の間は目的点に追従)。標高は自動取得+追加高さを加算可能。<strong>領域 (半径m)</strong> で打ち上げ位置を円内にランダムに散らせます。</li>

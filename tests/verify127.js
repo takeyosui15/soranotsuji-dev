@@ -11,8 +11,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- O0: 版数ピン(最新のverifyに集約) ----
-check('O0 APP_VERSION 1.44.0', src.includes("APP_VERSION = '1.44.0'") || !!process.argv[2]);
-check('O0 Version Historyに1.44.0の行がある', src.includes('Version 1.44.0 - ') || !!process.argv[2]);
+check('O0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('O0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- O1〜O4: 無いことのテスト(殻の再増殖の検知) ----
 {

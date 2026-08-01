@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.45.0 - 2026-08-02: feat: 第50ラウンド — PLATEAU建物レイヤPoC「都市モード」(宙の窓に都市のビル群。デッサン06のPLATEAU節) ①宙の窓/ctrlメニューに「:都市モード」「:テクスチャ」チェック(共に初期値オン・双方向連動・localStorage保存)+取得状況表示 ②PLATEAU公式ストリーミング(3D Tiles 1.0/b3dm)の葉タイルを扇(視界範囲・画角)で選別し近い順に予算48件まで取得(PoC対応都市=新宿区・千代田区の静的表。自前保管ゼロ) ③b3dm/glbは最小自作パーサ+Draco解凍は公式デコーダ(gstatic・遅延読込)+テクスチャWebP対応 ④高さは楕円体高→標高へジオイド補正(同梱data/geoid-jp.json=EGM96 0.25°格子・tools/geoid/で生成)し、地形格子と同じ厳密三角形解(気差k・局所半径)でENU配置=遮蔽・実寸が地形と自動整合 ⑤無テクスチャ面は太陽ランバートを頂点色に焼き込み ⑥b3dm/幾何/テクスチャはLRUキャッシュ・扇の変更は幾何再利用 ⑦ヘルプにPLATEAU出典(CC BY 4.0)を明記
 Version 1.44.0 - 2026-07-23: refactor: 第42ラウンド — リファクタリングB第1弾: ファイル入出力の型の関数化(依頼者提案の移行チェックリスト方式を初採用。チェックリストはKoushi記法の実証第1号としてレビュー記録に) ①「ファイル選択+読込」の殻9箇所をpickTextFileへ(My天体/My観測点/My目的点/My辻検索/My宙検索の各CSV入力・追加入力+バックアップ読込。async変種と本体直接参照の変種も吸収) ②「CSV行分割」8箇所をsplitCsvLinesへ ③「Blob→ダウンロード」の末尾8箇所をdownloadTextFileへ(各CSV出力+バックアップ出力。動画/画像用のsoraExportDownloadは用途が異なるため対象外) ④エラー処理・確認ダイアログは呼び出し側の責務のまま=挙動不変。無いことのテスト(verify127)で殻の再増殖を検知。あわせてMederuUの器デッサンの図をMarkdown箇条書きへ(ASCII罫線はインデント崩れ)・ClaudeMederuUフォルダ方針・Koushi記法デッサン(01)・Markdown-PAD記法メモ(02)を起草
 Version 1.43.0 - 2026-07-23: refactor: 第41ラウンド(中盤) — リファクタリングA: 既定値の単一情報源化(APP_DEFAULTS) 承認済みのリファクタリング資料A観点を実施。①スカラー149キーの既定値・範囲・列挙・真偽整形規則を1つの表APP_DEFAULTSに集約(appState初期値は表から展開・normalizeAppStateは表の規則を読む汎用パス+表で表せない個別コードのみ) ②挙動不変のcharacterizationで保証: 初期値161キーとnormalize挙動161キー×8種の崩れた値の計1288プローブを、リファクタ前に凍結標本として採取し、後で完全一致を確認(差分0件)。標本はtests/dataへ恒久化し、既定値・規則を意図的に変える時だけ標本を更新する運用に(verify126) ③保存キーリンターを表対応に拡張(verify123 K8: 保存されるスカラーキーは表に載っている・K3基準線を73個へ更新) ④発見と対処: 旧h265→h264移行コードは汎用列挙検査より先に走らないと一旦jpegへ潰れる(実装順の教訓。characterizationの標的プローブに追加) ⑤HTMLのvalue属性は「飾り」(起動時にJSが上書き)と明文化し、代表3入力欄で実測検査
 Version 1.42.0 - 2026-07-23: feat: 第41ラウンド(前半) — URL短縮辞書v13(第3規則)+MederuU器のデッサン+回帰スキル ①短縮辞書に第3規則「&キー名=既定値」を追加(v13。依頼者承認): キーと既定値のペア127個を丸ごと登録し、既定値のままの項目が1コードで表せるように(連続ペアの並びもLZWが学習)。実測で短縮URLが約半分に(辻検索1337→554文字・実運用相当1329→682文字)。ペアはv1.41.0時点の初期状態の実アプリ発行URLから導出して凍結(既定値が将来変わっても配列は変更しない=発行済みURL保護。作り直しはV14で)。v11/v12の発行済み標本+v13ゴールデン標本をtests/dataに封入 ②MederuU(ナレッジ引き継ぎの器)のデッサンをdocs/mederuu/00-dessin.mdへ起草(一方向ハブ・蒸留ワークフロー・man風ヘッダ規約・公開規約・スモールスタート手順) ③ハーネス構築をリポジトリへ昇格(tests/harness/sync-apptest.py)+次セッション宛スキル第1号(.claude/skills/kaiki=回帰の回し方)
@@ -108,7 +109,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.44.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.45.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -361,6 +362,9 @@ const APP_DEFAULTS = {
     fwMode: { def: 'vary', enum: ['vary', 'fixed'] },
     fwSpread: { def: 0, min: -100, max: 100, round: true },
     fwShowPoint: { def: true, bool: 'nf' },               // 花火点(+)マーカーの表示
+    // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
+    smBldg: { def: true, bool: 'coerce' },                // 都市ビルの表示(初期値オンは依頼者決定)
+    smBldgTex: { def: true, bool: 'coerce' },             // 建物テクスチャ(ON=LOD2テクスチャ付き/OFF=LOD2無テクスチャ→LOD1)
     // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
     isSoradanmenActive: { def: false },
     isSoraSearchActive: { def: false },
@@ -2255,6 +2259,8 @@ function buildStateToSave() {
         fwEnabled: appState.fwEnabled, fwLat: appState.fwLat, fwLng: appState.fwLng,
         fwElev: appState.fwElev, fwHeight: appState.fwHeight, fwRadius: appState.fwRadius,
         fwSize: appState.fwSize, fwMode: appState.fwMode, fwSpread: appState.fwSpread, fwShowPoint: appState.fwShowPoint,
+        // 都市モード(PLATEAU建物レイヤ)
+        smBldg: appState.smBldg, smBldgTex: appState.smBldgTex,
         // 宙検索
         ssPreset: appState.ssPreset, ssWL: appState.ssWL, ssWM: appState.ssWM, ssWH: appState.ssWH,
         ssMoonMode: appState.ssMoonMode, ssWMoon: appState.ssWMoon, ssUnkaiMode: appState.ssUnkaiMode, ssWUnkai: appState.ssWUnkai,
@@ -2380,6 +2386,8 @@ function loadAppState() {
             // 保存はされていたのに復元が無く、毎起動で初期値に戻っていた。設計コメントどおり保存+復元へ)
             ['fwEnabled','fwLat','fwLng','fwElev','fwHeight','fwRadius','fwSize','fwMode','fwSpread','fwShowPoint']
                 .forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+            // 都市モード(PLATEAU建物レイヤ)パラメータ復元
+            ['smBldg','smBldgTex'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // API標高とユーザー高さから内部計算用elevを再計算
             recalcElev('start');
             recalcElev('end');
@@ -14369,6 +14377,7 @@ function soraSyncUI() {
     txt('sora-focus-range', soraFmtM(o.near) + ' 〜 ' + soraFmtM(o.far));
     txt('sora-dof', o.dof === Infinity ? '∞' : soraFmtM(o.dof));
     fwSyncUI();   // 花火モード(メニュー/ctrlの両フォーム+算出表示)
+    _smBldgSyncUI();   // 都市モード(メニュー/ctrlのチェック連動)
 }
 
 /** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
@@ -15314,6 +15323,12 @@ function setupSoramadoControls() {
         }); });
     fwChk(['chk-sora-fw', 'chk-sora-ctrl-fw'], 'fwEnabled');
     fwChk(['chk-sora-fw-point', 'chk-sora-ctrl-fw-point'], 'fwShowPoint');
+    // 都市モード(PLATEAU建物レイヤ)。メニュー/ctrlの同名チェックは双方向連動
+    const bldgChk = (ids, key) => ids.forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { appState[key] = el.checked; _smBldgSyncUI(); saveAppState();
+            if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); } }); });
+    bldgChk(['chk-sora-bldg', 'chk-sora-ctrl-bldg'], 'smBldg');
+    bldgChk(['chk-sora-bldg-tex', 'chk-sora-ctrl-bldg-tex'], 'smBldgTex');
     // 打ち上げ点標高: 未設定(目的点追従)中に手動編集されたら、その時点の目的点座標で打ち上げ点を確定してから適用する
     ['input-fw-api-elev', 'input-fw-ctrl-api-elev'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => {
@@ -15426,6 +15441,7 @@ function _smInit() {
     _smSky = _smBuildSky();
     _smScene.add(_smSky);
     _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
+    _smBldgGrp = new THREE.Group(); _smScene.add(_smBldgGrp);         // 都市モード: PLATEAU建物(実寸ENU。地形と相互遮蔽)
     _fwGrp = new THREE.Group(); _smScene.add(_fwGrp);                 // 花火モード(実寸ENU。地形で遮蔽される)
     _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
     _smTrajGrp = new THREE.Group(); _smScene.add(_smTrajGrp);
@@ -18135,6 +18151,7 @@ function _smUpdateTerrain() {
         _smFetchTerrain(centerAz, aovH, range, zoom);
     }
     _smApplyShading();
+    _smBldgUpdate();   // 都市モード: PLATEAU建物(独自の鍵で差分更新)
 }
 
 // --- F3: DEM地形タイル取得 ワーカープール (fetch/PNGデコード/標高化を並列オフロード) ---
@@ -18437,6 +18454,397 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
     _smTerrainMesh = new THREE.Mesh(geo, mat);
     _smTerrainGrp.add(_smTerrainMesh);
+}
+
+// --- F3+: 都市モード=PLATEAU建物レイヤ (実測・設計はデッサン06のPLATEAU節。第50ラウンドPoC) ---
+// 方式: PLATEAU公式ストリーミングの都市別tileset.json(3D Tiles 1.0)から葉タイルを
+// 扇(視界範囲・画角)で選別し、b3dm→glb→Draco解凍→ECEF→測地→標高(=楕円体高−ジオイド高N)→
+// 地形格子と同じ厳密三角形解(気差k・緯度別局所半径)でENUへ配置する。
+// 同じシーンに置くだけで、遮蔽・実寸・焦点距離は既存の仕組みがそのまま効く。
+// 実測(第50ラウンド): 全タイルがDraco圧縮必須のため、解凍のみ公式デコーダ(three.jsのDRACOLoaderと
+// 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
+const SM_BLDG_TILE_BUDGET = 48;       // 同時表示タイルの上限(近い順。実測: LOD2texタイル≈1.8MB/1.1万頂点)
+const SM_BLDG_CACHE_MAX = 96;         // b3dm/幾何/テクスチャのLRU上限(タイル数)
+const SM_BLDG_RANGE_CAP_KM = 40;      // 建物を取りに行く距離の上限(km。視界範囲とのmin)
+const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
+// PoCの静的対応表(実測済み2区。全国表はカタログAPI plateau-datasets から生成して次段で差し替え)
+// bboxはtileset rootのregion実測[西,南,東,北 度]。lod2Tex=テクスチャ付き/lod2NoTex=無テクスチャ。
+const SM_BLDG_CITIES = [
+    { code: '13104', name: '新宿区', bbox: [139.6733, 35.6735, 139.7444, 35.7297],
+      lod1: 'https://assets.cms.plateau.reearth.io/assets/bd/858f21-55cb-46da-afcf-885d44eee90f/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod1/tileset.json',
+      lod2NoTex: 'https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/tileset.json',
+      lod2Tex: 'https://assets.cms.plateau.reearth.io/assets/00/bed0bd-f882-4cde-b942-21d0f8d2ddc2/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json' },
+    { code: '13101', name: '千代田区', bbox: [139.7302, 35.6690, 139.7828, 35.7052],
+      lod1: 'https://assets.cms.plateau.reearth.io/assets/3f/e07412-5455-40c0-9f64-2ac43086a209/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod1/tileset.json',
+      lod2NoTex: 'https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/tileset.json',
+      lod2Tex: 'https://assets.cms.plateau.reearth.io/assets/28/07d0a1-b6be-46ef-bd87-4f0683b5ef6e/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2/tileset.json' },
+];
+let _smBldgGrp = null;                       // _smInitでシーンへ追加
+let _smBldgFanKey = '', _smBldgGeoKey = '', _smBldgGen = 0;
+const _smBldgTilesetCache = new Map();       // tileset URL → Promise<{leaves}>
+const _smBldgBufCache = new Map();           // タイルURL → Promise<ArrayBuffer> (LRU)
+const _smBldgTexCache = new Map();           // タイルURL → Promise<THREE.Texture[]> (LRU。幾何の作り直しでも再利用)
+const _smBldgMeshCache = new Map();          // タイルURL → {grp, blds} (現在のgeoKeyのENU幾何。LRU)
+let _smBldgDracoP = null, _smBldgGeoidP = null;
+
+function _smBldgSetStatus(text) {
+    ['sora-bldg-status', 'sora-ctrl-bldg-status'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.textContent = text;
+    });
+}
+function _smBldgSyncUI() {
+    const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    chk('chk-sora-bldg', appState.smBldg); chk('chk-sora-ctrl-bldg', appState.smBldg);
+    chk('chk-sora-bldg-tex', appState.smBldgTex); chk('chk-sora-ctrl-bldg-tex', appState.smBldgTex);
+}
+function _smBldgLruPut(map, key, val, disposeFn) {
+    if (map.has(key)) map.delete(key);
+    map.set(key, val);
+    while (map.size > SM_BLDG_CACHE_MAX) {
+        const k = map.keys().next().value, v = map.get(k);
+        map.delete(k);
+        if (disposeFn) disposeFn(v);
+    }
+}
+function _smBldgDisposeTileGrp(ent) {
+    if (!ent || !ent.grp) return;
+    if (ent.grp.parent) ent.grp.parent.remove(ent.grp);
+    // material.mapはテクスチャキャッシュの所有物なのでここでは触らない(material.dispose()はmapを破棄しない)
+    ent.grp.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); });
+}
+
+/** ジオイド格子(EGM96・0.25°・tools/geoid/make-geoid-jp.jsで生成)の遅延読込。失敗時はnull(概算値で続行) */
+function _smBldgGeoid() {
+    if (!_smBldgGeoidP) {
+        _smBldgGeoidP = fetch('data/geoid-jp.json')
+            .then(r => { if (!r.ok) throw new Error('geoid ' + r.status); return r.json(); })
+            .catch(e => { console.warn('[都市モード] ジオイド格子の読込失敗(概算37mで続行):', e); return null; });
+    }
+    return _smBldgGeoidP;
+}
+/** ジオイド高N(m)の双一次補間。格子なし/域外は本州中部の概算値 */
+function _smBldgGeoidN(g, lat, lng) {
+    if (!g) return 37.0;
+    const fj = (lat - g.lat0) / g.dlat, fi = (lng - g.lon0) / g.dlon;
+    const j = Math.max(0, Math.min(g.nlat - 2, Math.floor(fj)));
+    const i = Math.max(0, Math.min(g.nlon - 2, Math.floor(fi)));
+    const tj = Math.max(0, Math.min(1, fj - j)), ti = Math.max(0, Math.min(1, fi - i));
+    const v = (jj, ii) => g.vals[jj * g.nlon + ii] * g.unit;
+    return (v(j, i) * (1 - ti) + v(j, i + 1) * ti) * (1 - tj) + (v(j + 1, i) * (1 - ti) + v(j + 1, i + 1) * ti) * tj;
+}
+
+/** 公式Dracoデコーダの遅延読込(WASM)。失敗時は次回呼び出しで再試行 */
+function _smBldgEnsureDraco() {
+    if (_smBldgDracoP) return _smBldgDracoP;
+    _smBldgDracoP = new Promise((resolve, reject) => {
+        if (typeof DracoDecoderModule !== 'undefined') { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = SM_BLDG_DRACO_BASE + 'draco_wasm_wrapper.js';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Dracoデコーダ(wrapper)の読込失敗'));
+        document.head.appendChild(s);
+    }).then(() => fetch(SM_BLDG_DRACO_BASE + 'draco_decoder.wasm')
+        .then(r => { if (!r.ok) throw new Error('draco wasm ' + r.status); return r.arrayBuffer(); }))
+      .then(wasmBinary => new Promise(res => { DracoDecoderModule({ wasmBinary, onModuleLoaded: m => res(m) }); }))
+      .catch(e => { _smBldgDracoP = null; throw e; });
+    return _smBldgDracoP;
+}
+
+/** b3dm(3D Tiles 1.0)の解釈: featureTable(RTC/棟数)+glb(glTF 2.0 JSON+BIN)。batchTable(属性)は今は読み飛ばす */
+function _smBldgParseB3dm(buf) {
+    const dv = new DataView(buf);
+    if (dv.getUint32(0, true) !== 0x6d643362) throw new Error('b3dmではない');   // 'b3dm'
+    const ftj = dv.getUint32(12, true), ftb = dv.getUint32(16, true);
+    const btj = dv.getUint32(20, true), btb = dv.getUint32(24, true);
+    const td = new TextDecoder();
+    const ft = ftj ? JSON.parse(td.decode(new Uint8Array(buf, 28, ftj))) : {};
+    const go = 28 + ftj + ftb + btj + btb;
+    if (dv.getUint32(go, true) !== 0x46546c67) throw new Error('glbではない');   // 'glTF'
+    const glen = dv.getUint32(go + 8, true);
+    let co = go + 12, gltf = null, bin = null;
+    while (co < go + glen) {
+        const clen = dv.getUint32(co, true), ctype = dv.getUint32(co + 4, true);
+        if (ctype === 0x4e4f534a) gltf = JSON.parse(td.decode(new Uint8Array(buf, co + 8, clen)));   // 'JSON'
+        else if (ctype === 0x004e4942) bin = new Uint8Array(buf, co + 8, clen);                      // 'BIN'
+        co += 8 + clen;
+    }
+    if (!gltf || !bin) throw new Error('glbのチャンク欠落');
+    const rtc = (gltf.extensions && gltf.extensions.CESIUM_RTC && gltf.extensions.CESIUM_RTC.center) || ft.RTC_CENTER || [0, 0, 0];
+    return { gltf, bin, rtc, batchLen: Number(ft.BATCH_LENGTH) || 0 };
+}
+
+/** ECEF(m)→測地座標[緯度°, 経度°, 楕円体高m](WGS84・反復法) */
+function _smEcefToGeo(x, y, z) {
+    const a = WGS84_SEMI_MAJOR, f = (WGS84_SEMI_MAJOR - WGS84_SEMI_MINOR) / WGS84_SEMI_MAJOR, e2 = f * (2 - f);
+    const lng = Math.atan2(y, x), p = Math.hypot(x, y);
+    let lat = Math.atan2(z, p * (1 - e2)), h = 0;
+    for (let i = 0; i < 6; i++) {
+        const sl = Math.sin(lat), N = a / Math.sqrt(1 - e2 * sl * sl);
+        h = p / Math.cos(lat) - N;
+        lat = Math.atan2(z, p * (1 - e2 * N / (N + h)));
+    }
+    return [lat * 180 / Math.PI, lng * 180 / Math.PI, h];
+}
+
+/** Draco圧縮プリミティブの解凍 → {pos, nrm, uv, idx}。非Draco/失敗はnull(実測では全タイルDraco) */
+function _smBldgDecodePrim(draco, gltf, bin, prim) {
+    const ext = prim.extensions && prim.extensions.KHR_draco_mesh_compression;
+    if (!ext) return null;
+    const bv = gltf.bufferViews[ext.bufferView];
+    const src = new Int8Array(bin.buffer, bin.byteOffset + (bv.byteOffset || 0), bv.byteLength);
+    const dbuf = new draco.DecoderBuffer(); dbuf.Init(src, src.length);
+    const dec = new draco.Decoder(); const mesh = new draco.Mesh();
+    try {
+        const st = dec.DecodeBufferToMesh(dbuf, mesh);
+        if (!st.ok() || mesh.num_points() === 0) return null;
+        const np = mesh.num_points(), nf = mesh.num_faces();
+        const attr = (id, comp) => {
+            if (id === undefined) return null;
+            const a = dec.GetAttributeByUniqueId(mesh, id);
+            const bytes = np * comp * 4, ptr = draco._malloc(bytes);
+            dec.GetAttributeDataArrayForAllPoints(mesh, a, draco.DT_FLOAT32, bytes, ptr);
+            const out = new Float32Array(draco.HEAPF32.buffer, ptr, np * comp).slice();
+            draco._free(ptr);
+            return out;
+        };
+        const pos = attr(ext.attributes.POSITION, 3);
+        if (!pos) return null;
+        const nrm = attr(ext.attributes.NORMAL, 3);
+        const uv = attr(ext.attributes.TEXCOORD_0, 2);
+        const ibytes = nf * 3 * 4, iptr = draco._malloc(ibytes);
+        dec.GetTrianglesUInt32Array(mesh, ibytes, iptr);
+        const idx = new Uint32Array(draco.HEAPU32.buffer, iptr, nf * 3).slice();
+        draco._free(iptr);
+        return { pos, nrm, uv, idx };
+    } finally {
+        draco.destroy(mesh); draco.destroy(dbuf); draco.destroy(dec);
+    }
+}
+
+/** tileset.jsonの取得と葉タイル一覧化(URL・中心緯度経度・概算半径m)。Promiseをキャッシュ */
+function _smBldgTileset(url) {
+    let p = _smBldgTilesetCache.get(url);
+    if (!p) {
+        p = fetch(url).then(r => { if (!r.ok) throw new Error('tileset ' + r.status); return r.json(); }).then(ts => {
+            const base = url.replace(/[^/]*$/, '');
+            const leaves = [];
+            const walk = (n) => {
+                const ch = n.children || [];
+                if (n.content && ch.length === 0) {
+                    const rg = n.boundingVolume && n.boundingVolume.region;
+                    if (rg) {
+                        const latR = (rg[1] + rg[3]) / 2, lngR = (rg[0] + rg[2]) / 2;
+                        const radM = 0.5 * Math.hypot((rg[3] - rg[1]) * EARTH_RADIUS, (rg[2] - rg[0]) * EARTH_RADIUS * Math.cos(latR));
+                        leaves.push({ url: new URL(n.content.uri || n.content.url, base).href,
+                                      lat: latR * 180 / Math.PI, lng: lngR * 180 / Math.PI, radM });
+                    }
+                }
+                for (const c of ch) walk(c);
+            };
+            walk(ts.root);
+            return { leaves };
+        }).catch(e => { _smBldgTilesetCache.delete(url); throw e; });
+        _smBldgTilesetCache.set(url, p);
+    }
+    return p;
+}
+
+/** 都市モードの更新入口(_smUpdateTerrainから毎回呼ばれる)。扇・観測点・モードの鍵で差分実行 */
+function _smBldgUpdate() {
+    if (!_smBldgGrp) return;
+    if (!appState.smBldg) {
+        if (_smBldgFanKey !== 'off') {
+            _smBldgFanKey = 'off'; _smBldgGen++;
+            while (_smBldgGrp.children.length) _smBldgGrp.remove(_smBldgGrp.children[_smBldgGrp.children.length - 1]);
+            _smBldgSetStatus('');
+        }
+        return;
+    }
+    const oLat = appState.start.lat, oLng = appState.start.lng, obsElev = Number(appState.start.elev) || 0;
+    const o = soraComputeOptics();
+    const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;
+    const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
+    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
+    const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}`;
+    if (fanKey === _smBldgFanKey) return;
+    _smBldgFanKey = fanKey;
+    if (geoKey !== _smBldgGeoKey) {   // 観測点・気差・テクスチャの変更 → ENU幾何を全て作り直し(扇だけなら再利用)
+        _smBldgGeoKey = geoKey;
+        for (const v of _smBldgMeshCache.values()) _smBldgDisposeTileGrp(v);
+        _smBldgMeshCache.clear();
+    }
+    const gen = ++_smBldgGen;
+    while (_smBldgGrp.children.length) _smBldgGrp.remove(_smBldgGrp.children[_smBldgGrp.children.length - 1]);
+    _smBldgRun(gen, { oLat, oLng, obsElev, centerAz, aovH, rangeKm, k }).catch(e => {
+        if (gen === _smBldgGen) { _smBldgSetStatus('取得失敗'); console.warn('[都市モード]', e); }
+    });
+}
+
+/** 扇に入る葉タイルを近い順に予算まで取得してシーンへ。世代genが変わったら静かに中断 */
+async function _smBldgRun(gen, ctx) {
+    const table = (typeof window !== 'undefined' && window._smBldgCities) || SM_BLDG_CITIES;   // テスト用差し替えフック
+    const mLat = ctx.rangeKm / 111.32, mLng = ctx.rangeKm / (111.32 * Math.max(0.2, Math.cos(ctx.oLat * Math.PI / 180)));
+    const cities = table.filter(c =>
+        ctx.oLat >= c.bbox[1] - mLat && ctx.oLat <= c.bbox[3] + mLat &&
+        ctx.oLng >= c.bbox[0] - mLng && ctx.oLng <= c.bbox[2] + mLng);
+    if (!cities.length) { _smBldgSetStatus('整備都市外'); return; }
+    _smBldgSetStatus('取得中…');
+    const geoid = await _smBldgGeoid();
+    const draco = await _smBldgEnsureDraco();   // 失敗はcatchで「取得失敗」表示へ
+    if (gen !== _smBldgGen) return;
+    const N = _smBldgGeoidN(geoid, ctx.oLat, ctx.oLng);
+    // 扇との突き合わせ(タイル中心の方位±タイル視角。余白3°)
+    const azHalf = ctx.aovH / 2 + 3;
+    const cand = [];
+    for (const c of cities) {
+        const url = appState.smBldgTex ? (c.lod2Tex || c.lod1) : (c.lod2NoTex || c.lod1);
+        if (!url) continue;
+        let ts;
+        try { ts = await _smBldgTileset(url); }
+        catch (e) { console.warn('[都市モード] tileset取得失敗:', c.name, e); continue; }
+        if (gen !== _smBldgGen) return;
+        for (const lf of ts.leaves) {
+            const inv = geodesic.Geodesic.WGS84.Inverse(ctx.oLat, ctx.oLng, lf.lat, lf.lng);
+            if (inv.s12 - lf.radM > ctx.rangeKm * 1000) continue;
+            const rel = ((inv.azi1 - ctx.centerAz + 540) % 360) - 180;
+            const halfDeg = Math.atan2(lf.radM, Math.max(1, inv.s12)) * 180 / Math.PI;
+            if (Math.abs(rel) > azHalf + halfDeg) continue;
+            cand.push({ url: lf.url, d: inv.s12 });
+        }
+    }
+    cand.sort((a, b) => a.d - b.d);
+    const picks = cand.slice(0, SM_BLDG_TILE_BUDGET);
+    if (!picks.length) { _smBldgSetStatus('0タイル/0棟'); return; }
+    // 変換の共通量(観測点側)。ENU回転は法線用
+    const Reff1 = getLocalEarthRadius(ctx.oLat) / (1 - ctx.k);
+    const latR = ctx.oLat * Math.PI / 180, lngR = ctx.oLng * Math.PI / 180;
+    const tctx = {
+        ...ctx, N, Reff1, r1: Reff1 + ctx.obsElev, sun: _smSunDir().vec,
+        enuRot: [-Math.sin(lngR), Math.cos(lngR), 0,
+                 -Math.sin(latR) * Math.cos(lngR), -Math.sin(latR) * Math.sin(lngR), Math.cos(latR),
+                  Math.cos(latR) * Math.cos(lngR), Math.cos(latR) * Math.sin(lngR), Math.sin(latR)],
+    };
+    let tiles = 0, blds = 0;
+    const runOne = async (pick) => {
+        let ent = _smBldgMeshCache.get(pick.url);
+        if (ent) {   // LRUの触り直し
+            _smBldgMeshCache.delete(pick.url); _smBldgMeshCache.set(pick.url, ent);
+        } else {
+            ent = await _smBldgBuildTile(pick.url, tctx, gen);
+            if (gen !== _smBldgGen) { if (ent) _smBldgDisposeTileGrp(ent); return; }
+            if (!ent) return;
+            _smBldgLruPut(_smBldgMeshCache, pick.url, ent, _smBldgDisposeTileGrp);
+        }
+        if (gen !== _smBldgGen) return;
+        _smBldgGrp.add(ent.grp);
+        tiles++; blds += ent.blds;
+        _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟`);
+        if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // タイル到着ごとに反映(順次現れる)
+    };
+    let i = 0;
+    await Promise.all(new Array(Math.min(4, picks.length)).fill(0).map(async () => {
+        while (i < picks.length && gen === _smBldgGen) await runOne(picks[i++]);
+    }));
+    if (gen === _smBldgGen) _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟`);
+}
+
+/** 1タイルの取得→解凍→ENU幾何化。戻り値 {grp, blds}。失敗はnull(タイル単位でスキップ) */
+async function _smBldgBuildTile(url, tctx, gen) {
+    let bufP = _smBldgBufCache.get(url);
+    if (!bufP) {
+        bufP = fetch(url).then(r => { if (!r.ok) throw new Error('tile ' + r.status); return r.arrayBuffer(); })
+            .catch(e => { _smBldgBufCache.delete(url); throw e; });
+        _smBldgLruPut(_smBldgBufCache, url, bufP, null);
+    }
+    let buf;
+    try { buf = await bufP; } catch (e) { console.warn('[都市モード] タイル取得失敗:', e); return null; }
+    if (gen !== _smBldgGen) return null;
+    const draco = await _smBldgEnsureDraco();
+    if (gen !== _smBldgGen) return null;
+    let parsed;
+    try { parsed = _smBldgParseB3dm(buf); } catch (e) { console.warn('[都市モード] b3dm解釈失敗:', e); return null; }
+    const { gltf, bin, rtc, batchLen } = parsed;
+    // テクスチャ(タイル単位でキャッシュ。ImageBitmap化は非同期)
+    let texList = null;
+    if (appState.smBldgTex && gltf.images && gltf.images.length) {
+        let texP = _smBldgTexCache.get(url);
+        if (!texP) {
+            texP = Promise.all(gltf.images.map(async (im) => {
+                const bv = gltf.bufferViews[im.bufferView];
+                const blob = new Blob([new Uint8Array(bin.buffer, bin.byteOffset + (bv.byteOffset || 0), bv.byteLength)],
+                                      { type: im.mimeType || 'image/webp' });
+                const bmp = await createImageBitmap(blob);
+                const tex = new THREE.Texture(bmp);
+                tex.flipY = false;   // glTFのUVは左上原点
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.needsUpdate = true;
+                return tex;
+            })).catch(e => { _smBldgTexCache.delete(url); throw e; });
+            _smBldgLruPut(_smBldgTexCache, url, texP, (p) => p.then(l => l.forEach(t => t.dispose())).catch(() => {}));
+        }
+        try { texList = await texP; } catch (e) { console.warn('[都市モード] テクスチャ読込失敗:', e); }
+        if (gen !== _smBldgGen) return null;
+    }
+    const grp = new THREE.Group();
+    for (const mesh of gltf.meshes || []) for (const prim of mesh.primitives || []) {
+        let dec = null;
+        try { dec = _smBldgDecodePrim(draco, gltf, bin, prim); } catch (e) { console.warn('[都市モード] Draco解凍失敗:', e); }
+        if (!dec) continue;
+        const np = dec.pos.length / 3;
+        // 頂点変換: glTF(y-up・RTC相対)→ECEF→測地→標高(h−N)→地形と同じ厳密三角形解でENU
+        const positions = new Float32Array(dec.pos.length);
+        for (let vi = 0; vi < np; vi++) {
+            const gx = dec.pos[3 * vi], gy = dec.pos[3 * vi + 1], gz = dec.pos[3 * vi + 2];
+            const geo = _smEcefToGeo(rtc[0] + gx, rtc[1] - gz, rtc[2] + gy);
+            const hMSL = geo[2] - tctx.N;
+            const inv = geodesic.Geodesic.WGS84.Inverse(tctx.oLat, tctx.oLng, geo[0], geo[1]);
+            const d = Math.max(0.01, inv.s12), a = inv.azi1 * Math.PI / 180;
+            const Reff2 = getLocalEarthRadius(geo[0]) / (1 - tctx.k);
+            const r2 = Reff2 + hMSL;
+            const cAng = d / ((tctx.Reff1 + Reff2) / 2);
+            const slant = Math.sqrt(tctx.r1 * tctx.r1 + r2 * r2 - 2 * tctx.r1 * r2 * Math.cos(cAng));
+            const alt = Math.atan2(r2 * Math.sin(cAng) / slant,
+                                   (tctx.r1 * tctx.r1 + slant * slant - r2 * r2) / (2 * tctx.r1 * slant)) - Math.PI / 2;
+            positions[3 * vi] = d * Math.sin(a);
+            positions[3 * vi + 1] = d * Math.cos(a);
+            positions[3 * vi + 2] = d * Math.tan(alt);
+        }
+        const geoB = new THREE.BufferGeometry();
+        geoB.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geoB.setIndex(new THREE.Uint32BufferAttribute(dec.idx, 1));
+        const matDef = (gltf.materials && prim.material !== undefined) ? gltf.materials[prim.material] : null;
+        const texRef = matDef && matDef.pbrMetallicRoughness && matDef.pbrMetallicRoughness.baseColorTexture;
+        let mat;
+        if (texList && texRef && dec.uv) {
+            const t = gltf.textures[texRef.index] || {};
+            const srcIdx = (t.extensions && t.extensions.EXT_texture_webp) ? t.extensions.EXT_texture_webp.source : (t.source || 0);
+            geoB.setAttribute('uv', new THREE.Float32BufferAttribute(dec.uv, 2));
+            mat = new THREE.MeshBasicMaterial({ map: texList[srcIdx] || texList[0], side: THREE.DoubleSide });
+        } else {
+            // 無テクスチャ面: 法線を観測点ENUへ回し太陽ランバートを頂点色に焼く(地形の陰影と同じ思想・僅かに寒色)
+            const colors = new Float32Array(np * 3);
+            for (let vi = 0; vi < np; vi++) {
+                let lam = 1;
+                if (dec.nrm) {
+                    const ex = dec.nrm[3 * vi], ey = -dec.nrm[3 * vi + 2], ez = dec.nrm[3 * vi + 1];   // y-up→ECEF
+                    const R = tctx.enuRot;
+                    const nE = R[0] * ex + R[1] * ey + R[2] * ez;
+                    const nN = R[3] * ex + R[4] * ey + R[5] * ez;
+                    const nU = R[6] * ex + R[7] * ey + R[8] * ez;
+                    lam = 0.35 + 0.75 * Math.max(0, nE * tctx.sun.x + nN * tctx.sun.y + nU * tctx.sun.z);
+                }
+                const lum = Math.min(1, 0.72 * lam);
+                colors[3 * vi] = lum * 0.90; colors[3 * vi + 1] = lum * 0.93; colors[3 * vi + 2] = lum;
+            }
+            geoB.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+        }
+        grp.add(new THREE.Mesh(geoB, mat));
+    }
+    return { grp, blds: batchLen };
 }
 
 // --- F3: フィッシュアイ post-process (近似: 透視レンダをRTへ→バレル歪み) ---
