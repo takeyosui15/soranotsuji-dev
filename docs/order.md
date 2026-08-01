@@ -112,3 +112,760 @@ qiita.com
 - ご判断が出たら: PADレンダラ+anchor.jsのPAD連携+knowledge再編へ。宙の辻側はリファクタリングB第2弾(重複92件の地図あり)が控えています。
 
 サインは、Wで!🙌
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 911ea75
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-08-02)
+Claudeさん、ありがとうございます。
+
+> ところで「**iClaudeドライブ**」という打ち間違い、ちょっと嬉しくなってしまいました。私のドライブ…!
+
+朝から、ご機嫌ですね🤭
+
+
+> - ひとつ発見だったのは、**貼り付け運用にも良さがあった**ことです。OKFやLoop Engineeringの全文がorder-logに残っているのは、貼っていただいたおかげです(リンク先はいつか消えますが、リポジトリは忘れません)。今後は「軽く読むものはURL・残したい記事は貼り付け」の使い分けが良さそうです。
+
+とても良い気づきですね。
+それは、私も気がついていなかったので、ハッとさせられました。
+時間が経つと、リンク先は、変わってしましますが、この時、どのようなものを2人で見て判断したかをきちんと残せますね。
+なので、おすすめの**A案**でいきますね。
+
+では、ドメイン追加をする前に、読んでいただきたいページをコピペしますね。
+[TOPIC 30｜PLATEAU GIS Converterでコンバートして3Dで表示する](https://www.mlit.go.jp/plateau/learning/tpc30/)
+------
+ここから
+------
+
+Plateau by MLIT
+Language
+About PLATEAU
+Learn
+Use
+Support
+
+Top
+Learning
+TOPIC 30｜PLATEAU GIS Converterでコンバートして3Dで表示する
+Tutorials
+PLATEAU GIS Converterでコンバートする
+2024年度
+PLATEAU GIS Converter
+2025.1.24 — Published
+tpc30
+TOPIC 30｜PLATEAU GIS Converterでコンバートして3Dで表示する
+このトピックでは、PLATEAUのCityGML形式ファイルをさまざまなGIS形式に変換できるPLATEAU GIS Converterの基本的な使い方とファイル形式の特徴を解説します。実際の活用例として、3D Tiles形式に変換して、Cesiumで表示する方法までを説明します。
+
+Share
+X
+・Facebook
+・LINE
+
+PLATEAUが配布している3D都市モデルは、CityGML形式です。この形式のファイルを用途に応じた形式に変換することで、さまざまなサービスに活用できます。こうした変換を実現するツールが「PLATEAU GIS Converter」です。このトピックでは、PLATEAU GIS Converterを使った各種変換の方法と変換できるファイル形式の特徴、3D Tiles形式に変換して3Dで表示するまでを解説します。
+
+
+このトピックの内容は「PLATEAU GIS Converterを活用した各種形式への3D都市モデル変換」（2024年度PLATEAU Hands-onアーカイブ動画）でも利用方法をハンズオン形式で紹介しています。
+
+【目次】
+
+30.1 　このトピックの見どころ
+
+30.2 　PLATEAU GIS Converterの基本的な使い方
+
+　30.2.1 　入手とセットアップ
+
+　30.2.2 　基本的な使用法
+
+　30.2.3 　CityGML形式ファイルの入手について
+
+30.3 　主なフォーマットの用途と特徴
+
+　30.3.1 　GeoPackage形式
+
+　30.3.2 　GeoJSON形式
+
+　30.3.3 　3D Tiles形式
+
+　30.3.4 　MVT（Mapbox Vector Tiles）形式
+
+　30.3.5 　CZML形式
+
+　30.3.6 　KML形式
+
+　30.3.7 　glTF形式
+
+　30.3.8 　Shapefile形式
+
+　30.3.9 　Minecraft形式（MCA）
+
+　30.3.10 　OBJ形式（Wavefront OBJ形式）
+
+30.4 　3D Tiles形式に変換して活用する
+
+　30.4.1 　3D Tiles形式に変換する
+
+　30.4.2 　変換したファイルの確認
+
+　30.4.3 　Cesiumで3D Tiles形式ファイルを扱う
+
+　30.4.4 　複数ファイルやテクスチャ付きでの変換
+
+30.5 　まとめ
+
+30.1 _ このトピックの見どころ
+このトピックでは、PLATEAUの3D都市モデルを、さまざまなGIS形式フォーマットに変換する方法を紹介します。主な見どころは、以下のとおりです。
+
+■ GIS形式フォーマットの特徴
+
+GIS形式には、さまざまなフォーマットがあります。それぞれの特徴や扱える代表的なソフトウェアを紹介し、どのような場面でどのようなフォーマットが向いているのかを概説します。
+
+■ 3D Tiles形式に変換して3Dで表示する実例
+
+PLATEAU GIS Converterを使って3D Tiles形式に変換し、Cesiumライブラリを使って3Dで表示する具体的な方法を解説します。
+
+30.2 _ PLATEAU GIS Converterの基本的な使い方
+PLATEAU GIS Converterは、PLATEAUが提供するCityGML形式の3D都市モデルを他の一般的なGISデータ形式や3DCGデータ形式に変換する、オープンソースのソフトウェアです。2023年度のProject PLATEAU「都市デジタルツインの実現に向けた研究開発及び実証調査業務」（内閣府/研究開発とSociety5.0との橋渡しプログラム（BRIDGE））において、開発されました。
+
+次のような特徴があります。
+
+・GISから3Dモデリングソフトウェアまで対応
+
+ShapefileやGeoPackageなどのGISデータ形式から、glTFやOBJなどの3DCGデータ形式まで、幅広く対応します。座標系の変換機能も持ち、属性ももれなく変換できます。変換の際、属性名を変更することもできます。また地物とカメラの距離に応じて表示するLODを切り替える「LOD最適化」や、解像度の変更機能も内蔵しており、軽量なデータに変換できます。
+
+・複数ファイルをまとめて高速・簡易に変換可能
+
+処理速度が極めて高速で、巨大なCityGMLファイルもわずか2～3分で変換できます。複数のCityGMLファイル（3次メッシュごとに分けられた、それぞれのファイル）をまとめて変換することも可能です。
+
+図30-1 PLATEAU GIS Converterの役割
+30.2.1 _ 入手とセットアップ
+PLATEAU GIS Converterは、WindowsおよびmacOSで動作するソフトウェアです。下記のGitHubサイトで配布されています。
+
+----------------
+［PLATEAU GIS Converter］
+
+https://github.com/Project-PLATEAU/PLATEAU-GIS-Converter
+----------------
+
+Releaseページに、各プラットフォーム向けのバイナリが登録されています。ダウンロードして実行するとインストーラが起動し、セットアップできます。Windowsであれば「XXXX-setup.exe」、macOSであれば「XXXX_universal.dmg」を使います。
+
+----------------
+［PLATEAU GIS Converter Releaseページ］
+
+https://github.com/Project-PLATEAU/PLATEAU-GIS-Converter/releases
+----------------
+
+図30-2 各OS用のバイナリをダウンロードしてセットアップする
+コラム：マルウェアの警告が表示されたときは
+PLATEAU GIS Converterを実行すると、OSの機能やウイルス対策ソフトなどによって、警告が表示されることがあります。これはインターネットから入手したソフトウェアであるのが理由です。正しくダウンロードしていれば特に問題ないため、そのまま開いてください。
+
+ウイルス対策ソフトがインストールされている環境では、自動的に削除されてしまうこともあります。そのような場合は除外設定をしてください。
+
+図30-3 警告の例（macOS）
+図30-4 警告があっても実行する設定の例
+30.2.2 _ 基本的な使用法
+起動すると、図30-5の画面が表示されます。下記のように操作して［変換］をクリックすると、変換されます。具体的な操作方法については「3D Tiles形式に変換して活用する」以降で説明します。
+
+・［入力］
+
+変換元のCityGML形式ファイルを格納したフォルダ、または単一のCityGML形式ファイルを選択します。複数ファイルの選択もできます。
+
+・［設定］
+
+出力ファイル形式を選択します。ファイル形式によっては、座標参照系の選択もできます。
+
+また［属性マッピングルール］を選択すると、変換の際、どのような属性をどのような項目名（列名や属性名）としてマッピングするかを設定できます（「31.4　属性マッピングルールを使う」を参照）。
+
+・［出力］
+
+出力先のフォルダ名またはファイル名を選択します。
+
+図30-5 PLAEAU GIS Converterの変換画面
+30.2.3 _ CityGML形式ファイルの入手について
+変換元となるPLATEAUの3D都市モデル（CityGML形式）は、G空間情報センターから、あらかじめダウンロードしておいてください。下記の「PLATEAU Open Data」のページでは、地図をクリックすることでG空間情報センターの各都市のダウンロードページに飛べます。
+
+このトピックでは、例として「新宿区」のデータを使います。
+
+----------------
+【PLATEAU Open Data】
+
+https://www.mlit.go.jp/plateau/open-data/
+----------------
+
+----------------
+【3D都市モデル（Project PLATEAU）新宿区（2023年度）】
+
+https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2023
+----------------
+
+図30-6 PLATEAU Open Dataの地図から選択する
+PLATEAUの3D都市モデルは、いくつかのファイル形式やバージョンがあり、変換元として対応しているものは「CityGML（v2）」以降（「CityGML（v2）」または「CityGML（v3）」）です。このファイル形式を選んでダウンロードしてください。
+
+図30-7 CityGML（v2）以降をダウンロードする
+ダウンロードしたファイルはZIP形式なので、展開してください。展開すると、各種CityGMLファイルが得られます。それぞれのフォルダの意味など3D都市モデルデータの詳細については、「TOPIC 3｜3D都市モデルデータの基本」を参照してください。
+
+30.3 _ 主なフォーマットの用途と特徴
+本稿の執筆時点において、PLATEAU GIS Converterは、表 30-1に示す10種類のファイル形式に対応しています。利用したいソフトウェアや用途に応じて、適切なものを選択してください。
+
+【メモ】
+
+3DCGソフトウェアでしばしば使われるFBX形式には対応していませんが、もし変換したい場合は、OBJ形式として出力し、それをBlenderなどのOBJ形式とFBX形式の両方を扱える3DCGソフトで読み込んで、さらに変換するとよいでしょう。または別のアプローチとして、PLATEAU GIS Converterを使わずに「PLATEAU SDK for Unity」や「PLATEAU SDK for Unreal」を使う方法もあります。
+
+【メモ】
+
+表 30-1において、最低LODとは、CityGML形式ファイルに含まれる最も小さなLODを示します（多くの場合LOD0です）、最高LODとは、CityGML形式ファイルに含まれる最も大きなLOD（LOD1の地域であればLOD1、LOD2の地域であればLOD2など）を示します。
+
+フォーマット	概要	形式	対応LOD	テクスチャ	主な
+使用ソフト
+GeoPackage	ベクター、ラスターなど複数のレイヤを1つのファイルに格納できるフォーマット	SQLite	最高LOD
+まで	✕	QGIS、
+ArcGISなど
+GeoJSON	ベクターの地物や属性を表現できるフォーマット。
+ウェブマップやAPIで広く利用される	JSON	最高LOD
+まで	✕	Leaflet、
+OpenLayers、Mapbox GL JS、D3.jsなど
+3D Tiles	大規模な3D地理空間データのレンダリングに最適化されたフォーマット。
+タイル分割やストリーミング処理などにより、ウェブ上でも効率よく可視化することが可能	JSON
+
+バイナリ	最高LOD
+まで	◯	CesiumJS、ArcGIS、Deck.glなど
+MVT	Mapbox Vector Tilesの略で、大規模な地理空間データの可視化に特化したフォーマット。
+ベクターデータをタイル化し、プロトコルバッファというバイナリ形式で圧縮することで、ウェブ上での高速な描画が可能	バイナリ	最低LOD
+のみ	✕	Mapbox GL JS、
+MapLibre GL JS、
+QGISなど
+CZML	Cesiumで利用される時系列を含めた3Dデータを記述するためのJSONフォーマット。
+アニメーションなど動的なオブジェクトや属性を記述できる	JSON	最高LOD
+まで	✕	CesiumJS
+KML	主にGoogle Earthで利用されるXML形式のフォーマット。
+3D空間における静的なオブジェクトや属性を記述できる	XML	最高LOD
+まで	✕	Google Earth、QGIS、
+ArcGIS
+など
+glTF	3Dモデル本体以外に、アニメーションなど含めたシーン全体を格納することが可能なフォーマットで、主にWeb上で利用される。
+PLATEAU GIS Converterではglbと呼ばれるバイナリ形式で出力される	バイナリ	最高LOD
+まで	◯	Three.js、
+Babylon.js、
+Blender
+など
+Shapefile	ESRIが開発したベクターデータフォーマット。複数のファイルで構成される。
+GISの分野で広く利用される	バイナリ	最高LOD
+まで	✕	QGIS、
+ArcGIS、
+GeoServer
+など
+Minecraft	ブロックを組み合わせた世界を作れるゲームである「マインクラフト」でインポートできるファイル群で、PLATEAU GIS Converterではmca形式のファイル群とlevel.datを出力する	その他	最高LOD
+まで	✕	Minecraft
+OBJ	Wavefront OBJ。3Dモデルの形状データを記録するファイル形式。
+多くの3DCGソフトウェアで採用されており、標準的なデータ形式のひとつ。
+マテリアル情報は別ファイル（.mtl）で定義する。OBJ形式は形状のみを示すため、属性データは欠落する	テキスト	最高LOD
+まで	◯	Three.js、
+Babylon.js、
+Blender
+など
+表30-1 PLATEAU GIS Converterが対応するフォーマット
+30.3.1 _ GeoPackage形式
+GeoPackage形式は、SQLiteというファイル形式のデータベースを拡張した、GIS形式のファイルです（バイナリ形式）。QGISをはじめとするオープンソースのGISでは、標準のフォーマットとして使われています。
+
+ひとつのファイルで複数のレイヤ（道路や建物、都市設備など）を管理できるのが特徴です。データベース形式なのでパフォーマンスが良く、QGISで扱う場合は、例えば10万棟の建物があるような場合でも高速に動作します。
+
+図30-8 GeoPackage形式
+30.3.2 _ GeoJSON形式
+JSON形式（テキスト形式）で地物を表現するGIS形式ファイルです。点（Point）・線（LineString）、面（Polygon）やその複合系（MultiPoint、MultiLineString、MultiPolygon）で、形状を示します。
+
+テキスト形式なので人間可読性が高く、またJavaScriptでの取り扱いも良いため、WebGISでよく使われます。ただしテキスト形式であるため、ファイルサイズが肥大化しやすい弱点があります。そのため大量の地物を含める場面では、避けたほうがよいでしょう。
+
+図30-9 GeoJSON形式
+30.3.3 _ 3D Tiles形式
+タイル状に分割して格納・配信する構造のフォーマットで、広範囲な3Dデータを可視化するのに適します。glTF形式（glb形式）がベースであり、これを何個も階層的に重ねたファイル構造です。
+
+点群データやBIM/CIMモデルなども含めて、高速に描画できます。WebGISのCesiumをはじめ、Webやデスクトップ・モバイルなど、幅広いソフトウェアが対応しています。
+
+図30-10 3D Tiles形式
+30.3.4 _ MVT（Mapbox Vector Tiles）形式
+WebGISで、とても多く使われるファイル形式で、ベクタータイルとも呼ばれます。2次元のベクトル形式（点、線、ポリゴン）のままタイル分割して格納・配信する方式で、広範囲に渡ったデータを可視化するのに適します。分析には向きません。拡張子は、「.mvt」「.pbf」が使われます。
+
+図30-11 MVT形式
+30.3.5 _ CZML形式
+WebGISのCesiumで使用される時間動的な3Dシーンを記述するためのJSON形式のフォーマットです。線、点、3Dモデルなどが、時間とともにどのように変化するかを指定できます。テクスチャを利用せず、小規模で色分けやアニメーションなどを行いたい場合に使われます。
+
+図30-12 CZML形式
+30.3.6 _ KML形式
+Google Earthなどで使用されるXML形式のフォーマットです。ラインやポリゴン（2D・3D）などの各要素に対して説明文を設定することもでき、そうした情報を重ね合わせて表示できます。
+
+図30-13 KML形式
+30.3.7 _ glTF形式
+Webで利用することを想定したJSON形式の3DCGデータ形式です。オブジェクトの形状だけでなく、カメラやライトの位置、アニメーションなどの3Dシーン全体を記録できます。
+
+構造が記述された「.gltf」（JSON形式）、形状が書かれた「.bin」（バイナリ形式）、テクスチャなど（PNG形式やJPEG形式など）の3種のファイルで構成されており、これらをひとつにまとめたのが「glb形式」です。
+
+小規模なデータに向きます。広範囲であれば、このglTF形式をタイル状に分割して重ねた3D Tiles形式が適します。
+
+図30-14 glTF形式（GLTF: A Game-Changer in the World of 3D Graphics より）
+30.3.8 _ Shapefile形式
+古くから存在するバイナリ形式のファイルフォーマットです。歴史が古いことから、地方公共団体などにおいてGISの共通フォーマットとして幅広く使われています。複数のファイルで構成されており、最低でも「.shp」「.dbf」「.shx」の3種類のファイルが必要です。
+
+ファイルサイズやフィールド名の長さ、フィールド数の制約などが多いため、特段の理由がなければGeoPackage形式を使うことを推奨します。
+
+【メモ】
+
+PLATEAUのCityGML形式ファイルには、Shapefile形式のフィールド長制限を超える属性名があります。Shapefile形式に変換する際には、PLATEAU GIS Converterのデフォルトのマッピングルールにおいて自動的に縮まります。
+
+図30-15 Shapefile形式
+30.3.9 _ Minecraft形式（MCA）
+ブロックで構成された空間で遊べるゲーム「Minecraft」のJava版で、ワールドデータを保存するために使用される独自のファイル形式です。この形式に変換すれば、現実の都市をMinecraftのなかで再現して遊べます。
+
+変換する際に、Minecraftの1ブロックは1mで換算されます。1つの.mcaファイルには、最大1024個のチャンク（32×32のチャンク領域、1ブロックは1m四方であり1チャンクは384ブロックの高さをもった16×16のブロックで構成されているため、これは512m×512m（×384mの高さ）の領域に相当します）のデータが含まれています。一般に1つの都市はこれよりも範囲が広いため、変換すると複数の.mcaファイルに分割して保存されます。
+
+【メモ】
+
+3D都市モデルをMinecraftにインポートする方法については、「plateau2minecraft」を参照ください。
+
+図30-16 Minecraft形式
+30.3.10 _ OBJ形式（Wavefront OBJ形式）
+3Dモデルの形状データを記録するファイル形式です。頂点座標や面の情報などをテキスト形式で記述します。マテリアル情報（テクスチャ）は別ファイル（.mtl、およびテクスチャ画像）で定義します。
+
+多くの3DCGソフトウェアで採用されており、標準的なデータ交換形式のひとつです。
+
+図30-17 OBJ形式
+30.4 _ 3D Tiles形式に変換して活用する
+実際にいくつかの変換をして、活用する例を見ていきます。まずは3D Tiles形式に変換し、小さなJavaScriptのプログラムを作って読み込み、ブラウザで表示するまでの流れを説明します。
+
+この節では、新宿区にある東京都庁周辺のCityGML形式ファイルを使います。これが収録されている「3D都市モデル（Project PLATEAU）新宿区（2023年度）」のファイルをダウンロードし、展開してから進めてください。
+
+【メモ】
+
+新宿区のデータは、東京都のデータにも含まれているため、「3D都市モデル（Project PLATEAU）東京都23区」を使っても構いません。
+
+----------------
+【3D都市モデル（Project PLATEAU）新宿区（2023年度）】
+
+https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2023
+----------------
+
+30.4.1 _ 3D Tiles形式に変換する
+まずは、次の手順で、3D Tiles形式に変換します。
+
+【手順】3D Tiles形式に変換する
+
+［1］PLATEAU GIS Converterを起動する
+
+PLATEAU GIS Converterを起動します。
+
+図30-18 PLATEAU GIS Converterを起動する
+［2］CityGML形式ファイルを選択する
+
+［入力］の欄から、変換元のCityGML形式ファイルを選びます。
+
+ここでは例として、東京都庁が含まれている建築物データを変換してみます。該当地域は3次メッシュ「53394525」の範囲であり、bldgフォルダにある「53394525_bldg_6697_op.gml」が相当します。［ファイル選択］をクリックし、［選択］をクリックしてこのファイルを選択します。
+
+【メモ】
+
+ファイルの構造や3次メッシュについては「TOPIC 3｜3D都市モデルデータの基本」を参照ください。目的の建築物がどの3次メッシュに含まれるかは、「地図で見る統計（jSTAT MAP）」などで調べられます。
+
+図30-19 東京都庁が含まれている建築物データを選択する
+［3］ファイル形式と座標参照系などを選択する
+
+［設定］の部分で、ファイル形式を選択します。ここでは［3D Tiles］を選択します。
+ファイルの種類によっていくつかの選択肢を選べるので、それらも設定します。3D Tiles形式の場合、次の選択肢があります。
+
+・座標参照系
+
+座標の扱い方です。3D Tiles形式の場合は［WGS 84（EPSG：4979）（楕円体高）］が標準なので、これを選択します。
+
+【メモ】
+
+［特殊：JGD2011（EPSG：6697）］は、高さとして標高を扱う座標系です。これはPLATEAUに収録されている高さを変換せずに、そのまま採用します。3D Tiles形式として標準的に使われる座標系ではなく、EPSG:6697で扱っている自社のGISデータと組み合わせたいときなどに使う、特殊なオプションです。
+
+・出力の詳細設定
+
+3D Tiles形式の場合は、表30-2に示すオプションがあります。ここではデフォルトのまま進めます。デフォルトのままだと、テクスチャが付かない最大LODのデータとして変換されます。
+
+【メモ】
+
+LODとはデータの詳細度のことです（「TOPIC 3｜3D都市モデルデータの基本[3/4]｜LODレベルによる表現の違い」を参照）。地域によって、どのLODのデータまで含まれているのかが異なります。
+
+オプション	デフォルト値	解説
+出力LODの選択	最大LOD	どのLODのデータを変換するかを指定する
+最大LOD：CityGMLに含まれる地物ごとの最大のLODを抽出する。地物によってLODが異なる可能性がある
+
+テクスチャ付き最大LOD：CityGMLに含まれる地物ごとのテクスチャを保有する最大のLODを抽出する。テクスチャが存在しない場合は最大のLODが抽出される
+
+最小LOD：CityGMLに含まれる地物ごとの最小のLODを抽出する。基本的にはLOD0が抽出される
+
+全てのLOD：CityGMLに含まれる地物ごとのすべてのLODを抽出する。主に3D Tiles形式に変換する際に使用する。この方式で出力すると、CesiumJSなどで可視化する際に、カメラと地物の距離に応じて表示されるLODが切り替わる（LOD最適化機能）
+最小ズームレベル	15	ズーム可能な最小のレベル
+最大ズームレベル	18	ズーム可能な最大のレベル。変換後、最小ズームレベル～最大ズームレベルのフォルダができ、それぞれのズームレベルのデータが格納される
+距離あたりの解像度を制限する	なし	小さな地物に対して設定されている過剰に高解像度なテクスチャを調整して、パフォーマンスを向上する。
+例えば、看板・信号機などの都市設備は、建築物などのテクスチャと比較して、超高解像度で保持されている場合がある。都市全域などの可視化を行う場合、このまま変換すると過剰なファイルサイズになりパフォーマンスが急激に悪化する恐れがある。
+このオプションでは、それらを抑制するために、現実世界の地物の大きさと、テクスチャ上での距離を比較し、バランスを調整するために低解像度化する
+gzipで圧縮する	なし	3D Tilesを構成するすべてのタイル（glTF/glb）をgzipで圧縮する。ファイルサイズを削減し、高速に配信できるようになる。その際、配信サーバーでレスポンスヘッダーに「Content-encoding: gzip」を指定する必要がある
+表30- 2 3D Tiles形式の出力の詳細設定オプション
+・属性マッピングルール
+
+変換する際、PLATEAUの属性を別名に変換したいときに使うオプションです。ここでは何も選択しません。詳細については「属性マッピングルール」で説明します。
+
+図30-20 ファイル形式と座標参照系などを選択する
+［4］出力先を選択して変換する
+
+［出力］にある［選択］をクリックして、出力先のフォルダ名を指定します。そして［変換］をクリックすると、変換されます。
+
+【メモ】
+
+フォルダは先に作っておくのではなく、作りたいフォルダ名を指定します。指定したフォルダが作られ、その中に変換したファイル群が格納されます。
+
+図30-21 出力先を選択して変換する
+30.4.2 _ 変換したファイルの確認
+3D Tiles形式に変換したフォルダには、tileset.jsonファイルと、ズームレベルごとのフォルダに分けられてglb形式ファイルが含まれます。これら一式が、3D Tiles形式を構成するファイルです。
+
+図30-22 変換した3D Tiles形式ファイル
+30.4.3 _ Cesiumで3D Tiles形式ファイルを扱う
+Cesiumを使った簡易な地図表示のプログラムをJavaScriptで作り、この3D Tiles形式ファイルを読み込んでブラウザに表示してみます。
+
+PLATEAU GIS Converterを使って変換した各種ファイルフォーマットを開くための実例は、オンラインマニュアルの「GUIでの利用」に記述されています。
+
+このドキュメントの3D Tiles形式の実例に倣って次のようなプログラムを書くと、この3D Tiles形式ファイルを表示できます。
+
+【手順】3D Tiles形式ファイルを開くプログラムを作る
+
+［1］作業用のフォルダを作る
+
+適当な作業用のフォルダを作ります。例えば「example_3dtiles」とします。
+
+コマンドプロンプトやターミナルで、このフォルダをカレントディレクトリにします。
+
+cd example_3dtiles
+
+［2］3D Tiles形式ファイルをコピーする
+
+［1］のフォルダの下に、変換した3D Tiles形式のファイル一式をフォルダごとコピーします。以下では、このフォルダを「3dtiles_output」とします。
+
+［3］ローカルのWebサーバーを起動する
+
+［1］のフォルダにおいて、ローカルのWebサーバーを起動します。いくつかの方法がありますが、Pythonがインストールされている環境ならば、次のコマンドを入力することでローカルのWebサーバーが起動します。このときブラウザから、「http://localhost:8000/」と入力すると、このフォルダに置いたファイルを参照できるようになります。
+
+【メモ】
+
+ここではPythonを使っていますが、Visual Studio Codeの「Live Server」という拡張を使う方法など、ほかにもいくつかの方法があります。
+
+python -m http.server
+
+［4］3D Tiles形式ファイルを読み込むためのファイルを記述する
+
+リスト30-1に示すプログラムを入力し、フォルダにindex.htmlというファイル名で保存します。
+
+リスト30-1において、次の箇所が3D Tiles形式ファイルを読み込んでいる部分です。3D Tiles形式ファイルを置いたフォルダ名に応じて変更してください。
+
+const tileset = await Cesium.Cesium3DTileset.fromUrl("3dtiels_output/tileset.json");
+
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="UTF-8" />
+  <title>Cesium</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Cesium.js"></script>
+  <link
+   href="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Widgets/widgets.css"
+   rel="stylesheet"
+  />
+  <style>
+   #cesiumContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    font-family: sans-serif;
+   }
+   html {
+    height: 100%;
+   }
+   body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    height: 100%;
+   }
+  </style>
+ </head>
+ <body>
+  <div id="cesiumContainer"></div>
+  <script>
+   // Cesium ion token for the plateau-terrain-streaming
+   // https://github.com/Project-PLATEAU/plateau-streaming-tutorial/blob/main/terrain/plateau-terrain-streaming.md
+   Cesium.Ion.defaultAccessToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlNjk0MTM4NC1lMWI0LTQxNTgtYjcxZS01ZWJhMGJlMTE1MWQiLCJpZCI6MTQ5ODk3LCJpYXQiOjE3MTUxNTEyODZ9.2aUmEQ2-fDsjf-XeC6-hZpwkgwLse3yXoXF4xTOvPAY";
+
+   async function setup() {
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+     terrainProvider: await Cesium.CesiumTerrainProvider.fromIonAssetId(
+      2488101,
+      { requestVertexNormals: true }
+     ),
+     shadows: true,
+    });
+
+    var imageProvider = new Cesium.UrlTemplateImageryProvider({
+     url: "https://gic-plateau.s3.ap-northeast-1.amazonaws.com/2020/ortho/tiles/{z}/{x}/{y}.png",
+     maximumLevel: 19,
+    });
+    var currentImage =
+     viewer.scene.imageryLayers.addImageryProvider(imageProvider);
+
+    viewer.scene.screenSpaceCameraController.enableCollisionDetection = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+
+    // Set your 3D Tiles
+    const tileset = await Cesium.Cesium3DTileset.fromUrl("3dtiels_output/tileset.json");
+    viewer.scene.primitives.add(tileset);
+    viewer.zoomTo(tileset);
+   }
+
+   setup();
+  </script>
+ </body>
+</html>
+
+リスト30-1 index.html
+
+［5］ブラウザで開いて参照する
+
+ブラウザで「http://localhost:8000/」を開くと、変換された3D Tiles形式の地図が表示されます。
+
+【メモ】
+
+時間帯によっては、少し薄暗い印象を受けるかもしれません。それは日照時間が理由です。画面下のゲージで日時を操作できます。日が昇っている時間帯に変更すれば、明るくなります。
+
+図30-23 3D Tiles形式の地図が表示された
+コラム：3D Tiles 1.1とdeck.gl
+3D Tiles形式は、3D地図をビジュアライズするときにしばしば使われるdeck.glでも扱うことができます。ただし、PLATEAU GIS Converterが出力する3D Tiles形式はバージョン1.1であり、そのままではdeck.glで読み込めません。
+
+tileset.jsonにはバージョンを記述している部分があり、この部分を"0.0"に変更するとdeck.glでも利用できます。
+
+【変更前（tileset.json）】
+
+ "asset": {
+    "version": "1.1"
+  },
+
+【変更後（tileset.json）】
+
+ "asset": {
+    "version": "0.0"
+  },
+
+3D Tiles 1.1形式では、GIS的な用途のために「3D Metadata Specification」が定義され、「地物単位」で属性情報を付与できるようになりました（従来は、JSON形式で属性情報を付与することしかできませんでした）。PLATEAU GIS Converterは、この仕様に基づいて変換するため、UI上の特別な加工を行わずにCesium上で属性情報を正しく表示できます。また、1.0形式はglTFを独自にラップした形式でしたが、1.1形式は標準のglTFを利用した形式になったため、メッシュやテクスチャの圧縮などもできるようになりました。
+
+なお、本稿の執筆時点において、G空間情報センターからダウンロードできる3D Tiles形式のファイルは、バージョン1.0です。そのため、PLATEAU GIS Converterで変換するのではなく、すでに変換済みのものとして公開されている3D Tiles形式ファイルは、こうした変更をしなくても、deck.glで、そのまま扱えます。
+
+30.4.4 _ 複数ファイルやテクスチャ付きでの変換
+PLATEAU GIS Converterでは、複数のファイルをまとめて変換することもできますし、テクスチャ付きで変換することもできます。テクスチャ付きで変換するには、変換時の［出力LODの選択］の設定において、［テクスチャ付き最大LOD］を選択します。ただしテクスチャを付けると、変換に少し時間がかかります。詳しい操作については、動画を参照してください。
+
+図30-24に、テクスチャ付きで変換したものを表示した例を示します。テクスチャ付きのものを表示する場合でも、プログラムリストに変更はありません。
+
+【メモ】
+
+3D Tiles形式は分割されたファイル形式であり、必要に応じて表示しようとしている領域のファイルをダウンロードします。本トピックでは、ローカルで起動しているWebサーバーで表示していますが、インターネット上に3D Tiles形式ファイルを置く場合、ズームアウトして遠距離から広範囲を表示すると、その範囲すべてのファイルのダウンロードが必要なので、しばらく時間がかかります。しかしファイルはブラウザにキャッシュされるため、2回目以降は快適に表示されます。
+
+図30-24 テクスチャ付きで変換したものを表示した例
+30.5 _ まとめ
+このトピックでは、PLATEAU GIS Converterが対応するフォーマットの種類を概説し、その一例として、3D Tiles形式に変換して、JavaScriptで表示するところまでを解説しました。
+
+G空間情報センターで配布されているオリジナルのCityGML形式ファイルは、扱えるソフトウェアが限られており、実際に活用するにはそのソフトウェアで使えるようにする変換が必要です。PLATEAU GIS Converterは、こうした橋渡しをするツールです。
+
+【文】
+
+西尾 悟（MIERUNE）
+
+【協力】
+
+大澤文孝
+
+Series
+TOPIC 30｜PLATEAU GIS Converterでコンバートして3Dで表示する
+Share
+X
+・Facebook
+・LINE
+Recommended Use Case
+See more Use Case
+Public Solution
+AIを活用した環境シミュレーションの高速化技術の開発
+兵庫県朝来市
+AIを活用した環境シミュレーションの高速化技術の開発
+防災
+
+洪水
+
+2025年度
+
+AI
+
+CesiumJS
+
+CityGML
+
+GIS
+
+PLATEAU GIS Converter
+
+PLATEAU VIEW
+
+Python
+
+PyTorch
+
+シミュレーション
+
+可視化
+
+行政DX
+
+自治体
+
+都市計画・まちづくり
+
+2026.3.13
+uc25-04
+Public Solution
+景観まちづくりDX v2.0
+京都府京都市 / 岡山県倉敷市 / 山口県周南市
+景観まちづくりDX v2.0
+都市計画・まちづくり
+
+2024年度
+
+PLATEAU SDK
+
+Unity
+
+シミュレーション
+
+2024.8.1
+[Last updated : 2025.3.21]
+uc24-18
+Business Solution
+市民参加型XRコンテンツ開発プラットフォームの構築
+大阪府大阪市 / 広島県広島市 / 石川県金沢市 / 東京都新宿区
+市民参加型XRコンテンツ開発プラットフォームの構築
+エリアマネジメント
+
+市民参加
+
+都市計画・まちづくり
+
+地域活性化・観光
+
+2024年度
+
+AR
+
+ARCore
+
+Unity
+
+VPS
+
+2024.8.1
+[Last updated : 2025.3.21]
+uc24-14
+Recommended Learning
+See more Learning
+Tutorials
+ TOPIC 31｜PLATEAU GIS Converterを使ってコンバートしたデータをGIS分野で活用する 
+ TOPIC 31｜PLATEAU GIS Converterを使ってコンバートしたデータをGIS分野で活用する 
+コンバートしたデータをGIS分野で活用する
+
+2024年度
+
+PLATEAU GIS Converter
+
+2025.1.24
+tpc31
+Tutorials
+TOPIC 29｜Pythonで活用する：応用編｜PlateauKit + PlateauLabを用いたAI連携とアプリ構築[1/2]｜LLMと連携して操作する
+TOPIC 29｜Pythonで活用する：応用編｜PlateauKit + PlateauLabを用いたAI連携とアプリ構築[1/2]｜LLMと連携して操作する
+Pythonで活用する
+
+2024年度
+
+AI
+
+PlateauKit + PlateauLab
+
+Python
+
+2024.12.6
+tpc29-1
+都市空間情報デジタル基盤構築支援事業（PLATEAU補助制度）ポータル
+PLATEAU NEXT2026
+PLATEAU AWARD 2025
+
+Learning
+TOPIC 30｜PLATEAU GIS Converterでコンバートして3Dで表示する
+About PLATEAU
+Project PLATEAUについて知る
+About
+Vision
+Consortium
+News
+Learn
+Project PLATEAU、データについて学ぶ
+Handbooks
+Use Cases
+Technical Reports
+Learning
+Journal
+Use
+データを活用、利用する
+Open Data
+Support Tools
+PLATEAU VIEW
+Support
+データの活用等に関するサポート情報、お問い合わせ
+Start Guide
+Use Case Guide
+PLATEAU YouTube Channel
+PLATEAU Code
+FAQ
+Contact
+Connection
+PLATEAU NEXT
+G空間情報センター
+PLATEAUヘルプデスク（AIGID）
+スマートシティ官民連携プラットフォーム
+国土交通データプラットフォーム
+東京都デジタルツイン実現プロジェクト
+Social
+X
+Youtube
+GitHub
+Copyright© MLIT Japan. All Rights Reserved.
+Site Policy
+Privacy Policy
+
+------
+ここまで
+------
+
+このプラトーのGISデータを使用して、都市部の3D表示をしたいのです。
+満月の月夜や花火の夜空を撮る方などに需要があると思ったのです。
+以前、Cesiumを考えている旨を伝えたのですが、その時は、予定を先にずらしても良いかなと思ったのですが、今になってみると、LeafletからMapLibreに移行してみて、やっぱり最終形態に早めに移行した方が、手戻りが少なかったかも知れないと思ったのです。
+でも、そもそも私の判断で、Cesiumはどうかな、と思っただけなので、テクスチャを貼れれば良いと思うと、もう一つ、選択肢があるかなと思いました。
+実現したいことは、宙の窓でプレビューした時に、都市部のビル群が描画されること、全国規模でやりたいけれど、どこまでできるかが気になっているます。
+気になるのは、GISデータの保管場所と容量と料金です。
+このままGItHubだと、データ置き場にしていると言われてしまいそうなことと、有料になるなら、いくらぐらいかと、Googleのプロジェクトに保管したら、容量と料金がいくらくらいになりそうかというあたりが気になっています。
+
+どうなりますでしょうか。
+
+
+> サインは、Wで!🙌
+
+👍
