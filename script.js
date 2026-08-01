@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.46.0 - 2026-08-02: feat: 第51ラウンド — 都市モードの全国化: PLATEAU建築物モデルの全国対応表 data/plateau-bldg-cities.json を同梱し遅延読込(448都市ファミリ=306市区町村。LOD1=448/LOD2無テクスチャ=265/LOD2テクスチャ付き=300。bboxは各tileset rootのregion実測。生成ツール tools/plateau/make-bldg-cities.js=カタログAPIから再生成可)。PoCの静的2区表を置換。テクスチャONはLOD2tex→LOD2notex→LOD1、OFFはLOD2notex→LOD1→LOD2texのフォールバック。ヘルプの対応都市記述を全国へ更新
 Version 1.45.0 - 2026-08-02: feat: 第50ラウンド — PLATEAU建物レイヤPoC「都市モード」(宙の窓に都市のビル群。デッサン06のPLATEAU節) ①宙の窓/ctrlメニューに「:都市モード」「:テクスチャ」チェック(共に初期値オン・双方向連動・localStorage保存)+取得状況表示 ②PLATEAU公式ストリーミング(3D Tiles 1.0/b3dm)の葉タイルを扇(視界範囲・画角)で選別し近い順に予算48件まで取得(PoC対応都市=新宿区・千代田区の静的表。自前保管ゼロ) ③b3dm/glbは最小自作パーサ+Draco解凍は公式デコーダ(gstatic・遅延読込)+テクスチャWebP対応 ④高さは楕円体高→標高へジオイド補正(同梱data/geoid-jp.json=EGM96 0.25°格子・tools/geoid/で生成)し、地形格子と同じ厳密三角形解(気差k・局所半径)でENU配置=遮蔽・実寸が地形と自動整合 ⑤無テクスチャ面は太陽ランバートを頂点色に焼き込み ⑥b3dm/幾何/テクスチャはLRUキャッシュ・扇の変更は幾何再利用 ⑦ヘルプにPLATEAU出典(CC BY 4.0)を明記
 Version 1.44.0 - 2026-07-23: refactor: 第42ラウンド — リファクタリングB第1弾: ファイル入出力の型の関数化(依頼者提案の移行チェックリスト方式を初採用。チェックリストはKoushi記法の実証第1号としてレビュー記録に) ①「ファイル選択+読込」の殻9箇所をpickTextFileへ(My天体/My観測点/My目的点/My辻検索/My宙検索の各CSV入力・追加入力+バックアップ読込。async変種と本体直接参照の変種も吸収) ②「CSV行分割」8箇所をsplitCsvLinesへ ③「Blob→ダウンロード」の末尾8箇所をdownloadTextFileへ(各CSV出力+バックアップ出力。動画/画像用のsoraExportDownloadは用途が異なるため対象外) ④エラー処理・確認ダイアログは呼び出し側の責務のまま=挙動不変。無いことのテスト(verify127)で殻の再増殖を検知。あわせてMederuUの器デッサンの図をMarkdown箇条書きへ(ASCII罫線はインデント崩れ)・ClaudeMederuUフォルダ方針・Koushi記法デッサン(01)・Markdown-PAD記法メモ(02)を起草
 Version 1.43.0 - 2026-07-23: refactor: 第41ラウンド(中盤) — リファクタリングA: 既定値の単一情報源化(APP_DEFAULTS) 承認済みのリファクタリング資料A観点を実施。①スカラー149キーの既定値・範囲・列挙・真偽整形規則を1つの表APP_DEFAULTSに集約(appState初期値は表から展開・normalizeAppStateは表の規則を読む汎用パス+表で表せない個別コードのみ) ②挙動不変のcharacterizationで保証: 初期値161キーとnormalize挙動161キー×8種の崩れた値の計1288プローブを、リファクタ前に凍結標本として採取し、後で完全一致を確認(差分0件)。標本はtests/dataへ恒久化し、既定値・規則を意図的に変える時だけ標本を更新する運用に(verify126) ③保存キーリンターを表対応に拡張(verify123 K8: 保存されるスカラーキーは表に載っている・K3基準線を73個へ更新) ④発見と対処: 旧h265→h264移行コードは汎用列挙検査より先に走らないと一旦jpegへ潰れる(実装順の教訓。characterizationの標的プローブに追加) ⑤HTMLのvalue属性は「飾り」(起動時にJSが上書き)と明文化し、代表3入力欄で実測検査
@@ -109,7 +110,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.45.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.46.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -18467,18 +18468,24 @@ const SM_BLDG_TILE_BUDGET = 48;       // 同時表示タイルの上限(近い�
 const SM_BLDG_CACHE_MAX = 96;         // b3dm/幾何/テクスチャのLRU上限(タイル数)
 const SM_BLDG_RANGE_CAP_KM = 40;      // 建物を取りに行く距離の上限(km。視界範囲とのmin)
 const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
-// PoCの静的対応表(実測済み2区。全国表はカタログAPI plateau-datasets から生成して次段で差し替え)
-// bboxはtileset rootのregion実測[西,南,東,北 度]。lod2Tex=テクスチャ付き/lod2NoTex=無テクスチャ。
-const SM_BLDG_CITIES = [
-    { code: '13104', name: '新宿区', bbox: [139.6733, 35.6735, 139.7444, 35.7297],
-      lod1: 'https://assets.cms.plateau.reearth.io/assets/bd/858f21-55cb-46da-afcf-885d44eee90f/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod1/tileset.json',
-      lod2NoTex: 'https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/tileset.json',
-      lod2Tex: 'https://assets.cms.plateau.reearth.io/assets/00/bed0bd-f882-4cde-b942-21d0f8d2ddc2/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2/tileset.json' },
-    { code: '13101', name: '千代田区', bbox: [139.7302, 35.6690, 139.7828, 35.7052],
-      lod1: 'https://assets.cms.plateau.reearth.io/assets/3f/e07412-5455-40c0-9f64-2ac43086a209/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod1/tileset.json',
-      lod2NoTex: 'https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/tileset.json',
-      lod2Tex: 'https://assets.cms.plateau.reearth.io/assets/28/07d0a1-b6be-46ef-bd87-4f0683b5ef6e/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2/tileset.json' },
-];
+// 全国対応表(tools/plateau/make-bldg-cities.jsでカタログAPIから生成。448都市ファミリ=306市区町村)
+// 各エントリ: {code, name, bbox[西,南,東,北 度]=tileset root実測, lod1/lod2NoTex/lod2Tex=base相対URL}
+const SM_BLDG_CITIES_URL = 'data/plateau-bldg-cities.json';
+let _smBldgCitiesP = null;
+/** 全国対応表の遅延読込(相対URLはbaseで絶対化)。失敗時はthrow(呼び出し側で「取得失敗」表示) */
+function _smBldgLoadCities() {
+    if (!_smBldgCitiesP) {
+        _smBldgCitiesP = fetch(SM_BLDG_CITIES_URL)
+            .then(r => { if (!r.ok) throw new Error('cities ' + r.status); return r.json(); })
+            .then(j => j.cities.map(c => {
+                const abs = (u) => u ? (u.startsWith('http') ? u : j.base + u) : undefined;
+                return { code: c.code, name: c.name, bbox: c.bbox,
+                         lod1: abs(c.lod1), lod2NoTex: abs(c.lod2NoTex), lod2Tex: abs(c.lod2Tex) };
+            }))
+            .catch(e => { _smBldgCitiesP = null; throw e; });
+    }
+    return _smBldgCitiesP;
+}
 let _smBldgGrp = null;                       // _smInitでシーンへ追加
 let _smBldgFanKey = '', _smBldgGeoKey = '', _smBldgGen = 0;
 const _smBldgTilesetCache = new Map();       // tileset URL → Promise<{leaves}>
@@ -18684,13 +18691,15 @@ function _smBldgUpdate() {
 
 /** 扇に入る葉タイルを近い順に予算まで取得してシーンへ。世代genが変わったら静かに中断 */
 async function _smBldgRun(gen, ctx) {
-    const table = (typeof window !== 'undefined' && window._smBldgCities) || SM_BLDG_CITIES;   // テスト用差し替えフック
+    _smBldgSetStatus('取得中…');
+    const table = (typeof window !== 'undefined' && Array.isArray(window._smBldgCities))
+        ? window._smBldgCities : await _smBldgLoadCities();   // 配列のテスト用差し替えフック(verify128)
+    if (gen !== _smBldgGen) return;
     const mLat = ctx.rangeKm / 111.32, mLng = ctx.rangeKm / (111.32 * Math.max(0.2, Math.cos(ctx.oLat * Math.PI / 180)));
     const cities = table.filter(c =>
         ctx.oLat >= c.bbox[1] - mLat && ctx.oLat <= c.bbox[3] + mLat &&
         ctx.oLng >= c.bbox[0] - mLng && ctx.oLng <= c.bbox[2] + mLng);
     if (!cities.length) { _smBldgSetStatus('整備都市外'); return; }
-    _smBldgSetStatus('取得中…');
     const geoid = await _smBldgGeoid();
     const draco = await _smBldgEnsureDraco();   // 失敗はcatchで「取得失敗」表示へ
     if (gen !== _smBldgGen) return;
@@ -18699,7 +18708,10 @@ async function _smBldgRun(gen, ctx) {
     const azHalf = ctx.aovH / 2 + 3;
     const cand = [];
     for (const c of cities) {
-        const url = appState.smBldgTex ? (c.lod2Tex || c.lod1) : (c.lod2NoTex || c.lod1);
+        // テクスチャON: テクスチャ付きLOD2優先。OFF: 無テクスチャLOD2優先(最後のlod2Texは
+        // テクスチャを貼らずに形状だけ使う保険 — 全448都市がlod1を持つ現状では実質出番なし)
+        const url = appState.smBldgTex ? (c.lod2Tex || c.lod2NoTex || c.lod1)
+                                       : (c.lod2NoTex || c.lod1 || c.lod2Tex);
         if (!url) continue;
         let ts;
         try { ts = await _smBldgTileset(url); }

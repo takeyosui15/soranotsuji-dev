@@ -43,14 +43,16 @@ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8099/index.html --noprox
 ```bash
 export NODE_PATH=$SP/harness/node_modules
 node tests/verifyNNN.js          # 単発
-# 全回帰(verify96〜最新。verify102は実ネットワーク用のため常用しない):
-for n in 96 97 98 99 100 101 103 ... ; do node tests/verify$n.js; done
+# スモーク(毎ラウンドの定番)= この7本79チェック+そのラウンドで追加した最新verify:
+for n in 96 117 123 124 125 126 127; do node tests/verify$n.js; done
+# 全回帰は tests/ のverify全部(節目のみ。verify102だけ実ネットワーク用のため常用しない)
 ```
 
 - 各verifyの対象と注意は `tests/README.md`(封鎖機能は`?forecast=1`、フレークの扱い等)。
 - 道具のテスト2本も一緒に回す(node単体・サーバ不要。第45〜):
   `node ClaudeMederuU/tools/koushi.test.js` と `node ClaudeMederuU/tools/anchor.test.js`
-- APP_VERSIONの版数ピンは**最新のverifyだけ**が持つ。版数を上げたら最新verifyのピンを更新。
+- APP_VERSIONの版数ピンは**最新のverifyだけ**が持つ。版数を上げたら新しい最新verifyへピンを書き、
+  旧最新のピンは存在チェック形式へ緩める(例: verify127のO0、verify128のP0)。
 - Chromium起動引数(全verify共通): `--use-gl=angle --use-angle=swiftshader
   --enable-unsafe-swiftshader --ignore-gpu-blocklist --no-sandbox`
 - 全verifyはroute abortで127.0.0.1以外を遮断している(テスト方針: ローカル完結)。
@@ -61,3 +63,7 @@ for n in 96 97 98 99 100 101 103 ... ; do node tests/verify$n.js; done
 - アプリ変更後は sync-apptest.py の再実行を忘れない(古いapptestで新テストが落ちる)。
 - 固定sleepでなくポーリングで待つ(非同期化されたUIは所要時間が揺れる: 第35)。
 - 検査ツールを新作したら「壊した版で落ちること」を先に確認する(第39)。
+- この箱は**ブラウザ(Chromium)だけ外向きHTTPSが全ホスト遮断**される(curl/Nodeは通る)。
+  実ネットワークのブラウザE2Eは組まず、①実データはNode/curl側 ②ブラウザ側は同一構造の
+  ローカルフィクスチャ(routeモック)の二枚重ね、で検証する(第50)。
+- Node組み込みfetchをプロキシ越しに使う時は `NODE_USE_ENV_PROXY=1` を付ける(第51。tools/plateau等)。

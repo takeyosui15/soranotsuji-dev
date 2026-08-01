@@ -14,17 +14,13 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- P0: 版数ピン(最新のverifyに集約) ----
-check('P0 APP_VERSION 1.45.0', src.includes("APP_VERSION = '1.45.0'") || !!process.argv[2]);
-check('P0 Version Historyに1.45.0の行がある', src.includes('Version 1.45.0 - ') || !!process.argv[2]);
+check('P0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('P0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
-// ---- P1: ソース静的検査(PoC対応表・出典) ----
-check('P1 PoC対応表に新宿区と千代田区(実測URL)', /SM_BLDG_CITIES\s*=/.test(src) && src.includes('13104_shinjuku-ku_lod1/tileset.json') && src.includes('13101_chiyoda-ku_lod1/tileset.json'));
-{
-    // 都庁(35.6896,139.6917)が新宿区bboxに、皇居(35.6852,139.7528)が千代田区bboxに入る
-    const bx = [...src.matchAll(/bbox: \[([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\]/g)].map(m => m.slice(1, 5).map(Number));
-    const inBox = (b, lng, lat) => b && lng >= b[0] && lat >= b[1] && lng <= b[2] && lat <= b[3];
-    check('P1 bbox実測値: 都庁∈新宿区・皇居∈千代田区', bx.length >= 2 && inBox(bx[0], 139.6917, 35.6896) && inBox(bx[1], 139.7528, 35.6852));
-}
+// ---- P1: ソース静的検査(対応表の読込口・出典) ----
+// (対応表そのものの内容リントは第51ラウンドで全国化に伴いverify129へ移設)
+check('P1 全国対応表の読込口(SM_BLDG_CITIES_URL=data/plateau-bldg-cities.json)',
+    src.includes("SM_BLDG_CITIES_URL = 'data/plateau-bldg-cities.json'") && /function _smBldgLoadCities\(/.test(src));
 check('P1 ヘルプにPLATEAU出典(CC BY 4.0)とDraco明記', (() => {
     const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
     return html.includes('Project PLATEAU') && html.includes('CC BY 4.0') && html.includes('Draco');
