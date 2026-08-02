@@ -150,7 +150,7 @@
 | tsujiMoonFilter / tsujiMoonBase / tsujiMoonTolerance | false / 14.8 / 2 | 月齢フィルタ/基準月齢/許容範囲。 |
 | tsujiAccuracyFilter | \[ true \| false \] | 精度フィルタ。 |
 | tsujiAccDblCircle / tsujiAccCircle / tsujiAccTriangle / tsujiAccDash | \[ true \| false \] | 精度◎/○/△/-の各フィルタ。 |
-| tsujiElevationOption / tsujiElevOK / tsujiElevNG | \[ true \| false \] | 標高オプション/OK/NGフィルタ。 |
+| tsujiElevationOption / tsujiElevOK / tsujiElevNG | \[ true \| false \] | 標高フィルタ/OK/NGフィルタ。 |
 | tsujiTimeFilter | \[ true \| false \] | 時間フィルタ。 |
 | tsujiStartMode | \[ fixed \| astroDawn \| nautDawn \| yoake \| civilDawn \| bhEndGhStart \| sunrise \| ghEnd \| ghStart \| sunset \| ghEndBhStart \| civilDusk \| higure \| nautDusk \| astroDusk \] | 時間フィルタ開始の時刻モード(fixed=時刻指定、他は薄明/日の出入り等)。省略時はsunset。 |
 | tsujiStartTime | 00:00 (URL上は00%3A00) | 開始がfixedの時の時刻。 |
@@ -168,7 +168,7 @@
 | tsujiMeshAccuracy | \[ x1 \| x2 \| x4 \| x8 \] | メッシュ精度。 |
 | tsujiMeshSymO / tsujiMeshSymTri / tsujiMeshSymDash | \[ true \| false \] | 精度○/△/-の集計対象。**URLに付くが復元では読み飛ばす**(現仕様では読み取り専用・常時オフのため。過去URL互換)。 |
 | tsujiMeshMoonFilter / tsujiMeshMoonBase / tsujiMeshMoonTolerance | false / 14.8 / 2 | 月齢フィルタ/基準月齢/許容範囲。 |
-| tsujiMeshElevationOption / tsujiMeshElevOK / tsujiMeshElevNG | \[ true \| false \] | 標高オプション/OK/NGフィルタ。 |
+| tsujiMeshElevationOption / tsujiMeshElevOK / tsujiMeshElevNG | \[ true \| false \] | 標高フィルタ/OK/NGフィルタ。 |
 | tsujiMeshTimeFilter | \[ true \| false \] | 時間フィルタ。 |
 | tsujiMeshStartMode / tsujiMeshStartTime / tsujiMeshStartPrePost / tsujiMeshStartPrePostDir / tsujiMeshStartOffset | (辻検索と同じ値域) | 時間フィルタ開始side。 |
 | tsujiMeshEndMode / tsujiMeshEndTime / tsujiMeshEndPrePost / tsujiMeshEndPrePostDir / tsujiMeshEndOffset | (辻検索と同じ値域) | 時間フィルタ終了side。 |
