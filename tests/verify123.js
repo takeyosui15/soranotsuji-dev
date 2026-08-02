@@ -115,9 +115,11 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
 {
   const untouched = [...save].filter(k => !norm.has(k) && !SAVE_ONLY_OK.has(k));
   // 全キーの正規化は必須ではない(オブジェクト/文字列名/リストは正規化不要)ため、件数の急増だけを検知する。
-  // 基準線は現状の実測(第41ラウンドのAPP_DEFAULTS化後: 73個)+少しの余白。超えたら意図的にここを更新する
-  check('K3 正規化されない保存キーは既知の範囲(基準線: 78個以下)',
-    untouched.length <= 78, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
+  // 基準線は現状の実測+少しの余白。超えたら意図的にここを更新する
+  // (第41ラウンドのAPP_DEFAULTS化後: 73個 → 第61ラウンドの曜日フィルタ16キー追加後: 89個。
+  //  曜日キーはbool・APP_DEFAULTSに既定あり=個別正規化は不要のため意図的な増加)
+  check('K3 正規化されない保存キーは既知の範囲(基準線: 94個以下)',
+    untouched.length <= 94, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
 }
 
 // ---- リント4(第41ラウンド・リファクタリングA): APP_DEFAULTSに無い保存スカラーキーの検査 ----

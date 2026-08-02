@@ -490,15 +490,17 @@ GNU General Public License for more details.
                 <div id="sec-location" class="section-content">
 
                     <div class="control-row">
-                        <div class="btn-group-left"></div>
+                        <div class="btn-group-left">
+                            <button id="btn-gps" class="nav-btn small" title="現在地を取得">GPS</button>
+                            <input type="radio" name="loc-mode" id="radio-start" class="mystars-radio" value="start" checked>
+                        </div>
                         <label class="input-label">観測点名:</label>
                         <input type="text" id="input-start-name" placeholder="建物名 地名 住所" maxlength="150">
                     </div>
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-gps" class="nav-btn small" title="現在地を取得">GPS</button>
-                            <input type="radio" name="loc-mode" id="radio-start" class="mystars-radio" value="start" checked>
+                            <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点(°):</label>
                         <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
@@ -506,7 +508,7 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
+                            <button id="btn-reg-end" class="nav-btn small" title="現在の目的点を初期値として登録">推山</button>
                         </div>
                         <label class="input-label">観測点標高(m):</label>
                         <input type="number" id="input-start-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m">
@@ -514,39 +516,37 @@ GNU General Public License for more details.
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-reg-end" class="nav-btn small" title="現在の目的点を初期値として登録">推山</button>
+                            <button id="btn-url-location" class="nav-btn small" title="現在の状態で宙の辻を開くURLをクリップボードにコピー">URL</button>
                         </div>
                         <label class="input-label">観測点高(m):</label>
                         <input type="number" id="input-start-elev" placeholder="追加高さ m" value="0" step="0.1">
                     </div>
 
                     <div class="control-row">
-                        <div class="btn-group-left"></div>
+                        <div class="btn-group-left">
+                            <button id="btn-dp365" class="nav-btn small" title="辻ライン365(直近1年の辻ラインを描画します)">辻</button>
+                            <input type="radio" name="loc-mode" id="radio-end" class="mystars-radio" value="end">
+                        </div>
                         <label class="input-label">目的点名:</label>
                         <input type="text" id="input-end-name" placeholder="建物名 地名 住所" maxlength="150">
                     </div>
 
                     <div class="control-row">
                         <div class="btn-group-left">
-                            <button id="btn-url-location" class="nav-btn small" title="現在の状態で宙の辻を開くURLをクリップボードにコピー">URL</button>
-                            <input type="radio" name="loc-mode" id="radio-end" class="mystars-radio" value="end">
+                            <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点(°):</label>
                         <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150">
                     </div>
 
                     <div class="control-row">
-                        <div class="btn-group-left">
-                            <button id="btn-dp365" class="nav-btn small" title="辻ライン365(直近1年の辻ラインを描画します)">辻</button>
-                        </div>
+                        <div class="btn-group-left"></div>
                         <label class="input-label">目的点標高(m):</label>
                         <input type="number" id="input-end-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m">
                     </div>
 
                     <div class="control-row">
-                        <div class="btn-group-left">
-                            <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
-                        </div>
+                        <div class="btn-group-left"></div>
                         <label class="input-label">目的点高(m):</label>
                         <input type="number" id="input-end-elev" placeholder="追加高さ m" value="0" step="0.1">
                     </div>
@@ -703,6 +703,22 @@ GNU General Public License for more details.
                     <div id="tsuji-time-filter-groups"></div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-dow-filter" class="body-checkbox">
+                        <label for="chk-tsuji-dow-filter" title="曜日で結果を絞り込みます(チェックした曜日のみ表示)">曜日フィルタ</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-dow-mon" class="body-checkbox" disabled> <label class="tsuji-acc-label">:月</label>
+                        <input type="checkbox" id="chk-tsuji-dow-tue" class="body-checkbox" disabled> <label class="tsuji-acc-label">:火</label>
+                        <input type="checkbox" id="chk-tsuji-dow-wed" class="body-checkbox" disabled> <label class="tsuji-acc-label">:水</label>
+                        <input type="checkbox" id="chk-tsuji-dow-thu" class="body-checkbox" disabled> <label class="tsuji-acc-label">:木</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsuji-dow-fri" class="body-checkbox" disabled> <label class="tsuji-acc-label">:金</label>
+                        <input type="checkbox" id="chk-tsuji-dow-sat" class="body-checkbox" disabled> <label class="tsuji-acc-label">:土</label>
+                        <input type="checkbox" id="chk-tsuji-dow-sun" class="body-checkbox" disabled> <label class="tsuji-acc-label">:日</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-accuracy-filter" class="body-checkbox">
                         <label for="chk-tsuji-accuracy-filter">精度フィルタ</label>
                     </div>
@@ -715,7 +731,7 @@ GNU General Public License for more details.
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-elev-option" class="body-checkbox">
-                        <label for="chk-tsuji-elev-option">標高オプション</label>
+                        <label for="chk-tsuji-elev-option">標高フィルタ</label>
                     </div>
                     <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsuji-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
@@ -815,6 +831,22 @@ GNU General Public License for more details.
                     <div id="tsujimesh-time-filter-groups"></div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-dow-filter" class="body-checkbox">
+                        <label for="chk-tsujimesh-dow-filter" title="曜日で結果を絞り込みます(チェックした曜日のみ表示)">曜日フィルタ</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-dow-mon" class="body-checkbox" disabled> <label class="tsuji-acc-label">:月</label>
+                        <input type="checkbox" id="chk-tsujimesh-dow-tue" class="body-checkbox" disabled> <label class="tsuji-acc-label">:火</label>
+                        <input type="checkbox" id="chk-tsujimesh-dow-wed" class="body-checkbox" disabled> <label class="tsuji-acc-label">:水</label>
+                        <input type="checkbox" id="chk-tsujimesh-dow-thu" class="body-checkbox" disabled> <label class="tsuji-acc-label">:木</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-tsujimesh-dow-fri" class="body-checkbox" disabled> <label class="tsuji-acc-label">:金</label>
+                        <input type="checkbox" id="chk-tsujimesh-dow-sat" class="body-checkbox" disabled> <label class="tsuji-acc-label">:土</label>
+                        <input type="checkbox" id="chk-tsujimesh-dow-sun" class="body-checkbox" disabled> <label class="tsuji-acc-label">:日</label>
+                    </div>
+                    <hr class="tsujisearch-separator">
+                    <div class="control-row left-row">
                         <input type="checkbox" id="chk-tsujimesh-sym-filter" class="body-checkbox" checked disabled>
                         <label for="chk-tsujimesh-sym-filter" title="結果リストの行(観測点基準の精度記号)を◎○△-で絞り込みます">精度フィルタ</label>
                     </div>
@@ -835,7 +867,7 @@ GNU General Public License for more details.
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row" title="検索前に全画素の可視(OK)/不可視(NG)を判定し、選んだ対象の画素だけを検索します">
                         <input type="checkbox" id="chk-tsujimesh-elev-option" class="body-checkbox">
-                        <label for="chk-tsujimesh-elev-option">標高オプション</label>
+                        <label for="chk-tsujimesh-elev-option">標高フィルタ</label>
                     </div>
                     <div class="control-row left-row" title="OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素を検索">
                         <input type="checkbox" id="chk-tsujimesh-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
@@ -1868,7 +1900,7 @@ GNU General Public License for more details.
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
                         <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/各薄明から選べ、前後オフセットも指定可。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
-                        <li><strong>標高オプション</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
+                        <li><strong>標高フィルタ</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
                         <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。My辻検索の結果リストは同じパネルを共有するため、同じボタンで最大化できます。</li>
                     </ul>
@@ -1908,14 +1940,14 @@ GNU General Public License for more details.
                         <li><strong>行選択後表示オプション</strong>: 行選択後の選択マーカーを選べます。<strong>「:辻時刻の優辻マーカー」(初期値)</strong> = 行の辻時刻での最良画素 (優辻マーカー) を選択します。<strong>「:辻時刻の最近傍の辻マーカー」</strong> = 観測点に最も近い最高精度の辻マーカーを選択し、辻時刻コントロールもその画素の辻時刻に移動します (≠行の辻時刻)。</li>
                         <li><strong>辻時刻コントロール</strong>: 「辻日時」表示 (日付+曜日+時刻。<strong>時刻は0.01秒表示</strong>) と秒スライダー (範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ) で辻時刻を指定。行選択やポップアップの行クリックの直後は行と同じ精細化時刻 (サブ秒付き。例 16:36:07.93) になり、スライダーを手動で動かすと秒単位 (サブ秒0) になります。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜86400秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます (最大で丸1日分。幅が大きいほど再計算に時間がかかります)。<strong>精度フィルタオプションは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
                         <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに行選択後表示オプションに従って辻時刻コントロールが初期化され、優辻マーカーが立ちます (行選択でのズーム・センタリングはしません。検索直後に一度ズームしています)。</li>
-                        <li><strong>標高オプション</strong>: ONにすると、検索前に許容範囲内の対象画素それぞれを観測点として、<strong>標高グラフと同一のアルゴリズム</strong>で可視 (OK) / 不可視 (NG) を判定し、チェックで選んだ対象の画素だけを辻メッシュ検索します: <strong>OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素</strong>。判定は<strong>統一可視判定 (標高グラフの可視判定・辻検索の標高オプションと共通のコア)</strong> で、画素→目的点の経路を<strong>DEM分解能固定のズーム15半画素 (約2m) 刻み</strong>で歩き (点数固定ではないので経路長に関わらずDEM画素を取りこぼしません)、各点の標高を<strong>DEM5A/5B/5C (ズーム15・5mメッシュ) → DEM10B (ズーム14)</strong> の順で参照して可視直線 (画素の標高+観測点高→目的点標高。地球曲率・屈折なし) と比較します。除外範囲 (チェックで有効。目的点側/観測点側それぞれの半径○m以内の遮蔽を無視) も標高グラフと同じ規則で適用されるため、<strong>その画素を観測点に設定して標高グラフを実行した時と同じ判定</strong>になります (除外範囲0で目的点直近の点が遮ってNGになる挙動も同一。判定中は「標高タイル取得中…」「可視判定中… i/N画素」の進捗を表示)。判定は<strong>ワーカープール (CPU数+1) で並列実行</strong>され、経路を帯域に分割して各ワーカーが担当分を判定するため、判定結果は従来の逐次処理と完全に同一のまま、コア数分高速になります (再検索やトグルオフで実行中の判定はキャンセルされます)。結果リストの「標高グラフ」列は、その行の表示値を出した地点=<strong>その日の最良画素の位置の可視判定</strong>を表示します。</li>
+                        <li><strong>標高フィルタ</strong>: ONにすると、検索前に許容範囲内の対象画素それぞれを観測点として、<strong>標高グラフと同一のアルゴリズム</strong>で可視 (OK) / 不可視 (NG) を判定し、チェックで選んだ対象の画素だけを辻メッシュ検索します: <strong>OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素</strong>。判定は<strong>統一可視判定 (標高グラフの可視判定・辻検索の標高フィルタと共通のコア)</strong> で、画素→目的点の経路を<strong>DEM分解能固定のズーム15半画素 (約2m) 刻み</strong>で歩き (点数固定ではないので経路長に関わらずDEM画素を取りこぼしません)、各点の標高を<strong>DEM5A/5B/5C (ズーム15・5mメッシュ) → DEM10B (ズーム14)</strong> の順で参照して可視直線 (画素の標高+観測点高→目的点標高。地球曲率・屈折なし) と比較します。除外範囲 (チェックで有効。目的点側/観測点側それぞれの半径○m以内の遮蔽を無視) も標高グラフと同じ規則で適用されるため、<strong>その画素を観測点に設定して標高グラフを実行した時と同じ判定</strong>になります (除外範囲0で目的点直近の点が遮ってNGになる挙動も同一。判定中は「標高タイル取得中…」「可視判定中… i/N画素」の進捗を表示)。判定は<strong>ワーカープール (CPU数+1) で並列実行</strong>され、経路を帯域に分割して各ワーカーが担当分を判定するため、判定結果は従来の逐次処理と完全に同一のまま、コア数分高速になります (再検索やトグルオフで実行中の判定はキャンセルされます)。結果リストの「標高グラフ」列は、その行の表示値を出した地点=<strong>その日の最良画素の位置の可視判定</strong>を表示します。</li>
                     </ul>
                 </section>
 
                 <section class="help-section">
                     <h3>標高グラフ</h3>
                     <p>「標高グラフ」ボタンON時に、観測点〜目的点の地形断面を表示。国土地理院のDEM標高タイルから2000地点で標高を取得します。縦軸=標高・横軸=直線距離の目盛を表示します。</p>
-                    <p>取得完了後、観測点高・目的点高を加えた可視直線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。<strong>可視判定はグラフ描画用の2000点とは独立</strong>で、辻検索・辻メッシュ検索の標高オプションと共通の統一可視判定 (経路をズーム15半画素≒約2m刻みで歩き、DEM5A/5B/5C→DEM10Bの順で参照。除外範囲=チェックで有効。目的点側/観測点側それぞれの半径○m以内のNGは無視) を使います。屈折・地球曲率は考慮していない単純な直線判定なので、遠距離見通しでは精度に注意してください。</p>
+                    <p>取得完了後、観測点高・目的点高を加えた可視直線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。<strong>可視判定はグラフ描画用の2000点とは独立</strong>で、辻検索・辻メッシュ検索の標高フィルタと共通の統一可視判定 (経路をズーム15半画素≒約2m刻みで歩き、DEM5A/5B/5C→DEM10Bの順で参照。除外範囲=チェックで有効。目的点側/観測点側それぞれの半径○m以内のNGは無視) を使います。屈折・地球曲率は考慮していない単純な直線判定なので、遠距離見通しでは精度に注意してください。</p>
                 </section>
 
                 <section class="help-section">

@@ -11,8 +11,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
-// ---- U0: 版数ピン(最新のverifyに集約) ----
-check('U0 APP_VERSION 1.55.0', src.includes("APP_VERSION = '1.55.0'") || !!process.argv[2]);
+// ---- U0: 版数ピン(最新のverifyに集約。第61ラウンドでverify139へ移管) ----
+check('U0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('U0 Version Historyに1.55.0の行がある', src.includes('Version 1.55.0 - ') || !!process.argv[2]);
 
 // ---- U1: 静的な形 ----
