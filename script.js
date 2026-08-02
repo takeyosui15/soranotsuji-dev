@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.52.0 - 2026-08-02: refactor: 第57ラウンド — リファクタリングB第2弾④(第4ロット): 300文字以上の最後の2組を統合(挙動不変) ①_searchSunMoonRiseSet=日月出没4探索のtry(辻メッシュ一括出力の日別事前計算/日別キャッシュの325文字×2) ②_pushMyTsujiResults=My辻検索の結果平坦化ループ(一括計算/File出力の303文字×2)。dup地図77→73グループ(累計92→73)・300文字以上の重複は0に・残る重複合計8,440文字=script.js全体(1.12MB)の約0.76%。本線はここで一区切りとし、以後は「触るついでに統合」方式を推奨(判断材料の数字は回答その55)
 Version 1.51.0 - 2026-08-02: feat: 第56ラウンド — 地図2.5D「3D風ビル」(案A・依頼者GO)+リファクタリングB第2弾③ ①地図レイヤーリストに「3D風ビル」チェックを追加: GSI最適化ベクトルタイル(XYZ・追加ライブラリ不要)のBldAをfill-extrusionで押し出し(種別擬似高さ=普通10m/堅ろう40m/高層100m。GSI公式3D風地図と同じ流儀・実高さではないことをヘルプに明記)。ONで地図を斜め視点(ピッチ60°)へ、OFFで真上へ戻す。レイヤ名BldA・vt_code値(3101/3102/3103/3111)は実タイルの解剖で実測確認。セッション内のみ(保存・URLなし) ②リファクタリングB第2弾③: 合成標高分岐(353文字×2=辻メッシュ/統一可視判定)を_syntheticElevAtPix15へ統合(挙動不変)。dup地図79→77グループ
 Version 1.50.0 - 2026-08-02: refactor: 第55ラウンド — リファクタリングB第2弾②: ワーカープールの型+日時ピッカーの統合(挙動不変) ①_makeWorkerPool=辻検索/辻メッシュの同型プール二重実装(run/terminateAll等505+334文字×2)を工場関数へ(遅延生成・待ち行列・再配車・全解放の共通コア。numWorkersは呼出時評価でTDZを持ち込まない。プール固有のinit/sizeは呼び出し側が組み立て) ②_bindDateTimePair=全天儀ctrl/宙の窓ctrlの日付時刻ピッカーハンドラ(470文字×2)を統合 ③dup地図88→79グループ。あわせて地図2.5D(後段)の調査を実施(PLATEAUに建物MVTなし・GSIベクトルタイルに高さ属性なし・GSI公式3D風=種別擬似高さ方式) — デッサン06に設計案を起草
 Version 1.49.0 - 2026-08-02: feat: 第54ラウンド — 依頼3件 ①表示タイル数の初期値35→30(スマホ実測でギリギリのため・依頼者決定) ②夜の磨き: 夜の底を月と連動(_smBldgNightFloor=月なし0.15〜満月が高い夜0.32。輝面比×月高度)+単色ビル(無テクスチャ面)の夜の窓明かり(自作窓格子タイル3mピッチ・壁面UVは水平接線×標高・屋根は消灯セル・点灯率30%暖色。夜は材質を窓タイルへ切替え、窓の明るさも月連動。テクスチャ=航空写真ビルは減光のみ=写真自身の窓で足りるため) ③リファクタリングB第2弾①: 重複地図の最上位2組を関数化(_makeElevAtPix15=z15標高チェーン1184文字×2・_makeRiseSetForDay=日月出没キャッシュ706文字×2。挙動不変・dup地図から消えたことを実測)
@@ -115,7 +116,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.51.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.52.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -6746,15 +6747,7 @@ async function runBatchMyTsujiSearch() {
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiBatchGen) return;
         if (!res) continue;
-        for (const br of res.bodyResults) {
-            for (const r of br.results) {
-                allResults.push({
-                    tsuji: t, obs: res.obs, tgt: res.tgt,
-                    body: br.body,
-                    time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist
-                });
-            }
-        }
+        _pushMyTsujiResults(allResults, t, res);
     }
 
     if (myGen !== myTsujiBatchGen) return;
@@ -6898,12 +6891,7 @@ function buildMyTsujiCsvRow(r, preAstro) {
         ({ sr, ss, mr, ms, astroDawn, nautDawn, yoake, civilDawn, bhEndGhStart, ghEnd,
            ghStart, ghEndBhStart, civilDusk, higure, nautDusk, astroDusk } = preAstro);
     } else {
-        try {
-            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-        } catch (_) {}
+        ({ sr, ss, mr, ms } = _searchSunMoonRiseSet(observer, startOfDay));
         try {
             astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
             nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
@@ -7065,15 +7053,7 @@ async function fileBatchMyTsujiSearch() {
         const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
         if (myGen !== myTsujiFileGen) return;
         if (!res) continue;
-        for (const br of res.bodyResults) {
-            for (const r of br.results) {
-                allResults.push({
-                    tsuji: t, obs: res.obs, tgt: res.tgt,
-                    body: br.body,
-                    time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist
-                });
-            }
-        }
+        _pushMyTsujiResults(allResults, t, res);
     }
 
     if (myGen !== myTsujiFileGen) return;
@@ -7181,9 +7161,7 @@ async function fileTsujiSearchCsv() {
             () => { doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);
         hideTsujiProgress();
         const allResults = [];
-        if (res) for (const br of res.bodyResults) for (const r of br.results) {
-            allResults.push({ tsuji: t, obs, tgt, body: br.body, time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist });
-        }
+        if (res) _pushMyTsujiResults(allResults, t, res);   // res.obs/tgtは渡したオーバーライド(obs/tgt)がそのまま返る
         const decorated = await decorateMyTsujiResults(allResults);
         if (!decorated.length) { statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
         statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
@@ -10734,6 +10712,33 @@ function _makeElevAtPix15(maps15, map14, mapT) {
     };
 }
 
+/** My辻検索1件の結果(bodyResults)を一括リストへ平坦化して積む(リファクタリングB第2弾④:
+ *  一括計算とFile出力の同一ループ[303文字×2]を統合。挙動不変) */
+function _pushMyTsujiResults(allResults, t, res) {
+    for (const br of res.bodyResults) {
+        for (const r of br.results) {
+            allResults.push({
+                tsuji: t, obs: res.obs, tgt: res.tgt,
+                body: br.body,
+                time: r.time, azimuth: r.azimuth, altitude: r.altitude, dist: r.dist
+            });
+        }
+    }
+}
+
+/** 日の出没・月の出没の4探索(リファクタリングB第2弾④: 一括出力の日別事前計算と
+ *  日別キャッシュの同一try[325文字×2]を統合。挙動不変。失敗時は静かにundefinedのまま) */
+function _searchSunMoonRiseSet(observer, startOfDay) {
+    let sr, ss, mr, ms;
+    try {
+        sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+        ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+        mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+        ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+    } catch (_) {}
+    return { sr, ss, mr, ms };
+}
+
 /** 日付別の日月出没+薄明の取得関数を作る(リファクタリングB第2弾①: 辻メッシュとFile取得の
  *  二重実装706文字×2を統合。挙動不変)。観測者毎にキャッシュを閉じ込める(重い計算の日単位キャッシュ) */
 function _makeRiseSetForDay(observer) {
@@ -10743,13 +10748,7 @@ function _makeRiseSetForDay(observer) {
         if (cache[key]) return cache[key];
         const startOfDay = new Date(dateObj);
         startOfDay.setHours(0, 0, 0, 0);
-        let sr, ss, mr, ms;
-        try {
-            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-        } catch (_) {}
+        const { sr, ss, mr, ms } = _searchSunMoonRiseSet(observer, startOfDay);
         const tw = computeDayTwilight(startOfDay, observer);
         return cache[key] = { sr, ss, mr, ms, tw, startOfDay };
     };

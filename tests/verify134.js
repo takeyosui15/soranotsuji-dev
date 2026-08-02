@@ -11,8 +11,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- V0: 版数ピン(最新のverifyに集約) ----
-check('V0 APP_VERSION 1.51.0', src.includes("APP_VERSION = '1.51.0'") || !!process.argv[2]);
-check('V0 Version Historyに1.51.0の行がある', src.includes('Version 1.51.0 - ') || !!process.argv[2]);
+check('V0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('V0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- V1: ソース静的検査 ----
 check('V1 3D風ビル: 最適化ベクトルタイルXYZ+BldA+種別擬似高さ(3103→100/3102・3112→40/他10)',
