@@ -12,8 +12,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- Q0: 版数ピン(最新のverifyに集約) ----
-check('Q0 APP_VERSION 1.46.0', src.includes("APP_VERSION = '1.46.0'") || !!process.argv[2]);
-check('Q0 Version Historyに1.46.0の行がある', src.includes('Version 1.46.0 - ') || !!process.argv[2]);
+check('Q0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('Q0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- Q1: 全国対応表の静的リント ----
 {
