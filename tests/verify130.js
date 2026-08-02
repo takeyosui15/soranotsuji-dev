@@ -63,7 +63,8 @@ check('R1 URL短縮辞書v13は凍結のまま(初期値変更で_QP_KEYDEFS_V13
     // R3: 純関数の性質
     {
         const r = await p.evaluate(() => {
-            const day = _smBldgSunDim(10), night = _smBldgSunDim(-10), mid = _smBldgSunDim(0);
+            // 第54ラウンドで夜の底が月連動(_smBldgNightFloor)になったため、ここでは床0.26を明示指定して性質を検査
+            const day = _smBldgSunDim(10, 0.26), night = _smBldgSunDim(-10, 0.26), mid = _smBldgSunDim(0, 0.26);
             // スコア: 都庁タイル(高さ幅211m)@65km vs 低い街(10m)@5km — 遠くの高層が勝つこと
             const tall = _smBldgTileScore({ minH: 40, maxH: 251 }, 65000);
             const low = _smBldgTileScore({ minH: 0, maxH: 10 }, 5000);
@@ -107,13 +108,15 @@ check('R1 URL短縮辞書v13は凍結のまま(初期値変更で_QP_KEYDEFS_V13
             out.noon = _smBldgGrp.children[0].children.map(m => m.material.color.b);
             appState.currentDate = new Date('2026-08-02T00:00:00+09:00');   // 真夜中
             _smBldgUpdate();
-            out.night = _smBldgGrp.children[0].children.map(m => m.material.color.b);
+            // 第54ラウンドから夜の底は月連動([0.15,0.32])+単色ビルは窓明かりへ切替(詳細はverify132)
+            const photo = _smBldgGrp.children[0].children.find(m => !m.userData.smBldgWin);
+            out.nightPhotoB = photo.material.color.b;
             out.sameGeo = _smBldgGrp.children[0].children[0].geometry.uuid === geo0;   // 幾何は作り直していない
             return out;
         });
-        check('R4 正午=減光なし(1.0)→真夜中=0.26へ。幾何は同一参照のまま材質色だけ追従',
-            r.noon.every(v => v === 1) && r.night.every(v => Math.abs(v - 0.26) < 1e-9) && r.sameGeo,
-            `noon=${r.noon} night=${r.night} sameGeo=${r.sameGeo}`);
+        check('R4 正午=減光なし(1.0)→真夜中=月連動の底[0.15,0.32]へ。幾何は同一参照のまま材質だけ追従',
+            r.noon.every(v => v === 1) && r.nightPhotoB >= 0.15 - 1e-9 && r.nightPhotoB <= 0.32 + 1e-9 && r.sameGeo,
+            `noon=${r.noon} nightPhotoB=${r.nightPhotoB.toFixed(3)} sameGeo=${r.sameGeo}`);
     }
     check('R5 ページエラーなし', errs.length === 0, errs.slice(0, 3).join(' | '));
 

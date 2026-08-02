@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.49.0 - 2026-08-02: feat: 第54ラウンド — 依頼3件 ①表示タイル数の初期値35→30(スマホ実測でギリギリのため・依頼者決定) ②夜の磨き: 夜の底を月と連動(_smBldgNightFloor=月なし0.15〜満月が高い夜0.32。輝面比×月高度)+単色ビル(無テクスチャ面)の夜の窓明かり(自作窓格子タイル3mピッチ・壁面UVは水平接線×標高・屋根は消灯セル・点灯率30%暖色。夜は材質を窓タイルへ切替え、窓の明るさも月連動。テクスチャ=航空写真ビルは減光のみ=写真自身の窓で足りるため) ③リファクタリングB第2弾①: 重複地図の最上位2組を関数化(_makeElevAtPix15=z15標高チェーン1184文字×2・_makeRiseSetForDay=日月出没キャッシュ706文字×2。挙動不変・dup地図から消えたことを実測)
 Version 1.48.0 - 2026-08-02: feat: 第53ラウンド — 都市モードに「表示タイル数」スライダー(依頼者指定: スマホで48枚が開けなかった対策) 1〜150・初期値35は毎回適用=保存しない(大きな値のまま再訪して端末が重くなるのを防ぐ。視界範囲と同じ思想)。宙の窓メニュー/ctrlメニューの双方向連動。タイルは引き続き「見かけの高さ順」で予算内を選択。LRUキャッシュ上限を160へ(スライダー最大150で表示中タイルを追い出さないため)。ヘルプにメモリの注意を追記
 Version 1.47.0 - 2026-08-02: feat: 第52ラウンド — 都市モードの遠景対応+夜馴染み(依頼者の実機フィードバック3件) ①観測点の初期値(東京タワー)を建物の外へ移動(35.658595, 139.745335。都市モードで初期画面が壁になる問題の解消。標高18.5mは実測同値・URL短縮辞書は凍結リテラルのため影響なし) ②都市ビルの奥行き上限を40→200kmへ(霞ヶ浦からのダイヤモンド富士+都心ビル群シルエット等)。あわせて都市単位の扇プレフィルタ(tileset取得前の足切り)+都市毎tilesetの並列取得 ③タイル予算48件の配り方を「近い順」→「見かけの高さ順」(タイル内高さ幅/距離)へ — 遠景で手前の低い街並みが予算を食い尽くし都心の高層が出ない問題の予防 ④建物の太陽高度減光(昼1.0↔夜0.26・±8°でsmoothstep・夜は青寄り。日時変更は幾何を作り直さず材質色のみ追従。テクスチャ=昼の航空写真と単色面の両方に効く)
 Version 1.46.0 - 2026-08-02: feat: 第51ラウンド — 都市モードの全国化: PLATEAU建築物モデルの全国対応表 data/plateau-bldg-cities.json を同梱し遅延読込(448都市ファミリ=306市区町村。LOD1=448/LOD2無テクスチャ=265/LOD2テクスチャ付き=300。bboxは各tileset rootのregion実測。生成ツール tools/plateau/make-bldg-cities.js=カタログAPIから再生成可)。PoCの静的2区表を置換。テクスチャONはLOD2tex→LOD2notex→LOD1、OFFはLOD2notex→LOD1→LOD2texのフォールバック。ヘルプの対応都市記述を全国へ更新
@@ -112,7 +113,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.48.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.49.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -368,7 +369,7 @@ const APP_DEFAULTS = {
     // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
     smBldg: { def: true, bool: 'coerce' },                // 都市ビルの表示(初期値オンは依頼者決定)
     smBldgTex: { def: true, bool: 'coerce' },             // 建物テクスチャ(ON=LOD2テクスチャ付き/OFF=LOD2無テクスチャ→LOD1)
-    smBldgTiles: { def: 35, min: 1, max: 150, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止: 第53ラウンド・依頼者指定)
+    smBldgTiles: { def: 30, min: 1, max: 150, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止。35→30はスマホ実測でギリギリのため: 第54ラウンド・依頼者決定)
     // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
     isSoradanmenActive: { def: false },
     isSoraSearchActive: { def: false },
@@ -544,8 +545,8 @@ let appState = {
     // 内部制御用 (保存不要)
     timers: { move: null, fetch: null },
     elevationData: { points: [], index: 0 },
-    tsujiSearchGeneration: 0,
-    riseSetCache: {}
+    tsujiSearchGeneration: 0
+    // 日月出没の日別キャッシュ(未使用の死にフィールド)は第54ラウンドで削除(実体は_makeRiseSetForDayが所有)
 };
 
 /** API標高とユーザー高さから内部計算用elevを再計算 */
@@ -9037,28 +9038,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
                 if (generation !== tsujiMeshGeneration) return null;
             }
         }
-        elevAtPix15 = (gx, gy) => {
-            const key = (gx >> 8) * 32768 + (gy >> 8);
-            for (let si = 0; si < maps15.length; si++) {
-                const t = maps15[si].get(key);
-                if (!t) continue;
-                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
-                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
-                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: getElevationと同じ0.1m丸め
-            }
-            const gx14 = gx >> 1, gy14 = gy >> 1;
-            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
-            if (t14) {
-                const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
-                const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
-                if (e14 !== null) return Math.round(e14);   // DEM10B(z14): 1m丸め
-            }
-            const tT = mapT.get(key);   // 全球DEM(海外のみ。GSI符号へ正規化済み)
-            if (!tT) return null;
-            const oT = ((gy & 255) * 256 + (gx & 255)) << 2;
-            const eT = _elevFromRGB(tT.data[oT], tT.data[oT + 1], tT.data[oT + 2]);
-            return (eT === null) ? null : Math.round(eT * 10) / 10;
-        };
+        elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
     }
 
     const exclM = exclKm * 1000;
@@ -9479,22 +9459,7 @@ async function startTsujiMeshSearch() {
         startMode: appState.tsujiMeshStartMode, startTime: appState.tsujiMeshStartTime, startPrePost: appState.tsujiMeshStartPrePost, startPrePostDir: appState.tsujiMeshStartPrePostDir, startOffset: appState.tsujiMeshStartOffset,
         endMode: appState.tsujiMeshEndMode, endTime: appState.tsujiMeshEndTime, endPrePost: appState.tsujiMeshEndPrePost, endPrePostDir: appState.tsujiMeshEndPrePostDir, endOffset: appState.tsujiMeshEndOffset,
     };
-    const riseSetCache = {};
-    const getRiseSetForDay = (dateObj) => {
-        const key = dateObj.toDateString();
-        if (riseSetCache[key]) return riseSetCache[key];
-        const startOfDay = new Date(dateObj);
-        startOfDay.setHours(0, 0, 0, 0);
-        let sr, ss, mr, ms;
-        try {
-            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-        } catch (_) {}
-        const tw = computeDayTwilight(startOfDay, observer);
-        return riseSetCache[key] = { sr, ss, mr, ms, tw, startOfDay };
-    };
+    const getRiseSetForDay = _makeRiseSetForDay(observer);
 
     const rows = [];
     let totalPix = 0;
@@ -10318,23 +10283,7 @@ async function startTsujiSearch() {
     const rowData = [];
     const extraRows = [];
 
-    // rise/set 値はrendering時に計算が重いため、日付別キャッシュ
-    const riseSetCache = {};
-    function getRiseSetForDay(dateObj) {
-        const key = dateObj.toDateString();
-        if (riseSetCache[key]) return riseSetCache[key];
-        const startOfDay = new Date(dateObj);
-        startOfDay.setHours(0, 0, 0, 0);
-        let sr, ss, mr, ms;
-        try {
-            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
-            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
-            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
-            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
-        } catch (_) {}
-        const tw = computeDayTwilight(startOfDay, observer);
-        return riseSetCache[key] = { sr, ss, mr, ms, tw, startOfDay };
-    }
+    const getRiseSetForDay = _makeRiseSetForDay(observer);
 
     totalResults.forEach(({ body, results, limitReached }) => {
         results.forEach(r => {
@@ -10730,30 +10679,58 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
                 mapT.set(key, img);
             }));
         }
-        elevAtPix15 = (gx, gy) => {
-            const key = (gx >> 8) * 32768 + (gy >> 8);
-            for (let si = 0; si < maps15.length; si++) {
-                const t = maps15[si].get(key);
-                if (!t) continue;
-                const o = ((gy & 255) * 256 + (gx & 255)) << 2;
-                const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
-                if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: 0.1m丸め
-            }
-            const gx14 = gx >> 1, gy14 = gy >> 1;
-            const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
-            if (t14) {
-                const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
-                const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
-                if (e14 !== null) return Math.round(e14);   // DEM10B(z14): 1m丸め
-            }
-            const tT = mapT.get(key);   // 全球DEM(海外のみ)
-            if (!tT) return null;
-            const oT = ((gy & 255) * 256 + (gx & 255)) << 2;
-            const eT = _elevFromRGB(tT.data[oT], tT.data[oT + 1], tT.data[oT + 2]);
-            return (eT === null) ? null : Math.round(eT * 10) / 10;
-        };
+        elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
     }
     return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
+}
+
+/** z15標高チェーンの画素参照関数を作る(リファクタリングB第2弾①: 辻メッシュ可視判定と統一可視判定の
+ *  二重実装1184文字×2を統合。挙動不変)。取得済みタイルMap群を閉じ込め、
+ *  DEM5A→5B→5C(z15)→z14親(DEM10B)→全球DEM(海外のみ・GSI符号へ正規化済み)の順で画素標高を返す */
+function _makeElevAtPix15(maps15, map14, mapT) {
+    return (gx, gy) => {
+        const key = (gx >> 8) * 32768 + (gy >> 8);
+        for (let si = 0; si < maps15.length; si++) {
+            const t = maps15[si].get(key);
+            if (!t) continue;
+            const o = ((gy & 255) * 256 + (gx & 255)) << 2;
+            const e = _elevFromRGB(t.data[o], t.data[o + 1], t.data[o + 2]);
+            if (e !== null) return Math.round(e * 10) / 10;   // DEM5A/5B/5C: getElevationと同じ0.1m丸め
+        }
+        const gx14 = gx >> 1, gy14 = gy >> 1;
+        const t14 = map14.get((gx14 >> 8) * 32768 + (gy14 >> 8));
+        if (t14) {
+            const o14 = ((gy14 & 255) * 256 + (gx14 & 255)) << 2;
+            const e14 = _elevFromRGB(t14.data[o14], t14.data[o14 + 1], t14.data[o14 + 2]);
+            if (e14 !== null) return Math.round(e14);   // DEM10B(z14): 1m丸め
+        }
+        const tT = mapT.get(key);
+        if (!tT) return null;
+        const oT = ((gy & 255) * 256 + (gx & 255)) << 2;
+        const eT = _elevFromRGB(tT.data[oT], tT.data[oT + 1], tT.data[oT + 2]);
+        return (eT === null) ? null : Math.round(eT * 10) / 10;
+    };
+}
+
+/** 日付別の日月出没+薄明の取得関数を作る(リファクタリングB第2弾①: 辻メッシュとFile取得の
+ *  二重実装706文字×2を統合。挙動不変)。観測者毎にキャッシュを閉じ込める(重い計算の日単位キャッシュ) */
+function _makeRiseSetForDay(observer) {
+    const cache = {};
+    return (dateObj) => {
+        const key = dateObj.toDateString();
+        if (cache[key]) return cache[key];
+        const startOfDay = new Date(dateObj);
+        startOfDay.setHours(0, 0, 0, 0);
+        let sr, ss, mr, ms;
+        try {
+            sr = Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1);
+            ss = Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1);
+            mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
+            ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
+        } catch (_) {}
+        const tw = computeDayTwilight(startOfDay, observer);
+        return cache[key] = { sr, ss, mr, ms, tw, startOfDay };
+    };
 }
 
 /** 可視判定の結果をポップアップ表示する (取得完了後に1回だけ呼ぶ)。
@@ -15336,7 +15313,7 @@ function setupSoramadoControls() {
     // 表示タイル数スライダー(1〜150・初期35は毎回=保存しない。メニュー/ctrl双方向連動)
     ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
-            appState.smBldgTiles = Math.max(1, Math.min(150, parseInt(el.value) || 35));
+            appState.smBldgTiles = Math.max(1, Math.min(150, parseInt(el.value) || 30));
             _smBldgSyncUI();
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); }
         }); });
@@ -18474,7 +18451,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 同じシーンに置くだけで、遮蔽・実寸・焦点距離は既存の仕組みがそのまま効く。
 // 実測(第50ラウンド): 全タイルがDraco圧縮必須のため、解凍のみ公式デコーダ(three.jsのDRACOLoaderと
 // 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
-// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜150・初期35・毎回初期値)。
+// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜150・初期30・毎回初期値)。
 // 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
 const SM_BLDG_CACHE_MAX = 160;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大150より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)
@@ -18684,12 +18661,12 @@ function _smBldgUpdate() {
         }
         return;
     }
-    // 太陽高度の減光(昼1→夜0.26)。日時変更では幾何を作り直さず、材質色だけ毎回追従させる
-    const sunAltR = Math.round(_smSunDir().alt);
-    if (sunAltR !== _smBldgDimKey) {
-        _smBldgDimKey = sunAltR;
-        const dim = _smBldgSunDim(sunAltR);
-        _smBldgGrp.traverse(m => { if (m.isMesh) m.material.color.setRGB(dim[0], dim[1], dim[2]); });
+    // 太陽高度の減光(昼1→夜は月の明るさで0.15〜0.32)+夜の窓明かり切替。
+    // 日時変更では幾何を作り直さず、材質(色・窓タイル)だけ毎回追従させる
+    const dimSt = _smBldgCurDim();
+    if (dimSt.key !== _smBldgDimKey) {
+        _smBldgDimKey = dimSt.key;
+        _smBldgApplyDimTo(_smBldgGrp, dimSt);
     }
     const oLat = appState.start.lat, oLng = appState.start.lng, obsElev = Number(appState.start.elev) || 0;
     const o = soraComputeOptics();
@@ -18697,7 +18674,7 @@ function _smBldgUpdate() {
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
-    const budget = Math.max(1, Math.min(150, Math.round(Number(appState.smBldgTiles) || 35)));
+    const budget = Math.max(1, Math.min(150, Math.round(Number(appState.smBldgTiles) || 30)));
     const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
     const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}|${budget}`;
     if (fanKey === _smBldgFanKey) return;
@@ -18721,18 +18698,77 @@ function _smBldgTileScore(lf, distM) {
     return (lf.maxH - lf.minH) / Math.max(50, distM);
 }
 
-/** 太陽高度(°)→建物の減光係数[r,g,b]。昼(+8°以上)=1.0、夜(-8°以下)=0.26、間はsmoothstep。
+/** 夜の底(暗さの下限)を月で決める純関数(第54ラウンド): 月なし=0.15、満月が高い夜=0.32。
+ *  輝面比fractionと月高度(30°で頭打ち)の積で滑らかに持ち上げる */
+function _smBldgNightFloor(moonAltDeg, fraction) {
+    const up = Math.max(0, Math.min(1, moonAltDeg / 30));
+    const fr = Math.max(0, Math.min(1, fraction));
+    return 0.15 + 0.17 * fr * up;
+}
+/** 現在日時・観測点の月(高度・輝面比)から夜の底を得る。取得失敗時は従来値0.26 */
+function _smBldgMoonNight() {
+    try {
+        const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
+        const date = appState.currentDate;
+        const eq = Astronomy.Equator('Moon', date, observer, true, true);
+        const hor = Astronomy.Horizon(date, observer, eq.ra, eq.dec, null);
+        const frac = Astronomy.Illumination('Moon', date).phase_fraction;
+        return _smBldgNightFloor(hor.altitude, frac);
+    } catch (e) { return 0.26; }
+}
+/** 太陽高度(°)→建物の減光係数[r,g,b]。昼(+8°以上)=1.0、夜(-8°以下)=nightFloor、間はsmoothstep。
  *  夜は赤をやや落として月夜の青寄りに。テクスチャ(昼の航空写真)と単色面の両方に効く */
-function _smBldgSunDim(altDeg) {
+function _smBldgSunDim(altDeg, nightFloor) {
     const t = Math.max(0, Math.min(1, (altDeg + 8) / 16));
     const s = t * t * (3 - 2 * t);
-    const f = 0.26 + 0.74 * s;
+    const f = nightFloor + (1 - nightFloor) * s;
     return [f * (1 - 0.15 * (1 - s)), f * (1 - 0.07 * (1 - s)), f];
 }
-/** 現在の太陽高度の減光を配下の全メッシュ材質へ適用 */
-function _smBldgApplyDim(root) {
-    const dim = _smBldgSunDim(_smSunDir().alt);
-    root.traverse(o => { if (o.isMesh) o.material.color.setRGB(dim[0], dim[1], dim[2]); });
+/** 窓明かりタイルテクスチャ(第54ラウンド・遅延生成)。3mピッチの窓格子を暗い壁面に散らす。
+ *  セル(0,0)は常に消灯=屋根・地面のUVをそこへ向ける。単色ビル(無テクスチャ面)の夜用 */
+let _smBldgWindowTexObj = null;
+function _smBldgWindowTex() {
+    if (_smBldgWindowTexObj) return _smBldgWindowTexObj;
+    const N = 16, PX = 16, cv = document.createElement('canvas');
+    cv.width = cv.height = N * PX;
+    const g = cv.getContext('2d');
+    g.fillStyle = 'rgb(26,29,38)';   // 夜の壁(暗い青灰)
+    g.fillRect(0, 0, cv.width, cv.height);
+    for (let cy = 0; cy < N; cy++) for (let cx = 0; cx < N; cx++) {
+        if (cx === 0 && cy === 0) continue;                    // 消灯セル(屋根用)
+        if (Math.random() >= 0.30) continue;                   // 点灯率30%
+        const w = 200 + Math.floor(Math.random() * 55);        // 暖色のばらつき
+        g.fillStyle = `rgb(${w + 55 > 255 ? 255 : w + 55},${w},${Math.floor(w * 0.72)})`;
+        g.fillRect(cx * PX + 4, cy * PX + 3, PX - 8, PX - 6);  // 窓(枠を残す)
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    _smBldgWindowTexObj = tex;
+    return tex;
+}
+/** 現在の減光状態(太陽高度+月の夜の底)。keyが変わった時だけ再適用する */
+function _smBldgCurDim() {
+    const sun = _smSunDir();
+    const floor = _smBldgMoonNight();
+    const t = Math.max(0, Math.min(1, (sun.alt + 8) / 16));
+    const s = t * t * (3 - 2 * t);
+    return { rgb: _smBldgSunDim(sun.alt, floor), floor, night: s < 0.35,
+             key: `${Math.round(sun.alt)}|${floor.toFixed(2)}` };
+}
+/** 減光状態を配下の全メッシュ材質へ適用。夜は単色ビルを窓明かりタイルへ切り替える
+ *  (窓の明るさも夜の底=月と連動。テクスチャ付き=航空写真ビルは減光のみ) */
+function _smBldgApplyDimTo(root, st) {
+    const winC = 0.55 + 0.9 * st.floor;
+    root.traverse(m => {
+        if (!m.isMesh) return;
+        if (m.userData.smBldgWin) {
+            const wantMap = st.night ? _smBldgWindowTex() : null;
+            if (m.material.map !== wantMap) { m.material.map = wantMap; m.material.needsUpdate = true; }
+            if (st.night) { m.material.color.setRGB(winC, winC * 0.98, winC * 0.93); return; }
+        }
+        m.material.color.setRGB(st.rgb[0], st.rgb[1], st.rgb[2]);
+    });
 }
 
 /** 都市が扇(視界範囲・画角)に掛かるか(観測点が都市の中なら常に真)。
@@ -18813,7 +18849,7 @@ async function _smBldgRun(gen, ctx) {
         }
         if (gen !== _smBldgGen) return;
         _smBldgGrp.add(ent.grp);
-        _smBldgApplyDim(ent.grp);   // 現在の太陽高度の減光を適用(キャッシュ再利用時も最新に)
+        _smBldgApplyDimTo(ent.grp, _smBldgCurDim());   // 現在の減光・窓明かり状態を適用(キャッシュ再利用時も最新に)
         tiles++; blds += ent.blds;
         _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟`);
         if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // タイル到着ごとに反映(順次現れる)
@@ -18871,10 +18907,12 @@ async function _smBldgBuildTile(url, tctx, gen) {
         const np = dec.pos.length / 3;
         // 頂点変換: glTF(y-up・RTC相対)→ECEF→測地→標高(h−N)→地形と同じ厳密三角形解でENU
         const positions = new Float32Array(dec.pos.length);
+        const hArr = new Float32Array(np);   // 標高(窓明かりUVの縦位置に使う)
         for (let vi = 0; vi < np; vi++) {
             const gx = dec.pos[3 * vi], gy = dec.pos[3 * vi + 1], gz = dec.pos[3 * vi + 2];
             const geo = _smEcefToGeo(rtc[0] + gx, rtc[1] - gz, rtc[2] + gy);
             const hMSL = geo[2] - tctx.N;
+            hArr[vi] = hMSL;
             const inv = geodesic.Geodesic.WGS84.Inverse(tctx.oLat, tctx.oLng, geo[0], geo[1]);
             const d = Math.max(0.01, inv.s12), a = inv.azi1 * Math.PI / 180;
             const Reff2 = getLocalEarthRadius(geo[0]) / (1 - tctx.k);
@@ -18892,32 +18930,46 @@ async function _smBldgBuildTile(url, tctx, gen) {
         geoB.setIndex(new THREE.Uint32BufferAttribute(dec.idx, 1));
         const matDef = (gltf.materials && prim.material !== undefined) ? gltf.materials[prim.material] : null;
         const texRef = matDef && matDef.pbrMetallicRoughness && matDef.pbrMetallicRoughness.baseColorTexture;
+        const hasTex = !!(texList && texRef && dec.uv);
         let mat;
-        if (texList && texRef && dec.uv) {
+        if (hasTex) {
             const t = gltf.textures[texRef.index] || {};
             const srcIdx = (t.extensions && t.extensions.EXT_texture_webp) ? t.extensions.EXT_texture_webp.source : (t.source || 0);
             geoB.setAttribute('uv', new THREE.Float32BufferAttribute(dec.uv, 2));
             mat = new THREE.MeshBasicMaterial({ map: texList[srcIdx] || texList[0], side: THREE.DoubleSide });
         } else {
-            // 無テクスチャ面: 法線を観測点ENUへ回し太陽ランバートを頂点色に焼く(地形の陰影と同じ思想・僅かに寒色)
+            // 無テクスチャ面: 法線を観測点ENUへ回し太陽ランバートを頂点色に焼く(地形の陰影と同じ思想・僅かに寒色)。
+            // あわせて夜の窓明かり用UVを作る(壁面=水平接線×標高の3mピッチ格子。屋根・地面=消灯セル)
             const colors = new Float32Array(np * 3);
+            const wuv = new Float32Array(np * 2);
             for (let vi = 0; vi < np; vi++) {
-                let lam = 1;
+                let lam = 1, nE = 0, nN = 0, nU = 1;
                 if (dec.nrm) {
                     const ex = dec.nrm[3 * vi], ey = -dec.nrm[3 * vi + 2], ez = dec.nrm[3 * vi + 1];   // y-up→ECEF
                     const R = tctx.enuRot;
-                    const nE = R[0] * ex + R[1] * ey + R[2] * ez;
-                    const nN = R[3] * ex + R[4] * ey + R[5] * ez;
-                    const nU = R[6] * ex + R[7] * ey + R[8] * ez;
+                    nE = R[0] * ex + R[1] * ey + R[2] * ez;
+                    nN = R[3] * ex + R[4] * ey + R[5] * ez;
+                    nU = R[6] * ex + R[7] * ey + R[8] * ez;
                     lam = 0.35 + 0.75 * Math.max(0, nE * tctx.sun.x + nN * tctx.sun.y + nU * tctx.sun.z);
                 }
                 const lum = Math.min(1, 0.72 * lam);
                 colors[3 * vi] = lum * 0.90; colors[3 * vi + 1] = lum * 0.93; colors[3 * vi + 2] = lum;
+                const hl = Math.hypot(nE, nN);
+                if (Math.abs(nU) < 0.5 && hl > 1e-6) {
+                    const tx = -nN / hl, ty = nE / hl;   // 壁に沿う水平接線
+                    wuv[2 * vi] = (positions[3 * vi] * tx + positions[3 * vi + 1] * ty) / 3;
+                    wuv[2 * vi + 1] = hArr[vi] / 3;
+                } else {
+                    wuv[2 * vi] = 1 / 32; wuv[2 * vi + 1] = 1 / 32;   // 消灯セル(0,0)の中央
+                }
             }
             geoB.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geoB.setAttribute('uv', new THREE.Float32BufferAttribute(wuv, 2));
             mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
         }
-        grp.add(new THREE.Mesh(geoB, mat));
+        const meshObj = new THREE.Mesh(geoB, mat);
+        if (!hasTex) meshObj.userData.smBldgWin = true;   // 夜は窓明かりタイルへ切り替える対象
+        grp.add(meshObj);
     }
     return { grp, blds: batchLen };
 }
