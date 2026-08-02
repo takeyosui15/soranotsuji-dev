@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.50.0 - 2026-08-02: refactor: 第55ラウンド — リファクタリングB第2弾②: ワーカープールの型+日時ピッカーの統合(挙動不変) ①_makeWorkerPool=辻検索/辻メッシュの同型プール二重実装(run/terminateAll等505+334文字×2)を工場関数へ(遅延生成・待ち行列・再配車・全解放の共通コア。numWorkersは呼出時評価でTDZを持ち込まない。プール固有のinit/sizeは呼び出し側が組み立て) ②_bindDateTimePair=全天儀ctrl/宙の窓ctrlの日付時刻ピッカーハンドラ(470文字×2)を統合 ③dup地図88→79グループ。あわせて地図2.5D(後段)の調査を実施(PLATEAUに建物MVTなし・GSIベクトルタイルに高さ属性なし・GSI公式3D風=種別擬似高さ方式) — デッサン06に設計案を起草
 Version 1.49.0 - 2026-08-02: feat: 第54ラウンド — 依頼3件 ①表示タイル数の初期値35→30(スマホ実測でギリギリのため・依頼者決定) ②夜の磨き: 夜の底を月と連動(_smBldgNightFloor=月なし0.15〜満月が高い夜0.32。輝面比×月高度)+単色ビル(無テクスチャ面)の夜の窓明かり(自作窓格子タイル3mピッチ・壁面UVは水平接線×標高・屋根は消灯セル・点灯率30%暖色。夜は材質を窓タイルへ切替え、窓の明るさも月連動。テクスチャ=航空写真ビルは減光のみ=写真自身の窓で足りるため) ③リファクタリングB第2弾①: 重複地図の最上位2組を関数化(_makeElevAtPix15=z15標高チェーン1184文字×2・_makeRiseSetForDay=日月出没キャッシュ706文字×2。挙動不変・dup地図から消えたことを実測)
 Version 1.48.0 - 2026-08-02: feat: 第53ラウンド — 都市モードに「表示タイル数」スライダー(依頼者指定: スマホで48枚が開けなかった対策) 1〜150・初期値35は毎回適用=保存しない(大きな値のまま再訪して端末が重くなるのを防ぐ。視界範囲と同じ思想)。宙の窓メニュー/ctrlメニューの双方向連動。タイルは引き続き「見かけの高さ順」で予算内を選択。LRUキャッシュ上限を160へ(スライダー最大150で表示中タイルを追い出さないため)。ヘルプにメモリの注意を追記
 Version 1.47.0 - 2026-08-02: feat: 第52ラウンド — 都市モードの遠景対応+夜馴染み(依頼者の実機フィードバック3件) ①観測点の初期値(東京タワー)を建物の外へ移動(35.658595, 139.745335。都市モードで初期画面が壁になる問題の解消。標高18.5mは実測同値・URL短縮辞書は凍結リテラルのため影響なし) ②都市ビルの奥行き上限を40→200kmへ(霞ヶ浦からのダイヤモンド富士+都心ビル群シルエット等)。あわせて都市単位の扇プレフィルタ(tileset取得前の足切り)+都市毎tilesetの並列取得 ③タイル予算48件の配り方を「近い順」→「見かけの高さ順」(タイル内高さ幅/距離)へ — 遠景で手前の低い街並みが予算を食い尽くし都心の高層が出ない問題の予防 ④建物の太陽高度減光(昼1.0↔夜0.26・±8°でsmoothstep・夜は青寄り。日時変更は幾何を作り直さず材質色のみ追従。テクスチャ=昼の航空写真と単色面の両方に効く)
@@ -113,7 +114,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.49.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.50.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -7903,15 +7904,18 @@ let _tsujiMeshWhiteRows = null;  // 索引構築時の行スナップショッ�
 // (辻時刻= 行.pixTime[pos[k]]・精度角距離= 行.pixDist[pos[k]]。値は行の配列を参照し重複保持しない)
 let _tsujiMeshPixEntries = null; // { start: Uint32Array(n+1), row: Int32Array(m), pos: Uint32Array(m) }
 
-// 辻メッシュ検索 ワーカープール (tsujiPoolと同型 + 全ワーカーへの画素データinit)
-const tsujiMeshPool = (() => {
+/** ワーカープールの型(リファクタリングB第2弾②: 辻検索/辻メッシュの同型二重実装[505+334文字×2]を
+ *  統合。挙動不変)。遅延生成・待ち行列・完了/失敗時の返却と再配車・全解放の共通コアを提供する。
+ *  numWorkersは関数(呼出時評価=定義順の制約を持ち込まない)。プール固有のメソッド(init等)は
+ *  呼び出し側が組み立てる(workers()は生ワーカー配列への参照) */
+function _makeWorkerPool(workerFile, numWorkers) {
     let workers = [];
     let idle = [];
     const queue = [];
-    const active = new Map();
+    const active = new Map();   // worker -> task
     function ensure() {
-        while (workers.length < TSUJI_NUM_WORKERS) {
-            const w = new Worker('tsujimesh-search-worker.js');
+        while (workers.length < numWorkers()) {
+            const w = new Worker(workerFile);
             workers.push(w);
             idle.push(w);
         }
@@ -7941,18 +7945,8 @@ const tsujiMeshPool = (() => {
         worker.postMessage(task.taskData);
     }
     return {
-        /** 全ワーカーを生成し、画素データ(基準方位角/視高度+ビン索引)を配布して応答を待つ */
-        async init(initData) {
-            ensure();
-            await Promise.all(workers.map(w => new Promise((resolve, reject) => {
-                w.onmessage = (e) => {
-                    if (e.data && e.data.type === 'inited') resolve();
-                    else if (e.data && e.data.error) reject(new Error(e.data.error));
-                };
-                w.onerror = reject;
-                w.postMessage(initData);
-            })));
-        },
+        ensure,
+        workers: () => workers,
         runTask(taskData) {
             return new Promise((resolve, reject) => {
                 ensure();
@@ -7970,6 +7964,48 @@ const tsujiMeshPool = (() => {
             workers = [];
             idle = [];
         }
+    };
+}
+
+/** 日付/時刻ピッカーの組を日時情報メニューへ連動させる(リファクタリングB第2弾②: 全天儀ctrl/宙の窓ctrlの
+ *  同一ハンドラ[470文字×2]を統合。挙動不変)。状態更新→syncUIFromState→updateAllの順で反映する */
+function _bindDateTimePair(dateId, timeId) {
+    const dEl = document.getElementById(dateId), tEl = document.getElementById(timeId);
+    if (!dEl || !tEl) return;
+    const handler = () => {
+        const dStr = dEl.value, tStr = tEl.value;
+        if (!dStr || !tStr) return;
+        const parts = tStr.split(':');
+        const base = new Date(`${dStr}T00:00:00`);
+        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
+        if (isNaN(base.getTime())) return;
+        uncheckTimeShortcuts();
+        appState.currentDate = base;
+        syncUIFromState();
+        updateAll();
+    };
+    dEl.addEventListener('change', handler);
+    tEl.addEventListener('change', handler);
+}
+
+// 辻メッシュ検索 ワーカープール (共通の型 + 全ワーカーへの画素データinit)
+const tsujiMeshPool = (() => {
+    const pool = _makeWorkerPool('tsujimesh-search-worker.js', () => TSUJI_NUM_WORKERS);
+    return {
+        /** 全ワーカーを生成し、画素データ(基準方位角/視高度+ビン索引)を配布して応答を待つ */
+        async init(initData) {
+            pool.ensure();
+            await Promise.all(pool.workers().map(w => new Promise((resolve, reject) => {
+                w.onmessage = (e) => {
+                    if (e.data && e.data.type === 'inited') resolve();
+                    else if (e.data && e.data.error) reject(new Error(e.data.error));
+                };
+                w.onerror = reject;
+                w.postMessage(initData);
+            })));
+        },
+        runTask: (taskData) => pool.runTask(taskData),
+        terminateAll: () => pool.terminateAll(),
     };
 })();
 
@@ -10061,61 +10097,12 @@ const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency ||
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
-    let workers = [];
-    let idle = [];
-    const queue = [];
-    const active = new Map(); // worker -> task
-
-    function ensure() {
-        while (workers.length < TSUJI_NUM_WORKERS) {
-            const w = new Worker('tsuji-search-worker.js');
-            workers.push(w);
-            idle.push(w);
-        }
-    }
-    function dispatch() {
-        while (idle.length && queue.length) {
-            const w = idle.shift();
-            const task = queue.shift();
-            run(w, task);
-        }
-    }
-    function run(worker, task) {
-        active.set(worker, task);
-        worker.onmessage = (e) => {
-            active.delete(worker);
-            if (e.data && e.data.error) task.reject(new Error(e.data.error));
-            else task.resolve(e.data);
-            idle.push(worker);
-            dispatch();
-        };
-        worker.onerror = (err) => {
-            active.delete(worker);
-            task.reject(err);
-            idle.push(worker);
-            dispatch();
-        };
-        worker.postMessage(task.taskData);
-    }
+    // 共通の型(_makeWorkerPool)。辻検索/My辻検索は同一プールを共有(排他実行が前提)
+    const pool = _makeWorkerPool('tsuji-search-worker.js', () => TSUJI_NUM_WORKERS);
     return {
         get size() { return TSUJI_NUM_WORKERS; },
-        runTask(taskData) {
-            return new Promise((resolve, reject) => {
-                ensure();
-                queue.push({ taskData, resolve, reject });
-                dispatch();
-            });
-        },
-        terminateAll() {
-            workers.forEach(w => { try { w.terminate(); } catch(_) {} });
-            const err = new Error('canceled');
-            active.forEach(t => t.reject(err));
-            active.clear();
-            queue.forEach(t => t.reject(err));
-            queue.length = 0;
-            workers = [];
-            idle = [];
-        }
+        runTask: (taskData) => pool.runTask(taskData),
+        terminateAll: () => pool.terminateAll(),
     };
 })();
 
@@ -14052,21 +14039,8 @@ function setupMilkyWayCtrl() {
     btnH('btn-mw-ctrl-time-prev', () => addMinute(-1));
     btnH('btn-mw-ctrl-time-next', () => addMinute(1));
     btnH('btn-mw-ctrl-hour-next', () => addMinute(60));
-    // 日付/時刻ピッカー(日時情報メニューと連動)
-    const dEl = document.getElementById('mw-ctrl-date'), tEl = document.getElementById('mw-ctrl-time');
-    const dtHandler = () => {
-        const dStr = dEl.value, tStr = tEl.value;
-        if (!dStr || !tStr) return;
-        const parts = tStr.split(':');
-        const base = new Date(`${dStr}T00:00:00`);
-        base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
-        if (isNaN(base.getTime())) return;
-        uncheckTimeShortcuts();
-        appState.currentDate = base;
-        syncUIFromState();
-        updateAll();
-    };
-    if (dEl && tEl) { dEl.addEventListener('change', dtHandler); tEl.addEventListener('change', dtHandler); }
+    // 日付/時刻ピッカー(日時情報メニューと連動。共通の_bindDateTimePair)
+    _bindDateTimePair('mw-ctrl-date', 'mw-ctrl-time');
     // 移動速度ボタン: 日時情報メニューの月/秒等へ委譲し、アクティブ状態をミラーする
     const speedPairs = [
         ['btn-mw-ctrl-speed-month', 'btn-speed-month'], ['btn-mw-ctrl-speed-day', 'btn-speed-day'],
@@ -15259,26 +15233,8 @@ function setupSoramadoControls() {
     btnH('btn-sora-ctrl-time-prev', () => addMinute(-1));
     btnH('btn-sora-ctrl-time-next', () => addMinute(1));
     btnH('btn-sora-ctrl-hour-next', () => addMinute(60));
-    // 日付/時刻ピッカー: 日時情報メニューと同じ順序(状態更新→syncUIFromState→updateAll)で反映
-    const dtPairH = (dateId, timeId) => {
-        const dEl = document.getElementById(dateId), tEl = document.getElementById(timeId);
-        if (!dEl || !tEl) return;
-        const handler = () => {
-            const dStr = dEl.value, tStr = tEl.value;
-            if (!dStr || !tStr) return;
-            const parts = tStr.split(':');
-            const base = new Date(`${dStr}T00:00:00`);
-            base.setHours(parseInt(parts[0]) || 0, parseInt(parts[1]) || 0, parts.length >= 3 ? (parseInt(parts[2]) || 0) : 0, 0);
-            if (isNaN(base.getTime())) return;
-            uncheckTimeShortcuts();
-            appState.currentDate = base;
-            syncUIFromState();
-            updateAll();
-        };
-        dEl.addEventListener('change', handler);
-        tEl.addEventListener('change', handler);
-    };
-    dtPairH('sora-ctrl-date', 'sora-ctrl-time');
+    // 日付/時刻ピッカー: 日時情報メニューと同じ順序で反映(共通の_bindDateTimePair)
+    _bindDateTimePair('sora-ctrl-date', 'sora-ctrl-time');
     // インターバルMov: パラメータ入力と再生トグル
     numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
     numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
