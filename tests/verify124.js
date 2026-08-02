@@ -113,8 +113,9 @@ const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
     });
     const sameX = r.labels.every(l => l.x === r.labels[0].x);
     const incY = r.labels.every((l, i) => i === 0 || l.y > r.labels[i - 1].y);
-    check('L4 レイヤーリストが縦4行(全ラベル同x・yが単調増加)',
-      r.labels.length === 4 && sameX && incY, JSON.stringify(r.labels));
+    // 第56ラウンドで「3D風ビル」チェックが加わり4行→5行(検査の狙い=縦積みで画面内、は不変)
+    check('L4 レイヤーリストが縦5行(全ラベル同x・yが単調増加)',
+      r.labels.length === 5 && sameX && incY, JSON.stringify(r.labels));
     check('L4 リストがスマホ幅の画面内に収まる(右端<画面幅)', r.right < r.vw, `right=${r.right} vw=${r.vw}`);
     await p.click('#gl-layer-toggle');   // 閉じて後続へ
   }

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.51.0 - 2026-08-02: feat: 第56ラウンド — 地図2.5D「3D風ビル」(案A・依頼者GO)+リファクタリングB第2弾③ ①地図レイヤーリストに「3D風ビル」チェックを追加: GSI最適化ベクトルタイル(XYZ・追加ライブラリ不要)のBldAをfill-extrusionで押し出し(種別擬似高さ=普通10m/堅ろう40m/高層100m。GSI公式3D風地図と同じ流儀・実高さではないことをヘルプに明記)。ONで地図を斜め視点(ピッチ60°)へ、OFFで真上へ戻す。レイヤ名BldA・vt_code値(3101/3102/3103/3111)は実タイルの解剖で実測確認。セッション内のみ(保存・URLなし) ②リファクタリングB第2弾③: 合成標高分岐(353文字×2=辻メッシュ/統一可視判定)を_syntheticElevAtPix15へ統合(挙動不変)。dup地図79→77グループ
 Version 1.50.0 - 2026-08-02: refactor: 第55ラウンド — リファクタリングB第2弾②: ワーカープールの型+日時ピッカーの統合(挙動不変) ①_makeWorkerPool=辻検索/辻メッシュの同型プール二重実装(run/terminateAll等505+334文字×2)を工場関数へ(遅延生成・待ち行列・再配車・全解放の共通コア。numWorkersは呼出時評価でTDZを持ち込まない。プール固有のinit/sizeは呼び出し側が組み立て) ②_bindDateTimePair=全天儀ctrl/宙の窓ctrlの日付時刻ピッカーハンドラ(470文字×2)を統合 ③dup地図88→79グループ。あわせて地図2.5D(後段)の調査を実施(PLATEAUに建物MVTなし・GSIベクトルタイルに高さ属性なし・GSI公式3D風=種別擬似高さ方式) — デッサン06に設計案を起草
 Version 1.49.0 - 2026-08-02: feat: 第54ラウンド — 依頼3件 ①表示タイル数の初期値35→30(スマホ実測でギリギリのため・依頼者決定) ②夜の磨き: 夜の底を月と連動(_smBldgNightFloor=月なし0.15〜満月が高い夜0.32。輝面比×月高度)+単色ビル(無テクスチャ面)の夜の窓明かり(自作窓格子タイル3mピッチ・壁面UVは水平接線×標高・屋根は消灯セル・点灯率30%暖色。夜は材質を窓タイルへ切替え、窓の明るさも月連動。テクスチャ=航空写真ビルは減光のみ=写真自身の窓で足りるため) ③リファクタリングB第2弾①: 重複地図の最上位2組を関数化(_makeElevAtPix15=z15標高チェーン1184文字×2・_makeRiseSetForDay=日月出没キャッシュ706文字×2。挙動不変・dup地図から消えたことを実測)
 Version 1.48.0 - 2026-08-02: feat: 第53ラウンド — 都市モードに「表示タイル数」スライダー(依頼者指定: スマホで48枚が開けなかった対策) 1〜150・初期値35は毎回適用=保存しない(大きな値のまま再訪して端末が重くなるのを防ぐ。視界範囲と同じ思想)。宙の窓メニュー/ctrlメニューの双方向連動。タイルは引き続き「見かけの高さ順」で予算内を選択。LRUキャッシュ上限を160へ(スライダー最大150で表示中タイルを追い出さないため)。ヘルプにメモリの注意を追記
@@ -114,7 +115,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.50.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.51.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -813,6 +814,41 @@ function _glDivControl(build) {
     };
 }
 
+// 地図の3D風ビル(地図2.5D=案A・第56ラウンド)。GSI最適化ベクトルタイルのBldAを種別擬似高さで押し出す。
+// 高さは実高さではない(GSI公式3D風地図と同じ流儀: 普通10m/堅ろう40m/高層100m)。役割は構図の当たり付けで、
+// 実寸・遮蔽の本丸は宙の窓の都市モードが担う。セッション内のみ(保存・URLなし)。
+let _glBldg3d = false;
+function _glBldg3dToggle(on) {
+    if (!glMap) return;
+    _glBldg3d = !!on;
+    if (on) {
+        if (!glMap.getSource('gsi-bvmap')) {
+            glMap.addSource('gsi-bvmap', {
+                type: 'vector',
+                tiles: ['https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf'],
+                minzoom: 4, maxzoom: 16,
+                attribution: '<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>',
+            });
+        }
+        if (!glMap.getLayer('bldg-3d')) {
+            glMap.addLayer({
+                id: 'bldg-3d', type: 'fill-extrusion', source: 'gsi-bvmap', 'source-layer': 'BldA',
+                minzoom: 13,   // 建物が意味を持つズームのみ(遠景はベース地図に任せる)
+                paint: {
+                    // vt_code: 3103=高層建物 / 3102・3112=堅ろう建物(無壁舎) / その他(3101等)=普通建物(実測はタイル解剖で確認)
+                    'fill-extrusion-height': ['match', ['get', 'vt_code'], 3103, 100, 3102, 40, 3112, 40, 10],
+                    'fill-extrusion-color': '#8fa3b8',
+                    'fill-extrusion-opacity': 0.75,
+                },
+            });
+        }
+        glMap.setLayoutProperty('bldg-3d', 'visibility', 'visible');
+    } else if (glMap.getLayer('bldg-3d')) {
+        glMap.setLayoutProperty('bldg-3d', 'visibility', 'none');
+    }
+    glMap.easeTo({ pitch: on ? 60 : 0, duration: 600 });   // ONで斜め視点、OFFで真上へ戻す
+}
+
 function initMapGL(mapEl) {
     const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
     const rasterSrc = (tiles, attribution, maxzoom) => ({ type: 'raster', tiles, tileSize: 256, maxzoom, attribution });
@@ -870,6 +906,7 @@ function initMapGL(mapEl) {
             '<div class="gl-layer-list hidden">' +
             Object.entries(names).map(([id, nm]) =>
                 `<label><input type="radio" name="gl-base-layer" value="${id}"${id === _glBaseLayerId ? ' checked' : ''}> ${nm}</label>`).join('') +
+            `<label title="建物を種別ごとの擬似高さで立体表示し、地図を斜め視点にします(高さはイメージ。実寸のビルは宙の窓の都市モードが担当。出典: 国土地理院最適化ベクトルタイル)"><input type="checkbox" id="gl-bldg3d-chk"${_glBldg3d ? ' checked' : ''}> 3D風ビル</label>` +
             '</div>';
         div.querySelector('#gl-layer-toggle').addEventListener('click', (ev) => {
             ev.preventDefault();
@@ -880,6 +917,8 @@ function initMapGL(mapEl) {
             ['std', 'photo', 'pale', 'osm'].forEach(id =>
                 glMap.setLayoutProperty('base-' + id, 'visibility', id === r.value ? 'visible' : 'none'));
         }));
+        const b3 = div.querySelector('#gl-bldg3d-chk');
+        if (b3) b3.addEventListener('change', () => _glBldg3dToggle(b3.checked));
         return div;
     }), 'top-left');
     glMap.addControl(_glDivControl(() => {
@@ -9016,14 +9055,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     let elevAtPix15;   // (z15グローバル画素int) → 標高 or null (標高グラフのgetElevationと同じチェーン)
     let maps15 = null, map14 = null, mapT = null;   // 実DEM時のタイルキャッシュ(ワーカーへの符号化にも使う。mapT=全球DEM)
     if (synthetic) {
-        // テスト用: z15合成(あれば)→z14合成
-        elevAtPix15 = (gx, gy) => {
-            if (typeof window._tmSyntheticElev15 === 'function') {
-                const e = window._tmSyntheticElev15(gx, gy);
-                if (e !== null && e !== undefined) return e;
-            }
-            return window._tmSyntheticElev(gx >> 1, gy >> 1);
-        };
+        elevAtPix15 = _syntheticElevAtPix15;   // テスト用合成(共通)
     } else {
         // タイル先取り。z14と、z15は5A→5B→5Cの順に未取得座標のみ
         const fetchInto = async (map, dem, coords, label) => {
@@ -10599,14 +10631,7 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
     let elevAtPix15;
     if (synthetic) {
-        // テスト用: z15合成(あれば)→z14合成
-        elevAtPix15 = (gx, gy) => {
-            if (typeof window._tmSyntheticElev15 === 'function') {
-                const e = window._tmSyntheticElev15(gx, gy);
-                if (e !== null && e !== undefined) return e;
-            }
-            return window._tmSyntheticElev(gx >> 1, gy >> 1);
-        };
+        elevAtPix15 = _syntheticElevAtPix15;   // テスト用合成(共通)
     } else {
         // 経路が通るタイル座標を判定と同じ歩きで列挙し、必要なタイルだけ取得する
         const distM = _geoDistM(startLat, startLng, endLat, endLng);
@@ -10669,6 +10694,16 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
         elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
     }
     return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
+}
+
+/** テスト用合成標高のz15画素参照(リファクタリングB第2弾③: 辻メッシュ/統一可視判定の
+ *  同一分岐[353文字×2]を統合。挙動不変)。z15合成フックがあれば優先し、無ければz14合成へ落とす */
+function _syntheticElevAtPix15(gx, gy) {
+    if (typeof window._tmSyntheticElev15 === 'function') {
+        const e = window._tmSyntheticElev15(gx, gy);
+        if (e !== null && e !== undefined) return e;
+    }
+    return window._tmSyntheticElev(gx >> 1, gy >> 1);
 }
 
 /** z15標高チェーンの画素参照関数を作る(リファクタリングB第2弾①: 辻メッシュ可視判定と統一可視判定の
