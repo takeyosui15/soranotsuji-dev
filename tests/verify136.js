@@ -1,7 +1,9 @@
 // 第58ラウンド検証: v1.53.0 ①地図マーカーのポップアップが開かない同類バグの一網打尽
 // (_glAddMarkerへ「クリックで必ず開く」を一般化。観測点/目的点/My観測点/My目的点で実挙動を検査)
 // ②辻検索/辻メッシュ/My辻検索の結果出力へ「検索中心」(point/line)列を追加(デッサン03/04/10)。
-//   画面=視半径の右(メッシュの画素リストはデッサン04通り対象外)、File=共通CSV65→66列。
+//   画面=視半径の右、File=共通CSV65→66列。
+//   (第58時点はメッシュ画素リストのみ対象外だったが、第59ラウンドのデッサン04訂正で全表対象へ。
+//    S2は「4表全てに列あり」へ意図更新済み。画素リストのE2Eはverify137のB3)
 // 列数ピンの更新はverify96(T2)/verify98(V3/V5)側。ここでは列の位置と値を検査する。
 const fs = require('fs');
 const path = require('path');
@@ -11,27 +13,27 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- S0: 版数ピン(最新のverifyに集約) ----
-check('S0 APP_VERSION 1.53.0', src.includes("APP_VERSION = '1.53.0'") || !!process.argv[2]);
+// ---- S0: 版数ピン(最新のverifyに集約。第59ラウンドでverify137へ移管) ----
+check('S0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('S0 Version Historyに1.53.0の行がある', src.includes('Version 1.53.0 - ') || !!process.argv[2]);
 
 // ---- S1: 共通CSVヘッダ(辻検索/辻メッシュ/My辻検索のFile出力が共用) ----
 check('S1 共通CSVヘッダは視半径→検索中心→検索中心方位角差の順',
     src.includes("'方位角','視高度','視半径','検索中心','検索中心方位角差','検索中心視高度差',"));
 
-// ---- S2: 画面テーブルの列(辻検索/My辻/メッシュ詳細=あり・メッシュ画素リスト=なし) ----
+// ---- S2: 画面テーブルの列(第59ラウンドでメッシュ画素リストにも追加=デッサン04訂正。4表全てにあり) ----
 {
     const n = (src.match(/<th>検索中心<\/th>/g) || []).length;
-    check('S2 <th>検索中心</th>は3箇所(辻検索・My辻・メッシュ詳細)', n === 3, `n=${n}`);
-    // 視半径の直右(辻検索・My辻は文字列連結なしでこの並びが現れる)
+    check('S2 <th>検索中心</th>は4箇所(辻検索・My辻・メッシュ詳細・メッシュ画素リスト)', n === 4, `n=${n}`);
+    // 視半径の直右(辻検索・My辻・メッシュ画素リストは文字列連結なしでこの並びが現れる)
     const m = (src.match(/<th>視半径<\/th><th>検索中心<\/th><th>検索中心方位角差<\/th>/g) || []).length;
-    check('S2 辻検索・My辻のtheadで視半径の直右に検索中心', m === 2, `m=${m}`);
+    check('S2 辻検索・My辻・メッシュ画素リストのtheadで視半径の直右に検索中心', m === 3, `m=${m}`);
     // メッシュ詳細は行を跨ぐため単体で(直前の定数が視半径で終わることはL8806前後の連結順で保証)
     check('S2 メッシュ詳細theadに検索中心→検索中心方位角差',
         src.includes("'<th>検索中心</th><th>検索中心方位角差</th>"));
-    // メッシュの画素リスト(一覧)はデッサン04通り列なし=視半径→検索中心方位角差が直結のtheadが1つ残る
+    // 視半径→検索中心方位角差の直結thead(列の入れ忘れ)が残っていないこと
     const noCol = (src.match(/<th>視半径<\/th><th>検索中心方位角差<\/th>/g) || []).length;
-    check('S2 メッシュ画素リストは検索中心列なし(視半径→検索中心方位角差の直結が1箇所)', noCol === 1, `n=${noCol}`);
+    check('S2 視半径→検索中心方位角差の直結theadは0箇所(全表に列あり)', noCol === 0, `n=${noCol}`);
     // 旧データ耐性: centerMode未定義はpoint扱いで表示(My辻の行描画・メッシュ詳細の正規化)
     check('S2 centerMode未定義はpoint扱い(My辻セル+メッシュ詳細ctrMode正規化)',
         src.includes("r.tsuji.centerMode === 'line' ? 'line' : 'point'") &&

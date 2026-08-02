@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.54.0 - 2026-08-02: fix/feat: 第59ラウンド — 依頼者フィードバック4件 ①辻メッシュ: 辻マーカー上のホバーでも詳細リストを連動(従来はメッシュマーカーのみ。ポップアップだけ更新されて詳細リストが置き去りだった) ②辻メッシュ: 詳細リストの行クリックで観測点をその画素へ移動した直後、優辻マーカーが「表示されない」不具合を修正 — 実測の結果ピンは生成されていたが観測点マーカー(zIndex:1000)と完全同座標でピン(900)が真裏に隠れていた。同一座標の間だけピンを前面(1100)に出す_tmSyncPinZを新設(配置時と観測点移動時に追従) ③「行選択後オプション」ラベルを「行選択後表示オプション」へ(ヘルプ2箇所も) ④辻メッシュの画素リスト(一覧側)にも「検索中心」列を追加(デッサン04訂正=第58ラウンドの対象外を取り消し。視半径の右・ソート可・4表全てに列が揃った)
 Version 1.53.0 - 2026-08-02: fix/feat: 第58ラウンド — ①不具合修正: 地図のマーカーをクリックしてもポップアップ(緯度〜相手高度等)が開かないことがある同類バグを一網打尽 — マーカーは地図へのclick伝播を止めるためMapLibre既定のポップアップトグル(地図click経由)が効かず、第36ラウンドで観測点だけに入れた「クリックで必ず開く」補償が目的点・My観測点・My目的点・優辻等には無かった。補償を_glAddMarkerへ一般化(ピン型/div型の両方・popupHtml付き全マーカーが対象)し観測点個別対応を撤去 ②辻検索/辻メッシュ/My辻検索の結果出力に「検索中心」(point/line)を追加(デッサン03/04/10): 画面=視半径の右に列追加(辻検索・メッシュ詳細リスト・My辻。メッシュの画素リストはデッサン通り対象外)、File=共通CSVの視半径の右に列追加(65→66列。3検索とも共通ビルダーのため一括で反映)
 Version 1.52.0 - 2026-08-02: refactor: 第57ラウンド — リファクタリングB第2弾④(第4ロット): 300文字以上の最後の2組を統合(挙動不変) ①_searchSunMoonRiseSet=日月出没4探索のtry(辻メッシュ一括出力の日別事前計算/日別キャッシュの325文字×2) ②_pushMyTsujiResults=My辻検索の結果平坦化ループ(一括計算/File出力の303文字×2)。dup地図77→73グループ(累計92→73)・300文字以上の重複は0に・残る重複合計8,440文字=script.js全体(1.12MB)の約0.76%。本線はここで一区切りとし、以後は「触るついでに統合」方式を推奨(判断材料の数字は回答その55)
 Version 1.51.0 - 2026-08-02: feat: 第56ラウンド — 地図2.5D「3D風ビル」(案A・依頼者GO)+リファクタリングB第2弾③ ①地図レイヤーリストに「3D風ビル」チェックを追加: GSI最適化ベクトルタイル(XYZ・追加ライブラリ不要)のBldAをfill-extrusionで押し出し(種別擬似高さ=普通10m/堅ろう40m/高層100m。GSI公式3D風地図と同じ流儀・実高さではないことをヘルプに明記)。ONで地図を斜め視点(ピッチ60°)へ、OFFで真上へ戻す。レイヤ名BldA・vt_code値(3101/3102/3103/3111)は実タイルの解剖で実測確認。セッション内のみ(保存・URLなし) ②リファクタリングB第2弾③: 合成標高分岐(353文字×2=辻メッシュ/統一可視判定)を_syntheticElevAtPix15へ統合(挙動不変)。dup地図79→77グループ
@@ -117,7 +118,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.53.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.54.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1578,6 +1579,7 @@ function glDrawTsujiMeshGoldSet(perPix, big) {
         const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix];
         const mk = _glAddMarker('tmpin', lat, lng, null,
             { pin: '#ffd700', className: 'location-marker location-marker-tsujigold', zIndex: 900 });
+        _tmSyncPinZ();   // 観測点と同一画素なら前面へ(詳細リスト行クリック直後の完全占有の解消。第59ラウンド)
         const el = mk.getElement();
         el.addEventListener('click', () => _tmShowPinPopup(big));   // クリック/タップでポップアップ(観測点は移動しない)
         el.addEventListener('mouseenter', () => {
@@ -7913,7 +7915,7 @@ let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = da
 let _tmCtrlFracMs = 0;         // 実効辻時刻のサブ秒(ms)。行選択/ジャンプ時は精細化時刻の端数、スライダー手動操作で0にリセット
 let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
 let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
-let _tmPostMode = 'attime';    // 行選択後オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
+let _tmPostMode = 'attime';    // 行選択後表示オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
 let _tmDetailPix = -1;         // 詳細リストに表示中の画素(-1=なし)
@@ -8459,6 +8461,19 @@ function _tmSetObserverToPix(pix) {
     appState.startHeight = _tsujiMeshPixHeightUsed;
     saveAppState();
     updateAll();
+    _tmSyncPinZ();   // ピンの画素へ観測点が移動した場合も前面関係を追従させる
+}
+
+/** 優辻ピンと観測点マーカーが同一座標(=詳細リストの行クリックで観測点をその画素へ移動した直後など)の時、
+ *  ピンが観測点マーカー(zIndex:1000)の真裏に完全に隠れて「表示されない」ように見えるため、
+ *  同一座標の間だけピンを前面(1100)に出す。離れている時は通常(900=観測点の後ろ)。第59ラウンド。 */
+function _tmSyncPinZ() {
+    (_glMarkerGroups.tmpin || []).forEach(mk => {
+        const ll = mk.getLngLat();
+        const onObs = appState.start &&
+            Math.abs(ll.lat - appState.start.lat) < 1e-9 && Math.abs(ll.lng - appState.start.lng) < 1e-9;
+        mk.getElement().style.zIndex = onObs ? '1100' : '900';
+    });
 }
 
 /** 再計算した画素集合(pix→精度角距離)を金色のオーバーレイで描画し(全画素表示・上限なし)、
@@ -8879,6 +8894,9 @@ function handleTsujiMeshGoldHover(latlng) {
     if (pix >= 0 && _tsujiMeshGoldSet && _tmLayerShown('gold') && _tsujiMeshGoldSet.has(pix)) {
         const ref = _tmRefinePixelTime(pix);
         if (ref) content = _tmTooltipHtml('辻マーカー(対象精度)', ref.timeMs, ref.dist, 'クリックで観測点に設定');
+        // 辻マーカー上のホバーでも詳細リストを連動する(第59ラウンド: メッシュマーカーと同じ挙動へ)。
+        // ヒット画素でない再計算画素は_tmUpdateDetailList内で0件→無変更(最後の内容を保持)。
+        if (!_tmDetailLockPopup) _tmUpdateDetailList(pix);
     } else if (_tsujiMeshWhiteRow && _tmLayerShown('mesh')) {
         // ポップアップは件数のみ(詳細は詳細リストへ)
         const wpix = pix;
@@ -8909,7 +8927,7 @@ function selectTsujiMeshRow(idx, jump) {
         row.__tr.classList.add('selected');
         row.__tr.scrollIntoView({ block: 'nearest' });
     }
-    // 行選択後オプション(白マーカークリック時はその画素)に従って、
+    // 行選択後表示オプション(白マーカークリック時はその画素)に従って、
     // 辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
     let initDt = row.dateObj;
     _tmForcedPin = null;
@@ -9561,6 +9579,7 @@ async function startTsujiMeshSearch() {
                 dist: rowDist, azimuth: rowAz, altitude: rowAlt,
                 azDiff: azDiffDeg(rowAz, meshCtr.az),
                 altDiff: rowAlt - meshCtr.alt,
+                centerMode: _tsujiMeshCalc.centerMode === 'line' ? 'line' : 'point',   // この検索の検索中心オプション
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
@@ -9611,7 +9630,7 @@ async function startTsujiMeshSearch() {
     }
 }
 
-/** 辻メッシュ検索の結果リスト(21列・ソート可)を描画 */
+/** 辻メッシュ検索の結果リスト(23列・ソート可)を描画 */
 function renderTsujiMeshResults() {
     const contentEl = document.getElementById('tsujimesh-content');
     contentEl.innerHTML = '';
@@ -9624,7 +9643,7 @@ function renderTsujiMeshResults() {
         tr.className = 'td-data-row' + (r.__sel ? ' selected' : '');
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${r.centerMode}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -9637,7 +9656,7 @@ function renderTsujiMeshResults() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
@@ -9666,6 +9685,7 @@ function renderTsujiMeshResults() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心', compare: (a, b) => String(a.centerMode).localeCompare(String(b.centerMode)) },
         { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
         { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
@@ -9926,7 +9946,7 @@ function setupTsujiMeshPanelControls() {
         if (smp) { const v = Math.round(255 * (1 - _tmMeshGray / 100)); smp.style.color = `rgb(${v},${v},${v})`; }
         redrawMeshThrottled();
     });
-    // 行選択後オプション: 優辻マーカー(ピン)の初期位置。切替時は現在の選択行に即適用する
+    // 行選択後表示オプション: 優辻マーカー(ピン)の初期位置。切替時は現在の選択行に即適用する
     document.querySelectorAll('input[name="tsujimesh-post-mode"]').forEach(r => {
         r.addEventListener('change', () => {
             if (!r.checked) return;
