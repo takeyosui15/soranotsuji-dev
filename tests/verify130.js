@@ -13,8 +13,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- R0: 版数ピン(最新のverifyに集約) ----
-check('R0 APP_VERSION 1.47.0', src.includes("APP_VERSION = '1.47.0'") || !!process.argv[2]);
-check('R0 Version Historyに1.47.0の行がある', src.includes('Version 1.47.0 - ') || !!process.argv[2]);
+check('R0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('R0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- R1: ソース静的検査 ----
 check('R1 観測点の初期値=東京タワーの建物の外(35.658595, 139.745335)',

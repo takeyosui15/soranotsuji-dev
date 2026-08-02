@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.48.0 - 2026-08-02: feat: 第53ラウンド — 都市モードに「表示タイル数」スライダー(依頼者指定: スマホで48枚が開けなかった対策) 1〜150・初期値35は毎回適用=保存しない(大きな値のまま再訪して端末が重くなるのを防ぐ。視界範囲と同じ思想)。宙の窓メニュー/ctrlメニューの双方向連動。タイルは引き続き「見かけの高さ順」で予算内を選択。LRUキャッシュ上限を160へ(スライダー最大150で表示中タイルを追い出さないため)。ヘルプにメモリの注意を追記
 Version 1.47.0 - 2026-08-02: feat: 第52ラウンド — 都市モードの遠景対応+夜馴染み(依頼者の実機フィードバック3件) ①観測点の初期値(東京タワー)を建物の外へ移動(35.658595, 139.745335。都市モードで初期画面が壁になる問題の解消。標高18.5mは実測同値・URL短縮辞書は凍結リテラルのため影響なし) ②都市ビルの奥行き上限を40→200kmへ(霞ヶ浦からのダイヤモンド富士+都心ビル群シルエット等)。あわせて都市単位の扇プレフィルタ(tileset取得前の足切り)+都市毎tilesetの並列取得 ③タイル予算48件の配り方を「近い順」→「見かけの高さ順」(タイル内高さ幅/距離)へ — 遠景で手前の低い街並みが予算を食い尽くし都心の高層が出ない問題の予防 ④建物の太陽高度減光(昼1.0↔夜0.26・±8°でsmoothstep・夜は青寄り。日時変更は幾何を作り直さず材質色のみ追従。テクスチャ=昼の航空写真と単色面の両方に効く)
 Version 1.46.0 - 2026-08-02: feat: 第51ラウンド — 都市モードの全国化: PLATEAU建築物モデルの全国対応表 data/plateau-bldg-cities.json を同梱し遅延読込(448都市ファミリ=306市区町村。LOD1=448/LOD2無テクスチャ=265/LOD2テクスチャ付き=300。bboxは各tileset rootのregion実測。生成ツール tools/plateau/make-bldg-cities.js=カタログAPIから再生成可)。PoCの静的2区表を置換。テクスチャONはLOD2tex→LOD2notex→LOD1、OFFはLOD2notex→LOD1→LOD2texのフォールバック。ヘルプの対応都市記述を全国へ更新
 Version 1.45.0 - 2026-08-02: feat: 第50ラウンド — PLATEAU建物レイヤPoC「都市モード」(宙の窓に都市のビル群。デッサン06のPLATEAU節) ①宙の窓/ctrlメニューに「:都市モード」「:テクスチャ」チェック(共に初期値オン・双方向連動・localStorage保存)+取得状況表示 ②PLATEAU公式ストリーミング(3D Tiles 1.0/b3dm)の葉タイルを扇(視界範囲・画角)で選別し近い順に予算48件まで取得(PoC対応都市=新宿区・千代田区の静的表。自前保管ゼロ) ③b3dm/glbは最小自作パーサ+Draco解凍は公式デコーダ(gstatic・遅延読込)+テクスチャWebP対応 ④高さは楕円体高→標高へジオイド補正(同梱data/geoid-jp.json=EGM96 0.25°格子・tools/geoid/で生成)し、地形格子と同じ厳密三角形解(気差k・局所半径)でENU配置=遮蔽・実寸が地形と自動整合 ⑤無テクスチャ面は太陽ランバートを頂点色に焼き込み ⑥b3dm/幾何/テクスチャはLRUキャッシュ・扇の変更は幾何再利用 ⑦ヘルプにPLATEAU出典(CC BY 4.0)を明記
@@ -111,7 +112,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.47.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.48.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -367,6 +368,7 @@ const APP_DEFAULTS = {
     // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
     smBldg: { def: true, bool: 'coerce' },                // 都市ビルの表示(初期値オンは依頼者決定)
     smBldgTex: { def: true, bool: 'coerce' },             // 建物テクスチャ(ON=LOD2テクスチャ付き/OFF=LOD2無テクスチャ→LOD1)
+    smBldgTiles: { def: 35, min: 1, max: 150, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止: 第53ラウンド・依頼者指定)
     // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
     isSoradanmenActive: { def: false },
     isSoraSearchActive: { def: false },
@@ -15331,6 +15333,13 @@ function setupSoramadoControls() {
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); } }); });
     bldgChk(['chk-sora-bldg', 'chk-sora-ctrl-bldg'], 'smBldg');
     bldgChk(['chk-sora-bldg-tex', 'chk-sora-ctrl-bldg-tex'], 'smBldgTex');
+    // 表示タイル数スライダー(1〜150・初期35は毎回=保存しない。メニュー/ctrl双方向連動)
+    ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            appState.smBldgTiles = Math.max(1, Math.min(150, parseInt(el.value) || 35));
+            _smBldgSyncUI();
+            if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); }
+        }); });
     // 打ち上げ点標高: 未設定(目的点追従)中に手動編集されたら、その時点の目的点座標で打ち上げ点を確定してから適用する
     ['input-fw-api-elev', 'input-fw-ctrl-api-elev'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => {
@@ -18465,8 +18474,9 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 同じシーンに置くだけで、遮蔽・実寸・焦点距離は既存の仕組みがそのまま効く。
 // 実測(第50ラウンド): 全タイルがDraco圧縮必須のため、解凍のみ公式デコーダ(three.jsのDRACOLoaderと
 // 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
-const SM_BLDG_TILE_BUDGET = 48;       // 同時表示タイルの上限(近い順。実測: LOD2texタイル≈1.8MB/1.1万頂点)
-const SM_BLDG_CACHE_MAX = 96;         // b3dm/幾何/テクスチャのLRU上限(タイル数)
+// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜150・初期35・毎回初期値)。
+// 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
+const SM_BLDG_CACHE_MAX = 160;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大150より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)
 const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
 // 全国対応表(tools/plateau/make-bldg-cities.jsでカタログAPIから生成。448都市ファミリ=306市区町村)
@@ -18504,6 +18514,11 @@ function _smBldgSyncUI() {
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
     chk('chk-sora-bldg', appState.smBldg); chk('chk-sora-ctrl-bldg', appState.smBldg);
     chk('chk-sora-bldg-tex', appState.smBldgTex); chk('chk-sora-ctrl-bldg-tex', appState.smBldgTex);
+    const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
+    const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const n = appState.smBldgTiles;
+    set('input-sora-bldg-tiles', n); set('input-sora-ctrl-bldg-tiles', n);
+    txt('sora-bldg-tiles-val', n + '枚'); txt('sora-ctrl-bldg-tiles-val', n + '枚');
 }
 function _smBldgLruPut(map, key, val, disposeFn) {
     if (map.has(key)) map.delete(key);
@@ -18682,8 +18697,9 @@ function _smBldgUpdate() {
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const budget = Math.max(1, Math.min(150, Math.round(Number(appState.smBldgTiles) || 35)));
     const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
-    const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}`;
+    const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}|${budget}`;
     if (fanKey === _smBldgFanKey) return;
     _smBldgFanKey = fanKey;
     if (geoKey !== _smBldgGeoKey) {   // 観測点・気差・テクスチャの変更 → ENU幾何を全て作り直し(扇だけなら再利用)
@@ -18693,7 +18709,7 @@ function _smBldgUpdate() {
     }
     const gen = ++_smBldgGen;
     while (_smBldgGrp.children.length) _smBldgGrp.remove(_smBldgGrp.children[_smBldgGrp.children.length - 1]);
-    _smBldgRun(gen, { oLat, oLng, obsElev, centerAz, aovH, rangeKm, k }).catch(e => {
+    _smBldgRun(gen, { oLat, oLng, obsElev, centerAz, aovH, rangeKm, k, budget }).catch(e => {
         if (gen === _smBldgGen) { _smBldgSetStatus('取得失敗'); console.warn('[都市モード]', e); }
     });
 }
@@ -18773,7 +18789,7 @@ async function _smBldgRun(gen, ctx) {
     }));
     if (gen !== _smBldgGen) return;
     cand.sort((a, b) => (b.score - a.score) || (a.d - b.d));   // 見かけの高さ順(同点は近い順)
-    const picks = cand.slice(0, SM_BLDG_TILE_BUDGET);
+    const picks = cand.slice(0, ctx.budget);
     if (!picks.length) { _smBldgSetStatus('0タイル/0棟'); return; }
     // 変換の共通量(観測点側)。ENU回転は法線用
     const Reff1 = getLocalEarthRadius(ctx.oLat) / (1 - ctx.k);
