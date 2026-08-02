@@ -309,7 +309,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       out.dist0Near=Math.abs(d0-0.201*Math.cos(hor.altitude*Math.PI/180))<0.02;
       return out;
     });
-    check('V3 CSV 65列', r.headCols===65, `cols=${r.headCols}`);
+    check('V3 CSV 66列', r.headCols===66, `cols=${r.headCols}`);   // 第58ラウンド: 検索中心列の追加で65→66
     check('V3 全ヒット画素=5行(3+2)', r.rowCount===5, `rows=${r.rowCount}`);
     check('V3 全行の列数一致', r.colsMatch);
     check('V3 行内は日時(日付+辻時刻)の昇順(ID 2,0,1)', r.row1Ids==='2,0,1'&&r.row1TimeAsc, r.row1Ids);
@@ -355,7 +355,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const sr=lines[1]&&lines[1].split(',');
       return { lines:lines.length, nCols, hasRise: sr&&/\d{2}:\d{2}:\d{2}/.test(sr[7]||'') };
     });
-    check('V5 従来経路CSV(ヘッダ+1行・出没時刻計算あり)', r.lines===2&&r.nCols===65&&r.hasRise, JSON.stringify(r));
+    check('V5 従来経路CSV(ヘッダ+1行・出没時刻計算あり)', r.lines===2&&r.nCols===66&&r.hasRise, JSON.stringify(r));   // 第58ラウンド: 検索中心列で65→66
   }
 
   // V6: 動画自己検証の新戻り値({ok,duration})

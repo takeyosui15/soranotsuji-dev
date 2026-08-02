@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.53.0 - 2026-08-02: fix/feat: 第58ラウンド — ①不具合修正: 地図のマーカーをクリックしてもポップアップ(緯度〜相手高度等)が開かないことがある同類バグを一網打尽 — マーカーは地図へのclick伝播を止めるためMapLibre既定のポップアップトグル(地図click経由)が効かず、第36ラウンドで観測点だけに入れた「クリックで必ず開く」補償が目的点・My観測点・My目的点・優辻等には無かった。補償を_glAddMarkerへ一般化(ピン型/div型の両方・popupHtml付き全マーカーが対象)し観測点個別対応を撤去 ②辻検索/辻メッシュ/My辻検索の結果出力に「検索中心」(point/line)を追加(デッサン03/04/10): 画面=視半径の右に列追加(辻検索・メッシュ詳細リスト・My辻。メッシュの画素リストはデッサン通り対象外)、File=共通CSVの視半径の右に列追加(65→66列。3検索とも共通ビルダーのため一括で反映)
 Version 1.52.0 - 2026-08-02: refactor: 第57ラウンド — リファクタリングB第2弾④(第4ロット): 300文字以上の最後の2組を統合(挙動不変) ①_searchSunMoonRiseSet=日月出没4探索のtry(辻メッシュ一括出力の日別事前計算/日別キャッシュの325文字×2) ②_pushMyTsujiResults=My辻検索の結果平坦化ループ(一括計算/File出力の303文字×2)。dup地図77→73グループ(累計92→73)・300文字以上の重複は0に・残る重複合計8,440文字=script.js全体(1.12MB)の約0.76%。本線はここで一区切りとし、以後は「触るついでに統合」方式を推奨(判断材料の数字は回答その55)
 Version 1.51.0 - 2026-08-02: feat: 第56ラウンド — 地図2.5D「3D風ビル」(案A・依頼者GO)+リファクタリングB第2弾③ ①地図レイヤーリストに「3D風ビル」チェックを追加: GSI最適化ベクトルタイル(XYZ・追加ライブラリ不要)のBldAをfill-extrusionで押し出し(種別擬似高さ=普通10m/堅ろう40m/高層100m。GSI公式3D風地図と同じ流儀・実高さではないことをヘルプに明記)。ONで地図を斜め視点(ピッチ60°)へ、OFFで真上へ戻す。レイヤ名BldA・vt_code値(3101/3102/3103/3111)は実タイルの解剖で実測確認。セッション内のみ(保存・URLなし) ②リファクタリングB第2弾③: 合成標高分岐(353文字×2=辻メッシュ/統一可視判定)を_syntheticElevAtPix15へ統合(挙動不変)。dup地図79→77グループ
 Version 1.50.0 - 2026-08-02: refactor: 第55ラウンド — リファクタリングB第2弾②: ワーカープールの型+日時ピッカーの統合(挙動不変) ①_makeWorkerPool=辻検索/辻メッシュの同型プール二重実装(run/terminateAll等505+334文字×2)を工場関数へ(遅延生成・待ち行列・再配車・全解放の共通コア。numWorkersは呼出時評価でTDZを持ち込まない。プール固有のinit/sizeは呼び出し側が組み立て) ②_bindDateTimePair=全天儀ctrl/宙の窓ctrlの日付時刻ピッカーハンドラ(470文字×2)を統合 ③dup地図88→79グループ。あわせて地図2.5D(後段)の調査を実施(PLATEAUに建物MVTなし・GSIベクトルタイルに高さ属性なし・GSI公式3D風=種別擬似高さ方式) — デッサン06に設計案を起草
@@ -116,7 +117,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.52.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.53.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1138,6 +1139,10 @@ function _glAddMarker(name, lat, lng, html, opts = {}) {
             const pp = new maplibregl.Popup({ maxWidth: '300px' }).setHTML(opts.popupHtml);   // offset=自動
             _glWirePopupStop(pp);
             mk.setPopup(pp);
+            // クリック(タップ)で必ずポップアップを開く(第58ラウンド: 目的点・My地点で開かない同類バグの一網打尽)。
+            // stopPropagationで地図へclickが届かないため、MapLibre既定のトグル(地図click経由)はここでは効かない。
+            // 第36ラウンドの観測点個別対応(既定トグルで閉じて無効に見える対策)をここへ一般化した。
+            el.addEventListener('click', () => setTimeout(() => { if (!pp.isOpen()) mk.togglePopup(); }, 0));
         }
         if (opts.onClick) el.addEventListener('click', () => opts.onClick());
         (_glMarkerGroups[name] = _glMarkerGroups[name] || []).push(mk);
@@ -1161,6 +1166,8 @@ function _glAddMarker(name, lat, lng, html, opts = {}) {
         const pp = new maplibregl.Popup({ offset: opts.popupOffset || [0, -30], maxWidth: '300px' }).setHTML(opts.popupHtml);
         _glWirePopupStop(pp);
         mk.setPopup(pp);
+        // クリック(タップ)で必ずポップアップを開く(pin側と同じ一般化。詳しくは上のコメント)
+        if (opts.interactive !== false) wrap.addEventListener('click', () => setTimeout(() => { if (!pp.isOpen()) mk.togglePopup(); }, 0));
     }
     if (opts.onClick) wrap.addEventListener('click', () => opts.onClick());
     (_glMarkerGroups[name] = _glMarkerGroups[name] || []).push(mk);
@@ -1190,8 +1197,7 @@ function glUpdateLocationDisplay() {
         // ポップアップ表示中は詳細リストを観測点の情報に固定(閉じると解除=通常のホバー更新に戻る)
         obsPp.on('open', () => { if (_tmShowDetailForObserver()) _tmDetailLockPopup = obsPp; });
         obsPp.on('close', () => { if (_tmDetailLockPopup === obsPp) _tmDetailLockPopup = null; });
-        // クリック(タップ)では常にポップアップを開く(既定のトグルで閉じてしまい機能が無効に見えるのを防ぐ)
-        obsEl.addEventListener('click', () => setTimeout(() => { if (!obsPp.isOpen()) obsMk.togglePopup(); }, 0));
+        // クリックで必ず開く対応は_glAddMarkerへ一般化済み(第58ラウンド)。ここは詳細リスト連動のみ
         _tmObsMarker = obsMk;
         const tgtMk = _glAddMarker('location', e.lat, e.lng, null,
             { pin: '#F44336', className: 'location-marker location-marker-target', zIndex: 1000,
@@ -6774,7 +6780,7 @@ async function runBatchMyTsujiSearch() {
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
         <th>月齢</th><th>月齢アイコン</th><th>月輝面比</th>
-        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
 
@@ -6811,6 +6817,7 @@ async function runBatchMyTsujiSearch() {
             <td>${r.azimuth.toFixed(4)}°</td>
             <td>${r.altitude.toFixed(4)}°</td>
             <td>${angRDisplay}</td>
+            <td>${r.tsuji.centerMode === 'line' ? 'line' : 'point'}</td>
             <td>${fmtSignedDeg(azDiffDeg(r.azimuth, myTsujiCtr(r).az))}</td>
             <td>${fmtSignedDeg(r.altitude - myTsujiCtr(r).alt)}</td>
             <td>${(Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4)}°</td>
@@ -6858,6 +6865,7 @@ async function runBatchMyTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心', compare: (a, b) => String(a.tsuji.centerMode === 'line' ? 'line' : 'point').localeCompare(String(b.tsuji.centerMode === 'line' ? 'line' : 'point')) },
         { label: '検索中心方位角差', compare: (a, b) => azDiffDeg(a.azimuth, myTsujiCtr(a).az) - azDiffDeg(b.azimuth, myTsujiCtr(b).az) },
         { label: '検索中心視高度差', compare: (a, b) => (a.altitude - myTsujiCtr(a).alt) - (b.altitude - myTsujiCtr(b).alt) },
         { label: 'オフセット中心角', compare: (a, b) => (Number(a.tsuji.mwOffsetAngle) || 0) - (Number(b.tsuji.mwOffsetAngle) || 0) },
@@ -6992,6 +7000,7 @@ function buildMyTsujiCsvRow(r, preAstro) {
         r.azimuth.toFixed(4) + '°',
         r.altitude.toFixed(4) + '°',
         angRStr,
+        r.tsuji.centerMode === 'line' ? 'line' : 'point',
         fmtSignedDeg(azDiffDeg(r.azimuth, tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).az)),
         fmtSignedDeg(r.altitude - tsujiCenterRefPoint(r.azimuth, r.altitude, baseAz, baseAlt, offsetAz, offsetAlt, r.tsuji.centerMode).alt),
         partnerDist.toFixed(1) + 'm',
@@ -7090,7 +7099,7 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress) {
         '観測点ID','観測点名','観測点緯度','観測点経度','観測点標高','観測点高','観測点メモ',
         '目的点ID','目的点名','目的点緯度','目的点経度','目的点標高','目的点高','目的点メモ',
         '精度記号','精度角距離',
-        '方位角','視高度','視半径','検索中心方位角差','検索中心視高度差',
+        '方位角','視高度','視半径','検索中心','検索中心方位角差','検索中心視高度差',
         '相手距離','相手方位','相手高度',
         '辻オフセット方位角','辻オフセット視高度','辻オフセット方位距離','辻オフセット視高距離',
         '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','標高グラフ',
@@ -8769,6 +8778,7 @@ function _tmUpdateDetailList(pix) {
                  srStr: a.srStr, ssStr: a.ssStr, mrStr: a.mrStr, msStr: a.msStr,
                  moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum,
                  az, alt, angR: getBodyAngularRadius(h.row.body.id, dt, observer),
+                 ctrMode: C ? (C.centerMode === 'line' ? 'line' : 'point') : '-',
                  azD, altD, mwOff: Number(appState.mwOffsetAngle) || 0,
                  elevStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-' };
     });
@@ -8783,6 +8793,7 @@ function _tmUpdateDetailList(pix) {
             `<td>${escapeHtml(r.timeCategory)}</td><td>${r.srStr}</td><td>${r.ssStr}</td><td>${r.mrStr}</td><td>${r.msStr}</td>` +
             `<td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${r.moonIllum.toFixed(1)}%</td>` +
             `<td>${r.az !== null ? r.az.toFixed(4) + '°' : '-'}</td><td>${r.alt !== null ? r.alt.toFixed(4) + '°' : '-'}</td><td>${angRDisplay}</td>` +
+            `<td>${r.ctrMode}</td>` +
             `<td>${r.azD !== null ? fmtSignedDeg(r.azD) : '-'}</td><td>${r.altD !== null ? fmtSignedDeg(r.altD) : '-'}</td>` +
             `<td>${r.mwOff.toFixed(4)}°</td><td>${escapeHtml(r.elevStatus)}</td>`;
         tr.addEventListener('click', () => _tmJumpToHit(pix, r.h));
@@ -8793,7 +8804,7 @@ function _tmUpdateDetailList(pix) {
     table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th>' +
         '<th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th>' +
         '<th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th>' +
-        '<th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr></thead>';
+        '<th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr></thead>';
     const tbody = document.createElement('tbody');
     rows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
@@ -8821,6 +8832,7 @@ function _tmUpdateDetailList(pix) {
         { label: '方位角', compare: (a, b) => (a.az ?? 0) - (b.az ?? 0) },
         { label: '視高度', compare: (a, b) => (a.alt ?? 0) - (b.alt ?? 0) },
         { label: '視半径', compare: (a, b) => a.angR - b.angR },
+        { label: '検索中心', compare: (a, b) => String(a.ctrMode).localeCompare(String(b.ctrMode)) },
         { label: '検索中心方位角差', compare: (a, b) => (a.azD ?? 0) - (b.azD ?? 0) },
         { label: '検索中心視高度差', compare: (a, b) => (a.altD ?? 0) - (b.altD ?? 0) },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOff - b.mwOff },
@@ -10337,6 +10349,7 @@ async function startTsujiSearch() {
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
                 azDiff: azDiffDeg(r.azimuth, _ctrRef(r).az),   // 検索中心方位角差(検索中心より右=正)
                 altDiff: r.altitude - _ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
+                centerMode: searchCenterMode,                  // この検索で使った検索中心オプション(point/line)
                 mwOffAngle: Number(appState.mwOffsetAngle) || 0,   // この検索で使ったオフセット中心角
                 angularRadius: angR, moonAge, moonIcon,
                 moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
@@ -10350,7 +10363,7 @@ async function startTsujiSearch() {
         if (limitReached) {
             const tr = document.createElement('tr');
             tr.style.color = body.color;
-            tr.innerHTML = `<td colspan="22">${escapeHtml(body.name)}: and more…</td>`;
+            tr.innerHTML = `<td colspan="23">${escapeHtml(body.name)}: and more…</td>`;
             extraRows.push(tr);
         }
     });
@@ -10367,7 +10380,7 @@ async function startTsujiSearch() {
         tr.className = 'td-data-row';
         tr.style.color = r.body.color;
         const angRDisplay = BODY_RADIUS_KM[r.body.id] ? r.angularRadius.toFixed(3) + '°' : '-.---°';
-        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
+        tr.innerHTML = `<td>${escapeHtml(r.body.id)}</td><td>${escapeHtml(r.body.name)}</td><td>${r.symbol}</td><td>${r.dist.toFixed(5)}°</td><td>${r.dateStr}</td><td>${r.dowStr}</td><td>${r.timeStr}</td><td>${escapeHtml(r.timeCategory)}</td><td>${r.sunriseStr}</td><td>${r.sunsetStr}</td><td>${r.moonriseStr}</td><td>${r.moonsetStr}</td><td>${r.moonAge.toFixed(1)}</td><td>${r.moonIcon}</td><td>${(r.moonIllum ?? 0).toFixed(1)}%</td><td>${r.azimuth.toFixed(4)}°</td><td>${r.altitude.toFixed(4)}°</td><td>${angRDisplay}</td><td>${escapeHtml(r.centerMode)}</td><td>${fmtSignedDeg(r.azDiff)}</td><td>${fmtSignedDeg(r.altDiff)}</td><td>${r.mwOffAngle.toFixed(4)}°</td><td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.currentDate = new Date(r.dateObj);
             syncUIFromState();
@@ -10379,7 +10392,7 @@ async function startTsujiSearch() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -10410,6 +10423,7 @@ async function startTsujiSearch() {
         { label: '方位角', compare: (a, b) => a.azimuth - b.azimuth },
         { label: '視高度', compare: (a, b) => a.altitude - b.altitude },
         { label: '視半径', compare: (a, b) => a.angularRadius - b.angularRadius },
+        { label: '検索中心', compare: (a, b) => String(a.centerMode).localeCompare(String(b.centerMode)) },
         { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
         { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },

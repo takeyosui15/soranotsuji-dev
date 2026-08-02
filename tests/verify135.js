@@ -11,7 +11,7 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- W0: 版数ピン(最新のverifyに集約) ----
-check('W0 APP_VERSION 1.52.0', src.includes("APP_VERSION = '1.52.0'") || !!process.argv[2]);
+check('W0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));   // 版数ピンは最新のverifyに移管(第58ラウンド)
 check('W0 Version Historyに1.52.0の行がある', src.includes('Version 1.52.0 - ') || !!process.argv[2]);
 
 // ---- W1: 無いことのテスト(重複の再増殖検知) ----

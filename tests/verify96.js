@@ -68,7 +68,7 @@ const check=(name,ok,detail)=>{ console.log(`${ok?'PASS':'FAIL'} ${name}${detail
     });
     check('T2 辻検索File取得 produces CSV rows', r.ok && r.rows>=1, r.ok?`rows=${r.rows}`:JSON.stringify(r.alerts));
     if(r.ok){
-      check('T2 header/row column counts match', r.headerLen===r.rowLen && r.headerLen===65, `h=${r.headerLen} r=${r.rowLen}`);
+      check('T2 header/row column counts match', r.headerLen===r.rowLen && r.headerLen===66, `h=${r.headerLen} r=${r.rowLen}`);   // 第58ラウンド: 検索中心列で65→66
       check('T2 輝面比は%表記・辻検索IDは空白', /^\d+\.\d%$/.test(r.illum||'') && r.tsujiIdBlank, `illum=${r.illum}`);
       check('T2 観測点緯度=現在の観測点', (r.obsLat||'').startsWith('36.2919'), `lat=${r.obsLat}`);
     }
