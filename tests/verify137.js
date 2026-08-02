@@ -1,7 +1,8 @@
-// 第59ラウンド検証: v1.54.0 依頼者フィードバック4件
+// 第59〜60ラウンド検証: v1.54.0〜 依頼者フィードバック
 // ①辻マーカー上のホバーでも詳細リストを連動(従来はメッシュマーカーのみ)
-// ②詳細リスト行クリック直後に優辻マーカーが「表示されない」修正 — 実測でピンは生成済みだが
-//   観測点マーカー(zIndex:1000)と完全同座標で真裏に隠れていた。同一座標の間だけ前面(1100)へ(_tmSyncPinZ)。
+// ②詳細リスト行クリック後の優辻マーカー: 第59の「同座標なら前面(1100)へ」は第60で撤回(依頼者判断:
+//   観測点マーカーを選択できなくなる)。訂正後の定義=ジャンプでは強制配置せず、ピンは
+//   「その辻時刻での最良画素」(argmin=観測点とは別の場所)に立てる。zIndexは常に900。
 // ③「行選択後オプション」→「行選択後表示オプション」ラベル(ヘルプ2箇所も)
 // ④メッシュ画素リスト(一覧側)にも「検索中心」列(デッサン04訂正。verify136のS2は4表へ意図更新済み)
 const fs = require('fs');
@@ -13,8 +14,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
-// ---- T0: 版数ピン(最新のverifyに集約) ----
-check('T0 APP_VERSION 1.54.0', src.includes("APP_VERSION = '1.54.0'") || !!process.argv[2]);
+// ---- T0: 版数ピン(最新のverifyに集約。第60ラウンドでverify138へ移管) ----
+check('T0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('T0 Version Historyに1.54.0の行がある', src.includes('Version 1.54.0 - ') || !!process.argv[2]);
 
 // ---- T1: 静的な配線 ----
@@ -35,9 +36,11 @@ check('T1 画素リストの行データにcenterMode(検索の選択値を正�
     check('T1 ホバーの詳細リスト連動が辻マーカー/メッシュマーカーの2分岐にある', n === 2, `n=${n}`);
 }
 {
-    const def = (src.match(/function _tmSyncPinZ\(/g) || []).length;
-    const calls = (src.match(/_tmSyncPinZ\(\);/g) || []).length;
-    check('T1 _tmSyncPinZ=定義1+呼出2(ピン配置時+観測点移動時)', def === 1 && calls === 2, `def=${def} calls=${calls}`);
+    // 第60ラウンドの訂正: ジャンプでの強制配置と_tmSyncPinZ(前面化)は撤回(無いことのテスト)。
+    // 冒頭のVersion History(経緯として旧名に言及)は除いて数える(ラベル検査と同じ流儀)
+    const body = src.replace(/^[\s\S]*?\*\//, '');
+    check('T1 ジャンプの強制配置は撤回(jump.pixでの_tmForcedPin代入なし)', !body.includes('_tmForcedPin = { pix: jump.pix'));
+    check('T1 _tmSyncPinZは撤回(0箇所)', !/_tmSyncPinZ/.test(body));
 }
 
 // ============================================================
@@ -106,7 +109,8 @@ check('T1 画素リストの行データにcenterMode(検索の選択値を正�
         drawTsujiMeshMarkers();   // 白マーカー索引(CSR)を構築(詳細リストのデータ源)
     });
 
-    // B1: 詳細リスト行クリック相当のジャンプ → 優辻ピンが観測点と同座標でも前面に見える
+    // B1: 詳細リスト行クリック相当のジャンプ → 優辻ピンは定義通り「その辻時刻での最良画素」
+    //     (=観測点とは別の場所・zIndex900のまま・観測点マーカーは最前面で選択できる)
     {
         const r = await p.evaluate(async () => {
             const out = {};
@@ -115,28 +119,41 @@ check('T1 画素リストの行データにcenterMode(検索の選択値を正�
             _tmSetObserverToPix(0);
             selectTsujiMeshRow(0, { pix: 0, timeMs: window.__t0 + 60e3, dist: 0.011 });
             await new Promise(res => setTimeout(res, 250));
+            out.forcedPin = _tmForcedPin;   // ジャンプでは強制配置しない → null
             const pins = _glMarkerGroups.tmpin || [];
             out.pinCount = pins.length;
             if (pins.length) {
                 const ll = pins[0].getLngLat(), oll = _glLocMarkers.obs.getLngLat();
                 out.samePos = Math.abs(ll.lat - oll.lat) < 1e-9 && Math.abs(ll.lng - oll.lng) < 1e-9;
                 out.pinZ = pins[0].getElement().style.zIndex;
-                const pt = glMap.project([ll.lng, ll.lat]);
+                // 期待argmin: アプリと同じ定義(その時刻の天体位置と各画素の検索中心の角距離が最小の画素)
+                const t = new Date(window.__t0 + 60e3);
+                const C = _tsujiMeshCalc;
+                const aobs = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+                const eq = Astronomy.Equator('Sun', t, aobs, true, true);
+                const hor = Astronomy.Horizon(t, aobs, eq.ra, eq.dec, null);
+                const D2R = Math.PI / 180;
+                const ang = (az1, alt1, az2, alt2) => Math.acos(Math.max(-1, Math.min(1,
+                    Math.sin(alt1 * D2R) * Math.sin(alt2 * D2R) + Math.cos(alt1 * D2R) * Math.cos(alt2 * D2R) * Math.cos((az1 - az2) * D2R)))) / D2R;
+                let best = -1, bd = Infinity;
+                for (let i = 0; i < C.baseAz.length; i++) {
+                    const d = ang(hor.azimuth, hor.altitude, C.baseAz[i], C.baseAlt[i]);
+                    if (d < bd) { bd = d; best = i; }
+                }
+                out.expectPix = best;
+                out.pinAtExpect = Math.abs(ll.lat - _tsujiMeshPix.lat[best]) < 1e-9 && Math.abs(ll.lng - _tsujiMeshPix.lng[best]) < 1e-9;
+                // 観測点の位置の最前面=観測点マーカー(選択できること=依頼者要件で900のまま)
+                const opt = glMap.project([oll.lng, oll.lat]);
                 const rect = glMap.getCanvas().getBoundingClientRect();
-                const el = document.elementFromPoint(rect.left + pt.x, rect.top + pt.y - 15);
-                out.top = el ? (el.closest('.location-marker') || el).className : null;
-                // 観測点がピンから離れたら通常の前後関係(900=観測点の後ろ)に戻る
-                appState.start = { lat: 35.6, lng: 138.9, elev: 0 };
-                _tmSyncPinZ();
-                out.pinZAway = pins[0].getElement().style.zIndex;
-                appState.start = { lat: ll.lat, lng: ll.lng, elev: 910 + 1.5 };   // 戻す(B2でも使う)
-                _tmSyncPinZ();
+                const el = document.elementFromPoint(rect.left + opt.x, rect.top + opt.y - 15);
+                out.topAtObs = el ? (el.closest('.location-marker') || el).className : null;
             }
             return out;
         });
-        check('B1 ジャンプ後: ピンは観測点と同座標+前面(zIndex 1100)', r.pinCount === 1 && r.samePos && r.pinZ === '1100', JSON.stringify(r));
-        check('B1 最前面の要素=優辻ピン(不具合時は観測点マーカーだった)', String(r.top || '').includes('location-marker-tsujigold'), r.top);
-        check('B1 観測点が離れたら通常のzIndex(900)へ戻る', r.pinZAway === '900', `z=${r.pinZAway}`);
+        check('B1 ジャンプでは強制配置しない(_tmForcedPin=null)+ピンは1本', r.forcedPin === null && r.pinCount === 1, JSON.stringify({ f: r.forcedPin, n: r.pinCount }));
+        check('B1 ピンは観測点と別の場所=その辻時刻での最良画素(定義通り)', !r.samePos && r.pinAtExpect, JSON.stringify({ same: r.samePos, exp: r.expectPix }));
+        check('B1 ピンのzIndexは900のまま(観測点マーカーの後ろ)', r.pinZ === '900', `z=${r.pinZ}`);
+        check('B1 観測点位置の最前面=観測点マーカー(選択できる)', String(r.topAtObs || '').includes('location-marker-observer'), r.topAtObs);
     }
 
     // B2: 辻マーカー上のホバーで詳細リストが更新される(+確定ポップアップ固定中は更新されない)

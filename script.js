@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.55.0 - 2026-08-02: fix/feat: 第60ラウンド — ①優辻マーカーの認識ズレ訂正(依頼者指摘): 詳細リスト行クリックのジャンプで優辻マーカーをその画素へ強制配置していたのを撤回 — 定義は「その辻時刻での最良画素」のため、ピンは再計算のargmin(観測点とは別の場所)に立てる。第59の「同座標なら前面(1100)へ」も撤回し常に900(観測点マーカーの選択性優先) ②機能改善3(デッサン01/11/12): 位置情報メニューに「観測点名」「目的点名」テキストボックスを追加 — 建物名等でEnter→既存の地名検索(正規化・GSI→OSM・候補ダイアログ)を共用して結果が観測点/目的点欄へ。確定した座標の間だけ名前を保持し、他の手段で座標が変わると空白へ(入力途中は保護)。保存しない(毎回空白)。My観測点「観測点取得」/My目的点「目的点取得」はこの名前で追加(空白なら従来の「新規観測点名/新規目的点名」) ③検索エリア(3×3〜6×6)を辻メッシュ検索メニュー側にも追加(デッサン04)。結果コントロール側と双方向連動
 Version 1.54.0 - 2026-08-02: fix/feat: 第59ラウンド — 依頼者フィードバック4件 ①辻メッシュ: 辻マーカー上のホバーでも詳細リストを連動(従来はメッシュマーカーのみ。ポップアップだけ更新されて詳細リストが置き去りだった) ②辻メッシュ: 詳細リストの行クリックで観測点をその画素へ移動した直後、優辻マーカーが「表示されない」不具合を修正 — 実測の結果ピンは生成されていたが観測点マーカー(zIndex:1000)と完全同座標でピン(900)が真裏に隠れていた。同一座標の間だけピンを前面(1100)に出す_tmSyncPinZを新設(配置時と観測点移動時に追従) ③「行選択後オプション」ラベルを「行選択後表示オプション」へ(ヘルプ2箇所も) ④辻メッシュの画素リスト(一覧側)にも「検索中心」列を追加(デッサン04訂正=第58ラウンドの対象外を取り消し。視半径の右・ソート可・4表全てに列が揃った)
 Version 1.53.0 - 2026-08-02: fix/feat: 第58ラウンド — ①不具合修正: 地図のマーカーをクリックしてもポップアップ(緯度〜相手高度等)が開かないことがある同類バグを一網打尽 — マーカーは地図へのclick伝播を止めるためMapLibre既定のポップアップトグル(地図click経由)が効かず、第36ラウンドで観測点だけに入れた「クリックで必ず開く」補償が目的点・My観測点・My目的点・優辻等には無かった。補償を_glAddMarkerへ一般化(ピン型/div型の両方・popupHtml付き全マーカーが対象)し観測点個別対応を撤去 ②辻検索/辻メッシュ/My辻検索の結果出力に「検索中心」(point/line)を追加(デッサン03/04/10): 画面=視半径の右に列追加(辻検索・メッシュ詳細リスト・My辻。メッシュの画素リストはデッサン通り対象外)、File=共通CSVの視半径の右に列追加(65→66列。3検索とも共通ビルダーのため一括で反映)
 Version 1.52.0 - 2026-08-02: refactor: 第57ラウンド — リファクタリングB第2弾④(第4ロット): 300文字以上の最後の2組を統合(挙動不変) ①_searchSunMoonRiseSet=日月出没4探索のtry(辻メッシュ一括出力の日別事前計算/日別キャッシュの325文字×2) ②_pushMyTsujiResults=My辻検索の結果平坦化ループ(一括計算/File出力の303文字×2)。dup地図77→73グループ(累計92→73)・300文字以上の重複は0に・残る重複合計8,440文字=script.js全体(1.12MB)の約0.76%。本線はここで一区切りとし、以後は「触るついでに統合」方式を推奨(判断材料の数字は回答その55)
@@ -118,7 +119,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.54.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.55.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1579,7 +1580,9 @@ function glDrawTsujiMeshGoldSet(perPix, big) {
         const lat = _tsujiMeshPix.lat[big.pix], lng = _tsujiMeshPix.lng[big.pix];
         const mk = _glAddMarker('tmpin', lat, lng, null,
             { pin: '#ffd700', className: 'location-marker location-marker-tsujigold', zIndex: 900 });
-        _tmSyncPinZ();   // 観測点と同一画素なら前面へ(詳細リスト行クリック直後の完全占有の解消。第59ラウンド)
+        // zIndexは常に900(観測点マーカー1000の後ろ)。第59ラウンドの「同座標なら前面へ」は
+        // 第60ラウンドで撤回(依頼者判断: 観測点マーカーを選択できなくなるため。
+        // そもそも行クリックでピンを観測点の画素へ強制配置しない訂正で、重なり自体が定義外になった)
         const el = mk.getElement();
         el.addEventListener('click', () => _tmShowPinPopup(big));   // クリック/タップでポップアップ(観測点は移動しない)
         el.addEventListener('mouseenter', () => {
@@ -2013,6 +2016,19 @@ function setupUI() {
     const iEnd = document.getElementById('input-end-latlng');
     iStart.addEventListener('change', () => handleLocationInput(iStart.value, true));
     iEnd.addEventListener('change', () => handleLocationInput(iEnd.value, false));
+
+    // 観測点名/目的点名(第60ラウンド・デッサン01): 建物名等でジオコーディングし、結果を観測点/目的点欄へ。
+    // Enterで検索(座標欄と同じ正規化・国土地理院→OSM・候補ダイアログを共用)。確定した座標の間だけ
+    // 名前を保持し、座標が他の手段で変わったら空白へ戻す(_locNameSyncOnCoordChange)。保存はしない(毎回空白)。
+    const iStartName = document.getElementById('input-start-name');
+    const iEndName = document.getElementById('input-end-name');
+    const nameSearch = (el, isStart) => {
+        const v = el.value.trim();
+        if (!v) return;
+        handleLocationInput(v, isStart, true);
+    };
+    iStartName.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameSearch(iStartName, true); });
+    iEndName.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameSearch(iEndName, false); });
 
     // 標高入力（ユーザーが手動で上書き可能。地図クリック等でAPI取得値に上書きされる）
     document.getElementById('input-start-api-elev').addEventListener('change', (e) => {
@@ -2723,10 +2739,37 @@ function updateAll() {
     if (appState.isSoradanmenActive) _sdUpdateClouds();
 }
 
+// 観測点名/目的点名(第60ラウンド・デッサン01): 名前は保存しない(毎回空白から)。
+// 名前検索で確定した座標の間だけ名前を保持し、座標が他の手段(地図クリック・GPS・Hom・位置反映等)で
+// 変わったら空白へ戻す。入力途中(フォーカス中)は消さない(アニメ中のupdateAll毎秒対策)。
+let _locNamePending = null;                              // 検索ダイアログの確定待ちの側('start'/'end')
+const _locNameKeep = { start: null, end: null };         // 名前が指す座標(一致する間は名前を保持)
+const _locNameCoordMemo = { start: null, end: null };    // 前回見た座標(変化検出用)
+function _locNameSyncOnCoordChange() {
+    const chk = (side, pos, inputId) => {
+        const el = document.getElementById(inputId);
+        if (!el || !pos) return;
+        const memo = _locNameCoordMemo[side];
+        const moved = !memo || Math.abs(memo.lat - pos.lat) > 1e-9 || Math.abs(memo.lng - pos.lng) > 1e-9;
+        if (!moved) return;
+        _locNameCoordMemo[side] = { lat: pos.lat, lng: pos.lng };
+        const kept = _locNameKeep[side];
+        const keepMatch = kept && Math.abs(kept.lat - pos.lat) < 1e-9 && Math.abs(kept.lng - pos.lng) < 1e-9;
+        if (!keepMatch) {
+            _locNameKeep[side] = null;
+            if (document.activeElement !== el) el.value = '';
+        }
+    };
+    chk('start', appState.start, 'input-start-name');
+    chk('end', appState.end, 'input-end-name');
+}
+
 function updateLocationDisplay() {
 
     const fmt = (pos) => `${pos.lat}, ${pos.lng}`;
-    
+
+    _locNameSyncOnCoordChange();
+
     if(document.activeElement.id !== 'input-start-latlng') {
         document.getElementById('input-start-latlng').value = fmt(appState.start);
     }
@@ -3043,7 +3086,10 @@ function drawDP365Path(points, color, targetLayer, bodyId) {
 // 7. ロジック・ヘルパー
 // ============================================================
 
-async function handleLocationInput(val, isStart) {
+async function handleLocationInput(val, isStart, fromName) {
+    // 名前欄(観測点名/目的点名)からの検索だけ、確定時に名前を保持する予約を立てる。
+    // 座標欄からの検索は予約を無効化する(古い予約が別の確定で名前を残さないように)
+    _locNamePending = fromName ? (isStart ? 'start' : 'end') : null;
     if(!val) return;
 
     let coords = parseInput(val);
@@ -3093,6 +3139,11 @@ async function applyLocationCoords(coords, isStart) {
 
     const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
     document.getElementById(inputId).blur();
+
+    // 観測点名/目的点名からの検索確定なら、この座標の間だけ名前を保持する(第60ラウンド・デッサン01)
+    const nameSide = isStart ? 'start' : 'end';
+    if (_locNamePending === nameSide) _locNameKeep[nameSide] = { lat: coords.lat, lng: coords.lng };
+    _locNamePending = null;
 
     mapAdapter.setView(coords.lat, coords.lng);
     saveAppState();
@@ -5551,8 +5602,11 @@ function getMyPointFromLocation(type) {
     const loc = appState[locKey];
     const apiElev = locKey === 'start' ? appState.startApiElev : appState.endApiElev;
     const height = locKey === 'start' ? appState.startHeight : appState.endHeight;
+    // 位置情報メニューの観測点名/目的点名が入っていればそれを使う(空白なら従来の「新規○○名」。第60ラウンド)
+    const nameEl = document.getElementById(locKey === 'start' ? 'input-start-name' : 'input-end-name');
+    const nameVal = nameEl ? nameEl.value.trim() : '';
     cfg.list().push({
-        id, name: `新規${cfg.label}名`,
+        id, name: nameVal || `新規${cfg.label}名`,
         lat: loc.lat, lng: loc.lng,
         elev: apiElev, height: height, memo: ''
     });
@@ -8461,19 +8515,6 @@ function _tmSetObserverToPix(pix) {
     appState.startHeight = _tsujiMeshPixHeightUsed;
     saveAppState();
     updateAll();
-    _tmSyncPinZ();   // ピンの画素へ観測点が移動した場合も前面関係を追従させる
-}
-
-/** 優辻ピンと観測点マーカーが同一座標(=詳細リストの行クリックで観測点をその画素へ移動した直後など)の時、
- *  ピンが観測点マーカー(zIndex:1000)の真裏に完全に隠れて「表示されない」ように見えるため、
- *  同一座標の間だけピンを前面(1100)に出す。離れている時は通常(900=観測点の後ろ)。第59ラウンド。 */
-function _tmSyncPinZ() {
-    (_glMarkerGroups.tmpin || []).forEach(mk => {
-        const ll = mk.getLngLat();
-        const onObs = appState.start &&
-            Math.abs(ll.lat - appState.start.lat) < 1e-9 && Math.abs(ll.lng - appState.start.lng) < 1e-9;
-        mk.getElement().style.zIndex = onObs ? '1100' : '900';
-    });
 }
 
 /** 再計算した画素集合(pix→精度角距離)を金色のオーバーレイで描画し(全画素表示・上限なし)、
@@ -8927,14 +8968,15 @@ function selectTsujiMeshRow(idx, jump) {
         row.__tr.classList.add('selected');
         row.__tr.scrollIntoView({ block: 'nearest' });
     }
-    // 行選択後表示オプション(白マーカークリック時はその画素)に従って、
-    // 辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
+    // 行選択後表示オプションに従って、辻時刻コントロールの初期時刻と優辻マーカー(ピン)の位置を決める
     let initDt = row.dateObj;
     _tmForcedPin = null;
     if (jump) {
-        // 白マーカークリック: その画素の辻時刻へジャンプし、優辻マーカーをその画素に配置
+        // 白マーカークリック/詳細リストの行クリック: その画素の辻時刻へジャンプする。
+        // 優辻マーカーはその画素へ強制配置しない(第60ラウンドで認識ズレを訂正 — 定義は
+        // 「その辻時刻での最良画素」。観測点と同画素に重ねると観測点マーカーが選択できなくなるため、
+        // ピンは定義通り別の場所=再計算のargminに立てる)
         initDt = new Date(jump.timeMs);
-        _tmForcedPin = { pix: jump.pix, dist: jump.dist, timeMs: jump.timeMs };
     } else if (_tmPostMode === 'near') {
         // 近傍の最高精度点(≠辻時刻): 最高精度(◎×128以内、なければその行の最小距離)の画素のうち、
         // 現在の観測点に地上距離が最も近い画素。辻時刻コントロールはその画素の辻時刻に移動する。
@@ -9954,13 +9996,23 @@ function setupTsujiMeshPanelControls() {
             if (_tsujiMeshSelIdx >= 0) selectTsujiMeshRow(_tsujiMeshSelIdx);
         });
     });
-    // 検索エリア: N×Nタイル。変更で再検索(世代カウンタが実行中の前の処理をキャンセルする)
-    document.querySelectorAll('input[name="tsujimesh-area"]').forEach(r => {
-        r.addEventListener('change', () => {
-            if (!r.checked) return;
-            _tmSearchArea = parseInt(r.value) || 3;
-            if (appState.isTsujiMeshActive) startTsujiMeshSearch();
-        });
+    // 検索エリア: N×Nタイル。変更で再検索(世代カウンタが実行中の前の処理をキャンセルする)。
+    // 第60ラウンド: 辻メッシュ検索メニュー側にも同じラジオを追加(デッサン04)。ctrl⇄メニューは双方向連動
+    const areaChanged = (r) => {
+        if (!r.checked) return;
+        _tmSearchArea = parseInt(r.value) || 3;
+        _tmSyncAreaRadios();
+        if (appState.isTsujiMeshActive) startTsujiMeshSearch();
+    };
+    document.querySelectorAll('input[name="tsujimesh-area"], input[name="tsujimesh-area-menu"]').forEach(r => {
+        r.addEventListener('change', () => areaChanged(r));
+    });
+}
+
+/** 検索エリアのラジオ(結果コントロール側とメニュー側)を_tmSearchAreaへ揃える */
+function _tmSyncAreaRadios() {
+    document.querySelectorAll('input[name="tsujimesh-area"], input[name="tsujimesh-area-menu"]').forEach(r => {
+        r.checked = (parseInt(r.value) === _tmSearchArea);
     });
 }
 
