@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.58.0 - 2026-08-05: fix/feat: 第63ラウンド — ①不具合修正: 辻メッシュ検索で結果が表示されない(結果コントロールの精度フィルタを全オフにすると表示される)を修正 — 検索実行時スナップショットの精度フィルタは◎チェック=常時オンだが、メッシュの精度記号には「◎×2」〜「◎×128」があり単純一致で高精度行が全て落ちて0件になっていた。記号を◎クラスへ正規化して判定(辻検索/My辻は記号が◎そのもののため発生せず) ②結果コントロール内の時間フィルタ群と水平線を中央寄せ(3パネルとも。宙の窓と同じ流儀のmax-width:360px+左右auto) ③地図の最大ズームを2段階追加(18→20。タイルはoverzoomの拡大表示=解像度はそのまま。メッシュ初期ズームは実効値を維持) ④観測点名/目的点名に既定名「東京タワー」「富士山」: 初期表示・Hom/推山リセット等で座標が既定値に一致する間だけ自動で入る ⑤「前後時刻指定」→「前後時間指定」へ改名(辻検索/辻メッシュ/My辻/結果コントロールの時間フィルタ) ⑥都市ビル表示タイル数の上限150→300(依頼者指定) ⑦Myセット「コピー」ボタン→「複製」(確認文・自動命名も複製へ)
 Version 1.57.0 - 2026-08-05: feat: 第62ラウンド — ①結果コントロールメニュー(デッサン03/04/10・GO受領): 辻検索結果/My辻検索結果(共有パネル)と辻メッシュ検索結果のコントロールに、月齢/時間/曜日/精度/標高フィルタ+File出力を追加。検索実行時のメニュー値をスナップショット(独立コピー=メニューへ書き戻さない)し、保持した生結果からの再導出だけで再適用する(再検索なし)。My辻検索は各行が行ごとの設定で検索済みのため全オフ始まりの追加絞り込み。File出力は辻検索=生結果から再decorateして共通66列CSV・My辻=絞り込み後の行・辻メッシュ=現在の行の全ヒット画素CSV ②曜日フィルタのURLキー16個(tsujiDow系/tsujiMeshDow系)を辻検索/辻メッシュ/My辻のURL取得+復元に追加し、短縮URL辞書をv14へ(v13以前は凍結=発行済みURLはそのまま読める) ③My辻リストCSVを37→45列へ(29〜36列目=曜日フィルタ+月〜日。依頼者指定の位置。旧21/36/37列は列数判別で互換)
 Version 1.56.0 - 2026-08-03: feat: 第61ラウンド — ①位置情報の配置をデッサン01の確定版へ(ボタンGPS/Hom/推山/URL/辻/高移を縦1列に詰め、ラジオは観測点グループ先頭=観測点名行と目的点グループ先頭=目的点名行へ) ②「標高オプション」→「標高フィルタ」へ全改名(ラベル・ヘルプ・My辻リストCSVの34列目ヘッダ・ステータス文言。URLキー/appStateキーは不変=旧URL・旧CSVはそのまま読める) ③曜日フィルタを新設(デッサン03/04/10): 辻検索/辻メッシュ検索メニューと、My辻検索の各行フォームに「曜日フィルタ」+月〜日のチェックを追加(時間フィルタの下)。チェックした曜日だけを結果に通す(未チェックなら絞らない=精度フィルタと同じ流儀)。辻検索の画面/File・辻メッシュの行構築・My辻検索(一括/File/単発)の全経路に適用。設定はlocalStorageに保存(URLキーとMy辻リストCSV列は未追加=デッサン00/10の定義待ちを回答その59で確認)
 Version 1.55.0 - 2026-08-02: fix/feat: 第60ラウンド — ①優辻マーカーの認識ズレ訂正(依頼者指摘): 詳細リスト行クリックのジャンプで優辻マーカーをその画素へ強制配置していたのを撤回 — 定義は「その辻時刻での最良画素」のため、ピンは再計算のargmin(観測点とは別の場所)に立てる。第59の「同座標なら前面(1100)へ」も撤回し常に900(観測点マーカーの選択性優先) ②機能改善3(デッサン01/11/12): 位置情報メニューに「観測点名」「目的点名」テキストボックスを追加 — 建物名等でEnter→既存の地名検索(正規化・GSI→OSM・候補ダイアログ)を共用して結果が観測点/目的点欄へ。確定した座標の間だけ名前を保持し、他の手段で座標が変わると空白へ(入力途中は保護)。保存しない(毎回空白)。My観測点「観測点取得」/My目的点「目的点取得」はこの名前で追加(空白なら従来の「新規観測点名/新規目的点名」) ③検索エリア(3×3〜6×6)を辻メッシュ検索メニュー側にも追加(デッサン04)。結果コントロール側と双方向連動
@@ -121,7 +122,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.57.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.58.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -377,7 +378,7 @@ const APP_DEFAULTS = {
     // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
     smBldg: { def: true, bool: 'coerce' },                // 都市ビルの表示(初期値オンは依頼者決定)
     smBldgTex: { def: true, bool: 'coerce' },             // 建物テクスチャ(ON=LOD2テクスチャ付き/OFF=LOD2無テクスチャ→LOD1)
-    smBldgTiles: { def: 30, min: 1, max: 150, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止。35→30はスマホ実測でギリギリのため: 第54ラウンド・依頼者決定)
+    smBldgTiles: { def: 30, min: 1, max: 300, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止。35→30はスマホ実測でギリギリのため: 第54ラウンド・依頼者決定。上限150→300は第63ラウンド・依頼者指定)
     // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
     isSoradanmenActive: { def: false },
     isSoraSearchActive: { def: false },
@@ -896,7 +897,7 @@ function initMapGL(mapEl) {
         },
         center: [appState.start.lng, appState.start.lat],
         zoom: _glZoom(9),
-        maxZoom: _glZoom(18),
+        maxZoom: _glZoom(20),   // 第63ラウンド: 最大ズーム+2段階(文字の拡大用。タイルはoverzoomで拡大表示=解像度はそのまま)
         doubleClickZoom: false,     // 地点移動をダブルクリックに割り当てるため(Leaflet版と同じ)
         refreshExpiredTiles: false, // 地理院/OSMタイルは実質不変のため期限切れ再取得をしない(通信節約)
         attributionControl: false,
@@ -2806,6 +2807,13 @@ function _locNameSyncOnCoordChange() {
         if (!keepMatch) {
             _locNameKeep[side] = null;
             if (document.activeElement !== el) el.value = '';
+            // 既定座標(東京タワー/富士山)に一致する間は既定名を自動で入れる(第63ラウンド:
+            // 初期表示・Hom/推山でのリセット・既定座標の手入力のいずれでも同じ振る舞いになる)
+            const defPos = side === 'start' ? DEFAULT_START : DEFAULT_END;
+            if (Math.abs(defPos.lat - pos.lat) < 1e-9 && Math.abs(defPos.lng - pos.lng) < 1e-9) {
+                if (document.activeElement !== el) el.value = side === 'start' ? '東京タワー' : '富士山';
+                _locNameKeep[side] = { lat: pos.lat, lng: pos.lng };
+            }
         }
     };
     chk('start', appState.start, 'input-start-name');
@@ -4757,7 +4765,7 @@ function buildTimeGroupHtmlFor(prefix, statePrefix, group) {
         </div>
         <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, ctlCls, '')}</div>
         <div class="control-row left-row">
-            <label class="tsuji-time-mode"><input type="checkbox" id="chk-${prefix}-${group}-prepost" class="body-checkbox ${ctlCls}" ${appState[statePrefix + G + 'PrePost'] ? 'checked' : ''} disabled>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="checkbox" id="chk-${prefix}-${group}-prepost" class="body-checkbox ${ctlCls}" ${appState[statePrefix + G + 'PrePost'] ? 'checked' : ''} disabled>前後時間指定</label>
             <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'before' ? 'checked' : ''} disabled>前</label>
             <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" ${appState[statePrefix + G + 'PrePostDir'] === 'after' ? 'checked' : ''} disabled>後</label>
             <input type="time" id="input-${prefix}-${group}-offset" class="${ppCls}" value="${appState[statePrefix + G + 'Offset']}" disabled>
@@ -4792,7 +4800,7 @@ function buildMyTsujiTimeGroupHtml(t, group) {
         </div>
         <div class="control-row left-row tsuji-time-radio-grid">${timeFilterModeGridHtml(name, mode, cls, `data-id="${id}"`, dis)}</div>
         <div class="control-row left-row">
-            <label class="tsuji-time-mode"><input type="checkbox" class="body-checkbox mytsuji-time-control mytsuji-${group}-prepost" data-id="${id}" ${prePost ? 'checked' : ''} ${dis}>前後時刻指定</label>
+            <label class="tsuji-time-mode"><input type="checkbox" class="body-checkbox mytsuji-time-control mytsuji-${group}-prepost" data-id="${id}" ${prePost ? 'checked' : ''} ${dis}>前後時間指定</label>
             <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="before" class="${ppCls}" data-id="${id}" ${ppDir === 'before' ? 'checked' : ''} ${ppDis}>前</label>
             <label class="tsuji-time-mode"><input type="radio" name="${ppName}" value="after" class="${ppCls}" data-id="${id}" ${ppDir === 'after' ? 'checked' : ''} ${ppDis}>後</label>
             <input type="time" class="mytsuji-${group}-offset ${ppCls}" data-id="${id}" value="${offset}" ${ppDis}>
@@ -9977,7 +9985,7 @@ async function startTsujiMeshSearch() {
             if (!el || el.classList.contains('hidden')) continue;
             coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
         }
-        const zoom = mapAdapter.getMaxZoom() - 3;
+        const zoom = mapAdapter.getMaxZoom() - 5;   // 最大ズーム+2(第63ラウンド)後も従来と同じ実効ズームを維持
         // 観測点が可視領域(下部パネルを除く)の中央に来るよう、中心をcoveredPx/2だけ上へオフセット
         glMap.jumpTo({ center: [start.lng, start.lat], zoom: _glZoom(zoom), offset: [0, -coveredPx / 2] });
     }
@@ -10026,7 +10034,10 @@ function _tmBuildRows(allBodyEvents, F, visFlags, elevOn) {
                 if (F.accCircle) allowedSym.push('○');
                 if (F.accTriangle) allowedSym.push('△');
                 if (F.accDash) allowedSym.push('-');
-                if (allowedSym.length > 0 && !allowedSym.includes(symbol)) return;
+                // メッシュの精度記号は「◎×2」〜「◎×128」があるため◎クラスへ正規化して判定する
+                // (第63ラウンドの不具合修正: ◎チェックだけで◎×Nの行が全て落ちて0件になっていた)
+                const symClass = symbol.startsWith('◎') ? '◎' : symbol;
+                if (allowedSym.length > 0 && !allowedSym.includes(symClass)) return;
             }
             const diffBaseAz = C.baseAz[ev.bestPix];
             const diffBaseAlt = C.baseAlt[ev.bestPix];
@@ -12832,15 +12843,15 @@ function deleteMySetRow() {
 /** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する (既定のセットも可) */
 async function copyMySet() {
     const id = getSelectedMySetId();
-    if (id === null) return alert('コピーするMyセットを選択してください');
+    if (id === null) return alert('複製するMyセットを選択してください');
     const src = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
     if (!src) return;
     const newId = getNextMySetId();
     if (newId === null) return alert('Myセットの登録上限(1000件)に達しています');
-    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）をコピー(複製)しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
+    if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）を複製しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
     const rawData = mySetDataOf(src);
     const data = (rawData && Object.keys(rawData).length) ? JSON.parse(JSON.stringify(rawData)) : null;
-    const newSet = { id: newId, name: `${src.name}のコピー`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
+    const newSet = { id: newId, name: `${src.name}の複製`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
     if (src.sheetId && isGoogleLoggedIn()) {
         try {
             await ensureSoraFolders();
@@ -15849,7 +15860,7 @@ function setupSoramadoControls() {
     // 表示タイル数スライダー(1〜150・初期35は毎回=保存しない。メニュー/ctrl双方向連動)
     ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
-            appState.smBldgTiles = Math.max(1, Math.min(150, parseInt(el.value) || 30));
+            appState.smBldgTiles = Math.max(1, Math.min(300, parseInt(el.value) || 30));
             _smBldgSyncUI();
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); }
         }); });
@@ -18987,7 +18998,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 同じシーンに置くだけで、遮蔽・実寸・焦点距離は既存の仕組みがそのまま効く。
 // 実測(第50ラウンド): 全タイルがDraco圧縮必須のため、解凍のみ公式デコーダ(three.jsのDRACOLoaderと
 // 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
-// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜150・初期30・毎回初期値)。
+// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜300・初期30・毎回初期値)。
 // 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
 const SM_BLDG_CACHE_MAX = 160;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大150より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)

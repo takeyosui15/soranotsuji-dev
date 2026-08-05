@@ -2483,3 +2483,7 @@ input[type="range"] {
 #tsujires-ctrl-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 8px 6px; border-top: 1px solid #4a4a4a; }
 #tsujires-ctrl-body .control-row { max-width: 360px; margin: 4px auto; }
 #tsujires-ctrl-body label { color: #eee; }
+
+/* 結果コントロール内の時間フィルタ群と水平線は宙の窓ctrlと同じ中央寄せ(第63ラウンド・依頼者指摘) */
+#tsujires-ctrl-body .tsuji-time-group, #tsujimesh-ctrl-body .tsuji-time-group { max-width: 360px; margin: 4px auto; box-sizing: border-box; }
+#tsujires-ctrl-body hr.tsujisearch-separator, #tsujimesh-ctrl-body hr.tsujisearch-separator { max-width: 360px; margin: 6px auto; }

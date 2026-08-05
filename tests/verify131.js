@@ -16,7 +16,7 @@ check('S0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_V
 check('S0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- S1: ソース静的検査(既定値と「保存しない」の無いことのテスト) ----
-check('S1 既定値 smBldgTiles: def30・min1・max150(第54ラウンドで35→30)', src.includes('smBldgTiles: { def: 30, min: 1, max: 150'));
+check('S1 既定値 smBldgTiles: def30・min1・max300(第54ラウンドで35→30・第63ラウンドで上限150→300)', src.includes('smBldgTiles: { def: 30, min: 1, max: 300'));
 check('S1 保存対象外(saveAppStateのペイロードと復元リストに現れない)',
     !src.includes('smBldgTiles: appState.smBldgTiles') && !src.includes("'smBldgTiles'"));
 check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイルを追い出さない)', src.includes('SM_BLDG_CACHE_MAX = 160'));

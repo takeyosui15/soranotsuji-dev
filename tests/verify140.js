@@ -9,9 +9,9 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- T0: 版数ピン(最新のverifyに集約) ----
-check('T0 APP_VERSION 1.57.0', src.includes("APP_VERSION = '1.57.0'") || !!process.argv[2]);
-check('T0 Version Historyに1.57.0の行がある', src.includes('Version 1.57.0 - ') || !!process.argv[2]);
+// ---- T0: 版数(存在検査。版数ピンは最新のverify141に集約) ----
+check('T0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('T0 Version Historyに1.57.0の行がある', src.includes('Version 1.57.0 - '));
 
 // ---- T1: URL v14(エンコーダ抽出でラウンドトリップ) ----
 {
