@@ -233,14 +233,14 @@ GNU General Public License for more details.
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
-                <input type="checkbox" id="chk-tsujimeshres-acc-filter" class="body-checkbox">
-                <label for="chk-tsujimeshres-acc-filter" title="検索結果を精度記号で再フィルタします">精度フィルタ</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-filter" class="body-checkbox" checked disabled>
+                <label for="chk-tsujimeshres-acc-filter" title="検索メニューと同じ読み取り専用です(メッシュの結果は常に◎精度以上のため)">精度フィルタ</label>
             </div>
             <div class="control-row left-row">
-                <input type="checkbox" id="chk-tsujimeshres-acc-dbl-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:◎</label>
-                <input type="checkbox" id="chk-tsujimeshres-acc-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:○</label>
-                <input type="checkbox" id="chk-tsujimeshres-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:△</label>
-                <input type="checkbox" id="chk-tsujimeshres-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label">:-</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-dbl-circle" class="body-checkbox" checked disabled> <label class="tsuji-acc-label" title="精度記号◎〜◎×128(±0.125°以内)の行を表示(常時オン)">:◎</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、○精度のデータはありません">:○</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、△精度のデータはありません">:△</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、-精度のデータはありません">:-</label>
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row" title="標高フィルタをオンにして検索した場合のみ有効です">

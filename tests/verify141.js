@@ -13,17 +13,17 @@ const src = fs.readFileSync(target, 'utf8');
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(path.dirname(target), 'style.css'), 'utf8');
 
-// ---- V0: 版数ピン(最新のverifyに集約) ----
-check('V0 APP_VERSION 1.58.0', src.includes("APP_VERSION = '1.58.0'") || !!process.argv[2]);
-check('V0 Version Historyに1.58.0の行がある', src.includes('Version 1.58.0 - ') || !!process.argv[2]);
+// ---- V0: 版数(存在検査。版数ピンは最新のverify142に集約) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 Version Historyに1.58.0の行がある', src.includes('Version 1.58.0 - '));
 
 // ---- V1: 静的な形 ----
 check('V1 メッシュ精度フィルタは◎クラスへ正規化して判定', src.includes("const symClass = symbol.startsWith('◎') ? '◎' : symbol;"));
 const body = src.replace(/^[\s\S]*?\*\//, '');   // 冒頭のVersion History(改名の経緯を書く場所)を除いた本体で数える
 check('V1 「前後時刻指定」は0箇所・「前後時間指定」が2箇所(辻検索系+My辻の生成器。冒頭コメントは除外)',
     !body.includes('前後時刻指定') && !html.includes('前後時刻指定') && (body.match(/前後時間指定/g) || []).length === 2);
-check('V1 表示タイル数の上限300(既定値表+正規化+スライダー2箇所+ヘルプ)',
-    src.includes('smBldgTiles: { def: 30, min: 1, max: 300') && src.includes('Math.min(300, parseInt(el.value)') &&
+check('V1 表示タイル数の上限300(既定値表+正規化[表のmax参照へ一元化: 第64]+スライダー2箇所+ヘルプ)',
+    src.includes('smBldgTiles: { def: 30, min: 1, max: 300') && src.includes('Math.min(APP_DEFAULTS.smBldgTiles.max, parseInt(el.value)') &&
     (html.match(/bldg-tiles" class="sora-slider" min="1" max="300"/g) || []).length === 2 && html.includes('(1〜300。'));
 check('V1 Myセットのボタンは「複製」(確認文・自動命名も複製へ)',
     html.includes('id="btn-myset-copy" class="nav-btn main-btn" title="選択中のMyセットを複製します">複製</button>') &&

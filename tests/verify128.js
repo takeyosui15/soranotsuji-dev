@@ -70,6 +70,9 @@ check('P1 ヘルプにPLATEAU出典(CC BY 4.0)とDraco明記', (() => {
     // P3: フィクスチャ読込(観測点35,138・北向き) → 1タイル/2棟が現れる
     await p.evaluate(() => {
         window._smSyntheticElev = () => 0;   // 実DEMを遮断(地形は平ら)
+        // 日時を正午へ固定(第64ラウンド: 夜に回すと第54の窓明かりが単色ビルへ窓テクスチャを
+        // 貼るため、P4/P5のテクスチャ有無の期待が崩れる。実行時刻に依存しないように固定する)
+        appState.currentDate = new Date('2026-08-02T12:00:00+09:00');
         window._smBldgCities = [{ code: 'FX', name: 'fixture', bbox: [137.99, 34.99, 138.01, 35.01],
             lod1: location.origin + '/__pf/tileset.json',
             lod2NoTex: location.origin + '/__pf/tileset.json',

@@ -17,8 +17,8 @@ check('R0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_V
 check('R0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- R1: ソース静的検査 ----
-check('R1 観測点の初期値=東京タワーの建物の外(35.658595, 139.745335)',
-    src.includes('DEFAULT_START = { lat: 35.658595, lng: 139.745335, elev: 18.5, height: 150.0 }'));
+check('R1 観測点の初期値=東京タワーの展望台の理想位置(35.6585309298041, 139.74538790268673。第64ラウンドで建物の外→展望台へ)',
+    src.includes('DEFAULT_START = { lat: 35.6585309298041, lng: 139.74538790268673, elev: 18.5, height: 150.0 }'));
 check('R1 都市ビルの奥行き上限200km', src.includes('SM_BLDG_RANGE_CAP_KM = 200'));
 check('R1 URL短縮辞書v13は凍結のまま(初期値変更で_QP_KEYDEFS_V13に旧/新座標ペアが無い)',
     !src.includes("'&startLat=") && !src.includes("'&startLng="));
@@ -57,7 +57,7 @@ check('R1 URL短縮辞書v13は凍結のまま(初期値変更で_QP_KEYDEFS_V13
         const r = await p.evaluate(() => ({ lat: appState.start.lat, lng: appState.start.lng,
             api: appState.startApiElev, elev: appState.start.elev }));
         check('R2 起動時のappState.start=新初期値(API標高18.5は実測同値・elev=18.5+高さ150)',
-            r.lat === 35.658595 && r.lng === 139.745335 && r.api === 18.5 && r.elev === 168.5, JSON.stringify(r));
+            r.lat === 35.6585309298041 && r.lng === 139.74538790268673 && r.api === 18.5 && r.elev === 168.5, JSON.stringify(r));
     }
 
     // R3: 純関数の性質

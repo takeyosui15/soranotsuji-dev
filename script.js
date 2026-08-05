@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.59.0 - 2026-08-05: fix/feat: 第64ラウンド — 前ラウンドのフィードバック4件 ①辻メッシュ検索の結果コントロールの精度フィルタを検索メニューと同じ読み取り専用固定へ(精度フィルタ=オン・◎=オン・○△-=オフ、全て操作不可。ユーザーが迷わないように両メニューを揃える: 依頼者指定。値の実質は従来と同じ=◎クラスのみ表示) ②観測点の初期値(東京タワー)を展望台の理想位置へ(35.6585309298041, 139.74538790268673。最大ズーム+2で依頼者が取得した建物中心近くの実測値。地面標高はGSI 1mレーザで旧位置と同じ18.5mのため据え置き) ③Hom/推山リセットで観測点名/目的点名が入らない不具合を修正 — 既定名の記入が座標変化の検出時だけ走るため、座標が既定値のまま(=変化なし)のリセットでは素通りしていた。リセット操作から明示的に入れ直す経路を追加 ④表示タイル数を300へ上げても150で頭打ちになる不具合を修正 — タイル予算計算に旧上限のMath.min(150)が残っていた(スライダー・正規化だけ300へ上げて予算側を見落とし)。あわせてLRUキャッシュ上限160→320(表示中タイルを追い出さない不変条件の維持)
 Version 1.58.0 - 2026-08-05: fix/feat: 第63ラウンド — ①不具合修正: 辻メッシュ検索で結果が表示されない(結果コントロールの精度フィルタを全オフにすると表示される)を修正 — 検索実行時スナップショットの精度フィルタは◎チェック=常時オンだが、メッシュの精度記号には「◎×2」〜「◎×128」があり単純一致で高精度行が全て落ちて0件になっていた。記号を◎クラスへ正規化して判定(辻検索/My辻は記号が◎そのもののため発生せず) ②結果コントロール内の時間フィルタ群と水平線を中央寄せ(3パネルとも。宙の窓と同じ流儀のmax-width:360px+左右auto) ③地図の最大ズームを2段階追加(18→20。タイルはoverzoomの拡大表示=解像度はそのまま。メッシュ初期ズームは実効値を維持) ④観測点名/目的点名に既定名「東京タワー」「富士山」: 初期表示・Hom/推山リセット等で座標が既定値に一致する間だけ自動で入る ⑤「前後時刻指定」→「前後時間指定」へ改名(辻検索/辻メッシュ/My辻/結果コントロールの時間フィルタ) ⑥都市ビル表示タイル数の上限150→300(依頼者指定) ⑦Myセット「コピー」ボタン→「複製」(確認文・自動命名も複製へ)
 Version 1.57.0 - 2026-08-05: feat: 第62ラウンド — ①結果コントロールメニュー(デッサン03/04/10・GO受領): 辻検索結果/My辻検索結果(共有パネル)と辻メッシュ検索結果のコントロールに、月齢/時間/曜日/精度/標高フィルタ+File出力を追加。検索実行時のメニュー値をスナップショット(独立コピー=メニューへ書き戻さない)し、保持した生結果からの再導出だけで再適用する(再検索なし)。My辻検索は各行が行ごとの設定で検索済みのため全オフ始まりの追加絞り込み。File出力は辻検索=生結果から再decorateして共通66列CSV・My辻=絞り込み後の行・辻メッシュ=現在の行の全ヒット画素CSV ②曜日フィルタのURLキー16個(tsujiDow系/tsujiMeshDow系)を辻検索/辻メッシュ/My辻のURL取得+復元に追加し、短縮URL辞書をv14へ(v13以前は凍結=発行済みURLはそのまま読める) ③My辻リストCSVを37→45列へ(29〜36列目=曜日フィルタ+月〜日。依頼者指定の位置。旧21/36/37列は列数判別で互換)
 Version 1.56.0 - 2026-08-03: feat: 第61ラウンド — ①位置情報の配置をデッサン01の確定版へ(ボタンGPS/Hom/推山/URL/辻/高移を縦1列に詰め、ラジオは観測点グループ先頭=観測点名行と目的点グループ先頭=目的点名行へ) ②「標高オプション」→「標高フィルタ」へ全改名(ラベル・ヘルプ・My辻リストCSVの34列目ヘッダ・ステータス文言。URLキー/appStateキーは不変=旧URL・旧CSVはそのまま読める) ③曜日フィルタを新設(デッサン03/04/10): 辻検索/辻メッシュ検索メニューと、My辻検索の各行フォームに「曜日フィルタ」+月〜日のチェックを追加(時間フィルタの下)。チェックした曜日だけを結果に通す(未チェックなら絞らない=精度フィルタと同じ流儀)。辻検索の画面/File・辻メッシュの行構築・My辻検索(一括/File/単発)の全経路に適用。設定はlocalStorageに保存(URLキーとMy辻リストCSV列は未追加=デッサン00/10の定義待ちを回答その59で確認)
@@ -122,7 +123,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.58.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.59.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -205,7 +206,7 @@ const BODY_RADIUS_KM = {
 };
 const KM_PER_AU = 149597870.7;
 
-const DEFAULT_START = { lat: 35.658595, lng: 139.745335, elev: 18.5, height: 150.0 };   // 東京タワー(建物の外。都市モードで初期画面が壁にならない位置へ: 第52ラウンド・依頼者指定)
+const DEFAULT_START = { lat: 35.6585309298041, lng: 139.74538790268673, elev: 18.5, height: 150.0 };   // 東京タワー(展望台の理想位置=建物中心近く。最大ズーム+2で取得した実測値: 第64ラウンド・依頼者指定。地面標高はGSI 1mレーザで旧位置と同じ18.5m)
 const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, height: 0 };
 
 // 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
@@ -2634,7 +2635,8 @@ function registerLocation(type) {
         
         saveAppState(); // 変更を保存
         updateAll();    // ★画面(入力欄・マーカー)を更新
-        
+        _locNameApplyDefaultIfHome(type);   // 座標が既定値のまま(変化なし)のリセットでも既定名を入れ直す(第64ラウンド)
+
         // ★親切機能: 地図もその場所へ移動させる
         const target = (type === 'start') ? appState.start : appState.end;
         mapAdapter.setView(target.lat, target.lng);
@@ -2809,15 +2811,27 @@ function _locNameSyncOnCoordChange() {
             if (document.activeElement !== el) el.value = '';
             // 既定座標(東京タワー/富士山)に一致する間は既定名を自動で入れる(第63ラウンド:
             // 初期表示・Hom/推山でのリセット・既定座標の手入力のいずれでも同じ振る舞いになる)
-            const defPos = side === 'start' ? DEFAULT_START : DEFAULT_END;
-            if (Math.abs(defPos.lat - pos.lat) < 1e-9 && Math.abs(defPos.lng - pos.lng) < 1e-9) {
-                if (document.activeElement !== el) el.value = side === 'start' ? '東京タワー' : '富士山';
-                _locNameKeep[side] = { lat: pos.lat, lng: pos.lng };
-            }
+            _locNameApplyDefaultIfHome(side);
         }
     };
     chk('start', appState.start, 'input-start-name');
     chk('end', appState.end, 'input-end-name');
+}
+
+/** 座標が既定値(東京タワー/富士山)に一致していれば既定名を名前欄へ入れる。
+ *  座標変化の検出(_locNameSyncOnCoordChange)からと、Hom/推山のリセット操作からの2経路で呼ぶ。
+ *  後者が必要な理由(第64ラウンドの不具合修正): 座標が既定値のままリセットを押すと「変化なし」で
+ *  同期が素通りし、手で消した名前欄が空のままだった。リセットは明示操作なので座標一致だけで入れ直す。 */
+function _locNameApplyDefaultIfHome(side) {
+    const el = document.getElementById(side === 'start' ? 'input-start-name' : 'input-end-name');
+    const pos = side === 'start' ? appState.start : appState.end;
+    const defPos = side === 'start' ? DEFAULT_START : DEFAULT_END;
+    if (!el || !pos) return;
+    if (Math.abs(defPos.lat - pos.lat) < 1e-9 && Math.abs(defPos.lng - pos.lng) < 1e-9) {
+        if (document.activeElement !== el) el.value = side === 'start' ? '東京タワー' : '富士山';
+        _locNameKeep[side] = { lat: pos.lat, lng: pos.lng };
+        _locNameCoordMemo[side] = { lat: pos.lat, lng: pos.lng };
+    }
 }
 
 function updateLocationDisplay() {
@@ -7976,9 +7990,16 @@ function _resCtlSet(P, F, elevAvail) {
     setChk(`chk-${P}-end-prepost`, F.endPrePost); setRadio(`${P}-end-prepost-dir`, F.endPrePostDir); setVal(`input-${P}-end-offset`, F.endOffset);
     setChk(`chk-${P}-dow-filter`, F.dowFilter);
     _DOW_DEFS.forEach(([suf, key]) => setChk(`chk-${P}-dow-${suf}`, F['dow' + key]));
-    setChk(`chk-${P}-acc-filter`, F.accuracyFilter);
-    setChk(`chk-${P}-acc-dbl-circle`, F.accDblCircle); setChk(`chk-${P}-acc-circle`, F.accCircle);
-    setChk(`chk-${P}-acc-triangle`, F.accTriangle); setChk(`chk-${P}-acc-dash`, F.accDash);
+    if (P === 'tsujimeshres') {
+        // メッシュの精度フィルタは検索メニューと同じ読み取り専用固定(第64ラウンド)。Fに関わらず固定値を保つ
+        setChk(`chk-${P}-acc-filter`, true);
+        setChk(`chk-${P}-acc-dbl-circle`, true); setChk(`chk-${P}-acc-circle`, false);
+        setChk(`chk-${P}-acc-triangle`, false); setChk(`chk-${P}-acc-dash`, false);
+    } else {
+        setChk(`chk-${P}-acc-filter`, F.accuracyFilter);
+        setChk(`chk-${P}-acc-dbl-circle`, F.accDblCircle); setChk(`chk-${P}-acc-circle`, F.accCircle);
+        setChk(`chk-${P}-acc-triangle`, F.accTriangle); setChk(`chk-${P}-acc-dash`, F.accDash);
+    }
     setChk(`chk-${P}-elev-filter`, F.elevFilter); setChk(`chk-${P}-elev-ok`, F.elevOK); setChk(`chk-${P}-elev-ng`, F.elevNG);
     const body = document.getElementById(`${P}-ctrl-body`) || document.getElementById('tsujimesh-ctrl-body');
     if (body) body.dataset[P + 'ElevAvail'] = elevAvail ? '1' : '';
@@ -8004,10 +8025,11 @@ function _resCtlFromAppState(sp) {
         F.accTriangle = appState.tsujiAccTriangle; F.accDash = appState.tsujiAccDash;
         F.elevFilter = appState.tsujiElevationOption; F.elevOK = appState.tsujiElevOK; F.elevNG = appState.tsujiElevNG;
     } else {
-        // メッシュの精度フィルタ: ◎は常時オン+○△-はメニューの読み取り専用値(現仕様は常時オフ)
+        // メッシュの精度フィルタ: 検索メニューと同じ読み取り専用固定(◎=常時オン・○△-=常時オフ。
+        // 第64ラウンド: コントロール側も固定表示になったため、appState参照をやめて値も固定にする)
         F.accuracyFilter = true;
-        F.accDblCircle = true; F.accCircle = appState.tsujiMeshSymO;
-        F.accTriangle = appState.tsujiMeshSymTri; F.accDash = appState.tsujiMeshSymDash;
+        F.accDblCircle = true; F.accCircle = false;
+        F.accTriangle = false; F.accDash = false;
         F.elevFilter = appState.tsujiMeshElevationOption; F.elevOK = appState.tsujiMeshElevOK; F.elevNG = appState.tsujiMeshElevNG;
     }
     return F;
@@ -8040,8 +8062,14 @@ function _resCtlUpdateEnable(P) {
     });
     const dowOn = chk(`chk-${P}-dow-filter`);
     _DOW_DEFS.forEach(([suf]) => dis(`chk-${P}-dow-${suf}`, !dowOn));
-    const accOn = chk(`chk-${P}-acc-filter`);
-    ['dbl-circle', 'circle', 'triangle', 'dash'].forEach(k => dis(`chk-${P}-acc-${k}`, !accOn));
+    if (P === 'tsujimeshres') {
+        // メッシュの精度フィルタは検索メニューと同じ読み取り専用固定(第64ラウンド):
+        // 親=常時オン・◎=常時オン・○△-=常時オフのまま、全て触れない(HTMLのchecked/disabledが正)
+        ['dbl-circle', 'circle', 'triangle', 'dash'].forEach(k => dis(`chk-${P}-acc-${k}`, true));
+    } else {
+        const accOn = chk(`chk-${P}-acc-filter`);
+        ['dbl-circle', 'circle', 'triangle', 'dash'].forEach(k => dis(`chk-${P}-acc-${k}`, !accOn));
+    }
     const body = document.getElementById(`${P}-ctrl-body`) || document.getElementById('tsujimesh-ctrl-body');
     const elevAvail = !!(body && body.dataset[P + 'ElevAvail']);
     dis(`chk-${P}-elev-filter`, !elevAvail);
@@ -15857,10 +15885,10 @@ function setupSoramadoControls() {
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); } }); });
     bldgChk(['chk-sora-bldg', 'chk-sora-ctrl-bldg'], 'smBldg');
     bldgChk(['chk-sora-bldg-tex', 'chk-sora-ctrl-bldg-tex'], 'smBldgTex');
-    // 表示タイル数スライダー(1〜150・初期35は毎回=保存しない。メニュー/ctrl双方向連動)
+    // 表示タイル数スライダー(1〜300・初期30は毎回=保存しない。メニュー/ctrl双方向連動)
     ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
-            appState.smBldgTiles = Math.max(1, Math.min(300, parseInt(el.value) || 30));
+            appState.smBldgTiles = Math.max(1, Math.min(APP_DEFAULTS.smBldgTiles.max, parseInt(el.value) || 30));
             _smBldgSyncUI();
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); }
         }); });
@@ -19000,7 +19028,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
 // 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜300・初期30・毎回初期値)。
 // 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
-const SM_BLDG_CACHE_MAX = 160;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大150より大きく=表示中タイルを追い出さない)
+const SM_BLDG_CACHE_MAX = 320;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大300より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)
 const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
 // 全国対応表(tools/plateau/make-bldg-cities.jsでカタログAPIから生成。448都市ファミリ=306市区町村)
@@ -19221,7 +19249,7 @@ function _smBldgUpdate() {
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
     const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
-    const budget = Math.max(1, Math.min(150, Math.round(Number(appState.smBldgTiles) || 30)));
+    const budget = Math.max(1, Math.min(APP_DEFAULTS.smBldgTiles.max, Math.round(Number(appState.smBldgTiles) || 30)));   // 上限は既定値表を参照して一元化(第64ラウンド: 旧上限150の残置でスライダー151以上が頭打ちになっていたため二重定義をやめた)
     const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
     const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}|${budget}`;
     if (fanKey === _smBldgFanKey) return;

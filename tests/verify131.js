@@ -1,5 +1,5 @@
 // 第53ラウンド検証: 都市モードの「表示タイル数」スライダー(v1.48.0)。
-// - 1〜150・初期値30(第54ラウンドで35→30)は「毎回」=localStorageに保存しない(依頼者指定。スマホで48枚が
+// - 1〜300(第63ラウンドで上限150→300)・初期値30(第54ラウンドで35→30)は「毎回」=localStorageに保存しない(依頼者指定。スマホで48枚が
 //   開けなかった対策 — 大きな値のまま再訪して端末が重くなるのを防ぐ。視界範囲と同じ思想)。
 // - 宙の窓メニュー/ctrlメニューの双方向連動。予算はfanKeyに入り変更で再選択される。
 // フィクスチャはverify128と同じ合成Draco。実ネットワークは遮断。
@@ -19,7 +19,7 @@ check('S0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - 
 check('S1 既定値 smBldgTiles: def30・min1・max300(第54ラウンドで35→30・第63ラウンドで上限150→300)', src.includes('smBldgTiles: { def: 30, min: 1, max: 300'));
 check('S1 保存対象外(saveAppStateのペイロードと復元リストに現れない)',
     !src.includes('smBldgTiles: appState.smBldgTiles') && !src.includes("'smBldgTiles'"));
-check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイルを追い出さない)', src.includes('SM_BLDG_CACHE_MAX = 160'));
+check('S1 LRUキャッシュ上限320(スライダー最大300で表示中タイルを追い出さない。第64ラウンドで160→320)', src.includes('SM_BLDG_CACHE_MAX = 320'));
 
 // ============================================================
 // ブラウザ検査: 初期値・双方向連動・非保存・正規化・fanKeyへの反映
@@ -50,7 +50,7 @@ check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイ
     await p.waitForFunction(() => typeof glMap === 'object' && glMap !== null, { timeout: 10000 });
     await p.waitForTimeout(300);
 
-    // S2: 初期値35+スライダー2本の存在(min/max/value)
+    // S2: 初期値30+スライダー2本の存在(min/max/value)
     {
         const r = await p.evaluate(() => {
             const els = ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].map(id => document.getElementById(id));
@@ -58,8 +58,8 @@ check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイ
                 sliders: els.map(el => el && { min: el.min, max: el.max, v: el.value }),
                 labels: ['sora-bldg-tiles-val', 'sora-ctrl-bldg-tiles-val'].map(id => (document.getElementById(id) || {}).textContent) };
         });
-        check('S2 初期値30・スライダー2本(1〜150)・ラベル「30枚」', r.st === 30 &&
-            r.sliders.every(s => s && s.min === '1' && s.max === '150' && s.v === '30') &&
+        check('S2 初期値30・スライダー2本(1〜300。第63ラウンドで上限300)・ラベル「30枚」', r.st === 30 &&
+            r.sliders.every(s => s && s.min === '1' && s.max === '300' && s.v === '30') &&
             r.labels.every(t => t === '30枚'), JSON.stringify(r));
     }
 
@@ -84,7 +84,7 @@ check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイ
         check('S4 localStorageに保存されない(毎回初期値30で開く)', r.has === false && r.cur === 80, JSON.stringify(r));
     }
 
-    // S5: 正規化(999→150・0→1・ゴミ→既定35)
+    // S5: 正規化(999→300・0→1・ゴミ→既定30)
     {
         const r = await p.evaluate(() => {
             const out = [];
@@ -92,7 +92,7 @@ check('S1 LRUキャッシュ上限160(スライダー最大150で表示中タイ
             appState.smBldgTiles = 30;
             return out;
         });
-        check('S5 正規化: 999→150・0→1・ゴミ→30', r[0] === 150 && r[1] === 1 && r[2] === 30, JSON.stringify(r));
+        check('S5 正規化: 999→300(第63ラウンドで上限300)・0→1・ゴミ→30', r[0] === 300 && r[1] === 1 && r[2] === 30, JSON.stringify(r));
     }
 
     // S6: フィクスチャで予算がfanKeyに乗る(変更で再選択が走る)
