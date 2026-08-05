@@ -21,7 +21,7 @@ check('W0 Version Historyに1.52.0の行がある', src.includes('Version 1.52.0
     const c3 = (src.match(/time: r\.time, azimuth: r\.azimuth, altitude: r\.altitude, dist: r\.dist/g) || []).length;
     check('W1 日月出没4探索は_searchSunMoonRiseSetの1箇所のみ(定義1+呼出2)', c1 === 3, `count=${c1}`);
     // 呼出3=一括計算/File出力(dup組)+単発File出力(同型の第3現場をついで統合。res.obs/tgt=オーバーライド還流)
-    check('W1 My辻結果の平坦化は_pushMyTsujiResultsの1箇所のみ(定義1+呼出3・本体1)', c2 === 4 && c3 === 1, `ref=${c2} body=${c3}`);
+    check('W1 My辻結果の平坦化は_pushMyTsujiResultsの1箇所のみ(定義1+呼出4・本体1)', c2 === 5 && c3 === 1, `ref=${c2} body=${c3}`);   // 第62ラウンド: 結果コントロールのFile出力(_tsujiResFileCsv)が呼出+1
 }
 
 // ============================================================

@@ -65,6 +65,68 @@ GNU General Public License for more details.
         <div id="tsujisearch-header"><button id="btn-tsujisearch-max" title="検索結果表示領域を最大化">⛶</button> <span id="tsujisearch-title">辻検索結果</span> <span id="tsujisearch-status"></span><button id="btn-tsujisearch-close" class="panel-close-btn" title="辻検索結果を閉じる">✕</button></div>
         <div id="tsujisearch-progress" class="tsuji-progress-bar hidden"><div id="tsujisearch-progress-fill"></div></div>
         <div id="tsujisearch-content"></div>
+        <div id="tsujires-ctrl" class="hidden">
+            <div id="tsujires-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="tsujires-ctrl-arrow">▼</span></div>
+            <div id="tsujires-ctrl-body" class="hidden">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-moon-filter" class="body-checkbox">
+                <label for="chk-tsujires-moon-filter" title="検索結果を月齢で再フィルタします">月齢フィルタ</label>
+            </div>
+            <div class="control-row">
+                <label class="input-label tsujisearch-label">基準月齢:</label>
+                <input type="number" id="input-tsujires-moon-base" placeholder="0〜30" step="0.1" min="0" max="30" disabled>
+            </div>
+            <div class="control-row">
+                <label class="input-label tsujisearch-label">許容範囲月齢:±</label>
+                <input type="number" id="input-tsujires-moon-tolerance" placeholder="0〜15" step="0.1" min="0" max="15" disabled>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-time-filter" class="body-checkbox">
+                <label for="chk-tsujires-time-filter" title="検索結果を時間帯で再フィルタします">時間フィルタ</label>
+            </div>
+            <div id="tsujires-time-filter-groups"></div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-dow-filter" class="body-checkbox">
+                <label for="chk-tsujires-dow-filter" title="検索結果を曜日で再フィルタします(チェックした曜日のみ表示)">曜日フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-dow-mon" class="body-checkbox" disabled> <label class="tsuji-acc-label">:月</label>
+                <input type="checkbox" id="chk-tsujires-dow-tue" class="body-checkbox" disabled> <label class="tsuji-acc-label">:火</label>
+                <input type="checkbox" id="chk-tsujires-dow-wed" class="body-checkbox" disabled> <label class="tsuji-acc-label">:水</label>
+                <input type="checkbox" id="chk-tsujires-dow-thu" class="body-checkbox" disabled> <label class="tsuji-acc-label">:木</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-dow-fri" class="body-checkbox" disabled> <label class="tsuji-acc-label">:金</label>
+                <input type="checkbox" id="chk-tsujires-dow-sat" class="body-checkbox" disabled> <label class="tsuji-acc-label">:土</label>
+                <input type="checkbox" id="chk-tsujires-dow-sun" class="body-checkbox" disabled> <label class="tsuji-acc-label">:日</label>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-acc-filter" class="body-checkbox">
+                <label for="chk-tsujires-acc-filter" title="検索結果を精度記号で再フィルタします">精度フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-acc-dbl-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:◎</label>
+                <input type="checkbox" id="chk-tsujires-acc-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:○</label>
+                <input type="checkbox" id="chk-tsujires-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:△</label>
+                <input type="checkbox" id="chk-tsujires-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label">:-</label>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row" title="標高フィルタをオンにして検索した場合のみ有効です">
+                <input type="checkbox" id="chk-tsujires-elev-filter" class="body-checkbox">
+                <label for="chk-tsujires-elev-filter">標高フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujires-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                <input type="checkbox" id="chk-tsujires-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+            </div>
+            <div class="control-row">
+                <button id="btn-tsujires-file" class="nav-btn main-btn" title="現在の再適用フィルタを適用した結果をCSVでFile出力します">File出力</button>
+            </div>
+            </div>
+        </div>
     </div>
 
     <div id="tsujimesh-panel" class="hidden">
@@ -134,6 +196,64 @@ GNU General Public License for more details.
                 <div class="control-row">
                     <input type="range" id="tsujimesh-mesh-gray" min="0" max="100" value="0" step="1" title="メッシュマーカーの基準色(1件の色)のグレースケール(0%=白〜100%=黒)">
                 </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-moon-filter" class="body-checkbox">
+                <label for="chk-tsujimeshres-moon-filter" title="検索結果を月齢で再フィルタします">月齢フィルタ</label>
+            </div>
+            <div class="control-row">
+                <label class="input-label tsujisearch-label">基準月齢:</label>
+                <input type="number" id="input-tsujimeshres-moon-base" placeholder="0〜30" step="0.1" min="0" max="30" disabled>
+            </div>
+            <div class="control-row">
+                <label class="input-label tsujisearch-label">許容範囲月齢:±</label>
+                <input type="number" id="input-tsujimeshres-moon-tolerance" placeholder="0〜15" step="0.1" min="0" max="15" disabled>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-time-filter" class="body-checkbox">
+                <label for="chk-tsujimeshres-time-filter" title="検索結果を時間帯で再フィルタします">時間フィルタ</label>
+            </div>
+            <div id="tsujimeshres-time-filter-groups"></div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-dow-filter" class="body-checkbox">
+                <label for="chk-tsujimeshres-dow-filter" title="検索結果を曜日で再フィルタします(チェックした曜日のみ表示)">曜日フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-dow-mon" class="body-checkbox" disabled> <label class="tsuji-acc-label">:月</label>
+                <input type="checkbox" id="chk-tsujimeshres-dow-tue" class="body-checkbox" disabled> <label class="tsuji-acc-label">:火</label>
+                <input type="checkbox" id="chk-tsujimeshres-dow-wed" class="body-checkbox" disabled> <label class="tsuji-acc-label">:水</label>
+                <input type="checkbox" id="chk-tsujimeshres-dow-thu" class="body-checkbox" disabled> <label class="tsuji-acc-label">:木</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-dow-fri" class="body-checkbox" disabled> <label class="tsuji-acc-label">:金</label>
+                <input type="checkbox" id="chk-tsujimeshres-dow-sat" class="body-checkbox" disabled> <label class="tsuji-acc-label">:土</label>
+                <input type="checkbox" id="chk-tsujimeshres-dow-sun" class="body-checkbox" disabled> <label class="tsuji-acc-label">:日</label>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-acc-filter" class="body-checkbox">
+                <label for="chk-tsujimeshres-acc-filter" title="検索結果を精度記号で再フィルタします">精度フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-acc-dbl-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:◎</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-circle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:○</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-triangle" class="body-checkbox" disabled> <label class="tsuji-acc-label">:△</label>
+                <input type="checkbox" id="chk-tsujimeshres-acc-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label">:-</label>
+            </div>
+            <hr class="tsujisearch-separator">
+            <div class="control-row left-row" title="標高フィルタをオンにして検索した場合のみ有効です">
+                <input type="checkbox" id="chk-tsujimeshres-elev-filter" class="body-checkbox">
+                <label for="chk-tsujimeshres-elev-filter">標高フィルタ</label>
+            </div>
+            <div class="control-row left-row">
+                <input type="checkbox" id="chk-tsujimeshres-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
+                <input type="checkbox" id="chk-tsujimeshres-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
+            </div>
+            <div class="control-row">
+                <button id="btn-tsujimeshres-file" class="nav-btn main-btn" title="現在の再適用フィルタを適用した結果をCSVでFile出力します">File出力</button>
+            </div>
             </div>
         </div>
     </div>

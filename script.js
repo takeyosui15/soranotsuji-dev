@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.57.0 - 2026-08-05: feat: 第62ラウンド — ①結果コントロールメニュー(デッサン03/04/10・GO受領): 辻検索結果/My辻検索結果(共有パネル)と辻メッシュ検索結果のコントロールに、月齢/時間/曜日/精度/標高フィルタ+File出力を追加。検索実行時のメニュー値をスナップショット(独立コピー=メニューへ書き戻さない)し、保持した生結果からの再導出だけで再適用する(再検索なし)。My辻検索は各行が行ごとの設定で検索済みのため全オフ始まりの追加絞り込み。File出力は辻検索=生結果から再decorateして共通66列CSV・My辻=絞り込み後の行・辻メッシュ=現在の行の全ヒット画素CSV ②曜日フィルタのURLキー16個(tsujiDow系/tsujiMeshDow系)を辻検索/辻メッシュ/My辻のURL取得+復元に追加し、短縮URL辞書をv14へ(v13以前は凍結=発行済みURLはそのまま読める) ③My辻リストCSVを37→45列へ(29〜36列目=曜日フィルタ+月〜日。依頼者指定の位置。旧21/36/37列は列数判別で互換)
 Version 1.56.0 - 2026-08-03: feat: 第61ラウンド — ①位置情報の配置をデッサン01の確定版へ(ボタンGPS/Hom/推山/URL/辻/高移を縦1列に詰め、ラジオは観測点グループ先頭=観測点名行と目的点グループ先頭=目的点名行へ) ②「標高オプション」→「標高フィルタ」へ全改名(ラベル・ヘルプ・My辻リストCSVの34列目ヘッダ・ステータス文言。URLキー/appStateキーは不変=旧URL・旧CSVはそのまま読める) ③曜日フィルタを新設(デッサン03/04/10): 辻検索/辻メッシュ検索メニューと、My辻検索の各行フォームに「曜日フィルタ」+月〜日のチェックを追加(時間フィルタの下)。チェックした曜日だけを結果に通す(未チェックなら絞らない=精度フィルタと同じ流儀)。辻検索の画面/File・辻メッシュの行構築・My辻検索(一括/File/単発)の全経路に適用。設定はlocalStorageに保存(URLキーとMy辻リストCSV列は未追加=デッサン00/10の定義待ちを回答その59で確認)
 Version 1.55.0 - 2026-08-02: fix/feat: 第60ラウンド — ①優辻マーカーの認識ズレ訂正(依頼者指摘): 詳細リスト行クリックのジャンプで優辻マーカーをその画素へ強制配置していたのを撤回 — 定義は「その辻時刻での最良画素」のため、ピンは再計算のargmin(観測点とは別の場所)に立てる。第59の「同座標なら前面(1100)へ」も撤回し常に900(観測点マーカーの選択性優先) ②機能改善3(デッサン01/11/12): 位置情報メニューに「観測点名」「目的点名」テキストボックスを追加 — 建物名等でEnter→既存の地名検索(正規化・GSI→OSM・候補ダイアログ)を共用して結果が観測点/目的点欄へ。確定した座標の間だけ名前を保持し、他の手段で座標が変わると空白へ(入力途中は保護)。保存しない(毎回空白)。My観測点「観測点取得」/My目的点「目的点取得」はこの名前で追加(空白なら従来の「新規観測点名/新規目的点名」) ③検索エリア(3×3〜6×6)を辻メッシュ検索メニュー側にも追加(デッサン04)。結果コントロール側と双方向連動
 Version 1.54.0 - 2026-08-02: fix/feat: 第59ラウンド — 依頼者フィードバック4件 ①辻メッシュ: 辻マーカー上のホバーでも詳細リストを連動(従来はメッシュマーカーのみ。ポップアップだけ更新されて詳細リストが置き去りだった) ②辻メッシュ: 詳細リストの行クリックで観測点をその画素へ移動した直後、優辻マーカーが「表示されない」不具合を修正 — 実測の結果ピンは生成されていたが観測点マーカー(zIndex:1000)と完全同座標でピン(900)が真裏に隠れていた。同一座標の間だけピンを前面(1100)に出す_tmSyncPinZを新設(配置時と観測点移動時に追従) ③「行選択後オプション」ラベルを「行選択後表示オプション」へ(ヘルプ2箇所も) ④辻メッシュの画素リスト(一覧側)にも「検索中心」列を追加(デッサン04訂正=第58ラウンドの対象外を取り消し。視半径の右・ソート可・4表全てに列が揃った)
@@ -120,7 +121,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.56.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.57.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -6296,9 +6297,12 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     // 旧形式は列数で判別して読み替える:
     //   ≦21列 = 初代(オフセット中心角・時間フィルタ・標高フィルタなし)
     //    36列 = 検索中心の列が追加される前の形式
-    //   ≧37列 = 現行(13列目に検索中心)
+    //    37列 = 曜日フィルタの列が追加される前の形式(13列目に検索中心)
+    //   ≧45列 = 現行(29〜36列目に曜日フィルタ+月〜日。第62ラウンド)
     const legacy = cols.length <= 21;
     const hasCenter = cols.length >= 37;
+    const hasDow = cols.length >= 45;
+    const di = hasDow ? 8 : 0;   // 曜日フィルタの有無による以降の列シフト
     // 13列目: 検索中心 (point/line。旧形式は point)
     const centerMode = hasCenter && toHalfWidth((cols[12] ?? '').trim()).toLowerCase() === 'line' ? 'line' : 'point';
     const ci = hasCenter ? 1 : 0;   // 検索中心の有無による以降の列シフト
@@ -6340,19 +6344,26 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         endPrePostDir = dirOr(cols[25 + ci], 'before');
         endOffset = hhmmOr(cols[26 + ci], '00:00');
     }
-    // 精度フィルタ (初代:16-20列目 / それ以外は時間フィルタ群の後)
-    const ai = legacy ? 15 : 27 + ci;
+    // 曜日フィルタ (第62ラウンド: 45列形式の29〜36列目。旧形式は既定オフ)
+    let dowFilter = false, dowMon = false, dowTue = false, dowWed = false, dowThu = false, dowFri = false, dowSat = false, dowSun = false;
+    if (hasDow) {
+        dowFilter = parseBoolOr(cols[27 + ci]);
+        [dowMon, dowTue, dowWed, dowThu, dowFri, dowSat, dowSun] =
+            [0, 1, 2, 3, 4, 5, 6].map(i => parseBoolOr(cols[28 + ci + i]));
+    }
+    // 精度フィルタ (初代:16-20列目 / それ以外は時間フィルタ群(+曜日)の後)
+    const ai = legacy ? 15 : 27 + ci + di;
     const accuracyFilter = parseBoolOr(cols[ai]);
     const accDblCircle = parseBoolOr(cols[ai + 1]);
     const accCircle = parseBoolOr(cols[ai + 2]);
     const accTriangle = parseBoolOr(cols[ai + 3]);
     const accDash = parseBoolOr(cols[ai + 4]);
     // 標高フィルタ (初代以外)
-    const elevationOption = legacy ? false : parseBoolOr(cols[32 + ci]);
-    const elevOK = legacy ? false : parseBoolOr(cols[33 + ci]);
-    const elevNG = legacy ? false : parseBoolOr(cols[34 + ci]);
+    const elevationOption = legacy ? false : parseBoolOr(cols[32 + ci + di]);
+    const elevOK = legacy ? false : parseBoolOr(cols[33 + ci + di]);
+    const elevNG = legacy ? false : parseBoolOr(cols[34 + ci + di]);
     // メモ (末尾列)
-    const memo = ((legacy ? cols[20] : cols[35 + ci]) ?? '').trim();
+    const memo = ((legacy ? cols[20] : cols[35 + ci + di]) ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -6363,6 +6374,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         mwOffsetAngle,
         moonFilter, moonBase, moonTolerance,
         timeFilter, startMode, startTime, startPrePost, startPrePostDir, startOffset, endMode, endTime, endPrePost, endPrePostDir, endOffset,
+        dowFilter, dowMon, dowTue, dowWed, dowThu, dowFri, dowSat, dowSun,
         accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
         elevationOption, elevOK, elevNG,
         checked: false, memo
@@ -6470,7 +6482,7 @@ function appendMyTsujiCsv() {
 
 /** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
 function _buildMyTsujiCsv(targets) {
-    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高フィルタ,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高フィルタ,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
     targets.forEach(t => {
         csv += [
             t.id,
@@ -6501,6 +6513,14 @@ function _buildMyTsujiCsv(targets) {
             t.endPrePost ? 'ON' : 'OFF',
             t.endPrePostDir ?? 'before',
             t.endOffset ?? '00:00',
+            t.dowFilter ? 'ON' : 'OFF',
+            t.dowMon ? 'ON' : 'OFF',
+            t.dowTue ? 'ON' : 'OFF',
+            t.dowWed ? 'ON' : 'OFF',
+            t.dowThu ? 'ON' : 'OFF',
+            t.dowFri ? 'ON' : 'OFF',
+            t.dowSat ? 'ON' : 'OFF',
+            t.dowSun ? 'ON' : 'OFF',
             t.accuracyFilter ? 'ON' : 'OFF',
             t.accDblCircle ? 'ON' : 'OFF',
             t.accCircle ? 'ON' : 'OFF',
@@ -6592,6 +6612,14 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiAccCircle', t.accCircle ? 'true' : 'false');
     params.set('tsujiAccTriangle', t.accTriangle ? 'true' : 'false');
     params.set('tsujiAccDash', t.accDash ? 'true' : 'false');
+    params.set('tsujiDowFilter', t.dowFilter ? 'true' : 'false');
+    params.set('tsujiDowMon', t.dowMon ? 'true' : 'false');
+    params.set('tsujiDowTue', t.dowTue ? 'true' : 'false');
+    params.set('tsujiDowWed', t.dowWed ? 'true' : 'false');
+    params.set('tsujiDowThu', t.dowThu ? 'true' : 'false');
+    params.set('tsujiDowFri', t.dowFri ? 'true' : 'false');
+    params.set('tsujiDowSat', t.dowSat ? 'true' : 'false');
+    params.set('tsujiDowSun', t.dowSun ? 'true' : 'false');
     params.set('mode', 'tsujisearch');
 
     const url = buildShareUrl(params);
@@ -6765,7 +6793,7 @@ async function decorateMyTsujiResults(results) {
             moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
         } catch (_) {}
         decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, moonIllum, angularRadius, timeCategory,
-                 elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr });
+                 elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr, tw });
     }
     return decorated;
 }
@@ -6875,6 +6903,26 @@ async function runBatchMyTsujiSearch() {
         return;
     }
 
+    _tsujiResRaw = { kind: 'mytsuji', decorated };
+    _resCtlSet('tsujires', _resCtlAllOff(), decorated.some(r => r.elevationStatus === 'OK' || r.elevationStatus === 'NG'));
+    _myTsujiRenderResults();
+}
+
+/** My辻検索結果の表示(第62ラウンド: 結果コントロールの追加フィルタで再導出できるよう切り出し)。
+ *  各行の検索は行ごとの設定で実行・フィルタ済みのため、コントロールは「追加の絞り込み」(初期値=全オフ)。 */
+function _myTsujiRenderResults() {
+    const R = _tsujiResRaw;
+    if (!R || R.kind !== 'mytsuji') return;
+    const F = _resCtlRead('tsujires');
+    const content = document.getElementById('tsujisearch-content');
+    const statusEl = document.getElementById('tsujisearch-status');
+    content.innerHTML = '';
+    const rows = R.decorated.filter(r => _myTsujiResPass(r, F));
+    statusEl.textContent = `${rows.length}件`;
+    if (rows.length === 0) {
+        content.innerHTML = '<div style="padding:8px;color:#999;">フィルタの結果、該当する日時はありません</div>';
+        return;
+    }
     const table = document.createElement('table');
     table.className = 'td-table';
     table.innerHTML = `<thead><tr>
@@ -6943,11 +6991,11 @@ async function runBatchMyTsujiSearch() {
         return tr;
     };
 
-    decorated.forEach(r => tbody.appendChild(renderMyTsujiResultRow(r)));
+    rows.forEach(r => tbody.appendChild(renderMyTsujiResultRow(r)));
     content.appendChild(table);
 
     const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
-    setupTableSort(table, decorated, [
+    setupTableSort(table, rows, [
         { label: '辻検索ID', compare: (a, b) => a.tsuji.id - b.tsuji.id },
         { label: '辻検索名', compare: (a, b) => (a.tsuji.name || '').localeCompare(b.tsuji.name || '') },
         { label: '天体ID', compare: (a, b) => a.body.id.localeCompare(b.body.id) },
@@ -6979,6 +7027,8 @@ async function runBatchMyTsujiSearch() {
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
 }
+
+
 
 // ============================================================
 // My辻検索 — File取得 (Phase C-3)
@@ -7871,6 +7921,234 @@ function updateTsujiElevationOptionUI() {
     const enabled = appState.tsujiElevationOption;
     document.getElementById('chk-tsuji-elev-ok').disabled = !enabled;
     document.getElementById('chk-tsuji-elev-ng').disabled = !enabled;
+}
+
+
+// ==== 結果コントロールメニュー(第62ラウンド・デッサン03/04/10) ====
+// 辻検索/My辻検索(共有パネル=tsujires)と辻メッシュ(tsujimeshres)の検索結果へ、フィルタ再適用+File出力を
+// 提供する。値は「検索実行時のスナップショットの独立コピー」としてコントロールのDOMに展開し、変更のたびに
+// DOMから読み出して保持した生結果から再導出する(再検索なし・検索メニューへは書き戻さない)。
+// My辻検索は各行が行ごとの設定で検索済みのため、コントロールは追加の絞り込み(初期値=全オフ)。
+let _tsujiResRaw = null;   // 辻検索: {kind:'tsuji', totalResults, elevStatus, ctx} / My辻: {kind:'mytsuji', decorated}
+let _tmResRaw = null;      // 辻メッシュ: {allBodyEvents, visFlags, elevOn}
+
+/** コントロールのDOMからフィルタ値Fを読む(Fのフィールド名は時間フィルタ関数と互換) */
+function _resCtlRead(P) {
+    const chk = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
+    const num = (id, def) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? def : v; };
+    const str = (id, def) => { const el = document.getElementById(id); return el && el.value ? el.value : def; };
+    const radio = (name, def) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : def; };
+    const F = {
+        moonFilter: chk(`chk-${P}-moon-filter`), moonBase: num(`input-${P}-moon-base`, 14.8), moonTolerance: num(`input-${P}-moon-tolerance`, 2),
+        timeFilter: chk(`chk-${P}-time-filter`),
+        startMode: radio(`${P}-start-mode`, 'sunset'), startTime: str(`input-${P}-start-time`, '00:00'),
+        startPrePost: chk(`chk-${P}-start-prepost`), startPrePostDir: radio(`${P}-start-prepost-dir`, 'before'), startOffset: str(`input-${P}-start-offset`, '00:00'),
+        endMode: radio(`${P}-end-mode`, 'sunrise'), endTime: str(`input-${P}-end-time`, '00:00'),
+        endPrePost: chk(`chk-${P}-end-prepost`), endPrePostDir: radio(`${P}-end-prepost-dir`, 'before'), endOffset: str(`input-${P}-end-offset`, '00:00'),
+        dowFilter: chk(`chk-${P}-dow-filter`),
+        accuracyFilter: chk(`chk-${P}-acc-filter`),
+        accDblCircle: chk(`chk-${P}-acc-dbl-circle`), accCircle: chk(`chk-${P}-acc-circle`),
+        accTriangle: chk(`chk-${P}-acc-triangle`), accDash: chk(`chk-${P}-acc-dash`),
+        elevFilter: chk(`chk-${P}-elev-filter`), elevOK: chk(`chk-${P}-elev-ok`), elevNG: chk(`chk-${P}-elev-ng`),
+    };
+    _DOW_DEFS.forEach(([suf, key]) => { F['dow' + key] = chk(`chk-${P}-dow-${suf}`); });
+    return F;
+}
+
+/** フィルタ値FをコントロールのDOMへ展開する(検索完了時のスナップショット)。elevAvail=標高フィルタの有効可否 */
+function _resCtlSet(P, F, elevAvail) {
+    const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    const setRadio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+    setChk(`chk-${P}-moon-filter`, F.moonFilter); setVal(`input-${P}-moon-base`, F.moonBase); setVal(`input-${P}-moon-tolerance`, F.moonTolerance);
+    setChk(`chk-${P}-time-filter`, F.timeFilter);
+    setRadio(`${P}-start-mode`, F.startMode); setVal(`input-${P}-start-time`, F.startTime);
+    setChk(`chk-${P}-start-prepost`, F.startPrePost); setRadio(`${P}-start-prepost-dir`, F.startPrePostDir); setVal(`input-${P}-start-offset`, F.startOffset);
+    setRadio(`${P}-end-mode`, F.endMode); setVal(`input-${P}-end-time`, F.endTime);
+    setChk(`chk-${P}-end-prepost`, F.endPrePost); setRadio(`${P}-end-prepost-dir`, F.endPrePostDir); setVal(`input-${P}-end-offset`, F.endOffset);
+    setChk(`chk-${P}-dow-filter`, F.dowFilter);
+    _DOW_DEFS.forEach(([suf, key]) => setChk(`chk-${P}-dow-${suf}`, F['dow' + key]));
+    setChk(`chk-${P}-acc-filter`, F.accuracyFilter);
+    setChk(`chk-${P}-acc-dbl-circle`, F.accDblCircle); setChk(`chk-${P}-acc-circle`, F.accCircle);
+    setChk(`chk-${P}-acc-triangle`, F.accTriangle); setChk(`chk-${P}-acc-dash`, F.accDash);
+    setChk(`chk-${P}-elev-filter`, F.elevFilter); setChk(`chk-${P}-elev-ok`, F.elevOK); setChk(`chk-${P}-elev-ng`, F.elevNG);
+    const body = document.getElementById(`${P}-ctrl-body`) || document.getElementById('tsujimesh-ctrl-body');
+    if (body) body.dataset[P + 'ElevAvail'] = elevAvail ? '1' : '';
+    _resCtlUpdateEnable(P);
+    if (P === 'tsujires') { const c = document.getElementById('tsujires-ctrl'); if (c) c.classList.remove('hidden'); }
+}
+
+/** 検索メニューのappState値からフィルタ値Fを作る(独立コピー)。sp='tsuji'|'tsujiMesh' */
+function _resCtlFromAppState(sp) {
+    const F = {
+        moonFilter: appState[sp + 'MoonFilterEnabled'], moonBase: appState[sp + 'MoonBase'], moonTolerance: appState[sp + 'MoonTolerance'],
+        timeFilter: appState[sp + 'TimeFilter'],
+        startMode: appState[sp + 'StartMode'], startTime: appState[sp + 'StartTime'],
+        startPrePost: appState[sp + 'StartPrePost'], startPrePostDir: appState[sp + 'StartPrePostDir'], startOffset: appState[sp + 'StartOffset'],
+        endMode: appState[sp + 'EndMode'], endTime: appState[sp + 'EndTime'],
+        endPrePost: appState[sp + 'EndPrePost'], endPrePostDir: appState[sp + 'EndPrePostDir'], endOffset: appState[sp + 'EndOffset'],
+        dowFilter: appState[sp + 'DowFilter'],
+    };
+    _DOW_DEFS.forEach(([, key]) => { F['dow' + key] = appState[sp + 'Dow' + key]; });
+    if (sp === 'tsuji') {
+        F.accuracyFilter = appState.tsujiAccuracyFilterEnabled;
+        F.accDblCircle = appState.tsujiAccDblCircle; F.accCircle = appState.tsujiAccCircle;
+        F.accTriangle = appState.tsujiAccTriangle; F.accDash = appState.tsujiAccDash;
+        F.elevFilter = appState.tsujiElevationOption; F.elevOK = appState.tsujiElevOK; F.elevNG = appState.tsujiElevNG;
+    } else {
+        // メッシュの精度フィルタ: ◎は常時オン+○△-はメニューの読み取り専用値(現仕様は常時オフ)
+        F.accuracyFilter = true;
+        F.accDblCircle = true; F.accCircle = appState.tsujiMeshSymO;
+        F.accTriangle = appState.tsujiMeshSymTri; F.accDash = appState.tsujiMeshSymDash;
+        F.elevFilter = appState.tsujiMeshElevationOption; F.elevOK = appState.tsujiMeshElevOK; F.elevNG = appState.tsujiMeshElevNG;
+    }
+    return F;
+}
+
+/** 全オフのフィルタ値(My辻検索の追加絞り込みの初期値) */
+function _resCtlAllOff() {
+    const F = {
+        moonFilter: false, moonBase: 14.8, moonTolerance: 2,
+        timeFilter: false, startMode: 'sunset', startTime: '00:00', startPrePost: false, startPrePostDir: 'before', startOffset: '00:00',
+        endMode: 'sunrise', endTime: '00:00', endPrePost: false, endPrePostDir: 'before', endOffset: '00:00',
+        dowFilter: false, accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
+        elevFilter: false, elevOK: false, elevNG: false,
+    };
+    _DOW_DEFS.forEach(([, key]) => { F['dow' + key] = false; });
+    return F;
+}
+
+/** コントロールの活性/非活性を現在のチェック状態から更新する */
+function _resCtlUpdateEnable(P) {
+    const chk = (id) => { const el = document.getElementById(id); return !!(el && el.checked); };
+    const dis = (id, v) => { const el = document.getElementById(id); if (el) el.disabled = v; };
+    const moonOn = chk(`chk-${P}-moon-filter`);
+    dis(`input-${P}-moon-base`, !moonOn); dis(`input-${P}-moon-tolerance`, !moonOn);
+    const timeOn = chk(`chk-${P}-time-filter`);
+    document.querySelectorAll(`#${P}-time-filter-groups .${P}-time-control`).forEach(el => { el.disabled = !timeOn; });
+    ['start', 'end'].forEach(g => {
+        const pp = timeOn && chk(`chk-${P}-${g}-prepost`);
+        document.querySelectorAll(`.${P}-${g}-prepost-control`).forEach(el => { el.disabled = !pp; });
+    });
+    const dowOn = chk(`chk-${P}-dow-filter`);
+    _DOW_DEFS.forEach(([suf]) => dis(`chk-${P}-dow-${suf}`, !dowOn));
+    const accOn = chk(`chk-${P}-acc-filter`);
+    ['dbl-circle', 'circle', 'triangle', 'dash'].forEach(k => dis(`chk-${P}-acc-${k}`, !accOn));
+    const body = document.getElementById(`${P}-ctrl-body`) || document.getElementById('tsujimesh-ctrl-body');
+    const elevAvail = !!(body && body.dataset[P + 'ElevAvail']);
+    dis(`chk-${P}-elev-filter`, !elevAvail);
+    const elevOn = elevAvail && chk(`chk-${P}-elev-filter`);
+    dis(`chk-${P}-elev-ok`, !elevOn); dis(`chk-${P}-elev-ng`, !elevOn);
+}
+
+/** フィルタ変更の再導出ディスパッチ */
+function _resCtlReapply(P) {
+    if (P === 'tsujires') {
+        if (!_tsujiResRaw) return;
+        if (_tsujiResRaw.kind === 'tsuji') _tsujiRenderResults();
+        else _myTsujiRenderResults();
+    } else {
+        if (!_tmResRaw || !_tsujiMeshCalc) return;
+        const built = _tmBuildRows(_tmResRaw.allBodyEvents, _resCtlRead('tsujimeshres'), _tmResRaw.visFlags, _tmResRaw.elevOn);
+        _tsujiMeshSelIdx = -1;
+        _tsujiMeshRows = built.rows;
+        const st = document.getElementById('tsujimesh-status');
+        if (st) st.textContent = `(${built.rows.length}件 / ヒット画素のべ${built.totalPix.toLocaleString()})`;
+        renderTsujiMeshResults();
+        drawTsujiMeshMarkers();
+        _tmResetDetailList();
+        _glTmClearGold();
+    }
+}
+
+/** My辻検索結果の追加絞り込み判定(decorate済みの行に対する結果コントロールのフィルタ) */
+function _myTsujiResPass(r, F) {
+    if (F.moonFilter && !isMoonAgeInRange(r.moonAge, F.moonBase, F.moonTolerance)) return false;
+    if (F.timeFilter && r.tw && !passesTimeFilter(r.time, r.tw, F)) return false;
+    if (!_dowFilterAllows(F, r.time.getDay())) return false;
+    if (F.accuracyFilter) {
+        const a = [];
+        if (F.accDblCircle) a.push('◎');
+        if (F.accCircle) a.push('○');
+        if (F.accTriangle) a.push('△');
+        if (F.accDash) a.push('-');
+        if (a.length > 0 && !a.includes(r.symbol)) return false;
+    }
+    if (F.elevFilter && (F.elevOK || F.elevNG)) {
+        const a = [];
+        if (F.elevOK) a.push('OK');
+        if (F.elevNG) a.push('NG');
+        if (!a.includes(r.elevationStatus)) return false;
+    }
+    return true;
+}
+
+/** 結果コントロールのFile出力(tsujires: 辻検索=生結果から再decorate / My辻=絞り込み後の行をそのまま) */
+async function _tsujiResFileCsv() {
+    const R = _tsujiResRaw;
+    if (!R) return;
+    const F = _resCtlRead('tsujires');
+    if (R.kind === 'mytsuji') {
+        const rows = R.decorated.filter(r => _myTsujiResPass(r, F));
+        if (!rows.length) return alert('該当する日時はありません');
+        await downloadTsujiResultCsv(rows, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
+        return;
+    }
+    const t = {
+        id: '', name: '', memo: '', days: R.ctx.days,
+        baseAz: R.ctx.baseAz, baseAlt: R.ctx.baseAlt, offsetAz: R.ctx.offsetAz, offsetAlt: R.ctx.offsetAlt,
+        centerMode: R.ctx.searchCenterMode === 'line' ? 'line' : 'point', mwOffsetAngle: R.ctx.mwOffAngle,
+        moonFilter: F.moonFilter, moonBase: F.moonBase, moonTolerance: F.moonTolerance,
+        accuracyFilter: F.accuracyFilter, accDblCircle: F.accDblCircle, accCircle: F.accCircle, accTriangle: F.accTriangle, accDash: F.accDash,
+        elevationOption: F.elevFilter, elevOK: F.elevOK, elevNG: F.elevNG,
+        timeFilter: F.timeFilter,
+        startMode: F.startMode, startTime: F.startTime, startPrePost: F.startPrePost, startPrePostDir: F.startPrePostDir, startOffset: F.startOffset,
+        endMode: F.endMode, endTime: F.endTime, endPrePost: F.endPrePost, endPrePostDir: F.endPrePostDir, endOffset: F.endOffset,
+        dowFilter: F.dowFilter, dowMon: F.dowMon, dowTue: F.dowTue, dowWed: F.dowWed, dowThu: F.dowThu, dowFri: F.dowFri, dowSat: F.dowSat, dowSun: F.dowSun,
+    };
+    const allResults = [];
+    _pushMyTsujiResults(allResults, t, { obs: R.ctx.obs, tgt: R.ctx.tgt, bodyResults: R.totalResults });
+    const statusEl = document.getElementById('tsujisearch-status');
+    if (statusEl) statusEl.innerHTML = '<span class="clock-anim">🕛</span> File出力処理中...';
+    const decorated = await decorateMyTsujiResults(allResults);
+    if (!decorated.length) { if (statusEl) statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
+    await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
+    if (statusEl) statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+}
+
+/** 結果コントロールの初期化(HTML生成+配線)。アプリ起動時に1回呼ぶ */
+function _resCtlInit() {
+    ['tsujires', 'tsujimeshres'].forEach(P => {
+        const tg = document.getElementById(`${P}-time-filter-groups`);
+        if (tg) tg.innerHTML = buildTimeGroupHtmlFor(P, 'tsuji', 'start') + buildTimeGroupHtmlFor(P, 'tsuji', 'end');
+        const ids = [`chk-${P}-moon-filter`, `input-${P}-moon-base`, `input-${P}-moon-tolerance`,
+            `chk-${P}-time-filter`, `input-${P}-start-time`, `input-${P}-start-offset`, `chk-${P}-start-prepost`,
+            `input-${P}-end-time`, `input-${P}-end-offset`, `chk-${P}-end-prepost`,
+            `chk-${P}-dow-filter`, `chk-${P}-acc-filter`,
+            `chk-${P}-acc-dbl-circle`, `chk-${P}-acc-circle`, `chk-${P}-acc-triangle`, `chk-${P}-acc-dash`,
+            `chk-${P}-elev-filter`, `chk-${P}-elev-ok`, `chk-${P}-elev-ng`];
+        _DOW_DEFS.forEach(([suf]) => ids.push(`chk-${P}-dow-${suf}`));
+        const onCh = () => { _resCtlUpdateEnable(P); _resCtlReapply(P); };
+        ids.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', onCh); });
+        document.querySelectorAll(`input[name="${P}-start-mode"], input[name="${P}-end-mode"], input[name="${P}-start-prepost-dir"], input[name="${P}-end-prepost-dir"]`)
+            .forEach(el => el.addEventListener('change', onCh));
+    });
+    const hdr = document.getElementById('tsujires-ctrl-header');
+    if (hdr) hdr.addEventListener('click', () => {
+        const ctl = document.getElementById('tsujires-ctrl');
+        const body = document.getElementById('tsujires-ctrl-body');
+        const arrow = document.getElementById('tsujires-ctrl-arrow');
+        const open = body.classList.toggle('hidden');
+        ctl.classList.toggle('open', !open);
+        if (arrow) arrow.textContent = open ? '▼' : '▲';
+    });
+    const fbtn = document.getElementById('btn-tsujires-file');
+    if (fbtn) fbtn.addEventListener('click', () => { _tsujiResFileCsv().catch(e => { console.error(e); alert('File出力に失敗しました: ' + (e && e.message ? e.message : e)); }); });
+    const mbtn = document.getElementById('btn-tsujimeshres-file');
+    if (mbtn) mbtn.addEventListener('click', () => {
+        if (!_tsujiMeshRows.length) return alert('該当する日時はありません');
+        _tmExportMeshRowsCsv(_tsujiMeshRows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); });
+    });
 }
 
 // ==== 曜日フィルタ(第61ラウンド・デッサン03/04/10) ====
@@ -9670,82 +9948,12 @@ async function startTsujiMeshSearch() {
     // ※世代ガードの後に置く: 新しい検索が始まっていた場合はそちらがプールを使用中のため触らない
     tsujiMeshPool.terminateAll();
 
-    // 5) (天体,日)イベント → 結果行へ整形 + フィルタ(月齢/時間) + 装飾
-    const observer = new Astronomy.Observer(start.lat, start.lng, start.elev);
-    const timeFs = {
-        startMode: appState.tsujiMeshStartMode, startTime: appState.tsujiMeshStartTime, startPrePost: appState.tsujiMeshStartPrePost, startPrePostDir: appState.tsujiMeshStartPrePostDir, startOffset: appState.tsujiMeshStartOffset,
-        endMode: appState.tsujiMeshEndMode, endTime: appState.tsujiMeshEndTime, endPrePost: appState.tsujiMeshEndPrePost, endPrePostDir: appState.tsujiMeshEndPrePostDir, endOffset: appState.tsujiMeshEndOffset,
-    };
-    const getRiseSetForDay = _makeRiseSetForDay(observer);
-
-    const rows = [];
-    let totalPix = 0;
-    allBodyEvents.forEach(({ body, events }) => {
-        events.forEach(ev => {
-            // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
-            // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
-            // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
-            // 検索本体は1秒格子なので、辻時刻・精度角距離・方位角・視高度は優辻マーカーのポップアップと
-            // 同じ0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
-            const ref = _tmRefinePixelTimeFast(ev.bestPix, ev.bestTimeMs, body);
-            const rowTimeMs = ref ? ref.timeMs : ev.bestTimeMs;
-            const rowDist = ref ? ref.dist : ev.bestDist;
-            const rowAz = ref ? ref.az : ev.bestAz;
-            const rowAlt = ref ? ref.alt : ev.bestAlt;
-            const dt = new Date(rowTimeMs);
-            const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-            const rs = getRiseSetForDay(dt);
-            const phase = Astronomy.MoonPhase(dt);
-            const moonAge = (phase / 360) * SYNODIC_MONTH;
-            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
-            // 月齢フィルタ
-            if (appState.tsujiMeshMoonFilterEnabled &&
-                !isMoonAgeInRange(moonAge, appState.tsujiMeshMoonBase, appState.tsujiMeshMoonTolerance)) return;
-            // 時間フィルタ
-            if (appState.tsujiMeshTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
-            // 曜日フィルタ(第61ラウンド)
-            if (!_dowFilterAllows({ dowFilter: appState.tsujiMeshDowFilter,
-                dowMon: appState.tsujiMeshDowMon, dowTue: appState.tsujiMeshDowTue, dowWed: appState.tsujiMeshDowWed, dowThu: appState.tsujiMeshDowThu,
-                dowFri: appState.tsujiMeshDowFri, dowSat: appState.tsujiMeshDowSat, dowSun: appState.tsujiMeshDowSun }, dt.getDay())) return;
-            const symbol = _tmAccSymbol(rowDist);   // ◎〜◎×128(◎より粗い場合は○△-)
-            // 精度フィルタ(◎〜◎×128は常時オン・○△-はチェックされた記号のみ表示)
-            if ((symbol === '○' && !appState.tsujiMeshSymO) ||
-                (symbol === '△' && !appState.tsujiMeshSymTri) ||
-                (symbol === '-' && !appState.tsujiMeshSymDash)) return;
-            const diffBaseAz = baseAz[ev.bestPix];
-            const diffBaseAlt = baseAlt[ev.bestPix];
-            // 検索中心差の参照点(最良画素の基準+検索時のオフセット。線モードは線分への最近点)
-            const meshCtr = tsujiCenterRefPoint(rowAz, rowAlt, diffBaseAz, diffBaseAlt,
-                Number(_tsujiMeshCalc.offsetAz) || 0, Number(_tsujiMeshCalc.offsetAlt) || 0, _tsujiMeshCalc.centerMode);
-            totalPix += ev.total;
-            rows.push({
-                body, dateObj: dt,
-                symbol,
-                dist: rowDist, azimuth: rowAz, altitude: rowAlt,
-                azDiff: azDiffDeg(rowAz, meshCtr.az),
-                altDiff: rowAlt - meshCtr.alt,
-                centerMode: _tsujiMeshCalc.centerMode === 'line' ? 'line' : 'point',   // この検索の検索中心オプション
-                mwOffAngle: Number(appState.mwOffsetAngle) || 0,
-                angularRadius: getBodyAngularRadius(body.id, dt, observer),
-                moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
-                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
-                timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
-                elevationStatus: (elevOptOn && visFlags)
-                    ? (visFlags[ev.bestPix] ? 'OK' : 'NG')
-                    : '-',   // 行の表示値を出した地点=最良画素の可視判定(標高グラフと同一アルゴリズム)
-                sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
-                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
-                dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
-                dowStr: `(${dow})`,
-                timeStr: _tmFmtTimeMs2(rowTimeMs),   // 0.01秒表示(優辻マーカーのポップアップと同じ)
-                bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
-                total: ev.total, capped: ev.capped,
-            });
-        });
-    });
-    // 表示天体順 → 日時順
-    const bodyOrder = new Map(visibleBodies.map((b, i) => [b.id, i]));
-    rows.sort((a, b) => (bodyOrder.get(a.body.id) - bodyOrder.get(b.body.id)) || (a.dateObj - b.dateObj));
+    // 5) (天体,日)イベント → 結果行へ整形 + フィルタ + 装飾(第62ラウンド: 結果コントロールと共通の再導出)
+    _tmResRaw = { allBodyEvents, visFlags: window._tmLastVisFlags, elevOn: elevOptOn };
+    _resCtlSet('tsujimeshres', _resCtlFromAppState('tsujiMesh'), elevOptOn);
+    const built = _tmBuildRows(allBodyEvents, _resCtlRead('tsujimeshres'), window._tmLastVisFlags, elevOptOn);
+    const rows = built.rows;
+    const totalPix = built.totalPix;
 
     if (generation !== tsujiMeshGeneration) return;
 
@@ -9773,6 +9981,96 @@ async function startTsujiMeshSearch() {
         // 観測点が可視領域(下部パネルを除く)の中央に来るよう、中心をcoveredPx/2だけ上へオフセット
         glMap.jumpTo({ center: [start.lng, start.lat], zoom: _glZoom(zoom), offset: [0, -coveredPx / 2] });
     }
+}
+
+/** 辻メッシュ: (天体,日)イベント→結果行の構築(第62ラウンド: 結果コントロールから再導出できるよう切り出し)。
+ *  F=結果コントロールのフィルタ値。visFlags=標高フィルタの可視判定(検索時に計算済み)。elevOn=検索時に標高フィルタON。 */
+function _tmBuildRows(allBodyEvents, F, visFlags, elevOn) {
+    const C = _tsujiMeshCalc;
+    const observer = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
+    const timeFs = F;   // Fは時間フィルタと同名フィールド(startMode..endOffset)を持つ
+    const getRiseSetForDay = _makeRiseSetForDay(observer);
+
+    const rows = [];
+    let totalPix = 0;
+    allBodyEvents.forEach(({ body, events }) => {
+        events.forEach(ev => {
+            // 行の辻時刻・精度記号・精度角距離・方位角・視高度は
+            // 「その日に領域内で最高精度が出る画素(最良画素)の辻時刻と、その時の値」(最良画素基準)。
+            // 日付毎に全メッシュ画素をグルーピングし、その日の最良精度のデータを表示する統一仕様。
+            // 検索本体は1秒格子なので、辻時刻・精度角距離・方位角・視高度は優辻マーカーのポップアップと
+            // 同じ0.01秒精細化後の値にする(格子上の最小値のままだと優辻マーカーの表示と食い違うため)。
+            const ref = _tmRefinePixelTimeFast(ev.bestPix, ev.bestTimeMs, body);
+            const rowTimeMs = ref ? ref.timeMs : ev.bestTimeMs;
+            const rowDist = ref ? ref.dist : ev.bestDist;
+            const rowAz = ref ? ref.az : ev.bestAz;
+            const rowAlt = ref ? ref.alt : ev.bestAlt;
+            const dt = new Date(rowTimeMs);
+            const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+            const rs = getRiseSetForDay(dt);
+            const phase = Astronomy.MoonPhase(dt);
+            const moonAge = (phase / 360) * SYNODIC_MONTH;
+            const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
+            // 月齢フィルタ
+            if (F.moonFilter &&
+                !isMoonAgeInRange(moonAge, F.moonBase, F.moonTolerance)) return;
+            // 時間フィルタ
+            if (F.timeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
+            // 曜日フィルタ(第61ラウンド)
+            if (!_dowFilterAllows(F, dt.getDay())) return;
+            const symbol = _tmAccSymbol(rowDist);   // ◎〜◎×128(◎より粗い場合は○△-)
+            // 精度フィルタ(◎〜◎×128は常時オン・○△-はチェックされた記号のみ表示)
+            if (F.accuracyFilter) {
+                const allowedSym = [];
+                if (F.accDblCircle) allowedSym.push('◎');
+                if (F.accCircle) allowedSym.push('○');
+                if (F.accTriangle) allowedSym.push('△');
+                if (F.accDash) allowedSym.push('-');
+                if (allowedSym.length > 0 && !allowedSym.includes(symbol)) return;
+            }
+            const diffBaseAz = C.baseAz[ev.bestPix];
+            const diffBaseAlt = C.baseAlt[ev.bestPix];
+            // 検索中心差の参照点(最良画素の基準+検索時のオフセット。線モードは線分への最近点)
+            const meshCtr = tsujiCenterRefPoint(rowAz, rowAlt, diffBaseAz, diffBaseAlt,
+                Number(_tsujiMeshCalc.offsetAz) || 0, Number(_tsujiMeshCalc.offsetAlt) || 0, _tsujiMeshCalc.centerMode);
+            const rowElevStatus = (elevOn && visFlags)
+                ? (visFlags[ev.bestPix] ? 'OK' : 'NG')
+                : '-';
+            // 標高フィルタ(結果コントロール): 行の最良画素の可視判定で絞り込む
+            if (F.elevFilter && (F.elevOK || F.elevNG)) {
+                const allowedElev = [];
+                if (F.elevOK) allowedElev.push('OK');
+                if (F.elevNG) allowedElev.push('NG');
+                if (!allowedElev.includes(rowElevStatus)) return;
+            }
+            totalPix += ev.total;
+            rows.push({
+                body, dateObj: dt,
+                symbol,
+                dist: rowDist, azimuth: rowAz, altitude: rowAlt,
+                azDiff: azDiffDeg(rowAz, meshCtr.az),
+                altDiff: rowAlt - meshCtr.alt,
+                centerMode: _tsujiMeshCalc.centerMode === 'line' ? 'line' : 'point',   // この検索の検索中心オプション
+                mwOffAngle: Number(appState.mwOffsetAngle) || 0,
+                angularRadius: getBodyAngularRadius(body.id, dt, observer),
+                moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
+                moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
+                timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
+                elevationStatus: rowElevStatus,   // 行の表示値を出した地点=最良画素の可視判定(標高グラフと同一アルゴリズム)
+                sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
+                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
+                dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
+                dowStr: `(${dow})`,
+                timeStr: _tmFmtTimeMs2(rowTimeMs),   // 0.01秒表示(優辻マーカーのポップアップと同じ)
+                bestPix: ev.bestPix, pixIdx: ev.pixIdx, pixTime: ev.pixTime, pixDist: ev.pixDist,
+                total: ev.total, capped: ev.capped,
+            });
+        });
+    });
+    // 表示天体順 → 日時順
+    const bodyOrder = new Map(appState.bodies.map((b, i) => [b.id, i]));
+    rows.sort((a, b) => (bodyOrder.get(a.body.id) - bodyOrder.get(b.body.id)) || (a.dateObj - b.dateObj));
+    return { rows, totalPix };
 }
 
 /** 辻メッシュ検索の結果リスト(23列・ソート可)を描画 */
@@ -10041,6 +10339,7 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('btn-elevation-close').addEventListener('click', () => {
         if (appState.isElevationActive) toggleElevation();
     });
+    _resCtlInit();   // 結果コントロールメニュー(第62ラウンド)
     document.getElementById('tsujimesh-ctrl-header').addEventListener('click', () => {
         const body = document.getElementById('tsujimesh-ctrl-body');
         const open = !body.classList.toggle('hidden');
@@ -10456,11 +10755,36 @@ async function startTsujiSearch() {
         elevStatus = vis.visible ? 'OK' : 'NG';
     }
 
-    // 時間フィルタの設定 (全行共通)。各行ごとに当日の薄明/出没(rs.tw)で範囲判定する。
-    const timeFs = {
-        startMode: appState.tsujiStartMode, startTime: appState.tsujiStartTime, startPrePost: appState.tsujiStartPrePost, startPrePostDir: appState.tsujiStartPrePostDir, startOffset: appState.tsujiStartOffset,
-        endMode: appState.tsujiEndMode, endTime: appState.tsujiEndTime, endPrePost: appState.tsujiEndPrePost, endPrePostDir: appState.tsujiEndPrePostDir, endOffset: appState.tsujiEndOffset,
+    // 結果コントロールメニュー(第62ラウンド・デッサン03): 生結果+検索時の文脈を保持し、
+    // 検索メニューのフィルタ値をコントロールへスナップショット(独立コピー)してから共通の再導出で描画する
+    _tsujiResRaw = {
+        kind: 'tsuji', totalResults, elevStatus,
+        ctx: {
+            observerData: { lat: observerData.lat, lng: observerData.lng, elev: observerData.elev },
+            searchCenterMode, baseAz, baseAlt, offsetAz, offsetAlt, days: searchDays,
+            mwOffAngle: Number(appState.mwOffsetAngle) || 0,
+            obs: { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' },
+            tgt: { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' },
+        },
     };
+    _resCtlSet('tsujires', _resCtlFromAppState('tsuji'), elevStatus !== '-');
+    _tsujiRenderResults();
+}
+
+/** 辻検索の結果表示(第62ラウンド: 結果コントロールから再導出できるよう切り出し)。
+ *  _tsujiResRaw(生結果+検索時の文脈)と結果コントロールのフィルタ値(F)から表を描く。 */
+function _tsujiRenderResults() {
+    const R = _tsujiResRaw;
+    if (!R || R.kind !== 'tsuji') return;
+    const F = _resCtlRead('tsujires');
+    const { totalResults, elevStatus, ctx } = R;
+    const statusEl = document.getElementById('tsujisearch-status');
+    const contentEl = document.getElementById('tsujisearch-content');
+    contentEl.innerHTML = '';
+    const observer = new Astronomy.Observer(ctx.observerData.lat, ctx.observerData.lng, ctx.observerData.elev);
+    const ctrRef = (r) => tsujiCenterRefPoint(r.azimuth, r.altitude, ctx.baseAz, ctx.baseAlt, ctx.offsetAz, ctx.offsetAlt, ctx.searchCenterMode);
+    // 時間フィルタの設定 (全行共通)。各行ごとに当日の薄明/出没(rs.tw)で範囲判定する。
+    const timeFs = F;   // Fは時間フィルタと同名フィールド(startMode..endOffset)を持つ
 
     // ソート用データをフラットに事前計算
     const symbolRank = { '◎': 0, '○': 1, '△': 2, '-': 3 };
@@ -10493,44 +10817,42 @@ async function startTsujiSearch() {
             const moonIcon = icons[Math.round(phase / 45) % 8];
 
             // 月齢フィルタが有効な場合は範囲外をスキップ
-            if (appState.tsujiMoonFilterEnabled &&
-                !isMoonAgeInRange(moonAge, appState.tsujiMoonBase, appState.tsujiMoonTolerance)) {
+            if (F.moonFilter &&
+                !isMoonAgeInRange(moonAge, F.moonBase, F.moonTolerance)) {
                 return;
             }
 
             // 精度フィルタが有効な場合はチェックされた記号以外をスキップ
-            if (appState.tsujiAccuracyFilterEnabled) {
+            if (F.accuracyFilter) {
                 const allowed = [];
-                if (appState.tsujiAccDblCircle) allowed.push('◎');
-                if (appState.tsujiAccCircle) allowed.push('○');
-                if (appState.tsujiAccTriangle) allowed.push('△');
-                if (appState.tsujiAccDash) allowed.push('-');
+                if (F.accDblCircle) allowed.push('◎');
+                if (F.accCircle) allowed.push('○');
+                if (F.accTriangle) allowed.push('△');
+                if (F.accDash) allowed.push('-');
                 if (allowed.length > 0 && !allowed.includes(symbol)) return;
             }
 
             // 標高フィルタのOK/NGフィルタ
-            if (appState.tsujiElevationOption && (appState.tsujiElevOK || appState.tsujiElevNG)) {
+            if (F.elevFilter && (F.elevOK || F.elevNG)) {
                 const allowedElev = [];
-                if (appState.tsujiElevOK) allowedElev.push('OK');
-                if (appState.tsujiElevNG) allowedElev.push('NG');
+                if (F.elevOK) allowedElev.push('OK');
+                if (F.elevNG) allowedElev.push('NG');
                 if (!allowedElev.includes(elevStatus)) return;
             }
 
             // 時間フィルタ: 辻時刻がその日の範囲外ならスキップ
-            if (appState.tsujiTimeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
+            if (F.timeFilter && !passesTimeFilter(dt, rs.tw, timeFs)) return;
 
             // 曜日フィルタ(第61ラウンド): チェックされた曜日のみ通す
-            if (!_dowFilterAllows({ dowFilter: appState.tsujiDowFilter,
-                dowMon: appState.tsujiDowMon, dowTue: appState.tsujiDowTue, dowWed: appState.tsujiDowWed, dowThu: appState.tsujiDowThu,
-                dowFri: appState.tsujiDowFri, dowSat: appState.tsujiDowSat, dowSun: appState.tsujiDowSun }, dt.getDay())) return;
+            if (!_dowFilterAllows(F, dt.getDay())) return;
 
             rowData.push({
                 body, symbol, dateStr, dowStr, timeStr, dateObj: dt,
                 dist: r.dist, azimuth: r.azimuth, altitude: r.altitude,
-                azDiff: azDiffDeg(r.azimuth, _ctrRef(r).az),   // 検索中心方位角差(検索中心より右=正)
-                altDiff: r.altitude - _ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
-                centerMode: searchCenterMode,                  // この検索で使った検索中心オプション(point/line)
-                mwOffAngle: Number(appState.mwOffsetAngle) || 0,   // この検索で使ったオフセット中心角
+                azDiff: azDiffDeg(r.azimuth, ctrRef(r).az),   // 検索中心方位角差(検索中心より右=正)
+                altDiff: r.altitude - ctrRef(r).alt,          // 検索中心視高度差(検索中心より上=正)
+                centerMode: ctx.searchCenterMode,                  // この検索で使った検索中心オプション(point/line)
+                mwOffAngle: ctx.mwOffAngle,   // この検索で使ったオフセット中心角
                 angularRadius: angR, moonAge, moonIcon,
                 moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
@@ -10610,6 +10932,7 @@ async function startTsujiSearch() {
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, extraRows);
 }
+
 
 async function startElevationFetch() {
     appState.elevationData.points = [];
@@ -12764,7 +13087,11 @@ const _QP_KEYDEFS_V13 = [
 ];
 // v13のシード = v12の2種(キー・値)+第3規則(キー=既定値ペア)。v12の2配列は凍結済みのため再利用できる
 const _QP_SEEDS_V13 = _QP_KEYS_V12.map(k => '&' + k + '=').concat(_QP_VALUES_V12, _QP_KEYDEFS_V13);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13];   // 添字+1=版数。最新版でエンコードする
+// 【v14(第62ラウンド)】曜日フィルタの16キーを追加(デッサン03/04)。v13と同じ「&キー名=既定値」の形で
+// シードに足す(既定=false。trueの値は既存の「=true&」シードが受ける)。v13以前の辞書は凍結のまま。
+const _QP_SEEDS_V14 = _QP_SEEDS_V13.concat(['&tsujiDowFilter=false', '&tsujiDowMon=false', '&tsujiDowTue=false', '&tsujiDowWed=false', '&tsujiDowThu=false', '&tsujiDowFri=false', '&tsujiDowSat=false', '&tsujiDowSun=false',
+    '&tsujiMeshDowFilter=false', '&tsujiMeshDowMon=false', '&tsujiMeshDowTue=false', '&tsujiMeshDowWed=false', '&tsujiMeshDowThu=false', '&tsujiMeshDowFri=false', '&tsujiMeshDowSat=false', '&tsujiMeshDowSun=false']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -13084,6 +13411,14 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiEndPrePost', appState.tsujiEndPrePost ? 'true' : 'false');
     params.set('tsujiEndPrePostDir', appState.tsujiEndPrePostDir);
     params.set('tsujiEndOffset', appState.tsujiEndOffset);
+    params.set('tsujiDowFilter', appState.tsujiDowFilter ? 'true' : 'false');
+    params.set('tsujiDowMon', appState.tsujiDowMon ? 'true' : 'false');
+    params.set('tsujiDowTue', appState.tsujiDowTue ? 'true' : 'false');
+    params.set('tsujiDowWed', appState.tsujiDowWed ? 'true' : 'false');
+    params.set('tsujiDowThu', appState.tsujiDowThu ? 'true' : 'false');
+    params.set('tsujiDowFri', appState.tsujiDowFri ? 'true' : 'false');
+    params.set('tsujiDowSat', appState.tsujiDowSat ? 'true' : 'false');
+    params.set('tsujiDowSun', appState.tsujiDowSun ? 'true' : 'false');
 
     const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
@@ -13124,6 +13459,14 @@ function copyTsujiMeshUrl(includeDateTime) {
     params.set('tsujiMeshEndPrePost', appState.tsujiMeshEndPrePost ? 'true' : 'false');
     params.set('tsujiMeshEndPrePostDir', appState.tsujiMeshEndPrePostDir);
     params.set('tsujiMeshEndOffset', appState.tsujiMeshEndOffset);
+    params.set('tsujiMeshDowFilter', appState.tsujiMeshDowFilter ? 'true' : 'false');
+    params.set('tsujiMeshDowMon', appState.tsujiMeshDowMon ? 'true' : 'false');
+    params.set('tsujiMeshDowTue', appState.tsujiMeshDowTue ? 'true' : 'false');
+    params.set('tsujiMeshDowWed', appState.tsujiMeshDowWed ? 'true' : 'false');
+    params.set('tsujiMeshDowThu', appState.tsujiMeshDowThu ? 'true' : 'false');
+    params.set('tsujiMeshDowFri', appState.tsujiMeshDowFri ? 'true' : 'false');
+    params.set('tsujiMeshDowSat', appState.tsujiMeshDowSat ? 'true' : 'false');
+    params.set('tsujiMeshDowSun', appState.tsujiMeshDowSun ? 'true' : 'false');
 
     const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
@@ -13271,6 +13614,14 @@ function restoreFromUrl() {
         if (params.has('tsujiEndPrePost')) { appState.tsujiEndPrePost = params.get('tsujiEndPrePost') === 'true'; }
         if (params.has('tsujiEndPrePostDir')) { appState.tsujiEndPrePostDir = params.get('tsujiEndPrePostDir'); }
         if (params.has('tsujiEndOffset')) { appState.tsujiEndOffset = params.get('tsujiEndOffset'); }
+        if (params.has('tsujiDowFilter')) { appState.tsujiDowFilter = params.get('tsujiDowFilter') === 'true'; }
+        if (params.has('tsujiDowMon')) { appState.tsujiDowMon = params.get('tsujiDowMon') === 'true'; }
+        if (params.has('tsujiDowTue')) { appState.tsujiDowTue = params.get('tsujiDowTue') === 'true'; }
+        if (params.has('tsujiDowWed')) { appState.tsujiDowWed = params.get('tsujiDowWed') === 'true'; }
+        if (params.has('tsujiDowThu')) { appState.tsujiDowThu = params.get('tsujiDowThu') === 'true'; }
+        if (params.has('tsujiDowFri')) { appState.tsujiDowFri = params.get('tsujiDowFri') === 'true'; }
+        if (params.has('tsujiDowSat')) { appState.tsujiDowSat = params.get('tsujiDowSat') === 'true'; }
+        if (params.has('tsujiDowSun')) { appState.tsujiDowSun = params.get('tsujiDowSun') === 'true'; }
     }
 
     // 辻メッシュ検索パラメータ (mode=tsujimeshの時のみ)
@@ -13289,6 +13640,7 @@ function restoreFromUrl() {
         meshBool('tsujiMeshElevationOption', 'tsujiMeshElevationOption');
         meshBool('tsujiMeshElevOK', 'tsujiMeshElevOK'); meshBool('tsujiMeshElevNG', 'tsujiMeshElevNG');
         meshBool('tsujiMeshTimeFilter', 'tsujiMeshTimeFilter');
+        ['Filter','Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => meshBool('tsujiMeshDow' + d, 'tsujiMeshDow' + d));
         ['Start', 'End'].forEach(G => {
             meshStr('tsujiMesh' + G + 'Mode', 'tsujiMesh' + G + 'Mode');
             meshStr('tsujiMesh' + G + 'Time', 'tsujiMesh' + G + 'Time');

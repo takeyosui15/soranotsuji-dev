@@ -10,8 +10,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
-// ---- W0: 版数ピン(最新のverifyに集約) ----
-check('W0 APP_VERSION 1.56.0', src.includes("APP_VERSION = '1.56.0'") || !!process.argv[2]);
+// ---- W0: 版数ピン(最新のverifyに集約。第62ラウンドでverify140へ移管) ----
+check('W0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('W0 Version Historyに1.56.0の行がある', src.includes('Version 1.56.0 - ') || !!process.argv[2]);
 
 // ---- W1: 標高オプション→標高フィルタの全改名(本体=Version History除く) ----

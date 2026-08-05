@@ -15,7 +15,7 @@ const begin = src.indexOf('const _QP_B64');
 const end = src.indexOf('function buildBaseUrl');
 const qp = {};
 new Function('exports', src.slice(begin, end) +
-  '\nexports.KEYS=_QP_KEYS_V12; exports.VALUES=_QP_VALUES_V12; exports.SEEDS12=_QP_SEEDS_V12;' +
+  '\nexports.KEYS=_QP_KEYS_V12; exports.VALUES=_QP_VALUES_V12; exports.SEEDS12=_QP_SEEDS_V12; exports.SEEDS13=_QP_SEEDS_V13; exports.SEEDS14=_QP_SEEDS_V14;' +
   'exports.VERSIONS=_QP_SEED_VERSIONS; exports.PRIME_FROM=_QP_PRIME_FROM;' +
   'exports.enc=encodeQueryParam; exports.dec=decodeQueryParam;')(qp);
 
@@ -55,13 +55,16 @@ function emitKeys() {
 const EMIT = emitKeys();
 const lintCoverage = (dictKeys) => [...EMIT].filter(k => !dictKeys.includes(k));
 {
-  const missing = lintCoverage(qp.KEYS);
-  check('L2 URLビルダーが出力する全キーがv12辞書にある(キー追加の入れ忘れ検知)',
-    missing.length === 0, missing.length ? '辞書漏れ: ' + missing.join(', ') : `emit=${EMIT.size}keys`);
-  const dead = qp.KEYS.filter(k => !EMIT.has(k));
-  check('L2 v12辞書に死にキー(どのビルダーも出力しないキー)がない', dead.length === 0, dead.join(', '));
+  // v14で追加されたキー(「&キー名=既定値」形シード)も辞書網羅の対象に含める(第62ラウンド: 曜日フィルタ16キー)
+  const v14Keys = qp.SEEDS14.filter(x => !qp.SEEDS13.includes(x)).map(x => x.replace(/^&/, '').replace(/=.*$/, ''));
+  const DICT_KEYS = qp.KEYS.concat(v14Keys);
+  const missing = lintCoverage(DICT_KEYS);
+  check('L2 URLビルダーが出力する全キーが辞書(v12キー+v14追加)にある(キー追加の入れ忘れ検知)',
+    missing.length === 0, missing.length ? '辞書漏れ: ' + missing.join(', ') : `emit=${EMIT.size}keys v14=${v14Keys.length}`);
+  const dead = DICT_KEYS.filter(k => !EMIT.has(k));
+  check('L2 辞書に死にキー(どのビルダーも出力しないキー)がない', dead.length === 0, dead.join(', '));
   // 自己テスト: 辞書からキーを1つ削った版で漏れを検出できるか
-  const det = lintCoverage(qp.KEYS.filter(k => k !== 'fwLat'));
+  const det = lintCoverage(DICT_KEYS.filter(k => k !== 'fwLat'));
   check('L2 自己テスト: 辞書からfwLatを削った版を検出できる', det.length === 1 && det[0] === 'fwLat');
 }
 
