@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.60.0 - 2026-08-06: fix/feat: 第65ラウンド — ①Hom/推山リセットを「セットでリセット」へ(依頼者提案): DEFAULT_START/ENDに名前(東京タワー/富士山)を持たせ、リセット時は名前・座標・標高・高さの全てを既定値表から入れる(第64の座標一致判定を介した入れ直しより単純で安全。座標一致の自動記入は初期表示・手入力用に存続し名前は同じ表を参照) ②都市ビル表示タイル数の上限300→500(Mac実測を受けて依頼者指定。LRUキャッシュ520。予算計算・正規化は既定値表参照のため表の1箇所+スライダー属性のみの変更) ③不具合報告2件(辻オフセット方位角の正負が逆・検索中心「線」が「点」と同じ)の調査: 実検索とスクリーンショットの実測では現状の向き・距離とも正しく、8月の幾何では最良点が線分終点より先になるため点=線の数値が数学的に一致する(冬日付では異なることを実測)。経緯と再現手順のお願いは回答その63。将来のリファクタでの符号反転を検知する「向きの凍結標本」をverify143に常設
 Version 1.59.0 - 2026-08-05: fix/feat: 第64ラウンド — 前ラウンドのフィードバック4件 ①辻メッシュ検索の結果コントロールの精度フィルタを検索メニューと同じ読み取り専用固定へ(精度フィルタ=オン・◎=オン・○△-=オフ、全て操作不可。ユーザーが迷わないように両メニューを揃える: 依頼者指定。値の実質は従来と同じ=◎クラスのみ表示) ②観測点の初期値(東京タワー)を展望台の理想位置へ(35.6585309298041, 139.74538790268673。最大ズーム+2で依頼者が取得した建物中心近くの実測値。地面標高はGSI 1mレーザで旧位置と同じ18.5mのため据え置き) ③Hom/推山リセットで観測点名/目的点名が入らない不具合を修正 — 既定名の記入が座標変化の検出時だけ走るため、座標が既定値のまま(=変化なし)のリセットでは素通りしていた。リセット操作から明示的に入れ直す経路を追加 ④表示タイル数を300へ上げても150で頭打ちになる不具合を修正 — タイル予算計算に旧上限のMath.min(150)が残っていた(スライダー・正規化だけ300へ上げて予算側を見落とし)。あわせてLRUキャッシュ上限160→320(表示中タイルを追い出さない不変条件の維持)
 Version 1.58.0 - 2026-08-05: fix/feat: 第63ラウンド — ①不具合修正: 辻メッシュ検索で結果が表示されない(結果コントロールの精度フィルタを全オフにすると表示される)を修正 — 検索実行時スナップショットの精度フィルタは◎チェック=常時オンだが、メッシュの精度記号には「◎×2」〜「◎×128」があり単純一致で高精度行が全て落ちて0件になっていた。記号を◎クラスへ正規化して判定(辻検索/My辻は記号が◎そのもののため発生せず) ②結果コントロール内の時間フィルタ群と水平線を中央寄せ(3パネルとも。宙の窓と同じ流儀のmax-width:360px+左右auto) ③地図の最大ズームを2段階追加(18→20。タイルはoverzoomの拡大表示=解像度はそのまま。メッシュ初期ズームは実効値を維持) ④観測点名/目的点名に既定名「東京タワー」「富士山」: 初期表示・Hom/推山リセット等で座標が既定値に一致する間だけ自動で入る ⑤「前後時刻指定」→「前後時間指定」へ改名(辻検索/辻メッシュ/My辻/結果コントロールの時間フィルタ) ⑥都市ビル表示タイル数の上限150→300(依頼者指定) ⑦Myセット「コピー」ボタン→「複製」(確認文・自動命名も複製へ)
 Version 1.57.0 - 2026-08-05: feat: 第62ラウンド — ①結果コントロールメニュー(デッサン03/04/10・GO受領): 辻検索結果/My辻検索結果(共有パネル)と辻メッシュ検索結果のコントロールに、月齢/時間/曜日/精度/標高フィルタ+File出力を追加。検索実行時のメニュー値をスナップショット(独立コピー=メニューへ書き戻さない)し、保持した生結果からの再導出だけで再適用する(再検索なし)。My辻検索は各行が行ごとの設定で検索済みのため全オフ始まりの追加絞り込み。File出力は辻検索=生結果から再decorateして共通66列CSV・My辻=絞り込み後の行・辻メッシュ=現在の行の全ヒット画素CSV ②曜日フィルタのURLキー16個(tsujiDow系/tsujiMeshDow系)を辻検索/辻メッシュ/My辻のURL取得+復元に追加し、短縮URL辞書をv14へ(v13以前は凍結=発行済みURLはそのまま読める) ③My辻リストCSVを37→45列へ(29〜36列目=曜日フィルタ+月〜日。依頼者指定の位置。旧21/36/37列は列数判別で互換)
@@ -123,7 +124,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.59.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.60.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -206,8 +207,8 @@ const BODY_RADIUS_KM = {
 };
 const KM_PER_AU = 149597870.7;
 
-const DEFAULT_START = { lat: 35.6585309298041, lng: 139.74538790268673, elev: 18.5, height: 150.0 };   // 東京タワー(展望台の理想位置=建物中心近く。最大ズーム+2で取得した実測値: 第64ラウンド・依頼者指定。地面標高はGSI 1mレーザで旧位置と同じ18.5m)
-const DEFAULT_END = { lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, height: 0 };
+const DEFAULT_START = { name: '東京タワー', lat: 35.6585309298041, lng: 139.74538790268673, elev: 18.5, height: 150.0 };   // 東京タワー(展望台の理想位置=建物中心近く。最大ズーム+2で取得した実測値: 第64ラウンド・依頼者指定。地面標高はGSI 1mレーザで旧位置と同じ18.5m。nameは第65ラウンド=名前・座標・標高・高さをセットで扱う)
+const DEFAULT_END = { name: '富士山', lat: 35.3627986111111, lng: 138.730781416667, elev: 3776, height: 0 };
 
 // 天体ごとの初期スタイル (リセット用・appState.bodies の単一情報源)
 // ここが全組込天体の既定値の唯一の定義。appState.bodies はこれから派生する。
@@ -379,7 +380,7 @@ const APP_DEFAULTS = {
     // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
     smBldg: { def: true, bool: 'coerce' },                // 都市ビルの表示(初期値オンは依頼者決定)
     smBldgTex: { def: true, bool: 'coerce' },             // 建物テクスチャ(ON=LOD2テクスチャ付き/OFF=LOD2無テクスチャ→LOD1)
-    smBldgTiles: { def: 30, min: 1, max: 300, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止。35→30はスマホ実測でギリギリのため: 第54ラウンド・依頼者決定。上限150→300は第63ラウンド・依頼者指定)
+    smBldgTiles: { def: 30, min: 1, max: 500, round: true },   // 表示タイル数(毎回初期値=保存しない。スマホの過負荷防止。35→30はスマホ実測でギリギリのため: 第54ラウンド・依頼者決定。上限150→300は第63・300→500は第65=Mac実測を受けて依頼者指定。予算計算とスライダー正規化はこのmaxを参照=一元化)
     // ---- 宙断面 / 宙検索のパネル表示(セッション内のみ) ----
     isSoradanmenActive: { def: false },
     isSoraSearchActive: { def: false },
@@ -2622,20 +2623,22 @@ function registerLocation(type) {
     if (!input.value) {
         appState[homeKey] = null; // 登録削除
 
-        // ★追加: 現在の場所をシステム初期値に戻す
+        // 現在の場所をシステム初期値へ「セットでリセット」: 名前・座標・標高・高さの全てを
+        // DEFAULT_START/ENDから入れる(第65ラウンド・依頼者提案。座標一致の判定を介さないため安全)
+        const def = (type === 'start') ? DEFAULT_START : DEFAULT_END;
         if (type === 'start') {
-            appState.start = { lat: DEFAULT_START.lat, lng: DEFAULT_START.lng, elev: DEFAULT_START.elev + DEFAULT_START.height };
-            appState.startApiElev = DEFAULT_START.elev;
-            appState.startHeight = DEFAULT_START.height;
+            appState.start = { lat: def.lat, lng: def.lng, elev: def.elev + def.height };
+            appState.startApiElev = def.elev;
+            appState.startHeight = def.height;
         } else {
-            appState.end = { lat: DEFAULT_END.lat, lng: DEFAULT_END.lng, elev: DEFAULT_END.elev + DEFAULT_END.height };
-            appState.endApiElev = DEFAULT_END.elev;
-            appState.endHeight = DEFAULT_END.height;
+            appState.end = { lat: def.lat, lng: def.lng, elev: def.elev + def.height };
+            appState.endApiElev = def.elev;
+            appState.endHeight = def.height;
         }
-        
+        _locNameSet(type, def.name, def);
+
         saveAppState(); // 変更を保存
         updateAll();    // ★画面(入力欄・マーカー)を更新
-        _locNameApplyDefaultIfHome(type);   // 座標が既定値のまま(変化なし)のリセットでも既定名を入れ直す(第64ラウンド)
 
         // ★親切機能: 地図もその場所へ移動させる
         const target = (type === 'start') ? appState.start : appState.end;
@@ -2818,19 +2821,26 @@ function _locNameSyncOnCoordChange() {
     chk('end', appState.end, 'input-end-name');
 }
 
-/** 座標が既定値(東京タワー/富士山)に一致していれば既定名を名前欄へ入れる。
- *  座標変化の検出(_locNameSyncOnCoordChange)からと、Hom/推山のリセット操作からの2経路で呼ぶ。
- *  後者が必要な理由(第64ラウンドの不具合修正): 座標が既定値のままリセットを押すと「変化なし」で
- *  同期が素通りし、手で消した名前欄が空のままだった。リセットは明示操作なので座標一致だけで入れ直す。 */
-function _locNameApplyDefaultIfHome(side) {
+/** 名前欄を指定の名前にし、その座標の間だけ保持する(keep/memoも揃えて更新。入力途中の欄は保護)。
+ *  Hom/推山のリセット(第65ラウンド: 名前・座標・標高・高さをセットでリセット)から無条件で呼ぶほか、
+ *  座標一致の自動記入(_locNameApplyDefaultIfHome)の実体でもある。 */
+function _locNameSet(side, name, pos) {
     const el = document.getElementById(side === 'start' ? 'input-start-name' : 'input-end-name');
-    const pos = side === 'start' ? appState.start : appState.end;
-    const defPos = side === 'start' ? DEFAULT_START : DEFAULT_END;
     if (!el || !pos) return;
-    if (Math.abs(defPos.lat - pos.lat) < 1e-9 && Math.abs(defPos.lng - pos.lng) < 1e-9) {
-        if (document.activeElement !== el) el.value = side === 'start' ? '東京タワー' : '富士山';
-        _locNameKeep[side] = { lat: pos.lat, lng: pos.lng };
-        _locNameCoordMemo[side] = { lat: pos.lat, lng: pos.lng };
+    if (document.activeElement !== el) el.value = name;
+    _locNameKeep[side] = { lat: pos.lat, lng: pos.lng };
+    _locNameCoordMemo[side] = { lat: pos.lat, lng: pos.lng };
+}
+
+/** 座標が既定値(東京タワー/富士山)に一致していれば既定名(DEFAULT_START/ENDのname)を名前欄へ入れる。
+ *  初期表示・座標の手入力など「座標がたまたま既定値になった」経路の自動記入用
+ *  (Hom/推山のリセットは第65ラウンドから座標比較を介さず_locNameSetでセットごと入れる)。 */
+function _locNameApplyDefaultIfHome(side) {
+    const pos = side === 'start' ? appState.start : appState.end;
+    const def = side === 'start' ? DEFAULT_START : DEFAULT_END;
+    if (!pos) return;
+    if (Math.abs(def.lat - pos.lat) < 1e-9 && Math.abs(def.lng - pos.lng) < 1e-9) {
+        _locNameSet(side, def.name, pos);
     }
 }
 
@@ -15885,7 +15895,7 @@ function setupSoramadoControls() {
             if (appState.isSoramadoActive && !_smFailed) { _smBldgUpdate(); drawSoramado(); } }); });
     bldgChk(['chk-sora-bldg', 'chk-sora-ctrl-bldg'], 'smBldg');
     bldgChk(['chk-sora-bldg-tex', 'chk-sora-ctrl-bldg-tex'], 'smBldgTex');
-    // 表示タイル数スライダー(1〜300・初期30は毎回=保存しない。メニュー/ctrl双方向連動)
+    // 表示タイル数スライダー(1〜500・初期30は毎回=保存しない。メニュー/ctrl双方向連動)
     ['input-sora-bldg-tiles', 'input-sora-ctrl-bldg-tiles'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
             appState.smBldgTiles = Math.max(1, Math.min(APP_DEFAULTS.smBldgTiles.max, parseInt(el.value) || 30));
@@ -19026,9 +19036,9 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 同じシーンに置くだけで、遮蔽・実寸・焦点距離は既存の仕組みがそのまま効く。
 // 実測(第50ラウンド): 全タイルがDraco圧縮必須のため、解凍のみ公式デコーダ(three.jsのDRACOLoaderと
 // 同じ配布物・Apache-2.0)を遅延読込する。b3dm/glbの解釈は最小自作。テクスチャはWebP。
-// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜300・初期30・毎回初期値)。
+// 同時表示タイル数は appState.smBldgTiles(表示タイル数スライダー1〜500・初期30・毎回初期値)。
 // 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
-const SM_BLDG_CACHE_MAX = 320;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大300より大きく=表示中タイルを追い出さない)
+const SM_BLDG_CACHE_MAX = 520;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大500より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)
 const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
 // 全国対応表(tools/plateau/make-bldg-cities.jsでカタログAPIから生成。448都市ファミリ=306市区町村)

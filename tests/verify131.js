@@ -16,10 +16,10 @@ check('S0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_V
 check('S0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- S1: ソース静的検査(既定値と「保存しない」の無いことのテスト) ----
-check('S1 既定値 smBldgTiles: def30・min1・max300(第54ラウンドで35→30・第63ラウンドで上限150→300)', src.includes('smBldgTiles: { def: 30, min: 1, max: 300'));
+check('S1 既定値 smBldgTiles: def30・min1・max500(第54で35→30・第63で上限300・第65で500)', src.includes('smBldgTiles: { def: 30, min: 1, max: 500'));
 check('S1 保存対象外(saveAppStateのペイロードと復元リストに現れない)',
     !src.includes('smBldgTiles: appState.smBldgTiles') && !src.includes("'smBldgTiles'"));
-check('S1 LRUキャッシュ上限320(スライダー最大300で表示中タイルを追い出さない。第64ラウンドで160→320)', src.includes('SM_BLDG_CACHE_MAX = 320'));
+check('S1 LRUキャッシュ上限520(スライダー最大500で表示中タイルを追い出さない。第64で160→320・第65で520)', src.includes('SM_BLDG_CACHE_MAX = 520'));
 
 // ============================================================
 // ブラウザ検査: 初期値・双方向連動・非保存・正規化・fanKeyへの反映
@@ -58,8 +58,8 @@ check('S1 LRUキャッシュ上限320(スライダー最大300で表示中タイ
                 sliders: els.map(el => el && { min: el.min, max: el.max, v: el.value }),
                 labels: ['sora-bldg-tiles-val', 'sora-ctrl-bldg-tiles-val'].map(id => (document.getElementById(id) || {}).textContent) };
         });
-        check('S2 初期値30・スライダー2本(1〜300。第63ラウンドで上限300)・ラベル「30枚」', r.st === 30 &&
-            r.sliders.every(s => s && s.min === '1' && s.max === '300' && s.v === '30') &&
+        check('S2 初期値30・スライダー2本(1〜500。第65ラウンドで上限500)・ラベル「30枚」', r.st === 30 &&
+            r.sliders.every(s => s && s.min === '1' && s.max === '500' && s.v === '30') &&
             r.labels.every(t => t === '30枚'), JSON.stringify(r));
     }
 
@@ -92,7 +92,7 @@ check('S1 LRUキャッシュ上限320(スライダー最大300で表示中タイ
             appState.smBldgTiles = 30;
             return out;
         });
-        check('S5 正規化: 999→300(第63ラウンドで上限300)・0→1・ゴミ→30', r[0] === 300 && r[1] === 1 && r[2] === 30, JSON.stringify(r));
+        check('S5 正規化: 999→500(第65ラウンドで上限500)・0→1・ゴミ→30', r[0] === 500 && r[1] === 1 && r[2] === 30, JSON.stringify(r));
     }
 
     // S6: フィクスチャで予算がfanKeyに乗る(変更で再選択が走る)

@@ -516,7 +516,7 @@ GNU General Public License for more details.
                     <span id="sora-ctrl-bldg-tiles-val">30枚</span>
                 </div>
                 <div class="control-row">
-                    <input type="range" id="input-sora-ctrl-bldg-tiles" class="sora-slider" min="1" max="300" value="30" step="1" title="建物タイルの同時表示数(宙の窓メニューと連動。初期値30は毎回適用=保存されません)">
+                    <input type="range" id="input-sora-ctrl-bldg-tiles" class="sora-slider" min="1" max="500" value="30" step="1" title="建物タイルの同時表示数(宙の窓メニューと連動。初期値30は毎回適用=保存されません)">
                 </div>
                 <hr class="baseopt-hr">
                 <div class="control-row left-row">
@@ -1212,7 +1212,7 @@ GNU General Public License for more details.
                         <span id="sora-bldg-tiles-val">30枚</span>
                     </div>
                     <div class="control-row">
-                        <input type="range" id="input-sora-bldg-tiles" class="sora-slider" min="1" max="300" value="30" step="1" title="建物タイルの同時表示数(画面で大きく写る順に選択。初期値30は毎回適用=保存されません。大きいほどメモリを使うためスマホは控えめに)">
+                        <input type="range" id="input-sora-bldg-tiles" class="sora-slider" min="1" max="500" value="30" step="1" title="建物タイルの同時表示数(画面で大きく写る順に選択。初期値30は毎回適用=保存されません。大きいほどメモリを使うためスマホは控えめに)">
                     </div>
                     <hr class="baseopt-hr">
                     <div class="control-row left-row">
@@ -2085,7 +2085,7 @@ GNU General Public License for more details.
                             <ul>
                                 <li><strong>表示されるのはPLATEAU整備都市のみ</strong>です (全国約300市区町村。国の整備拡大に合わせて順次更新)。未整備の地域はビルが出ないだけで、地形は従来どおり表示されます。</li>
                                 <li><strong>:テクスチャ</strong>: ONで航空写真由来のテクスチャ付き (LOD2)、OFFで無テクスチャの単色+陰影になります。建物は太陽高度に合わせて減光し、夜の暗さは月と連動します (月のない夜は暗く・満月が高い夜はほんのり明るく)。単色のビルは夜になると窓明かりが灯ります (テクスチャ付きビルは写真自身の窓があるため減光のみ)。</li>
-                                <li><strong>表示タイル数</strong>: 建物タイルの同時表示数です (1〜300。画面で大きく写る順に選ばれます)。初期値30は毎回適用され、保存されません (大きな値のまま再訪して端末が重くなるのを防ぐため)。大きいほどメモリを使うため、スマホでは控えめな値をおすすめします。</li>
+                                <li><strong>表示タイル数</strong>: 建物タイルの同時表示数です (1〜500。画面で大きく写る順に選ばれます)。初期値30は毎回適用され、保存されません (大きな値のまま再訪して端末が重くなるのを防ぐため)。大きいほどメモリを使うため、スマホでは控えめな値をおすすめします。</li>
                                 <li>建物データの出典: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener noreferrer">国土交通省 Project PLATEAU</a> (CC BY 4.0)。配信中の3D都市モデル (建築物モデル) をストリーミング参照しています。メッシュ展開には<a href="https://github.com/google/draco" target="_blank" rel="noopener noreferrer">Google Draco</a> (Apache-2.0) を使用しています。</li>
                             </ul>
                         </li>

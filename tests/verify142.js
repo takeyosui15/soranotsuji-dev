@@ -12,20 +12,20 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
-// ---- V0: 版数ピン(最新のverifyに集約) ----
-check('V0 APP_VERSION 1.59.0', src.includes("APP_VERSION = '1.59.0'") || !!process.argv[2]);
-check('V0 Version Historyに1.59.0の行がある', src.includes('Version 1.59.0 - ') || !!process.argv[2]);
+// ---- V0: 版数(存在検査。版数ピンは最新のverify143に集約) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 Version Historyに1.59.0の行がある', src.includes('Version 1.59.0 - '));
 
 // ---- V1: 静的な形 ----
-check('V1 タイル予算の上限が既定値表のmaxを参照(二重定義の一元化)+LRU上限320',
-    src.includes('Math.min(APP_DEFAULTS.smBldgTiles.max, Math.round(Number(appState.smBldgTiles)') && src.includes('SM_BLDG_CACHE_MAX = 320'));
+check('V1 タイル予算の上限が既定値表のmaxを参照(二重定義の一元化)+LRU上限あり(値のピンは最新のverify143へ=第65で520)',
+    src.includes('Math.min(APP_DEFAULTS.smBldgTiles.max, Math.round(Number(appState.smBldgTiles)') && /SM_BLDG_CACHE_MAX = \d+/.test(src));
 check('V1 メッシュのスナップショットFは精度を固定値で持つ(appState参照をやめた)',
     src.includes('F.accDblCircle = true; F.accCircle = false;'));
 check('V1 index.html: メッシュ結果コントロールの精度フィルタと◎がchecked+disabled',
     html.includes('id="chk-tsujimeshres-acc-filter" class="body-checkbox" checked disabled') &&
     html.includes('id="chk-tsujimeshres-acc-dbl-circle" class="body-checkbox" checked disabled'));
-check('V1 既定名の入れ直し経路(_locNameApplyDefaultIfHome)がリセット操作から呼ばれる',
-    src.includes('function _locNameApplyDefaultIfHome(side)') && src.includes('_locNameApplyDefaultIfHome(type)'));
+check('V1 既定名の経路: 座標一致の自動記入(_locNameApplyDefaultIfHome)+リセットはセットで(第65から_locNameSet)',
+    src.includes('function _locNameApplyDefaultIfHome(side)') && src.includes('_locNameSet(type, def.name, def)'));
 
 // ============================================================
 // ブラウザ検査

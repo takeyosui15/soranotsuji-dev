@@ -22,9 +22,9 @@ check('V1 メッシュ精度フィルタは◎クラスへ正規化して判定'
 const body = src.replace(/^[\s\S]*?\*\//, '');   // 冒頭のVersion History(改名の経緯を書く場所)を除いた本体で数える
 check('V1 「前後時刻指定」は0箇所・「前後時間指定」が2箇所(辻検索系+My辻の生成器。冒頭コメントは除外)',
     !body.includes('前後時刻指定') && !html.includes('前後時刻指定') && (body.match(/前後時間指定/g) || []).length === 2);
-check('V1 表示タイル数の上限300(既定値表+正規化[表のmax参照へ一元化: 第64]+スライダー2箇所+ヘルプ)',
-    src.includes('smBldgTiles: { def: 30, min: 1, max: 300') && src.includes('Math.min(APP_DEFAULTS.smBldgTiles.max, parseInt(el.value)') &&
-    (html.match(/bldg-tiles" class="sora-slider" min="1" max="300"/g) || []).length === 2 && html.includes('(1〜300。'));
+check('V1 表示タイル数の上限(既定値表+正規化[表のmax参照へ一元化: 第64]+スライダー2箇所+ヘルプ。上限値は第65で500へ=最新ピンはverify143)',
+    /smBldgTiles: \{ def: 30, min: 1, max: \d+/.test(src) && src.includes('Math.min(APP_DEFAULTS.smBldgTiles.max, parseInt(el.value)') &&
+    (html.match(/bldg-tiles" class="sora-slider" min="1" max="500"/g) || []).length === 2 && html.includes('(1〜500。'));
 check('V1 Myセットのボタンは「複製」(確認文・自動命名も複製へ)',
     html.includes('id="btn-myset-copy" class="nav-btn main-btn" title="選択中のMyセットを複製します">複製</button>') &&
     src.includes('を複製しますか') && src.includes('の複製`'));
