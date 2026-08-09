@@ -1,8 +1,8 @@
 {
   "name": "koushi-preview",
   "displayName": "Koushi Preview",
-  "description": "Markdownの```koushiコードフェンスをKoushi(格子)記法の表としてプレビューに描画する(宙の辻/MederuUの自作記法。レンダラはkoushi.js同梱)",
-  "version": "0.1.0",
+  "description": "Markdownの```koushiコードフェンスをKoushi(格子)記法の表としてプレビューに描画し、編集画面にはトークンのハイライトを与える(宙の辻/MederuUの自作記法。レンダラはkoushi.js同梱)",
+  "version": "0.2.0",
   "publisher": "soranotsuji",
   "license": "GPL-3.0",
   "engines": {
@@ -19,6 +19,31 @@
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
       "./koushi-preview.css"
+    ],
+    "languages": [
+      {
+        "id": "koushi",
+        "aliases": [
+          "Koushi"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "koushi",
+        "scopeName": "source.koushi",
+        "path": "./syntaxes/koushi.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.koushi.codeblock",
+        "path": "./syntaxes/koushi-markdown.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.koushi": "koushi"
+        }
+      }
     ]
   }
 }

@@ -112,9 +112,11 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /** セル/行の属性を読む(番号は無視、xc/xr=スパン、1文字=寄せ、h=見出し) */
+  /** セル/行の属性を読む(番号は無視、xc/xr=スパン、1文字=寄せ、h=見出し、b?=罫線)。
+   *  罫線属性(第67ラウンド・デッサン01): bd=二重・bs=太実線・ba=破線・bo=点線。
+   *  行(r:)に付けるとその行の上辺、セル(c:)に付けるとそのセルの左辺の罫線になる(CSS側の規則)。 */
   function readAttrs(attrs) {
-    const out = { colspan: 0, rowspan: 0, classes: [], header: false };
+    const out = { colspan: 0, rowspan: 0, classes: [], borders: [], header: false };
     for (const a of attrs) {
       if (typeof a !== 'string') continue; // "…"属性は構造トークンでは使わない(v1)
       if (/^\d+$/.test(a)) continue;       // 番号は描画時に無視(依頼者決定)
@@ -125,6 +127,8 @@
         out.header = true;
       } else if (/^[lcrtmb]$/.test(a)) {
         out.classes.push('k-' + a);
+      } else if (/^b[dsao]$/.test(a)) {
+        out.borders.push('k-' + a);
       }
       // 未知の属性は読み飛ばす(前方互換: 将来の属性で古いレンダラが壊れないように)
     }
@@ -183,16 +187,18 @@
       const rtok = parseToken(rn.text);
       if (!rtok || rtok.head !== 'r') continue; // t:直下はr:のみ(それ以外は読み飛ばす)
       const rAttrs = readAttrs(rtok.attrs);
-      out.push(indent + '  <tr>');
+      // 行の罫線属性はtrのclassに出す(その行の上辺。寄せ等は従来どおりセル側のみ)
+      out.push(indent + (rAttrs.borders.length ? '  <tr class="' + rAttrs.borders.join(' ') + '">' : '  <tr>'));
       for (const cn of rn.children) {
         const ctok = parseToken(cn.text);
         if (!ctok || ctok.head !== 'c') continue;
         const cAttrs = readAttrs(ctok.attrs);
         const tag = (rAttrs.header || cAttrs.header) ? 'th' : 'td';
+        const cls = cAttrs.classes.concat(cAttrs.borders);   // セルの罫線属性は左辺(classでCSSへ)
         let open = '<' + tag;
         if (cAttrs.colspan) open += ' colspan="' + cAttrs.colspan + '"';
         if (cAttrs.rowspan) open += ' rowspan="' + cAttrs.rowspan + '"';
-        if (cAttrs.classes.length) open += ' class="' + cAttrs.classes.join(' ') + '"';
+        if (cls.length) open += ' class="' + cls.join(' ') + '"';
         open += '>';
         const inline = ctok.content ? esc(ctok.content) : '';
         if (!cn.children.length) {

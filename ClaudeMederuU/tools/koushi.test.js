@@ -149,6 +149,26 @@ const CASES = [
       '    - c:2. 回帰実行',
     ].join('\n'),
   },
+  {
+    // 罫線属性(第67ラウンド): 行=上辺(trのclass)・セル=左辺(td/thのclass)。bd=二重/bs=太実線/ba=破線/bo=点線。
+    // 寄せ等の既存classとの併記も検査する(c:2:c:bd → class="k-c k-bd")
+    name: 'borders-row-cell',
+    input: [
+      '- t:1.',
+      '  - r:1:h.',
+      '    - c:1. 状態',
+      '    - c:2:bd. グループA',
+      '    - c:3:ba. グループB',
+      '  - r:2:bd.',
+      '    - c:1. S1',
+      '    - c:2:c:bd. a',
+      '    - c:3:bo. b',
+      '  - r:3:ba.',
+      '    - c:1. S2',
+      '    - c:2:bs. c',
+      '    - c:3. d',
+    ].join('\n'),
+  },
 ];
 
 const MD_CASE = {

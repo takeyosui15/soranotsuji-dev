@@ -39,6 +39,17 @@ table.koushi li { margin: 1px 0; }
 /* 入れ子の格子は外枠より控えめに */
 table.koushi table.koushi { margin: 2px 0; }
 
+/* 罫線属性(第67ラウンド・デッサン01): 行(tr)に付けば「その行の上辺」・セル(td/th)に付けば「そのセルの左辺」。
+   bd=二重・bs=太実線・ba=破線・bo=点線(既定は細実線)。グループ区切りの強調用 */
+table.koushi tr.k-bd > th, table.koushi tr.k-bd > td { border-top: 3px double rgba(128, 128, 128, 0.95); }
+table.koushi tr.k-bs > th, table.koushi tr.k-bs > td { border-top: 2px solid rgba(128, 128, 128, 0.95); }
+table.koushi tr.k-ba > th, table.koushi tr.k-ba > td { border-top: 1px dashed rgba(128, 128, 128, 0.95); }
+table.koushi tr.k-bo > th, table.koushi tr.k-bo > td { border-top: 1px dotted rgba(128, 128, 128, 0.95); }
+table.koushi th.k-bd, table.koushi td.k-bd { border-left: 3px double rgba(128, 128, 128, 0.95); }
+table.koushi th.k-bs, table.koushi td.k-bs { border-left: 2px solid rgba(128, 128, 128, 0.95); }
+table.koushi th.k-ba, table.koushi td.k-ba { border-left: 1px dashed rgba(128, 128, 128, 0.95); }
+table.koushi th.k-bo, table.koushi td.k-bo { border-left: 1px dotted rgba(128, 128, 128, 0.95); }
+
 /* input要素(モックアップ用トークン)は行内に馴染ませる */
 table.koushi input { vertical-align: middle; }
 

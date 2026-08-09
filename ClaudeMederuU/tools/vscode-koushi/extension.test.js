@@ -83,5 +83,28 @@ const renderFence = (md, info, content) => md.renderer.rules.fence([{ info, cont
         typeof ext.activate().extendMarkdownIt === 'function');
 }
 
+// ---- ⑥編集ハイライトの文法(第67ラウンド。VSCodeは動かせないためJSONと正規表現の妥当性まで) ----
+{
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const grammars = (pkg.contributes || {}).grammars || [];
+    const inj = grammars.find(g => (g.injectTo || []).includes('text.html.markdown'));
+    const src = grammars.find(g => g.scopeName === 'source.koushi');
+    check('⑥grammars: markdownへの注入+source.koushiの2本があり、ファイルが実在しJSONとして読める',
+        !!inj && !!src && [inj, src].every(g => {
+            try { JSON.parse(fs.readFileSync(path.join(__dirname, g.path), 'utf8')); return true; }
+            catch (e) { return false; }
+        }));
+    const gk = JSON.parse(fs.readFileSync(path.join(__dirname, 'syntaxes', 'koushi.tmLanguage.json'), 'utf8'));
+    const structPat = gk.patterns.find(p => (p.comment || '').includes('構造トークン'));
+    const re = new RegExp(structPat.match);
+    check('⑥構造トークンの正規表現がJSでも妥当(c:2:c:bd. がマッチ・注釈文はマッチしない)',
+        re.test('- c:2:c:bd. データ') && re.test('- t:1.') && !re.test('ただの文章です'));
+    // 罫線class(第67ラウンド)がフェンス経由でも出ることの確認
+    const md = ext.extendMarkdownIt(makeFakeMd());
+    const out = renderFence(md, 'koushi', ['- t:1.', '  - r:1:bd.', '    - c:1:ba. A'].join('\n'));
+    check('⑥罫線属性がフェンス経由でclassに出る(tr.k-bd / td.k-ba)',
+        out.includes('<tr class="k-bd">') && out.includes('<td class="k-ba">A</td>'));
+}
+
 console.log(`\nPASS: ${PASS} / FAIL: ${FAIL}`);
 process.exit(FAIL ? 1 : 0);

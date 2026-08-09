@@ -9,15 +9,15 @@ Markdownの ```` ```koushi ```` コードフェンスを、VSCodeの標準Markdo
 
 ### 方法A: vsixファイルで入れる(おすすめ)
 
-1. このフォルダの `koushi-preview-0.1.0.vsix` を使います。
+1. このフォルダの `koushi-preview-0.2.0.vsix` を使います(旧版が入っていても上書きされます)。
 2. VSCodeの拡張ビュー(⇧⌘X)右上の「…」→「Install from VSIX...」でファイルを選ぶ。
-   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.1.0.vsix`)
+   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.2.0.vsix`)
 3. VSCodeを再読み込み(⇧⌘P→「Reload Window」)。
 
 ### 方法B: フォルダを拡張ディレクトリへコピーする(vsixが使えない時の予備)
 
 ```sh
-cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.1.0
+cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.2.0
 ```
 
 その後、VSCodeを再読み込み。アンインストールはこのフォルダを削除するだけです。
@@ -34,9 +34,10 @@ cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-
 |---|---|
 | `extension.js` | markdown-itプラグイン本体(```koushiフェンスだけをkoushiToHtmlで描画・他は委譲) |
 | `koushi.js` | レンダラの同梱コピー。**正は `ClaudeMederuU/tools/koushi.js`**。ズレは`extension.test.js`のドリフト検査が検知(同期は`cp`一発) |
-| `koushi-preview.css` | プレビュー用の罫線と寄せ(テーマ非依存の半透明グレー) |
-| `sample.md` | 動作確認サンプル |
-| `extension.test.js` | Node単体で回る検証(フェンス差し込み・委譲・エラー閉じ込め・ドリフト・package構造)。回帰の道具テストに含める |
+| `koushi-preview.css` | プレビュー用の罫線と寄せ+罫線属性(bd=二重/bs=太実線/ba=破線/bo=点線。行=上辺・セル=左辺。第67ラウンド) |
+| `syntaxes/` | 編集画面のハイライト(第67ラウンド): Markdownの```koushiフェンスへ注入する文法+Koushiトークン文法。`-`はMarkdownのリストと同じ色・t:/r:/c:はタグ色・属性は属性色・"値"は文字列色 |
+| `sample.md` | 動作確認サンプル(結合セル+罫線属性の状態遷移表つき) |
+| `extension.test.js` | Node単体で回る検証(フェンス差し込み・委譲・エラー閉じ込め・ドリフト・package構造・文法JSON)。回帰の道具テストに含める |
 
 - 記法の正はデッサン `ClaudeMederuU/dessin/01-koushi-dessin.md`。
 - レンダラ本体を更新したら: `cp ClaudeMederuU/tools/koushi.js ClaudeMederuU/tools/vscode-koushi/koushi.js`
