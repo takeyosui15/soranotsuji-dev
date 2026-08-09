@@ -1,0 +1,24 @@
+{
+  "name": "koushi-preview",
+  "displayName": "Koushi Preview",
+  "description": "Markdownの```koushiコードフェンスをKoushi(格子)記法の表としてプレビューに描画する(宙の辻/MederuUの自作記法。レンダラはkoushi.js同梱)",
+  "version": "0.1.0",
+  "publisher": "soranotsuji",
+  "license": "GPL-3.0",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "contributes": {
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./koushi-preview.css"
+    ]
+  }
+}

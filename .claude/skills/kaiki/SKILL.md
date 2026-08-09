@@ -49,8 +49,10 @@ for n in 96 117 123 124 125 126 127; do node tests/verify$n.js; done
 ```
 
 - 各verifyの対象と注意は `tests/README.md`(封鎖機能は`?forecast=1`、フレークの扱い等)。
-- 道具のテスト2本も一緒に回す(node単体・サーバ不要。第45〜):
-  `node ClaudeMederuU/tools/koushi.test.js` と `node ClaudeMederuU/tools/anchor.test.js`
+- 道具のテスト3本も一緒に回す(node単体・サーバ不要。第45〜):
+  `node ClaudeMederuU/tools/koushi.test.js` と `node ClaudeMederuU/tools/anchor.test.js` と
+  `node ClaudeMederuU/tools/vscode-koushi/extension.test.js`(第66〜。Koushiプレビュー拡張=
+  フェンス差し込み+同梱koushi.jsのドリフト検査。レンダラ本体を直したらcpで同期→vsix作り直し)
 - APP_VERSIONの版数ピンは**最新のverifyだけ**が持つ。版数を上げたら新しい最新verifyへピンを書き、
   旧最新のピンは存在チェック形式へ緩める(例: verify127のO0、verify128のP0)。
 - Chromium起動引数(全verify共通): `--use-gl=angle --use-angle=swiftshader

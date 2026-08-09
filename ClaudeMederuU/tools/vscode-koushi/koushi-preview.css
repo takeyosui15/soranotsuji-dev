@@ -1,0 +1,46 @@
+/* Koushi Preview — VSCode Markdownプレビュー用の格子スタイル(class出力のみのレンダラに罫線と寄せを与える)。
+   色はテーマ非依存の半透明グレー(ライト/ダーク両テーマで読める)。正はこのファイル(拡張同梱)。 */
+
+table.koushi {
+    border-collapse: collapse;
+    margin: 8px 0;
+}
+
+table.koushi th,
+table.koushi td {
+    border: 1px solid rgba(128, 128, 128, 0.65);
+    padding: 3px 8px;
+    vertical-align: top;
+    text-align: left;
+}
+
+table.koushi th {
+    background: rgba(128, 128, 128, 0.15);
+    font-weight: 600;
+    text-align: center;
+}
+
+/* 寄せ属性(l/c/r=水平・t/m/b=垂直)。セルのclassとして出力される */
+table.koushi .k-l { text-align: left; }
+table.koushi .k-c { text-align: center; }
+table.koushi .k-r { text-align: right; }
+table.koushi .k-t { vertical-align: top; }
+table.koushi .k-m { vertical-align: middle; }
+table.koushi .k-b { vertical-align: bottom; }
+
+/* セル内の行(素の行)とリスト(行の子) */
+table.koushi .k-line { margin: 1px 0; }
+table.koushi ul {
+    margin: 2px 0 2px 0;
+    padding-left: 1.3em;
+}
+table.koushi li { margin: 1px 0; }
+
+/* 入れ子の格子は外枠より控えめに */
+table.koushi table.koushi { margin: 2px 0; }
+
+/* input要素(モックアップ用トークン)は行内に馴染ませる */
+table.koushi input { vertical-align: middle; }
+
+/* 描画エラー時の表示(プレビュー全体は壊さない) */
+pre.koushi-error { color: #d94a4a; }
