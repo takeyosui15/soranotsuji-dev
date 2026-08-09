@@ -43,15 +43,15 @@ input要素を、箇条書きの書き味のまま書けます。
 
 ### 方法A: vsixファイルで入れる(おすすめ)
 
-1. このフォルダの `koushi-preview-0.3.0.vsix` を使います(旧版が入っていても上書きされます)。
+1. このフォルダの `koushi-preview-0.3.1.vsix` を使います(旧版が入っていても上書きされます)。
 2. VSCodeの拡張ビュー(⇧⌘X)右上の「…」→「Install from VSIX...」でファイルを選ぶ。
-   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.3.0.vsix`)
+   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.3.1.vsix`)
 3. VSCodeを再読み込み(⇧⌘P→「Reload Window」)。
 
 ### 方法B: フォルダを拡張ディレクトリへコピーする(vsixが使えない時の予備)
 
 ```sh
-cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.3.0
+cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.3.1
 ```
 
 その後、VSCodeを再読み込み。アンインストールはこのフォルダを削除するだけです。
@@ -87,10 +87,10 @@ cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-
    を開き、publisher(公開者ID)を作成する。
 2. **PAT(トークン)作成**: https://dev.azure.com → User settings → Personal access tokens →
    Scopes「Marketplace: Manage」で作成。
-3. **package.jsonのpublisherを実IDへ**書き換え(現在は仮の`soranotsuji`)。
+3. package.jsonのpublisherは実ID(`takeyosui15`)設定済み。
 4. このフォルダで `npx @vscode/vsce login <publisherID>`(PATを貼る)→ `npx @vscode/vsce publish`。
 5. 以後の更新は versionを上げて `npx @vscode/vsce publish`。
 
-同梱済みの公開要件: LICENSE(GPL-3.0)・icon.png(128×128)・README(このファイルが
+同梱済みの公開要件: LICENSE(MIT)・icon.png(128×128)・README(このファイルが
 Marketplaceの説明ページになる)・.vscodeignore(vsixにテスト等を入れない)。
 リポジトリ欄(repository)は、公開用リポジトリを作った時にpackage.jsonへ追記する。

@@ -325,6 +325,14 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
   正負と検索中心「線」: 実検索・スクショ・git履歴の実測で現状は正しい(8月は最良点が線分終点の先の
   ため点=線が数学的に一致。冬日付では別値を実測)。verify143に「向きの凍結標本」を常設。
   再現時の状況ヒアリングを回答その63で依頼中。verify143=13チェック **(2026-08-06済)**
+- [x] (2026-08-09 第69ラウンド) koushi公開への段取り一式:
+  ①手順書 docs/operation/koushi-repo-guide.md(5段・🧑/🤖の担当明記) ②staging一式
+  ClaudeMederuU/tools/koushi-repo-staging/(英語章→日本語章の独立README・MIT・中立サンプル・
+  テストのスタンドアロン条件化) ③MIT教授(回答その67) ④MederuUの誤解解き(Publicでも
+  書き込みは所有者のみ)+Private開始とブランチ保護の推奨+MIT賛成 ⑤アイコンを依頼者デザイン
+  (白地黒線の風車型結合格子)へ+拡張v0.3.1(publisher=takeyosui15・MIT・repository) **(2026-08-09済)**
+  ※次の待ち: 依頼者がstagingのREADMEレビュー→`takeyosui15/koushi`作成→「作りました」の連絡で
+  Claudeがpush(手順2)。その後publisher登録(手順3)→publish(手順4)。
 - [x] (2026-08-09 第68ラウンド) 案a実装(v1.61.0)+Marketplace準備(拡張v0.3.0):
   ①「端末側に未保存の変更」印(localEdit=セット永続)で再確認でも👎維持・案内文変更・
   判定を純関数_mySetSyncVerdictへ一元化・複製は印を引き継ぐ。verify144=11チェック
