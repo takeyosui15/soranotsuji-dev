@@ -17,9 +17,9 @@ const dir = path.dirname(target);
 const wTsuji = fs.readFileSync(path.join(dir, 'tsuji-search-worker.js'), 'utf8');
 const wMesh = fs.readFileSync(path.join(dir, 'tsujimesh-search-worker.js'), 'utf8');
 
-// ---- V0: 版数ピン(最新のverifyに集約) ----
-check('V0 APP_VERSION 1.60.0', src.includes("APP_VERSION = '1.60.0'") || !!process.argv[2]);
-check('V0 Version Historyに1.60.0の行がある', src.includes('Version 1.60.0 - ') || !!process.argv[2]);
+// ---- V0: 版数(存在検査。版数ピンは最新のverify144に集約) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 Version Historyに1.60.0の行がある', src.includes('Version 1.60.0 - '));
 
 // ---- V1: 静的な形 ----
 check('V1 DEFAULT_START/ENDが名前を持つ(セットでリセットの表)',

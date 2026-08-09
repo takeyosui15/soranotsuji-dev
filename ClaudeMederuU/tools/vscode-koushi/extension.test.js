@@ -79,6 +79,10 @@ const renderFence = (md, info, content) => md.renderer.rules.fence([{ info, cont
         Array.isArray(c['markdown.previewStyles']) && c['markdown.previewStyles'].length === 1 &&
         fs.existsSync(path.join(__dirname, c['markdown.previewStyles'][0])) &&
         fs.existsSync(path.join(__dirname, pkg.main)));
+    check('⑤Marketplace要件(第68ラウンド): displayName・icon.png・LICENSE・.vscodeignoreが揃っている',
+        pkg.displayName === 'Koushi: Markdown Spanning Table' && pkg.icon === 'icon.png' &&
+        fs.existsSync(path.join(__dirname, 'icon.png')) && fs.existsSync(path.join(__dirname, 'LICENSE')) &&
+        fs.existsSync(path.join(__dirname, '.vscodeignore')));
     check('⑤activate()がextendMarkdownItを返す(VSCodeの呼び出し形)',
         typeof ext.activate().extendMarkdownIt === 'function');
 }

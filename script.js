@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.61.0 - 2026-08-09: fix: 第68ラウンド — 状態遷移表(第67)で見つけた穴の修正(案a・依頼者GO): 端末側を編集して付いた👎が、状態アイコンの再確認(時刻比較)で👍「同期が取れています」に戻ってしまう問題。「端末側に未保存の変更がある」印(localEdit)をセット自身に永続で持ち、時刻が一致しても印がある間は👎のまま+案内を「端末側に未保存の変更があります」へ。印は編集時に立ち、保存/読込の成功(内容が揃った時)に消える。ログイン時の一括確認も同じ判定(純関数_mySetSyncVerdictへ一元化)。複製は元の印を引き継ぐ(端末コピー⇄シートコピーに同じ差が写るため)。解除で印も掃除
 Version 1.60.0 - 2026-08-06: fix/feat: 第65ラウンド — ①Hom/推山リセットを「セットでリセット」へ(依頼者提案): DEFAULT_START/ENDに名前(東京タワー/富士山)を持たせ、リセット時は名前・座標・標高・高さの全てを既定値表から入れる(第64の座標一致判定を介した入れ直しより単純で安全。座標一致の自動記入は初期表示・手入力用に存続し名前は同じ表を参照) ②都市ビル表示タイル数の上限300→500(Mac実測を受けて依頼者指定。LRUキャッシュ520。予算計算・正規化は既定値表参照のため表の1箇所+スライダー属性のみの変更) ③不具合報告2件(辻オフセット方位角の正負が逆・検索中心「線」が「点」と同じ)の調査: 実検索とスクリーンショットの実測では現状の向き・距離とも正しく、8月の幾何では最良点が線分終点より先になるため点=線の数値が数学的に一致する(冬日付では異なることを実測)。経緯と再現手順のお願いは回答その63。将来のリファクタでの符号反転を検知する「向きの凍結標本」をverify143に常設
 Version 1.59.0 - 2026-08-05: fix/feat: 第64ラウンド — 前ラウンドのフィードバック4件 ①辻メッシュ検索の結果コントロールの精度フィルタを検索メニューと同じ読み取り専用固定へ(精度フィルタ=オン・◎=オン・○△-=オフ、全て操作不可。ユーザーが迷わないように両メニューを揃える: 依頼者指定。値の実質は従来と同じ=◎クラスのみ表示) ②観測点の初期値(東京タワー)を展望台の理想位置へ(35.6585309298041, 139.74538790268673。最大ズーム+2で依頼者が取得した建物中心近くの実測値。地面標高はGSI 1mレーザで旧位置と同じ18.5mのため据え置き) ③Hom/推山リセットで観測点名/目的点名が入らない不具合を修正 — 既定名の記入が座標変化の検出時だけ走るため、座標が既定値のまま(=変化なし)のリセットでは素通りしていた。リセット操作から明示的に入れ直す経路を追加 ④表示タイル数を300へ上げても150で頭打ちになる不具合を修正 — タイル予算計算に旧上限のMath.min(150)が残っていた(スライダー・正規化だけ300へ上げて予算側を見落とし)。あわせてLRUキャッシュ上限160→320(表示中タイルを追い出さない不変条件の維持)
 Version 1.58.0 - 2026-08-05: fix/feat: 第63ラウンド — ①不具合修正: 辻メッシュ検索で結果が表示されない(結果コントロールの精度フィルタを全オフにすると表示される)を修正 — 検索実行時スナップショットの精度フィルタは◎チェック=常時オンだが、メッシュの精度記号には「◎×2」〜「◎×128」があり単純一致で高精度行が全て落ちて0件になっていた。記号を◎クラスへ正規化して判定(辻検索/My辻は記号が◎そのもののため発生せず) ②結果コントロール内の時間フィルタ群と水平線を中央寄せ(3パネルとも。宙の窓と同じ流儀のmax-width:360px+左右auto) ③地図の最大ズームを2段階追加(18→20。タイルはoverzoomの拡大表示=解像度はそのまま。メッシュ初期ズームは実効値を維持) ④観測点名/目的点名に既定名「東京タワー」「富士山」: 初期表示・Hom/推山リセット等で座標が既定値に一致する間だけ自動で入る ⑤「前後時刻指定」→「前後時間指定」へ改名(辻検索/辻メッシュ/My辻/結果コントロールの時間フィルタ) ⑥都市ビル表示タイル数の上限150→300(依頼者指定) ⑦Myセット「コピー」ボタン→「複製」(確認文・自動命名も複製へ)
@@ -124,7 +125,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.60.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.61.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -5504,10 +5505,22 @@ function _mySetMarkCurrentEdited() {
     const id = appState.mySetCurrentId;
     const s = (id === 0) ? appState.mySetHome : (appState.mySets || []).find(m => m.id === id);
     if (!s || !s.sheetId) return;
+    // 端末側に未保存の変更がある印(第68ラウンド・案a=依頼者GO): 同期判定は時刻比較のため端末側の
+    // 変更を見られない。この印をセット自身に永続で持ち、再確認が時刻一致でも👎を保つ。
+    // 消えるのは保存/読込の成功時(内容が揃った時)だけ
+    if (!s.localEdit) { s.localEdit = true; saveAppState(); }
     if (mySetSheetStates[id] === 'ok') {
         mySetSheetStates[id] = 'stale';
         renderMySetList();
     }
+}
+
+/** 時刻比較+端末側の印から同期状態の判定を返す(第68ラウンド・案a。純関数=検証用)。
+ *  'ok'=同期済み / 'stale-local'=時刻は一致するが端末側に未保存の変更 / 'stale'=時刻が不一致 */
+function _mySetSyncVerdict(s, modifiedTime) {
+    const timeMatch = !!(s.lastSyncSheetTime && modifiedTime === s.lastSyncSheetTime);
+    if (timeMatch && s.localEdit) return 'stale-local';
+    return timeMatch ? 'ok' : 'stale';
 }
 
 function setMyPointDirty(type, val) {
@@ -12353,6 +12366,7 @@ async function mySetSaveToSheet(s, opts = {}) {
         }
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        s.localEdit = false;   // 保存成功=端末の内容がシートに揃った(未保存変更の印を消す: 第68ラウンド)
         // 保持ルール: 同期済みで、オフライン指定なし・非表示中なら端末には保持しない(既定のセットは常に保持)
         if (s.id !== 0 && !s.offline && s.id !== appState.mySetCurrentId) s.data = null;
         mySetSheetStates[s.id] = 'ok';
@@ -12388,6 +12402,7 @@ async function mySetLoadFromSheet(s, opts = {}) {
         mySetSetData(s, data);
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
+        s.localEdit = false;   // 読込成功=シートの内容が端末に揃った(未保存変更の印を消す: 第68ラウンド)
         mySetSheetStates[s.id] = 'ok';
         saveAppState();
         renderMySetList();
@@ -12411,7 +12426,7 @@ async function checkAllMySetSheets() {
             const meta = await driveGetMeta(s.sheetId);
             if (!meta || meta.trashed) { mySetSheetStates[s.id] = 'missing'; continue; }
             mySetSheetTimes[s.id] = meta.modifiedTime;
-            mySetSheetStates[s.id] = (s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime) ? 'ok' : 'stale';
+            mySetSheetStates[s.id] = _mySetSyncVerdict(s, meta.modifiedTime) === 'ok' ? 'ok' : 'stale';
         } catch (e) {
             mySetSheetStates[s.id] = 'error';
         }
@@ -12452,10 +12467,11 @@ async function mySetRowStatusClick(s) {
         return;
     }
     mySetSheetTimes[s.id] = meta.modifiedTime;
-    const inSync = !!(s.lastSyncSheetTime && meta.modifiedTime === s.lastSyncSheetTime);
-    mySetSheetStates[s.id] = inSync ? 'ok' : 'stale';
+    const verdict = _mySetSyncVerdict(s, meta.modifiedTime);
+    mySetSheetStates[s.id] = verdict === 'ok' ? 'ok' : 'stale';
     renderMySetList();   // 差がある場合は👎+「シート: 日時[New]」の表示更新のみ
-    if (inSync) alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+    if (verdict === 'ok') alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+    else if (verdict === 'stale-local') alert('端末側に未保存の変更があります。\nチェックを入れて「更新」(保存)でスプレッドシートへ反映してください。');
 }
 
 /** 0段目ヘッダの一括状態アイコン (既定のセット含む全行👍なら👍、1つでも差があれば👎) */
@@ -12584,6 +12600,7 @@ function unlinkMySetSheet() {
     s.sheetId = null;
     s.lastSyncSheetTime = null;
     s.updatedAt = null;
+    s.localEdit = false;   // 紐付けが無くなれば「シートとの差」の印も意味を失う(第68ラウンド)
     delete mySetSheetStates[id];
     saveAppState();
     setMySetDirty(true);
@@ -12807,6 +12824,7 @@ async function switchMySetDisplay() {
             targetData = r.data;
             target.updatedAt = r.meta ? new Date(r.meta.modifiedTime).getTime() : target.updatedAt;
             target.lastSyncSheetTime = r.meta ? r.meta.modifiedTime : target.lastSyncSheetTime;
+            target.localEdit = false;   // シートから取得した内容で揃う(第68ラウンド)
             mySetSheetStates[target.id] = 'ok';
         } catch (e) {
             console.error(e);
@@ -12889,7 +12907,7 @@ async function copyMySet() {
     if (!confirm(`MyセットリストのMyセット（ID:${id}、${src.name}）を複製しますか？${src.sheetId ? '\n(Googleスプレッドシートも複製します)' : ''}`)) return;
     const rawData = mySetDataOf(src);
     const data = (rawData && Object.keys(rawData).length) ? JSON.parse(JSON.stringify(rawData)) : null;
-    const newSet = { id: newId, name: `${src.name}の複製`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null };
+    const newSet = { id: newId, name: `${src.name}の複製`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null, localEdit: !!src.localEdit };   // 元に未保存変更があれば複製ペア(端末コピー⇄シートコピー)にも同じ差がある(第68ラウンド)
     if (src.sheetId && isGoogleLoggedIn()) {
         try {
             await ensureSoraFolders();

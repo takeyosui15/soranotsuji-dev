@@ -325,6 +325,13 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
   正負と検索中心「線」: 実検索・スクショ・git履歴の実測で現状は正しい(8月は最良点が線分終点の先の
   ため点=線が数学的に一致。冬日付では別値を実測)。verify143に「向きの凍結標本」を常設。
   再現時の状況ヒアリングを回答その63で依頼中。verify143=13チェック **(2026-08-06済)**
+- [x] (2026-08-09 第68ラウンド) 案a実装(v1.61.0)+Marketplace準備(拡張v0.3.0):
+  ①「端末側に未保存の変更」印(localEdit=セット永続)で再確認でも👎維持・案内文変更・
+  判定を純関数_mySetSyncVerdictへ一元化・複製は印を引き継ぐ。verify144=11チェック
+  ②Marketplace準備: displayName=`Koushi: Markdown Spanning Table`・icon.png・LICENSE・
+  .vscodeignore・README(input22種一覧+番号は目印+公開手順)・sample.mdにinput早見表 **(2026-08-09済)**
+  ※次の待ち: 依頼者のpublisher ID登録+リリース用リポジトリ作成の判断(回答その66の作業3)。
+  決まったらpackage.jsonのpublisher/repository書き換え+リポジトリ中身一式の整備をClaudeが行う。
 - [x] (2026-08-09 第67ラウンド) Myセット状態遷移表+Koushi罫線記法+編集ハイライト(拡張v0.2.0):
   ①依頼者の叩き台を再構成して docs/operation/myset-sync-states.md に完成(表A=アイコン導出・
   表B=1セット×シート同期6状態×7イベント・表C=フォーム登録。原則「アプリが観測できる状態だけ」)

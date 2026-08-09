@@ -1,15 +1,23 @@
 {
   "name": "koushi-preview",
-  "displayName": "Koushi Preview",
-  "description": "Markdownの```koushiコードフェンスをKoushi(格子)記法の表としてプレビューに描画し、編集画面にはトークンのハイライトを与える(宙の辻/MederuUの自作記法。レンダラはkoushi.js同梱)",
-  "version": "0.2.0",
+  "displayName": "Koushi: Markdown Spanning Table",
+  "description": "Write tables with merged cells (colspan/rowspan) as Markdown-style bullet lists. Renders ```koushi fences in the Markdown preview, with editor highlighting. 結合セル対応の表をMarkdownの箇条書きで書けるKoushi(格子)記法のプレビュー+ハイライト",
+  "version": "0.3.0",
   "publisher": "soranotsuji",
   "license": "GPL-3.0",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.70.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "table",
+    "colspan",
+    "rowspan",
+    "preview"
   ],
   "main": "./extension.js",
   "activationEvents": [
