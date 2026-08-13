@@ -325,6 +325,13 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
   正負と検索中心「線」: 実検索・スクショ・git履歴の実測で現状は正しい(8月は最良点が線分終点の先の
   ため点=線が数学的に一致。冬日付では別値を実測)。verify143に「向きの凍結標本」を常設。
   再現時の状況ヒアリングを回答その63で依頼中。verify143=13チェック **(2026-08-06済)**
+- [x] (2026-08-14 第70ラウンド) サンプル統合+koushi-dev検討+一式送付の試行:
+  ①sample.mdをstagingのREADMEへ統合(英License後・日本語章前の「Samples/サンプル」章・
+  GitHub上は生コード表示の注意書きつき)+staging sample.md削除 ②koushi-dev=不要を推奨
+  (開発の場は宙の辻側・publishが本番の関所・必要時はブランチで足りる) ③一式のコミットまで完了、
+  pushは403=GitHub Appに`koushi`のアクセス権なし→手順書の手順2へ許可手順を追記
+  ④ClaudeのPR区別の回答(作者アカウント+本体ブランチ/フォークの2重判別) ⑤呟き案3本 **(2026-08-14済)**
+  ※次の待ち: 依頼者がGitHub AppへkoushiのRepository accessを付与→「許可しました」の連絡で即push。
 - [x] (2026-08-09 第69ラウンド) koushi公開への段取り一式:
   ①手順書 docs/operation/koushi-repo-guide.md(5段・🧑/🤖の担当明記) ②staging一式
   ClaudeMederuU/tools/koushi-repo-staging/(英語章→日本語章の独立README・MIT・中立サンプル・

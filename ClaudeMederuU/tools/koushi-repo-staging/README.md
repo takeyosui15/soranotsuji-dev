@@ -120,6 +120,103 @@ strings — with whatever theme you use.
 
 MIT — see [LICENSE](LICENSE).
 
+## Samples / サンプル
+
+Copy any block below into a Markdown file and open the preview (`Cmd+Shift+V` /
+`Ctrl+Shift+V`). On GitHub these blocks show as plain code — they render as tables
+in VS Code with this extension installed.
+下のブロックをMarkdownファイルに貼ってプレビューしてください(GitHub上では
+生のコードとして表示されます。表になるのはこの拡張が入ったVS Codeの中です)。
+
+### Spanning cells / 結合セル (the icon of this extension / この拡張のアイコンの絵)
+
+```koushi
+- t:1.
+  - r:1.
+    - c:1:xc2. spanning 2 columns
+    - c:3:xr2. spanning 2 rows
+  - r:2.
+    - c:1:xr2. spanning 2 rows
+    - c:2:c. center
+  - r:3.
+    - c:2:xc2. spanning 2 columns
+```
+
+### State-transition table with borders / 罫線つきの状態遷移表
+
+`bd`=double, `bs`=bold solid, `ba`=dashed, `bo`=dotted.
+Row = top edge, cell = left edge. / 行=上辺・セル=左辺。
+
+```koushi
+- t:1.
+  - r:1:h.
+    - c:1:xr2. State
+    - c:2:xc2:bd. Search events
+    - c:4:xc2:bd. Edit events
+  - r:2:h.
+    - c:2:bd. run
+    - c:3. filter
+    - c:4:bd. change
+    - c:5. reset
+  - r:3:bs.
+    - c:1. empty
+    - c:2:bd. results
+    - c:3. -
+    - c:4:bd. empty
+    - c:5. empty
+  - r:4:ba.
+    - c:1. results
+    - c:2:bd. results (re-run)
+    - c:3. results (re-derived)
+    - c:4:bd. modified
+    - c:5. empty
+```
+
+### Checklist with inputs / チェックリスト
+
+```koushi
+- t:1.
+  - r:1:h.
+    - c:1. done
+    - c:2. item
+  - r:2.
+    - c:1:c.
+      - chb:on.
+    - c:2. build the harness
+  - r:3.
+    - c:1:c.
+      - chb.
+    - c:2. run the regression
+```
+
+### Input tokens / input要素(代表4種)
+
+Numbers like `c:1.` are only markers for humans — the renderer skips them.
+数字はただの目印で、描画時は読み飛ばされます。
+
+```koushi
+- t:1.
+  - r:1:h.
+    - c:1. token
+    - c:2. rendered
+    - c:3:bd. token
+    - c:4. rendered
+  - r:2.
+    - c:1. btn:"Run".
+    - c:2.
+      - btn:"Run".
+    - c:3:bd. txt:"your name".
+    - c:4.
+      - txt:"your name".
+  - r:3.
+    - c:1. dat:"2026-08-14".
+    - c:2.
+      - dat:"2026-08-14".
+    - c:3:bd. clr:"#f0b429".
+    - c:4.
+      - clr:"#f0b429".
+```
+
 ---
 
 # Koushi: Markdown Spanning Table (日本語)

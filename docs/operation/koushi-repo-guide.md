@@ -20,11 +20,19 @@
 
 ## 手順2 🧑→🤖: Claudeに一式を送ってもらう
 
-1. リポジトリができたら、次の依頼で「`koushi`リポジトリを作りました。一式を送ってください」と伝える。
-2. Claudeがセッションにリポジトリを追加し、staging一式(README・LICENSE(MIT)・拡張本体・
-   レンダラ・文法・テスト・icon)をpushする。
-   - もしClaude側からアクセスできない場合(GitHub App未許可など)は、代替として
-     Macでの手動コピー手順をその時に案内する(`git clone`→stagingの中身をコピー→push)。
+1. **ClaudeのGitHub Appに`koushi`へのアクセスを許可する**(第70ラウンドで判明した必須手順。
+   公開リポジトリでも「読めるが書けない」ため、これが無いとClaudeがpushできない):
+   - GitHubの Settings → Applications → Installed GitHub Apps → **Claude** の「Configure」→
+     Repository access で `koushi` を追加して Save。
+   - (Claude in Slack/Web の管理画面 https://claude.ai/settings から辿れるGitHub設定でも同じ)
+2. リポジトリとアクセス許可ができたら、次の依頼で「`koushi`リポジトリを作りました。
+   一式を送ってください」と伝える。
+3. Claudeがセッションにリポジトリを追加し、staging一式(README・LICENSE(MIT)・拡張本体・
+   レンダラ・文法・テスト・icon)をmainへpushする。
+   - 代替(Appの許可をしたくない場合): Macで手動コピー —
+     `git clone https://github.com/takeyosui15/koushi` → 宙の辻リポジトリの
+     `ClaudeMederuU/tools/koushi-repo-staging/` の中身(隠しファイル含む)をコピー →
+     `git add -A && git commit -m "initial release" && git push`。
 
 ## 手順3 🧑: Microsoftアカウントとpublisher登録(15分・1回だけ)
 
