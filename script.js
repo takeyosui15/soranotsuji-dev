@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.65.0 - 2026-08-14: feat: 第81ラウンド — ①辻検索⇄辻メッシュ検索の同名項目連動(怒号の項目4・方針転換): 検索期間・基準方位角/視高度・辻オフセット方位角/視高度・許容範囲方位角/視高度・検索中心・月齢/時間/曜日/月間/標高フィルタ(計49ペア)を、どちらのメニューで変えてももう一方に映るようにした。状態キーは従来の2系統のまま(保存・URL・CSVの互換を崩さず)、メニューの変更時にペア表で写し合う方式(委譲リスナー=個別ハンドラの後に発火)。起動時も揃える(通常は辻検索側を正・URLがメッシュ側を復元した時はメッシュ側を正)。オフセット中心角は元々共有キーのため相手側の表示追従のみ追加。連動しない項目=精度フィルタ(辻検索は選択式・メッシュは読み取り専用固定)と検索エリア/精度(メッシュ固有)。デッサン03/04に連動の節を追記 ②MederuU手順5の実施(開錠を受けて): sync.jsをMederuU本体へpush+宙の辻の初回吸い上げ(97ファイル・秘密検査スキップ0件)をコミットb2cc685としてmainへ。引き直しクローンで検品済み(staging一致・自己テスト8/8・projects98ファイル)
 Version 1.64.0 - 2026-08-14: feat/fix: 第80ラウンド — ①月間フィルタの共有URL対応(依頼): 辻検索/辻メッシュのURL取得・復元・My辻の行URLに月間26キー(tsujiMonthFilter+1〜12・tsujiMeshMonthFilter+1〜12)を追加し、短縮URL辞書をv15へ(v14以前は凍結=発行済みURLはそのまま読める) ②My辻リストCSVを45→58列へ(依頼): 37〜49列目=月間フィルタ+1月〜12月(挿入位置=曜日フィルタと精度フィルタの間は依頼者指定)。旧形式(21/36/37/45列)は列数判別でそのまま入力できる(月間は全オフ補完)。デッサン00/10更新 ③「地表の下に天の川が透ける」不具合の修正(報告): 宙の窓の地形は視界範囲と画角の扇しか覆わないため、見下ろした時や扇の外の方位で地平線(伏角)より下の画素に天球(天の川・地平線下の星)がそのまま見えていた。伏角から下を暗い球帽(半径350km=地形より外・天体400kmより内)で塞ぎ、地形は蓋の手前・天体と天球は蓋の裏に隠れるようにした(観測点標高が変わった時のみ再構築) ④MederuU手順5: sync.js(一方向吸い上げ+秘密検査)をstagingに作成 — 自己テスト8チェック・宙の辻の実走で96ファイル/秘密検査スキップ0件(検出3件は全てKoushiサンプルの架空アドレス=文書用予約ドメインで許可リストへ)。写し(projects/)はアプリ側リポジトリに置かず、push時に生成する運用
 Version 1.63.0 - 2026-08-14: fix/feat: 第79ラウンド — ①非同期キャンセルの同類監査(依頼): 全世代カウンタ11箇所の呼び出し側照合を点検し、3件の同類穴を修正 — (a)可視判定ポップアップ自身のawait中の切替(showVisibilityResultへ世代を引き渡し) (b)観測点/目的点の非同期設定の追い越し(地図連打・高移スキャン中の別操作を、古い標高取得が後から上書きする競合。チケット_locSetSeqで最新の操作だけが書く) (c)宙断面を取得中に閉じた後の古い雲データの書き戻し(_sdGen世代) ②宙の窓ctrlの黒字/灰字の視認性修正: 取得状況「◯タイル/◯棟」・表示タイル数「30枚」・ばらつき「0」・「:花火点(+)」を白字に(金色のグループ見出しは維持) ③月間フィルタ(項目5): 辻検索/辻メッシュ/My辻検索の検索メニュー+My辻行フォーム+結果コントロール2面に「月間フィルタ」+「:1月」〜「:12月」を追加(曜日フィルタと精度フィルタの間・未チェックなら絞らない流儀も同じ。localStorage保存。URLキーとMy辻リストCSV列は曜日と同じく列定義の判断待ち)。デッサン03/04/10更新 ④御岳山の建物浮き(項目2)の調査と修正: 実測で原因を特定 — PLATEAU青梅市2025の建物基準面はGSI DEM5Aと中央値1m以内で一致(データは正しい)。浮きの原因は地形側で、視界範囲90km級ではDEMをz12(画素約31m)で標本化するため観測点近傍の尾根が均されて低くなり、実高の建物が浮いて見えていた。観測点8km以内の距離環をz15(DEM5A 5m)で標本化する近傍ブーストを追加(広角90kmでタイル+約60枚・望遠と近距離は変化なし) ⑤タイムゾーン表示(項目19前倒し): 日時情報メニューの先頭に「タイムゾーン: Asia/Tokyo (UTC+09:00)」を常時表示(日本以外は「地名検索はOSMのみ」を付記)+ヘルプに「海外での利用」の章を新設(項目18の注意を含む)
 Version 1.62.0 - 2026-08-14: fix/feat: 第78ラウンド(怒号の修正 第1陣) — ①標高グラフのキャンセル修正: 標高グラフ→宙の窓へ即切替すると宙の窓に可視判定ポップアップが出る不具合。世代ガードがfetchAllElevationsの内側だけにあり、呼び出し元startElevationFetchがawait後に無条件でdrawProfileGraph+showVisibilityResultを実行していた。世代を呼び出し元が採番してawait後に照合し、途中キャンセル(パネル切替・再実行)なら何もしない ②宙の窓のセンサーサイズからモバイル機種項目(iPhone/Pixel/Xperia等16項目)を削除(機種追随の更新負担のため): 汎用型は網羅済みで、保存データ・共有URLの旧keyは同寸または最寄りの汎用型へ読み替え(SORA_SENSOR_ALIASES。短縮URL辞書v12は凍結のまま=旧URLもそのまま読める) ③宙の窓の天体軌跡を「基準日時の前後36時間」の連続1本線に(従来は前日/当日/翌日の各日0:00〜23:59の3本=基準時刻に対して非対称だった)。日周3周ぶんで画面内に必ず3本の線が乗り、先の動きが分かる。中心時刻は正時丸めでキャッシュ(分単位の日時変更・再生中の毎フレーム再計算を回避) ④花火仕様の全面更新(11種): 2.5/3/4/5/6/7/8/10/20/30/40号(玉の直径6.9〜114cm)。開花高度・開花直径は最低/最高の幅を廃止して各1値に(表示欄も1本化・デッサン06とverify99を新仕様へ更新) ⑤アクセスカウンターのGAS(gas_spredsheet.js)の行探索ループを廃止: データ行は3行目=1月1日から日順の規約のため、年初からの日数で行番号を直接計算(求めた行の1セル検証+規約外シートのみ従来走査へフォールバック。「- - -」の一因だった実行時間とロック保持時間を短縮。GAS側は依頼者の再デプロイで反映)
@@ -128,7 +129,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.64.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.65.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -718,6 +719,10 @@ window.onload = async function() {
     updateTsujiElevationOptionUI();
     syncTsujiTimeFilter();
     updateOffsetDistances();
+
+    // 辻検索⇄辻メッシュの同名項目を起動時に揃える(第81ラウンド・項目4)。
+    // 通常は辻検索側を正に、URLがメッシュ側を復元した時はメッシュ側を正にする
+    _tsujiLinkPropagate(_tsujiLinkInitFrom);
 
     // リストを生成
     syncMyStarsToBodies();
@@ -1679,6 +1684,15 @@ function setupUI() {
     // 全テキストボックスのautocomplete無効化 (ブラウザのフォーム復元を防止)
     document.querySelectorAll('input').forEach(el => el.setAttribute('autocomplete', 'off'));
     document.getElementById('btn-help').onclick = toggleHelp;
+
+    // 辻検索⇄辻メッシュ検索の同名項目連動(第81ラウンド・項目4): メニュー内のどの変更でも、
+    // 個別ハンドラが状態を書いた後(バブリングで委譲リスナーは後に発火)にペア表で写し合う
+    {
+        const secT = document.getElementById('sec-tsujisearch');
+        if (secT) secT.addEventListener('change', () => _tsujiLinkPropagate('tsuji'));
+        const secM = document.getElementById('sec-tsujimesh');
+        if (secM) secM.addEventListener('change', () => _tsujiLinkPropagate('mesh'));
+    }
 
     // タイムゾーン表示(第79ラウンド・項目19): 端末のTZ+UTCオフセットを日時情報メニューの先頭に常時表示。
     // 日本以外のTZでは「地名検索はOSMのみ」の注記を添える(項目18のGSIスキップと連動した案内)
@@ -8411,6 +8425,93 @@ function updateTsujiMeshMonthFilterUI() {
     _MONTH_DEFS.forEach(([suf]) => { document.getElementById(`chk-tsujimesh-month-${suf}`).disabled = !on; });
 }
 
+// ==== 辻検索⇄辻メッシュ検索の同名項目連動(第81ラウンド・怒号の項目4) ====
+// 方針転換(依頼者): 同じ名前の項目は両メニューで連動する(どちらを変えてももう一方に映る)。
+// 実装: 状態キーは従来の2系統のまま(保存・URL・CSVの互換を崩さない)、変更時にペア表で写し合う。
+// 連動しない項目: 精度フィルタ(辻検索=選択式/メッシュ=読み取り専用固定で意味が違う)・
+// 検索エリア/精度(メッシュ固有)。オフセット中心角は元々共有キー(mwOffsetAngle)なので表示だけ揃える。
+const TSUJI_LINK_PAIRS = (() => {
+    const p = [
+        ['tsujiSearchDays', 'tsujiMeshDays'],
+        ['tsujiSearchBaseAz', 'tsujiMeshBaseAz'], ['tsujiSearchBaseAlt', 'tsujiMeshBaseAlt'],
+        ['tsujiSearchOffsetAz', 'tsujiMeshOffsetAz'], ['tsujiSearchOffsetAlt', 'tsujiMeshOffsetAlt'],
+        ['tsujiSearchToleranceAz', 'tsujiMeshToleranceAz'], ['tsujiSearchToleranceAlt', 'tsujiMeshToleranceAlt'],
+        ['tsujiCenterMode', 'tsujiMeshCenterMode'],
+        ['tsujiMoonFilterEnabled', 'tsujiMeshMoonFilterEnabled'],
+        ['tsujiMoonBase', 'tsujiMeshMoonBase'], ['tsujiMoonTolerance', 'tsujiMeshMoonTolerance'],
+        ['tsujiElevationOption', 'tsujiMeshElevationOption'],
+        ['tsujiElevOK', 'tsujiMeshElevOK'], ['tsujiElevNG', 'tsujiMeshElevNG'],
+        ['tsujiTimeFilter', 'tsujiMeshTimeFilter'],
+        ['tsujiDowFilter', 'tsujiMeshDowFilter'],
+        ['tsujiMonthFilter', 'tsujiMeshMonthFilter'],
+    ];
+    ['Start', 'End'].forEach(G => ['Mode', 'Time', 'PrePost', 'PrePostDir', 'Offset'].forEach(k =>
+        p.push(['tsuji' + G + k, 'tsujiMesh' + G + k])));
+    _DOW_DEFS.forEach(([, key]) => p.push(['tsujiDow' + key, 'tsujiMeshDow' + key]));
+    _MONTH_DEFS.forEach(([suf]) => p.push(['tsujiMonth' + suf, 'tsujiMeshMonth' + suf]));
+    return p;
+})();
+
+/** 連動項目のメニュー入力を状態から入れ直す(side='tsuji'|'mesh'=入れ直す側) */
+function _tsujiLinkRefreshUI(side) {
+    const T = side === 'tsuji';
+    const setV = (tid, mid, v) => { const e = document.getElementById(T ? tid : mid); if (e) e.value = v; };
+    const setC = (tid, mid, v) => { const e = document.getElementById(T ? tid : mid); if (e) e.checked = !!v; };
+    const setR = (tname, mname, v) => { const e = document.querySelector(`input[name="${T ? tname : mname}"][value="${v}"]`); if (e) e.checked = true; };
+    const S = T ? 'tsujiSearch' : 'tsujiMesh';   // 数値6種+検索期間のプレフィックス
+    const F = T ? 'tsuji' : 'tsujiMesh';         // フィルタ系のプレフィックス
+    setV('input-tsuji-search-days', 'input-tsujimesh-days', appState[S + 'Days']);
+    setV('input-tsuji-az', 'input-tsujimesh-az', appState[S + 'BaseAz']);
+    setV('input-tsuji-alt', 'input-tsujimesh-alt', appState[S + 'BaseAlt']);
+    setV('input-tsuji-az-offset', 'input-tsujimesh-az-offset', appState[S + 'OffsetAz']);
+    setV('input-tsuji-alt-offset', 'input-tsujimesh-alt-offset', appState[S + 'OffsetAlt']);
+    setV('input-tsuji-az-tolerance', 'input-tsujimesh-az-tolerance', appState[S + 'ToleranceAz']);
+    setV('input-tsuji-alt-tolerance', 'input-tsujimesh-alt-tolerance', appState[S + 'ToleranceAlt']);
+    setR('tsuji-center-mode', 'tsujimesh-center-mode', appState[T ? 'tsujiCenterMode' : 'tsujiMeshCenterMode']);
+    setC('chk-tsuji-moon-filter', 'chk-tsujimesh-moon-filter', appState[F + 'MoonFilterEnabled']);
+    setV('input-tsuji-moon-base', 'input-tsujimesh-moon-base', appState[F + 'MoonBase']);
+    setV('input-tsuji-moon-tolerance', 'input-tsujimesh-moon-tolerance', appState[F + 'MoonTolerance']);
+    setC('chk-tsuji-elev-option', 'chk-tsujimesh-elev-option', appState[F + 'ElevationOption']);
+    setC('chk-tsuji-elev-ok', 'chk-tsujimesh-elev-ok', appState[F + 'ElevOK']);
+    setC('chk-tsuji-elev-ng', 'chk-tsujimesh-elev-ng', appState[F + 'ElevNG']);
+    setC('chk-tsuji-time-filter', 'chk-tsujimesh-time-filter', appState[F + 'TimeFilter']);
+    ['start', 'end'].forEach(g => {
+        const G = g === 'start' ? 'Start' : 'End';
+        setR(`tsuji-${g}-mode`, `tsujimesh-${g}-mode`, appState[F + G + 'Mode']);
+        setV(`input-tsuji-${g}-time`, `input-tsujimesh-${g}-time`, appState[F + G + 'Time']);
+        setC(`chk-tsuji-${g}-prepost`, `chk-tsujimesh-${g}-prepost`, appState[F + G + 'PrePost']);
+        setR(`tsuji-${g}-prepost-dir`, `tsujimesh-${g}-prepost-dir`, appState[F + G + 'PrePostDir']);
+        setV(`input-tsuji-${g}-offset`, `input-tsujimesh-${g}-offset`, appState[F + G + 'Offset']);
+    });
+    _DOW_DEFS.forEach(([suf, key]) => setC(`chk-tsuji-dow-${suf}`, `chk-tsujimesh-dow-${suf}`, appState[F + 'Dow' + key]));
+    setC('chk-tsuji-dow-filter', 'chk-tsujimesh-dow-filter', appState[F + 'DowFilter']);
+    _MONTH_DEFS.forEach(([suf]) => setC(`chk-tsuji-month-${suf}`, `chk-tsujimesh-month-${suf}`, appState[F + 'Month' + suf]));
+    setC('chk-tsuji-month-filter', 'chk-tsujimesh-month-filter', appState[F + 'MonthFilter']);
+    // オフセット中心角は共有キー: 相手側の入力表示だけ揃える
+    setV('input-tsuji-mw-offset', 'input-tsujimesh-mw-offset', appState.mwOffsetAngle);
+    // グループの活性/非活性・換算距離の表示を追従
+    if (T) {
+        updateTsujiMoonFilterUI(); updateTsujiElevationOptionUI(); updateTsujiTimeFilterUI();
+        updateTsujiDowFilterUI(); updateTsujiMonthFilterUI(); updateOffsetDistances();
+    } else {
+        updateTsujiMeshMoonFilterUI(); updateTsujiMeshElevationOptionUI(); updateTsujiMeshTimeFilterUI();
+        updateTsujiMeshDowFilterUI(); updateTsujiMeshMonthFilterUI(); updateTsujiMeshOffsetDistances();
+    }
+}
+
+let _tsujiLinkInitFrom = 'tsuji';   // 起動時にどちらを正として揃えるか(URL復元がメッシュ側なら'mesh')
+/** 連動の実行: from='tsuji'|'mesh'の値をもう一方へ写し、相手側メニューの表示を追従させる */
+function _tsujiLinkPropagate(from) {
+    const fromTsuji = from === 'tsuji';
+    let changed = false;
+    for (const [tk, mk] of TSUJI_LINK_PAIRS) {
+        const src = fromTsuji ? tk : mk, dst = fromTsuji ? mk : tk;
+        if (appState[dst] !== appState[src]) { appState[dst] = appState[src]; changed = true; }
+    }
+    _tsujiLinkRefreshUI(fromTsuji ? 'mesh' : 'tsuji');
+    if (changed) saveAppState();
+}
+
 /** 時間フィルタのUI状態(活性/非活性)を更新 */
 function updateTsujiTimeFilterUI() {
     const on = appState.tsujiTimeFilter;
@@ -13893,6 +13994,7 @@ function restoreFromUrl() {
 
     // 辻メッシュ検索パラメータ (mode=tsujimeshの時のみ)
     if (mode === 'tsujimesh') {
+        _tsujiLinkInitFrom = 'mesh';   // 起動時の連動はURLが復元したメッシュ側を正とする(第81ラウンド)
         const meshNum = (pk, sk) => { if (params.has(pk)) { const v = parseFloat(params.get(pk)); if (!isNaN(v)) appState[sk] = v; } };
         const meshBool = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk) === 'true'; };
         const meshStr = (pk, sk) => { if (params.has(pk)) appState[sk] = params.get(pk); };
