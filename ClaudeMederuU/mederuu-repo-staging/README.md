@@ -37,7 +37,7 @@ Claude(AI)のナレッジ・道具・手順をセッションを越えて引き�
 - [x] 2. 宙の辻リポジトリ内で先行運用(reviews/knowledge/tools/skillsが既に回っている)
 - [x] 3. Koushi(入居予定者第1号)— VSCode拡張としてMarketplace公開済み
 - [x] 4. 本体リポジトリの作成(このリポジトリ。2フォルダ+README+CLAUDE.mdの最小構成)
-- [ ] 5. sync.js(一方向吸い上げ+秘密検査)
+- [x] 5. sync.js(一方向吸い上げ+秘密検査。ルートのsync.js。使い方はファイル冒頭のSYNOPSIS)
 - [ ] 6. index-gen(man風ヘッダ->目次)
 - [x] 7. anchor.js(コアは実装済み。PAD連携は書式確定後)
 - [ ] 8. 最初の蒸留(宙の辻のreviews/からlegends/への昇格第1陣)

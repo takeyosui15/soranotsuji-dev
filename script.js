@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.64.0 - 2026-08-14: feat/fix: 第80ラウンド — ①月間フィルタの共有URL対応(依頼): 辻検索/辻メッシュのURL取得・復元・My辻の行URLに月間26キー(tsujiMonthFilter+1〜12・tsujiMeshMonthFilter+1〜12)を追加し、短縮URL辞書をv15へ(v14以前は凍結=発行済みURLはそのまま読める) ②My辻リストCSVを45→58列へ(依頼): 37〜49列目=月間フィルタ+1月〜12月(挿入位置=曜日フィルタと精度フィルタの間は依頼者指定)。旧形式(21/36/37/45列)は列数判別でそのまま入力できる(月間は全オフ補完)。デッサン00/10更新 ③「地表の下に天の川が透ける」不具合の修正(報告): 宙の窓の地形は視界範囲と画角の扇しか覆わないため、見下ろした時や扇の外の方位で地平線(伏角)より下の画素に天球(天の川・地平線下の星)がそのまま見えていた。伏角から下を暗い球帽(半径350km=地形より外・天体400kmより内)で塞ぎ、地形は蓋の手前・天体と天球は蓋の裏に隠れるようにした(観測点標高が変わった時のみ再構築) ④MederuU手順5: sync.js(一方向吸い上げ+秘密検査)をstagingに作成 — 自己テスト8チェック・宙の辻の実走で96ファイル/秘密検査スキップ0件(検出3件は全てKoushiサンプルの架空アドレス=文書用予約ドメインで許可リストへ)。写し(projects/)はアプリ側リポジトリに置かず、push時に生成する運用
 Version 1.63.0 - 2026-08-14: fix/feat: 第79ラウンド — ①非同期キャンセルの同類監査(依頼): 全世代カウンタ11箇所の呼び出し側照合を点検し、3件の同類穴を修正 — (a)可視判定ポップアップ自身のawait中の切替(showVisibilityResultへ世代を引き渡し) (b)観測点/目的点の非同期設定の追い越し(地図連打・高移スキャン中の別操作を、古い標高取得が後から上書きする競合。チケット_locSetSeqで最新の操作だけが書く) (c)宙断面を取得中に閉じた後の古い雲データの書き戻し(_sdGen世代) ②宙の窓ctrlの黒字/灰字の視認性修正: 取得状況「◯タイル/◯棟」・表示タイル数「30枚」・ばらつき「0」・「:花火点(+)」を白字に(金色のグループ見出しは維持) ③月間フィルタ(項目5): 辻検索/辻メッシュ/My辻検索の検索メニュー+My辻行フォーム+結果コントロール2面に「月間フィルタ」+「:1月」〜「:12月」を追加(曜日フィルタと精度フィルタの間・未チェックなら絞らない流儀も同じ。localStorage保存。URLキーとMy辻リストCSV列は曜日と同じく列定義の判断待ち)。デッサン03/04/10更新 ④御岳山の建物浮き(項目2)の調査と修正: 実測で原因を特定 — PLATEAU青梅市2025の建物基準面はGSI DEM5Aと中央値1m以内で一致(データは正しい)。浮きの原因は地形側で、視界範囲90km級ではDEMをz12(画素約31m)で標本化するため観測点近傍の尾根が均されて低くなり、実高の建物が浮いて見えていた。観測点8km以内の距離環をz15(DEM5A 5m)で標本化する近傍ブーストを追加(広角90kmでタイル+約60枚・望遠と近距離は変化なし) ⑤タイムゾーン表示(項目19前倒し): 日時情報メニューの先頭に「タイムゾーン: Asia/Tokyo (UTC+09:00)」を常時表示(日本以外は「地名検索はOSMのみ」を付記)+ヘルプに「海外での利用」の章を新設(項目18の注意を含む)
 Version 1.62.0 - 2026-08-14: fix/feat: 第78ラウンド(怒号の修正 第1陣) — ①標高グラフのキャンセル修正: 標高グラフ→宙の窓へ即切替すると宙の窓に可視判定ポップアップが出る不具合。世代ガードがfetchAllElevationsの内側だけにあり、呼び出し元startElevationFetchがawait後に無条件でdrawProfileGraph+showVisibilityResultを実行していた。世代を呼び出し元が採番してawait後に照合し、途中キャンセル(パネル切替・再実行)なら何もしない ②宙の窓のセンサーサイズからモバイル機種項目(iPhone/Pixel/Xperia等16項目)を削除(機種追随の更新負担のため): 汎用型は網羅済みで、保存データ・共有URLの旧keyは同寸または最寄りの汎用型へ読み替え(SORA_SENSOR_ALIASES。短縮URL辞書v12は凍結のまま=旧URLもそのまま読める) ③宙の窓の天体軌跡を「基準日時の前後36時間」の連続1本線に(従来は前日/当日/翌日の各日0:00〜23:59の3本=基準時刻に対して非対称だった)。日周3周ぶんで画面内に必ず3本の線が乗り、先の動きが分かる。中心時刻は正時丸めでキャッシュ(分単位の日時変更・再生中の毎フレーム再計算を回避) ④花火仕様の全面更新(11種): 2.5/3/4/5/6/7/8/10/20/30/40号(玉の直径6.9〜114cm)。開花高度・開花直径は最低/最高の幅を廃止して各1値に(表示欄も1本化・デッサン06とverify99を新仕様へ更新) ⑤アクセスカウンターのGAS(gas_spredsheet.js)の行探索ループを廃止: データ行は3行目=1月1日から日順の規約のため、年初からの日数で行番号を直接計算(求めた行の1セル検証+規約外シートのみ従来走査へフォールバック。「- - -」の一因だった実行時間とロック保持時間を短縮。GAS側は依頼者の再デプロイで反映)
 Version 1.61.0 - 2026-08-09: fix: 第68ラウンド — 状態遷移表(第67)で見つけた穴の修正(案a・依頼者GO): 端末側を編集して付いた👎が、状態アイコンの再確認(時刻比較)で👍「同期が取れています」に戻ってしまう問題。「端末側に未保存の変更がある」印(localEdit)をセット自身に永続で持ち、時刻が一致しても印がある間は👎のまま+案内を「端末側に未保存の変更があります」へ。印は編集時に立ち、保存/読込の成功(内容が揃った時)に消える。ログイン時の一括確認も同じ判定(純関数_mySetSyncVerdictへ一元化)。複製は元の印を引き継ぐ(端末コピー⇄シートコピーに同じ差が写るため)。解除で印も掃除
@@ -127,7 +128,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.63.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.64.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -6442,11 +6443,14 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     //   ≦21列 = 初代(オフセット中心角・時間フィルタ・標高フィルタなし)
     //    36列 = 検索中心の列が追加される前の形式
     //    37列 = 曜日フィルタの列が追加される前の形式(13列目に検索中心)
-    //   ≧45列 = 現行(29〜36列目に曜日フィルタ+月〜日。第62ラウンド)
+    //    45列 = 月間フィルタの列が追加される前の形式(29〜36列目に曜日フィルタ+月〜日。第62ラウンド)
+    //   ≧58列 = 現行(37〜49列目に月間フィルタ+1月〜12月。第80ラウンド)
     const legacy = cols.length <= 21;
     const hasCenter = cols.length >= 37;
     const hasDow = cols.length >= 45;
-    const di = hasDow ? 8 : 0;   // 曜日フィルタの有無による以降の列シフト
+    const hasMonth = cols.length >= 58;
+    const di = hasDow ? 8 : 0;    // 曜日フィルタの有無による以降の列シフト
+    const mfi = hasMonth ? 13 : 0; // 月間フィルタの有無による以降の列シフト
     // 13列目: 検索中心 (point/line。旧形式は point)
     const centerMode = hasCenter && toHalfWidth((cols[12] ?? '').trim()).toLowerCase() === 'line' ? 'line' : 'point';
     const ci = hasCenter ? 1 : 0;   // 検索中心の有無による以降の列シフト
@@ -6488,26 +6492,32 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         endPrePostDir = dirOr(cols[25 + ci], 'before');
         endOffset = hhmmOr(cols[26 + ci], '00:00');
     }
-    // 曜日フィルタ (第62ラウンド: 45列形式の29〜36列目。旧形式は既定オフ)
+    // 曜日フィルタ (第62ラウンド: 29〜36列目。旧形式は既定オフ)
     let dowFilter = false, dowMon = false, dowTue = false, dowWed = false, dowThu = false, dowFri = false, dowSat = false, dowSun = false;
     if (hasDow) {
         dowFilter = parseBoolOr(cols[27 + ci]);
         [dowMon, dowTue, dowWed, dowThu, dowFri, dowSat, dowSun] =
             [0, 1, 2, 3, 4, 5, 6].map(i => parseBoolOr(cols[28 + ci + i]));
     }
-    // 精度フィルタ (初代:16-20列目 / それ以外は時間フィルタ群(+曜日)の後)
-    const ai = legacy ? 15 : 27 + ci + di;
+    // 月間フィルタ (第80ラウンド: 58列形式の37〜49列目。旧形式は既定オフ)
+    const monthVals = _monthRowDefaults();
+    if (hasMonth) {
+        monthVals.monthFilter = parseBoolOr(cols[35 + ci]);
+        _MONTH_DEFS.forEach(([suf], i) => { monthVals['month' + suf] = parseBoolOr(cols[36 + ci + i]); });
+    }
+    // 精度フィルタ (初代:16-20列目 / それ以外は時間フィルタ群(+曜日+月間)の後)
+    const ai = legacy ? 15 : 27 + ci + di + mfi;
     const accuracyFilter = parseBoolOr(cols[ai]);
     const accDblCircle = parseBoolOr(cols[ai + 1]);
     const accCircle = parseBoolOr(cols[ai + 2]);
     const accTriangle = parseBoolOr(cols[ai + 3]);
     const accDash = parseBoolOr(cols[ai + 4]);
     // 標高フィルタ (初代以外)
-    const elevationOption = legacy ? false : parseBoolOr(cols[32 + ci + di]);
-    const elevOK = legacy ? false : parseBoolOr(cols[33 + ci + di]);
-    const elevNG = legacy ? false : parseBoolOr(cols[34 + ci + di]);
+    const elevationOption = legacy ? false : parseBoolOr(cols[32 + ci + di + mfi]);
+    const elevOK = legacy ? false : parseBoolOr(cols[33 + ci + di + mfi]);
+    const elevNG = legacy ? false : parseBoolOr(cols[34 + ci + di + mfi]);
     // メモ (末尾列)
-    const memo = ((legacy ? cols[20] : cols[35 + ci + di]) ?? '').trim();
+    const memo = ((legacy ? cols[20] : cols[35 + ci + di + mfi]) ?? '').trim();
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -6519,7 +6529,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         moonFilter, moonBase, moonTolerance,
         timeFilter, startMode, startTime, startPrePost, startPrePostDir, startOffset, endMode, endTime, endPrePost, endPrePostDir, endOffset,
         dowFilter, dowMon, dowTue, dowWed, dowThu, dowFri, dowSat, dowSun,
-        ..._monthRowDefaults(),   // 月間フィルタはCSV列に未対応(曜日と同じく列定義の判断待ち)=取込行は全オフ
+        ...monthVals,   // 58列形式は37〜49列目から。旧形式(45列以下)は全オフ
         accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
         elevationOption, elevOK, elevNG,
         checked: false, memo
@@ -6625,9 +6635,9 @@ function appendMyTsujiCsv() {
     });
 }
 
-/** CSV文字列の生成(全36列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
+/** CSV文字列の生成(全58列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
 function _buildMyTsujiCsv(targets) {
-    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高フィルタ,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,月間フィルタ,月間1月フィルタ,月間2月フィルタ,月間3月フィルタ,月間4月フィルタ,月間5月フィルタ,月間6月フィルタ,月間7月フィルタ,月間8月フィルタ,月間9月フィルタ,月間10月フィルタ,月間11月フィルタ,月間12月フィルタ,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高フィルタ,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
     targets.forEach(t => {
         csv += [
             t.id,
@@ -6666,6 +6676,8 @@ function _buildMyTsujiCsv(targets) {
             t.dowFri ? 'ON' : 'OFF',
             t.dowSat ? 'ON' : 'OFF',
             t.dowSun ? 'ON' : 'OFF',
+            t.monthFilter ? 'ON' : 'OFF',
+            ..._MONTH_DEFS.map(([suf]) => t['month' + suf] ? 'ON' : 'OFF'),
             t.accuracyFilter ? 'ON' : 'OFF',
             t.accDblCircle ? 'ON' : 'OFF',
             t.accCircle ? 'ON' : 'OFF',
@@ -6765,6 +6777,19 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiDowFri', t.dowFri ? 'true' : 'false');
     params.set('tsujiDowSat', t.dowSat ? 'true' : 'false');
     params.set('tsujiDowSun', t.dowSun ? 'true' : 'false');
+    params.set('tsujiMonthFilter', t.monthFilter ? 'true' : 'false');
+    params.set('tsujiMonth1', t.month1 ? 'true' : 'false');
+    params.set('tsujiMonth2', t.month2 ? 'true' : 'false');
+    params.set('tsujiMonth3', t.month3 ? 'true' : 'false');
+    params.set('tsujiMonth4', t.month4 ? 'true' : 'false');
+    params.set('tsujiMonth5', t.month5 ? 'true' : 'false');
+    params.set('tsujiMonth6', t.month6 ? 'true' : 'false');
+    params.set('tsujiMonth7', t.month7 ? 'true' : 'false');
+    params.set('tsujiMonth8', t.month8 ? 'true' : 'false');
+    params.set('tsujiMonth9', t.month9 ? 'true' : 'false');
+    params.set('tsujiMonth10', t.month10 ? 'true' : 'false');
+    params.set('tsujiMonth11', t.month11 ? 'true' : 'false');
+    params.set('tsujiMonth12', t.month12 ? 'true' : 'false');
     params.set('mode', 'tsujisearch');
 
     const url = buildShareUrl(params);
@@ -13325,7 +13350,11 @@ const _QP_SEEDS_V13 = _QP_KEYS_V12.map(k => '&' + k + '=').concat(_QP_VALUES_V12
 // シードに足す(既定=false。trueの値は既存の「=true&」シードが受ける)。v13以前の辞書は凍結のまま。
 const _QP_SEEDS_V14 = _QP_SEEDS_V13.concat(['&tsujiDowFilter=false', '&tsujiDowMon=false', '&tsujiDowTue=false', '&tsujiDowWed=false', '&tsujiDowThu=false', '&tsujiDowFri=false', '&tsujiDowSat=false', '&tsujiDowSun=false',
     '&tsujiMeshDowFilter=false', '&tsujiMeshDowMon=false', '&tsujiMeshDowTue=false', '&tsujiMeshDowWed=false', '&tsujiMeshDowThu=false', '&tsujiMeshDowFri=false', '&tsujiMeshDowSat=false', '&tsujiMeshDowSun=false']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14];   // 添字+1=版数。最新版でエンコードする
+// 【v15(第80ラウンド)】月間フィルタの26キーを追加(デッサン03/04)。v14と同じ形。v14以前の辞書は凍結のまま。
+const _QP_SEEDS_V15 = _QP_SEEDS_V14.concat(
+    ['&tsujiMonthFilter=false'].concat(Array.from({ length: 12 }, (_, i) => `&tsujiMonth${i + 1}=false`),
+    ['&tsujiMeshMonthFilter=false'], Array.from({ length: 12 }, (_, i) => `&tsujiMeshMonth${i + 1}=false`)));
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -13653,6 +13682,7 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiDowFri', appState.tsujiDowFri ? 'true' : 'false');
     params.set('tsujiDowSat', appState.tsujiDowSat ? 'true' : 'false');
     params.set('tsujiDowSun', appState.tsujiDowSun ? 'true' : 'false');
+    ['tsujiMonthFilter', 'tsujiMonth1', 'tsujiMonth2', 'tsujiMonth3', 'tsujiMonth4', 'tsujiMonth5', 'tsujiMonth6', 'tsujiMonth7', 'tsujiMonth8', 'tsujiMonth9', 'tsujiMonth10', 'tsujiMonth11', 'tsujiMonth12'].forEach(k => params.set(k, appState[k] ? 'true' : 'false'));
 
     const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
@@ -13701,6 +13731,7 @@ function copyTsujiMeshUrl(includeDateTime) {
     params.set('tsujiMeshDowFri', appState.tsujiMeshDowFri ? 'true' : 'false');
     params.set('tsujiMeshDowSat', appState.tsujiMeshDowSat ? 'true' : 'false');
     params.set('tsujiMeshDowSun', appState.tsujiMeshDowSun ? 'true' : 'false');
+    ['tsujiMeshMonthFilter', 'tsujiMeshMonth1', 'tsujiMeshMonth2', 'tsujiMeshMonth3', 'tsujiMeshMonth4', 'tsujiMeshMonth5', 'tsujiMeshMonth6', 'tsujiMeshMonth7', 'tsujiMeshMonth8', 'tsujiMeshMonth9', 'tsujiMeshMonth10', 'tsujiMeshMonth11', 'tsujiMeshMonth12'].forEach(k => params.set(k, appState[k] ? 'true' : 'false'));
 
     const url = buildShareUrl(params);
     navigator.clipboard.writeText(url).then(() => {
@@ -13856,6 +13887,8 @@ function restoreFromUrl() {
         if (params.has('tsujiDowFri')) { appState.tsujiDowFri = params.get('tsujiDowFri') === 'true'; }
         if (params.has('tsujiDowSat')) { appState.tsujiDowSat = params.get('tsujiDowSat') === 'true'; }
         if (params.has('tsujiDowSun')) { appState.tsujiDowSun = params.get('tsujiDowSun') === 'true'; }
+        if (params.has('tsujiMonthFilter')) { appState.tsujiMonthFilter = params.get('tsujiMonthFilter') === 'true'; }
+        _MONTH_DEFS.forEach(([suf]) => { if (params.has('tsujiMonth' + suf)) appState['tsujiMonth' + suf] = params.get('tsujiMonth' + suf) === 'true'; });
     }
 
     // 辻メッシュ検索パラメータ (mode=tsujimeshの時のみ)
@@ -13875,6 +13908,8 @@ function restoreFromUrl() {
         meshBool('tsujiMeshElevOK', 'tsujiMeshElevOK'); meshBool('tsujiMeshElevNG', 'tsujiMeshElevNG');
         meshBool('tsujiMeshTimeFilter', 'tsujiMeshTimeFilter');
         ['Filter','Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => meshBool('tsujiMeshDow' + d, 'tsujiMeshDow' + d));
+        meshBool('tsujiMeshMonthFilter', 'tsujiMeshMonthFilter');
+        _MONTH_DEFS.forEach(([suf]) => meshBool('tsujiMeshMonth' + suf, 'tsujiMeshMonth' + suf));
         ['Start', 'End'].forEach(G => {
             meshStr('tsujiMesh' + G + 'Mode', 'tsujiMesh' + G + 'Mode');
             meshStr('tsujiMesh' + G + 'Time', 'tsujiMesh' + G + 'Time');
@@ -16190,6 +16225,7 @@ function _smInit() {
     _smSky = _smBuildSky();
     _smScene.add(_smSky);
     _smTerrainGrp = new THREE.Group(); _smScene.add(_smTerrainGrp);   // F3: DEM地形(前景)
+    _smGroundGrp = new THREE.Group(); _smScene.add(_smGroundGrp);     // 地平線下の閉じ蓋(地表の下に天球が透けない。第80ラウンド)
     _smBldgGrp = new THREE.Group(); _smScene.add(_smBldgGrp);         // 都市モード: PLATEAU建物(実寸ENU。地形と相互遮蔽)
     _fwGrp = new THREE.Group(); _smScene.add(_fwGrp);                 // 花火モード(実寸ENU。地形で遮蔽される)
     _smMwRingGrp = new THREE.Group(); _smScene.add(_smMwRingGrp);     // 天の川の環(銀河赤道, キャッシュ)
@@ -18853,6 +18889,39 @@ function _smUpdateMilkyWayRing() {
 }
 // --- F3: DEM地形(山稜線・グレースケール/白黒・フォーカスピーキング) ---
 let _smTerrainGrp = null, _smTerrainMesh = null, _smHeightfield = null, _smGeomKey = '', _smShadeKey = '', _smTerrainGen = 0;
+let _smGroundGrp = null, _smGroundKey = '';   // 地平線下の閉じ蓋(伏角キーで再構築)
+
+/** 地平線下の閉じ蓋(第80ラウンド・「地表の下に天の川」調査): 地形の扇は視界範囲と画角の分しか
+ *  覆わないため、見下ろした時や扇の外の方位で「地平線(伏角)より下」の画素に天球(天の川・
+ *  地平線下の星)がそのまま透けて見えていた。伏角から下を暗い球帽で塞ぐ。
+ *  半径は地形(≤300km)より外・天体(400km)より内=地形は蓋の手前に描かれ、天体・天球は蓋の裏に隠れる */
+const _SM_GROUND_R = 350000;
+function _smUpdateGroundCap() {
+    if (!_smGroundGrp) return;
+    const dip = getHorizonDip(Number(appState.start.elev) || 0);   // 伏角(°)
+    const key = dip.toFixed(3);
+    if (key === _smGroundKey) return;
+    _smGroundKey = key;
+    while (_smGroundGrp.children.length) { const c = _smGroundGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
+    const altTop = -dip, altBot = -89.5, NA = 96, NR = 8;
+    const pos = [];
+    for (let j = 0; j <= NR; j++) {
+        const alt = altTop + (altBot - altTop) * (j / NR);
+        for (let i = 0; i <= NA; i++) {
+            const v = _smDir(i * 360 / NA, alt).multiplyScalar(_SM_GROUND_R);
+            pos.push(v.x, v.y, v.z);
+        }
+    }
+    const idxArr = [];
+    for (let j = 0; j < NR; j++) for (let i = 0; i < NA; i++) {
+        const a = j * (NA + 1) + i, b = a + 1, c = a + (NA + 1), d = c + 1;
+        idxArr.push(a, b, c, b, d, c);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idxArr);
+    _smGroundGrp.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x0b0e12, side: THREE.DoubleSide })));
+}
 
 /** 現在日時・観測点での太陽のENU方向(単位ベクトル)と高度。地形ヒルシェードの光源に使う。
  * 夜間(太陽が地平線下)は方位を保ちつつ高度を底上げし、尾根のレリーフを常に維持する。 */
@@ -18905,6 +18974,7 @@ function _smUpdateTerrain() {
         _smGeomKey = geomKey;
         _smFetchTerrain(centerAz, aovH, range, zoom);
     }
+    _smUpdateGroundCap();   // 地平線下の閉じ蓋(伏角=観測点標高が変わった時のみ再構築)
     _smApplyShading();
     _smBldgUpdate();   // 都市モード: PLATEAU建物(独自の鍵で差分更新)
 }

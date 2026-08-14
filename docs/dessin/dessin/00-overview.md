@@ -152,6 +152,7 @@
 | tsujiAccDblCircle / tsujiAccCircle / tsujiAccTriangle / tsujiAccDash | \[ true \| false \] | 精度◎/○/△/-の各フィルタ。 |
 | tsujiElevationOption / tsujiElevOK / tsujiElevNG | \[ true \| false \] | 標高フィルタ/OK/NGフィルタ。 |
 | tsujiDowFilter / tsujiDowMon / tsujiDowTue / tsujiDowWed / tsujiDowThu / tsujiDowFri / tsujiDowSat / tsujiDowSun | \[ true \| false \] | 曜日フィルタ/月〜日の各チェック(第62ラウンド追加。短縮URL辞書はv14へ)。 |
+| tsujiMonthFilter / tsujiMonth1〜tsujiMonth12 | \[ true \| false \] | 月間フィルタ/1月〜12月の各チェック(第80ラウンド追加。短縮URL辞書はv15へ)。 |
 | tsujiTimeFilter | \[ true \| false \] | 時間フィルタ。 |
 | tsujiStartMode | \[ fixed \| astroDawn \| nautDawn \| yoake \| civilDawn \| bhEndGhStart \| sunrise \| ghEnd \| ghStart \| sunset \| ghEndBhStart \| civilDusk \| higure \| nautDusk \| astroDusk \] | 時間フィルタ開始の時刻モード(fixed=時刻指定、他は薄明/日の出入り等)。省略時はsunset。 |
 | tsujiStartTime | 00:00 (URL上は00%3A00) | 開始がfixedの時の時刻。 |
@@ -171,6 +172,7 @@
 | tsujiMeshMoonFilter / tsujiMeshMoonBase / tsujiMeshMoonTolerance | false / 14.8 / 2 | 月齢フィルタ/基準月齢/許容範囲。 |
 | tsujiMeshElevationOption / tsujiMeshElevOK / tsujiMeshElevNG | \[ true \| false \] | 標高フィルタ/OK/NGフィルタ。 |
 | tsujiMeshDowFilter / tsujiMeshDowMon / tsujiMeshDowTue / tsujiMeshDowWed / tsujiMeshDowThu / tsujiMeshDowFri / tsujiMeshDowSat / tsujiMeshDowSun | \[ true \| false \] | 曜日フィルタ/月〜日の各チェック(第62ラウンド追加。短縮URL辞書はv14へ)。 |
+| tsujiMeshMonthFilter / tsujiMeshMonth1〜tsujiMeshMonth12 | \[ true \| false \] | 月間フィルタ/1月〜12月の各チェック(第80ラウンド追加。短縮URL辞書はv15へ)。 |
 | tsujiMeshTimeFilter | \[ true \| false \] | 時間フィルタ。 |
 | tsujiMeshStartMode / tsujiMeshStartTime / tsujiMeshStartPrePost / tsujiMeshStartPrePostDir / tsujiMeshStartOffset | (辻検索と同じ値域) | 時間フィルタ開始side。 |
 | tsujiMeshEndMode / tsujiMeshEndTime / tsujiMeshEndPrePost / tsujiMeshEndPrePostDir / tsujiMeshEndOffset | (辻検索と同じ値域) | 時間フィルタ終了side。 |

@@ -24,12 +24,12 @@ check('T0 Version Historyに1.57.0の行がある', src.includes('Version 1.57.0
     const enc = qp.enc(long);
     check('T1 v14辞書: 曜日キー入りURLのenc→decラウンドトリップ', qp.dec(enc) === long && enc.length < long.length,
         `enc=${enc.length} long=${long.length}`);
-    check('T1 辞書は14版', qp.VERSIONS.length === 14, `versions=${qp.VERSIONS.length}`);
+    check('T1 辞書は15版以上(v14キーは以後の版にも引き継がれる)', qp.VERSIONS.length >= 15, `versions=${qp.VERSIONS.length}`);
 }
 
 // ---- T2: 静的な形 ----
-check('T2 My辻リストCSVヘッダは28列目の後に曜日8列(29〜36列目)',
-    src.includes(',終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,精度フィルタ,'));
+check('T2 My辻リストCSVヘッダは28列目の後に曜日8列(29〜36列目。第80で直後に月間13列)',
+    src.includes(',終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,月間フィルタ,'));
 check('T2 結果コントロールの部品(tsujires/tsujimeshres)がindex.htmlに存在', (() => {
     const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
     return ['chk-tsujires-moon-filter', 'chk-tsujires-dow-filter', 'chk-tsujires-elev-filter', 'btn-tsujires-file',
@@ -71,17 +71,17 @@ check('T2 結果コントロールの部品(tsujires/tsujimeshres)がindex.html�
             const head = lines[0].split(',');
             const cols = lines[1].split(',');
             const back = parseMyTsujiCsvLine(cols, 2);
-            // 37列旧形式(曜日8列=29〜36列目を抜いた形)も読める(既定=オフ)
-            const legacy37 = cols.slice(0, 28).concat(cols.slice(36));
+            // 37列旧形式(曜日8列+月間13列=29〜49列目を抜いた形)も読める(既定=オフ)
+            const legacy37 = cols.slice(0, 28).concat(cols.slice(49));
             const backOld = parseMyTsujiCsvLine(legacy37, 2);
             return { nCols: cols.length, nHead: head.length, hdr29: head[28], hdr36: head[35], hdr37: head[36],
                 dow: back && [back.dowFilter, back.dowTue, back.dowSat, back.dowMon], center: back && back.centerMode,
                 acc: back && back.accuracyFilter, memo: back && back.memo,
                 oldCols: legacy37.length, oldDow: backOld && backOld.dowFilter, oldAcc: backOld && backOld.accuracyFilter };
         });
-        check('U1 45列CSV: 29列目=曜日フィルタ・36列目=曜日日フィルタ・37列目=精度フィルタ',
-            r.nCols === 45 && r.nHead === 45 && r.hdr29 === '曜日フィルタ' && r.hdr36 === '曜日日フィルタ' && r.hdr37 === '精度フィルタ', JSON.stringify({ n: r.nCols, h29: r.hdr29 }));
-        check('U1 45列の入出力ラウンドトリップ(曜日・検索中心・精度・メモ)',
+        check('U1 58列CSV: 29列目=曜日フィルタ・36列目=曜日日フィルタ・37列目=月間フィルタ(第80で45→58列)',
+            r.nCols === 58 && r.nHead === 58 && r.hdr29 === '曜日フィルタ' && r.hdr36 === '曜日日フィルタ' && r.hdr37 === '月間フィルタ', JSON.stringify({ n: r.nCols, h29: r.hdr29, h37: r.hdr37 }));
+        check('U1 58列の入出力ラウンドトリップ(曜日・検索中心・精度・メモ)',
             JSON.stringify(r.dow) === '[true,true,true,false]' && r.center === 'line' && r.acc === true && r.memo === 'メモ', JSON.stringify(r.dow));
         check('U1 37列旧形式は曜日既定オフで読める(精度等の後続列はズレない)',
             r.oldCols === 37 && r.oldDow === false && r.oldAcc === true);
