@@ -763,6 +763,11 @@ html {
 #soramado-ctrl-body .control-row { margin: 4px auto; }   /* 上下4px+左右autoで中央配置 */
 #soramado-ctrl-body .input-label,
 #soramado-ctrl-body .sora-val { color: #eee; }
+/* 暗背景のctrl内はクラス無しのspan(取得状況・表示タイル数・ばらつき値)と通常ラベルも白に
+   (第79ラウンド: 「30タイル/3,490棟」「30枚」「0」が黒字・「:花火点(+)」が灰色で沈んでいた修正。
+   金色のグループ見出し.soramado-ctrl-groupは:notで除外して従来色を維持) */
+#soramado-ctrl-body .control-row span { color: #eee; }
+#soramado-ctrl-body .control-row label:not(.soramado-ctrl-group) { color: #eee; }
 .soramado-ctrl-group {
     font-weight: bold;
     font-size: 12px;
