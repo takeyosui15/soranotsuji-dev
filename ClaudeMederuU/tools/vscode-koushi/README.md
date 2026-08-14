@@ -43,15 +43,15 @@ input要素を、箇条書きの書き味のまま書けます。
 
 ### 方法A: vsixファイルで入れる(おすすめ)
 
-1. このフォルダの `koushi-preview-0.3.1.vsix` を使います(旧版が入っていても上書きされます)。
+1. このフォルダの `koushi-preview-0.3.2.vsix` を使います(旧版が入っていても上書きされます)。
 2. VSCodeの拡張ビュー(⇧⌘X)右上の「…」→「Install from VSIX...」でファイルを選ぶ。
-   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.3.1.vsix`)
+   (またはターミナルで `code --install-extension <このフォルダ>/koushi-preview-0.3.2.vsix`)
 3. VSCodeを再読み込み(⇧⌘P→「Reload Window」)。
 
 ### 方法B: フォルダを拡張ディレクトリへコピーする(vsixが使えない時の予備)
 
 ```sh
-cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.3.1
+cp -R ClaudeMederuU/tools/vscode-koushi ~/.vscode/extensions/soranotsuji.koushi-preview-0.3.2
 ```
 
 その後、VSCodeを再読み込み。アンインストールはこのフォルダを削除するだけです。

@@ -2,7 +2,7 @@
   "name": "koushi-preview",
   "displayName": "Koushi: Markdown Spanning Table",
   "description": "Write tables with merged cells (colspan/rowspan) as Markdown-style bullet lists. Renders ```koushi fences in the Markdown preview, with editor highlighting. 結合セル対応の表をMarkdownの箇条書きで書けるKoushi(格子)記法のプレビュー+ハイライト",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "takeyosui15",
   "license": "MIT",
   "icon": "icon.png",

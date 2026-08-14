@@ -21,6 +21,11 @@ bullet lists while giving you all of that.
 
 The icon of this extension is exactly this table.
 
+Here is what the Samples chapter below looks like in the VS Code preview
+(下の「Samples / サンプル」章をVS Codeでプレビューした実際の見た目です):
+
+![Koushi tables rendered in the VS Code Markdown preview / VS CodeのMarkdownプレビューで描画されたKoushiの表](sample.png)
+
 ## Quick start
 
 1. Install the **Koushi: Markdown Spanning Table** extension.
@@ -124,9 +129,11 @@ MIT — see [LICENSE](LICENSE).
 
 Copy any block below into a Markdown file and open the preview (`Cmd+Shift+V` /
 `Ctrl+Shift+V`). On GitHub these blocks show as plain code — they render as tables
-in VS Code with this extension installed.
+in VS Code with this extension installed. The screenshot near the top of this page
+shows exactly these samples rendered.
 下のブロックをMarkdownファイルに貼ってプレビューしてください(GitHub上では
-生のコードとして表示されます。表になるのはこの拡張が入ったVS Codeの中です)。
+生のコードとして表示されます。表になるのはこの拡張が入ったVS Codeの中です。
+このページ冒頭のスクリーンショットが、この章の描画結果です)。
 
 ### Spanning cells / 結合セル (the icon of this extension / この拡張のアイコンの絵)
 
@@ -216,8 +223,6 @@ Numbers like `c:1.` are only markers for humans — the renderer skips them.
     - c:4.
       - clr:"#f0b429".
 ```
-
-![preview / プレビュー](sample.png)
 
 ---
 
