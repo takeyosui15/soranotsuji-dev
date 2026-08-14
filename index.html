@@ -546,8 +546,13 @@ GNU General Public License for more details.
                     <select id="sel-fw-ctrl-size" title="花火玉の号数(宙の窓メニューと連動)">
                         <option value="2.5">2.5号</option>
                         <option value="3">3号</option>
+                        <option value="4">4号</option>
                         <option value="5">5号</option>
+                        <option value="6">6号</option>
+                        <option value="7">7号</option>
+                        <option value="8">8号</option>
                         <option value="10" selected>10号(尺玉)</option>
+                        <option value="20">20号(二尺玉)</option>
                         <option value="30">30号(三尺玉)</option>
                         <option value="40">40号(四尺玉)</option>
                     </select>
@@ -558,15 +563,11 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">開花高度:</label>
-                    <input type="text" id="fw-ctrl-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
-                    <span class="sora-val">-</span>
-                    <input type="text" id="fw-ctrl-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                    <input type="text" id="fw-ctrl-alt" class="sora-mov-num" readonly title="開花高度(m)">
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">開花直径:</label>
-                    <input type="text" id="fw-ctrl-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
-                    <span class="sora-val">-</span>
-                    <input type="text" id="fw-ctrl-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                    <input type="text" id="fw-ctrl-dia" class="sora-mov-num" readonly title="開花直径(m)">
                 </div>
                 <div class="control-row left-row">
                     <label class="input-label tsujisearch-label">表示モード:</label>
@@ -1242,8 +1243,13 @@ GNU General Public License for more details.
                         <select id="sel-fw-size" title="花火玉の号数(開花高度・開花直径の表示に反映。固定モードの打ち上げ玉)">
                             <option value="2.5">2.5号</option>
                             <option value="3">3号</option>
+                            <option value="4">4号</option>
                             <option value="5">5号</option>
+                            <option value="6">6号</option>
+                            <option value="7">7号</option>
+                            <option value="8">8号</option>
                             <option value="10" selected>10号(尺玉)</option>
+                            <option value="20">20号(二尺玉)</option>
                             <option value="30">30号(三尺玉)</option>
                             <option value="40">40号(四尺玉)</option>
                         </select>
@@ -1254,15 +1260,11 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <label class="input-label">開花高度:</label>
-                        <input type="text" id="fw-alt-lo" class="sora-mov-num" readonly title="開花高度の最低(m)">
-                        <span class="sora-val">-</span>
-                        <input type="text" id="fw-alt-hi" class="sora-mov-num" readonly title="開花高度の最高(m)">
+                        <input type="text" id="fw-alt" class="sora-mov-num" readonly title="開花高度(m)">
                     </div>
                     <div class="control-row">
                         <label class="input-label">開花直径:</label>
-                        <input type="text" id="fw-dia-lo" class="sora-mov-num" readonly title="開花直径の最低(m)">
-                        <span class="sora-val">-</span>
-                        <input type="text" id="fw-dia-hi" class="sora-mov-num" readonly title="開花直径の最高(m)">
+                        <input type="text" id="fw-dia" class="sora-mov-num" readonly title="開花直径(m)">
                     </div>
                     <div class="control-row left-row">
                         <label class="input-label">表示モード:</label>
@@ -1278,7 +1280,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row">
                         <label class="input-label">表示オプション:</label>
-                        <input type="checkbox" id="chk-sora-fw-point" class="body-checkbox" checked><label for="chk-sora-fw-point" title="花火の開花の中心点を十字記号(+)で表示(開花高度は色々=40号の高い方/固定=選択号数の高い方)">:花火点(+)</label>
+                        <input type="checkbox" id="chk-sora-fw-point" class="body-checkbox" checked><label for="chk-sora-fw-point" title="花火の開花の中心点を十字記号(+)で表示(開花高度は色々=40号/固定=選択号数)">:花火点(+)</label>
                     </div>
                     <div class="control-row left-row">
                         <label class="baseopt-group-label" title="花火点の位置情報(辻検索とは連動しません)">位置情報</label>
@@ -2086,6 +2088,7 @@ GNU General Public License for more details.
                                 <li><strong>表示されるのはPLATEAU整備都市のみ</strong>です (全国約300市区町村。国の整備拡大に合わせて順次更新)。未整備の地域はビルが出ないだけで、地形は従来どおり表示されます。</li>
                                 <li><strong>:テクスチャ</strong>: ONで航空写真由来のテクスチャ付き (LOD2)、OFFで無テクスチャの単色+陰影になります。建物は太陽高度に合わせて減光し、夜の暗さは月と連動します (月のない夜は暗く・満月が高い夜はほんのり明るく)。単色のビルは夜になると窓明かりが灯ります (テクスチャ付きビルは写真自身の窓があるため減光のみ)。</li>
                                 <li><strong>表示タイル数</strong>: 建物タイルの同時表示数です (1〜500。画面で大きく写る順に選ばれます)。初期値30は毎回適用され、保存されません (大きな値のまま再訪して端末が重くなるのを防ぐため)。大きいほどメモリを使うため、スマホでは控えめな値をおすすめします。</li>
+                                <li><strong>整備年度</strong>: 取得状況の「◯タイル/◯棟」の後に、表示中の建物データの整備年度を表示します (例: 2023年度。複数都市で年度が違う場合は範囲表示)。PLATEAUの3D都市モデルが作られた年度で、いつ時点の街並みかの目安になります (それ以降に建った・壊されたビルは反映されていません)。</li>
                                 <li>建物データの出典: <a href="https://www.mlit.go.jp/plateau/" target="_blank" rel="noopener noreferrer">国土交通省 Project PLATEAU</a> (CC BY 4.0)。配信中の3D都市モデル (建築物モデル) をストリーミング参照しています。メッシュ展開には<a href="https://github.com/google/draco" target="_blank" rel="noopener noreferrer">Google Draco</a> (Apache-2.0) を使用しています。</li>
                             </ul>
                         </li>

@@ -26,11 +26,12 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   // F1: UIの存在と初期値(メニュー/ctrl両方)
   {
     const r=await p.evaluate(()=>{
+      // 第78ラウンド: 開花高度/直径は各1値になった(fw-alt-lo/hi → fw-alt 等)
       const ids=['chk-sora-fw','input-fw-latlng','input-fw-api-elev','input-fw-height','input-fw-radius',
-        'sel-fw-size','fw-ball-dia','fw-alt-lo','fw-alt-hi','fw-dia-lo','fw-dia-hi',
+        'sel-fw-size','fw-ball-dia','fw-alt','fw-dia',
         'fw-spread-label','input-fw-spread','chk-sora-fw-point','input-fw-base-az','input-fw-base-alt',
         'chk-sora-ctrl-fw','input-fw-ctrl-latlng','input-fw-ctrl-api-elev','input-fw-ctrl-height','input-fw-ctrl-radius',
-        'sel-fw-ctrl-size','fw-ctrl-ball-dia','fw-ctrl-alt-lo','fw-ctrl-alt-hi','fw-ctrl-dia-lo','fw-ctrl-dia-hi',
+        'sel-fw-ctrl-size','fw-ctrl-ball-dia','fw-ctrl-alt','fw-ctrl-dia',
         'fw-ctrl-spread-label','input-fw-ctrl-spread','chk-sora-ctrl-fw-point'];
       const missing=ids.filter(id=>!document.getElementById(id));
       const modeR=document.querySelector('input[name="fw-mode"][value="vary"]');
@@ -40,7 +41,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
                   appState.fwSpread===0 && appState.fwShowPoint===true && appState.fwLat===null,
         modeChecked: modeR&&modeR.checked&&modeRC&&modeRC.checked };
     });
-    check('F1 花火UI 全30要素+モードラジオが存在', r.missing===''&&!!r.modeChecked, r.missing);
+    check('F1 花火UI 全26要素+モードラジオが存在', r.missing===''&&!!r.modeChecked, r.missing);
     check('F1 初期値(オフ・10号・色々・ばらつき0・花火点オン・打ち上げ点未設定)', r.defaults);
   }
 
@@ -52,19 +53,19 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       sel.value='40'; sel.dispatchEvent(new Event('change'));
       await new Promise(r=>setTimeout(r,50));
       const v=id=>document.getElementById(id).value;
-      const at40={ball:v('fw-ball-dia'),altLo:v('fw-alt-lo'),altHi:v('fw-alt-hi'),dia:v('fw-dia-lo'),ctrlBall:v('fw-ctrl-ball-dia'),ctrlSel:v('sel-fw-ctrl-size')};
+      const at40={ball:v('fw-ball-dia'),alt:v('fw-alt'),dia:v('fw-dia'),ctrlBall:v('fw-ctrl-ball-dia'),ctrlSel:v('sel-fw-ctrl-size')};
       const selC=document.getElementById('sel-fw-ctrl-size');
       selC.value='2.5'; selC.dispatchEvent(new Event('change'));   // ctrl側からの変更もメニューへ連動
       await new Promise(r=>setTimeout(r,50));
-      const at25={ball:v('fw-ball-dia'),alt:v('fw-alt-lo'),dia:v('fw-dia-hi'),mainSel:v('sel-fw-size'),state:appState.fwSize};
+      const at25={ball:v('fw-ball-dia'),alt:v('fw-alt'),dia:v('fw-dia'),mainSel:v('sel-fw-size'),state:appState.fwSize};
       sel.value='10'; sel.dispatchEvent(new Event('change'));
       return {at40,at25};
     });
-    check('F2 40号仕様(120cm/700-750m/700m)+ctrlミラー',
-      r.at40.ball==='120cm'&&r.at40.altLo==='700m'&&r.at40.altHi==='750m'&&r.at40.dia==='700m'&&r.at40.ctrlBall==='120cm'&&r.at40.ctrlSel==='40',
+    check('F2 40号仕様(114cm/750m/750m)+ctrlミラー',
+      r.at40.ball==='114cm'&&r.at40.alt==='750m'&&r.at40.dia==='750m'&&r.at40.ctrlBall==='114cm'&&r.at40.ctrlSel==='40',
       JSON.stringify(r.at40));
-    check('F2 ctrl→メニュー連動(2.5号: 7.5cm/80m/50m)',
-      r.at25.ball==='7.5cm'&&r.at25.alt==='80m'&&r.at25.dia==='50m'&&r.at25.mainSel==='2.5'&&r.at25.state==='2.5',
+    check('F2 ctrl→メニュー連動(2.5号: 6.9cm/80m/50m)',
+      r.at25.ball==='6.9cm'&&r.at25.alt==='80m'&&r.at25.dia==='50m'&&r.at25.mainSel==='2.5'&&r.at25.state==='2.5',
       JSON.stringify(r.at25));
   }
 
@@ -128,14 +129,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const anim=_fwAnimReq!==null;
       // 花火点(+)は depthTest:false のスプライト
       const findCross=()=>_fwGrp?_fwGrp.children.find(c=>c.isSprite):null;
-      // 色々モード(既定): 花火点=40号の開花高度の高い方(750m)
+      // 色々モード(既定): 花火点=40号の開花高度(750m)
       let cross=findCross();
       let crossOk=false;
       if(cross){
-        const c0=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS[5].altHi);
+        const c0=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS.find(s=>s.key==='40').alt);
         crossOk=Math.abs(cross.position.x-c0.E)<1&&Math.abs(cross.position.y-c0.N)<1&&Math.abs(cross.position.z-c0.z)<1;
       }
-      // 固定モード+10号: 花火点=10号の開花高度(330m)へ移動
+      // 固定モード+10号: 花火点=10号の開花高度(300m)へ移動
       const fixed=document.querySelector('input[name="fw-mode"][value="fixed"]');
       fixed.checked=true; fixed.dispatchEvent(new Event('change'));
       appState.fwSize='10';
@@ -143,7 +144,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       cross=findCross();
       let crossFixedOk=false;
       if(cross){
-        const c1=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS[3].altHi);
+        const c1=_fwEnu(fwEffElev()+appState.fwHeight+FW_SHELLS.find(s=>s.key==='10').alt);
         crossFixedOk=Math.abs(cross.position.z-c1.z)<1;
       }
       const vary=document.querySelector('input[name="fw-mode"][value="vary"]');
@@ -156,7 +157,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     });
     check('F5 アニメーションループ起動+花火玉が打ち上がる', r.anim&&r.shells>0&&r.children>0, `shells=${r.shells} children=${r.children}`);
     check('F5 花火点(+)=色々モードは40号の開花高度(750m)', r.crossOk);
-    check('F5 花火点(+)=固定モードは選択号数の開花高度(10号330m)', r.crossFixedOk);
+    check('F5 花火点(+)=固定モードは選択号数の開花高度(10号300m)', r.crossFixedOk);
     check('F5 実寸ENU(打ち上げ点距離=測地線距離)', r.distOk);
   }
 
@@ -176,7 +177,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
       const hi=sample(100), lo=sample(-100), mid=sample(0);
       appState.fwSpread=0;
       return {
-        hiAll40: hi.every(R=>R>=349&&R<=351),          // 40号: 開花直径700m→R=350
+        hiAll40: hi.every(R=>R>=374&&R<=376),          // 40号: 開花直径750m→R=375
         loAll25: lo.every(R=>R>=24&&R<=26),            // 2.5号: 開花直径50m→R=25
         midVariety: new Set(mid.map(R=>Math.round(R))).size>=3,
       };

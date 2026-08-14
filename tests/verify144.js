@@ -9,8 +9,8 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- V0: 版数ピン(最新のverifyに集約) ----
-check('V0 APP_VERSION 1.61.0', src.includes("APP_VERSION = '1.61.0'") || !!process.argv[2]);
+// ---- V0: 版数の存在検査(版数ピンは最新のverify145へ移行済み) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.61.0の行がある', src.includes('Version 1.61.0 - ') || !!process.argv[2]);
 
 // ---- V1: 静的な形(印の立つ場所・消える場所・判定の一元化) ----

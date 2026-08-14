@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.62.0 - 2026-08-14: fix/feat: 第78ラウンド(怒号の修正 第1陣) — ①標高グラフのキャンセル修正: 標高グラフ→宙の窓へ即切替すると宙の窓に可視判定ポップアップが出る不具合。世代ガードがfetchAllElevationsの内側だけにあり、呼び出し元startElevationFetchがawait後に無条件でdrawProfileGraph+showVisibilityResultを実行していた。世代を呼び出し元が採番してawait後に照合し、途中キャンセル(パネル切替・再実行)なら何もしない ②宙の窓のセンサーサイズからモバイル機種項目(iPhone/Pixel/Xperia等16項目)を削除(機種追随の更新負担のため): 汎用型は網羅済みで、保存データ・共有URLの旧keyは同寸または最寄りの汎用型へ読み替え(SORA_SENSOR_ALIASES。短縮URL辞書v12は凍結のまま=旧URLもそのまま読める) ③宙の窓の天体軌跡を「基準日時の前後36時間」の連続1本線に(従来は前日/当日/翌日の各日0:00〜23:59の3本=基準時刻に対して非対称だった)。日周3周ぶんで画面内に必ず3本の線が乗り、先の動きが分かる。中心時刻は正時丸めでキャッシュ(分単位の日時変更・再生中の毎フレーム再計算を回避) ④花火仕様の全面更新(11種): 2.5/3/4/5/6/7/8/10/20/30/40号(玉の直径6.9〜114cm)。開花高度・開花直径は最低/最高の幅を廃止して各1値に(表示欄も1本化・デッサン06とverify99を新仕様へ更新) ⑤アクセスカウンターのGAS(gas_spredsheet.js)の行探索ループを廃止: データ行は3行目=1月1日から日順の規約のため、年初からの日数で行番号を直接計算(求めた行の1セル検証+規約外シートのみ従来走査へフォールバック。「- - -」の一因だった実行時間とロック保持時間を短縮。GAS側は依頼者の再デプロイで反映)
 Version 1.61.0 - 2026-08-09: fix: 第68ラウンド — 状態遷移表(第67)で見つけた穴の修正(案a・依頼者GO): 端末側を編集して付いた👎が、状態アイコンの再確認(時刻比較)で👍「同期が取れています」に戻ってしまう問題。「端末側に未保存の変更がある」印(localEdit)をセット自身に永続で持ち、時刻が一致しても印がある間は👎のまま+案内を「端末側に未保存の変更があります」へ。印は編集時に立ち、保存/読込の成功(内容が揃った時)に消える。ログイン時の一括確認も同じ判定(純関数_mySetSyncVerdictへ一元化)。複製は元の印を引き継ぐ(端末コピー⇄シートコピーに同じ差が写るため)。解除で印も掃除
 Version 1.60.0 - 2026-08-06: fix/feat: 第65ラウンド — ①Hom/推山リセットを「セットでリセット」へ(依頼者提案): DEFAULT_START/ENDに名前(東京タワー/富士山)を持たせ、リセット時は名前・座標・標高・高さの全てを既定値表から入れる(第64の座標一致判定を介した入れ直しより単純で安全。座標一致の自動記入は初期表示・手入力用に存続し名前は同じ表を参照) ②都市ビル表示タイル数の上限300→500(Mac実測を受けて依頼者指定。LRUキャッシュ520。予算計算・正規化は既定値表参照のため表の1箇所+スライダー属性のみの変更) ③不具合報告2件(辻オフセット方位角の正負が逆・検索中心「線」が「点」と同じ)の調査: 実検索とスクリーンショットの実測では現状の向き・距離とも正しく、8月の幾何では最良点が線分終点より先になるため点=線の数値が数学的に一致する(冬日付では異なることを実測)。経緯と再現手順のお願いは回答その63。将来のリファクタでの符号反転を検知する「向きの凍結標本」をverify143に常設
 Version 1.59.0 - 2026-08-05: fix/feat: 第64ラウンド — 前ラウンドのフィードバック4件 ①辻メッシュ検索の結果コントロールの精度フィルタを検索メニューと同じ読み取り専用固定へ(精度フィルタ=オン・◎=オン・○△-=オフ、全て操作不可。ユーザーが迷わないように両メニューを揃える: 依頼者指定。値の実質は従来と同じ=◎クラスのみ表示) ②観測点の初期値(東京タワー)を展望台の理想位置へ(35.6585309298041, 139.74538790268673。最大ズーム+2で依頼者が取得した建物中心近くの実測値。地面標高はGSI 1mレーザで旧位置と同じ18.5mのため据え置き) ③Hom/推山リセットで観測点名/目的点名が入らない不具合を修正 — 既定名の記入が座標変化の検出時だけ走るため、座標が既定値のまま(=変化なし)のリセットでは素通りしていた。リセット操作から明示的に入れ直す経路を追加 ④表示タイル数を300へ上げても150で頭打ちになる不具合を修正 — タイル予算計算に旧上限のMath.min(150)が残っていた(スライダー・正規化だけ300へ上げて予算側を見落とし)。あわせてLRUキャッシュ上限160→320(表示中タイルを追い出さない不変条件の維持)
@@ -125,7 +126,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.61.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.62.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -2583,6 +2584,7 @@ function normalizeAppState() {
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = APP_DEFAULTS.tsujiCenterMode.def; });
     // 宙の窓: 一覧が実行時にしか無いもの・インデックス上限が動的なもの
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, APP_DEFAULTS.soraFNumberIdx.def, APP_DEFAULTS.soraFNumberIdx.min, SORA_FNUMBERS.length - 1));
+    if (SORA_SENSOR_ALIASES[appState.soraSensorKey]) appState.soraSensorKey = SORA_SENSOR_ALIASES[appState.soraSensorKey];
     if (!SORA_SENSORS.some(se => se.key === appState.soraSensorKey)) appState.soraSensorKey = APP_DEFAULTS.soraSensorKey.def;
     // 花火モード: 緯度経度は対で検査・号数はFW_SHELLSの実行時一覧+String化
     if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng))) { appState.fwLat = null; appState.fwLng = null; }
@@ -4146,33 +4148,39 @@ async function searchLocation(query) {
         return null;
     }
     try {
-        // 1. 国土地理院 検索
-        const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        // 端末のタイムゾーンが日本以外なら、国土地理院を通らずOSMだけで検索する(第78ラウンド:
+        // 日本国外からの利用で海外地名を引く時にGSIへの無駄な往復を省く。同定できない環境は従来どおりGSI優先)
+        let tzIsJapan = true;
+        try { tzIsJapan = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Tokyo'; } catch (_) {}
+        if (tzIsJapan) {
+            // 1. 国土地理院 検索
+            const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`;
+            const res = await fetch(url);
+            const data = await res.json();
 
-        if (data && data.length > 0) {
-            const muni = await loadMuniData();
-            const gsiResults = data
-                .filter(item => item.properties.title.includes(q))
-                .map(item => {
-                    const code = item.properties.addressCode || '';
-                    const muniStr = (code && muni && muni[code]) || '';
-                    const parts = muniStr.split(',');
-                    const pref = parts[1] || '';
-                    const city = parts[3] || '';
-                    const address = pref && city ? `${pref}　${city}` : '';
-                    return {
-                        lat: item.geometry.coordinates[1],
-                        lon: item.geometry.coordinates[0],
-                        title: item.properties.title,
-                        address: address
-                    };
-                });
-            if (gsiResults.length > 0) return gsiResults;
+            if (data && data.length > 0) {
+                const muni = await loadMuniData();
+                const gsiResults = data
+                    .filter(item => item.properties.title.includes(q))
+                    .map(item => {
+                        const code = item.properties.addressCode || '';
+                        const muniStr = (code && muni && muni[code]) || '';
+                        const parts = muniStr.split(',');
+                        const pref = parts[1] || '';
+                        const city = parts[3] || '';
+                        const address = pref && city ? `${pref}　${city}` : '';
+                        return {
+                            lat: item.geometry.coordinates[1],
+                            lon: item.geometry.coordinates[0],
+                            title: item.properties.title,
+                            address: address
+                        };
+                    });
+                if (gsiResults.length > 0) return gsiResults;
+            }
         }
 
-        // 2. GSI結果0件 → OSMフォールバック
+        // 2. GSI結果0件(またはタイムゾーンが日本以外) → OSMフォールバック
         const urlOsm = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`;
         const resOsm = await fetch(urlOsm);
         const dataOsm = await resOsm.json();
@@ -4398,8 +4406,9 @@ async function getElevation(lat, lng) {
 
 // バッチ標高取得 (標高グラフ用 - タイル単位でまとめて処理)
 let _elevFetchGeneration = 0;
-async function fetchAllElevations(points, onProgress) {
-    const generation = ++_elevFetchGeneration;
+async function fetchAllElevations(points, onProgress, generation) {
+    // 世代はキャンセル判定用。呼び出し側から渡すと await 後の完了判定を共有できる(省略時は内部で採番)
+    if (generation === undefined) generation = ++_elevFetchGeneration;
 
     for (const dem of GSI_DEM_SOURCES) {
         if (generation !== _elevFetchGeneration) return;
@@ -11020,11 +11029,17 @@ async function startElevationFetch() {
     updateProgress(0, 0, appState.elevationData.points.length);
 
     // タイルベースのバッチ処理で標高を取得
+    const generation = ++_elevFetchGeneration;
     await fetchAllElevations(appState.elevationData.points, (fetched, total) => {
         const pct = Math.floor((fetched / total) * 100);
         updateProgress(pct, fetched, total);
         drawProfileGraph();
-    });
+    }, generation);
+
+    // 途中キャンセル(宙の窓等への切替や再実行で世代が進んだ)なら何もしない。
+    // オーバーレイの後始末は打ち切った側が済ませており、ここで可視判定ポップアップを
+    // 出すと切替先の画面に被る
+    if (generation !== _elevFetchGeneration) return;
 
     document.getElementById('progress-overlay').classList.add('hidden');
     drawProfileGraph();
@@ -14758,24 +14773,15 @@ const SORA_SENSORS = [
     { key: 'type255',      name: '1/2.55型 (5.7×4.3)',           w: 5.7,  h: 4.3 },
     { key: 'type30',       name: '1/3.0型 (4.8×3.6)',            w: 4.8,  h: 3.6 },
     { key: 'type36',       name: '1/3.6型 (4.0×3.0)',            w: 4.0,  h: 3.0 },
-    // スマートフォン(主カメラ・広角)。寸法は公開情報ベースの概算(4:3)
-    { key: 'ip_x_11',      name: 'iPhone X/XS/XR/11 (1/2.55型)',            w: 5.7,  h: 4.3 },
-    { key: 'ip_12',        name: 'iPhone 12/12 mini/12 Pro (1/2.55型)',     w: 5.7,  h: 4.3 },
-    { key: 'ip_12pm',      name: 'iPhone 12 Pro Max (1/1.7型)',             w: 7.6,  h: 5.7 },
-    { key: 'ip_13',        name: 'iPhone 13/13 mini (1/1.9型)',             w: 6.8,  h: 5.1 },
-    { key: 'ip_13p_14',    name: 'iPhone 13 Pro/Pro Max・14/14 Plus (1/1.65型)', w: 7.8, h: 5.9 },
-    { key: 'ip_pro48',     name: 'iPhone 14 Pro/15 Pro/16 Pro/17 Pro 系 (1/1.28型)', w: 9.8, h: 7.3 },
-    { key: 'ip_15_16',     name: 'iPhone 15/16 系・17・Air (1/1.56型)',          w: 8.2, h: 6.2 },
-    { key: 'ip_se',        name: 'iPhone SE(第2/3世代) (1/3.0型)',          w: 4.8,  h: 3.6 },
-    { key: 'ipod7',        name: 'iPod touch(第7世代) (1/3.2型)',           w: 4.5,  h: 3.4 },
-    { key: 'px_4a_6a',     name: 'Pixel 4a/5/5a/6a (1/2.55型)',             w: 5.7,  h: 4.3 },
-    { key: 'px_6_7',       name: 'Pixel 6/6 Pro・7/7 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
-    { key: 'px_7a_8a',     name: 'Pixel 7a/8a (1/1.73型)',                  w: 7.4,  h: 5.6 },
-    { key: 'px_8_9',       name: 'Pixel 8/8 Pro・9/9 Pro (1/1.31型)',       w: 9.8,  h: 7.4 },
-    { key: 'xp_1ii_iv',    name: 'Xperia 1/5 (II〜IV) (1/1.7型)',           w: 7.6,  h: 5.7 },
-    { key: 'xp_1v',        name: 'Xperia 1 V/5 V・1 VI (1/1.35型)',         w: 9.6,  h: 7.2 },
-    { key: 'xp_10',        name: 'Xperia 10 (II〜VI) (1/2.8型)',            w: 5.1,  h: 3.8 },
 ];
+// 廃止したスマートフォン項目(第78ラウンド: 機種追随の更新負担のため汎用型のみに)。
+// 保存データ・共有URLの旧keyは最寄りの汎用型へ読み替える(寸法が同じか最も近いもの)
+const SORA_SENSOR_ALIASES = {
+    ip_x_11: 'type255', ip_12: 'type255', ip_12pm: 'type17', ip_13: 'type20',
+    ip_13p_14: 'type17', ip_pro48: 'type128', ip_15_16: 'type17', ip_se: 'type30',
+    ipod7: 'type30', px_4a_6a: 'type255', px_6_7: 'type128', px_7a_8a: 'type17',
+    px_8_9: 'type128', xp_1ii_iv: 'type17', xp_1v: 'type128', xp_10: 'type30',
+};
 const SORA_FOCALS = [6,7.5,8,10,11,12,13,14,15,16,17,18,20,21,24,25,26,28,30,35,36,40,43,45,50,55,58,60,70,72,75,80,85,86,100,105,120,135,140,150,180,200,210,250,300,360,400,500,600,800,1000,1200,1700,2000];
 const SORA_FNUMBERS = [0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.2,3.5,4.0,4.5,5.0,5.6,6.3,7.1,8.0,9.0,10,11,13,14,16,18,20,22];
 
@@ -15033,7 +15039,7 @@ function soraMovSyncUI() {
 
 // --- 再生(インターバルMov): 日時情報メニューと切り離した別処理 ---
 // ワーカープールでフレーム毎の天体位置・空の基底を事前計算してキューに積み、
-// 再生タイマーはデキューして ①天体(位置/視半径/月相) ②軌跡(日替わりのみ) ③空・星座線/領域(回転) を動かすだけ。
+// 再生タイマーはデキューして ①天体(位置/視半径/月相) ②軌跡(正時またぎのみ) ③空・星座線/領域(回転) を動かすだけ。
 // appState.currentDate は再生中も変更しない(辻ライン・地図・メニューの再計算は発生しない)。
 let _movQueue = [], _movFilled = 0, _movPlayIdx = 0, _movGen = 0, _movPlaying = false;
 let _smMovPool = null;
@@ -15187,7 +15193,7 @@ function soraMovTogglePlay() {
             _smSetSkyBasis([ra.x, ra.y, ra.z], [rb.x, rb.y, rb.z]);   // 空・星座線/領域・環が一括で回転
         }
         _smApplyMovBodies(fr, metas);        // 天体(位置・視半径・月相)
-        _smBuildTraj(new Date(fr.t));        // 軌跡は日替わり時のみ内部キャッシュで再構築
+        _smBuildTraj(new Date(fr.t));        // 軌跡は正時をまたいだ時のみ内部キャッシュで再構築
         const d = new Date(fr.t);
         soraExpProgress(`再生中 ${_movPlayIdx}/${n} (${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())})`);
         drawSoramado();   // 再生中はレンダリングのみ(シーン更新はキュー側で完了済み)
@@ -16494,13 +16500,18 @@ function _smAddTargetMarkers(cs) {
 //  放射状の粒が七色で開く。位置・大きさは実寸ENU(地形と同じ見かけ高さ補正)なので、
 //  手前の山による遮蔽や写る大きさが撮影計画にそのまま使える。
 // ============================================================
-const FW_SHELLS = [
-    { key: '2.5', name: '2.5号',        ball: 7.5, altLo: 80,  altHi: 80,  diaLo: 50,  diaHi: 50 },
-    { key: '3',   name: '3号',          ball: 9,   altLo: 120, altHi: 120, diaLo: 60,  diaHi: 100 },
-    { key: '5',   name: '5号',          ball: 15,  altLo: 190, altHi: 190, diaLo: 150, diaHi: 170 },
-    { key: '10',  name: '10号(尺玉)',   ball: 30,  altLo: 330, altHi: 330, diaLo: 280, diaHi: 300 },
-    { key: '30',  name: '30号(三尺玉)', ball: 90,  altLo: 550, altHi: 550, diaLo: 600, diaHi: 600 },
-    { key: '40',  name: '40号(四尺玉)', ball: 120, altLo: 700, altHi: 750, diaLo: 700, diaHi: 700 },
+const FW_SHELLS = [   // 第78ラウンド: 11種・開花高度/直径は各1値(最低/最高の幅を廃止)
+    { key: '2.5', name: '2.5号',        ball: 6.9,  alt: 80,  dia: 50 },
+    { key: '3',   name: '3号',          ball: 8.6,  alt: 120, dia: 100 },
+    { key: '4',   name: '4号',          ball: 11.5, alt: 150, dia: 120 },
+    { key: '5',   name: '5号',          ball: 14.4, alt: 200, dia: 150 },
+    { key: '6',   name: '6号',          ball: 17.3, alt: 220, dia: 180 },
+    { key: '7',   name: '7号',          ball: 20,   alt: 250, dia: 200 },
+    { key: '8',   name: '8号',          ball: 23,   alt: 280, dia: 250 },
+    { key: '10',  name: '10号(尺玉)',   ball: 28.5, alt: 300, dia: 280 },
+    { key: '20',  name: '20号(二尺玉)', ball: 58,   alt: 450, dia: 450 },
+    { key: '30',  name: '30号(三尺玉)', ball: 86,   alt: 600, dia: 600 },
+    { key: '40',  name: '40号(四尺玉)', ball: 114,  alt: 750, dia: 750 },
 ];
 const FW_COLORS = ['#ff5252', '#ffa726', '#ffee58', '#66bb6a', '#42a5f5', '#5c6bc0', '#ab47bc'];   // 七色
 let _fwGrp = null;            // three.jsグループ(_smInitで_smSceneへ追加)
@@ -16510,7 +16521,7 @@ let _fwAnimReq = null;        // アニメーションループのrAFハンド�
 let _fwLastTick = 0;          // 直近の描画時刻(30fpsスロットル)
 let _fwTickDraw = false;      // アニメtick中はdrawSoramadoの静的再構築をスキップ
 
-function fwSelectedShell() { return FW_SHELLS.find(s => s.key === String(appState.fwSize)) || FW_SHELLS[3]; }
+function fwSelectedShell() { return FW_SHELLS.find(s => s.key === String(appState.fwSize)) || FW_SHELLS.find(s => s.key === APP_DEFAULTS.fwSize.def); }
 
 /** 花火点(+)の基準にする号数(デッサン06): 色々=40号(最大)の開花高度、固定=リスト選択の号数の開花高度 */
 function fwPointShell() { return appState.fwMode === 'fixed' ? fwSelectedShell() : FW_SHELLS[FW_SHELLS.length - 1]; }
@@ -16557,8 +16568,8 @@ function _fwSpawnShell(now) {
         idx = Math.min(FW_SHELLS.length - 1, Math.floor(Math.pow(Math.random(), gamma) * FW_SHELLS.length));
     }
     const spec = FW_SHELLS[idx];
-    const bloomAlt = spec.altLo + Math.random() * (spec.altHi - spec.altLo);
-    const R = (spec.diaLo + Math.random() * (spec.diaHi - spec.diaLo)) / 2;
+    const bloomAlt = spec.alt;
+    const R = spec.dia / 2;
     // 打ち上げ位置: 領域半径の円内で一様ランダム
     const rr = Math.max(0, Number(appState.fwRadius) || 0) * Math.sqrt(Math.random());
     const th = Math.random() * 2 * Math.PI;
@@ -16644,10 +16655,10 @@ function _fwUpdateScene(now) {
         }
     }
     // 花火点(+): 開花の中心点(打ち上げ点の緯度経度・標高・高さ+開花高度)。
-    // 開花高度の基準は色々モード=40号の高い方、固定モード=リスト選択の号数の高い方(デッサン06)
+    // 開花高度の基準は色々モード=40号、固定モード=リスト選択の号数(デッサン06)
     if (appState.fwShowPoint && typeof _smCrossTex === 'function') {
         const spec = fwPointShell();
-        const c0 = _fwEnu(fwEffElev() + (Number(appState.fwHeight) || 0) + spec.altHi);
+        const c0 = _fwEnu(fwEffElev() + (Number(appState.fwHeight) || 0) + spec.alt);
         const cs = _SM_CROSS_PX * 2 * Math.tan((_smCamera ? _smCamera.fov : 40) * Math.PI / 360) / Math.max(1, _smFinderH);
         const cross = new THREE.Sprite(new THREE.SpriteMaterial({ map: _smCrossTex('#FFA726'), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
         cross.scale.set(cs, cs, 1);
@@ -16703,10 +16714,8 @@ function fwSyncUI() {
     set('sel-fw-size', String(appState.fwSize)); set('sel-fw-ctrl-size', String(appState.fwSize));
     const spec = fwSelectedShell();
     ['fw-ball-dia', 'fw-ctrl-ball-dia'].forEach(id => set(id, spec.ball + 'cm'));
-    ['fw-alt-lo', 'fw-ctrl-alt-lo'].forEach(id => set(id, spec.altLo + 'm'));
-    ['fw-alt-hi', 'fw-ctrl-alt-hi'].forEach(id => set(id, spec.altHi + 'm'));
-    ['fw-dia-lo', 'fw-ctrl-dia-lo'].forEach(id => set(id, spec.diaLo + 'm'));
-    ['fw-dia-hi', 'fw-ctrl-dia-hi'].forEach(id => set(id, spec.diaHi + 'm'));
+    ['fw-alt', 'fw-ctrl-alt'].forEach(id => set(id, spec.alt + 'm'));
+    ['fw-dia', 'fw-ctrl-dia'].forEach(id => set(id, spec.dia + 'm'));
     const mR = document.querySelector(`input[name="fw-mode"][value="${appState.fwMode}"]`);
     if (mR) mR.checked = true;
     const mRC = document.querySelector(`input[name="fw-mode-ctrl"][value="${appState.fwMode}"]`);
@@ -16716,10 +16725,10 @@ function fwSyncUI() {
     txt('fw-spread-label', (sp > 0 ? '+' : '') + sp); txt('fw-ctrl-spread-label', (sp > 0 ? '+' : '') + sp);
     chk('chk-sora-fw-point', appState.fwShowPoint); chk('chk-sora-ctrl-fw-point', appState.fwShowPoint);
     // 位置情報: 観測点→花火点の基準方位角/基準視高度(算出値。辻検索とは非連動)。
-    // 開花高度の基準は花火点(+)と同じ(色々=40号/固定=選択号数の高い方)
+    // 開花高度の基準は花火点(+)と同じ(色々=40号/固定=選択号数)
     const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, p.lat, p.lng);
     const az = calculateBearing(appState.start.lat, appState.start.lng, p.lat, p.lng);
-    const fwTot = fwEffElev() + (Number(appState.fwHeight) || 0) + fwPointShell().altHi;
+    const fwTot = fwEffElev() + (Number(appState.fwHeight) || 0) + fwPointShell().alt;
     const alt = calculateApparentAltitude(dist, Number(appState.start.elev) || 0, fwTot, appState.start.lat, p.lat);
     set('input-fw-base-az', az.toFixed(2));
     set('input-fw-base-alt', alt.toFixed(2));
@@ -18619,20 +18628,22 @@ function _smBuildBodies() {
     _smAddTargetMarkers(tcs);
 }
 
-/** 表示天体の軌跡(前後1日の各日0:00〜23:59を1本ずつ＝計3本, 天体色の細線)。日・位置・対象が変わった時のみ再計算 */
+/** 表示天体の軌跡(基準日時の前後36時間を1本の連続線で描画=日周3周ぶんで画面内に必ず3本の線が乗る, 天体色の細線)。
+ *  中心時刻は最寄りの正時に丸めてキャッシュ(分単位の日時変更や再生中の毎フレーム再計算を避ける)。 */
 function _smBuildTraj(dateOverride) {
     if (!_smTrajGrp) return;
-    const dayStart = new Date(dateOverride || appState.currentDate); dayStart.setHours(0, 0, 0, 0);
+    // 基準日時を最寄りの正時に丸める(丸め幅1時間 ≪ 前後36時間なので見た目は変わらない)
+    const centerMs = Math.round((dateOverride || appState.currentDate).getTime() / 3600000) * 3600000;
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
     const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
-    const key = `${dayStart.getTime()}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
+    const key = `${centerMs}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}`;
     if (key === _smTrajKey) return;
     _smTrajKey = key;
     while (_smTrajGrp.children.length) { const c = _smTrajGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
     if (!appState.soraTraj) return;
     let observer;
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
-    const dayStartMs = dayStart.getTime(), N = 96;
+    const spanMs = 36 * 3600000, N = 288;   // ±36時間を15分刻み(=旧実装の1日96点と同密度)
     appState.bodies.forEach(body => {
         if (!body.visible) return;
         // 天の川は「基準点(中心座標/オフセット点=基本オプション)」を固定点として軌跡を描く。それ以外は通常天体。
@@ -18643,22 +18654,18 @@ function _smBuildTraj(dateOverride) {
             isFixed = isFixedStar(body.id);
             rd = isFixed ? getFixedStarRaDec(body.id) : null;
         }
-        // 前日/当日/翌日 を各日 0:00〜23:59:59 で1本ずつ(計3本)描画
-        for (let d = -1; d <= 1; d++) {
-            const day0 = dayStartMs + d * 86400000;
-            const pts = [];
-            for (let i = 0; i <= N; i++) {
-                const t = new Date(day0 + (i / N) * 86399000);   // 0:00 .. 23:59:59
-                let ra, dec;
-                if (isFixed) { ra = rd.ra; dec = rd.dec; }
-                else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
-                const hor = Astronomy.Horizon(t, observer, ra, dec, null);
-                pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
-            }
-            if (pts.length < 2) continue;
-            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
-            _smTrajGrp.add(line);
+        const pts = [];
+        for (let i = 0; i <= N; i++) {
+            const t = new Date(centerMs - spanMs + (i / N) * 2 * spanMs);   // 基準-36h .. 基準+36h
+            let ra, dec;
+            if (isFixed) { ra = rd.ra; dec = rd.dec; }
+            else { try { const eq = Astronomy.Equator(body.id, t, observer, true, true); ra = eq.ra; dec = eq.dec; } catch (e) { continue; } }
+            const hor = Astronomy.Horizon(t, observer, ra, dec, null);
+            pts.push(_smDir(hor.azimuth, hor.altitude).multiplyScalar(_SM_BODY_R * 0.98));
         }
+        if (pts.length < 2) return;
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(body.color), transparent: true, opacity: 0.6, depthTest: true }));
+        _smTrajGrp.add(line);
     });
 }
 
@@ -19413,6 +19420,9 @@ async function _smBldgRun(gen, ctx) {
         const url = appState.smBldgTex ? (c.lod2Tex || c.lod2NoTex || c.lod1)
                                        : (c.lod2NoTex || c.lod1 || c.lod2Tex);
         if (!url) return;
+        // データの整備年度: tilesetパスの「_city_YYYY_citygml」から読む(例: 01100_sapporo-shi_city_2020_citygml_…)
+        const ym = /_city_(\d{4})_citygml/.exec(url);
+        const year = ym ? ym[1] : null;
         let ts;
         try { ts = await _smBldgTileset(url); }
         catch (e) { console.warn('[都市モード] tileset取得失敗:', c.name, e); return; }
@@ -19423,13 +19433,16 @@ async function _smBldgRun(gen, ctx) {
             const rel = ((inv.azi1 - ctx.centerAz + 540) % 360) - 180;
             const halfDeg = Math.atan2(lf.radM, Math.max(1, inv.s12)) * 180 / Math.PI;
             if (Math.abs(rel) > azHalf + halfDeg) continue;
-            cand.push({ url: lf.url, d: inv.s12, score: _smBldgTileScore(lf, inv.s12) });
+            cand.push({ url: lf.url, d: inv.s12, score: _smBldgTileScore(lf, inv.s12), year });
         }
     }));
     if (gen !== _smBldgGen) return;
     cand.sort((a, b) => (b.score - a.score) || (a.d - b.d));   // 見かけの高さ順(同点は近い順)
     const picks = cand.slice(0, ctx.budget);
     if (!picks.length) { _smBldgSetStatus('0タイル/0棟'); return; }
+    // 表示中データの整備年度(いつ時点の建物か)。複数都市で年度が違う時は範囲表示
+    const years = [...new Set(picks.map(p => p.year).filter(Boolean))].sort();
+    const yearStr = years.length ? ` (${years[0]}${years.length > 1 ? '〜' + years[years.length - 1] : ''}年度)` : '';
     // 変換の共通量(観測点側)。ENU回転は法線用
     const Reff1 = getLocalEarthRadius(ctx.oLat) / (1 - ctx.k);
     const latR = ctx.oLat * Math.PI / 180, lngR = ctx.oLng * Math.PI / 180;
@@ -19454,14 +19467,14 @@ async function _smBldgRun(gen, ctx) {
         _smBldgGrp.add(ent.grp);
         _smBldgApplyDimTo(ent.grp, _smBldgCurDim());   // 現在の減光・窓明かり状態を適用(キャッシュ再利用時も最新に)
         tiles++; blds += ent.blds;
-        _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟`);
+        _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟${yearStr}`);
         if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // タイル到着ごとに反映(順次現れる)
     };
     let i = 0;
     await Promise.all(new Array(Math.min(4, picks.length)).fill(0).map(async () => {
         while (i < picks.length && gen === _smBldgGen) await runOne(picks[i++]);
     }));
-    if (gen === _smBldgGen) _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟`);
+    if (gen === _smBldgGen) _smBldgSetStatus(`${tiles}タイル/${blds.toLocaleString()}棟${yearStr}`);
 }
 
 /** 1タイルの取得→解凍→ENU幾何化。戻り値 {grp, blds}。失敗はnull(タイル単位でスキップ) */
