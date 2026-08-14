@@ -427,6 +427,9 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
     **以後は「ボーイスカウト方式」**(その周辺を触るラウンドでついでに統合)へ移行を提案。
 - [ ] MederuU本体リポジトリの作成(手順4)。3条件成立済み=いつでも作成可能
   (dessin/00の判断材料参照)。作成自体は依頼者のGitHubアカウント操作。
+  - → **(2026-08-14 第76ラウンド) 準備完了**: staging一式=`ClaudeMederuU/mederuu-repo-staging/`
+    (README+CLAUDE.md+legends/+projects/の最小の器)・手順書=docs/operation/mederuu-repo-guide.md
+    (Private・初期ファイル全オフ・既定施錠の運用)。**依頼者のリポジトリ作成+開錠待ち**。
 
 ## AIの気になること（CONCERN）
 
