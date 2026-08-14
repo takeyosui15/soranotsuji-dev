@@ -64,8 +64,33 @@ npx @vscode/vsce publish
 ## 手順5 🧑: 公開後の確認
 
 1. VSCodeの拡張ビューで「Koushi」を検索して出てくること(アイコン=格子)。
-2. Marketplaceからインストールし直して、sample.mdのプレビューが従来どおり描けること
+2. Marketplaceからインストールし直して、READMEのサンプルのプレビューが従来どおり描けること
    (以後はvsixファイルでの手渡しは不要になり、更新もVSCodeが自動で拾う)。
+
+### 反映待ちの目安とトラブルシュート(第72ラウンド追記)
+
+- 新規拡張は公開後にMarketplace側の検証(スキャン等)が走るため、**検索や掲載ページに出るまで
+  数分〜数時間**かかるのが普通(初回は特に)。まずは待つ。
+- 進み具合は https://marketplace.visualstudio.com/manage で確認できる: 自分の拡張の行に
+  緑のチェック(Verified)が付けば検証完了。エラーが出ていればその文言をClaudeへ。
+- 掲載URL(公開後に有効): https://marketplace.visualstudio.com/items?itemName=takeyosui15.koushi-preview
+- 24時間待っても出ない場合: `vsce publish`実行時の端末出力に「DONE Published」が出ていたかを確認。
+  出ていなければ手順4をやり直し(PATの期限切れ・scope不足が典型)。
+
+### 鍵(GitHub Appのアクセス)の運用 — 既定は施錠(第72ラウンド確定)
+
+- 依頼者の決定: `koushi`へのApp アクセスは**普段は外しておき、必要な時だけ開ける**。
+- リリース時の流れ: ①宙の辻側で更新+staging再構成(🤖) ②依頼者がRepository accessに
+  `koushi`を追加(🧑・1クリック) ③Claudeがpush(🤖) ④施錠(🧑・1クリック)
+  ⑤依頼者がMacで`git pull`→`npx @vscode/vsce publish`(🧑)。
+- 施錠はClaudeのAppに対してだけで、**依頼者自身のclone/pull/push/publishには無関係**
+  (依頼者は自分のGitHub認証でいつでも操作できる)。
+
+### Macのクローン置き場(第72ラウンド追記)
+
+- リリース用クローンは**ローカルディスクでよい**(むしろ正解)。iCloud Drive内のgitリポジトリは
+  .git配下の数千ファイルを同期しようとして衝突・破損しやすい(mac-install-decision.mdで
+  調査済みの知見)。クローンは使い捨てで、必要な時に`git clone`し直せばよい。
 
 ## 運用メモ(Claude向け)
 
