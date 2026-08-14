@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.71.0 - 2026-08-14: feat: 第87ラウンド — 怒号の項目15: Googleプラスコードのフルコード入力 ①観測点/目的点の緯度経度欄(と宙の窓の花火打ち上げ点欄)でプラスコードのフルコード(例: 8Q7XMQPJ+2V)を直接入力できるように。Open Location Codeの公開仕様(Apache-2.0)に沿った約40行の純関数_plusCodeDecodeでローカル復号(通信・APIキー不要)。復号はセルの中心座標。パディング形(例: 7FG49Q00+)対応・11桁以上のグリッド精度対応。公式テストベクタ5種で検証 ②既存の「緯度,経度」直入力・地名検索とはparseInputの入口で共存(プラスコードの形だけ先に判定。カンマ無し数値のZipコード保護等は不変) ③短縮形(例: MQPJ+2V 港区)は基準地名の解決が要るため次段(todo記載) ④ヘルプ・入力欄ツールチップ・デッサン01に記載
 Version 1.70.0 - 2026-08-14: feat: 第86ラウンド — 怒号の項目14: Myセットのフィルタ+お気に入り ①Myセットメニューの「全て登録」の下にフィルタ(6段目=フィルタテキスト[空白区切り=アンド条件・半角/全角対応]・7段目=「:Myセット名」「:メモ」対象チェック[既定オン]・8段目=「フィルタ」トグルボタン[既定オフ・オンの間だけリストを絞り込み])。テキスト・チェック・トグルはローカルストレージに保存(URLキーはv16第1弾で検討) ②お気に入り: 行ヘッダのIDの隣に☆/⭐️のアイコンリンク(承認済みのアイコンリンク案)。タップで切替、⭐️のMyセットはリストの上位に表示(グループ内は手動の並び順のまま・配列の並びと保存順は変えない=表示だけ)。既定のセット(ID:0)にも付くが常に先頭固定 ③デッサン09に6〜8段目とお気に入りの節を追記
 Version 1.69.0 - 2026-08-14: feat: 第85ラウンド — 怒号の項目12: 基本オプションの辻ライン項目の刷新 ①「天の川の基準点」ラジオを撤去(項目6の「:天の川オプション」チェックが同じ状態(baseOptMwBase)を担っているため。保存・URLキーは従来のまま) ②「:辻オフセット方位角/視高度」チェックボックスを新設(既定オン): オンで辻ラインに検索中心のズレ(辻オフセット方位角/視高度)を含める=検索中心の辻ライン・オフで従来どおり基準点の辻ライン。方位角のズレは描画時の回転・視高度のズレは経路計算の目標高度(worker/メインの両経路にaltOffset)で効かせる ③「検索中心オプション」(:辻オフセット点/:基準点から辻オフセット点までの線)を基本オプションにも設置し、辻検索・辻メッシュ検索と3面連動 ④検索中心が「線」の時は厳密には面になるため、基準点→オフセット点の線を仰角1°置き(仰角0のときは方位角1°置き・刻み上限37本)に刻んだ複数の実線を描く(前日/翌日線・精度境界の装飾は両端の線だけ) ⑤オフセット入力の変更だけでも辻ラインが追従(4箇所の入力ハンドラに引き直しを追加)。辻ライン365は従来どおり基準点線のみ(51万点の再計算を増やさない) ⑥デッサン02を刷新
 Version 1.68.0 - 2026-08-14: feat: 第84ラウンド — 怒号の項目9: 宙の窓ctrlメニューへ日時情報〜薄明メニューを丸ごと複製(もちろん連動) ①これまでの部分複製(日付/時刻ピッカー・薄明ジャンプ)に残りを足して完成形に: タイムゾーン表示・Nowボタン・アニメーション4ボタン(月/秒〜分/秒)・時刻スライダー・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力 アイコン ▶) ②連動の作り: 日時系は既存の共通関数(setNow/toggleSpeed/addMoonMonth/searchMoonAge/jumpToEvent)へ委譲し、表示系は複製id(末尾-ctrl)への一括書き込み(updateShortcutsData/updateMoonInfo/TZ表示)。アニメーションボタンのアクティブ状態は_syncSpeedBtnMirrorsで本家⇄全天儀ctrl⇄宙の窓ctrlの3面を常時一致(従来の全天儀ctrlはctrl側クリック時のみ同期だった穴も塞いだ) ③ショートカット/薄明ジャンプの選択状態は本家と相互連動・時刻スライダーは3本(日時情報・全天儀ctrl・宙の窓ctrl)全てが双方向連動 ④デッサン06のctrlメニューの節を完成形に更新
@@ -134,7 +135,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.70.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.71.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -4352,8 +4353,10 @@ async function applyMapPointAction(latlng) {
 
 // 汎用ヘルパー
 function parseInput(val) {
+    const pc = _plusCodeDecode(val);   // Google Plusコード(フルコード)の直入力(第87ラウンド・怒号の項目15)
+    if (pc) return pc;
     if (val.indexOf(',') === -1) return null;
-    const clean = val.replace(/[\(\)\s]/g, ''); 
+    const clean = val.replace(/[\(\)\s]/g, '');
     const parts = clean.split(',');
     if (parts.length === 2) {
         const lat = parseFloat(parts[0]);
@@ -4361,6 +4364,41 @@ function parseInput(val) {
         if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
     }
     return null;
+}
+
+// --- Google Plusコード(Open Location Code)のフルコード復号(第87ラウンド・怒号の項目15) ---
+// 仕様: https://github.com/google/open-location-code (Apache-2.0の公開仕様。復号は通信不要の純関数)
+// フルコード(例: 8Q7XMQPJ+2V)のみ対応。短縮形(例: MQPJ+2V 港区)は基準地名の解決が要るため次段(todo)。
+const _OLC_ALPHA = '23456789CFGHJMPQRVWX';
+function _plusCodeDecode(raw) {
+    const code = String(raw || '').trim().toUpperCase();
+    const plus = code.indexOf('+');
+    if (plus !== 8) return null;   // フルコードは「+」の前が8文字(パディング0込み)
+    const before = code.slice(0, 8), after = code.slice(9);
+    // 形の検査: 前半=英数20文字+末尾側のパディング0のみ・後半=英数20文字のみ(0不可)
+    if (!/^[23456789CFGHJMPQRVWX]+0*$/.test(before)) return null;
+    if (after && !/^[23456789CFGHJMPQRVWX]+$/.test(after)) return null;
+    const padded = before.indexOf('0') >= 0;
+    if (padded && after) return null;   // パディングがあるのに後半が続くのは不正
+    const digits = (padded ? before.slice(0, before.indexOf('0')) : before) + after;
+    const pairLen = Math.min(digits.length, 10);
+    if (digits.length < 2 || pairLen % 2 === 1) return null;   // ペア部は2桁ずつ
+    let lat = -90, lng = -180;
+    let latRes = 400, lngRes = 400;   // 最初のペアで /20 → 20°
+    for (let i = 0; i < pairLen; i += 2) {
+        latRes /= 20; lngRes /= 20;
+        lat += _OLC_ALPHA.indexOf(digits[i]) * latRes;
+        lng += _OLC_ALPHA.indexOf(digits[i + 1]) * lngRes;
+    }
+    for (let i = 10; i < digits.length; i++) {   // 11桁目以降: 5行×4列のグリッド
+        latRes /= 5; lngRes /= 4;
+        const d = _OLC_ALPHA.indexOf(digits[i]);
+        lat += Math.floor(d / 4) * latRes;
+        lng += (d % 4) * lngRes;
+    }
+    const res = { lat: lat + latRes / 2, lng: lng + lngRes / 2 };   // セルの中心を返す
+    if (res.lat < -90 || res.lat > 90 || res.lng < -180 || res.lng > 180) return null;
+    return res;
 }
 
 // --- 半角→全角変換 ---
