@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.72.0 - 2026-08-14: feat: 第88ラウンド — v16 URL第1弾(第81ラウンドで依頼者承認): 大気差・気象・基本オプションを共有URLへ ①全URL(位置情報/宙の窓/辻検索/辻メッシュ)に16キーを追加: refractionEnabled(大気差ON/OFF)・meteoP/meteoT/meteoL(気圧/気温/気温減率)・baseOptMwBase・mwOffsetAngle・mwShowBodies/BodyNames/ConstFig/ConstBounds/ConstNames・mwConstNameSort・elevExcludeEnabled/Radius/ObsRadius・tsujiLineIncludeOffset(第85)。復元は型変換+NaNガード+normalizeAppState(LS復元と同じ流儀) ②短縮URL辞書v16を新設(第3規則「&キー名=既定値」16ペア+「&キー名=」16個。発行順に凍結)。v15以前は復号のみ保証で凍結のまま ③Myセットフィルタ(第86)のURLキーは見送り(Myセットのリスト自体がURLに乗らないため、フィルタだけ乗せても意味を持たない判断。LS保存のみ) ④デッサン00のURLパラメータ表に追記
 Version 1.71.0 - 2026-08-14: feat: 第87ラウンド — 怒号の項目15: Googleプラスコードのフルコード入力 ①観測点/目的点の緯度経度欄(と宙の窓の花火打ち上げ点欄)でプラスコードのフルコード(例: 8Q7XMQPJ+2V)を直接入力できるように。Open Location Codeの公開仕様(Apache-2.0)に沿った約40行の純関数_plusCodeDecodeでローカル復号(通信・APIキー不要)。復号はセルの中心座標。パディング形(例: 7FG49Q00+)対応・11桁以上のグリッド精度対応。公式テストベクタ5種で検証 ②既存の「緯度,経度」直入力・地名検索とはparseInputの入口で共存(プラスコードの形だけ先に判定。カンマ無し数値のZipコード保護等は不変) ③短縮形(例: MQPJ+2V 港区)は基準地名の解決が要るため次段(todo記載) ④ヘルプ・入力欄ツールチップ・デッサン01に記載
 Version 1.70.0 - 2026-08-14: feat: 第86ラウンド — 怒号の項目14: Myセットのフィルタ+お気に入り ①Myセットメニューの「全て登録」の下にフィルタ(6段目=フィルタテキスト[空白区切り=アンド条件・半角/全角対応]・7段目=「:Myセット名」「:メモ」対象チェック[既定オン]・8段目=「フィルタ」トグルボタン[既定オフ・オンの間だけリストを絞り込み])。テキスト・チェック・トグルはローカルストレージに保存(URLキーはv16第1弾で検討) ②お気に入り: 行ヘッダのIDの隣に☆/⭐️のアイコンリンク(承認済みのアイコンリンク案)。タップで切替、⭐️のMyセットはリストの上位に表示(グループ内は手動の並び順のまま・配列の並びと保存順は変えない=表示だけ)。既定のセット(ID:0)にも付くが常に先頭固定 ③デッサン09に6〜8段目とお気に入りの節を追記
 Version 1.69.0 - 2026-08-14: feat: 第85ラウンド — 怒号の項目12: 基本オプションの辻ライン項目の刷新 ①「天の川の基準点」ラジオを撤去(項目6の「:天の川オプション」チェックが同じ状態(baseOptMwBase)を担っているため。保存・URLキーは従来のまま) ②「:辻オフセット方位角/視高度」チェックボックスを新設(既定オン): オンで辻ラインに検索中心のズレ(辻オフセット方位角/視高度)を含める=検索中心の辻ライン・オフで従来どおり基準点の辻ライン。方位角のズレは描画時の回転・視高度のズレは経路計算の目標高度(worker/メインの両経路にaltOffset)で効かせる ③「検索中心オプション」(:辻オフセット点/:基準点から辻オフセット点までの線)を基本オプションにも設置し、辻検索・辻メッシュ検索と3面連動 ④検索中心が「線」の時は厳密には面になるため、基準点→オフセット点の線を仰角1°置き(仰角0のときは方位角1°置き・刻み上限37本)に刻んだ複数の実線を描く(前日/翌日線・精度境界の装飾は両端の線だけ) ⑤オフセット入力の変更だけでも辻ラインが追従(4箇所の入力ハンドラに引き直しを追加)。辻ライン365は従来どおり基準点線のみ(51万点の再計算を増やさない) ⑥デッサン02を刷新
@@ -135,7 +136,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.71.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.72.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -13671,7 +13672,19 @@ const _QP_SEEDS_V14 = _QP_SEEDS_V13.concat(['&tsujiDowFilter=false', '&tsujiDowM
 const _QP_SEEDS_V15 = _QP_SEEDS_V14.concat(
     ['&tsujiMonthFilter=false'].concat(Array.from({ length: 12 }, (_, i) => `&tsujiMonth${i + 1}=false`),
     ['&tsujiMeshMonthFilter=false'], Array.from({ length: 12 }, (_, i) => `&tsujiMeshMonth${i + 1}=false`)));
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15];   // 添字+1=版数。最新版でエンコードする
+// v16: 第88ラウンド(v16 URL第1弾=第81ラウンドで依頼者承認)。大気差ON/OFF・気象3値・基本オプションの
+// スカラーをURLへ追加したことに伴う新キーのシード。第3規則「&キー名=既定値」(v1.71.0時点の既定値で凍結)を
+// 発行順に並べ、既定値以外用の「&キー名=」も足す。【重要】既存版は変更しない(発行済みURLの復号を守る)
+const _QP_SEEDS_V16 = _QP_SEEDS_V15.concat([
+    '&refractionEnabled=false', '&meteoP=1013.25', '&meteoT=15', '&meteoL=0.0065',
+    '&baseOptMwBase=center', '&mwOffsetAngle=0', '&mwShowBodies=true', '&mwShowBodyNames=false',
+    '&mwShowConstFig=false', '&mwShowConstBounds=false', '&mwShowConstNames=false', '&mwConstNameSort=aiueo',
+    '&elevExcludeEnabled=true', '&elevExcludeRadius=15', '&elevExcludeObsRadius=10', '&tsujiLineIncludeOffset=true',
+    '&refractionEnabled=', '&meteoP=', '&meteoT=', '&meteoL=', '&baseOptMwBase=', '&mwOffsetAngle=',
+    '&mwShowBodies=', '&mwShowBodyNames=', '&mwShowConstFig=', '&mwShowConstBounds=', '&mwShowConstNames=',
+    '&mwConstNameSort=', '&elevExcludeEnabled=', '&elevExcludeRadius=', '&elevExcludeObsRadius=', '&tsujiLineIncludeOffset=',
+]);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -13896,6 +13909,19 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
     if (appState.ssRange !== null) params.set('ssRange', String(appState.ssRange));
+
+    // 大気差・気象・基本オプション(第88ラウンド・v16 URL第1弾=第81ラウンドで依頼者承認。
+    // プレビュー完全再現の範囲を「見え方を変える設定」まで広げる)
+    params.set('refractionEnabled', appState.refractionEnabled ? 'true' : 'false');
+    params.set('meteoP', String(appState.meteo.p));
+    params.set('meteoT', String(appState.meteo.t));
+    params.set('meteoL', String(appState.meteo.l));
+    ['baseOptMwBase', 'mwOffsetAngle', 'mwShowBodies', 'mwShowBodyNames', 'mwShowConstFig',
+     'mwShowConstBounds', 'mwShowConstNames', 'mwConstNameSort', 'elevExcludeEnabled',
+     'elevExcludeRadius', 'elevExcludeObsRadius', 'tsujiLineIncludeOffset'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
 
     return params;
 }
@@ -14257,6 +14283,16 @@ function restoreFromUrl() {
     ['ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssStat'].forEach(soraBool);
     // 範囲=自動追従(null)はURLに付与されないため、宙検索パラメータ付きURLでssRangeが無い場合は自動へ戻す
     if (params.has('ssPreset') && !params.has('ssRange')) appState.ssRange = null;
+    // 大気差・気象・基本オプション(第88ラウンド・v16第1弾。気象はLS復元と同じくNaNガードのみ)
+    soraBool('refractionEnabled');
+    ['p', 't', 'l'].forEach(mk => {
+        const key = 'meteo' + mk.toUpperCase();
+        if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState.meteo[mk] = v; }
+    });
+    soraStr('baseOptMwBase'); soraStr('mwConstNameSort');
+    ['mwOffsetAngle', 'elevExcludeRadius', 'elevExcludeObsRadius'].forEach(soraNum);
+    ['mwShowBodies', 'mwShowBodyNames', 'mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames',
+     'elevExcludeEnabled', 'tsujiLineIncludeOffset'].forEach(soraBool);
     normalizeAppState();   // URL由来の値を既定の範囲・選択肢に丸める
 
     // 下部パネル等の表示/非表示状態を復元(preview/tsujisearch の両モード共通)

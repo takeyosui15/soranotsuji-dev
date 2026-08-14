@@ -177,6 +177,21 @@
 | tsujiMeshStartMode / tsujiMeshStartTime / tsujiMeshStartPrePost / tsujiMeshStartPrePostDir / tsujiMeshStartOffset | (辻検索と同じ値域) | 時間フィルタ開始side。 |
 | tsujiMeshEndMode / tsujiMeshEndTime / tsujiMeshEndPrePost / tsujiMeshEndPrePostDir / tsujiMeshEndOffset | (辻検索と同じ値域) | 時間フィルタ終了side。 |
 
+#### 大気差・気象・基本オプション(第88ラウンド追加=v16 URL第1弾。全URL共通で常時付与)
+| キー | 初期値 | 説明 |
+| --- | --- | --- |
+| refractionEnabled | false | 大気差(設定メニュー)のON/OFF。 |
+| meteoP / meteoT / meteoL | 1013.25 / 15 / 0.0065 | 気圧(hPa)/気温(°C)/気温減率(K/m)。復元は型変換+NaNガードのみ(LS復元と同じ)。 |
+| baseOptMwBase | \[ center \| offset \] | 天の川の基準点(=「:天の川オプション」チェックの実体)。 |
+| mwOffsetAngle | 0 | オフセット中心角(内部符号。画面表示は±反転=第82ラウンド)。 |
+| mwShowBodies / mwShowBodyNames / mwShowConstFig / mwShowConstBounds / mwShowConstNames | true / false / false / false / false | 全天儀の表示天体/表示天体名/星座線/星座領域/星座名称。 |
+| mwConstNameSort | \[ aiueo \| pos \] | 星座名称の表示順。 |
+| elevExcludeEnabled / elevExcludeRadius / elevExcludeObsRadius | true / 15 / 10 | 標高グラフの:除外範囲/目的点側(m)/観測点側(m)。 |
+| tsujiLineIncludeOffset | true | 辻ラインに辻オフセット方位角/視高度を含めるか(第85ラウンド)。 |
+
+- 短縮URL辞書はv16へ(既存版は凍結)。Myセットのフィルタ(第86ラウンド)のキーは**URLに乗せない**
+  (Myセットのリスト自体がURLに乗らないため、フィルタだけ乗せても意味を持たない判断。LS保存のみ)。
+
 ### 仕様詳細:
 - 「複数指定可」のキー(starId/starName/starRa/starDec/starColor/starIsDashed)はURLSearchParams.getAll()で取得し、starIdと対応する他のキーの内容が一致するようにする(My天体はstarIdの数字と同じ並び順で対応)。
 - タイムゾーンは、URLを取得するときにそのブラウザが所属するタイムゾーンの情報を埋め込むことで、その作成されたURLを別のタイムゾーンの人が参照する時に、同じ日時情報の状態で参照できるようにするため。
