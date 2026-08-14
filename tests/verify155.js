@@ -13,8 +13,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.72.0', /APP_VERSION = '1\.72\.0'/.test(src));
+// ---- V0: 版数の存在検査(版数ピンは最新のverify156へ移行済み) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.72.0の行がある', src.includes('Version 1.72.0 - ') || !!process.argv[2]);
 
 const NEW_KEYS=['refractionEnabled','meteoP','meteoT','meteoL','baseOptMwBase','mwOffsetAngle',

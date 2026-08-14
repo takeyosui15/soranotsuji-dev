@@ -761,7 +761,7 @@ GNU General Public License for more details.
                             <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点(°):</label>
-                        <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコードのフルコード(例: 8Q7XMQPJ+2V)で観測点を設定">
+                        <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコード(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)で観測点を設定">
                     </div>
 
                     <div class="control-row">
@@ -794,7 +794,7 @@ GNU General Public License for more details.
                             <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点(°):</label>
-                        <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコードのフルコード(例: 8Q7XMQPJ+2V)で目的点を設定">
+                        <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコード(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)で目的点を設定">
                     </div>
 
                     <div class="control-row">
@@ -2163,7 +2163,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>位置情報メニュー</h3>
                     <ul class="help-list">
-                        <li><strong>観測点 / 目的点</strong>: 地図ダブルクリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」・Googleプラスコードのフルコード (例: 8Q7XMQPJ+2V。Googleマップの地点情報からコピーできる+付きのコード) を入力して設定。ラジオボタンで地図クリック対象を切替。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
+                        <li><strong>観測点 / 目的点</strong>: 地図ダブルクリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」・Googleプラスコード (フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区。Googleマップの地点情報からコピーできる+付きのコード。短縮形は基準地名の候補を選ぶとその近くのセルに展開・地名を省くと地図の中心が基準) を入力して設定。ラジオボタンで地図クリック対象を切替。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.73.0 - 2026-08-14: feat: 第90ラウンド — プラスコードの短縮形入力(第78ラウンドの依頼「次に、短縮形の実装を」): ①観測点/目的点の緯度経度欄(+花火打ち上げ点欄)で短縮形(例: 「MQPJ+2V 港区」)を入力できるように。コードと基準地名の順序はどちらでも良い ②復元はOpen Location CodeのrecoverNearest相当の自前実装(_plusCodeEncode10+_plusCodeRecover): 基準点の全コードから落ちている桁(2/4/6桁)を補い、基準点に最も近いセルへ±1セル調整して展開 ③基準地名は既存の地名検索(GSI→OSM)で解決し、候補は既存の地名ピッカーで選択(選んだ地点を基準に展開)。基準地名を省いた短縮形(例: 「MQPJ+2V」)は地図の中心を基準にする ④通信はジオコーディングのみ(復元計算はローカル)。ヘルプ・ツールチップ・デッサン01の「未対応」注記を解消
 Version 1.72.0 - 2026-08-14: feat: 第88ラウンド — v16 URL第1弾(第81ラウンドで依頼者承認): 大気差・気象・基本オプションを共有URLへ ①全URL(位置情報/宙の窓/辻検索/辻メッシュ)に16キーを追加: refractionEnabled(大気差ON/OFF)・meteoP/meteoT/meteoL(気圧/気温/気温減率)・baseOptMwBase・mwOffsetAngle・mwShowBodies/BodyNames/ConstFig/ConstBounds/ConstNames・mwConstNameSort・elevExcludeEnabled/Radius/ObsRadius・tsujiLineIncludeOffset(第85)。復元は型変換+NaNガード+normalizeAppState(LS復元と同じ流儀) ②短縮URL辞書v16を新設(第3規則「&キー名=既定値」16ペア+「&キー名=」16個。発行順に凍結)。v15以前は復号のみ保証で凍結のまま ③Myセットフィルタ(第86)のURLキーは見送り(Myセットのリスト自体がURLに乗らないため、フィルタだけ乗せても意味を持たない判断。LS保存のみ) ④デッサン00のURLパラメータ表に追記
 Version 1.71.0 - 2026-08-14: feat: 第87ラウンド — 怒号の項目15: Googleプラスコードのフルコード入力 ①観測点/目的点の緯度経度欄(と宙の窓の花火打ち上げ点欄)でプラスコードのフルコード(例: 8Q7XMQPJ+2V)を直接入力できるように。Open Location Codeの公開仕様(Apache-2.0)に沿った約40行の純関数_plusCodeDecodeでローカル復号(通信・APIキー不要)。復号はセルの中心座標。パディング形(例: 7FG49Q00+)対応・11桁以上のグリッド精度対応。公式テストベクタ5種で検証 ②既存の「緯度,経度」直入力・地名検索とはparseInputの入口で共存(プラスコードの形だけ先に判定。カンマ無し数値のZipコード保護等は不変) ③短縮形(例: MQPJ+2V 港区)は基準地名の解決が要るため次段(todo記載) ④ヘルプ・入力欄ツールチップ・デッサン01に記載
 Version 1.70.0 - 2026-08-14: feat: 第86ラウンド — 怒号の項目14: Myセットのフィルタ+お気に入り ①Myセットメニューの「全て登録」の下にフィルタ(6段目=フィルタテキスト[空白区切り=アンド条件・半角/全角対応]・7段目=「:Myセット名」「:メモ」対象チェック[既定オン]・8段目=「フィルタ」トグルボタン[既定オフ・オンの間だけリストを絞り込み])。テキスト・チェック・トグルはローカルストレージに保存(URLキーはv16第1弾で検討) ②お気に入り: 行ヘッダのIDの隣に☆/⭐️のアイコンリンク(承認済みのアイコンリンク案)。タップで切替、⭐️のMyセットはリストの上位に表示(グループ内は手動の並び順のまま・配列の並びと保存順は変えない=表示だけ)。既定のセット(ID:0)にも付くが常に先頭固定 ③デッサン09に6〜8段目とお気に入りの節を追記
@@ -136,7 +137,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.72.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.73.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -3371,6 +3372,13 @@ async function handleLocationInput(val, isStart, fromName) {
         return;
     }
 
+    // プラスコードの短縮形(第90ラウンド。例: 「MQPJ+2V 港区」)。基準地名を解決して近傍のセルへ展開する
+    const sc = _plusCodeShortParse(val);
+    if (sc) {
+        await _plusCodeResolveShort(sc, async c => { await applyLocationCoords(c, isStart); });
+        return;
+    }
+
     // 検索クエリの正規化(第38ラウンドで全面全角化から変更):
     // - 日本語(かな/カナ/漢字)を含む入力のみ、従来どおり半角英数記号を全角へ変換する
     //   (住所末尾の「1-2-3」のハイフン/数字の半角全角揺れ対策=初期からの挙動を日本語入力に限って維持)
@@ -4400,6 +4408,84 @@ function _plusCodeDecode(raw) {
     const res = { lat: lat + latRes / 2, lng: lng + lngRes / 2 };   // セルの中心を返す
     if (res.lat < -90 || res.lat > 90 || res.lng < -180 || res.lng > 180) return null;
     return res;
+}
+
+/** プラスコードの10桁エンコード(短縮形の復元で基準コードを作る用。'XXXXXXXX+XX'を返す。第90ラウンド) */
+function _plusCodeEncode10(lat, lng) {
+    let latV = Math.min(180, Math.max(0, Number(lat) + 90));
+    if (latV >= 180) latV = 180 - 1e-9;   // 北極は最後のセルに含める
+    let lngV = ((Number(lng) + 180) % 360 + 360) % 360;
+    let code = '';
+    let res = 20;
+    for (let i = 0; i < 5; i++) {
+        const la = Math.min(19, Math.floor(latV / res));
+        const lo = Math.min(19, Math.floor(lngV / res));
+        code += _OLC_ALPHA[la] + _OLC_ALPHA[lo];
+        latV -= la * res; lngV -= lo * res;
+        res /= 20;
+    }
+    return code.slice(0, 8) + '+' + code.slice(8);
+}
+
+/** プラスコードの短縮形の入力を分解する。{code, locality|null} / 短縮形でなければnull。
+ *  コードは入力のどこにあっても良い(「MQPJ+2V 港区」「港区 MQPJ+2V」の両方を受ける。第90ラウンド) */
+function _plusCodeShortParse(raw) {
+    const s = String(raw || '').trim();
+    if (!s || s.indexOf('+') < 0) return null;
+    const parts = s.split(/[\s　]+/);
+    const isShort = p => /^[23456789CFGHJMPQRVWX]{2,6}\+[23456789CFGHJMPQRVWX]{2,}$/i.test(p) && p.indexOf('+') % 2 === 0;
+    const codeIdx = parts.findIndex(isShort);
+    if (codeIdx < 0) return null;
+    const code = parts[codeIdx].toUpperCase();
+    const locality = parts.filter((_, i) => i !== codeIdx).join(' ').trim() || null;
+    return { code, locality };
+}
+
+/** プラスコード短縮形の復元(Open Location CodeのrecoverNearest相当):
+ *  基準点の全コードから落ちている桁を補い、基準点に最も近いセルへ±1セル調整して展開する */
+function _plusCodeRecover(shortCode, refLat, refLng) {
+    const plus = String(shortCode || '').indexOf('+');
+    if (plus < 2 || plus > 6 || plus % 2 !== 0) return null;
+    let lat = Number(refLat), lng = Number(refLng);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    lat = Math.min(90, Math.max(-90, lat));
+    lng = ((lng + 180) % 360 + 360) % 360 - 180;
+    const padLen = 8 - plus;                              // 落ちている桁数(2/4/6)
+    const resolution = Math.pow(20, 2 - padLen / 2);      // 2桁→20° / 4桁→1° / 6桁→0.05°
+    const full = _plusCodeEncode10(lat, lng).slice(0, padLen) + String(shortCode).toUpperCase();
+    const dec = _plusCodeDecode(full);
+    if (!dec) return null;
+    const half = resolution / 2;
+    let cLat = dec.lat, cLng = dec.lng;
+    if (cLat - lat > half && cLat - resolution >= -90) cLat -= resolution;        // 基準点に近い側の隣セルへ
+    else if (lat - cLat > half && cLat + resolution <= 90) cLat += resolution;
+    if (cLng - lng > half) cLng -= resolution;
+    else if (lng - cLng > half) cLng += resolution;
+    return { lat: cLat, lng: cLng };
+}
+
+/** プラスコード短縮形を座標に解決して適用する。基準地名があればジオコーディング
+ *  (候補は既存の地名ピッカーで選択=選んだ地点を基準に近傍のセルへ展開)、なければ地図の中心を基準にする */
+async function _plusCodeResolveShort(sc, applyCb) {
+    if (!sc.locality) {
+        const c = (typeof glMap !== 'undefined' && glMap) ? glMap.getCenter() : { lat: appState.start.lat, lng: appState.start.lng };
+        const r = _plusCodeRecover(sc.code, c.lat, c.lng);
+        if (r) await applyCb(r);
+        else alert('プラスコードの短縮形を復元できませんでした');
+        return;
+    }
+    const hasJapanese = /[぀-ヿ㐀-鿿豈-﫿ｦ-ﾟ]/.test(sc.locality);
+    const q = hasJapanese ? toFullWidth(sc.locality) : sc.locality;
+    const results = await searchLocation(q);
+    if (!results || results.length === 0) {
+        alert('プラスコードの基準地名が見つかりませんでした: ' + sc.locality);
+        return;
+    }
+    showLocationPicker(results, async r => {   // 選んだ地点を基準に短縮形を展開する
+        const c = _plusCodeRecover(sc.code, parseFloat(r.lat), parseFloat(r.lon));
+        if (c) await applyCb(c);
+        else alert('プラスコードの短縮形を復元できませんでした');
+    });
 }
 
 // --- 半角→全角変換 ---
@@ -17489,6 +17575,8 @@ async function handleFwLocationInput(val) {
     if (!val) return;
     const coords = parseInput(val);
     if (coords) { await applyFwCoords(coords); return; }
+    const sc = _plusCodeShortParse(val);   // プラスコードの短縮形(第90ラウンド。観測点/目的点と同じ流れ)
+    if (sc) { await _plusCodeResolveShort(sc, async c => { await applyFwCoords(c); }); return; }
     const results = await searchLocation(toFullWidth(val.trim()));
     if (!results || results.length === 0) { alert('該当する地名が見つかりませんでした'); return; }
     showLocationPicker(results, async r => { await applyFwCoords({ lat: r.lat, lng: r.lon }); });
