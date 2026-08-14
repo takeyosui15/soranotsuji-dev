@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.70.0 - 2026-08-14: feat: 第86ラウンド — 怒号の項目14: Myセットのフィルタ+お気に入り ①Myセットメニューの「全て登録」の下にフィルタ(6段目=フィルタテキスト[空白区切り=アンド条件・半角/全角対応]・7段目=「:Myセット名」「:メモ」対象チェック[既定オン]・8段目=「フィルタ」トグルボタン[既定オフ・オンの間だけリストを絞り込み])。テキスト・チェック・トグルはローカルストレージに保存(URLキーはv16第1弾で検討) ②お気に入り: 行ヘッダのIDの隣に☆/⭐️のアイコンリンク(承認済みのアイコンリンク案)。タップで切替、⭐️のMyセットはリストの上位に表示(グループ内は手動の並び順のまま・配列の並びと保存順は変えない=表示だけ)。既定のセット(ID:0)にも付くが常に先頭固定 ③デッサン09に6〜8段目とお気に入りの節を追記
 Version 1.69.0 - 2026-08-14: feat: 第85ラウンド — 怒号の項目12: 基本オプションの辻ライン項目の刷新 ①「天の川の基準点」ラジオを撤去(項目6の「:天の川オプション」チェックが同じ状態(baseOptMwBase)を担っているため。保存・URLキーは従来のまま) ②「:辻オフセット方位角/視高度」チェックボックスを新設(既定オン): オンで辻ラインに検索中心のズレ(辻オフセット方位角/視高度)を含める=検索中心の辻ライン・オフで従来どおり基準点の辻ライン。方位角のズレは描画時の回転・視高度のズレは経路計算の目標高度(worker/メインの両経路にaltOffset)で効かせる ③「検索中心オプション」(:辻オフセット点/:基準点から辻オフセット点までの線)を基本オプションにも設置し、辻検索・辻メッシュ検索と3面連動 ④検索中心が「線」の時は厳密には面になるため、基準点→オフセット点の線を仰角1°置き(仰角0のときは方位角1°置き・刻み上限37本)に刻んだ複数の実線を描く(前日/翌日線・精度境界の装飾は両端の線だけ) ⑤オフセット入力の変更だけでも辻ラインが追従(4箇所の入力ハンドラに引き直しを追加)。辻ライン365は従来どおり基準点線のみ(51万点の再計算を増やさない) ⑥デッサン02を刷新
 Version 1.68.0 - 2026-08-14: feat: 第84ラウンド — 怒号の項目9: 宙の窓ctrlメニューへ日時情報〜薄明メニューを丸ごと複製(もちろん連動) ①これまでの部分複製(日付/時刻ピッカー・薄明ジャンプ)に残りを足して完成形に: タイムゾーン表示・Nowボタン・アニメーション4ボタン(月/秒〜分/秒)・時刻スライダー・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力 アイコン ▶) ②連動の作り: 日時系は既存の共通関数(setNow/toggleSpeed/addMoonMonth/searchMoonAge/jumpToEvent)へ委譲し、表示系は複製id(末尾-ctrl)への一括書き込み(updateShortcutsData/updateMoonInfo/TZ表示)。アニメーションボタンのアクティブ状態は_syncSpeedBtnMirrorsで本家⇄全天儀ctrl⇄宙の窓ctrlの3面を常時一致(従来の全天儀ctrlはctrl側クリック時のみ同期だった穴も塞いだ) ③ショートカット/薄明ジャンプの選択状態は本家と相互連動・時刻スライダーは3本(日時情報・全天儀ctrl・宙の窓ctrl)全てが双方向連動 ④デッサン06のctrlメニューの節を完成形に更新
 Version 1.67.0 - 2026-08-14: feat: 第83ラウンド — 怒号の項目10・11: ①宙の窓ctrlメニューに観測点移動ボタン(1段目=前後左右上下1m単位。シーンは組み直さずカメラだけ動かすプレビューで、2段目の「位置反映」で緯度経度高さへ確定し基準方位角/視高度を再計算・「リセット」で取り消し。前後左右はカメラの向き基準・観測点高は上下分だけ変化・移動先の地面標高は引き直し・移動量の読みを2段目に表示)+カメラ向きボタン(3段目=カメラオフセット方位角/視高度を1°ずつ。ドラッグパンと同じ即時反映で、4段目の「リセット」で押す前の向きへ・「カメラ反映」で確定=戻り先を忘れる)。日暮とカメラオフセット方位角の間に配置 ②全天儀ctrlメニューに時刻スライダー(アニメーションボタンの下・表示天体の上。日時情報メニューの時刻スライダーと連動・分単位) ③デッサン06(ctrl 10.1〜10.4段目)・デッサン01(全天儀ctrl 7.5段目)を更新
@@ -133,7 +134,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.69.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.70.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -418,6 +419,10 @@ const APP_DEFAULTS = {
     // ---- 基本オプション ----
     baseOptMwBase: { def: 'center', enum: ['center', 'offset'] },
     tsujiLineIncludeOffset: { def: true },   // 辻ラインに辻オフセット方位角/視高度を含めるか(第85ラウンド・項目12)
+    mySetFilterText: { def: '' },            // Myセットのフィルタ(第86ラウンド・項目14)
+    mySetFilterName: { def: true },
+    mySetFilterMemo: { def: true },
+    mySetFilterEnabled: { def: false },
     mwOffsetAngle: { def: 0, min: -360, max: 360 },
     mwShowBodies: { def: true, bool: 'undef' },          // undef=undefinedならdef、他は!!v(旧実装の契約を維持)
     mwShowBodyNames: { def: false, bool: 'coerce' },      // 初期値オフ(保存済みの設定は維持)
@@ -2255,6 +2260,46 @@ function setupUI() {
     document.getElementById('btn-myset-down').onclick = () => moveMySet(1);
     document.getElementById('btn-myset-addrow').onclick = addMySetRow;
     document.getElementById('btn-myset-delrow').onclick = deleteMySetRow;
+    // Myセットのフィルタ(第86ラウンド・怒号の項目14): テキスト+対象チェック2個+トグルボタン
+    {
+        const fText = document.getElementById('input-myset-filter');
+        const fName = document.getElementById('chk-myset-filter-name');
+        const fMemo = document.getElementById('chk-myset-filter-memo');
+        const fBtn = document.getElementById('btn-myset-filter');
+        if (fText) {
+            fText.value = appState.mySetFilterText || '';
+            fText.addEventListener('input', () => {
+                appState.mySetFilterText = fText.value;
+                saveAppState();
+                if (appState.mySetFilterEnabled) renderMySetList();
+            });
+        }
+        if (fName) {
+            fName.checked = appState.mySetFilterName !== false;
+            fName.addEventListener('change', () => {
+                appState.mySetFilterName = fName.checked;
+                saveAppState();
+                if (appState.mySetFilterEnabled) renderMySetList();
+            });
+        }
+        if (fMemo) {
+            fMemo.checked = appState.mySetFilterMemo !== false;
+            fMemo.addEventListener('change', () => {
+                appState.mySetFilterMemo = fMemo.checked;
+                saveAppState();
+                if (appState.mySetFilterEnabled) renderMySetList();
+            });
+        }
+        if (fBtn) {
+            fBtn.classList.toggle('active', !!appState.mySetFilterEnabled);
+            fBtn.addEventListener('click', () => {
+                appState.mySetFilterEnabled = !appState.mySetFilterEnabled;
+                fBtn.classList.toggle('active', appState.mySetFilterEnabled);
+                saveAppState();
+                renderMySetList();
+            });
+        }
+    }
 
     document.getElementById('btn-mytsuji-toggle-all').onclick = toggleAllMyTsuji;
     document.getElementById('btn-mytsuji-get').onclick = getMyTsujiFromTsujiSearch;
@@ -2382,6 +2427,8 @@ function buildStateToSave() {
         myTargets: appState.myTargets,
         myTsujiSearches: appState.myTsujiSearches,
         mySets: appState.mySets,
+        mySetFilterText: appState.mySetFilterText, mySetFilterName: appState.mySetFilterName,
+        mySetFilterMemo: appState.mySetFilterMemo, mySetFilterEnabled: appState.mySetFilterEnabled,
         mySetCurrentId: appState.mySetCurrentId,
         mySetHomeData: appState.mySetHomeData,
         mySetHome: appState.mySetHome,
@@ -2590,7 +2637,7 @@ function loadAppState() {
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale',
-             'baseOptMwBase','mwOffsetAngle','tsujiLineIncludeOffset','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','tsujiLineIncludeOffset','mySetFilterText','mySetFilterName','mySetFilterMemo','mySetFilterEnabled','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -13029,6 +13076,22 @@ function mySetUpdatedHtml(s) {
     return html;
 }
 
+/** Myセットのフィルタ判定(第86ラウンド・怒号の項目14)。トグルオフか空文字なら全て表示。
+ *  空白区切り(半角/全角)はアンド条件。各語は「:Myセット名」「:メモ」のチェックに従った対象のどこかに含まれれば良い */
+function _mySetFilterPass(s) {
+    if (!appState.mySetFilterEnabled) return true;
+    const terms = String(appState.mySetFilterText || '').split(/[\s　]+/).filter(t => t);
+    if (!terms.length) return true;
+    const useName = appState.mySetFilterName !== false;
+    const useMemo = appState.mySetFilterMemo !== false;
+    const name = String(s.id === 0 ? '既定のセット' : (s.name || '')).toLowerCase();
+    const memo = String(s.memo || '').toLowerCase();
+    return terms.every(t => {
+        const tl = t.toLowerCase();
+        return (useName && name.includes(tl)) || (useMemo && memo.includes(tl));
+    });
+}
+
 function renderMySetList() {
     const container = document.getElementById('myset-list');
     if (!container) return;
@@ -13038,6 +13101,7 @@ function renderMySetList() {
 
     // 既定のセット(固定行): 名称固定・行削除/上下移動不可・常に端末保持。スプレッドシートの紐付けは可能
     const home = mySetHomeObj();
+    if (!_mySetFilterPass(home)) { /* フィルタ非該当(第86ラウンド) */ } else {
     const [hIcon, hIconTitle] = mySetRowIcon(home);
     const homeRow = document.createElement('div');
     homeRow.className = 'myset-row' + (cur === 0 ? ' myset-current' : '');
@@ -13046,7 +13110,7 @@ function renderMySetList() {
         <div class="mypoint-row-header">
             <input type="radio" name="myset-select" value="0" class="mystars-radio">
             <input type="checkbox" class="body-checkbox myset-check-home" ${home.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
-            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span>
+            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span><button type="button" class="myset-fav myset-fav-home" title="お気に入り(タップで切り替え。⭐️のMyセットはリストの上位に表示)">${home.favorite ? '⭐️' : '☆'}</button>
             ${cur === 0 ? '<span>🔛</span>' : ''}
         </div>
         <div class="control-row">
@@ -13072,9 +13136,16 @@ function renderMySetList() {
     const homeMemo = homeRow.querySelector('.myset-memo-home');
     homeMemo.addEventListener('change', (e) => { home.memo = e.target.value; saveAppState(); });
     homeRow.querySelector('.myset-status-home').addEventListener('click', () => mySetRowStatusClick(home));
+    homeRow.querySelector('.myset-fav-home').addEventListener('click', () => {
+        home.favorite = !home.favorite; saveAppState(); renderMySetList();
+    });
     container.appendChild(homeRow);
+    }
 
-    appState.mySets.forEach(s => {
+    // 表示順: ⭐️(お気に入り)を上位に(グループ内は手動の並び順のまま。配列の並び自体は変えない=第86ラウンド・項目14)
+    const orderedSets = [...appState.mySets.filter(s => s.favorite), ...appState.mySets.filter(s => !s.favorite)];
+    orderedSets.forEach(s => {
+        if (!_mySetFilterPass(s)) return;   // フィルタ非該当(第86ラウンド)
         const [rowIcon, rowIconTitle] = mySetRowIcon(s);
         const row = document.createElement('div');
         row.className = 'myset-row' + (cur === s.id ? ' myset-current' : '');
@@ -13083,7 +13154,7 @@ function renderMySetList() {
             <div class="mypoint-row-header">
                 <input type="radio" name="myset-select" value="${s.id}" class="mystars-radio">
                 <input type="checkbox" class="body-checkbox myset-check" data-id="${s.id}" ${s.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
-                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span>
+                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span><button type="button" class="myset-fav" data-id="${s.id}" title="お気に入り(タップで切り替え。⭐️のMyセットはリストの上位に表示)">${s.favorite ? '⭐️' : '☆'}</button>
                 ${cur === s.id ? '<span>🔛</span>' : ''}
             </div>
             <div class="control-row">
@@ -13132,6 +13203,9 @@ function renderMySetList() {
         memoInput.addEventListener('input', () => setMySetDirty(true));
         memoInput.addEventListener('change', (e) => { s.memo = e.target.value; saveAppState(); setMySetDirty(true); });
         row.querySelector('.myset-status').addEventListener('click', () => mySetRowStatusClick(s));
+        row.querySelector('.myset-fav').addEventListener('click', () => {
+            s.favorite = !s.favorite; saveAppState(); setMySetDirty(true); renderMySetList();   // 並び(⭐️上位)を即反映
+        });
         container.appendChild(row);
     });
 

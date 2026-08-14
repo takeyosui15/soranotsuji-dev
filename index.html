@@ -1759,6 +1759,16 @@ GNU General Public License for more details.
                     <div class="control-row">
                         <button id="btn-myset-regall" class="nav-btn main-btn">全て登録</button>
                     </div>
+                    <div class="control-row">
+                        <input type="text" id="input-myset-filter" placeholder="フィルタテキスト(空白区切り)" maxlength="150" autocomplete="off" title="Myセット名とメモから検索してリストを絞り込みます(空白区切りはアンド条件。「フィルタ」トグルがオンの間だけ効きます)">
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="フィルタの対象にMyセット名を含める"><input type="checkbox" id="chk-myset-filter-name" checked>:Myセット名</label>
+                        <label class="baseopt-radio" title="フィルタの対象にメモを含める"><input type="checkbox" id="chk-myset-filter-memo" checked>:メモ</label>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-myset-filter" class="nav-btn main-btn" title="フィルタテキストと2つのチェックボックスに従ってMyセットのリストを絞り込みます(トグル。オフの時はフィルタしません)">フィルタ</button>
+                    </div>
                     <div id="myset-error" class="mypoint-error"></div>
                     <div id="myset-list" class="mypoint-list"></div>
                     <div class="control-row">
