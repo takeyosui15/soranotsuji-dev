@@ -212,7 +212,9 @@ Claude(AI)のナレッジ・道具・手順をセッションを越えて引き�
    `.claude/skills/kaiki/`(=skillsの実証第1号。第41ラウンドで作成)
 3. [x] Koushiのデッサン(`01-koushi-dessin.md`・第42ラウンド)…最小実装(Koushi->HTML片方向)も[x]
    (第45ラウンド: `ClaudeMederuU/tools/koushi.js`+ゴールデンテスト。**入居予定者の第1号が完成**)
-4. [ ] MederuU本体リポジトリの作成(2フォルダ+README+CLAUDE.mdの最小構成)
+4. [x] MederuU本体リポジトリの作成(2フォルダ+README+CLAUDE.mdの最小構成)
+   **(2026-08-14 第77ラウンド完了: `takeyosui15/MederuU`をPrivateで作成・初回コミット44da054を
+   push・引き直しクローンでstagingと完全一致を検品。鍵はkoushiと同じ既定施錠の運用)**
    - **作成タイミングの判断材料(第45ラウンド・依頼者の要望に応えて)**: 条件は3つで、
      ①器のデッサンが確定している[x] ②移す物の第1号が完成している[x: koushi.js+kaikiスキル+デッサン群]
      ③吸い上げ元の範囲が一意に決まっている[x: `ClaudeMederuU/`+`.claude/skills/`]。

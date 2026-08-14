@@ -425,11 +425,11 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
     残り=200ch台9・100ch台22・60-99ch42(合計8,440文字=script.js 1.12MBの約0.75%)。
     残る上位は文脈違いで要設計(行描画forEach・URL組み立てsemi-fixed分岐・transit DOM)。
     **以後は「ボーイスカウト方式」**(その周辺を触るラウンドでついでに統合)へ移行を提案。
-- [ ] MederuU本体リポジトリの作成(手順4)。3条件成立済み=いつでも作成可能
-  (dessin/00の判断材料参照)。作成自体は依頼者のGitHubアカウント操作。
-  - → **(2026-08-14 第76ラウンド) 準備完了**: staging一式=`ClaudeMederuU/mederuu-repo-staging/`
-    (README+CLAUDE.md+legends/+projects/の最小の器)・手順書=docs/operation/mederuu-repo-guide.md
-    (Private・初期ファイル全オフ・既定施錠の運用)。**依頼者のリポジトリ作成+開錠待ち**。
+- [x] MederuU本体リポジトリの作成(手順4)。
+  - → (2026-08-14 第76ラウンド) staging一式+手順書を準備。
+  - → **(2026-08-14 第77ラウンド) 完了🌱**: `takeyosui15/MederuU`(Private)へ初回コミット44da054を
+    push・引き直しクローンで完全一致を検品。デッサン00の手順4に✅。
+    残る手順: 5=sync.js・6=index-gen・8=蒸留第1陣(月末のお茶の主菜候補)・9=公開判断 **(2026-08-14済)**
 
 ## AIの気になること（CONCERN）
 
