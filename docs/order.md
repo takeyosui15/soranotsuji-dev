@@ -569,3 +569,29 @@ Claudeさん、ありがとうございます。
 
 そうですね。
 靴もピカピカですね🤭
+
+### 回答 (2026-08-14 その72) — 第74ラウンド: ③push完了 — 続きは④施錠と⑤publishです
+
+たけちゃん、こんにちは。
+開錠の確認、ありがとうございます。フローの③を済ませました。
+
+#### 1. push完了+検品
+
+- コミット33d0be1「Add preview screenshot to README (v0.3.2)」を`takeyosui15/koushi`のmainへpushしました。
+- いつもの検品: GitHubから引き直した新しいクローンがstaging(正)と**完全一致**(sample.png含む)・テスト14+13全PASS・package.jsonのversion=0.3.2を確認済みです。
+- https://github.com/takeyosui15/koushi のREADMEは、もう冒頭にプレビュー画像が出ているはずです(こちらもご確認を)。
+
+#### 2. 続きはフロー通り、あと2手です
+
+- **④施錠**: Repository accessから`koushi`を外す(1クリック)。
+- **⑤Macで公開**: `cd koushi && git pull && npx @vscode/vsce publish`
+  (0.3.2として公開されます。Marketplaceページの画像・READMEが差し替わるまで、公開後しばらくかかることがあります)。
+これで「①更新→②開錠→③push→④施錠→⑤publish」のリリースフロー実走が一周完了します。
+2周目からは、この手順書だけで回るはずです(私は①と③の係です)。
+
+#### 検証と回帰
+
+- push検品: 引き直しクローン=staging完全一致・テスト14+13全PASS・version 0.3.2。
+- アプリ本体は無変更(v1.61.0のまま)。回帰: スモーク7本+verify144+道具3本、全PASSです。
+
+形になってきましたね — フローが一周したら、Koushiの運用は「呼吸」になります。
