@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.68.0 - 2026-08-14: feat: 第84ラウンド — 怒号の項目9: 宙の窓ctrlメニューへ日時情報〜薄明メニューを丸ごと複製(もちろん連動) ①これまでの部分複製(日付/時刻ピッカー・薄明ジャンプ)に残りを足して完成形に: タイムゾーン表示・Nowボタン・アニメーション4ボタン(月/秒〜分/秒)・時刻スライダー・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力 アイコン ▶) ②連動の作り: 日時系は既存の共通関数(setNow/toggleSpeed/addMoonMonth/searchMoonAge/jumpToEvent)へ委譲し、表示系は複製id(末尾-ctrl)への一括書き込み(updateShortcutsData/updateMoonInfo/TZ表示)。アニメーションボタンのアクティブ状態は_syncSpeedBtnMirrorsで本家⇄全天儀ctrl⇄宙の窓ctrlの3面を常時一致(従来の全天儀ctrlはctrl側クリック時のみ同期だった穴も塞いだ) ③ショートカット/薄明ジャンプの選択状態は本家と相互連動・時刻スライダーは3本(日時情報・全天儀ctrl・宙の窓ctrl)全てが双方向連動 ④デッサン06のctrlメニューの節を完成形に更新
 Version 1.67.0 - 2026-08-14: feat: 第83ラウンド — 怒号の項目10・11: ①宙の窓ctrlメニューに観測点移動ボタン(1段目=前後左右上下1m単位。シーンは組み直さずカメラだけ動かすプレビューで、2段目の「位置反映」で緯度経度高さへ確定し基準方位角/視高度を再計算・「リセット」で取り消し。前後左右はカメラの向き基準・観測点高は上下分だけ変化・移動先の地面標高は引き直し・移動量の読みを2段目に表示)+カメラ向きボタン(3段目=カメラオフセット方位角/視高度を1°ずつ。ドラッグパンと同じ即時反映で、4段目の「リセット」で押す前の向きへ・「カメラ反映」で確定=戻り先を忘れる)。日暮とカメラオフセット方位角の間に配置 ②全天儀ctrlメニューに時刻スライダー(アニメーションボタンの下・表示天体の上。日時情報メニューの時刻スライダーと連動・分単位) ③デッサン06(ctrl 10.1〜10.4段目)・デッサン01(全天儀ctrl 7.5段目)を更新
 Version 1.66.0 - 2026-08-14: feat: 第82ラウンド — 怒号の項目6: 「:天の川オプション」チェックボックス+±の表示反転 ①基本オプション・辻検索・辻メッシュ・全天儀ctrlの「天の川オプション」グループラベルを「:天の川オプション」チェックボックスに(4面連動)。実体は基準点ラジオ(中心座標/オフセット点)と同じ1つの状態(baseOptMwBase)の別の見た目で、オン=オフセット点・オフ=中心座標。オフの間はオフセット中心角の入力・スライダーを無効化(値は保持)。新しい保存キーなし=保存・URLは従来のbaseOptMwBaseがそのまま担う ②My辻検索の行にも行ごとの「:天の川オプション」チェック(mwOffsetEnabled・既定オン=従来挙動維持。行のCSV列は列定義の判断待ち=取込行はオン) ③±の表示反転(承認済みの安全案): オフセット中心角の画面表示・入力を「夏の天の川を上から見て時計回りが正」に。内部値・保存・URL・CSV・Fileの符号は従来のまま(画面だけ反転)。結果リストの画面列とソートも表示符号・File出力は内部符号 ④検索が記録する角度(結果コントロール・File・スナップショット)を「実際に使った実効角」に(チェックオフ時は0) ⑤デッサン02/03/04/10に変更注記+手順書にMacローカルクローン「MederuU-local」の節を追加(依頼)
 Version 1.65.0 - 2026-08-14: feat: 第81ラウンド — ①辻検索⇄辻メッシュ検索の同名項目連動(怒号の項目4・方針転換): 検索期間・基準方位角/視高度・辻オフセット方位角/視高度・許容範囲方位角/視高度・検索中心・月齢/時間/曜日/月間/標高フィルタ(計49ペア)を、どちらのメニューで変えてももう一方に映るようにした。状態キーは従来の2系統のまま(保存・URL・CSVの互換を崩さず)、メニューの変更時にペア表で写し合う方式(委譲リスナー=個別ハンドラの後に発火)。起動時も揃える(通常は辻検索側を正・URLがメッシュ側を復元した時はメッシュ側を正)。オフセット中心角は元々共有キーのため相手側の表示追従のみ追加。連動しない項目=精度フィルタ(辻検索は選択式・メッシュは読み取り専用固定)と検索エリア/精度(メッシュ固有)。デッサン03/04に連動の節を追記 ②MederuU手順5の実施(開錠を受けて): sync.jsをMederuU本体へpush+宙の辻の初回吸い上げ(97ファイル・秘密検査スキップ0件)をコミットb2cc685としてmainへ。引き直しクローンで検品済み(staging一致・自己テスト8/8・projects98ファイル)
@@ -131,7 +132,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.67.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.68.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1699,16 +1700,17 @@ function setupUI() {
     // タイムゾーン表示(第79ラウンド・項目19): 端末のTZ+UTCオフセットを日時情報メニューの先頭に常時表示。
     // 日本以外のTZでは「地名検索はOSMのみ」の注記を添える(項目18のGSIスキップと連動した案内)
     {
-        const el = document.getElementById('tz-info-label');
-        if (el) {
-            let tz = '';
-            try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
-            const off = -new Date().getTimezoneOffset();
-            const sign = off >= 0 ? '+' : '-';
-            const a = Math.abs(off);
-            const hhmm = `${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
-            el.textContent = `タイムゾーン: ${tz || '不明'} (UTC${sign}${hhmm})` +
-                (tz && tz !== 'Asia/Tokyo' ? ' / 地名検索はOSMのみ' : '');
+        let tz = '';
+        try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
+        const off = -new Date().getTimezoneOffset();
+        const sign = off >= 0 ? '+' : '-';
+        const a = Math.abs(off);
+        const hhmm = `${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
+        const tzTxt = `タイムゾーン: ${tz || '不明'} (UTC${sign}${hhmm})` +
+            (tz && tz !== 'Asia/Tokyo' ? ' / 地名検索はOSMのみ' : '');
+        for (const id of ['tz-info-label', 'tz-info-label-ctrl']) {   // 宙の窓ctrlの複製にも同じ表示(第84ラウンド)
+            const el = document.getElementById(id);
+            if (el) el.textContent = tzTxt;
         }
     }
 
@@ -2817,8 +2819,10 @@ function syncStateFromUI() {
         if (mcd) mcd.value = dStr;
         const mct = document.getElementById('mw-ctrl-time');
         if (mct) mct.value = tStr;
-        const mwts = document.getElementById('input-mwctrl-time-slider');
-        if (mwts && document.activeElement !== mwts) mwts.value = h * 60 + m;
+        for (const sid of ['input-mwctrl-time-slider', 'input-sora-ctrl-time-slider']) {
+            const sEl = document.getElementById(sid);
+            if (sEl && document.activeElement !== sEl) sEl.value = h * 60 + m;
+        }
         soraMovSyncUI();
     }
 }
@@ -2846,9 +2850,11 @@ function syncUIFromState() {
     if (mcd) mcd.value = `${yyyy}-${mm}-${dd}`;
     const mct = document.getElementById('mw-ctrl-time');
     if (mct) mct.value = `${h}:${m}:${s}`;
-    // 全天儀ctrlの時刻スライダー(第83ラウンド。ドラッグ中は触らない)
-    const mwts = document.getElementById('input-mwctrl-time-slider');
-    if (mwts && document.activeElement !== mwts) mwts.value = d.getHours() * 60 + d.getMinutes();
+    // 全天儀ctrl/宙の窓ctrlの時刻スライダー(第83・84ラウンド。ドラッグ中は触らない)
+    for (const sid of ['input-mwctrl-time-slider', 'input-sora-ctrl-time-slider']) {
+        const sEl = document.getElementById(sid);
+        if (sEl && document.activeElement !== sEl) sEl.value = d.getHours() * 60 + d.getMinutes();
+    }
     soraMovSyncUI();   // 撮影開始/終了日時などの算出表示を日時に追従
 }
 
@@ -3508,8 +3514,10 @@ function searchMoonAge(targetAge) {
     const res = Astronomy.SearchMoonPhase(targetPhase, searchStartDate, 45);
     
     if(res && res.date) {
-        document.getElementById('moon-age-input').blur(); 
-        appState.currentDate = res.date; 
+        document.getElementById('moon-age-input').blur();
+        const cMoon = document.getElementById('moon-age-input-ctrl');
+        if (cMoon) cMoon.blur();
+        appState.currentDate = res.date;
         syncUIFromState(); 
         updateAll(); 
     } else { 
@@ -3521,11 +3529,24 @@ function uncheckTimeShortcuts() {
     document.querySelectorAll('input[name="time-jump"], input[name="time-jump-ctrl"]').forEach(r => r.checked = false);
 }
 
+/** 日時情報メニューの月/秒〜分/秒のアクティブ状態を、全天儀ctrl/宙の窓ctrlの複製ボタンへ映す(第84ラウンド) */
+function _syncSpeedBtnMirrors() {
+    [['btn-speed-month', 'btn-mw-ctrl-speed-month', 'btn-sora-ctrl-speed-month'],
+     ['btn-speed-day', 'btn-mw-ctrl-speed-day', 'btn-sora-ctrl-speed-day'],
+     ['btn-speed-hour', 'btn-mw-ctrl-speed-hour', 'btn-sora-ctrl-speed-hour'],
+     ['btn-speed-min', 'btn-mw-ctrl-speed-min', 'btn-sora-ctrl-speed-min']].forEach(([mid, ...cids]) => {
+        const m = document.getElementById(mid);
+        const on = !!(m && m.classList.contains('active'));
+        cids.forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('active', on); });
+    });
+}
+
 function stopMove() {
     appState.isMoving = false;
     appState.moveSpeed = null;
     clearInterval(appState.timers.move);
     document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    _syncSpeedBtnMirrors();
     // アニメーション停止後、辻ラインを高精度(1秒サンプリング)で再描画
     if (appState.isDPActive) {
         updateDPLines();
@@ -3544,6 +3565,7 @@ function toggleSpeed(speed) {
 
     const btnId = { month: 'btn-speed-month', day: 'btn-speed-day', hour: 'btn-speed-hour', min: 'btn-speed-min' };
     document.getElementById(btnId[speed]).classList.add('active');
+    _syncSpeedBtnMirrors();
 
     const actions = {
         month: () => addMonth(1),
@@ -4703,16 +4725,21 @@ function updateShortcutsData(startOfDay, observer) {
         const mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
         const ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
         
-        document.getElementById('time-sunrise').innerText = sr ? formatTime(sr.date) : "--:--";
-        document.getElementById('time-sunset').innerText = ss ? formatTime(ss.date) : "--:--";
-        document.getElementById('time-moonrise').innerText = mr ? formatTime(mr.date, startOfDay) : "--:--";
-        document.getElementById('time-moonset').innerText = ms ? formatTime(ms.date, startOfDay) : "--:--";
+        // 日時情報メニューと宙の窓ctrlメニューの複製(id末尾-ctrl)を一括更新(第84ラウンド)
+        const setT = (id, txt) => {
+            const el = document.getElementById(id); if (el) el.innerText = txt;
+            const c = document.getElementById(id + '-ctrl'); if (c) c.innerText = txt;
+        };
+        setT('time-sunrise', sr ? formatTime(sr.date) : "--:--");
+        setT('time-sunset', ss ? formatTime(ss.date) : "--:--");
+        setT('time-moonrise', mr ? formatTime(mr.date, startOfDay) : "--:--");
+        setT('time-moonset', ms ? formatTime(ms.date, startOfDay) : "--:--");
 
         const refr = appState.refractionEnabled ? "normal" : null;
-        document.getElementById('alt-sunrise').innerText = sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--";
-        document.getElementById('alt-sunset').innerText = ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--";
-        document.getElementById('alt-moonrise').innerText = mr ? getRiseSetAlt('Moon', mr.date, observer, refr) : "--";
-        document.getElementById('alt-moonset').innerText = ms ? getRiseSetAlt('Moon', ms.date, observer, refr) : "--";
+        setT('alt-sunrise', sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--");
+        setT('alt-sunset', ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--");
+        setT('alt-moonrise', mr ? getRiseSetAlt('Moon', mr.date, observer, refr) : "--");
+        setT('alt-moonset', ms ? getRiseSetAlt('Moon', ms.date, observer, refr) : "--");
 
         currentRiseSetData = {
             sunrise: sr?.date,
@@ -4979,6 +5006,11 @@ function updateMoonInfo(date) {
     document.getElementById('moon-age-input').value = appState.moonAge;
     const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
     document.getElementById('moon-icon').innerText = icons[Math.round(phase / 45) % 8];
+    // 宙の窓ctrlの複製(第84ラウンド。入力中は書き戻さない)
+    const cIn = document.getElementById('moon-age-input-ctrl');
+    if (cIn && document.activeElement !== cIn) cIn.value = appState.moonAge;
+    const cIc = document.getElementById('moon-icon-ctrl');
+    if (cIc) cIc.innerText = icons[Math.round(phase / 45) % 8];
 }
 
 function formatTime(date, baseDate) {
@@ -16255,6 +16287,41 @@ function setupSoramadoControls() {
     btnH('btn-sora-cam-right', () => _smCamNudgeMove(1, 0));
     btnH('btn-sora-cam-reset', _smCamNudgeReset);
     btnH('btn-sora-cam-apply', _smCamNudgeApply);
+    // 日時情報〜薄明の複製の残り(第84ラウンド・怒号の項目9): Now/アニメーション/時刻スライダー/ショートカット/月齢
+    btnH('btn-sora-ctrl-now', setNow);
+    btnH('btn-sora-ctrl-speed-month', () => toggleSpeed('month'));
+    btnH('btn-sora-ctrl-speed-day', () => toggleSpeed('day'));
+    btnH('btn-sora-ctrl-speed-hour', () => toggleSpeed('hour'));
+    btnH('btn-sora-ctrl-speed-min', () => toggleSpeed('min'));
+    const soraTimeSlider = document.getElementById('input-sora-ctrl-time-slider');
+    if (soraTimeSlider) soraTimeSlider.addEventListener('input', () => {
+        uncheckTimeShortcuts();
+        const val = Math.max(0, Math.min(1439, parseInt(soraTimeSlider.value) || 0));
+        appState.currentDate.setHours(Math.floor(val / 60), val % 60, 0, 0);
+        syncUIFromState();
+        updateAll();
+    });
+    // 日の出/日の入/月の出/月の入ショートカット(選択状態は日時情報メニューと相互連動)
+    ['sunrise', 'sunset', 'moonrise', 'moonset'].forEach(v => {
+        const r = document.getElementById(`jump-ctrl-${v}`);
+        if (r) r.addEventListener('change', (e) => {
+            if (!e.target.checked) return;
+            jumpToEvent(v);
+            const m = document.querySelector(`input[name="time-jump"][value="${v}"]`);
+            if (m) m.checked = true;
+        });
+    });
+    btnH('btn-sora-ctrl-moon-prev', () => addMoonMonth(-1));
+    btnH('btn-sora-ctrl-moon-next', () => addMoonMonth(1));
+    const ctrlMoonAge = document.getElementById('moon-age-input-ctrl');
+    if (ctrlMoonAge) ctrlMoonAge.addEventListener('change', (e) => {
+        const targetAge = parseFloat(e.target.value);
+        if (isNaN(targetAge)) {
+            e.target.value = appState.moonAge;   // 空欄時は計算値を復元(日時情報メニューと同じ)
+            return;
+        }
+        searchMoonAge(targetAge);
+    });
     // インターバルMov: パラメータ入力と再生トグル
     numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
     numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);

@@ -424,6 +424,10 @@ GNU General Public License for more details.
                     <input type="range" id="input-sora-ctrl-focal" class="sora-slider" min="1" max="1000" step="1" title="レンズの焦点距離(1〜1000mm。1000mm超はテキスト/リストで指定。宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
+                    <span id="tz-info-label-ctrl" title="端末(ブラウザ)のタイムゾーン(日時情報メニューと同じ表示)">タイムゾーン: -</span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-ctrl-now" class="nav-btn small" title="現在日時へ(日時情報メニューのNowと連動)">Now</button>
                     <button id="btn-sora-ctrl-month-prev" class="nav-btn">◀◀</button>
                     <button id="btn-sora-ctrl-date-prev" class="nav-btn">◀</button>
                     <input type="date" id="sora-ctrl-date" title="基準日付(日時情報メニューと連動)">
@@ -431,11 +435,72 @@ GNU General Public License for more details.
                     <button id="btn-sora-ctrl-month-next" class="nav-btn">▶▶</button>
                 </div>
                 <div class="control-row">
+                    <div class="spacer-btn-now"></div>
                     <button id="btn-sora-ctrl-hour-prev" class="nav-btn">◀◀</button>
                     <button id="btn-sora-ctrl-time-prev" class="nav-btn">◀</button>
                     <input type="time" id="sora-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
                     <button id="btn-sora-ctrl-time-next" class="nav-btn">▶</button>
                     <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
+                </div>
+                <div class="control-row main-buttons-row">
+                    <button id="btn-sora-ctrl-speed-month" class="nav-btn main-btn" title="毎秒1月移動(日時情報メニューと連動)">月/秒</button>
+                    <button id="btn-sora-ctrl-speed-day" class="nav-btn main-btn" title="毎秒1日移動(日時情報メニューと連動)">日/秒</button>
+                    <button id="btn-sora-ctrl-speed-hour" class="nav-btn main-btn" title="毎秒1時間移動(日時情報メニューと連動)">時/秒</button>
+                    <button id="btn-sora-ctrl-speed-min" class="nav-btn main-btn" title="毎秒1分移動(日時情報メニューと連動)">分/秒</button>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-sora-ctrl-time-slider" class="sora-slider" min="0" max="1439" step="1" value="720" title="時刻スライダー(0:00〜23:59。日時情報メニューの時刻スライダーと連動。分単位=秒は0になります)">
+                </div>
+                <div class="shortcuts">
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-ctrl" id="jump-ctrl-sunrise" class="mystars-radio" value="sunrise">
+                        <label for="jump-ctrl-sunrise">
+                            <span class="shortcut-name">🌞日の出</span>
+                            <span class="shortcut-detail">
+                                <span id="time-sunrise-ctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-sunrise-ctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-ctrl" id="jump-ctrl-sunset" class="mystars-radio" value="sunset">
+                        <label for="jump-ctrl-sunset">
+                            <span class="shortcut-name">🌞日の入</span>
+                            <span class="shortcut-detail">
+                                <span id="time-sunset-ctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-sunset-ctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-ctrl" id="jump-ctrl-moonrise" class="mystars-radio" value="moonrise">
+                        <label for="jump-ctrl-moonrise">
+                            <span class="shortcut-name">🌛月の出</span>
+                            <span class="shortcut-detail">
+                                <span id="time-moonrise-ctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-moonrise-ctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-ctrl" id="jump-ctrl-moonset" class="mystars-radio" value="moonset">
+                        <label for="jump-ctrl-moonset">
+                            <span class="shortcut-name">🌛月の入</span>
+                            <span class="shortcut-detail">
+                                <span id="time-moonset-ctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-moonset-ctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-row moon-row">
+                    <button id="btn-sora-ctrl-moon-prev" class="nav-btn">◀</button>
+                    <div class="moon-display">
+                        <label>月齢</label>
+                        <input type="number" id="moon-age-input-ctrl" step="0.1" min="0" max="30.0" title="月齢(日時情報メニューと連動。変更するとその月齢の日時へ移動)">
+                        <span id="moon-icon-ctrl" class="moon-icon">🌑</span>
+                    </div>
+                    <button id="btn-sora-ctrl-moon-next" class="nav-btn">▶</button>
                 </div>
                 <div id="sora-ctrl-twilight"></div>
                 <div class="control-row">
