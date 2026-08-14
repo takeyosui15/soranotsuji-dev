@@ -1,9 +1,10 @@
 # koushiリポジトリ公開の手順書 — リポジトリ作成からMarketplace公開まで
 
 第69ラウンド(2026-08-09)作成。全体は5段で、**たけちゃんの作業(🧑)とClaudeの作業(🤖)**を明記する。
-進捗: 手順1✅(第70)・手順2✅(第71=コミット64ed03aをpush・3重検品済み)・手順3〜5✅(第72〜73=
-依頼者がpublisher登録+vsce publish実施、**v0.3.1がMarketplace掲載確認済み**)。
-以後は下の「鍵の運用」のリリースフローで更新する(第73=プレビュー画像+v0.3.2で初の実走)。
+進捗: 手順1〜5✅(第70〜72。**v0.3.1がMarketplace掲載**)。
+更新リリースフロー(①更新→②開錠→③push→④施錠→⑤pull+publish)も第73〜75で
+**v0.3.2(プレビュー画像)の一周を実走完了**。以後はこの手順書だけで回る。
+掲載ページ: https://marketplace.visualstudio.com/items?itemName=takeyosui15.koushi-preview
 一式の中身は `ClaudeMederuU/tools/koushi-repo-staging/` に準備済み(このフォルダがそのまま
 新リポジトリの中身になる。正は従来どおり宙の辻リポジトリ側で、リリース時にClaudeが同期する)。
 
