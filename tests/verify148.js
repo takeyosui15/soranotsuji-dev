@@ -13,8 +13,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- V0: 版数ピン(最新のverifyのみに置く運用) ----
-check('V0 APP_VERSION 1.65.0', src.includes("APP_VERSION = '1.65.0'") || !!process.argv[2]);
+// ---- V0: 版数の存在検査(版数ピンは最新のverify149へ移行済み) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.65.0の行がある', src.includes('Version 1.65.0 - ') || !!process.argv[2]);
 
 // ---- V1: 静的な形(起動時の統一呼び出し・URL復元でメッシュ側を正にする印) ----

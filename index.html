@@ -378,9 +378,9 @@ GNU General Public License for more details.
                         <option value="pos">座標順</option>
                     </select>
                 </div>
-                <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                <div class="control-row left-row"><input type="checkbox" id="chk-mwctrl-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-mwctrl-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
                     <input type="number" id="input-mwctrl-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                 </div>
                 <div class="control-row">
@@ -761,9 +761,9 @@ GNU General Public License for more details.
                             <option value="pos">座標順</option>
                         </select>
                     </div>
-                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row left-row"><input type="checkbox" id="chk-baseopt-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-baseopt-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
                         <input type="number" id="input-baseopt-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="baseopt-hr">
@@ -844,9 +844,9 @@ GNU General Public License for more details.
                         <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" name="tsuji-center-mode" value="line">:基準点から辻オフセット点までの線</label>
                     </div>
                     <hr class="tsujisearch-separator">
-                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row left-row"><input type="checkbox" id="chk-tsuji-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-tsuji-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
                         <input type="number" id="input-tsuji-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
@@ -995,9 +995,9 @@ GNU General Public License for more details.
                         <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します"><input type="radio" name="tsujimesh-center-mode" value="line">:基準点から辻オフセット点までの線</label>
                     </div>
                     <hr class="tsujisearch-separator">
-                    <div class="control-row left-row"><label class="baseopt-group-label">天の川オプション</label></div>
+                    <div class="control-row left-row"><input type="checkbox" id="chk-tsujimesh-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-tsujimesh-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
                         <input type="number" id="input-tsujimesh-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">

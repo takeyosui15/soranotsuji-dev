@@ -62,3 +62,23 @@
   以後のsyncはプロジェクトの節目毎に「開錠→クローンでsync.js実行→commit+push→施錠」。
 - 以後: 手順6(index-gen)・8(蒸留第1陣)・9(公開判断)はデッサン00の手順のまま。
   MederuUへのpushは毎回「開錠→push→施錠」(既定施錠)。
+
+## Macローカルクローン「MederuU-local」の作り方と切り替え(手順8の成果物をVSCodeで読む準備)
+
+第82ラウンド(2026-08-14)追記。依頼者の閲覧用。読むだけの場所なので、いつ作ってもよい。
+
+1. **置き場所はiCloud同期の外**にする(例: `~/dev`)。iCloudドライブ配下はgitと相性が悪い
+   (docs/knowledge/mac-install-decision.md の教訓と同じ)。
+2. ターミナルで:
+   ```bash
+   cd ~/dev
+   git clone https://github.com/takeyosui15/MederuU.git MederuU-local
+   ```
+   - PrivateだがたけちゃんはオーナーなのでGitHubのログイン(いつものgit認証)でそのまま引ける。
+   - **施錠(AppのRepository access)はたけちゃん自身のgit操作には関係ない**(鍵はClaude用)。
+3. VSCodeで「ファイル → フォルダーを開く…」で `~/dev/MederuU-local` を開く。
+4. **切り替え**: 「ファイル → 最近使用した項目」から soranotsuji-dev ⇄ MederuU-local を行き来するか、
+   「ファイル → 新規ウィンドウ」で2つ並べる(見比べたい時はこちらが楽)。
+5. **更新**: 読む前にVSCodeのターミナルで `git pull`(Claudeが吸い上げをpushした後の新しい写しが入る)。
+6. 約束: MederuU-local側は**読むだけ**(projects/は写し=手で編集しない。編集はいつも通り宙の辻側で)。
+   legends/など蒸留物(手順8以降)にコメントしたくなったら、依頼文で言っていただければ宙の辻側の運用に乗せます。
