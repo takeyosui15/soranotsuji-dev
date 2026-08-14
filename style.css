@@ -919,6 +919,7 @@ html {
 }
 .sora-aspect { width: 3.2em; }
 .sora-slider { width: 100%; }
+.sora-move-readout { font-size: 11px; color: #9ab; margin-left: 6px; white-space: nowrap; }
 
 /* 宙検索: 重みスライダー行(ラベル+スライダー+値を1行に収める) */
 .ss-w-row { display: flex; align-items: center; gap: 4px; }

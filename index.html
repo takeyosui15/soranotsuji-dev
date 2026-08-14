@@ -365,6 +365,9 @@ GNU General Public License for more details.
                     <button id="btn-mw-ctrl-speed-hour" class="nav-btn main-btn" title="毎秒1時間移動(日時情報メニューと連動)">時/秒</button>
                     <button id="btn-mw-ctrl-speed-min" class="nav-btn main-btn" title="毎秒1分移動(日時情報メニューと連動)">分/秒</button>
                 </div>
+                <div class="control-row">
+                    <input type="range" id="input-mwctrl-time-slider" class="sora-slider" min="0" max="1439" step="1" value="720" title="時刻スライダー(0:00〜23:59。日時情報メニューの時刻スライダーと連動。分単位=秒は0になります)">
+                </div>
                 <div class="control-row left-row">
                     <label class="baseopt-radio" title="表示天体の写真/軌跡/マーカー/方位線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-bodies">:表示天体</label>
                     <label class="baseopt-radio" title="表示天体名と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-body-names">:表示天体名</label>
@@ -435,6 +438,29 @@ GNU General Public License for more details.
                     <button id="btn-sora-ctrl-hour-next" class="nav-btn">▶▶</button>
                 </div>
                 <div id="sora-ctrl-twilight"></div>
+                <div class="control-row">
+                    <button id="btn-sora-move-left" class="nav-btn" title="観測点を1m左へ(カメラの向き基準。宙の窓の見え方だけ先に動き、「位置反映」で確定します)">◀︎左</button>
+                    <button id="btn-sora-move-back" class="nav-btn" title="観測点を1m後へ(カメラの向き基準)">▼後</button>
+                    <button id="btn-sora-move-down" class="nav-btn" title="観測点高を1m下へ">▼下</button>
+                    <button id="btn-sora-move-up" class="nav-btn" title="観測点高を1m上へ">上▲</button>
+                    <button id="btn-sora-move-fwd" class="nav-btn" title="観測点を1m前へ(カメラの向き基準)">前▲</button>
+                    <button id="btn-sora-move-right" class="nav-btn" title="観測点を1m右へ(カメラの向き基準)">右▶︎</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-move-reset" class="nav-btn" title="観測点の移動を取り消して、移動ボタンを押す前の位置に戻します">リセット</button>
+                    <button id="btn-sora-move-apply" class="nav-btn main-btn" title="移動後の位置を緯度経度高さ・基準方位角/視高度に反映して確定します(リセットでは戻らなくなります)">位置反映</button>
+                    <span id="sora-move-readout" class="sora-move-readout"></span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-cam-left" class="nav-btn" title="カメラオフセット方位角を1°左へ(-1°)">◀︎📷左</button>
+                    <button id="btn-sora-cam-down" class="nav-btn" title="カメラオフセット視高度を1°下へ(-1°)">▼📷下</button>
+                    <button id="btn-sora-cam-up" class="nav-btn" title="カメラオフセット視高度を1°上へ(+1°)">📷上▲</button>
+                    <button id="btn-sora-cam-right" class="nav-btn" title="カメラオフセット方位角を1°右へ(+1°)">📷右▶︎</button>
+                </div>
+                <div class="control-row">
+                    <button id="btn-sora-cam-reset" class="nav-btn" title="カメラ向きの変更を取り消して、カメラ向きボタンを押す前の向きに戻します(その間のドラッグパンや手入力の変更も戻ります)">リセット</button>
+                    <button id="btn-sora-cam-apply" class="nav-btn main-btn" title="今のカメラオフセット方位角/視高度で確定します(リセットでは戻らなくなります)">カメラ反映</button>
+                </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label" title="観測点基準">カメラオフセット方位角(°):</label>
                     <input type="number" id="input-sora-ctrl-offset-az" class="sora-mov-num" placeholder="基準から時計回り(°)" step="0.5" min="-360" max="360" title="基準方位角からのズレ量(宙の窓メニュー・ドラッグパンと連動)">

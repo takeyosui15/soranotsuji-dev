@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.67.0 - 2026-08-14: feat: 第83ラウンド — 怒号の項目10・11: ①宙の窓ctrlメニューに観測点移動ボタン(1段目=前後左右上下1m単位。シーンは組み直さずカメラだけ動かすプレビューで、2段目の「位置反映」で緯度経度高さへ確定し基準方位角/視高度を再計算・「リセット」で取り消し。前後左右はカメラの向き基準・観測点高は上下分だけ変化・移動先の地面標高は引き直し・移動量の読みを2段目に表示)+カメラ向きボタン(3段目=カメラオフセット方位角/視高度を1°ずつ。ドラッグパンと同じ即時反映で、4段目の「リセット」で押す前の向きへ・「カメラ反映」で確定=戻り先を忘れる)。日暮とカメラオフセット方位角の間に配置 ②全天儀ctrlメニューに時刻スライダー(アニメーションボタンの下・表示天体の上。日時情報メニューの時刻スライダーと連動・分単位) ③デッサン06(ctrl 10.1〜10.4段目)・デッサン01(全天儀ctrl 7.5段目)を更新
 Version 1.66.0 - 2026-08-14: feat: 第82ラウンド — 怒号の項目6: 「:天の川オプション」チェックボックス+±の表示反転 ①基本オプション・辻検索・辻メッシュ・全天儀ctrlの「天の川オプション」グループラベルを「:天の川オプション」チェックボックスに(4面連動)。実体は基準点ラジオ(中心座標/オフセット点)と同じ1つの状態(baseOptMwBase)の別の見た目で、オン=オフセット点・オフ=中心座標。オフの間はオフセット中心角の入力・スライダーを無効化(値は保持)。新しい保存キーなし=保存・URLは従来のbaseOptMwBaseがそのまま担う ②My辻検索の行にも行ごとの「:天の川オプション」チェック(mwOffsetEnabled・既定オン=従来挙動維持。行のCSV列は列定義の判断待ち=取込行はオン) ③±の表示反転(承認済みの安全案): オフセット中心角の画面表示・入力を「夏の天の川を上から見て時計回りが正」に。内部値・保存・URL・CSV・Fileの符号は従来のまま(画面だけ反転)。結果リストの画面列とソートも表示符号・File出力は内部符号 ④検索が記録する角度(結果コントロール・File・スナップショット)を「実際に使った実効角」に(チェックオフ時は0) ⑤デッサン02/03/04/10に変更注記+手順書にMacローカルクローン「MederuU-local」の節を追加(依頼)
 Version 1.65.0 - 2026-08-14: feat: 第81ラウンド — ①辻検索⇄辻メッシュ検索の同名項目連動(怒号の項目4・方針転換): 検索期間・基準方位角/視高度・辻オフセット方位角/視高度・許容範囲方位角/視高度・検索中心・月齢/時間/曜日/月間/標高フィルタ(計49ペア)を、どちらのメニューで変えてももう一方に映るようにした。状態キーは従来の2系統のまま(保存・URL・CSVの互換を崩さず)、メニューの変更時にペア表で写し合う方式(委譲リスナー=個別ハンドラの後に発火)。起動時も揃える(通常は辻検索側を正・URLがメッシュ側を復元した時はメッシュ側を正)。オフセット中心角は元々共有キーのため相手側の表示追従のみ追加。連動しない項目=精度フィルタ(辻検索は選択式・メッシュは読み取り専用固定)と検索エリア/精度(メッシュ固有)。デッサン03/04に連動の節を追記 ②MederuU手順5の実施(開錠を受けて): sync.jsをMederuU本体へpush+宙の辻の初回吸い上げ(97ファイル・秘密検査スキップ0件)をコミットb2cc685としてmainへ。引き直しクローンで検品済み(staging一致・自己テスト8/8・projects98ファイル)
 Version 1.64.0 - 2026-08-14: feat/fix: 第80ラウンド — ①月間フィルタの共有URL対応(依頼): 辻検索/辻メッシュのURL取得・復元・My辻の行URLに月間26キー(tsujiMonthFilter+1〜12・tsujiMeshMonthFilter+1〜12)を追加し、短縮URL辞書をv15へ(v14以前は凍結=発行済みURLはそのまま読める) ②My辻リストCSVを45→58列へ(依頼): 37〜49列目=月間フィルタ+1月〜12月(挿入位置=曜日フィルタと精度フィルタの間は依頼者指定)。旧形式(21/36/37/45列)は列数判別でそのまま入力できる(月間は全オフ補完)。デッサン00/10更新 ③「地表の下に天の川が透ける」不具合の修正(報告): 宙の窓の地形は視界範囲と画角の扇しか覆わないため、見下ろした時や扇の外の方位で地平線(伏角)より下の画素に天球(天の川・地平線下の星)がそのまま見えていた。伏角から下を暗い球帽(半径350km=地形より外・天体400kmより内)で塞ぎ、地形は蓋の手前・天体と天球は蓋の裏に隠れるようにした(観測点標高が変わった時のみ再構築) ④MederuU手順5: sync.js(一方向吸い上げ+秘密検査)をstagingに作成 — 自己テスト8チェック・宙の辻の実走で96ファイル/秘密検査スキップ0件(検出3件は全てKoushiサンプルの架空アドレス=文書用予約ドメインで許可リストへ)。写し(projects/)はアプリ側リポジトリに置かず、push時に生成する運用
@@ -130,7 +131,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.66.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.67.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -2816,6 +2817,8 @@ function syncStateFromUI() {
         if (mcd) mcd.value = dStr;
         const mct = document.getElementById('mw-ctrl-time');
         if (mct) mct.value = tStr;
+        const mwts = document.getElementById('input-mwctrl-time-slider');
+        if (mwts && document.activeElement !== mwts) mwts.value = h * 60 + m;
         soraMovSyncUI();
     }
 }
@@ -2843,6 +2846,9 @@ function syncUIFromState() {
     if (mcd) mcd.value = `${yyyy}-${mm}-${dd}`;
     const mct = document.getElementById('mw-ctrl-time');
     if (mct) mct.value = `${h}:${m}:${s}`;
+    // 全天儀ctrlの時刻スライダー(第83ラウンド。ドラッグ中は触らない)
+    const mwts = document.getElementById('input-mwctrl-time-slider');
+    if (mwts && document.activeElement !== mwts) mwts.value = d.getHours() * 60 + d.getMinutes();
     soraMovSyncUI();   // 撮影開始/終了日時などの算出表示を日時に追従
 }
 
@@ -15015,6 +15021,15 @@ function setupMilkyWayCtrl() {
     btnH('btn-mw-ctrl-hour-next', () => addMinute(60));
     // 日付/時刻ピッカー(日時情報メニューと連動。共通の_bindDateTimePair)
     _bindDateTimePair('mw-ctrl-date', 'mw-ctrl-time');
+    // 時刻スライダー(第83ラウンド・怒号の項目11。日時情報メニューの時刻スライダーと連動=分単位・秒は0)
+    const mwTimeSlider = document.getElementById('input-mwctrl-time-slider');
+    if (mwTimeSlider) mwTimeSlider.addEventListener('input', () => {
+        uncheckTimeShortcuts();
+        const val = Math.max(0, Math.min(1439, parseInt(mwTimeSlider.value) || 0));
+        appState.currentDate.setHours(Math.floor(val / 60), val % 60, 0, 0);
+        syncUIFromState();
+        updateAll();
+    });
     // 移動速度ボタン: 日時情報メニューの月/秒等へ委譲し、アクティブ状態をミラーする
     const speedPairs = [
         ['btn-mw-ctrl-speed-month', 'btn-speed-month'], ['btn-mw-ctrl-speed-day', 'btn-speed-day'],
@@ -15571,8 +15586,8 @@ function _smComposeFrame(w, h, canvas2d) {
         _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
     }
     _smCamera.up.set(0, 0, 1);
-    _smCamera.position.set(0, 0, 0);
-    _smCamera.lookAt(_smDir(az, alt));
+    _smCamera.position.set(_smObsNudge.e, _smObsNudge.n, _smObsNudge.u);   // 観測点の未確定移動(「位置反映」前のプレビュー)
+    _smCamera.lookAt(_smDir(az, alt).add(_smCamera.position));
     _smUpdateSky();
     _smBuildBodies();
     _smBuildTraj();
@@ -15597,7 +15612,7 @@ function _smComposeFrame(w, h, canvas2d) {
             if (px1 <= px0) continue;
             const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
             _smCamera.aspect = stripAspect;
-            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.lookAt(_smDir(sAz, alt).add(_smCamera.position));
             _smCamera.updateProjectionMatrix();
             rt.viewport.set(px0, 0, px1 - px0, h);
             rt.scissor.set(px0, 0, px1 - px0, h);
@@ -16225,6 +16240,21 @@ function setupSoramadoControls() {
     btnH('btn-sora-ctrl-hour-next', () => addMinute(60));
     // 日付/時刻ピッカー: 日時情報メニューと同じ順序で反映(共通の_bindDateTimePair)
     _bindDateTimePair('sora-ctrl-date', 'sora-ctrl-time');
+    // 観測点/カメラ移動ボタン(第83ラウンド・怒号の項目10)
+    btnH('btn-sora-move-left', () => _smObsNudgeMove('left'));
+    btnH('btn-sora-move-back', () => _smObsNudgeMove('back'));
+    btnH('btn-sora-move-down', () => _smObsNudgeMove('down'));
+    btnH('btn-sora-move-up', () => _smObsNudgeMove('up'));
+    btnH('btn-sora-move-fwd', () => _smObsNudgeMove('fwd'));
+    btnH('btn-sora-move-right', () => _smObsNudgeMove('right'));
+    btnH('btn-sora-move-reset', _smObsNudgeReset);
+    btnH('btn-sora-move-apply', _smObsNudgeApply);
+    btnH('btn-sora-cam-left', () => _smCamNudgeMove(-1, 0));
+    btnH('btn-sora-cam-down', () => _smCamNudgeMove(0, -1));
+    btnH('btn-sora-cam-up', () => _smCamNudgeMove(0, 1));
+    btnH('btn-sora-cam-right', () => _smCamNudgeMove(1, 0));
+    btnH('btn-sora-cam-reset', _smCamNudgeReset);
+    btnH('btn-sora-cam-apply', _smCamNudgeApply);
     // インターバルMov: パラメータ入力と再生トグル
     numH('input-sora-mov-interval', 'soraMovInterval', 0.5, 86400, false);
     numH('input-sora-mov-shots', 'soraMovShots', 1, 99999, true);
@@ -16435,6 +16465,96 @@ function _smDir(azDeg, altDeg) {
     return new THREE.Vector3(Math.sin(az) * ca, Math.cos(az) * ca, Math.sin(alt));
 }
 
+// --- 観測点/カメラ移動ボタン (第83ラウンド・怒号の項目10) ---
+// 観測点の未確定移動(m, ENU)。シーンは組み直さずカメラだけ動かして見え方を先に確かめ、「位置反映」で確定する
+let _smObsNudge = { e: 0, n: 0, u: 0 };
+let _smCamNudgeBase = null;   // カメラ向きボタンの戻り先 {az, alt}(null=未操作。「カメラ反映」で忘れて確定)
+
+/** 観測点移動の合計をカメラの向き基準(前/右/上)の読みで表示。全て0なら空欄 */
+function _smObsNudgeReadout() {
+    const el = document.getElementById('sora-move-readout');
+    if (!el) return;
+    const { e, n, u } = _smObsNudge;
+    if (!e && !n && !u) { el.textContent = ''; return; }
+    const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz)) * Math.PI / 180;
+    const fwd = e * Math.sin(az) + n * Math.cos(az);
+    const right = e * Math.cos(az) - n * Math.sin(az);
+    const f = v => (v >= 0 ? '+' : '') + v.toFixed(1);
+    el.textContent = `移動中: 前${f(fwd)}m 右${f(right)}m 上${f(u)}m`;
+}
+
+function _smObsNudgeDraw() {
+    _smObsNudgeReadout();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+/** 観測点を1m動かす(kind: fwd/back/left/right/up/down。前後左右はカメラの向き=方位の水平投影基準) */
+function _smObsNudgeMove(kind) {
+    if (kind === 'up' || kind === 'down') {
+        _smObsNudge.u += (kind === 'up') ? 1 : -1;
+    } else {
+        const turn = { fwd: 0, right: 90, back: 180, left: 270 }[kind] || 0;
+        const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + turn) * Math.PI / 180;
+        _smObsNudge.e += Math.sin(az);
+        _smObsNudge.n += Math.cos(az);
+    }
+    _smObsNudgeDraw();
+}
+
+function _smObsNudgeReset() {
+    _smObsNudge = { e: 0, n: 0, u: 0 };
+    _smObsNudgeDraw();
+}
+
+/** 「位置反映」: 未確定移動を緯度経度高さへ確定する。観測点高(地上高)は上下移動分だけ変わり、
+ *  移動先の地面標高はAPIで引き直す。基準方位角/視高度はupdateAll内のsoraUpdateBaseFromPointsが
+ *  新しい位置→目的点で再計算する。確定待ちの間に押された移動は残す(適用した分だけ差し引く) */
+async function _smObsNudgeApply() {
+    const { e, n, u } = _smObsNudge;
+    if (!e && !n && !u) return;
+    const lat0 = Number(appState.start.lat), lng0 = Number(appState.start.lng);
+    // 数mの移動なので局所平面近似で充分(1mあたりの誤差はサブmm)
+    const lat = lat0 + (n / 111320);
+    const lng = lng0 + (e / (111320 * Math.cos(lat0 * Math.PI / 180)));
+    const ticket = _locSetTicket(true);
+    const elev = await getElevation(lat, lng);
+    if (!_locSetLatest(true, ticket)) return;   // より新しい地点設定に追い越された(この確定は破棄)
+    const apiElev = (elev !== null) ? elev : (Number(appState.startApiElev) || 0);
+    const height = (Number(appState.startHeight) || 0) + u;
+    appState.start = { lat, lng, elev: apiElev + height };
+    appState.startApiElev = apiElev;
+    appState.startHeight = height;
+    _smObsNudge = { e: _smObsNudge.e - e, n: _smObsNudge.n - n, u: _smObsNudge.u - u };
+    _smObsNudgeReadout();
+    saveAppState();
+    updateAll();
+}
+
+/** カメラ向きボタン: オフセット方位角/視高度を1°ずつ動かす(ドラッグパンと同じ即時反映)。
+ *  初回押下時の値を戻り先として覚え、「リセット」で戻す・「カメラ反映」で忘れて確定する */
+function _smCamNudgeMove(dAz, dAlt) {
+    if (_smCamNudgeBase === null) {
+        _smCamNudgeBase = { az: Number(appState.soraOffsetAz) || 0, alt: Number(appState.soraOffsetAlt) || 0 };
+    }
+    appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
+    appState.soraOffsetAlt = Math.max(-360, Math.min(360, Number(appState.soraOffsetAlt) + dAlt));
+    saveAppState();
+    soraSyncUI();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+function _smCamNudgeReset() {
+    if (_smCamNudgeBase === null) return;
+    appState.soraOffsetAz = _smCamNudgeBase.az;
+    appState.soraOffsetAlt = _smCamNudgeBase.alt;
+    _smCamNudgeBase = null;
+    saveAppState();
+    soraSyncUI();
+    if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+}
+
+function _smCamNudgeApply() { _smCamNudgeBase = null; }
+
 /** ファインダー枠の矩形(指定領域内に finderAspect で内接, margin) → {x,y,w,h} */
 function _smFitRect(boxW, boxH, finderAspect, margin) {
     let w = boxW * margin, h = w / finderAspect;
@@ -16475,8 +16595,8 @@ function drawSoramado() {
     }
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
-    _smCamera.position.set(0, 0, 0);
-    _smCamera.lookAt(_smDir(az, alt));
+    _smCamera.position.set(_smObsNudge.e, _smObsNudge.n, _smObsNudge.u);   // 観測点の未確定移動(「位置反映」前のプレビュー)
+    _smCamera.lookAt(_smDir(az, alt).add(_smCamera.position));
     _smCamera.updateProjectionMatrix();
 
     // 天の川の明るさ(黒レベル)をスライダー値から反映
@@ -16524,7 +16644,7 @@ function drawSoramado() {
             if (px1 <= px0) continue;
             const sAz = az - panoAov / 2 + (i + 0.5) * stripDeg;
             _smCamera.aspect = stripAspect;
-            _smCamera.lookAt(_smDir(sAz, alt));
+            _smCamera.lookAt(_smDir(sAz, alt).add(_smCamera.position));
             _smCamera.updateProjectionMatrix();
             _smRenderer.setViewport(px0, glY, px1 - px0, cr.h);
             _smRenderer.setScissor(px0, glY, px1 - px0, cr.h);
