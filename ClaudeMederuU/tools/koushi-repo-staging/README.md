@@ -217,6 +217,8 @@ Numbers like `c:1.` are only markers for humans — the renderer skips them.
       - clr:"#f0b429".
 ```
 
+![preview / プレビュー](sample.png)
+
 ---
 
 # Koushi: Markdown Spanning Table (日本語)
