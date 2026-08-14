@@ -2,6 +2,8 @@
 // 怒号の項目6: 「:天の川オプション」チェックボックス(4面+My辻行)と、オフセット中心角の±表示反転。
 //   実体は基準点(baseOptMwBase)と同じ1状態(オン=オフセット点/オフ=中心座標。値は保持)。
 //   ±は画面の入出力だけ反転(夏の天の川を上から見て時計回り=正)。内部・保存・URL・CSV・Fileは従来符号。
+// 意図更新(第85ラウンド・項目12): 「天の川の基準点」ラジオは撤去された(チェックが同じ状態を担うため)。
+//   W2/W3のラジオ追従の表明を削り、W4はラジオ撤去の確認に置き換えた。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -59,12 +61,11 @@ check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)'
       await new Promise(r=>setTimeout(r,100));
       return {
         base: appState.baseOptMwBase,
-        radioOffset: document.querySelector('input[name="baseopt-mw-base"][value="offset"]').checked,
         allOn: chkIds.every(id=>document.getElementById(id).checked),
         allEnabled: inIds.every(id=>!document.getElementById(id).disabled)
       };
     },[CHK_IDS,IN_IDS]);
-    check('W2 チェックオン→baseOptMwBase=offset・ラジオも追従・4面オン・入力が有効', r.base==='offset'&&r.radioOffset&&r.allOn&&r.allEnabled, JSON.stringify(r));
+    check('W2 チェックオン→baseOptMwBase=offset・4面オン・入力が有効', r.base==='offset'&&r.allOn&&r.allEnabled, JSON.stringify(r));
   }
 
   // W3: チェックオフ(ctrl面)→状態center・ラジオ追従・4面オフ・入力無効(値は保持)
@@ -76,26 +77,26 @@ check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)'
       await new Promise(r=>setTimeout(r,100));
       return {
         base: appState.baseOptMwBase,
-        radioCenter: document.querySelector('input[name="baseopt-mw-base"][value="center"]').checked,
         allOff: chkIds.every(id=>!document.getElementById(id).checked),
         allDisabled: inIds.every(id=>document.getElementById(id).disabled),
         kept: appState.mwOffsetAngle===-30,
         shown: document.getElementById('input-baseopt-mw-offset').value   // 表示は反転で30のまま
       };
     },[CHK_IDS,IN_IDS]);
-    check('W3 チェックオフ→center・ラジオ追従・4面オフ・入力無効・値は保持(表示30)',
-      r.base==='center'&&r.radioCenter&&r.allOff&&r.allDisabled&&r.kept&&r.shown==='30', JSON.stringify(r));
+    check('W3 チェックオフ→center・4面オフ・入力無効・値は保持(表示30)',
+      r.base==='center'&&r.allOff&&r.allDisabled&&r.kept&&r.shown==='30', JSON.stringify(r));
   }
 
-  // W4: ラジオ→チェックの向き(オフセット点を選ぶと4面オン)
+  // W4: 「天の川の基準点」ラジオは撤去済み(第85ラウンド・項目12。チェックが同じ状態を担う)
   {
-    const r=await p.evaluate(async(chkIds)=>{
-      const radio=document.querySelector('input[name="baseopt-mw-base"][value="offset"]');
-      radio.checked=true; radio.dispatchEvent(new Event('change',{bubbles:true}));
+    const r=await p.evaluate(async()=>{
+      const gone = document.querySelector('input[name="baseopt-mw-base"]') === null;
+      const chk=document.getElementById('chk-baseopt-mw-enable');
+      chk.checked=true; chk.dispatchEvent(new Event('change',{bubbles:true}));
       await new Promise(r=>setTimeout(r,100));
-      return { base: appState.baseOptMwBase, allOn: chkIds.every(id=>document.getElementById(id).checked) };
-    },CHK_IDS);
-    check('W4 ラジオでオフセット点→チェック4面もオン', r.base==='offset'&&r.allOn, JSON.stringify(r));
+      return { gone, base: appState.baseOptMwBase };
+    });
+    check('W4 基準点ラジオは撤去済みで、チェックだけで状態が切り替わる', r.gone&&r.base==='offset', JSON.stringify(r));
   }
 
   // W5: 実効角: チェックオフ中は0(=中心座標のRA/Dec)・オン中は角度が効く

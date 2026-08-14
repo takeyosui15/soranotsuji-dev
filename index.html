@@ -830,12 +830,15 @@ GNU General Public License for more details.
                 </div>
                 <div id="sec-baseoption" class="section-content closed">
                     <div class="control-row left-row"><label class="baseopt-group-label">辻ライン</label></div>
-                    <div class="control-row left-row"><label class="input-label">天の川の基準点:</label></div>
                     <div class="control-row left-row">
-                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="center" checked>天の川の中心座標(いて座付近)</label>
+                        <label class="baseopt-radio" title="辻オフセット方位角/視高度(検索中心のズレ)を辻ラインに含めるか(オン=検索中心の辻ライン・オフ=基準点の辻ライン)"><input type="checkbox" id="chk-baseopt-tsujiline-offset" checked>:辻オフセット方位角/視高度</label>
+                    </div>
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="検索中心を「点」か「線」の範囲かで選択します(辻検索・辻メッシュ検索と連動)">検索中心オプション</label></div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-radio" title="検索中心を辻オフセット点の「点」で検索します(辻検索・辻メッシュ検索と連動)"><input type="radio" name="baseopt-center-mode" value="point" checked>:辻オフセット点</label>
                     </div>
                     <div class="control-row left-row">
-                        <label class="baseopt-radio"><input type="radio" name="baseopt-mw-base" value="offset">中心座標からのオフセット点</label>
+                        <label class="baseopt-radio" title="検索中心を基準点から辻オフセット点までの「線」の範囲で検索します(辻検索・辻メッシュ検索と連動)。辻ラインは辻オフセット仰角を1°置きにずらした複数の線になります"><input type="radio" name="baseopt-center-mode" value="line">:基準点から辻オフセット点までの線</label>
                     </div>
                     <hr class="baseopt-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label">全天儀</label></div>

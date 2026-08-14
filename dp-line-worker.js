@@ -183,8 +183,10 @@ self.onmessage = (e) => {
         startOfDayMs, hourStart, hourEnd,
         valElev, targetElev, limit, distLimit,
         taskId,
-        stepSeconds  // optional: サンプリング間隔(秒) デフォルト 1
+        stepSeconds,  // optional: サンプリング間隔(秒) デフォルト 1
+        altOffset     // optional: 辻オフセット視高度(°) — 天体が「目的点の見かけ高度+この角度」に来る位置を求める(第85ラウンド・項目12)
     } = e.data;
+    const altOff = Number(altOffset) || 0;
 
     const refr = refractionEnabled ? 'normal' : null;
     const points = [];
@@ -221,7 +223,7 @@ self.onmessage = (e) => {
             if (hor.altitude <= limit) { limitReached = true; break; }
 
             const tgtLatForCalc = hasTarget ? targetData.lat : undefined;
-            const dist = calculateDistanceForAltitudes(hor.altitude, valElev, targetElev, k, curLat, tgtLatForCalc);
+            const dist = calculateDistanceForAltitudes(hor.altitude - altOff, valElev, targetElev, k, curLat, tgtLatForCalc);
             if (dist <= 0 || dist >= distLimit) { limitReached = true; break; }
 
             if (!hasTarget) {

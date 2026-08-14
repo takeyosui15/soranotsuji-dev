@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.69.0 - 2026-08-14: feat: 第85ラウンド — 怒号の項目12: 基本オプションの辻ライン項目の刷新 ①「天の川の基準点」ラジオを撤去(項目6の「:天の川オプション」チェックが同じ状態(baseOptMwBase)を担っているため。保存・URLキーは従来のまま) ②「:辻オフセット方位角/視高度」チェックボックスを新設(既定オン): オンで辻ラインに検索中心のズレ(辻オフセット方位角/視高度)を含める=検索中心の辻ライン・オフで従来どおり基準点の辻ライン。方位角のズレは描画時の回転・視高度のズレは経路計算の目標高度(worker/メインの両経路にaltOffset)で効かせる ③「検索中心オプション」(:辻オフセット点/:基準点から辻オフセット点までの線)を基本オプションにも設置し、辻検索・辻メッシュ検索と3面連動 ④検索中心が「線」の時は厳密には面になるため、基準点→オフセット点の線を仰角1°置き(仰角0のときは方位角1°置き・刻み上限37本)に刻んだ複数の実線を描く(前日/翌日線・精度境界の装飾は両端の線だけ) ⑤オフセット入力の変更だけでも辻ラインが追従(4箇所の入力ハンドラに引き直しを追加)。辻ライン365は従来どおり基準点線のみ(51万点の再計算を増やさない) ⑥デッサン02を刷新
 Version 1.68.0 - 2026-08-14: feat: 第84ラウンド — 怒号の項目9: 宙の窓ctrlメニューへ日時情報〜薄明メニューを丸ごと複製(もちろん連動) ①これまでの部分複製(日付/時刻ピッカー・薄明ジャンプ)に残りを足して完成形に: タイムゾーン表示・Nowボタン・アニメーション4ボタン(月/秒〜分/秒)・時刻スライダー・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力 アイコン ▶) ②連動の作り: 日時系は既存の共通関数(setNow/toggleSpeed/addMoonMonth/searchMoonAge/jumpToEvent)へ委譲し、表示系は複製id(末尾-ctrl)への一括書き込み(updateShortcutsData/updateMoonInfo/TZ表示)。アニメーションボタンのアクティブ状態は_syncSpeedBtnMirrorsで本家⇄全天儀ctrl⇄宙の窓ctrlの3面を常時一致(従来の全天儀ctrlはctrl側クリック時のみ同期だった穴も塞いだ) ③ショートカット/薄明ジャンプの選択状態は本家と相互連動・時刻スライダーは3本(日時情報・全天儀ctrl・宙の窓ctrl)全てが双方向連動 ④デッサン06のctrlメニューの節を完成形に更新
 Version 1.67.0 - 2026-08-14: feat: 第83ラウンド — 怒号の項目10・11: ①宙の窓ctrlメニューに観測点移動ボタン(1段目=前後左右上下1m単位。シーンは組み直さずカメラだけ動かすプレビューで、2段目の「位置反映」で緯度経度高さへ確定し基準方位角/視高度を再計算・「リセット」で取り消し。前後左右はカメラの向き基準・観測点高は上下分だけ変化・移動先の地面標高は引き直し・移動量の読みを2段目に表示)+カメラ向きボタン(3段目=カメラオフセット方位角/視高度を1°ずつ。ドラッグパンと同じ即時反映で、4段目の「リセット」で押す前の向きへ・「カメラ反映」で確定=戻り先を忘れる)。日暮とカメラオフセット方位角の間に配置 ②全天儀ctrlメニューに時刻スライダー(アニメーションボタンの下・表示天体の上。日時情報メニューの時刻スライダーと連動・分単位) ③デッサン06(ctrl 10.1〜10.4段目)・デッサン01(全天儀ctrl 7.5段目)を更新
 Version 1.66.0 - 2026-08-14: feat: 第82ラウンド — 怒号の項目6: 「:天の川オプション」チェックボックス+±の表示反転 ①基本オプション・辻検索・辻メッシュ・全天儀ctrlの「天の川オプション」グループラベルを「:天の川オプション」チェックボックスに(4面連動)。実体は基準点ラジオ(中心座標/オフセット点)と同じ1つの状態(baseOptMwBase)の別の見た目で、オン=オフセット点・オフ=中心座標。オフの間はオフセット中心角の入力・スライダーを無効化(値は保持)。新しい保存キーなし=保存・URLは従来のbaseOptMwBaseがそのまま担う ②My辻検索の行にも行ごとの「:天の川オプション」チェック(mwOffsetEnabled・既定オン=従来挙動維持。行のCSV列は列定義の判断待ち=取込行はオン) ③±の表示反転(承認済みの安全案): オフセット中心角の画面表示・入力を「夏の天の川を上から見て時計回りが正」に。内部値・保存・URL・CSV・Fileの符号は従来のまま(画面だけ反転)。結果リストの画面列とソートも表示符号・File出力は内部符号 ④検索が記録する角度(結果コントロール・File・スナップショット)を「実際に使った実効角」に(チェックオフ時は0) ⑤デッサン02/03/04/10に変更注記+手順書にMacローカルクローン「MederuU-local」の節を追加(依頼)
@@ -132,7 +133,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.68.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.69.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -416,6 +417,7 @@ const APP_DEFAULTS = {
     ssStat: { def: false, bool: 'coerce' },
     // ---- 基本オプション ----
     baseOptMwBase: { def: 'center', enum: ['center', 'offset'] },
+    tsujiLineIncludeOffset: { def: true },   // 辻ラインに辻オフセット方位角/視高度を含めるか(第85ラウンド・項目12)
     mwOffsetAngle: { def: 0, min: -360, max: 360 },
     mwShowBodies: { def: true, bool: 'undef' },          // undef=undefinedならdef、他は!!v(旧実装の契約を維持)
     mwShowBodyNames: { def: false, bool: 'coerce' },      // 初期値オフ(保存済みの設定は維持)
@@ -1821,6 +1823,7 @@ function setupUI() {
         saveAppState();
         updateOffsetDistances();
         if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
+        _dpOffsetEdited();
     });
     document.getElementById('input-tsuji-az-tolerance').addEventListener('change', (e) => {
         appState.tsujiSearchToleranceAz = parseFloat(e.target.value) || 15;
@@ -1839,6 +1842,7 @@ function setupUI() {
         saveAppState();
         updateOffsetDistances();
         if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
+        _dpOffsetEdited();
     });
     // 宙の窓メニュー/コントロールメニューの辻オフセット方位角・視高度(辻検索メニューと連動)
     [['input-sora-tsuji-az-offset', 'tsujiSearchOffsetAz'], ['input-sora-ctrl-tsuji-az-offset', 'tsujiSearchOffsetAz'],
@@ -1850,6 +1854,7 @@ function setupUI() {
             saveAppState();
             updateOffsetDistances();
             if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
+            _dpOffsetEdited();
         });
     });
     document.getElementById('input-tsuji-alt-tolerance').addEventListener('change', (e) => {
@@ -1987,6 +1992,7 @@ function setupUI() {
             e.target.value = appState[key];
             saveAppState();
             updateTsujiMeshOffsetDistances();
+            setTimeout(_dpOffsetEdited, 0);   // 第81の連動伝搬(メッシュ→辻検索の書き写し)の後に辻ラインを引き直す
         });
     });
     [['input-tsujimesh-az-tolerance', 'tsujiMeshToleranceAz'], ['input-tsujimesh-alt-tolerance', 'tsujiMeshToleranceAlt']].forEach(([id, key]) => {
@@ -2400,6 +2406,7 @@ function buildStateToSave() {
         tsujiSearchDays: appState.tsujiSearchDays,
         tsujiCenterMode: appState.tsujiCenterMode,
         baseOptMwBase: appState.baseOptMwBase, mwOffsetAngle: appState.mwOffsetAngle,
+        tsujiLineIncludeOffset: appState.tsujiLineIncludeOffset,
         mwShowBodies: appState.mwShowBodies, mwShowBodyNames: appState.mwShowBodyNames, mwShowConstFig: appState.mwShowConstFig,
         mwShowConstBounds: appState.mwShowConstBounds, mwShowConstNames: appState.mwShowConstNames,
         mwConstNameSort: appState.mwConstNameSort,
@@ -2583,7 +2590,7 @@ function loadAppState() {
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale',
-             'baseOptMwBase','mwOffsetAngle','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','tsujiLineIncludeOffset','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -3135,6 +3142,12 @@ function _dpAnchorTransitMs(body, observer, dayStartMs, nowMs) {
     return t0;
 }
 
+/** 辻オフセットの編集で辻ラインを引き直す(「:辻オフセット方位角/視高度」がオンで辻ライン表示中のみ。
+ *  第85ラウンド・項目12。updateAll経由の再描画とは別に、オフセット入力の変更だけでも線が追従するように) */
+function _dpOffsetEdited() {
+    if (appState.isDPActive && appState.tsujiLineIncludeOffset !== false) updateDPLines();
+}
+
 async function updateDPLines() {
     // 新しい世代を発番し、既存キューにある古い世代の通常辻ラインタスクをキャンセル(辻ライン365は巻き添えにしない)
     const generation = ++dpCurrentGeneration;
@@ -3154,44 +3167,72 @@ async function updateDPLines() {
     // 0時をまたいだ辻時刻(南中23時頃→翌未明5時など)も当日線=実線側に乗る。
     const DP_DIST_LIMIT = 300000;
     const nowMs = appState.currentDate.getTime();
+
+    // 辻オフセットの込み(第85ラウンド・怒号の項目12): 「:辻オフセット方位角/視高度」チェックがオンの時だけ、
+    // 検索中心のズレ(辻オフセット方位角/視高度)を辻ラインに含める(オン=検索中心の辻ライン・オフ=基準点の辻ライン)。
+    // 検索中心オプションが「線」の時は、厳密には面になるため、基準点→オフセット点の線を仰角1°置き
+    // (仰角0のときは方位角1°置き。刻みは上限37本=間隔を等分で拡大)に刻んだ複数の線を描く。
+    // 方位角のズレは描画時の回転(-az)、視高度のズレは経路計算の目標高度(altOffset)で効かせる。
+    const inclOffset = appState.tsujiLineIncludeOffset !== false;
+    const offAz = inclOffset ? (Number(appState.tsujiSearchOffsetAz) || 0) : 0;
+    const offAlt = inclOffset ? (Number(appState.tsujiSearchOffsetAlt) || 0) : 0;
+    const lineMode = inclOffset && appState.tsujiCenterMode === 'line' && (offAz !== 0 || offAlt !== 0);
+    const steps = [];   // 検索中心の刻み {az, alt}(点モードは1点)
+    if (!lineMode) {
+        steps.push({ az: offAz, alt: offAlt });
+    } else {
+        const n = Math.max(1, Math.min(36, Math.ceil(Math.abs(offAlt !== 0 ? offAlt : offAz))));
+        for (let i = 0; i <= n; i++) steps.push({ az: offAz * i / n, alt: offAlt * i / n });
+    }
+    const endSteps = steps.length === 1 ? [steps[0]] : [steps[0], steps[steps.length - 1]];   // 装飾(前日/翌日線・精度境界)は端の線だけに付ける
+    const uniqueAlts = [...new Set(steps.map(s => s.alt))];
+
     const allComputed = await Promise.all(visibleBodies.map(async body => {
         const t0 = _dpAnchorTransitMs(body, observer, baseDate.getTime(), nowMs);
         // 窓の起点は分単位にスナップする。サンプル時刻は「起点+5秒刻み」のため、
         // 南中時刻の秒端数をそのまま使うと毎分00秒に乗らず、5分毎の時刻マーカーが表示されない。
         const currStart = Math.floor((t0 - 43200000) / 60000) * 60000;
-        const [pPrev, pNext, pCurr] = await Promise.all([
-            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart - 86400000, distLimit: DP_DIST_LIMIT }),
-            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart + 86400000, distLimit: DP_DIST_LIMIT }),
-            calculateDPPathPoints(baseDate, body, observer, { stepSeconds: 5, windowStartMs: currStart, distLimit: DP_DIST_LIMIT }),
+        const mkOpts = a => ({ stepSeconds: 5, windowStartMs: currStart, distLimit: DP_DIST_LIMIT, altOffset: a });
+        const currByAlt = {};
+        const [prevList, nextList] = await Promise.all([
+            Promise.all(endSteps.map(s => calculateDPPathPoints(baseDate, body, observer, { ...mkOpts(s.alt), windowStartMs: currStart - 86400000 }))),
+            Promise.all(endSteps.map(s => calculateDPPathPoints(baseDate, body, observer, { ...mkOpts(s.alt), windowStartMs: currStart + 86400000 }))),
+            Promise.all(uniqueAlts.map(async a => { currByAlt[a] = await calculateDPPathPoints(baseDate, body, observer, mkOpts(a)); })),
         ]);
-        return { body, pPrev, pNext, pCurr };
+        return { body, prevList, nextList, currByAlt };
     }));
 
     // 計算遅延中に新しい呼び出しがあった場合は描画しない
     if (generation !== dpCurrentGeneration) return;
 
-    allComputed.forEach(({ body, pPrev, pNext, pCurr }) => {
-        drawDPPath(pPrev, body.color, '1, 13', false);
-        drawDPPath(pNext, body.color, '1, 13', false);
-        // 丁度 — 実線 (天体の中心が目的点に完全に重なる位置)
-        drawDPPath(pCurr, body.color, null, true);
+    allComputed.forEach(({ body, prevList, nextList, currByAlt }) => {
+        // 前日/翌日線(端の線のみ)
+        endSteps.forEach((s, i) => {
+            drawDPPath(prevList[i], body.color, '1, 13', false, -s.az);
+            drawDPPath(nextList[i], body.color, '1, 13', false, -s.az);
+        });
+        // 丁度 — 実線 (天体の中心が検索中心に完全に重なる位置。点モード=1本・線モード=刻んだ全て。
+        // 時刻マーカーは基準点側の1本だけに出す)
+        steps.forEach((s, i) => drawDPPath(currByAlt[s.alt], body.color, null, i === 0, -s.az));
 
-        // ◎ 精度の境界 (±0.125°) — 破線
-        const dashLine = '13, 13';
-        drawDPPath(pCurr, body.color, dashLine, false, +0.125);
-        drawDPPath(pCurr, body.color, dashLine, false, -0.125);
-
-        // ○ 精度の境界 (±angR: 視半径) — 一点鎖線
         const angR = getBodyAngularRadius(body.id, appState.currentDate, observer);
-        if (angR >= 0.01) {
-            const dashDot = '1, 13, 13, 13';
-            drawDPPath(pCurr, body.color, dashDot, false, +angR);
-            drawDPPath(pCurr, body.color, dashDot, false, -angR);
-        }
-        // △ 精度の境界 (±1°) — 二点鎖線
-        const dashDotDot = '1, 13, 1, 13, 13, 13';
-        drawDPPath(pCurr, body.color, dashDotDot, false, +1);
-        drawDPPath(pCurr, body.color, dashDotDot, false, -1);
+        endSteps.forEach(s => {
+            const pCurr = currByAlt[s.alt];
+            // ◎ 精度の境界 (±0.125°) — 破線
+            const dashLine = '13, 13';
+            drawDPPath(pCurr, body.color, dashLine, false, -s.az + 0.125);
+            drawDPPath(pCurr, body.color, dashLine, false, -s.az - 0.125);
+            // ○ 精度の境界 (±angR: 視半径) — 一点鎖線
+            if (angR >= 0.01) {
+                const dashDot = '1, 13, 13, 13';
+                drawDPPath(pCurr, body.color, dashDot, false, -s.az + angR);
+                drawDPPath(pCurr, body.color, dashDot, false, -s.az - angR);
+            }
+            // △ 精度の境界 (±1°) — 二点鎖線
+            const dashDotDot = '1, 13, 1, 13, 13, 13';
+            drawDPPath(pCurr, body.color, dashDotDot, false, -s.az + 1);
+            drawDPPath(pCurr, body.color, dashDotDot, false, -s.az - 1);
+        });
     });
     // 全天体・全線種をまとめて1回で反映(作法: ループ内setDataの禁止)
     _glSetSourceData('dp-lines', _glDpFeatures);
@@ -3819,6 +3860,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     const stepSeconds = opts.stepSeconds || 1;
     const forceWorker = !!opts.forceWorker;
     const distLimit = opts.distLimit || 500000;
+    const altOffset = Number(opts.altOffset) || 0;   // 辻オフセット視高度(°)。天体が「目的点の見かけ高度+この角度」に来る位置を求める(第85ラウンド・項目12)
 
     let startOfDayMs;
     if (opts.windowStartMs !== undefined) {
@@ -3880,7 +3922,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
                 const { r, d } = getRD(time);
                 const hor = Astronomy.Horizon(time, observer, r, d, refr);
                 if (hor.altitude > limit) {
-                    const dist = calculateDistanceForAltitudes(hor.altitude, valElev, appState.end.elev, observer.latitude, appState.end.lat);
+                    const dist = calculateDistanceForAltitudes(hor.altitude - altOffset, valElev, appState.end.elev, observer.latitude, appState.end.lat);
                     if (dist > 0 && dist < distLimit) {
                         path.push({ dist, az: hor.azimuth, time });
                     }
@@ -3910,6 +3952,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
             distLimit,
             taskId,
             stepSeconds,  // 365モードでは60(1分)、通常は1(1秒)
+            altOffset,    // 辻オフセット視高度(第85ラウンド・項目12。365モードは常に0)
             owner: opts.owner || 'dp',   // キュー掃除のスコープ判定用('dp'/'dp365')
         });
     });
@@ -16012,8 +16055,11 @@ function soraExportCancel() {
 // --- 基本オプションメニュー ---
 /** 基本オプションのUI同期(状態→フォーム)。オフセット中心角は辻検索メニュー・My辻検索行とも連動 */
 function syncBaseOptionUI() {
-    const r = document.querySelector(`input[name="baseopt-mw-base"][value="${appState.baseOptMwBase}"]`);
-    if (r) r.checked = true;
+    // 辻ライン(第85ラウンド・項目12): 「:辻オフセット方位角/視高度」チェックと検索中心オプション(3面連動)
+    const tlChk = document.getElementById('chk-baseopt-tsujiline-offset');
+    if (tlChk) tlChk.checked = appState.tsujiLineIncludeOffset !== false;
+    const cmR = document.querySelector(`input[name="baseopt-center-mode"][value="${appState.tsujiCenterMode === 'line' ? 'line' : 'point'}"]`);
+    if (cmR) cmR.checked = true;
     const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
     set('input-baseopt-mw-offset', _mwDispVal(appState.mwOffsetAngle));
     set('input-tsuji-mw-offset', _mwDispVal(appState.mwOffsetAngle));
@@ -16084,8 +16130,39 @@ function applyMilkyWayBaseChange() {
 }
 
 function setupBaseOptionControls() {
-    document.querySelectorAll('input[name="baseopt-mw-base"]').forEach(r => {
-        r.addEventListener('change', () => { if (r.checked) { appState.baseOptMwBase = r.value; applyMilkyWayBaseChange(); } });
+    // 辻ライン(第85ラウンド・項目12): 天の川の基準点ラジオは撤去(「:天の川オプション」チェックが同じ状態を担う)。
+    // 代わりに「:辻オフセット方位角/視高度」チェックと検索中心オプション(辻検索・辻メッシュ検索と連動)を置く
+    const tlChk = document.getElementById('chk-baseopt-tsujiline-offset');
+    if (tlChk) tlChk.addEventListener('change', () => {
+        appState.tsujiLineIncludeOffset = tlChk.checked;
+        saveAppState();
+        if (appState.isDPActive) updateDPLines();
+    });
+    document.querySelectorAll('input[name="baseopt-center-mode"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            const mode = r.value === 'line' ? 'line' : 'point';
+            appState.tsujiCenterMode = mode;
+            appState.tsujiMeshCenterMode = mode;
+            ['tsuji-center-mode', 'tsujimesh-center-mode'].forEach(n => {
+                const el = document.querySelector(`input[name="${n}"][value="${mode}"]`);
+                if (el) el.checked = true;
+            });
+            saveAppState();
+            if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)の線表示の切替
+            if (appState.isDPActive) updateDPLines();
+        });
+    });
+    // 辻検索/辻メッシュ側の検索中心変更にも追従(個別ハンドラ→第81の連動伝搬の後に走らせるためsetTimeoutで遅延)
+    document.querySelectorAll('input[name="tsuji-center-mode"], input[name="tsujimesh-center-mode"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (!r.checked) return;
+            setTimeout(() => {
+                const cmR = document.querySelector(`input[name="baseopt-center-mode"][value="${appState.tsujiCenterMode === 'line' ? 'line' : 'point'}"]`);
+                if (cmR) cmR.checked = true;
+                if (appState.isDPActive) updateDPLines();
+            }, 0);
+        });
     });
     // 「:天の川オプション」チェックボックス(第82ラウンド・項目6): 基準点ラジオと同じ1つの状態
     // (baseOptMwBase)の別の見た目。オン=オフセット点・オフ=中心座標(角度の値は保持)。4面連動
