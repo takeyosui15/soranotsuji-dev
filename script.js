@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.74.0 - 2026-08-14: feat: 第91ラウンド — v16第2弾(叩き台承認済み): 組込天体の色/線種を共有URLへ ①天体毎キーbodyColor<ID>/bodyDash<ID>(色=#RRGGBB・線種=1/0)。既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。非表示でも既定から変えた天体は発行(表示切替後の再現のため)。My天体は従来のstarColor/starIsDashedのまま ②復元はキーの無い天体=復元時点の既定・値の形が崩れたキーと未知IDは無視 ③短縮URL辞書v17新設(名前シード44個のみ。IDはDEFAULT_BODIESから独立した凍結コピー)。v16以前は復号のみ保証で凍結のまま ④発行キー名は配列リテラル(リンター対応)・発行順固定(DEFAULT_BODIES順で色→線種) ⑤デッサン00の叩き台の節を実装済みへ更新
 Version 1.73.0 - 2026-08-14: feat: 第90ラウンド — プラスコードの短縮形入力(第78ラウンドの依頼「次に、短縮形の実装を」): ①観測点/目的点の緯度経度欄(+花火打ち上げ点欄)で短縮形(例: 「MQPJ+2V 港区」)を入力できるように。コードと基準地名の順序はどちらでも良い ②復元はOpen Location CodeのrecoverNearest相当の自前実装(_plusCodeEncode10+_plusCodeRecover): 基準点の全コードから落ちている桁(2/4/6桁)を補い、基準点に最も近いセルへ±1セル調整して展開 ③基準地名は既存の地名検索(GSI→OSM)で解決し、候補は既存の地名ピッカーで選択(選んだ地点を基準に展開)。基準地名を省いた短縮形(例: 「MQPJ+2V」)は地図の中心を基準にする ④通信はジオコーディングのみ(復元計算はローカル)。ヘルプ・ツールチップ・デッサン01の「未対応」注記を解消
 Version 1.72.0 - 2026-08-14: feat: 第88ラウンド — v16 URL第1弾(第81ラウンドで依頼者承認): 大気差・気象・基本オプションを共有URLへ ①全URL(位置情報/宙の窓/辻検索/辻メッシュ)に16キーを追加: refractionEnabled(大気差ON/OFF)・meteoP/meteoT/meteoL(気圧/気温/気温減率)・baseOptMwBase・mwOffsetAngle・mwShowBodies/BodyNames/ConstFig/ConstBounds/ConstNames・mwConstNameSort・elevExcludeEnabled/Radius/ObsRadius・tsujiLineIncludeOffset(第85)。復元は型変換+NaNガード+normalizeAppState(LS復元と同じ流儀) ②短縮URL辞書v16を新設(第3規則「&キー名=既定値」16ペア+「&キー名=」16個。発行順に凍結)。v15以前は復号のみ保証で凍結のまま ③Myセットフィルタ(第86)のURLキーは見送り(Myセットのリスト自体がURLに乗らないため、フィルタだけ乗せても意味を持たない判断。LS保存のみ) ④デッサン00のURLパラメータ表に追記
 Version 1.71.0 - 2026-08-14: feat: 第87ラウンド — 怒号の項目15: Googleプラスコードのフルコード入力 ①観測点/目的点の緯度経度欄(と宙の窓の花火打ち上げ点欄)でプラスコードのフルコード(例: 8Q7XMQPJ+2V)を直接入力できるように。Open Location Codeの公開仕様(Apache-2.0)に沿った約40行の純関数_plusCodeDecodeでローカル復号(通信・APIキー不要)。復号はセルの中心座標。パディング形(例: 7FG49Q00+)対応・11桁以上のグリッド精度対応。公式テストベクタ5種で検証 ②既存の「緯度,経度」直入力・地名検索とはparseInputの入口で共存(プラスコードの形だけ先に判定。カンマ無し数値のZipコード保護等は不変) ③短縮形(例: MQPJ+2V 港区)は基準地名の解決が要るため次段(todo記載) ④ヘルプ・入力欄ツールチップ・デッサン01に記載
@@ -137,7 +138,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.73.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.74.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -13770,7 +13771,13 @@ const _QP_SEEDS_V16 = _QP_SEEDS_V15.concat([
     '&mwShowBodies=', '&mwShowBodyNames=', '&mwShowConstFig=', '&mwShowConstBounds=', '&mwShowConstNames=',
     '&mwConstNameSort=', '&elevExcludeEnabled=', '&elevExcludeRadius=', '&elevExcludeObsRadius=', '&tsujiLineIncludeOffset=',
 ]);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16];   // 添字+1=版数。最新版でエンコードする
+// v17: 第91ラウンド(v16第2弾=依頼者承認済み)。組込天体の色/線種の天体毎キー(bodyColor<ID>/bodyDash<ID>)。
+// 既定値のキーは省略される設計のため、第3規則の既定値ペアは不要=名前シード44個のみ(叩き台どおり)。
+// IDの一覧は辞書凍結の原則によりDEFAULT_BODIESから独立した凍結コピー(将来天体を増やしても、この版は変更しない)
+const _QP_BODY_IDS_V17 = ['MilkyWay', 'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+    'Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon'];
+const _QP_SEEDS_V17 = _QP_SEEDS_V16.concat(_QP_BODY_IDS_V17.flatMap(id => ['&bodyColor' + id + '=', '&bodyDash' + id + '=']));
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -13995,6 +14002,27 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
     if (appState.ssRange !== null) params.set('ssRange', String(appState.ssRange));
+
+    // 組込天体の色/線種(第91ラウンド・v16第2弾=依頼者承認済みの叩き台どおり): 天体毎キー・
+    // 既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。
+    // 非表示でも既定から変えた天体は発行する。キー名はリンター(verify124のemitKeys)が静的に
+    // 読めるよう配列リテラルで持つ(DEFAULT_BODIESの並び順で色→線種の順に固定)
+    ['bodyColorMilkyWay', 'bodyDashMilkyWay', 'bodyColorSun', 'bodyDashSun', 'bodyColorMoon', 'bodyDashMoon',
+     'bodyColorMercury', 'bodyDashMercury', 'bodyColorVenus', 'bodyDashVenus', 'bodyColorMars', 'bodyDashMars',
+     'bodyColorJupiter', 'bodyDashJupiter', 'bodyColorSaturn', 'bodyDashSaturn', 'bodyColorUranus', 'bodyDashUranus',
+     'bodyColorNeptune', 'bodyDashNeptune', 'bodyColorPluto', 'bodyDashPluto', 'bodyColorPolaris', 'bodyDashPolaris',
+     'bodyColorMerak', 'bodyDashMerak', 'bodyColorMintaka', 'bodyDashMintaka', 'bodyColorSubaru', 'bodyDashSubaru',
+     'bodyColorM42', 'bodyDashM42', 'bodyColorVega', 'bodyDashVega', 'bodyColorAltair', 'bodyDashAltair',
+     'bodyColorDeneb', 'bodyDashDeneb', 'bodyColorBetelgeuse', 'bodyDashBetelgeuse', 'bodyColorSirius', 'bodyDashSirius',
+     'bodyColorProcyon', 'bodyDashProcyon'].forEach(k => {
+        const isColor = k.startsWith('bodyColor');
+        const id = k.slice(isColor ? 9 : 8);
+        const b = appState.bodies.find(x => x.id === id);
+        const d = DEFAULT_BODIES.find(x => x.id === id);
+        if (!b || !d) return;
+        if (isColor) { if (b.color !== d.color) params.set(k, b.color); }
+        else if (!!b.isDashed !== !!d.isDashed) params.set(k, b.isDashed ? '1' : '0');
+    });
 
     // 大気差・気象・基本オプション(第88ラウンド・v16 URL第1弾=第81ラウンドで依頼者承認。
     // プレビュー完全再現の範囲を「見え方を変える設定」まで広げる)
@@ -14369,6 +14397,15 @@ function restoreFromUrl() {
     ['ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssStat'].forEach(soraBool);
     // 範囲=自動追従(null)はURLに付与されないため、宙検索パラメータ付きURLでssRangeが無い場合は自動へ戻す
     if (params.has('ssPreset') && !params.has('ssRange')) appState.ssRange = null;
+    // 組込天体の色/線種(第91ラウンド・v16第2弾)。キーの無い天体=既定のまま(省略=復元時点の既定)。
+    // 値の形が崩れているキーと未知の天体IDは無視する
+    appState.bodies.forEach(bd => {
+        const c = params.get('bodyColor' + bd.id);
+        if (c && /^#[0-9A-Fa-f]{6}$/.test(c)) bd.color = c;
+        const ds = params.get('bodyDash' + bd.id);
+        if (ds === '1' || ds === '0') bd.isDashed = ds === '1';
+    });
+
     // 大気差・気象・基本オプション(第88ラウンド・v16第1弾。気象はLS復元と同じくNaNガードのみ)
     soraBool('refractionEnabled');
     ['p', 't', 'l'].forEach(mk => {
