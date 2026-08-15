@@ -2390,3 +2390,38 @@ Claudeさん、こんにちは。
 #### 次のラウンド
 
 開錠を受けて、第92=MederuUのsync(第82〜91のreviews10枚を含む吸い上げ)+手順6(index-gen)を続けます。
+
+### 回答 (2026-08-14 その90) — 第92ラウンド: MederuUのsync+手順6(index-gen)完遂。施錠をお願いします🔒
+
+たけちゃん、こんにちは。
+開錠を受けて、MederuUのsyncと手順6を1回のpushにまとめて完遂しました。
+**ご確認の際に、施錠(Repository accessからMederuUを外す)をお願いします。**
+
+#### 1. MederuUへのpush(コミットf4f20c7)
+
+- **吸い上げ(sync.js)**: 第81〜91のreviews 11枚+SYNC.md更新。計108ファイル・秘密検査スキップ0件。
+- **手順6=index-gen.js(腐らない目次)を新設**: 各フォルダにindex.md(目次)を自動生成する道具です。
+  - 一言説明の拾い方はデッサン00の書式規約どおり3パーサ: JS=JSDocタグ(@name/@synopsis)・Python=docstringのNAME:/SYNOPSIS:見出し行・Markdown=YAMLフロントマター(title/description)→無ければ最初の「# 見出し」。
+  - 13フォルダ分のindex.mdを生成しました。reviewsの目次は73枚が1行ずつ「日付+ラウンド+何のレビューか」で並ぶので、手順8(蒸留)の材料一覧としてそのまま使えます。
+  - sync.jsの一方向ミラー(元に無い写しは消す)とは「**sync→index-gen→commit**」の実行順で整合させました(ミラーが古い目次を消し、index-genが作り直す=どちらの原則も曲げない)。
+  - 冪等(同じ内容なら書き換えない)・--self-testつき(9チェック。壊した入力で落ちる掟)。
+- **sync.jsのヘッダをJSDocタグ形式へ変換**: 書式規約(JSはmanの章名を@タグで持つ)の適用で、index-genの目次にsync.js自身の一言が載るようになりました(道具が道具を説明する、の初仕事です)。自己テスト8/8は不変です。
+
+#### 2. 検品(いつもの届いた実物)
+
+引き直しクローンで確認済みです: HEAD=f4f20c7・sync.js/index-gen.jsがstagingと完全一致・クローン内で自己テスト8/8と9/9・index.md 13枚・reviews 73枚。
+MederuU-local(手順書の節)をお持ちなら、`git pull`で今回の中身(目次つき)をVSCodeから読めます。
+ルートのindex.mdから辿るのがおすすめです。
+
+#### 3. 宙の辻側の記録
+
+- 道具箱の台帳(ClaudeMederuU/tools/README.md): index-genを候補から昇格・sync.jsの行も追加。
+- 手順書(mederuu-repo-guide.md): 手順6✅と以後のsync手順(sync→index-gen→commit)を記録。
+- sync.jsヘッダ変更に伴いverify147(S1/S2=sync.jsの自己テスト+実走)を再確認: 12/12 PASSです(アプリ本体は第91のv1.74.0のまま)。
+
+#### 自走キューの現在地
+
+- **完了**: v16第2弾(第91)・MederuU sync+手順6(第92)。
+- **施錠待ち**: MederuU(お手すきの時にお願いします)。
+- **節目待ち**: 手順8(蒸留第1陣=月末お茶の主菜。reviewsの目次が材料一覧になりました)・手順9(公開判断)。
+- 残りは急ぎません組とPLATEAU年1回再生成のみ。まとまったご確認、お待ちしています。

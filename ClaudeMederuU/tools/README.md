@@ -15,6 +15,8 @@
 | Koushiレンダラ | `ClaudeMederuU/tools/koushi.js` | Koushi(格子)記法→HTML片方向レンダラ(結合セル・入れ子・input22種・class出力のみ)。デッサン01のレンダラ計画の実装第1版(第45ラウンド・依頼者GO)。**MederuU本体`tools/`への入居予定者第1号** | `require('./koushi.js')`で`koushiToHtml`/`renderMarkdownKoushi`。CLI: `node ClaudeMederuU/tools/koushi.js <file.md>`。検証: `node ClaudeMederuU/tools/koushi.test.js`(ゴールデン方式13チェック。標本更新は`--update`+目視確認) |
 | Koushiプレビュー拡張 | `ClaudeMederuU/tools/vscode-koushi/` | VSCodeの標準MarkdownプレビューでKoushi記法(```koushiフェンス)を表として描くmarkdown-itプラグイン拡張+編集画面のトークンハイライト(TextMate文法注入。第67)。第68でMarketplace公開準備・第69でMIT化+publisher=takeyosui15+アイコンを依頼者デザイン(白地黒線の風車型結合格子)へ。レンダラはkoushi.jsの同梱コピー(正はtools/koushi.js・ドリフトはテストが検知) | インストール: `koushi-preview-0.3.1.vsix`をVSCodeへ(手順は同フォルダREADME)。公開はdocs/operation/koushi-repo-guide.mdの5段手順。検証: `node ClaudeMederuU/tools/vscode-koushi/extension.test.js`(13チェック)。レンダラ更新時: cpで同期→テスト→`npx @vscode/vsce package`でvsix再生成 |
 | koushi公開リポジトリの一式(staging) | `ClaudeMederuU/tools/koushi-repo-staging/` | `takeyosui15/koushi`(公開リポジトリ)へ送る中身の完成品(第69)。英語章→日本語章の独立README(MederuU・宙の辻の文脈なし)・MIT LICENSE・拡張本体+レンダラ+文法+中立サンプル+テスト(ドリフト検査は親が居る時だけの条件化)。リポジトリ作成後にClaudeがpushする | 同期の正は宙の辻側。リリース時にvscode-koushi/とtools/から組み立て直す(手順はkoushi-repo-guide.mdの運用メモ)。検証: staging内でkoushi.test.js(14)+extension.test.js(13) |
+| sync(MederuU吸い上げ) | `ClaudeMederuU/mederuu-repo-staging/sync.js`(正)→MederuUルートへ配布済み | プロジェクトのClaudeMederuU/+.claude/skills/をMederuUのprojects/<名前>/へ一方向ミラーする(秘密検査つき・1件でも当たればスキップ+終了コード1)。デッサン00の手順5(第80ラウンド) | MederuUのクローン内で`node sync.js <プロジェクトパス> [--dry-run]`。検証: `node sync.js --self-test`(8チェック)。運用は開錠→sync→index-gen→commit+push→施錠(docs/operation/mederuu-repo-guide.md) |
+| index-gen(腐らない目次) | `ClaudeMederuU/mederuu-repo-staging/index-gen.js`(正)→MederuUルートへ配布済み | 各フォルダにindex.md(目次)を自動生成する。一言説明はJS=JSDocタグ(@name/@synopsis)・PY=docstring見出し行・MD=フロントマター→見出しの3パーサで拾う(手書きの目次は腐る)。デッサン00の手順6(第92ラウンドで候補から昇格) | MederuUのクローン内で`node index-gen.js [<ルート>] [--dry-run]`(syncの後に実行=ミラーの削除と整合)。検証: `node index-gen.js --self-test`(9チェック) |
 | anchor(構造指紋) | `ClaudeMederuU/tools/anchor.js` | JSを波括弧の木として読み、各部分木の構造指紋(正規化v1+sha256)を発行・検証・重複検出する。第39ラウンドのパーマリンク案+デッサン03から。第45ラウンドで候補から昇格(③の実装第1歩)。**同一指紋の列挙=重複コード検出でリファクタリングBの道具と一石二鳥**(初収穫: script.jsで60文字以上の重複92グループ) | `node ClaudeMederuU/tools/anchor.js print\|dup\|verify <file.js> [--min-size N \| 指紋...]`。検証: `node ClaudeMederuU/tools/anchor.test.js`(性質テスト14チェック+実物スモーク)。PAD記法との連携(指紋の書き込み・ref:)は指紋書式の確定後(dessin/02第45節) |
 
 ## 候補(まだ作っていない道具。作る時はこの台帳へ昇格する)
@@ -23,7 +25,7 @@
 |---|---|---|
 | coverage-report | PlaywrightのCoverage APIで、回帰(verify群)実行中のscript.jsの行/関数カバレッジを実測する。クローズ前の品質確認用 | 第43ラウンドの依頼者のカバレッジ質問(C0/C1/MC/DC)から |
 | css-why | ある要素のあるプロパティに、どの規則がカスケード順で効いているかを列挙する(人間のMDNホバーに当たるClaudeの目) | 第40ラウンドのレイヤーリスト縦4行のカスケード衝突調査から(手書き版はChromiumのネストCSS仕様で一度壊れた) |
-| index-gen | man風ヘッダ/JSDocタグ/docstringから目次・索引(index.md)を自動生成する(手書きの目次は腐る) | 第41ラウンドのscratch索引の依頼者アイデア+OKFのindex.md文化から |
+| (index-genは第92ラウンドで台帳へ昇格した) | | |
 
 ## 運用メモ
 

@@ -60,7 +60,13 @@
   コミットb2cc685としてmainへpush。引き直しクローンで検品済み(sync.js/READMEがstagingと
   完全一致・クローン内で自己テスト8/8・projects/soranotsuji=98ファイル[97+SYNC.md])。
   以後のsyncはプロジェクトの節目毎に「開錠→クローンでsync.js実行→commit+push→施錠」。
-- 以後: 手順6(index-gen)・8(蒸留第1陣)・9(公開判断)はデッサン00の手順のまま。
+- **手順6✅(第92ラウンド=2026-08-14)**: index-gen.js(腐らない目次)を作成しMederuUルートへ配置。
+  コミットf4f20c7としてmainへpush(同時に第81〜91のreviews 11枚を吸い上げ・sync.jsヘッダを
+  JSDocタグ形式へ・index.md 13フォルダ分を生成)。引き直しクローンで検品済み
+  (sync.js/index-gen.jsがstagingと完全一致・クローン内で自己テスト8/8と9/9・reviews 73枚)。
+  以後のsyncは「開錠→クローンでsync.js→index-gen.js→commit+push→施錠」の順(index-genを
+  syncの後に走らせると、ミラーが消した古い目次を作り直す=一方向ミラーと矛盾しない)。
+- 以後: 手順8(蒸留第1陣)・9(公開判断)はデッサン00の手順のまま。
   MederuUへのpushは毎回「開錠→push→施錠」(既定施錠)。
 
 ## Macローカルクローン「MederuU-local」の作り方と切り替え(手順8の成果物をVSCodeで読む準備)

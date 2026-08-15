@@ -1,15 +1,8 @@
 #!/usr/bin/env node
-/*
- * sync.js — プロジェクトからMederuUへの一方向吸い上げ(手順5)
- *
- * NAME
- *   sync.js - プロジェクトの ClaudeMederuU/ と .claude/skills/ を projects/<名前>/ へ写す
- *
- * SYNOPSIS
- *   node sync.js <プロジェクトのリポジトリパス> [プロジェクト名] [--dry-run]
- *   node sync.js --self-test
- *
- * DESCRIPTION
+/**
+ * @name sync.js — プロジェクトからMederuUへの一方向吸い上げ(手順5)
+ * @synopsis node sync.js <プロジェクトのリポジトリパス> [プロジェクト名] [--dry-run] | node sync.js --self-test
+ * @description
  *   一方向ミラー: 吸い上げ元が正・projects/以下は写し(手で編集しない約束)。
  *   元に無いファイルは写しからも消す。コピー前に全ファイルへ秘密検査をかけ、
  *   1件でも疑いがあれば「そのファイルをスキップして」報告する(安全側)。
@@ -17,13 +10,11 @@
  *   ただし *-repo-staging/(他リポジトリへ送る待機コピー)・node_modules/・バイナリの
  *   ビルド成果物(*.vsix)は写さない(知識ではなく製品の複製のため)。
  *   実行後、projects/<名前>/SYNC.md に日時・元コミット・件数を記録する。
- *
- * HISTORY
+ * @history
  *   第80ラウンド(2026-08-14) 宙の辻で誕生。デッサン00の手順5。
  *   検査ツールの掟に従い --self-test で「壊した入力で落ちること」を確認できる。
- *
- * SEEALSO
- *   projects/README.md(写しの約束) / CLAUDE.md(書く時の規約)
+ *   第92ラウンドでヘッダをJSDocタグ形式(デッサン00の書式規約=JSはmanの章名をタグで持つ)へ変換。
+ * @seealso projects/README.md(写しの約束) / CLAUDE.md(書く時の規約) / index-gen.js(このヘッダから目次を作る)
  */
 'use strict';
 const fs = require('fs');
