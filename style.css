@@ -790,6 +790,15 @@ html {
     justify-content: center;
     flex-shrink: 0;
 }
+/* ctrlのNowボタン: 日時情報メニューの#btn-nowと同じ46px固定に(第97ラウンド。
+   自然幅のままだと下段のスペーサー(.spacer-btn-now=46px)と数px合わず、縦のラインがずれていた修正) */
+#btn-sora-ctrl-now, #btn-mw-ctrl-now {
+    width: 46px;
+    min-width: 46px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+}
 #sora-ctrl-date, #sora-ctrl-time {
     flex: 1 1 auto;
     min-width: 0;
@@ -928,7 +937,9 @@ html {
 }
 .sora-aspect { width: 3.2em; }
 .sora-slider { width: 100%; }
-.sora-move-readout { font-size: 11px; color: #9ab; margin-left: 6px; white-space: nowrap; }
+/* 移動量の読み: 文字サイズは指定しない=同じctrl内のタイムゾーン表示(素のspan)と同じ継承サイズになる
+   (第97ラウンド: 11px指定で他の行より小さかった修正。依頼者指定「タイムゾーンの文字サイズと同じに」) */
+.sora-move-readout { color: #9ab; margin-left: 6px; white-space: nowrap; }
 .myset-fav { background: none; border: none; cursor: pointer; padding: 0 6px; font-size: inherit; line-height: 1; }
 
 /* 宙検索: 重みスライダー行(ラベル+スライダー+値を1行に収める) */

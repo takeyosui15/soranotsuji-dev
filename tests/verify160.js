@@ -46,9 +46,12 @@ check('V0 Version Historyに1.77.0の行がある', src.includes('Version 1.77.0
       const hasAll=(s,ks)=>ks.every(k=>s.has(k));
       const hasNone=(s,ks)=>ks.every(k=>!s.has(k));
       return {
-        fullOk: hasAll(full, ['date','startLat','starId','dp','soraFocal','fwEnabled','ssPreset','bodyColorSun',
+        // 第97ラウンドの意図更新: 宙検索(ss系)は封鎖中機能のため公開ビルドではfullにも乗らない
+        // (?forecast=1時のみ発行=verify162 C3が検査)。ssPresetをhasAllからhasNoneへ移した
+        fullOk: hasAll(full, ['date','startLat','starId','dp','soraFocal','fwEnabled','bodyColorSun',
                               'refractionEnabled','meteoP','baseOptMwBase','mwOffsetAngle','mwShowBodies','mwConstNameSort',
-                              'elevExcludeEnabled','tsujiLineIncludeOffset']),
+                              'elevExcludeEnabled','tsujiLineIncludeOffset'])
+              && hasNone(full, ['ssPreset','ssStat']),
         tsujiOk: hasAll(tsuji, ['date','startLat','endLat','starId','refractionEnabled','meteoP','meteoT','meteoL',
                                 'baseOptMwBase','mwOffsetAngle','elevExcludeEnabled','elevExcludeRadius','tsujiLineIncludeOffset'])
               && hasNone(tsuji, ['dp','elevation','soramado','tsujisearch','soraFocal','soraBaseAz','fwEnabled','ssPreset',

@@ -16,8 +16,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.78.0', /APP_VERSION = '1\.78\.0'/.test(src));
+// ---- V0: 版数の存在検査(版数ピンは最新のverify162へ移行済み) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.78.0の行がある', src.includes('Version 1.78.0 - ') || !!process.argv[2]);
 
 // ---- V1: 静的な形 ----
