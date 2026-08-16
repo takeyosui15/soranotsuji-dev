@@ -585,6 +585,9 @@ html {
 #milkyway-ctrl-body .control-row { max-width: 360px; margin: 4px auto; }
 #milkyway-ctrl-body .input-label,
 #milkyway-ctrl-body .baseopt-radio { color: #eee; }
+/* 完全複製で増えた部品(TZ表示・月齢行など)もダーク背景向けの文字色に(第94ラウンド。宙の窓ctrlと同じ規則) */
+#milkyway-ctrl-body .control-row span { color: #eee; }
+#milkyway-ctrl-body .control-row label:not(.soramado-ctrl-group) { color: #eee; }
 #btn-mw-ctrl-month-prev, #btn-mw-ctrl-date-prev, #btn-mw-ctrl-date-next, #btn-mw-ctrl-month-next,
 #btn-mw-ctrl-hour-prev, #btn-mw-ctrl-time-prev, #btn-mw-ctrl-time-next, #btn-mw-ctrl-hour-next {
     width: 34px;
@@ -800,9 +803,15 @@ html {
 #btn-sora-mov-play.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 #soramado-ctrl-body .baseopt-radio { color: #eee; }
 /* ctrlメニュー内の薄明ジャンプ(ダーク背景向けの文字色。レイアウトは薄明メニューと共通) */
-#sora-ctrl-twilight { max-width: 360px; margin: 4px auto; }
+#sora-ctrl-twilight, #mw-ctrl-twilight { max-width: 360px; margin: 4px auto; }
 #sora-ctrl-twilight .twilight-group-title,
-#sora-ctrl-twilight .shortcut-item label { color: #eee; }
+#sora-ctrl-twilight .shortcut-item label,
+#mw-ctrl-twilight .twilight-group-title,
+#mw-ctrl-twilight .shortcut-item label { color: #eee; }
+/* ctrlメニュー内の日の出〜月の入ショートカット: 他の段と同じ360px中央寄せに収める
+   (第94ラウンド: 全幅に伸びてコントロールの縦枠からはみ出していた修正) */
+#soramado-ctrl-body .shortcuts,
+#milkyway-ctrl-body .shortcuts { max-width: 360px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 #btn-sora-export { min-width: 96px; }
 #btn-sora-export.active { background: #b8860b; color: #fff; border-color: #ffd700; }
 

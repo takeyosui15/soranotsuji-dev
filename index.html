@@ -346,6 +346,10 @@ GNU General Public License for more details.
                     <label class="baseopt-radio" title="目的点が手前になるように位置をリセット(オンにするとすぐオフに戻ります)"><input type="checkbox" id="chk-mwctrl-target-front">:目的点前</label>
                 </div>
                 <div class="control-row">
+                    <span id="tz-info-label-mwctrl" title="端末(ブラウザ)のタイムゾーン(日時情報メニューと同じ表示)">タイムゾーン: -</span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-mw-ctrl-now" class="nav-btn small" title="現在日時へ(日時情報メニューのNowと連動)">Now</button>
                     <button id="btn-mw-ctrl-month-prev" class="nav-btn">◀◀</button>
                     <button id="btn-mw-ctrl-date-prev" class="nav-btn">◀</button>
                     <input type="date" id="mw-ctrl-date" title="基準日付(日時情報メニューと連動)">
@@ -353,6 +357,7 @@ GNU General Public License for more details.
                     <button id="btn-mw-ctrl-month-next" class="nav-btn">▶▶</button>
                 </div>
                 <div class="control-row">
+                    <div class="spacer-btn-now"></div>
                     <button id="btn-mw-ctrl-hour-prev" class="nav-btn">◀◀</button>
                     <button id="btn-mw-ctrl-time-prev" class="nav-btn">◀</button>
                     <input type="time" id="mw-ctrl-time" step="1" title="基準時刻(日時情報メニューと連動)">
@@ -368,6 +373,58 @@ GNU General Public License for more details.
                 <div class="control-row">
                     <input type="range" id="input-mwctrl-time-slider" class="sora-slider" min="0" max="1439" step="1" value="720" title="時刻スライダー(0:00〜23:59。日時情報メニューの時刻スライダーと連動。分単位=秒は0になります)">
                 </div>
+                <div class="shortcuts">
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-mwctrl" id="jump-mwctrl-sunrise" class="mystars-radio" value="sunrise">
+                        <label for="jump-mwctrl-sunrise">
+                            <span class="shortcut-name">🌞日の出</span>
+                            <span class="shortcut-detail">
+                                <span id="time-sunrise-mwctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-sunrise-mwctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-mwctrl" id="jump-mwctrl-sunset" class="mystars-radio" value="sunset">
+                        <label for="jump-mwctrl-sunset">
+                            <span class="shortcut-name">🌞日の入</span>
+                            <span class="shortcut-detail">
+                                <span id="time-sunset-mwctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-sunset-mwctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-mwctrl" id="jump-mwctrl-moonrise" class="mystars-radio" value="moonrise">
+                        <label for="jump-mwctrl-moonrise">
+                            <span class="shortcut-name">🌛月の出</span>
+                            <span class="shortcut-detail">
+                                <span id="time-moonrise-mwctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-moonrise-mwctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="shortcut-item">
+                        <input type="radio" name="time-jump-mwctrl" id="jump-mwctrl-moonset" class="mystars-radio" value="moonset">
+                        <label for="jump-mwctrl-moonset">
+                            <span class="shortcut-name">🌛月の入</span>
+                            <span class="shortcut-detail">
+                                <span id="time-moonset-mwctrl">--:--</span>
+                                <span class="shortcut-alt">(<span id="alt-moonset-mwctrl">--</span>°)</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-row moon-row">
+                    <button id="btn-mw-ctrl-moon-prev" class="nav-btn">◀</button>
+                    <div class="moon-display">
+                        <label>月齢</label>
+                        <input type="number" id="moon-age-input-mwctrl" step="0.1" min="0" max="30.0" title="月齢(日時情報メニューと連動。変更するとその月齢の日時へ移動)">
+                        <span id="moon-icon-mwctrl" class="moon-icon">🌑</span>
+                    </div>
+                    <button id="btn-mw-ctrl-moon-next" class="nav-btn">▶</button>
+                </div>
+                <div id="mw-ctrl-twilight"></div>
                 <div class="control-row left-row">
                     <label class="baseopt-radio" title="表示天体の写真/軌跡/マーカー/方位線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-bodies">:表示天体</label>
                     <label class="baseopt-radio" title="表示天体名と引き出し線(基本オプションと連動)"><input type="checkbox" id="chk-mwctrl-body-names">:表示天体名</label>

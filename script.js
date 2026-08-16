@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.76.0 - 2026-08-16: feat: 第94ラウンド — まとめ確認への対応 第2陣: 全天儀ctrlメニューも日時情報〜薄明メニューの完全な複製に(依頼者指示。TZ含む) ①追加した部品(複製idは末尾-mwctrl): タイムゾーン表示・Nowボタン・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力+月アイコン ▶)・薄明ジャンプ(夜明/日暮グリッド)。既存の日付/時刻ピッカー・アニメーション4ボタン・時刻スライダーと合わせ、並び順も日時情報メニューと同じ(TZ→日付→時刻→アニメーション→スライダー→ショートカット→月齢→薄明)に ②連動の作り(宙の窓ctrlと同じ2本立て): 日時を動かす側は共通関数(setNow/jumpToEvent/addMoonMonth/searchMoonAge)へ委譲・表示する側はsetTの一括書き込みを3面(本家/-ctrl/-mwctrl)へ拡張(updateRiseSetData/updateTwilightData/updateMoonInfo/TZ表示)。薄明グリッドの生成は_setupCtrlTwilightへパラメータ化(宙の窓ctrlと共用) ③ショートカット/薄明ジャンプの選択状態は_mirrorTimeJumpで3面(日時情報・宙の窓ctrl・全天儀ctrl)相互連動 ④宙の窓ctrlの日の出〜月の入ショートカットが他の段(360px中央寄せ)より横に伸びてコントロールの縦枠からはみ出していた修正(依頼者指摘。.shortcutsをctrl両面とも360px中央寄せに) ⑤デッサン01の全天儀ctrlの節を完成形に更新
 Version 1.75.0 - 2026-08-16: feat: 第93ラウンド — まとめ確認への対応 第1陣(項目6系の刷新+小物) ①オフセット中心角の±を内部値ごと反転(依頼者指示): 収録符号を「夏の天の川を上から見て時計回りが正」に統一し、画面だけの表示反転(_mwDispVal)を廃止。内部値・保存・URL・CSV・Fileの全てが新しい符号(人が読む場所も全て同じ向き)。銀経へ渡す時に反転(getMilkyWayBaseRaDec/_myTsujiMwRaDec)。旧保存データはスキーマ2→3の読み替えで自動変換(0は不変。旧URLと旧CSVの角度は旧符号のままなので注意=リリース前) ②検索の記録(結果コントロール・File・スナップショット)を実効角から生のオフセット中心角へ戻す(依頼者指示: URLにはオフセット中心角がそのまま載る方が分かりやすい。チェックのオンオフはbaseOptMwBaseが別途URLに乗るので再現は保たれる) ③My辻行の「:天の川オプション」の初期値をオフに(新規行・CSV取込行・未定義行の正規化とも) ④観測点/目的点=「Plus Code、緯度,経度」・花火打ち上げ点とMy観測点/My目的点=「地名、Plus Code、緯度,経度」のプレースホルダーへ変更し、My観測点/My目的点の緯度経度欄でもプラスコード(フル/短縮形)を使えるように ⑤Myセットの既定のセットは常時⭐️に(常に先頭のため。依頼者合意) ⑥宙の窓の移動ボタンの段構成を変更(2段目=移動量の読み全幅・3段目=リセット/位置反映)
 Version 1.74.0 - 2026-08-14: feat: 第91ラウンド — v16第2弾(叩き台承認済み): 組込天体の色/線種を共有URLへ ①天体毎キーbodyColor<ID>/bodyDash<ID>(色=#RRGGBB・線種=1/0)。既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。非表示でも既定から変えた天体は発行(表示切替後の再現のため)。My天体は従来のstarColor/starIsDashedのまま ②復元はキーの無い天体=復元時点の既定・値の形が崩れたキーと未知IDは無視 ③短縮URL辞書v17新設(名前シード44個のみ。IDはDEFAULT_BODIESから独立した凍結コピー)。v16以前は復号のみ保証で凍結のまま ④発行キー名は配列リテラル(リンター対応)・発行順固定(DEFAULT_BODIES順で色→線種) ⑤デッサン00の叩き台の節を実装済みへ更新
 Version 1.73.0 - 2026-08-14: feat: 第90ラウンド — プラスコードの短縮形入力(第78ラウンドの依頼「次に、短縮形の実装を」): ①観測点/目的点の緯度経度欄(+花火打ち上げ点欄)で短縮形(例: 「MQPJ+2V 港区」)を入力できるように。コードと基準地名の順序はどちらでも良い ②復元はOpen Location CodeのrecoverNearest相当の自前実装(_plusCodeEncode10+_plusCodeRecover): 基準点の全コードから落ちている桁(2/4/6桁)を補い、基準点に最も近いセルへ±1セル調整して展開 ③基準地名は既存の地名検索(GSI→OSM)で解決し、候補は既存の地名ピッカーで選択(選んだ地点を基準に展開)。基準地名を省いた短縮形(例: 「MQPJ+2V」)は地図の中心を基準にする ④通信はジオコーディングのみ(復元計算はローカル)。ヘルプ・ツールチップ・デッサン01の「未対応」注記を解消
@@ -139,7 +140,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.75.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.76.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1720,7 +1721,7 @@ function setupUI() {
         const hhmm = `${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
         const tzTxt = `タイムゾーン: ${tz || '不明'} (UTC${sign}${hhmm})` +
             (tz && tz !== 'Asia/Tokyo' ? ' / 地名検索はOSMのみ' : '');
-        for (const id of ['tz-info-label', 'tz-info-label-ctrl']) {   // 宙の窓ctrlの複製にも同じ表示(第84ラウンド)
+        for (const id of ['tz-info-label', 'tz-info-label-ctrl', 'tz-info-label-mwctrl']) {   // 宙の窓ctrl/全天儀ctrlの複製にも同じ表示(第84・94ラウンド)
             const el = document.getElementById(id);
             if (el) el.textContent = tzTxt;
         }
@@ -1791,9 +1792,7 @@ function setupUI() {
         radio.addEventListener('change', (e) => {
             if(e.target.checked) {
                 jumpToEvent(e.target.value);
-                // 宙の窓ctrlメニューの薄明ジャンプと選択状態を連動
-                const c = document.querySelector(`input[name="time-jump-ctrl"][value="${e.target.value}"]`);
-                if (c) c.checked = true;
+                _mirrorTimeJump(e.target.value, 'time-jump');   // 宙の窓ctrl/全天儀ctrlの選択状態も連動
             }
         });
     });
@@ -3630,8 +3629,10 @@ function searchMoonAge(targetAge) {
     
     if(res && res.date) {
         document.getElementById('moon-age-input').blur();
-        const cMoon = document.getElementById('moon-age-input-ctrl');
-        if (cMoon) cMoon.blur();
+        for (const sfx of ['-ctrl', '-mwctrl']) {
+            const cMoon = document.getElementById('moon-age-input' + sfx);
+            if (cMoon) cMoon.blur();
+        }
         appState.currentDate = res.date;
         syncUIFromState(); 
         updateAll(); 
@@ -3641,7 +3642,16 @@ function searchMoonAge(targetAge) {
 }
 
 function uncheckTimeShortcuts() {
-    document.querySelectorAll('input[name="time-jump"], input[name="time-jump-ctrl"]').forEach(r => r.checked = false);
+    document.querySelectorAll('input[name="time-jump"], input[name="time-jump-ctrl"], input[name="time-jump-mwctrl"]').forEach(r => r.checked = false);
+}
+
+/** ショートカット/薄明ジャンプの選択を3面(日時情報・宙の窓ctrl・全天儀ctrl)で揃える(第94ラウンド) */
+function _mirrorTimeJump(value, fromName) {
+    for (const n of ['time-jump', 'time-jump-ctrl', 'time-jump-mwctrl']) {
+        if (n === fromName) continue;
+        const r = document.querySelector(`input[name="${n}"][value="${value}"]`);
+        if (r) r.checked = true;
+    }
 }
 
 /** 日時情報メニューの月/秒〜分/秒のアクティブ状態を、全天儀ctrl/宙の窓ctrlの複製ボタンへ映す(第84ラウンド) */
@@ -4956,10 +4966,11 @@ function updateShortcutsData(startOfDay, observer) {
         const mr = Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2);
         const ms = Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2);
         
-        // 日時情報メニューと宙の窓ctrlメニューの複製(id末尾-ctrl)を一括更新(第84ラウンド)
+        // 日時情報メニューと宙の窓ctrl/全天儀ctrlメニューの複製(id末尾-ctrl/-mwctrl)を一括更新(第84・94ラウンド)
         const setT = (id, txt) => {
             const el = document.getElementById(id); if (el) el.innerText = txt;
             const c = document.getElementById(id + '-ctrl'); if (c) c.innerText = txt;
+            const m = document.getElementById(id + '-mwctrl'); if (m) m.innerText = txt;
         };
         setT('time-sunrise', sr ? formatTime(sr.date) : "--:--");
         setT('time-sunset', ss ? formatTime(ss.date) : "--:--");
@@ -5002,10 +5013,11 @@ function updateTwilightData(startOfDay, observer) {
         const nautDusk  = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -12);
         const astroDusk = Astronomy.SearchAltitude('Sun', observer, -1, startOfDay, 1, -18);
 
-        // 時刻DOM更新 (薄明メニューと宙の窓ctrlメニューのミラー(id末尾-ctrl)を一括更新)
+        // 時刻DOM更新 (薄明メニューと宙の窓ctrl/全天儀ctrlメニューのミラー(id末尾-ctrl/-mwctrl)を一括更新)
         const setT = (id, txt) => {
             const el = document.getElementById(id); if (el) el.innerText = txt;
             const c = document.getElementById(id + '-ctrl'); if (c) c.innerText = txt;
+            const m = document.getElementById(id + '-mwctrl'); if (m) m.innerText = txt;
         };
         setT('time-astro-dawn', astroDawn ? formatTime(astroDawn.date) : "--:--");
         setT('time-naut-dawn', nautDawn ? formatTime(nautDawn.date) : "--:--");
@@ -5237,11 +5249,13 @@ function updateMoonInfo(date) {
     document.getElementById('moon-age-input').value = appState.moonAge;
     const icons = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'];
     document.getElementById('moon-icon').innerText = icons[Math.round(phase / 45) % 8];
-    // 宙の窓ctrlの複製(第84ラウンド。入力中は書き戻さない)
-    const cIn = document.getElementById('moon-age-input-ctrl');
-    if (cIn && document.activeElement !== cIn) cIn.value = appState.moonAge;
-    const cIc = document.getElementById('moon-icon-ctrl');
-    if (cIc) cIc.innerText = icons[Math.round(phase / 45) % 8];
+    // 宙の窓ctrl/全天儀ctrlの複製(第84・94ラウンド。入力中は書き戻さない)
+    for (const sfx of ['-ctrl', '-mwctrl']) {
+        const cIn = document.getElementById('moon-age-input' + sfx);
+        if (cIn && document.activeElement !== cIn) cIn.value = appState.moonAge;
+        const cIc = document.getElementById('moon-icon' + sfx);
+        if (cIc) cIc.innerText = icons[Math.round(phase / 45) % 8];
+    }
 }
 
 function formatTime(date, baseDate) {
@@ -15384,6 +15398,28 @@ function setupMilkyWayCtrl() {
     btnH('btn-mw-ctrl-hour-next', () => addMinute(60));
     // 日付/時刻ピッカー(日時情報メニューと連動。共通の_bindDateTimePair)
     _bindDateTimePair('mw-ctrl-date', 'mw-ctrl-time');
+    // 日時情報〜薄明の複製の残り(第94ラウンド): Now/ショートカット/月齢/薄明ジャンプ
+    btnH('btn-mw-ctrl-now', setNow);
+    ['sunrise', 'sunset', 'moonrise', 'moonset'].forEach(v => {
+        const r = document.getElementById(`jump-mwctrl-${v}`);
+        if (r) r.addEventListener('change', (e) => {
+            if (!e.target.checked) return;
+            jumpToEvent(v);
+            _mirrorTimeJump(v, 'time-jump-mwctrl');   // 日時情報/宙の窓ctrlの選択状態も連動
+        });
+    });
+    btnH('btn-mw-ctrl-moon-prev', () => addMoonMonth(-1));
+    btnH('btn-mw-ctrl-moon-next', () => addMoonMonth(1));
+    const mwMoonAge = document.getElementById('moon-age-input-mwctrl');
+    if (mwMoonAge) mwMoonAge.addEventListener('change', (e) => {
+        const targetAge = parseFloat(e.target.value);
+        if (isNaN(targetAge)) {
+            e.target.value = appState.moonAge;   // 空欄時は計算値を復元(日時情報メニューと同じ)
+            return;
+        }
+        searchMoonAge(targetAge);
+    });
+    _setupCtrlTwilight('mw-ctrl-twilight', '-mwctrl', 'jump-mwctrl', 'time-jump-mwctrl');
     // 時刻スライダー(第83ラウンド・怒号の項目11。日時情報メニューの時刻スライダーと連動=分単位・秒は0)
     const mwTimeSlider = document.getElementById('input-mwctrl-time-slider');
     if (mwTimeSlider) mwTimeSlider.addEventListener('input', () => {
@@ -15554,7 +15590,13 @@ function soraPopulateSelects() {
 /** 宙の窓ctrlメニューの薄明ジャンプ(夜明/日暮のグリッド)を生成する。薄明メニューと同じ構成で、
  *  時刻表示は updateTwilightData がミラー更新し(id末尾-ctrl)、選択は薄明メニューのラジオと連動する */
 function setupSoraCtrlTwilight() {
-    const host = document.getElementById('sora-ctrl-twilight');
+    _setupCtrlTwilight('sora-ctrl-twilight', '-ctrl', 'jump-ctrl', 'time-jump-ctrl');
+}
+
+/** ctrlメニュー内の薄明ジャンプのグリッドを生成(宙の窓ctrl/全天儀ctrl共通。第84・94ラウンド)
+ *  sfx=表示span idの複製サフィックス / idPfx=ラジオidの接頭辞 / radioName=ラジオグループ名 */
+function _setupCtrlTwilight(hostId, sfx, idPfx, radioName) {
+    const host = document.getElementById(hostId);
     if (!host || host.childElementCount) return;
     const DAWN = [
         ['astro_dawn', '天文薄明[始]', 'time-astro-dawn', '(-18°)'],
@@ -15562,12 +15604,12 @@ function setupSoraCtrlTwilight() {
         ['yoake', '夜明', 'time-yoake', '(-7°21′40″)'],
         ['civil_dawn', '常用薄明<br>/BH[始]', 'time-civil-dawn', '(-6°)'],
         ['bh_end_gh_start', 'BH[終]<br>/GH[始]', 'time-bh-end-gh-start', '(-4°)'],
-        ['tw_sunrise', '日の出', 'time-tw-sunrise', `(<span id="alt-tw-sunrise-ctrl">--</span>°)`],
+        ['tw_sunrise', '日の出', 'time-tw-sunrise', `(<span id="alt-tw-sunrise${sfx}">--</span>°)`],
         ['gh_end', 'GH[終]', 'time-gh-end', '(+6°)'],
     ];
     const DUSK = [
         ['gh_start', 'GH[始]', 'time-gh-start', '(+6°)'],
-        ['tw_sunset', '日の入', 'time-tw-sunset', `(<span id="alt-tw-sunset-ctrl">--</span>°)`],
+        ['tw_sunset', '日の入', 'time-tw-sunset', `(<span id="alt-tw-sunset${sfx}">--</span>°)`],
         ['gh_end_bh_start', 'GH[終]<br>/BH[始]', 'time-gh-end-bh-start', '(-4°)'],
         ['civil_dusk', '常用薄明<br>/BH[終]', 'time-civil-dusk', '(-6°)'],
         ['higure', '日暮', 'time-higure', '(-7°21′40″)'],
@@ -15579,21 +15621,20 @@ function setupSoraCtrlTwilight() {
             <div class="twilight-group-title">${title}</div>
             <div class="twilight-grid">${items.map(([v, name, tid, alt]) => `
                 <div class="shortcut-item">
-                    <input type="radio" name="time-jump-ctrl" id="jump-ctrl-${v}" class="mystars-radio" value="${v}">
-                    <label for="jump-ctrl-${v}">
+                    <input type="radio" name="${radioName}" id="${idPfx}-${v}" class="mystars-radio" value="${v}">
+                    <label for="${idPfx}-${v}">
                         <span class="shortcut-name">${name}</span>
-                        <span class="shortcut-detail"><span id="${tid}-ctrl">--:--</span> <span class="shortcut-alt">${alt}</span></span>
+                        <span class="shortcut-detail"><span id="${tid}${sfx}">--:--</span> <span class="shortcut-alt">${alt}</span></span>
                     </label>
                 </div>`).join('')}
             </div>
         </div>`;
     host.innerHTML = grp('夜明', DAWN) + grp('日暮', DUSK);
-    host.querySelectorAll('input[name="time-jump-ctrl"]').forEach(r => {
+    host.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
         r.addEventListener('change', (e) => {
             if (!e.target.checked) return;
             jumpToEvent(e.target.value);
-            const m = document.querySelector(`input[name="time-jump"][value="${e.target.value}"]`);
-            if (m) m.checked = true;   // 薄明メニュー側の選択状態も連動
+            _mirrorTimeJump(e.target.value, radioName);   // 他の面の選択状態も連動
         });
     });
 }
@@ -16666,14 +16707,13 @@ function setupSoramadoControls() {
         syncUIFromState();
         updateAll();
     });
-    // 日の出/日の入/月の出/月の入ショートカット(選択状態は日時情報メニューと相互連動)
+    // 日の出/日の入/月の出/月の入ショートカット(選択状態は日時情報/全天儀ctrlメニューと相互連動)
     ['sunrise', 'sunset', 'moonrise', 'moonset'].forEach(v => {
         const r = document.getElementById(`jump-ctrl-${v}`);
         if (r) r.addEventListener('change', (e) => {
             if (!e.target.checked) return;
             jumpToEvent(v);
-            const m = document.querySelector(`input[name="time-jump"][value="${v}"]`);
-            if (m) m.checked = true;
+            _mirrorTimeJump(v, 'time-jump-ctrl');
         });
     });
     btnH('btn-sora-ctrl-moon-prev', () => addMoonMonth(-1));
