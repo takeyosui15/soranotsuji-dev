@@ -383,7 +383,7 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row left-row"><input type="checkbox" id="chk-mwctrl-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-mwctrl-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                 <div class="control-row">
-                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
+                    <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正">オフセット中心角(°):</label>
                     <input type="number" id="input-mwctrl-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                 </div>
                 <div class="control-row">
@@ -512,9 +512,11 @@ GNU General Public License for more details.
                     <button id="btn-sora-move-right" class="nav-btn" title="観測点を1m右へ(カメラの向き基準)">右▶︎</button>
                 </div>
                 <div class="control-row">
+                    <span id="sora-move-readout" class="sora-move-readout"></span>
+                </div>
+                <div class="control-row">
                     <button id="btn-sora-move-reset" class="nav-btn" title="観測点の移動を取り消して、移動ボタンを押す前の位置に戻します">リセット</button>
                     <button id="btn-sora-move-apply" class="nav-btn main-btn" title="移動後の位置を緯度経度高さ・基準方位角/視高度に反映して確定します(リセットでは戻らなくなります)">位置反映</button>
-                    <span id="sora-move-readout" class="sora-move-readout"></span>
                 </div>
                 <div class="control-row">
                     <button id="btn-sora-cam-left" class="nav-btn" title="カメラオフセット方位角を1°左へ(-1°)">◀︎📷左</button>
@@ -664,7 +666,7 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点(°):</label>
-                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(宙の窓メニューと連動)">
+                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名、Plus Code、緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点標高(m):</label>
@@ -761,7 +763,7 @@ GNU General Public License for more details.
                             <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点(°):</label>
-                        <input type="text" id="input-start-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコード(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)で観測点を設定">
+                        <input type="text" id="input-start-latlng" placeholder="Plus Code、緯度,経度" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・地名・およその住所で観測点を設定">
                     </div>
 
                     <div class="control-row">
@@ -794,7 +796,7 @@ GNU General Public License for more details.
                             <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点(°):</label>
-                        <input type="text" id="input-end-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・「緯度,経度」・Googleプラスコード(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)で目的点を設定">
+                        <input type="text" id="input-end-latlng" placeholder="Plus Code、緯度,経度" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・地名・およその住所で目的点を設定">
                     </div>
 
                     <div class="control-row">
@@ -857,7 +859,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row left-row"><input type="checkbox" id="chk-baseopt-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-baseopt-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角。夏の天の川を上から見て時計回りが正">オフセット中心角(°):</label>
                         <input type="number" id="input-baseopt-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="baseopt-hr">
@@ -940,7 +942,7 @@ GNU General Public License for more details.
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row"><input type="checkbox" id="chk-tsuji-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-tsuji-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正">オフセット中心角(°):</label>
                         <input type="number" id="input-tsuji-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
@@ -1091,7 +1093,7 @@ GNU General Public License for more details.
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row"><input type="checkbox" id="chk-tsujimesh-mw-enable" class="body-checkbox"><label class="baseopt-group-label" for="chk-tsujimesh-mw-enable" title="オフセット中心角を天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label></div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
+                        <label class="input-label tsujisearch-label" title="天の川の基準点を中心座標から環の方向にズラすオフセット中心角(基本オプションと連動)。夏の天の川を上から見て時計回りが正">オフセット中心角(°):</label>
                         <input type="number" id="input-tsujimesh-mw-offset" placeholder="-360〜+360(°)" step="1" min="-360" max="360">
                     </div>
                     <hr class="tsujisearch-separator">
@@ -1410,7 +1412,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点(°):</label>
-                        <input type="text" id="input-fw-latlng" placeholder="地名 住所 緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
+                        <input type="text" id="input-fw-latlng" placeholder="地名、Plus Code、緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点標高(m):</label>

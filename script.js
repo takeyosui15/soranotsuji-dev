@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.75.0 - 2026-08-16: feat: 第93ラウンド — まとめ確認への対応 第1陣(項目6系の刷新+小物) ①オフセット中心角の±を内部値ごと反転(依頼者指示): 収録符号を「夏の天の川を上から見て時計回りが正」に統一し、画面だけの表示反転(_mwDispVal)を廃止。内部値・保存・URL・CSV・Fileの全てが新しい符号(人が読む場所も全て同じ向き)。銀経へ渡す時に反転(getMilkyWayBaseRaDec/_myTsujiMwRaDec)。旧保存データはスキーマ2→3の読み替えで自動変換(0は不変。旧URLと旧CSVの角度は旧符号のままなので注意=リリース前) ②検索の記録(結果コントロール・File・スナップショット)を実効角から生のオフセット中心角へ戻す(依頼者指示: URLにはオフセット中心角がそのまま載る方が分かりやすい。チェックのオンオフはbaseOptMwBaseが別途URLに乗るので再現は保たれる) ③My辻行の「:天の川オプション」の初期値をオフに(新規行・CSV取込行・未定義行の正規化とも) ④観測点/目的点=「Plus Code、緯度,経度」・花火打ち上げ点とMy観測点/My目的点=「地名、Plus Code、緯度,経度」のプレースホルダーへ変更し、My観測点/My目的点の緯度経度欄でもプラスコード(フル/短縮形)を使えるように ⑤Myセットの既定のセットは常時⭐️に(常に先頭のため。依頼者合意) ⑥宙の窓の移動ボタンの段構成を変更(2段目=移動量の読み全幅・3段目=リセット/位置反映)
 Version 1.74.0 - 2026-08-14: feat: 第91ラウンド — v16第2弾(叩き台承認済み): 組込天体の色/線種を共有URLへ ①天体毎キーbodyColor<ID>/bodyDash<ID>(色=#RRGGBB・線種=1/0)。既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。非表示でも既定から変えた天体は発行(表示切替後の再現のため)。My天体は従来のstarColor/starIsDashedのまま ②復元はキーの無い天体=復元時点の既定・値の形が崩れたキーと未知IDは無視 ③短縮URL辞書v17新設(名前シード44個のみ。IDはDEFAULT_BODIESから独立した凍結コピー)。v16以前は復号のみ保証で凍結のまま ④発行キー名は配列リテラル(リンター対応)・発行順固定(DEFAULT_BODIES順で色→線種) ⑤デッサン00の叩き台の節を実装済みへ更新
 Version 1.73.0 - 2026-08-14: feat: 第90ラウンド — プラスコードの短縮形入力(第78ラウンドの依頼「次に、短縮形の実装を」): ①観測点/目的点の緯度経度欄(+花火打ち上げ点欄)で短縮形(例: 「MQPJ+2V 港区」)を入力できるように。コードと基準地名の順序はどちらでも良い ②復元はOpen Location CodeのrecoverNearest相当の自前実装(_plusCodeEncode10+_plusCodeRecover): 基準点の全コードから落ちている桁(2/4/6桁)を補い、基準点に最も近いセルへ±1セル調整して展開 ③基準地名は既存の地名検索(GSI→OSM)で解決し、候補は既存の地名ピッカーで選択(選んだ地点を基準に展開)。基準地名を省いた短縮形(例: 「MQPJ+2V」)は地図の中心を基準にする ④通信はジオコーディングのみ(復元計算はローカル)。ヘルプ・ツールチップ・デッサン01の「未対応」注記を解消
 Version 1.72.0 - 2026-08-14: feat: 第88ラウンド — v16 URL第1弾(第81ラウンドで依頼者承認): 大気差・気象・基本オプションを共有URLへ ①全URL(位置情報/宙の窓/辻検索/辻メッシュ)に16キーを追加: refractionEnabled(大気差ON/OFF)・meteoP/meteoT/meteoL(気圧/気温/気温減率)・baseOptMwBase・mwOffsetAngle・mwShowBodies/BodyNames/ConstFig/ConstBounds/ConstNames・mwConstNameSort・elevExcludeEnabled/Radius/ObsRadius・tsujiLineIncludeOffset(第85)。復元は型変換+NaNガード+normalizeAppState(LS復元と同じ流儀) ②短縮URL辞書v16を新設(第3規則「&キー名=既定値」16ペア+「&キー名=」16個。発行順に凍結)。v15以前は復号のみ保証で凍結のまま ③Myセットフィルタ(第86)のURLキーは見送り(Myセットのリスト自体がURLに乗らないため、フィルタだけ乗せても意味を持たない判断。LS保存のみ) ④デッサン00のURLパラメータ表に追記
@@ -138,7 +139,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.74.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.75.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -709,7 +710,7 @@ window.onload = async function() {
     if (tmcmR) tmcmR.checked = true;
     const tmaR = document.querySelector(`input[name="tsujimesh-accuracy"][value="${appState.tsujiMeshAccuracy}"]`);
     if (tmaR) tmaR.checked = true;
-    document.getElementById('input-tsujimesh-mw-offset').value = _mwDispVal(appState.mwOffsetAngle);
+    document.getElementById('input-tsujimesh-mw-offset').value = Number(appState.mwOffsetAngle) || 0;
     document.getElementById('chk-tsujimesh-moon-filter').checked = appState.tsujiMeshMoonFilterEnabled;
     document.getElementById('input-tsujimesh-moon-base').value = appState.tsujiMeshMoonBase;
     document.getElementById('input-tsujimesh-moon-tolerance').value = appState.tsujiMeshMoonTolerance;
@@ -2672,6 +2673,19 @@ function loadAppState() {
                 });
             }
             appState._loadedSchema = (typeof saved.appSchema === 'number') ? saved.appSchema : 0;
+            // スキーマ2→3(第93ラウンド): オフセット中心角の収録符号を「夏の天の川を上から見て時計回りが正」へ反転
+            // (画面だけの表示反転を廃止し、内部値・保存・URL・CSV・Fileの全てを新しい符号で統一=依頼者指示)。
+            // 旧スキーマの保存値は旧符号(逆向き)なので、ロード時に一度だけ読み替える(0は不変)。
+            // ※normalizeAppState(毎回呼ばれる純粋な丸め)には入れない=凍結標本(verify126)の守備範囲を保つ
+            if (appState._loadedSchema < 3) {
+                const flipRows = rows => (rows || []).forEach(t => { if (t.mwOffsetAngle) t.mwOffsetAngle = -Number(t.mwOffsetAngle) || 0; });
+                if (appState.mwOffsetAngle) appState.mwOffsetAngle = -Number(appState.mwOffsetAngle) || 0;
+                flipRows(appState.myTsujiSearches);
+                // 非表示中セットのスナップショット(既定のセット+オフライン保持のMyセット)内の行も読み替える
+                if (appState.mySetHomeData) flipRows(appState.mySetHomeData.myTsujiSearches);
+                (appState.mySets || []).forEach(s => { if (s && s.data) flipRows(s.data.myTsujiSearches); });
+                appState._loadedSchema = 3;
+            }
         } catch(e) { console.error("Load Error:", e); }
     }
     // 旧/不整合な保存データを安全な値に正規化（バージョンアップ時の自己修復）
@@ -2679,7 +2693,7 @@ function loadAppState() {
 }
 
 /** 読み込んだ appState を安全な値に正規化（冪等）。旧バージョン/不整合データの自己修復。 */
-const APP_SCHEMA = 2;
+const APP_SCHEMA = 3;
 function normalizeAppState() {
     // スキーマ1→2: 既定色の変更(天の川:紫→薄紫 / M42:薄紫→紫)。
     // 旧既定色のまま使っていた保存データだけ新既定色へ追従する(カスタム色は保持)。
@@ -2689,6 +2703,8 @@ function normalizeAppState() {
         const m42 = appState.bodies.find(b => b.id === 'M42');
         if (m42 && typeof m42.color === 'string' && m42.color.toUpperCase() === '#DDA0DD') m42.color = '#800080';
     }
+    // (スキーマ2→3のオフセット中心角の符号読み替えは、毎回呼ばれるこの関数ではなく
+    //  loadAppStateのロード時に一度だけ行う=第93ラウンド。normalizeは純粋な丸めのまま保つ)
     const validModes = TSUJI_TIME_MODES.map(m => m.v).concat('fixed');
     const num = (v, def, min, max) => {
         const n = parseFloat(v);
@@ -2728,7 +2744,7 @@ function normalizeAppState() {
     appState.tsujiMeshDays = Math.min(Math.max(parseInt(appState.tsujiMeshDays) || APP_DEFAULTS.tsujiMeshDays.def, APP_DEFAULTS.tsujiMeshDays.min), APP_DEFAULTS.tsujiMeshDays.max);
     appState.tsujiSearchDays = Math.min(Math.max(parseInt(appState.tsujiSearchDays) || APP_DEFAULTS.tsujiSearchDays.def, APP_DEFAULTS.tsujiSearchDays.min), APP_DEFAULTS.tsujiSearchDays.max);
     appState.myTsujiSearches.forEach(t => { if (!['point', 'line'].includes(t.centerMode)) t.centerMode = APP_DEFAULTS.tsujiCenterMode.def; });
-    appState.myTsujiSearches.forEach(t => { if (t.mwOffsetEnabled === undefined) t.mwOffsetEnabled = true; });   // 既存行は従来挙動(角度が効く)を維持(第82ラウンド)
+    appState.myTsujiSearches.forEach(t => { if (t.mwOffsetEnabled === undefined) t.mwOffsetEnabled = false; });   // 未定義行は初期値オフ(依頼者指示・第93ラウンド)
     // 宙の窓: 一覧が実行時にしか無いもの・インデックス上限が動的なもの
     appState.soraFNumberIdx = Math.round(num(appState.soraFNumberIdx, APP_DEFAULTS.soraFNumberIdx.def, APP_DEFAULTS.soraFNumberIdx.min, SORA_FNUMBERS.length - 1));
     if (SORA_SENSOR_ALIASES[appState.soraSensorKey]) appState.soraSensorKey = SORA_SENSOR_ALIASES[appState.soraSensorKey];
@@ -4049,25 +4065,24 @@ function getBodyAngularRadius(bodyId, date, observer) {
 function _mwEffOffsetAngle() {
     return appState.baseOptMwBase === 'offset' ? (Number(appState.mwOffsetAngle) || 0) : 0;
 }
-/** 画面表示用の符号(第82ラウンド・項目6): 内部・保存・URL・CSVは従来の符号のまま、
- *  画面の入力/表示だけ「夏の天の川を上から見て時計回り=正」(=内部符号の反転)で見せる */
-function _mwDispVal(v) { const n = Number(v) || 0; return n === 0 ? 0 : -n; }
 
 /** 天の川の基準点(基本オプション)のRA/Dec。
- *  基準点が「オフセット点」のときは、銀河赤道(b=0)上を中心座標からオフセット中心角(°)ズラした点を返す。 */
+ *  基準点が「オフセット点」のときは、銀河赤道(b=0)上を中心座標からオフセット中心角(°)ズラした点を返す。
+ *  収録符号は「夏の天の川を上から見て時計回りが正」(第93ラウンドで内部値ごと統一)。
+ *  銀経の増加方向は逆回りなので、銀経へ渡す時に反転する */
 function getMilkyWayBaseRaDec() {
     const ang = _mwEffOffsetAngle();
     if (ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
-    const eq = galacticToEquatorial(ang, 0);
+    const eq = galacticToEquatorial(-ang, 0);
     return { ra: eq.ra, dec: eq.dec };
 }
 
 /** My辻検索の行が使う天の川の基準点のRA/Dec。行ごとのオフセット中心角と行の:天の川オプションに従う
- *  (基本オプションとは連動しない。チェックオフ or 0°=中心座標) */
+ *  (基本オプションとは連動しない。チェックオフ or 0°=中心座標)。収録符号はgetMilkyWayBaseRaDecと同じ */
 function _myTsujiMwRaDec(t) {
     const ang = (t && t.mwOffsetEnabled === false) ? 0 : (Number(t && t.mwOffsetAngle) || 0);
     if (ang % 360 === 0) return { ra: MILKYWAY_RA, dec: MILKYWAY_DEC };
-    const eq = galacticToEquatorial(ang, 0);
+    const eq = galacticToEquatorial(-ang, 0);
     return { ra: eq.ra, dec: eq.dec };
 }
 
@@ -5936,7 +5951,7 @@ function renderMyPointsList(type) {
                 <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}" autocomplete="off">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名 住所 緯度,経度" maxlength="150" data-id="${pt.id}" autocomplete="off">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名、Plus Code、緯度,経度" maxlength="150" data-id="${pt.id}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
@@ -5962,31 +5977,35 @@ function renderMyPointsList(type) {
             e.preventDefault();
             const val = latlngInput.value.trim();
             if (!val) return;
-            // 緯度,経度 形式か判定
-            const parts = val.split(',').map(s => s.trim());
-            if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
-                pt.lat = parseFloat(parts[0]);
-                pt.lng = parseFloat(parts[1]);
+            // 行へ座標を書き込む共通処理(標高の自動取得つき。第93ラウンドでプラスコード対応と共に共通化)
+            const applyPt = async (lat, lng) => {
+                pt.lat = lat;
+                pt.lng = lng;
                 latlngInput.value = `${pt.lat}, ${pt.lng}`;
-                // 標高取得
                 const elev = await getElevation(pt.lat, pt.lng);
                 pt.elev = elev !== null ? elev : 0;
                 row.querySelector('.mypoint-elev').value = pt.elev;
                 saveAppState();
                 setMyPointDirty(type, true);
-            } else {
+            };
+            // 「緯度,経度」+プラスコードのフルコード(parseInputが両方を受ける)
+            const coords = parseInput(val);
+            if (coords) {
+                await applyPt(coords.lat, coords.lng);
+                return;
+            }
+            // プラスコードの短縮形(例: 「MQPJ+2V 港区」。基準地名を解決して近傍のセルへ展開)
+            const sc = _plusCodeShortParse(val);
+            if (sc) {
+                await _plusCodeResolveShort(sc, async c => { await applyPt(c.lat, c.lng); });
+                return;
+            }
+            {
                 // 地名検索
                 const results = await searchLocation(val);
                 if (results && results.length > 0) {
                     showLocationPicker(results, async (selected) => {
-                        pt.lat = selected.lat;
-                        pt.lng = selected.lon;
-                        latlngInput.value = `${pt.lat}, ${pt.lng}`;
-                        const elev = await getElevation(pt.lat, pt.lng);
-                        pt.elev = elev !== null ? elev : 0;
-                        row.querySelector('.mypoint-elev').value = pt.elev;
-                        saveAppState();
-                        setMyPointDirty(type, true);
+                        await applyPt(selected.lat, selected.lon);
                     });
                 } else {
                     alert('該当する場所が見つかりませんでした');
@@ -6483,7 +6502,7 @@ function addMyTsujiRow() {
         toleranceAz: 15, toleranceAlt: 15,
         centerMode: 'point',   // 検索中心オプション: 'point'=オフセット点 / 'line'=基準点からオフセット点までの線
         mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 天の川オプション: 初期値は基本オプションの値(以後は行ごとに独立)
-        mwOffsetEnabled: appState.baseOptMwBase === 'offset',   // :天の川オプション(初期値も基本オプションに合わせる)
+        mwOffsetEnabled: false,   // :天の川オプション(初期値はオフ=依頼者指示・第93ラウンド)
         moonFilter: false, moonBase: 14.8, moonTolerance: 2,
         accuracyFilter: false, accDblCircle: false, accCircle: false, accTriangle: false, accDash: false,
         elevationOption: false, elevOK: false, elevNG: false,
@@ -6567,7 +6586,7 @@ function getMyTsujiFromTsujiSearch() {
         toleranceAlt: appState.tsujiSearchToleranceAlt,
         centerMode: appState.tsujiCenterMode === 'line' ? 'line' : 'point',   // 登録時点の辻検索メニューの検索中心オプション
         mwOffsetAngle: Number(appState.mwOffsetAngle) || 0,   // 登録時点の基本オプション値を初期値に(以後は行ごとに独立)
-        mwOffsetEnabled: appState.baseOptMwBase === 'offset',
+        mwOffsetEnabled: false,   // :天の川オプション(初期値はオフ・第93ラウンド)
         moonFilter: appState.tsujiMoonFilterEnabled,
         moonBase: appState.tsujiMoonBase,
         moonTolerance: appState.tsujiMoonTolerance,
@@ -6808,7 +6827,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
         toleranceAz, toleranceAlt,
         centerMode,
         mwOffsetAngle,
-        mwOffsetEnabled: true,   // :天の川オプションのCSV列は未定義(列追加の判断待ち)=取込行はオン
+        mwOffsetEnabled: false,   // :天の川オプションのCSV列は未定義(列追加の判断待ち)=取込行もオフ(初期値オフ・第93ラウンド)
         moonFilter, moonBase, moonTolerance,
         timeFilter, startMode, startTime, startPrePost, startPrePostDir, startOffset, endMode, endTime, endPrePost, endPrePostDir, endOffset,
         dowFilter, dowMon, dowTue, dowWed, dowThu, dowFri, dowSat, dowSun,
@@ -7429,7 +7448,7 @@ function _myTsujiRenderResults() {
             <td>${r.tsuji.centerMode === 'line' ? 'line' : 'point'}</td>
             <td>${fmtSignedDeg(azDiffDeg(r.azimuth, myTsujiCtr(r).az))}</td>
             <td>${fmtSignedDeg(r.altitude - myTsujiCtr(r).alt)}</td>
-            <td>${_mwDispVal(r.tsuji.mwOffsetAngle).toFixed(4)}°</td>
+            <td>${(Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4)}°</td>
             <td>${escapeHtml(r.elevationStatus)}</td>`;
         tr.addEventListener('click', () => {
             appState.startApiElev = r.obs.elev || 0;
@@ -7477,7 +7496,7 @@ function _myTsujiRenderResults() {
         { label: '検索中心', compare: (a, b) => String(a.tsuji.centerMode === 'line' ? 'line' : 'point').localeCompare(String(b.tsuji.centerMode === 'line' ? 'line' : 'point')) },
         { label: '検索中心方位角差', compare: (a, b) => azDiffDeg(a.azimuth, myTsujiCtr(a).az) - azDiffDeg(b.azimuth, myTsujiCtr(b).az) },
         { label: '検索中心視高度差', compare: (a, b) => (a.altitude - myTsujiCtr(a).alt) - (b.altitude - myTsujiCtr(b).alt) },
-        { label: 'オフセット中心角', compare: (a, b) => _mwDispVal(a.tsuji.mwOffsetAngle) - _mwDispVal(b.tsuji.mwOffsetAngle) },
+        { label: 'オフセット中心角', compare: (a, b) => (Number(a.tsuji.mwOffsetAngle) || 0) - (Number(b.tsuji.mwOffsetAngle) || 0) },
         { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
 }
@@ -7882,8 +7901,8 @@ function renderMyTsujiSearches() {
                 <label class="baseopt-group-label" title="オフセット中心角をこの行の天の川の基準点に使うか(オン=オフセット点・オフ=中心座標。値は保持)">:天の川オプション</label>
             </div>
             <div class="control-row">
-                <label class="mytsuji-label" title="この行の辻検索だけに反映する天の川の基準点のオフセット中心角(基本オプションとは連動しない)。夏の天の川を上から見て時計回りが正(表示上の符号)">オフセット中心角(°):</label>
-                <input type="number" class="mytsuji-mw-offset" value="${_mwDispVal(t.mwOffsetAngle !== undefined && t.mwOffsetAngle !== null ? t.mwOffsetAngle : (Number(appState.mwOffsetAngle) || 0))}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}" ${t.mwOffsetEnabled === false ? 'disabled' : ''}>
+                <label class="mytsuji-label" title="この行の辻検索だけに反映する天の川の基準点のオフセット中心角(基本オプションとは連動しない)。夏の天の川を上から見て時計回りが正">オフセット中心角(°):</label>
+                <input type="number" class="mytsuji-mw-offset" value="${t.mwOffsetAngle !== undefined && t.mwOffsetAngle !== null ? t.mwOffsetAngle : (Number(appState.mwOffsetAngle) || 0)}" placeholder="-360〜+360(°)" step="1" min="-360" max="360" data-id="${t.id}" ${t.mwOffsetEnabled === false ? 'disabled' : ''}>
             </div>
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
@@ -8025,8 +8044,8 @@ function renderMyTsujiSearches() {
             saveAppState(); setMyTsujiDirty(true);
         });
         onChange('mytsuji-mw-offset', e => {   // 行ごとに独立(基本オプションとは連動しない)。表示符号→内部符号
-            t.mwOffsetAngle = Math.min(Math.max(_mwDispVal(parseFloat(e.target.value) || 0), -360), 360);
-            e.target.value = _mwDispVal(t.mwOffsetAngle);
+            t.mwOffsetAngle = Math.min(Math.max(parseFloat(e.target.value) || 0, -360), 360);
+            e.target.value = t.mwOffsetAngle;
             saveAppState(); setMyTsujiDirty(true);
         });
         onChange('mytsuji-mw-enable', e => {   // 行の:天の川オプション(オフ=中心座標。値は保持)
@@ -8765,7 +8784,7 @@ function _tsujiLinkRefreshUI(side) {
     _MONTH_DEFS.forEach(([suf]) => setC(`chk-tsuji-month-${suf}`, `chk-tsujimesh-month-${suf}`, appState[F + 'Month' + suf]));
     setC('chk-tsuji-month-filter', 'chk-tsujimesh-month-filter', appState[F + 'MonthFilter']);
     // オフセット中心角は共有キー: 相手側の入力表示だけ揃える
-    setV('input-tsuji-mw-offset', 'input-tsujimesh-mw-offset', _mwDispVal(appState.mwOffsetAngle));
+    setV('input-tsuji-mw-offset', 'input-tsujimesh-mw-offset', Number(appState.mwOffsetAngle) || 0);
     // グループの活性/非活性・換算距離の表示を追従
     if (T) {
         updateTsujiMoonFilterUI(); updateTsujiElevationOptionUI(); updateTsujiTimeFilterUI();
@@ -9828,7 +9847,7 @@ function _tmUpdateDetailList(pix) {
                  moonAge: (phase / 360) * SYNODIC_MONTH, moonIcon: moonIcons[Math.round(phase / 45) % 8], moonIllum,
                  az, alt, angR: getBodyAngularRadius(h.row.body.id, dt, observer),
                  ctrMode: C ? (C.centerMode === 'line' ? 'line' : 'point') : '-',
-                 azD, altD, mwOff: _mwEffOffsetAngle(),
+                 azD, altD, mwOff: Number(appState.mwOffsetAngle) || 0,
                  elevStatus: elevOn ? (visFlags[pix] ? 'OK' : 'NG') : '-' };
     });
     const renderRow = (r) => {
@@ -10672,7 +10691,7 @@ function _tmBuildRows(allBodyEvents, F, visFlags, elevOn) {
                 azDiff: azDiffDeg(rowAz, meshCtr.az),
                 altDiff: rowAlt - meshCtr.alt,
                 centerMode: _tsujiMeshCalc.centerMode === 'line' ? 'line' : 'point',   // この検索の検索中心オプション
-                mwOffAngle: _mwEffOffsetAngle(),
+                mwOffAngle: Number(appState.mwOffsetAngle) || 0,
                 angularRadius: getBodyAngularRadius(body.id, dt, observer),
                 moonAge, moonIcon: icons[Math.round(phase / 45) % 8],
                 moonIllum: (() => { try { return Astronomy.Illumination('Moon', dt).phase_fraction * 100; } catch (_) { return 0; } })(),
@@ -10846,7 +10865,7 @@ async function _tmExportMeshRowsCsv(rows) {
     const elevOn = !!appState.tsujiMeshElevationOption && !!visFlags;
     const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng,
                   elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
-    const mwOff = _mwEffOffsetAngle();
+    const mwOff = Number(appState.mwOffsetAngle) || 0;
     const offAz = Number(C.offsetAz) || 0, offAlt = Number(C.offsetAlt) || 0;
     const list = [];
     let done = 0;
@@ -11383,7 +11402,7 @@ async function startTsujiSearch() {
         ctx: {
             observerData: { lat: observerData.lat, lng: observerData.lng, elev: observerData.elev },
             searchCenterMode, baseAz, baseAlt, offsetAz, offsetAlt, days: searchDays,
-            mwOffAngle: _mwEffOffsetAngle(),
+            mwOffAngle: Number(appState.mwOffsetAngle) || 0,
             obs: { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' },
             tgt: { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' },
         },
@@ -13236,7 +13255,7 @@ function renderMySetList() {
         <div class="mypoint-row-header">
             <input type="radio" name="myset-select" value="0" class="mystars-radio">
             <input type="checkbox" class="body-checkbox myset-check-home" ${home.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
-            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span><button type="button" class="myset-fav myset-fav-home" title="お気に入り(タップで切り替え。⭐️のMyセットはリストの上位に表示)">${home.favorite ? '⭐️' : '☆'}</button>
+            <span class="mypoint-id">ID:${String(0).padStart(4, ' ')}</span><span class="myset-fav myset-fav-home" title="既定のセットは常にリストの先頭(常時お気に入り)">⭐️</span>
             ${cur === 0 ? '<span>🔛</span>' : ''}
         </div>
         <div class="control-row">
@@ -13262,9 +13281,7 @@ function renderMySetList() {
     const homeMemo = homeRow.querySelector('.myset-memo-home');
     homeMemo.addEventListener('change', (e) => { home.memo = e.target.value; saveAppState(); });
     homeRow.querySelector('.myset-status-home').addEventListener('click', () => mySetRowStatusClick(home));
-    homeRow.querySelector('.myset-fav-home').addEventListener('click', () => {
-        home.favorite = !home.favorite; saveAppState(); renderMySetList();
-    });
+    // 既定のセットの⭐️は常時固定(常にリストの先頭のため。第93ラウンド・依頼者合意)
     container.appendChild(homeRow);
     }
 
@@ -16332,9 +16349,9 @@ function syncBaseOptionUI() {
     const cmR = document.querySelector(`input[name="baseopt-center-mode"][value="${appState.tsujiCenterMode === 'line' ? 'line' : 'point'}"]`);
     if (cmR) cmR.checked = true;
     const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v; };
-    set('input-baseopt-mw-offset', _mwDispVal(appState.mwOffsetAngle));
-    set('input-tsuji-mw-offset', _mwDispVal(appState.mwOffsetAngle));
-    set('input-tsujimesh-mw-offset', _mwDispVal(appState.mwOffsetAngle));
+    set('input-baseopt-mw-offset', Number(appState.mwOffsetAngle) || 0);
+    set('input-tsuji-mw-offset', Number(appState.mwOffsetAngle) || 0);
+    set('input-tsujimesh-mw-offset', Number(appState.mwOffsetAngle) || 0);
     // 「:天の川オプション」チェック4面をbaseOptMwBaseへ揃え、オフの間は角度入力を無効化(値は保持。第82ラウンド)
     const mwOn = appState.baseOptMwBase === 'offset';
     ['chk-baseopt-mw-enable', 'chk-tsuji-mw-enable', 'chk-tsujimesh-mw-enable', 'chk-mwctrl-mw-enable'].forEach(id => {
@@ -16370,9 +16387,9 @@ function syncBaseOptionUI() {
     chk('chk-mwctrl-const-fig', appState.mwShowConstFig);
     chk('chk-mwctrl-const-bounds', appState.mwShowConstBounds);
     chk('chk-mwctrl-const-names', appState.mwShowConstNames);
-    set('input-mwctrl-mw-offset', _mwDispVal(appState.mwOffsetAngle));
+    set('input-mwctrl-mw-offset', Number(appState.mwOffsetAngle) || 0);
     const mwSlider = document.getElementById('input-mwctrl-mw-offset-slider');
-    if (mwSlider && document.activeElement !== mwSlider) mwSlider.value = _mwDispVal(appState.mwOffsetAngle);
+    if (mwSlider && document.activeElement !== mwSlider) mwSlider.value = Number(appState.mwOffsetAngle) || 0;
     // :天の川オプション(ctrl側)の連動と、オフの間の入力無効化(第82ラウンド)
     const mwCtrlOn = appState.baseOptMwBase === 'offset';
     const mwCtrlChk = document.getElementById('chk-mwctrl-mw-enable');
@@ -16449,7 +16466,7 @@ function setupBaseOptionControls() {
         el.addEventListener('change', () => {
             let v = parseFloat(el.value);
             if (isNaN(v)) v = 0;
-            appState.mwOffsetAngle = Math.max(-360, Math.min(360, _mwDispVal(v)));   // 表示符号→内部符号
+            appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));   // 入力値=収録符号(第93ラウンドで表示変換を廃止)
             appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ(編集が即反映されるように)
             applyMilkyWayBaseChange();
         });
@@ -16462,7 +16479,7 @@ function setupBaseOptionControls() {
     if (mwOffSlider) mwOffSlider.addEventListener('input', () => {
         let v = parseFloat(mwOffSlider.value);
         if (isNaN(v)) v = 0;
-        appState.mwOffsetAngle = Math.max(-360, Math.min(360, _mwDispVal(v)));   // 表示符号→内部符号
+        appState.mwOffsetAngle = Math.max(-360, Math.min(360, v));   // 入力値=収録符号(第93ラウンドで表示変換を廃止)
         appState.baseOptMwBase = 'offset';   // 角度を編集したら基準点を自動でオフセット点へ
         applyMilkyWayBaseChange();
     });

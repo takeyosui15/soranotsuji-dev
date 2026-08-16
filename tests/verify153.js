@@ -42,11 +42,11 @@ check('V1 フィルタ状態4キーが既定値表と保存に入っている',
         memoOn: document.getElementById('chk-myset-filter-memo').checked,
         btnOff: !document.getElementById('btn-myset-filter').classList.contains('active'),
         homeFav: document.querySelector('#myset-list .myset-fav-home') !== null,
-        homeStar: document.querySelector('#myset-list .myset-fav-home')?.textContent
+        homeStar: document.querySelector('#myset-list .myset-fav-home')?.textContent   // 第93ラウンドから常時⭐️固定
       };
     });
-    check('M1 フィルタ部品(テキスト+対象チェック2個既定オン+トグル既定オフ)とお気に入り☆がある',
-      r.text&&r.nameOn&&r.memoOn&&r.btnOff&&r.homeFav&&r.homeStar==='☆', JSON.stringify(r));
+    check('M1 フィルタ部品(テキスト+対象チェック2個既定オン+トグル既定オフ)と既定セットの常時⭐️がある',
+      r.text&&r.nameOn&&r.memoOn&&r.btnOff&&r.homeFav&&r.homeStar==='⭐️', JSON.stringify(r));
   }
 
   // M2: お気に入りで表示順が上位へ(配列の並びは不変)・再タップで戻る

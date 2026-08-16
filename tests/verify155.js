@@ -73,7 +73,7 @@ const NEW_KEYS=['refractionEnabled','meteoP','meteoT','meteoL','baseOptMwBase','
       mwB: appState.baseOptMwBase, ang: appState.mwOffsetAngle, fig: appState.mwShowConstFig,
       sort: appState.mwConstNameSort, rad: appState.elevExcludeRadius, tl: appState.tsujiLineIncludeOffset,
       chkMw: document.getElementById('chk-baseopt-mw-enable').checked,        // :天の川オプション=オン(offset)
-      dispAng: document.getElementById('input-baseopt-mw-offset').value,      // 表示は±反転で25
+      dispAng: document.getElementById('input-baseopt-mw-offset').value,      // 収録符号そのまま(第93ラウンドで表示反転廃止)
       chkFig: document.getElementById('chk-baseopt-const-fig').checked,
       chkTl: document.getElementById('chk-baseopt-tsujiline-offset').checked,
       refrChk: document.getElementById('chk-refraction').checked }));
@@ -81,8 +81,8 @@ const NEW_KEYS=['refractionEnabled','meteoP','meteoT','meteoL','baseOptMwBase','
       r.refr===true&&r.p===990&&r.t===5&&r.l===0.0125, JSON.stringify({refr:r.refr,p:r.p,t:r.t,l:r.l}));
     check('U3 基本オプション組も復元(offset/-25/星座線true/座標順/除外33/辻オフセット込みfalse)',
       r.mwB==='offset'&&r.ang===-25&&r.fig===true&&r.sort==='pos'&&r.rad===33&&r.tl===false, JSON.stringify(r));
-    check('U3 UIにも映る(:天の川オプション=オン・表示角25(±反転)・星座線チェック・:辻オフセットオフ・大気差チェック)',
-      r.chkMw===true&&r.dispAng==='25'&&r.chkFig===true&&r.chkTl===false&&r.refrChk===true,
+    check('U3 UIにも映る(:天の川オプション=オン・角度-25(収録符号のまま)・星座線チェック・:辻オフセットオフ・大気差チェック)',
+      r.chkMw===true&&r.dispAng==='-25'&&r.chkFig===true&&r.chkTl===false&&r.refrChk===true,
       JSON.stringify({chkMw:r.chkMw,dispAng:r.dispAng,chkFig:r.chkFig,chkTl:r.chkTl,refrChk:r.refrChk}));
     check('E2 復元側ページエラーなし', errs.length===0, errs.join(' | ').slice(0,200));
     await ctx.close();

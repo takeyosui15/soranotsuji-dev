@@ -183,7 +183,7 @@
 | refractionEnabled | false | 大気差(設定メニュー)のON/OFF。 |
 | meteoP / meteoT / meteoL | 1013.25 / 15 / 0.0065 | 気圧(hPa)/気温(°C)/気温減率(K/m)。復元は型変換+NaNガードのみ(LS復元と同じ)。 |
 | baseOptMwBase | \[ center \| offset \] | 天の川の基準点(=「:天の川オプション」チェックの実体)。 |
-| mwOffsetAngle | 0 | オフセット中心角(内部符号。画面表示は±反転=第82ラウンド)。 |
+| mwOffsetAngle | 0 | オフセット中心角(収録符号=「夏の天の川を上から見て時計回りが正」。第93ラウンドで内部値ごと統一し表示だけの反転を廃止)。 |
 | mwShowBodies / mwShowBodyNames / mwShowConstFig / mwShowConstBounds / mwShowConstNames | true / false / false / false / false | 全天儀の表示天体/表示天体名/星座線/星座領域/星座名称。 |
 | mwConstNameSort | \[ aiueo \| pos \] | 星座名称の表示順。 |
 | elevExcludeEnabled / elevExcludeRadius / elevExcludeObsRadius | true / 15 / 10 | 標高グラフの:除外範囲/目的点側(m)/観測点側(m)。 |

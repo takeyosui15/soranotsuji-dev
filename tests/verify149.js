@@ -4,6 +4,8 @@
 //   ±は画面の入出力だけ反転(夏の天の川を上から見て時計回り=正)。内部・保存・URL・CSV・Fileは従来符号。
 // 意図更新(第85ラウンド・項目12): 「天の川の基準点」ラジオは撤去された(チェックが同じ状態を担うため)。
 //   W2/W3のラジオ追従の表明を削り、W4はラジオ撤去の確認に置き換えた。
+// 意図更新(第93ラウンド): ±は内部値ごと新しい符号に統一(表示だけの反転を廃止)・検索記録は生の
+//   オフセット中心角へ・My辻行の初期値はオフ。W3/W6/W7と静的表明を新仕様へ置き換えた。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -23,10 +25,10 @@ check('V0 Version Historyに1.66.0の行がある', src.includes('Version 1.66.0
 // ---- V1: 静的な形(実効角ヘルパーの使用箇所・Fileの生符号・既存行の正規化) ----
 check('V1 getMilkyWayBaseRaDecが実効角(_mwEffOffsetAngle)を使う',
   /function getMilkyWayBaseRaDec\(\) \{\s*\n\s*const ang = _mwEffOffsetAngle\(\);/.test(src));
-check('V1 検索記録(ctx)が実効角を記す(mwOff/mwOffAngle)',
-  src.includes('mwOff: _mwEffOffsetAngle()') && (src.match(/mwOffAngle: _mwEffOffsetAngle\(\)/g) || []).length >= 2);
+check('V1 検索記録(ctx)は生のオフセット中心角を記す(第93ラウンドで実効角から戻した)',
+  src.includes('mwOff: Number(appState.mwOffsetAngle) || 0') && (src.match(/mwOffAngle: Number\(appState\.mwOffsetAngle\) \|\| 0/g) || []).length >= 2);
 check('V1 File出力のオフセット中心角は内部符号のまま', src.includes("(Number(r.tsuji.mwOffsetAngle) || 0).toFixed(4) + '°'"));
-check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)', src.includes('if (t.mwOffsetEnabled === undefined) t.mwOffsetEnabled = true'));
+check('V1 未定義行の正規化(mwOffsetEnabled未定義→オフ=初期値オフ・第93ラウンド)', src.includes('if (t.mwOffsetEnabled === undefined) t.mwOffsetEnabled = false'));
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
@@ -80,11 +82,11 @@ check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)'
         allOff: chkIds.every(id=>!document.getElementById(id).checked),
         allDisabled: inIds.every(id=>document.getElementById(id).disabled),
         kept: appState.mwOffsetAngle===-30,
-        shown: document.getElementById('input-baseopt-mw-offset').value   // 表示は反転で30のまま
+        shown: document.getElementById('input-baseopt-mw-offset').value   // 収録符号そのまま(-30。第93ラウンド)
       };
     },[CHK_IDS,IN_IDS]);
-    check('W3 チェックオフ→center・4面オフ・入力無効・値は保持(表示30)',
-      r.base==='center'&&r.allOff&&r.allDisabled&&r.kept&&r.shown==='30', JSON.stringify(r));
+    check('W3 チェックオフ→center・4面オフ・入力無効・値は保持(表示-30=収録符号)',
+      r.base==='center'&&r.allOff&&r.allDisabled&&r.kept&&r.shown==='-30', JSON.stringify(r));
   }
 
   // W4: 「天の川の基準点」ラジオは撤去済み(第85ラウンド・項目12。チェックが同じ状態を担う)
@@ -116,7 +118,7 @@ check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)'
       r.centerIsBase&&r.e0===0&&r.e1===30&&r.offsetDiffers, JSON.stringify(r));
   }
 
-  // W6: ±表示反転の往復(内部-30→表示30 / 入力25→内部-25・4面の表示も25)
+  // W6: 収録符号の素通し(第93ラウンドで表示反転を廃止: 入力値=収録値=表示値)
   {
     const r=await p.evaluate(async()=>{
       appState.mwOffsetAngle=-30; appState.baseOptMwBase='offset'; syncBaseOptionUI();
@@ -133,42 +135,47 @@ check('V1 既存行の正規化(mwOffsetEnabled未定義→オン=従来挙動)'
       await new Promise(r=>setTimeout(r,100));
       return { disp, after, sliderState: appState.mwOffsetAngle };
     });
-    check('W6 表示反転: 内部-30→表示30(3面)', r.disp.base==='30'&&r.disp.ctrl==='30'&&r.disp.slider==='30', JSON.stringify(r.disp));
-    check('W6 入力25→内部-25・相手面の表示も25 / スライダー10→内部-10',
-      r.after.state===-25&&r.after.mesh==='25'&&r.sliderState===-10, JSON.stringify({after:r.after,slider:r.sliderState}));
+    check('W6 収録-30→表示-30(3面。表示変換なし)', r.disp.base==='-30'&&r.disp.ctrl==='-30'&&r.disp.slider==='-30', JSON.stringify(r.disp));
+    check('W6 入力25→収録25・相手面の表示も25 / スライダー10→収録10',
+      r.after.state===25&&r.after.mesh==='25'&&r.sliderState===10, JSON.stringify({after:r.after,slider:r.sliderState}));
   }
 
   // W7: My辻行の「:天の川オプション」(行ごと独立・表示反転・オフで実効0と入力無効・値は保持)
   {
     const r=await p.evaluate(async()=>{
       appState.myTsujiSearches=[];
-      appState.baseOptMwBase='offset';   // 行の初期値がこの状態に合うことも見る
+      appState.baseOptMwBase='offset';
       addMyTsujiRow();
       const t=appState.myTsujiSearches[0];
-      const initOn = t.mwOffsetEnabled===true;
+      const initOn = t.mwOffsetEnabled===false;   // 第93ラウンド: 行の初期値は常にオフ
       t.mwOffsetAngle=-30; renderMyTsujiSearches();
       const inp=document.querySelector(`.mytsuji-mw-offset[data-id="${t.id}"]`);
       const chk=document.querySelector(`.mytsuji-mw-enable[data-id="${t.id}"]`);
-      const disp30 = inp.value==='30' && !inp.disabled && chk.checked;
-      chk.checked=false; chk.dispatchEvent(new Event('change',{bubbles:true}));
+      chk.checked=true; chk.dispatchEvent(new Event('change',{bubbles:true}));   // 初期オフなので一度オンにして表示を見る
       await new Promise(r=>setTimeout(r,50));
-      const offRow = t.mwOffsetEnabled===false && inp.disabled===true && t.mwOffsetAngle===-30;
+      renderMyTsujiSearches();
+      const inp2=document.querySelector(`.mytsuji-mw-offset[data-id="${t.id}"]`);
+      const chk2=document.querySelector(`.mytsuji-mw-enable[data-id="${t.id}"]`);
+      const disp30 = inp2.value==='-30' && !inp2.disabled && chk2.checked;   // 収録符号そのまま
+      chk2.checked=false; chk2.dispatchEvent(new Event('change',{bubbles:true}));
+      await new Promise(r=>setTimeout(r,50));
+      const offRow = t.mwOffsetEnabled===false && inp2.disabled===true && t.mwOffsetAngle===-30;
       const gated = (()=>{ const g=_myTsujiMwRaDec(t); return g.ra===MILKYWAY_RA&&g.dec===MILKYWAY_DEC; })();
       const globalUntouched = appState.baseOptMwBase==='offset';   // 行のチェックは全体に波及しない
-      chk.checked=true; chk.dispatchEvent(new Event('change',{bubbles:true}));
-      inp.disabled=false; inp.value='25'; inp.dispatchEvent(new Event('change',{bubbles:true}));
+      chk2.checked=true; chk2.dispatchEvent(new Event('change',{bubbles:true}));
+      inp2.disabled=false; inp2.value='25'; inp2.dispatchEvent(new Event('change',{bubbles:true}));
       await new Promise(r=>setTimeout(r,50));
-      const typed = t.mwOffsetAngle===-25 && inp.value==='25';
+      const typed = t.mwOffsetAngle===25 && inp2.value==='25';   // 入力値=収録値(第93ラウンド)
       const ungated = (()=>{ const g=_myTsujiMwRaDec(t); return g.ra!==MILKYWAY_RA; })();
       appState.baseOptMwBase='center';
       addMyTsujiRow();
-      const initOff = appState.myTsujiSearches[1].mwOffsetEnabled===false;   // 行の初期値は基本オプションに合わせる
+      const initOff = appState.myTsujiSearches[1].mwOffsetEnabled===false;   // 初期値は常にオフ(第93ラウンド)
       appState.myTsujiSearches=[]; renderMyTsujiSearches();
       return { initOn, disp30, offRow, gated, globalUntouched, typed, ungated, initOff };
     });
-    check('W7 My辻行: 初期値追従・表示反転・オフで実効0/入力無効/値保持・全体に波及しない',
+    check('W7 My辻行: 初期値オフ・表示は収録符号・オフで実効0/入力無効/値保持・全体に波及しない',
       r.initOn&&r.disp30&&r.offRow&&r.gated&&r.globalUntouched, JSON.stringify(r));
-    check('W7 My辻行: 入力25→内部-25・再オンで角度が効く・center時の新規行はオフ',
+    check('W7 My辻行: 入力25→収録25・再オンで角度が効く・新規行は常にオフ',
       r.typed&&r.ungated&&r.initOff, JSON.stringify({typed:r.typed,ungated:r.ungated,initOff:r.initOff}));
   }
 
