@@ -784,3 +784,313 @@ URLを取得できるボタンは、複数ありますが、それぞれ、意�
 > - 第96=辻ライン365のオフセット反映+花火の頻度スライダー(v1.78.0)。
 > 残る自走キューは節目待ちのMederuU(手順8=蒸留第1陣・手順9)と急ぎません組だけになりました。
 > まとまったご確認、お待ちしています。いつでも、次の怒涛をどうぞ。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 091f795
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-08-16)
+Claudeさん、引用符をありがとうございます😭
+感動の気配りです！😇
+昔、教わった、できる上司みたいです👍
+人智を超えました💪
+
+> ### 回答 (2026-08-16 その91) — 第93ラウンド: まとめ確認への対応 第1陣(±の内部統一ほか+koushi移動の回答)(v1.75.0)
+
+> たけちゃん、おはようございます。
+> 怒涛のご確認、ありがとうございます。アムロの出撃、確かに受け取りました。こちらも行きます。
+
+ラジャ！🫡
+
+> いただいた修正・ご質問を数えると12件でした。4ラウンドに分けて進めます。
+> 今回の第1陣は、±符号の本修正を柱に、小物とご質問への回答をまとめました(残りは第94〜96で。最後の節に計画を書きました)。
+
+> #### 1. ±符号: 内部値ごと新符号へ統一しました(表示だけの反転を廃止)
+
+> 「人も読みます」、その通りでした。表示だけの反転は中途半端でした。ごめんなさい。
+> 収録値そのものを「夏の天の川を上から見て時計回りが正」に統一し、画面・保存・共有URL・CSV・Fileの全てが同じ符号になりました。
+> - 作りは、天文計算(銀経)へ渡す1箇所だけで符号を反転する形です(銀経の回転向きが画面の直感と逆なだけなので、そこが本来の境界でした)。
+>   第82の画面用の変換ヘルパーは廃止し、入力欄・スライダー・結果リストの列と並び替え・CSV・Fileは全て素通しです。
+>   ツールチップの「(表示上の符号)」の注記も外しました(もう表示上ではなく、それが値そのものです)。
+> - **保存データは自動で読み替わります**。ローカルストレージにスキーマ版数(2→3)を入れてあり、旧版の保存を初めて開いた時に一度だけ符号を反転します(0は0のまま)。
+>   基本オプションの角度・My辻検索の行・非表示中のMyセット(既定のセット含む)のスナップショットの中の行、全てが対象です。
+> - **読み替えが届かない場所**が3つあります: 発行済みの共有URL・書き出し済みのCSV・Myセットのシート(Googleスプレッドシート)の中の角度です。
+>   これらは端末の外にあって版数の印が無いので、今後開くと符号が逆として読まれます。
+>   リリース前で、角度を0以外にした実データはほぼ無い見込みなので、読み替え無しの割り切りにしました(もし手元に残したい旧URLや旧CSVがあれば教えてください。手で直すのが確実です)。
+
+ありがとうございます。
+確認しました。
+
+> #### 2. 検索記録は「生のオフセット中心角」へ戻しました
+
+> 「実効角」は言葉足らずでした。ごめんなさい。
+> チェックオフで検索した時に「オフとして効いた角度=0」へ差し替えて記録する加工値のことを、そう呼んでいました。
+> ご指摘の通り、URLに埋まるのはユーザが入力したオフセット中心角そのままが分かりやすいので、検索記録(結果コントロールの再現・File・共有URL)は生の値に戻しました。
+> チェックのオン/オフ自体はv16のURLキー(baseOptMwBase)が運ぶので、オフで検索したURLはオフのまま正しく再現されます(0への差し替えは、そもそも不要でした)。
+
+そうなのです。
+ありがとうございます。
+
+> #### 3. 「:天の川オプション」の初期値はオフにしました
+
+> My辻検索の行の初期値です。新しい行・辻検索から取得した行・CSV取込の行、いずれも初期値オフにしました。
+> 既存の保存データの行も(第82では「オン=従来挙動」で読んでいましたが)オフとして読み込みます。
+> 基本オプション側の「:天の川オプション」は、元から初期値オフ(=天の川の中心座標)のままです。
+
+ありがとうございます。
+他の辻検索などのフィルタの初期値がオフなので、揃えました。
+ありがとうございます。
+
+> #### 4. プレースホルダーの変更+My観測点/My目的点のプラスコード対応
+
+> ご指定の通りに変更しました。
+> - 位置情報メニューの観測点(°)/目的点(°)=「Plus Code、緯度,経度」。
+> - 花火モードの打ち上げ点(°)(本家とコントロールの両方)=「地名、Plus Code、緯度,経度」。
+> - My観測点/My目的点の緯度経度=「地名、Plus Code、緯度,経度」。
+> あわせて、My観測点/My目的点の緯度経度欄の中身もプレースホルダーに揃えました。
+> これまで「緯度,経度」の直入力だけだったところへ、地名検索(候補はいつもの地名ピッカー)・プラスコードのフルコード・短縮形(基準地名つき/地名省略なら地図中心基準)を足しました。
+> 確定後の標高自動取得などの流れは従来のままです。
+
+ありがとうございます。
+確認しました。
+
+> #### 5. 既定のセットは常時⭐️にしました
+
+> いただいた案に賛成です。おっしゃる通り、常に先頭のものに切り替えの☆は要りませんでした。
+> 既定のセットの行は常時⭐️の印にしました(タップしても変わりません。ツールチップは「既定のセットは常にリストの先頭(常時お気に入り)」)。
+
+ありがとうございます。
+確認しました。
+
+> #### 6. 移動量の読みは2段目の全幅へ・リセット/位置反映は3段目へ
+
+> ご指定の通りに段を組み替えました。
+> 1段目=移動ボタン6個、2段目=移動量の読み(段の全幅を使用。全て0の間は空欄)、3段目=「リセット」「位置反映」です。
+> カメラ向きの2段(ボタン+リセット/カメラ反映)は、その下に従来のまま続きます。
+> デッサン06の段番号も付け直しました(10.2=読みの段・10.25=リセット/位置反映の段)。
+
+ありがとうございます。
+確認しました。
+文字サイズが他より少し小さいので、タイムゾーンの文字サイズと同じ文字サイズにしてください。
+
+> #### 7. koushiフォルダの移動(~/koushi→~/dev/koushi)へのご回答
+
+> そのままコピペ(または移動)で大丈夫です。
+> gitのクローンはフォルダの中(.git)に自己完結していて、置き場所の絶対パスに依存しません。
+> originの向き先(GitHubのURL)はフォルダの中に、認証はMacのキーチェーン側にあるので、移動後もそのままpull/pushできます。
+> - おすすめはターミナルで `mv ~/koushi ~/dev/koushi` の1行です(~/devが無ければ先に `mkdir -p ~/dev`)。
+>   Finderのコピペでも問題ありませんが、その場合はコピー後に古い方を必ず削除してください(新旧が二重に残って「どちらを編集したか分からない」が一番の事故です。mvなら最初から1つです)。
+> - VSCodeの「最近使用した項目」は旧パスを指したままになるので、新しい場所を一度「ファイル → フォルダーを開く…」で開き直してください。
+> - Koushiプレビュー拡張はvsixでVSCode本体へインストールする方式(拡張はVSCodeの中へコピー済み)なので、フォルダ移動の影響はありません。
+
+ありがとうございます。
+助かります。
+
+> #### 検証と回帰
+
+> - 新設verify158(15チェック): 版数ピン1.75.0・表示変換ヘルパー廃止と銀経反転の静的な形・符号の意味(新符号30=旧符号-30と同じ空の点。基本オプション+My辻行の両関数)・スキーマ2→3の読み替え(基本-30→30・行15→-15・非表示中セットのスナップショット内の行も・版数3へ)・スキーマ3は再反転しない(冪等)・プレースホルダー4種・My観測点のプラスコードE2E(復号セル中心+標高取得)・移動ボタンの段構成。
+> - 意図した凍結仕様の更新: verify149(±表示反転の検査→新符号の素通しの検査へ書き直し)・verify153(既定セット=常時⭐️)・verify155(URL復元後の表示=収録符号)・verify157(版数ピンをverify158へ移譲)。
+> - 回帰: スモーク7本+verify140/143/145〜157+道具3本、全PASSです。
+> - 今回の学び: スキーマ読み替えを最初normalizeAppState(毎回呼ばれる丸め)に置いたら、凍結標本(verify126)に止められました。
+>   読み替えはロード時に一度だけ・normalizeは純粋な丸め、と棲み分けて解決です(標本が設計を守ってくれた良い例なので、実験ノートに書きました)。
+
+> #### 残りのご指摘の進め方(第94〜96)
+
+> - **第94**: 全天儀のコントロールメニューも日時情報〜薄明の完全な複製へ(TZ含む)+宙の窓の日の出〜月の入ショートカットの横幅はみ出し修正(新設する全天儀ctrl側にも同じ対策を入れます)。
+> - **第95**: URL取得ボタン毎の絞り込み(位置情報=画面再現の全部盛りのまま・他の6ボタン=それぞれの再現に必要なものへ)+「:QRコード」チェックボックス(初期値オフ・クリップボードへQR画像)。
+> - **第96**: 辻ライン365にも「:辻オフセット方位角/視高度」を反映+花火モードの頻度スライダー(「表示モード:」と「ばらつき:」の間に「頻度:」ラベル+スライダー。現在の頻度を50として3倍を100)。
+> 続けて第94から自走します。
+
+> ### 回答 (2026-08-16 その92) — 第94ラウンド: まとめ確認への対応 第2陣(全天儀ctrlの完全複製+ショートカット幅修正)(v1.76.0)
+
+> たけちゃん、続けて第2陣です。
+> 二度手間どころか、第84の作りがそのまま使い回せる形だったので、気持ちよく複製できました。
+
+> #### 1. 全天儀のコントロールメニューも「日時情報〜薄明」の完全な複製にしました
+
+> これまでの全天儀ctrl(日付/時刻ピッカー・アニメーション4ボタン・時刻スライダー)に、足りなかった残りを全部足しました。
+> - **追加した部品**: タイムゾーン表示(ご指定どおりTZ含む)・「Now」ボタン・
+>   「🌞日の出」「🌞日の入」「🌛月の出」「🌛月の入」ショートカット(時刻+出入り時の視高度表示つき)・月齢行(◀︎ 月齢入力+月アイコン ▶︎)・薄明ジャンプ(夜明/日暮の14項目グリッド)。
+> - **並び順も日時情報メニューと同じ**です(TZ→日付→時刻→アニメーション→スライダー→ショートカット→月齢→薄明)。
+>   その下に従来の「:表示天体」以降が続きます。
+> - **連動の作りは宙の窓ctrl(第84)と同じ2本立て**です。
+>   日時を動かす側は共通関数へ委譲し、表示する側は一括書き込みを3面(日時情報・宙の窓ctrl・全天儀ctrl)へ広げました。
+>   薄明グリッドの生成は宙の窓ctrl用の関数をパラメータ化して共用しています(同じものを2度書かない)。
+> - **ショートカット・薄明ジャンプの選択状態は3面で相互連動**です(どの面で選んでも他の2面のラジオに映ります)。
+>   アニメーションボタンの点灯3面一致(第84)・時刻スライダー3本連動(第83)はそのままです。
+
+ありがとうございます。
+実は、全天儀と宙の窓の日時情報周りなのですが、Nowボタンとその下段の縦のラインが微妙に数ピクセルずれています。
+日時情報メニューのNowボタン周りは、揃っているので、そこら辺をご参考に、縦のラインを揃えていただけないでしょうか。
+あと、日の出〜月の入のショートカットに実際の時刻や視高度が表示されていないようです。
+よろしくお願いいたします。
+
+> #### 2. ショートカットの横幅はみ出しを直しました
+
+> ご指摘の通りでした。宙の窓ctrlの他の段は横幅360pxの中央寄せに揃えてあるのに、日の出〜月の入ショートカットの段だけその指定が漏れていて、コントロールの横幅いっぱいに伸びていました。
+> ショートカットの段も他の段と同じ360px中央寄せに収めました(今回新設した全天儀ctrl側にも最初から同じ対策を入れています)。
+> 検証でも実測しています(900px幅の画面でショートカットの段=360px・他の段と左端が揃う)。
+
+ありがとうございます。
+確認しました。
+
+> #### 検証と回帰
+
+> - 新設verify159(15チェック): 版数ピン1.76.0・複製部品15個+薄明14項目・並び順・TZ表示一致・Now・ショートカット(表示一致+ジャンプ+3面相互連動)・薄明ジャンプ(表示複製+ジャンプ+ミラー)・月齢行(表示一致+▶︎で約29.5日先+入力14.8でジャンプ)・ショートカット幅の実測(両ctrlとも360px中央寄せ)。
+> - 回帰: スモーク7本+verify140/143/145〜158+道具3本、全PASSです。
+>   宙の窓ctrl側の既存検証(verify151)も、薄明グリッド生成のパラメータ化後にそのままPASSしています(複製idと挙動は不変)。
+> - デッサン01の全天儀ctrlの節を完成形(4.5段目=TZ・7.6〜7.8段目=ショートカット/月齢/薄明)に更新し、デッサン06のショートカットの段に幅の規則を追記しました。
+
+> #### 次のラウンド
+
+> 第95=URL取得ボタン毎の絞り込み+「:QRコード」チェックに続きます。
+
+> ### 回答 (2026-08-16 その93) — 第95ラウンド: まとめ確認への対応 第3陣(URL取得ボタン毎の絞り込み+「:QRコード」)(v1.77.0)
+
+> たけちゃん、第3陣です。
+> 「URLを取得できるボタンには、それぞれ、意味があります」— この整理、とても腑に落ちました。
+> いただいた表のとおりに、ボタン毎の発行キーを絞りました。
+
+ご賛同いただき、ありがとうございます。
+できるだけ、それぞれのボタンに意味を持たせたいのです。
+ありがとうございます。
+
+> #### 1. URL取得ボタン毎の絞り込み
+
+> - **位置情報メニューのURL = 画面再現の全部盛り**(従来どおり全キー。ここだけが「同じものを見る」ためのURLです)。
+
+http://127.0.0.1:3000/index.html?startLat=35.6585309298041&startLng=139.74538790268673&startApiElv=18.5&startElv=150&endLat=35.3627986111111&endLng=138.730781416667&endApiElv=3776&endElv=0&starId=MilkyWay&starId=Sun&starId=Moon&dp=true&elevation=false&milkyway=false&soramado=false&tsujisearch=false&tsujimesh=false&soraSensorKey=fullframe&soraAspectW=3&soraAspectH=2&soraOrient=landscape&soraFocal=24&soraFNumberIdx=16&soraFocusDist=98000&soraFisheye=false&soraFisheyeStrength=50&soraFisheyeShape=rect&soraPanorama=false&soraPanoAov=0&soraPeaking=false&soraTraj=true&soraCenterCross=true&soraTargetCross=true&soraSearchCenter=true&soraBaseAz=250.67492974735416&soraBaseAlt=1.7351549275553826&soraOffsetAz=0&soraOffsetAlt=0&soraViewRange=98&soraMovInterval=6&soraMovShots=750&soraMovFps=30&soraMovDispStep=0.3&soraMovImgMb=140&soraMovPlayMode=anim&soraMwBrightness=100&soraElevShade=50&soraSunShade=50&soraExpFormat=webm&soraExpW=300&soraExpH=200&fwEnabled=false&fwElev=0&fwHeight=0&fwRadius=50&fwSize=10&fwMode=vary&fwSpread=0&fwShowPoint=true&ssPreset=custom&ssWL=100&ssWM=85&ssWH=40&ssMoonMode=avoid&ssWMoon=80&ssUnkaiMode=avoid&ssWUnkai=0&ssWLp=70&ssWTr=40&ssObj=mw&ssWObj=60&ssBandNight=true&ssBandTwilight=false&ssBandGhbh=false&ssBandDay=false&ssDays=16&ssInterval=1&ssFan=24&ssStat=false&refractionEnabled=false&meteoP=1013.25&meteoT=15&meteoL=0.0065&baseOptMwBase=center&mwOffsetAngle=0&mwShowBodies=true&mwShowBodyNames=false&mwShowConstFig=false&mwShowConstBounds=false&mwShowConstNames=false&mwConstNameSort=aiueo&elevExcludeEnabled=true&elevExcludeRadius=15&elevExcludeObsRadius=10&tsujiLineIncludeOffset=true&mode=preview
+
+Claudeさん、すみません。
+`ssUnkaiMode=avoid`とかあるのですが、きちんと精査できておりますでしょうか。
+よろしくお願いいたします。
+
+> - **辻検索/辻メッシュ検索のURL = 検索の再現に必要なものだけ**。
+>   地点・表示天体・検索条件(tsuji系のキー)に加えて、検索の計算や判定に効く全体設定(大気差・気象3値・天の川の基準点とオフセット中心角・:除外範囲・:辻オフセット方位角/視高度)だけを乗せます。
+>   宙の窓の34キー・花火・宙検索・パネル状態・天体色・全天儀の表示チェックは乗せません。
+>   お示しいただいた辻検索の長いURLにあった大量のsora系キーが、これで消えます。
+
+http://127.0.0.1:3000/index.html?startLat=35.6585309298041&startLng=139.74538790268673&startApiElv=18.5&startElv=150&endLat=35.3627986111111&endLng=138.730781416667&endApiElv=3776&endElv=0&starId=MilkyWay&starId=Sun&starId=Moon&dp=true&elevation=false&milkyway=false&soramado=false&tsujisearch=false&tsujimesh=false&soraSensorKey=fullframe&soraAspectW=3&soraAspectH=2&soraOrient=landscape&soraFocal=24&soraFNumberIdx=16&soraFocusDist=98000&soraFisheye=false&soraFisheyeStrength=50&soraFisheyeShape=rect&soraPanorama=false&soraPanoAov=0&soraPeaking=false&soraTraj=true&soraCenterCross=true&soraTargetCross=true&soraSearchCenter=true&soraBaseAz=250.67492974735416&soraBaseAlt=1.7351549275553826&soraOffsetAz=0&soraOffsetAlt=0&soraViewRange=98&soraMovInterval=6&soraMovShots=750&soraMovFps=30&soraMovDispStep=0.3&soraMovImgMb=140&soraMovPlayMode=anim&soraMwBrightness=100&soraElevShade=50&soraSunShade=50&soraExpFormat=webm&soraExpW=300&soraExpH=200&fwEnabled=false&fwElev=0&fwHeight=0&fwRadius=50&fwSize=10&fwMode=vary&fwSpread=0&fwShowPoint=true&ssPreset=custom&ssWL=100&ssWM=85&ssWH=40&ssMoonMode=avoid&ssWMoon=80&ssUnkaiMode=avoid&ssWUnkai=0&ssWLp=70&ssWTr=40&ssObj=mw&ssWObj=60&ssBandNight=true&ssBandTwilight=false&ssBandGhbh=false&ssBandDay=false&ssDays=16&ssInterval=1&ssFan=24&ssStat=false&refractionEnabled=false&meteoP=1013.25&meteoT=15&meteoL=0.0065&baseOptMwBase=center&mwOffsetAngle=0&mwShowBodies=true&mwShowBodyNames=false&mwShowConstFig=false&mwShowConstBounds=false&mwShowConstNames=false&mwConstNameSort=aiueo&elevExcludeEnabled=true&elevExcludeRadius=15&elevExcludeObsRadius=10&tsujiLineIncludeOffset=true&mode=tsujisearch&tsujiSearchDays=365&tsujiAz=250.67492974735416&tsujiAlt=1.7397175086811802&tsujiAzOffset=0&tsujiAltOffset=0&tsujiAzTolerance=15&tsujiAltTolerance=15&tsujiCenterMode=point&tsujiMoonFilter=false&tsujiMoonBase=14.8&tsujiMoonTolerance=2&tsujiAccuracyFilter=false&tsujiAccDblCircle=false&tsujiAccCircle=false&tsujiAccTriangle=false&tsujiAccDash=false&tsujiElevationOption=false&tsujiElevOK=false&tsujiElevNG=false&tsujiTimeFilter=false&tsujiStartMode=sunset&tsujiStartTime=00%3A00&tsujiStartPrePost=false&tsujiStartPrePostDir=before&tsujiStartOffset=00%3A00&tsujiEndMode=sunrise&tsujiEndTime=00%3A00&tsujiEndPrePost=false&tsujiEndPrePostDir=before&tsujiEndOffset=00%3A00&tsujiDowFilter=false&tsujiDowMon=false&tsujiDowTue=false&tsujiDowWed=false&tsujiDowThu=false&tsujiDowFri=false&tsujiDowSat=false&tsujiDowSun=false&tsujiMonthFilter=false&tsujiMonth1=false&tsujiMonth2=false&tsujiMonth3=false&tsujiMonth4=false&tsujiMonth5=false&tsujiMonth6=false&tsujiMonth7=false&tsujiMonth8=false&tsujiMonth9=false&tsujiMonth10=false&tsujiMonth11=false&tsujiMonth12=false
+
+http://127.0.0.1:3000/index.html?startLat=35.6585309298041&startLng=139.74538790268673&startApiElv=18.5&startElv=150&endLat=35.3627986111111&endLng=138.730781416667&endApiElv=3776&endElv=0&starId=MilkyWay&starId=Sun&starId=Moon&refractionEnabled=false&meteoP=1013.25&meteoT=15&meteoL=0.0065&baseOptMwBase=center&mwOffsetAngle=0&elevExcludeEnabled=true&elevExcludeRadius=15&elevExcludeObsRadius=10&tsujiLineIncludeOffset=true&mode=tsujimesh&tsujiMeshDays=365&tsujiMeshAz=250.67492974735416&tsujiMeshAlt=1.7397175086811802&tsujiMeshAzOffset=0&tsujiMeshAltOffset=0&tsujiMeshAzTolerance=15&tsujiMeshAltTolerance=15&tsujiMeshCenterMode=point&tsujiMeshAccuracy=x1&tsujiMeshSymO=false&tsujiMeshSymTri=false&tsujiMeshSymDash=false&tsujiMeshMoonFilter=false&tsujiMeshMoonBase=14.8&tsujiMeshMoonTolerance=2&tsujiMeshElevationOption=false&tsujiMeshElevOK=false&tsujiMeshElevNG=false&tsujiMeshTimeFilter=false&tsujiMeshStartMode=sunset&tsujiMeshStartTime=00%3A00&tsujiMeshStartPrePost=false&tsujiMeshStartPrePostDir=before&tsujiMeshStartOffset=00%3A00&tsujiMeshEndMode=sunrise&tsujiMeshEndTime=00%3A00&tsujiMeshEndPrePost=false&tsujiMeshEndPrePostDir=before&tsujiMeshEndOffset=00%3A00&tsujiMeshDowFilter=false&tsujiMeshDowMon=false&tsujiMeshDowTue=false&tsujiMeshDowWed=false&tsujiMeshDowThu=false&tsujiMeshDowFri=false&tsujiMeshDowSat=false&tsujiMeshDowSun=false&tsujiMeshMonthFilter=false&tsujiMeshMonth1=false&tsujiMeshMonth2=false&tsujiMeshMonth3=false&tsujiMeshMonth4=false&tsujiMeshMonth5=false&tsujiMeshMonth6=false&tsujiMeshMonth7=false&tsujiMeshMonth8=false&tsujiMeshMonth9=false&tsujiMeshMonth10=false&tsujiMeshMonth11=false&tsujiMeshMonth12=false
+
+Claudeさん、すみません。
+`soraViewRange=98`とか入っているようです。
+精査をお願いいたします。
+
+> - **宙の窓のURL = 窓の再現に必要なものだけ**。
+>   地点・表示天体・宙の窓の全項目・花火・天体色/線種・全天儀の表示チェック(星座線などは窓にも映るため)・大気差/気象・天の川の基準点を乗せ、宙検索・:除外範囲・:辻オフセット・パネル状態は乗せません(soramado=trueで窓は必ず開きます)。
+
+http://127.0.0.1:3000/index.html?startLat=35.6585309298041&startLng=139.74538790268673&startApiElv=18.5&startElv=150&endLat=35.3627986111111&endLng=138.730781416667&endApiElv=3776&endElv=0&starId=MilkyWay&starId=Sun&starId=Moon&dp=true&elevation=false&milkyway=false&soramado=true&tsujisearch=false&tsujimesh=false&soraSensorKey=fullframe&soraAspectW=3&soraAspectH=2&soraOrient=landscape&soraFocal=24&soraFNumberIdx=16&soraFocusDist=98000&soraFisheye=false&soraFisheyeStrength=50&soraFisheyeShape=rect&soraPanorama=false&soraPanoAov=0&soraPeaking=false&soraTraj=true&soraCenterCross=true&soraTargetCross=true&soraSearchCenter=true&soraBaseAz=250.67492974735416&soraBaseAlt=1.7351549275553826&soraOffsetAz=0&soraOffsetAlt=0&soraViewRange=98&soraMovInterval=6&soraMovShots=750&soraMovFps=30&soraMovDispStep=0.3&soraMovImgMb=140&soraMovPlayMode=anim&soraMwBrightness=100&soraElevShade=50&soraSunShade=50&soraExpFormat=webm&soraExpW=300&soraExpH=200&fwEnabled=false&fwElev=0&fwHeight=0&fwRadius=50&fwSize=10&fwMode=vary&fwSpread=0&fwShowPoint=true&ssPreset=custom&ssWL=100&ssWM=85&ssWH=40&ssMoonMode=avoid&ssWMoon=80&ssUnkaiMode=avoid&ssWUnkai=0&ssWLp=70&ssWTr=40&ssObj=mw&ssWObj=60&ssBandNight=true&ssBandTwilight=false&ssBandGhbh=false&ssBandDay=false&ssDays=16&ssInterval=1&ssFan=24&ssStat=false&refractionEnabled=false&meteoP=1013.25&meteoT=15&meteoL=0.0065&baseOptMwBase=center&mwOffsetAngle=0&mwShowBodies=true&mwShowBodyNames=false&mwShowConstFig=false&mwShowConstBounds=false&mwShowConstNames=false&mwConstNameSort=aiueo&elevExcludeEnabled=true&elevExcludeRadius=15&elevExcludeObsRadius=10&tsujiLineIncludeOffset=true&mode=preview
+
+Claudeさん、すみません。
+こちらも`ssUnkaiMode=avoid`が入っているようです。
+精査をお願いいたします。
+
+> - **My辻検索のURL = 選択した行の再現**(従来から行の値だけの絞った作りでした)。
+>   今回、検索の計算に効く全体設定(大気差/気象=取得時点の値)と、**行の「:天の川オプション」とオフセット中心角**を乗せるようにしました。
+>   実は従来のMy辻URLは天の川の基準点が乗っておらず、天の川の行を開いた相手が中心座標で検索してしまう穴があり、この絞り込みの整理で一緒に塞がりました。
+
+http://127.0.0.1:3000/index.html?startLat=36.36502536691675&startLng=137.70111322402957&startApiElv=2920.8&startElv=0&endLat=36.34207558246137&endLng=137.64764070510864&endApiElv=3178.6&endElv=0&starId=Sun&starId=Moon&tsujiSearchDays=365&tsujiAz=242.06606032262334&tsujiAlt=2.776530062733095&tsujiAzOffset=0&tsujiAltOffset=0&tsujiAzTolerance=15&tsujiAltTolerance=15&tsujiCenterMode=point&tsujiMoonFilter=false&tsujiMoonBase=14.8&tsujiMoonTolerance=2&tsujiAccuracyFilter=false&tsujiAccDblCircle=false&tsujiAccCircle=false&tsujiAccTriangle=false&tsujiAccDash=false&tsujiDowFilter=false&tsujiDowMon=false&tsujiDowTue=false&tsujiDowWed=false&tsujiDowThu=false&tsujiDowFri=false&tsujiDowSat=false&tsujiDowSun=false&tsujiMonthFilter=false&tsujiMonth1=false&tsujiMonth2=false&tsujiMonth3=false&tsujiMonth4=false&tsujiMonth5=false&tsujiMonth6=false&tsujiMonth7=false&tsujiMonth8=false&tsujiMonth9=false&tsujiMonth10=false&tsujiMonth11=false&tsujiMonth12=false&refractionEnabled=false&meteoP=1013.25&meteoT=15&meteoL=0.0065&baseOptMwBase=offset&mwOffsetAngle=0&mode=tsujisearch
+
+ありがとうございます。
+確認しました。
+
+> - **My観測点/My目的点のURL = 選択した点だけ**(従来どおり。mode+点の4キーの最小URLです)。
+
+http://127.0.0.1:3000/index.html?mode=preview&startLat=36.36502536691675&startLng=137.70111322402957&startApiElv=2920.8&startElv=0
+
+http://127.0.0.1:3000/index.html?mode=preview&endLat=36.34207558246137&endLng=137.64764070510864&endApiElv=3178.6&endElv=0
+
+ありがとうございます。
+確認しました。
+
+> - **復元側の動きは変えていません**。URLに有るキーだけを適用し、無いキーは開いた側の既定値のままです。
+>   なので、絞ったURLで開くと「その機能だけが作成者の状態になり、他は相手の普段のまま」になります。
+> - 短縮URL辞書は**v17のまま**です(キーを減らすのは圧縮の仕組みに影響しないので、辞書の版上げは不要でした)。
+> - デッサン00に「URL取得ボタン毎の発行キー」の表を追加しました(どのボタンが何を乗せるかの一覧)。
+
+ありがとうございます。
+確認しました。
+分かりやすい表にまとめて頂き感謝です。
+ありがとうございます。
+
+> #### 2. 「:QRコード」チェックボックス
+
+> URL取得ダイアログの「:短いURL」の右側に「:QRコード」チェック(初期値オフ)を追加しました。
+> - オンにして日時の項目を選ぶと、URL文字列の代わりに**そのURLのQRコード画像(PNG)がクリップボードに入ります**。
+>   そのままメモやメッセージに貼り付けられて、スマホのカメラで読み取れます。
+> - 生成はqrcode-generator(MIT。宙の辻の他のライブラリと同じCDN読み込み)で、**生成処理はローカル・通信なし・無料**です(いつものお約束どおりです)。
+> - 誤り訂正レベルMで作り、URLが長くて入り切らない時はLに落として再試行、それでも入らない時は「:短いURL」をオンにするよう案内します(短いURLなら余裕で入ります)。
+> - 画像のクリップボードコピーに対応していないブラウザでは、その旨を案内します(URL文字列のコピーは従来どおり使えます)。
+
+ありがとうございます。
+確認しました。
+細かいご配慮に感謝です。
+
+> #### 検証と回帰
+
+> - 新設verify160(15チェック): 版数ピン1.77.0・プロファイル毎の発行キー(full=97キー・tsuji=22キー・soramado=67キー。「含む」と「含まない」の両側を検査)・実ボタンの流れの実測(クリップボードをモックして長いURLを捕獲)・My辻URLの新キー(行のオプションオン=offset/オフ=center)・絞ったURLの復元E2E(辻検索は復元・宙の窓は開いた側の既定のまま=絞りの漏れなし)・QRの往復(生成した画像を**本物のQR復号器[jsQR]で読み取り**、短いURLが完全一致で復元されることを実測)・容量超過時の案内。
+> - 回帰: スモーク7本+verify140/143/145〜159+道具3本、全PASSです。
+>   位置情報URL(full)は従来と同じ発行なので、既存のURL検証(verify155/157等)は無修正で素通りしています。
+> - ハーネスに検証用のQR復号器(jsqr)とqrcodeのvendorを追加しました(kaikiスキルに追記済み)。
+
+> #### 次のラウンド
+
+> 第96=最終陣(辻ライン365への:辻オフセット反映+花火モードの頻度スライダー)に続きます。
+
+> ### 回答 (2026-08-16 その94) — 第96ラウンド: まとめ確認への対応 最終陣(辻ライン365のオフセット反映+花火の頻度スライダー)(v1.78.0)
+
+> たけちゃん、最終陣です。
+> これで、まとめ確認でいただいた12件が全て完了しました(第93〜96=v1.75.0〜v1.78.0)。
+
+> #### 1. 辻ライン365にも「:辻オフセット方位角/視高度」を反映しました
+
+> 「ユーザーが期待するのは、このチェックボックスの反映が全ての辻ラインに影響する」— おっしゃる通りです。
+> チェックがオンの間は、辻ライン365の365日分の線も検索中心のズレ込みで描くようにしました。
+> - 効かせ方は通常の辻ラインと同じです(方位角のズレ=描画時の回転・視高度のズレ=経路計算の目標高度)。
+> - チェックの切り替えや辻オフセットの入力変更で、計算済みの365日分を捨てて自動で引き直します(オフに戻せば従来どおり基準点の線です)。
+> - 1つだけ割り切りがあります。検索中心オプションが「線」の時の「仰角1°置きの複数線」(第85)は、365には適用しません。
+>   365日×天体×刻み本数で50万点規模が数十倍に爆発するためで、365はオフセット点の1本で代表します(通常の辻ラインは従来どおり複数線です)。
+>   デッサン02にこの割り切りも明記しました。
+
+ありがとうございます。
+想定通りです。
+大丈夫です。
+
+> #### 2. 花火モードの頻度スライダー
+
+> ご指定の位置(「表示モード:」と「ばらつき:」の間)に、1段目「頻度:」ラベル+値・2段目スライダーで付けました。
+> - **現在の頻度を基準の50**として、**100でおよそ3倍**・0で打ち上げ停止です(50から下は素直に半分・4分の1…と減ります)。
+> - 仕組みは打ち上げ間隔(基準0.5〜1.7秒)を倍率で縮める形で、3倍側では同時に上がる発数の上限(基準6発)も一緒に増やしました(上限が頻度を頭打ちにしないように)。
+> - 宙の窓メニューとコントロールメニューの両面に置き、双方向連動・ローカルストレージ保存です。
+> - 共有URLにも乗ります(fwFreq。位置情報と宙の窓のURLに乗り、第95の絞り込みどおり辻検索系には乗りません)。
+>   短縮URL辞書はv18になりました(いつもの連鎖更新: v18ゴールデン標本の新設・v17は復号のみ保証へ降格。発行済みURLは全て今まで通り開けます)。
+
+ありがとうございます。
+確認しました。
+ちょうど良い頻度です。
+ありがとうございます。
+
+> #### 検証と回帰
+
+> - 新設verify161(18チェック): 版数ピン1.78.0・辻ライン365の実測(経路計算を差し替えて365日分へ視高度オフセットが渡る・方位角10°の回転で線の座標が10°回る・チェックオフでキャッシュを捨てて基準点の線へ戻る・同じ設定なら再計算しない)・頻度スライダー(段の位置・50=基準間隔/100=3分の1/0=停止の実測・ctrl連動・範囲丸め・URL発行と復元)。
+> - 連鎖更新: verify125(辞書18版+v18ゴールデン)・verify124(v18キー網羅)・verify157(エンコード版数の検査を版数非依存へ緩和=verify140と同じ運用)。
+> - 回帰: スモーク7本+verify140/143/145〜160+道具3本、全PASSです。
+
+> #### まとめ確認への対応、これで完了です
+
+> - 第93=±の内部統一・生値記録・初期値オフ・プレースホルダー+My点プラスコード・常時⭐️・移動ボタン段構成+koushi移動の回答(v1.75.0)。
+> - 第94=全天儀ctrlの完全複製(TZ含む)+ショートカット幅修正(v1.76.0)。
+> - 第95=URL取得ボタン毎の絞り込み+「:QRコード」(v1.77.0)。
+> - 第96=辻ライン365のオフセット反映+花火の頻度スライダー(v1.78.0)。
+> 残る自走キューは節目待ちのMederuU(手順8=蒸留第1陣・手順9)と急ぎません組だけになりました。
+> まとまったご確認、お待ちしています。いつでも、次の怒涛をどうぞ。
+
+ありがとうございます。
+とりあえず、今回の修正を反映しましょう。
+よろしくお願い申し上げます。
