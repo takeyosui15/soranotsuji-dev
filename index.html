@@ -774,6 +774,13 @@ GNU General Public License for more details.
                     <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます(宙の窓メニューと連動)"><input type="radio" name="fw-mode-ctrl" value="fixed">:固定</label>
                 </div>
                 <div class="control-row left-row">
+                    <label class="input-label tsujisearch-label">頻度:</label>
+                    <span id="fw-ctrl-freq-label">50</span>
+                </div>
+                <div class="control-row">
+                    <input type="range" id="input-fw-ctrl-freq" class="sora-slider" min="0" max="100" step="1" title="花火が上がる頻度(50=基準・100=3倍・0=停止。宙の窓メニューと連動)">
+                </div>
+                <div class="control-row left-row">
                     <label class="input-label tsujisearch-label">ばらつき:</label>
                     <span id="fw-ctrl-spread-label">0</span>
                 </div>
@@ -1518,6 +1525,13 @@ GNU General Public License for more details.
                         <label class="input-label">表示モード:</label>
                         <label class="baseopt-radio" title="2.5号から40号までを色々ランダムに打ち上げます"><input type="radio" name="fw-mode" value="vary" checked>:色々</label>
                         <label class="baseopt-radio" title="花火玉号数リストで指定された号数だけを打ち上げます"><input type="radio" name="fw-mode" value="fixed">:固定</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="input-label">頻度:</label>
+                        <span id="fw-freq-label">50</span>
+                    </div>
+                    <div class="control-row">
+                        <input type="range" id="input-fw-freq" class="sora-slider" min="0" max="100" step="1" title="花火が上がる頻度(50=基準・100=3倍・0=停止)">
                     </div>
                     <div class="control-row left-row">
                         <label class="input-label">ばらつき:</label>

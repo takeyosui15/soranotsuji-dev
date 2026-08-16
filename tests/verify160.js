@@ -17,8 +17,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const JSQR = require.resolve('jsqr/dist/jsQR.js');   // ハーネスnode_modulesの復号器(ページへ注入)
 
-// ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.77.0', /APP_VERSION = '1\.77\.0'/.test(src));
+// ---- V0: 版数の存在検査(版数ピンは最新のverify161へ移行済み) ----
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.77.0の行がある', src.includes('Version 1.77.0 - ') || !!process.argv[2]);
 
 (async()=>{

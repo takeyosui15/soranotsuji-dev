@@ -48,7 +48,9 @@ check('V0 Version Historyに1.74.0の行がある', src.includes('Version 1.74.0
     check('C1 全て既定なら44キーが1つも付かない(URL長不変)', r.before.length===0, JSON.stringify(r.before));
     check('C1 変えた天体だけ発行(太陽の色・月の線種・非表示の金星の色)',
       r.after.length===3&&r.vals.sun==='#123456'&&r.vals.moon==='1'&&r.vals.venus==='#ABCDEF', JSON.stringify(r));
-    check('C2 短縮URLは17版でエンコードされる', r.ver==='~17~', r.ver);
+    // 版数は17以上(v17=天体色/線種の辞書が入った版)。最新版の等値ピンはverify125のM0が持つ
+    // (第96ラウンドでv18が積まれた際に版数非依存へ緩和=verify140 T1と同じ運用)
+    check('C2 短縮URLはv17以降の辞書でエンコードされる', /^~(1[7-9]|[2-9]\d)~$/.test(r.ver), r.ver);
     shortUrl=r.short;
     check('E1 発行側ページエラーなし', errs.length===0, errs.join(' | ').slice(0,200));
     await ctx.close();

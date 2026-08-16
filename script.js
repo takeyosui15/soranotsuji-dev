@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.78.0 - 2026-08-16: feat: 第96ラウンド — まとめ確認への対応 最終陣: ①辻ライン365にも「:辻オフセット方位角/視高度」を反映(依頼者指示「ユーザーが期待するのは、このチェックボックスの反映が全ての辻ラインに影響する」): チェックオンなら365日の線も検索中心のズレ込みで描く(方位角=描画時の回転・視高度=経路計算の目標高度altOffset。通常の辻ラインと同じ効かせ方)。オフセットやチェックの変更は計算済みキャッシュのキー(az|alt)比較で検知して引き直す。検索中心オプション「線」の仰角1°刻みの複数線は365には適用しない(365日×天体×刻みの爆発防止。オフセット点の1本で代表) ②花火モードの頻度スライダー(依頼者指定の位置=「表示モード:」と「ばらつき:」の間。1段目「頻度:」ラベル+値・2段目スライダー): 現在の頻度を基準50として100で3倍・0で停止(50以下=v/50倍・50以上=1+(v-50)/25倍)。打ち上げ間隔を1/倍率に縮め、同時発数の上限(基準6発)も倍率に連動。メニュー/ctrl双方向連動・保存・URLキーfwFreq(短縮URL辞書v18) ③ゴールデン標本の連鎖更新(v18新設・v17は復号のみ保証へ降格)
 Version 1.77.0 - 2026-08-16: feat: 第95ラウンド — まとめ確認への対応 第3陣: URL取得ボタン毎の絞り込み+「:QRコード」チェック(依頼者指示「URLを取得できるボタンには、それぞれ、意味があります」) ①buildCommonUrlParamsにprofileを導入: 位置情報=full(画面再現の全部盛り=従来どおり)・辻検索/辻メッシュ=tsuji(地点・表示天体・大気差/気象・天の川の基準点・:除外範囲・:辻オフセット+モード別キーに絞る=sora系・fw系・ss系・パネル状態・天体色・全天儀表示を発行しない)・宙の窓=soramado(sora系・fw系・天体色・全天儀表示チェック・大気差/気象・天の川の基準点+soramado=true。宙検索・:除外範囲・パネル状態は発行しない)。復元側は不変(有るキーだけ適用・無いキーは開いた側の既定値のまま)。短縮URL辞書の変更なし(キーの削減は圧縮の仕組みに影響しない=v17のまま) ②My辻検索URLに検索の計算に効く全体設定を追加(大気差/気象=取得時点の値・天の川の基準点=行の:天の川オプションとオフセット中心角。行の再現の穴を閉じる) ③URL取得ダイアログの「:短いURL」の右側に「:QRコード」チェック(初期値オフ): オンでURLのQRコード画像(PNG)をクリップボードへコピー。生成はqrcode-generator(MIT・CDN)のローカル処理・誤り訂正M→入らなければLへ再試行→それでも入らなければ短いURLを案内。画像コピー未対応ブラウザは案内表示 ④デッサン00にボタン毎の発行キー表とダイアログのオプション節を追加
 Version 1.76.0 - 2026-08-16: feat: 第94ラウンド — まとめ確認への対応 第2陣: 全天儀ctrlメニューも日時情報〜薄明メニューの完全な複製に(依頼者指示。TZ含む) ①追加した部品(複製idは末尾-mwctrl): タイムゾーン表示・Nowボタン・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力+月アイコン ▶)・薄明ジャンプ(夜明/日暮グリッド)。既存の日付/時刻ピッカー・アニメーション4ボタン・時刻スライダーと合わせ、並び順も日時情報メニューと同じ(TZ→日付→時刻→アニメーション→スライダー→ショートカット→月齢→薄明)に ②連動の作り(宙の窓ctrlと同じ2本立て): 日時を動かす側は共通関数(setNow/jumpToEvent/addMoonMonth/searchMoonAge)へ委譲・表示する側はsetTの一括書き込みを3面(本家/-ctrl/-mwctrl)へ拡張(updateRiseSetData/updateTwilightData/updateMoonInfo/TZ表示)。薄明グリッドの生成は_setupCtrlTwilightへパラメータ化(宙の窓ctrlと共用) ③ショートカット/薄明ジャンプの選択状態は_mirrorTimeJumpで3面(日時情報・宙の窓ctrl・全天儀ctrl)相互連動 ④宙の窓ctrlの日の出〜月の入ショートカットが他の段(360px中央寄せ)より横に伸びてコントロールの縦枠からはみ出していた修正(依頼者指摘。.shortcutsをctrl両面とも360px中央寄せに) ⑤デッサン01の全天儀ctrlの節を完成形に更新
 Version 1.75.0 - 2026-08-16: feat: 第93ラウンド — まとめ確認への対応 第1陣(項目6系の刷新+小物) ①オフセット中心角の±を内部値ごと反転(依頼者指示): 収録符号を「夏の天の川を上から見て時計回りが正」に統一し、画面だけの表示反転(_mwDispVal)を廃止。内部値・保存・URL・CSV・Fileの全てが新しい符号(人が読む場所も全て同じ向き)。銀経へ渡す時に反転(getMilkyWayBaseRaDec/_myTsujiMwRaDec)。旧保存データはスキーマ2→3の読み替えで自動変換(0は不変。旧URLと旧CSVの角度は旧符号のままなので注意=リリース前) ②検索の記録(結果コントロール・File・スナップショット)を実効角から生のオフセット中心角へ戻す(依頼者指示: URLにはオフセット中心角がそのまま載る方が分かりやすい。チェックのオンオフはbaseOptMwBaseが別途URLに乗るので再現は保たれる) ③My辻行の「:天の川オプション」の初期値をオフに(新規行・CSV取込行・未定義行の正規化とも) ④観測点/目的点=「Plus Code、緯度,経度」・花火打ち上げ点とMy観測点/My目的点=「地名、Plus Code、緯度,経度」のプレースホルダーへ変更し、My観測点/My目的点の緯度経度欄でもプラスコード(フル/短縮形)を使えるように ⑤Myセットの既定のセットは常時⭐️に(常に先頭のため。依頼者合意) ⑥宙の窓の移動ボタンの段構成を変更(2段目=移動量の読み全幅・3段目=リセット/位置反映)
@@ -141,7 +142,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.77.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.78.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -323,6 +324,7 @@ let _mapDblClickMode = (typeof window !== 'undefined' && window.matchMedia)
     ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : false;
 let dp365CalculatedBodies = new Set(); // 365日path計算が完了した天体ID
 let dp365CurrentGeneration = 0;
+let _dp365OffsetsKey = null;  // 計算済みキャッシュの辻オフセット(az|alt)。変わったら引き直す(第96ラウンド)
 
 // ★ 既定値の単一情報源(リファクタリングA・第41ラウンド)。
 // appStateの初期値はこの表から組み立て、normalizeAppStateの範囲丸め・列挙検査もこの表を参照する。
@@ -392,6 +394,7 @@ const APP_DEFAULTS = {
     fwRadius: { def: 50, min: 0, max: 10000 },
     fwSize: { def: '10', special: true },                 // FW_SHELLSのkey(一覧は実行時参照。String化)
     fwMode: { def: 'vary', enum: ['vary', 'fixed'] },
+    fwFreq: { def: 50, min: 0, max: 100, round: true },   // 打ち上げ頻度(50=基準・100=3倍・0=停止。第96ラウンド)
     fwSpread: { def: 0, min: -100, max: 100, round: true },
     fwShowPoint: { def: true, bool: 'nf' },               // 花火点(+)マーカーの表示
     // ---- 都市モード=PLATEAU建物レイヤ (デッサン06のPLATEAU節・第50ラウンド) ----
@@ -1392,18 +1395,19 @@ function glDrawDPPath(points, color, dashArray, withMarkers, azOffset) {
 let _glDp365Seq = 0;          // feature id(updateDataは一意idが必要)
 let _glDp365Pending = [];     // 増分追加待ちのfeature
 let _glDp365LastFlush = 0;
-function glDrawDP365Path(points, color, bodyId) {
+function glDrawDP365Path(points, color, bodyId, azOffset) {
     if (!points || points.length === 0) return;
     const targetPt = appState.end;
+    const offset = azOffset || 0;   // 辻オフセット方位角の回転(第96ラウンド。通常の辻ラインと同じ効かせ方)
     let segments = [];
     let cur = [];
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
         let dest;
-        if (p.lat != null && p.lng != null) {
+        if (offset === 0 && p.lat != null && p.lng != null) {
             dest = { lat: p.lat, lng: p.lng };
         } else {
-            const desiredBearing = ((p.az) % 360 + 360) % 360;
+            const desiredBearing = ((p.az + offset) % 360 + 360) % 360;
             dest = getObserverFromTargetBackAzimuth(targetPt.lat, targetPt.lng, desiredBearing, p.dist);
         }
         if (cur.length > 0 && Math.abs(p.az - points[i - 1].az) > 5) { segments.push(cur); cur = []; }
@@ -2522,7 +2526,7 @@ function buildStateToSave() {
         // 花火モード
         fwEnabled: appState.fwEnabled, fwLat: appState.fwLat, fwLng: appState.fwLng,
         fwElev: appState.fwElev, fwHeight: appState.fwHeight, fwRadius: appState.fwRadius,
-        fwSize: appState.fwSize, fwMode: appState.fwMode, fwSpread: appState.fwSpread, fwShowPoint: appState.fwShowPoint,
+        fwSize: appState.fwSize, fwMode: appState.fwMode, fwFreq: appState.fwFreq, fwSpread: appState.fwSpread, fwShowPoint: appState.fwShowPoint,
         // 都市モード(PLATEAU建物レイヤ)
         smBldg: appState.smBldg, smBldgTex: appState.smBldgTex,
         // 宙検索
@@ -2654,7 +2658,7 @@ function loadAppState() {
             if (saved.mySoraSearches) appState.mySoraSearches = saved.mySoraSearches;
             // 花火モードパラメータ復元(第36ラウンドの整合性調査で発見した実装漏れの修正:
             // 保存はされていたのに復元が無く、毎起動で初期値に戻っていた。設計コメントどおり保存+復元へ)
-            ['fwEnabled','fwLat','fwLng','fwElev','fwHeight','fwRadius','fwSize','fwMode','fwSpread','fwShowPoint']
+            ['fwEnabled','fwLat','fwLng','fwElev','fwHeight','fwRadius','fwSize','fwMode','fwFreq','fwSpread','fwShowPoint']
                 .forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 都市モード(PLATEAU建物レイヤ)パラメータ復元
             ['smBldg','smBldgTex'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
@@ -3213,6 +3217,8 @@ function _dpAnchorTransitMs(body, observer, dayStartMs, nowMs) {
  *  第85ラウンド・項目12。updateAll経由の再描画とは別に、オフセット入力の変更だけでも線が追従するように) */
 function _dpOffsetEdited() {
     if (appState.isDPActive && appState.tsujiLineIncludeOffset !== false) updateDPLines();
+    // 辻ライン365も追従(第96ラウンド。オフセットの変化はupdateDP365Lines内のキー比較が検知して引き直す)
+    if (appState.isDP365Active && appState.tsujiLineIncludeOffset !== false) updateDP365Lines();
 }
 
 async function updateDPLines() {
@@ -3311,6 +3317,21 @@ async function updateDP365Lines() {
     // 前回実行の残キュー(旧世代の辻ライン365タスク)を破棄してから開始
     dpPoolCancelQueued('dp365');
 
+    // 辻オフセットの込み(第96ラウンド・依頼者指示「辻ライン365も、この設定を反映してください」):
+    // 「:辻オフセット方位角/視高度」チェックがオンなら、辻ライン365も検索中心のズレを含めて描く
+    // (オン=検索中心の線・オフ=基準点の線)。検索中心オプションが「線」の時の仰角1°置きの刻みは
+    // 365には適用しない(365日×天体×刻みで50万点が数十倍に爆発するため。オフセット点の1本で代表する)。
+    // 方位角のズレは描画時の回転(-az)・視高度のズレは経路計算の目標高度(altOffset)=通常の辻ラインと同じ作り
+    const inclOffset = appState.tsujiLineIncludeOffset !== false;
+    const offAz = inclOffset ? (Number(appState.tsujiSearchOffsetAz) || 0) : 0;
+    const offAlt = inclOffset ? (Number(appState.tsujiSearchOffsetAlt) || 0) : 0;
+    // 計算済みキャッシュはオフセット込みの線なので、オフセットが変わっていたら捨てて引き直す
+    const offKey = `${offAz}|${offAlt}`;
+    if (offKey !== _dp365OffsetsKey) {
+        _dp365OffsetsKey = offKey;
+        clearAllDP365Layers();
+    }
+
     const baseDate = new Date(appState.currentDate);
     baseDate.setHours(0, 0, 0, 0);
     const observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev);
@@ -3345,9 +3366,9 @@ async function updateDP365Lines() {
             for (let b = 0; b < BATCH_DAYS && (dOff + b) < totalDays; b++) {
                 const day = new Date(baseDate.getTime() + (dOff + b) * 86400000);
                 for (const body of newBodies) {
-                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true, owner: 'dp365' }).then(pts => {
+                    batchTasks.push(calculateDPPathPoints(day, body, observer, { stepSeconds: 60, forceWorker: true, owner: 'dp365', altOffset: offAlt }).then(pts => {
                         if (generation !== dp365CurrentGeneration) return;
-                        drawDP365Path(pts, body.color, null, body.id);
+                        drawDP365Path(pts, body.color, null, body.id, -offAz);
                         doneWork++;
                         updateLabel();
                     }));
@@ -3368,8 +3389,8 @@ async function updateDP365Lines() {
 
 /** 辻ライン365 用の軽量描画 (◎破線のみ、マーカー無し)。
  *  日毎のfeatureとしてMapLibreのdp365-linesソースへ増分追加する。 */
-function drawDP365Path(points, color, targetLayer, bodyId) {
-    glDrawDP365Path(points, color, bodyId);   // targetLayerはLeaflet時代の名残(未使用)
+function drawDP365Path(points, color, targetLayer, bodyId, azOffset) {
+    glDrawDP365Path(points, color, bodyId, azOffset);   // targetLayerはLeaflet時代の名残(未使用)
 }
 
 
@@ -4037,7 +4058,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
             distLimit,
             taskId,
             stepSeconds,  // 365モードでは60(1分)、通常は1(1秒)
-            altOffset,    // 辻オフセット視高度(第85ラウンド・項目12。365モードは常に0)
+            altOffset,    // 辻オフセット視高度(第85ラウンド・項目12。第96ラウンドから365モードにも効く)
             owner: opts.owner || 'dp',   // キュー掃除のスコープ判定用('dp'/'dp365')
         });
     });
@@ -13810,7 +13831,10 @@ const _QP_SEEDS_V16 = _QP_SEEDS_V15.concat([
 const _QP_BODY_IDS_V17 = ['MilkyWay', 'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
     'Polaris', 'Merak', 'Mintaka', 'Subaru', 'M42', 'Vega', 'Altair', 'Deneb', 'Betelgeuse', 'Sirius', 'Procyon'];
 const _QP_SEEDS_V17 = _QP_SEEDS_V16.concat(_QP_BODY_IDS_V17.flatMap(id => ['&bodyColor' + id + '=', '&bodyDash' + id + '=']));
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17];   // 添字+1=版数。最新版でエンコードする
+// v18: 第96ラウンド。花火モードの頻度スライダー(fwFreq)のシード。
+// 第3規則「&キー名=既定値」(v1.78.0時点の既定値50で凍結)+既定値以外用の「&キー名=」
+const _QP_SEEDS_V18 = _QP_SEEDS_V17.concat(['&fwFreq=50', '&fwFreq=']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -14038,7 +14062,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed', profile = 'full') {
 
     // 花火モード(宙の窓メニュー55〜70段目。full/宙の窓URL。打ち上げ点は設定済みの場合のみ)
     if (inc.fw) {
-    ['fwEnabled', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwSpread', 'fwShowPoint'].forEach(k => {
+    ['fwEnabled', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwFreq', 'fwSpread', 'fwShowPoint'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
@@ -14500,7 +14524,7 @@ function restoreFromUrl() {
     ['soraFisheye', 'soraPanorama', 'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter'].forEach(soraBool);
     // 花火モード(宙の窓メニュー55〜70段目)
     soraBool('fwEnabled'); soraBool('fwShowPoint'); soraStr('fwSize'); soraStr('fwMode');
-    ['fwLat', 'fwLng', 'fwElev', 'fwHeight', 'fwRadius', 'fwSpread'].forEach(soraNum);
+    ['fwLat', 'fwLng', 'fwElev', 'fwHeight', 'fwRadius', 'fwFreq', 'fwSpread'].forEach(soraNum);
     // 宙検索メニュー(デッサン18)
     soraStr('ssPreset'); soraStr('ssMoonMode'); soraStr('ssUnkaiMode'); soraStr('ssObj');
     ['ssWL', 'ssWM', 'ssWH', 'ssWMoon', 'ssWUnkai', 'ssWLp', 'ssWTr', 'ssWObj', 'ssDays', 'ssInterval', 'ssFan', 'ssRange'].forEach(soraNum);
@@ -16545,6 +16569,7 @@ function setupBaseOptionControls() {
         appState.tsujiLineIncludeOffset = tlChk.checked;
         saveAppState();
         if (appState.isDPActive) updateDPLines();
+        if (appState.isDP365Active) updateDP365Lines();   // 辻ライン365もチェックに追従(第96ラウンド)
     });
     document.querySelectorAll('input[name="baseopt-center-mode"]').forEach(r => {
         r.addEventListener('change', () => {
@@ -16869,6 +16894,9 @@ function setupSoramadoControls() {
     });
     ['input-fw-spread', 'input-fw-ctrl-spread'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => { appState.fwSpread = parseInt(el.value) || 0; fwAfter(); }); });
+    // 頻度スライダー(第96ラウンド。50=基準・100=3倍・0=停止。玉は打ち上げ直さず次の発から効く)
+    ['input-fw-freq', 'input-fw-ctrl-freq'].forEach(id => { const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { appState.fwFreq = parseInt(el.value) || 0; fwAfter(); }); });
     ['input-fw-latlng', 'input-fw-ctrl-latlng'].forEach(id => { const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => handleFwLocationInput(el.value)); });
     // 再生オプション: アニメーション/動画のラジオ(切替時は再生中のものを停止)
@@ -17616,10 +17644,15 @@ function _fwUpdateScene(now) {
         if (c.material) { if (c.material.map && c.material.map.userData && c.material.map.userData._fwOwn) c.material.map.dispose(); c.material.dispose(); }
     }
     if (!appState.fwEnabled) { _fwShells = []; return; }
-    // スケジューラ: 0.5〜1.7秒間隔で打ち上げ(同時最大6発)
-    if (now >= _fwNextLaunchAt) {
-        if (_fwShells.length < 6) _fwSpawnShell(now);
-        _fwNextLaunchAt = now + 500 + Math.random() * 1200;
+    // スケジューラ: 基準0.5〜1.7秒間隔で打ち上げ(基準の同時最大6発)。
+    // 頻度スライダー(第96ラウンド)で倍率を掛ける: 50=基準(1倍)・100=3倍・0=停止。
+    // 間隔を1/倍率に縮め、同時発数の上限も倍率に合わせる(上限が頻度を頭打ちにしないように)
+    const fqRaw = Number(appState.fwFreq);
+    const fqv = Math.max(0, Math.min(100, isFinite(fqRaw) ? fqRaw : 50));
+    const fqm = fqv <= 50 ? fqv / 50 : 1 + (fqv - 50) / 25;
+    if (fqm > 0 && now >= _fwNextLaunchAt) {
+        if (_fwShells.length < Math.max(1, Math.round(6 * fqm))) _fwSpawnShell(now);
+        _fwNextLaunchAt = now + (500 + Math.random() * 1200) / fqm;
     }
     _fwShells = _fwShells.filter(s => now - s.t0 < s.riseDur + s.bloomDur + s.fadeDur);
     const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -17732,6 +17765,9 @@ function fwSyncUI() {
     const sp = Number(appState.fwSpread) || 0;
     set('input-fw-spread', sp); set('input-fw-ctrl-spread', sp);
     txt('fw-spread-label', (sp > 0 ? '+' : '') + sp); txt('fw-ctrl-spread-label', (sp > 0 ? '+' : '') + sp);
+    const fq = isFinite(Number(appState.fwFreq)) ? Number(appState.fwFreq) : 50;
+    set('input-fw-freq', fq); set('input-fw-ctrl-freq', fq);
+    txt('fw-freq-label', String(fq)); txt('fw-ctrl-freq-label', String(fq));
     chk('chk-sora-fw-point', appState.fwShowPoint); chk('chk-sora-ctrl-fw-point', appState.fwShowPoint);
     // 位置情報: 観測点→花火点の基準方位角/基準視高度(算出値。辻検索とは非連動)。
     // 開花高度の基準は花火点(+)と同じ(色々=40号/固定=選択号数)
