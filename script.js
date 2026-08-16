@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.77.0 - 2026-08-16: feat: 第95ラウンド — まとめ確認への対応 第3陣: URL取得ボタン毎の絞り込み+「:QRコード」チェック(依頼者指示「URLを取得できるボタンには、それぞれ、意味があります」) ①buildCommonUrlParamsにprofileを導入: 位置情報=full(画面再現の全部盛り=従来どおり)・辻検索/辻メッシュ=tsuji(地点・表示天体・大気差/気象・天の川の基準点・:除外範囲・:辻オフセット+モード別キーに絞る=sora系・fw系・ss系・パネル状態・天体色・全天儀表示を発行しない)・宙の窓=soramado(sora系・fw系・天体色・全天儀表示チェック・大気差/気象・天の川の基準点+soramado=true。宙検索・:除外範囲・パネル状態は発行しない)。復元側は不変(有るキーだけ適用・無いキーは開いた側の既定値のまま)。短縮URL辞書の変更なし(キーの削減は圧縮の仕組みに影響しない=v17のまま) ②My辻検索URLに検索の計算に効く全体設定を追加(大気差/気象=取得時点の値・天の川の基準点=行の:天の川オプションとオフセット中心角。行の再現の穴を閉じる) ③URL取得ダイアログの「:短いURL」の右側に「:QRコード」チェック(初期値オフ): オンでURLのQRコード画像(PNG)をクリップボードへコピー。生成はqrcode-generator(MIT・CDN)のローカル処理・誤り訂正M→入らなければLへ再試行→それでも入らなければ短いURLを案内。画像コピー未対応ブラウザは案内表示 ④デッサン00にボタン毎の発行キー表とダイアログのオプション節を追加
 Version 1.76.0 - 2026-08-16: feat: 第94ラウンド — まとめ確認への対応 第2陣: 全天儀ctrlメニューも日時情報〜薄明メニューの完全な複製に(依頼者指示。TZ含む) ①追加した部品(複製idは末尾-mwctrl): タイムゾーン表示・Nowボタン・日の出/日の入/月の出/月の入ショートカット(時刻+視高度表示つき)・月齢行(◀ 月齢入力+月アイコン ▶)・薄明ジャンプ(夜明/日暮グリッド)。既存の日付/時刻ピッカー・アニメーション4ボタン・時刻スライダーと合わせ、並び順も日時情報メニューと同じ(TZ→日付→時刻→アニメーション→スライダー→ショートカット→月齢→薄明)に ②連動の作り(宙の窓ctrlと同じ2本立て): 日時を動かす側は共通関数(setNow/jumpToEvent/addMoonMonth/searchMoonAge)へ委譲・表示する側はsetTの一括書き込みを3面(本家/-ctrl/-mwctrl)へ拡張(updateRiseSetData/updateTwilightData/updateMoonInfo/TZ表示)。薄明グリッドの生成は_setupCtrlTwilightへパラメータ化(宙の窓ctrlと共用) ③ショートカット/薄明ジャンプの選択状態は_mirrorTimeJumpで3面(日時情報・宙の窓ctrl・全天儀ctrl)相互連動 ④宙の窓ctrlの日の出〜月の入ショートカットが他の段(360px中央寄せ)より横に伸びてコントロールの縦枠からはみ出していた修正(依頼者指摘。.shortcutsをctrl両面とも360px中央寄せに) ⑤デッサン01の全天儀ctrlの節を完成形に更新
 Version 1.75.0 - 2026-08-16: feat: 第93ラウンド — まとめ確認への対応 第1陣(項目6系の刷新+小物) ①オフセット中心角の±を内部値ごと反転(依頼者指示): 収録符号を「夏の天の川を上から見て時計回りが正」に統一し、画面だけの表示反転(_mwDispVal)を廃止。内部値・保存・URL・CSV・Fileの全てが新しい符号(人が読む場所も全て同じ向き)。銀経へ渡す時に反転(getMilkyWayBaseRaDec/_myTsujiMwRaDec)。旧保存データはスキーマ2→3の読み替えで自動変換(0は不変。旧URLと旧CSVの角度は旧符号のままなので注意=リリース前) ②検索の記録(結果コントロール・File・スナップショット)を実効角から生のオフセット中心角へ戻す(依頼者指示: URLにはオフセット中心角がそのまま載る方が分かりやすい。チェックのオンオフはbaseOptMwBaseが別途URLに乗るので再現は保たれる) ③My辻行の「:天の川オプション」の初期値をオフに(新規行・CSV取込行・未定義行の正規化とも) ④観測点/目的点=「Plus Code、緯度,経度」・花火打ち上げ点とMy観測点/My目的点=「地名、Plus Code、緯度,経度」のプレースホルダーへ変更し、My観測点/My目的点の緯度経度欄でもプラスコード(フル/短縮形)を使えるように ⑤Myセットの既定のセットは常時⭐️に(常に先頭のため。依頼者合意) ⑥宙の窓の移動ボタンの段構成を変更(2段目=移動量の読み全幅・3段目=リセット/位置反映)
 Version 1.74.0 - 2026-08-14: feat: 第91ラウンド — v16第2弾(叩き台承認済み): 組込天体の色/線種を共有URLへ ①天体毎キーbodyColor<ID>/bodyDash<ID>(色=#RRGGBB・線種=1/0)。既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。非表示でも既定から変えた天体は発行(表示切替後の再現のため)。My天体は従来のstarColor/starIsDashedのまま ②復元はキーの無い天体=復元時点の既定・値の形が崩れたキーと未知IDは無視 ③短縮URL辞書v17新設(名前シード44個のみ。IDはDEFAULT_BODIESから独立した凍結コピー)。v16以前は復号のみ保証で凍結のまま ④発行キー名は配列リテラル(リンター対応)・発行順固定(DEFAULT_BODIES順で色→線種) ⑤デッサン00の叩き台の節を実装済みへ更新
@@ -140,7 +141,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.76.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.77.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -7106,15 +7107,16 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiMonth10', t.month10 ? 'true' : 'false');
     params.set('tsujiMonth11', t.month11 ? 'true' : 'false');
     params.set('tsujiMonth12', t.month12 ? 'true' : 'false');
+    // 検索の計算に効く全体設定(第95ラウンド): 大気差/気象は取得時点の値・天の川の基準点は行の値で再現
+    params.set('refractionEnabled', appState.refractionEnabled ? 'true' : 'false');
+    params.set('meteoP', String(appState.meteo.p));
+    params.set('meteoT', String(appState.meteo.t));
+    params.set('meteoL', String(appState.meteo.l));
+    params.set('baseOptMwBase', t.mwOffsetEnabled === false ? 'center' : 'offset');
+    params.set('mwOffsetAngle', String(Number(t.mwOffsetAngle) || 0));
     params.set('mode', 'tsujisearch');
 
-    const url = buildShareUrl(params);
-    navigator.clipboard.writeText(url).then(() => {
-        alert(`My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開くURLをクリップボードにコピーしました。`);
-    }).catch(err => {
-        console.error('clipboard error:', err);
-        prompt('URLをコピーしてください:', url);
-    });
+    deliverShareUrl(buildShareUrl(params), `My辻検索リストの辻検索（ID:${t.id}、${t.name || ''}）を開く`);
 }
 
 // ============================================================
@@ -13955,8 +13957,23 @@ function parseTimezoneOffsetMinutes(tzString) {
     return sign * (parseInt(match[2]) * 60 + parseInt(match[3]));
 }
 
-// 共通のURLパラメータを構築するヘルパー
-function buildCommonUrlParams(dateTimeMode = 'fixed') {
+// 共通のURLパラメータを構築するヘルパー。
+// profile(第95ラウンド・依頼者指示「URL取得ボタンには、それぞれ、意味があります」):
+//   'full'    = 位置情報メニューのURL(宙の辻の画面再現。再現に必要なものを全て詰め込む)
+//   'tsuji'   = 辻検索/辻メッシュ検索のURL(検索の再現に必要なもの: 地点・表示天体・
+//               大気差/気象・天の川の基準点・:除外範囲・:辻オフセット。宙の窓/花火/宙検索/
+//               パネル状態/天体色/全天儀表示は発行しない)
+//   'soramado'= 宙の窓のURL(窓の再現に必要なもの: 地点・表示天体・宙の窓全項目・花火・
+//               天体色/線種・全天儀の表示チェック(窓にも映る)・大気差/気象・天の川の基準点。
+//               宙検索/パネル状態/:除外範囲/:辻オフセットは発行しない)
+// キーが無い項目は開いた側の既定値のままになる(restoreFromUrlは有るキーだけを適用する)
+const _URL_PROFILE_GROUPS = {
+    full:     { panels: 1, sora: 1, fw: 1, ss: 1, bodyStyle: 1, atmo: 1, mwBase: 1, mwShow: 1, elevEx: 1, tsujiLine: 1 },
+    tsuji:    { atmo: 1, mwBase: 1, elevEx: 1, tsujiLine: 1 },
+    soramado: { sora: 1, fw: 1, bodyStyle: 1, atmo: 1, mwBase: 1, mwShow: 1 },
+};
+function buildCommonUrlParams(dateTimeMode = 'fixed', profile = 'full') {
+    const inc = _URL_PROFILE_GROUPS[profile] || _URL_PROFILE_GROUPS.full;
     const d = appState.currentDate;
     const params = new URLSearchParams();
     if (dateTimeMode === 'fixed' || dateTimeMode === true) {
@@ -13997,15 +14014,18 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         }
     });
 
-    // 下部パネル等の表示/非表示状態(プレビュー/辻検索の両モードで復元): 辻ライン・標高グラフ・全天儀・宙の窓・辻検索
+    // 下部パネル等の表示/非表示状態(画面再現=fullのみ): 辻ライン・標高グラフ・全天儀・宙の窓・辻検索
+    if (inc.panels) {
     params.set('dp', appState.isDPActive ? 'true' : 'false');
     params.set('elevation', appState.isElevationActive ? 'true' : 'false');
     params.set('milkyway', appState.isMilkyWayActive ? 'true' : 'false');
     params.set('soramado', appState.isSoramadoActive ? 'true' : 'false');
     params.set('tsujisearch', appState.isTsujiSearchActive ? 'true' : 'false');
     params.set('tsujimesh', appState.isTsujiMeshActive ? 'true' : 'false');
+    }
 
-    // 宙の窓メニュー＋コントロールメニューの全項目(どのURLでも記憶・復元できるよう常時付与)
+    // 宙の窓メニュー＋コントロールメニューの全項目(full/宙の窓URL)
+    if (inc.sora)
     ['soraSensorKey', 'soraAspectW', 'soraAspectH', 'soraOrient', 'soraFocal', 'soraFNumberIdx', 'soraFocusDist',
      'soraFisheye', 'soraFisheyeStrength', 'soraFisheyeShape', 'soraPanorama', 'soraPanoAov',
      'soraPeaking', 'soraTraj', 'soraCenterCross', 'soraTargetCross', 'soraSearchCenter',
@@ -14016,7 +14036,8 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
 
-    // 花火モード(宙の窓メニュー55〜70段目)も記憶・復元(打ち上げ点は設定済みの場合のみ)
+    // 花火モード(宙の窓メニュー55〜70段目。full/宙の窓URL。打ち上げ点は設定済みの場合のみ)
+    if (inc.fw) {
     ['fwEnabled', 'fwElev', 'fwHeight', 'fwRadius', 'fwSize', 'fwMode', 'fwSpread', 'fwShowPoint'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
@@ -14025,19 +14046,23 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
         params.set('fwLat', String(appState.fwLat));
         params.set('fwLng', String(appState.fwLng));
     }
+    }
 
-    // 宙検索メニューの全項目(デッサン18。範囲=自動追従(null)の場合は付与しない)
+    // 宙検索メニューの全項目(デッサン18。fullのみ。範囲=自動追従(null)の場合は付与しない)
+    if (inc.ss) {
     ['ssPreset', 'ssWL', 'ssWM', 'ssWH', 'ssMoonMode', 'ssWMoon', 'ssUnkaiMode', 'ssWUnkai', 'ssWLp', 'ssWTr', 'ssObj', 'ssWObj',
      'ssBandNight', 'ssBandTwilight', 'ssBandGhbh', 'ssBandDay', 'ssDays', 'ssInterval', 'ssFan', 'ssStat'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
     if (appState.ssRange !== null) params.set('ssRange', String(appState.ssRange));
+    }
 
     // 組込天体の色/線種(第91ラウンド・v16第2弾=依頼者承認済みの叩き台どおり): 天体毎キー・
     // 既定値(DEFAULT_BODIES)のままの天体はキー自体を発行しない(全既定なら44キーが0個=URL長不変)。
     // 非表示でも既定から変えた天体は発行する。キー名はリンター(verify124のemitKeys)が静的に
-    // 読めるよう配列リテラルで持つ(DEFAULT_BODIESの並び順で色→線種の順に固定)
+    // 読めるよう配列リテラルで持つ(DEFAULT_BODIESの並び順で色→線種の順に固定)。full/宙の窓URL
+    if (inc.bodyStyle)
     ['bodyColorMilkyWay', 'bodyDashMilkyWay', 'bodyColorSun', 'bodyDashSun', 'bodyColorMoon', 'bodyDashMoon',
      'bodyColorMercury', 'bodyDashMercury', 'bodyColorVenus', 'bodyDashVenus', 'bodyColorMars', 'bodyDashMars',
      'bodyColorJupiter', 'bodyDashJupiter', 'bodyColorSaturn', 'bodyDashSaturn', 'bodyColorUranus', 'bodyDashUranus',
@@ -14056,14 +14081,32 @@ function buildCommonUrlParams(dateTimeMode = 'fixed') {
     });
 
     // 大気差・気象・基本オプション(第88ラウンド・v16 URL第1弾=第81ラウンドで依頼者承認。
-    // プレビュー完全再現の範囲を「見え方を変える設定」まで広げる)
+    // 第95ラウンドでグループ毎の発行に: 大気差/気象と天の川の基準点=計算に効くので全プロファイル・
+    // 全天儀の表示チェック=full/宙の窓(星座線等は窓にも映る)・:除外範囲と:辻オフセット=full/辻検索系)
+    if (inc.atmo) {
     params.set('refractionEnabled', appState.refractionEnabled ? 'true' : 'false');
     params.set('meteoP', String(appState.meteo.p));
     params.set('meteoT', String(appState.meteo.t));
     params.set('meteoL', String(appState.meteo.l));
-    ['baseOptMwBase', 'mwOffsetAngle', 'mwShowBodies', 'mwShowBodyNames', 'mwShowConstFig',
-     'mwShowConstBounds', 'mwShowConstNames', 'mwConstNameSort', 'elevExcludeEnabled',
-     'elevExcludeRadius', 'elevExcludeObsRadius', 'tsujiLineIncludeOffset'].forEach(k => {
+    }
+    if (inc.mwBase)
+    ['baseOptMwBase', 'mwOffsetAngle'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+    if (inc.mwShow)
+    ['mwShowBodies', 'mwShowBodyNames', 'mwShowConstFig',
+     'mwShowConstBounds', 'mwShowConstNames', 'mwConstNameSort'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+    if (inc.elevEx)
+    ['elevExcludeEnabled', 'elevExcludeRadius', 'elevExcludeObsRadius'].forEach(k => {
+        const v = appState[k];
+        params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
+    });
+    if (inc.tsujiLine)
+    ['tsujiLineIncludeOffset'].forEach(k => {
         const v = appState[k];
         params.set(k, typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v));
     });
@@ -14106,30 +14149,72 @@ function buildShareUrl(params) {
     return buildBaseUrl() + (useShort ? '?query=' + encodeQueryParam(params.toString()) : '?' + params.toString());
 }
 
+/** URL取得共通の出口(第95ラウンド): 「:QRコード」チェック(初期値オフ)がオンなら、URL文字列の
+ *  代わりにそのURLのQRコード画像をクリップボードへコピーする(スマホのカメラで読む使い方)。 */
+function deliverShareUrl(url, subject) {
+    const qrChk = document.getElementById('url-picker-qr');
+    if (qrChk && qrChk.checked) { copyShareQr(url, subject); return; }
+    navigator.clipboard.writeText(url).then(() => {
+        alert(`${subject}URLをクリップボードにコピーしました。`);
+    }).catch(() => { prompt('URLをコピーしてください:', url); });
+}
+
+/** URLのQRコード画像(PNG)を生成してクリップボードへコピーする。
+ *  生成はqrcode-generator(MIT・CDN)でローカル処理(通信なし)。誤り訂正はMから始めて、
+ *  URLが入り切らない長さならLへ落として再試行する(それでも入らなければ短いURLを案内) */
+async function copyShareQr(url, subject) {
+    if (typeof qrcode !== 'function') {
+        alert('QRコード部品(CDN)が読み込めていません。ネットワーク接続を確認してページを再読み込みしてください。');
+        return;
+    }
+    let qr = null;
+    for (const ec of ['M', 'L']) {
+        try { const q = qrcode(0, ec); q.addData(url, 'Byte'); q.make(); qr = q; break; } catch (e) {}
+    }
+    if (!qr) {
+        alert('URLが長すぎてQRコードに入りませんでした。「:短いURL」をオンにしてお試しください。');
+        return;
+    }
+    const n = qr.getModuleCount();
+    const scale = Math.max(2, Math.min(8, Math.floor(1024 / (n + 8))));
+    const margin = scale * 4;   // クワイエットゾーン=4モジュール
+    const size = n * scale + margin * 2;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = size;
+    const c2 = cv.getContext('2d');
+    c2.fillStyle = '#FFFFFF'; c2.fillRect(0, 0, size, size);
+    c2.fillStyle = '#000000';
+    for (let r = 0; r < n; r++) for (let col = 0; col < n; col++)
+        if (qr.isDark(r, col)) c2.fillRect(margin + col * scale, margin + r * scale, scale, scale);
+    try {
+        // ClipboardItemの値はPromiseで渡す(Safariの操作ジェスチャ制約と両対応の作法)
+        const blobP = new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('toBlob失敗')), 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blobP })]);
+        alert(`${subject}QRコードをクリップボードにコピーしました。`);
+    } catch (e) {
+        console.error('QR clipboard error:', e);
+        alert('クリップボードへの画像コピーに失敗しました(お使いのブラウザが画像コピーに未対応の可能性があります)。「:QRコード」をオフにしてURLでご利用ください。');
+    }
+}
+
 function copyLocationUrl(includeDateTime) {
     const params = buildCommonUrlParams(includeDateTime);
     params.set('mode', 'preview');
     // パネル状態(dp/elevation/milkyway/soramado/tsujisearch)は buildCommonUrlParams で付与済み
 
-    const url = buildShareUrl(params);
-    navigator.clipboard.writeText(url).then(() => {
-        alert('現在の状態で宙の辻を開くURLをクリップボードにコピーしました。');
-    });
+    deliverShareUrl(buildShareUrl(params), '現在の状態で宙の辻を開く');
 }
 
 function copySoramadoUrl(includeDateTime) {
-    const params = buildCommonUrlParams(includeDateTime);
+    const params = buildCommonUrlParams(includeDateTime, 'soramado');   // 宙の窓の再現に絞る(第95ラウンド)
     params.set('mode', 'preview');
     params.set('soramado', 'true');   // 宙の窓URLは必ず宙の窓パネルを開く
 
-    const url = buildShareUrl(params);
-    navigator.clipboard.writeText(url).then(() => {
-        alert('現在の宙の窓を開くURLをクリップボードにコピーしました。');
-    });
+    deliverShareUrl(buildShareUrl(params), '現在の宙の窓を開く');
 }
 
 function copyTsujiSearchUrl(includeDateTime) {
-    const params = buildCommonUrlParams(includeDateTime);
+    const params = buildCommonUrlParams(includeDateTime, 'tsuji');   // 辻検索の再現に絞る(第95ラウンド)
     params.set('mode', 'tsujisearch');
 
     params.set('tsujiSearchDays', String(appState.tsujiSearchDays));
@@ -14172,14 +14257,11 @@ function copyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiDowSun', appState.tsujiDowSun ? 'true' : 'false');
     ['tsujiMonthFilter', 'tsujiMonth1', 'tsujiMonth2', 'tsujiMonth3', 'tsujiMonth4', 'tsujiMonth5', 'tsujiMonth6', 'tsujiMonth7', 'tsujiMonth8', 'tsujiMonth9', 'tsujiMonth10', 'tsujiMonth11', 'tsujiMonth12'].forEach(k => params.set(k, appState[k] ? 'true' : 'false'));
 
-    const url = buildShareUrl(params);
-    navigator.clipboard.writeText(url).then(() => {
-        alert('現在の辻検索を開くURLをクリップボードにコピーしました。');
-    });
+    deliverShareUrl(buildShareUrl(params), '現在の辻検索を開く');
 }
 
 function copyTsujiMeshUrl(includeDateTime) {
-    const params = buildCommonUrlParams(includeDateTime);
+    const params = buildCommonUrlParams(includeDateTime, 'tsuji');   // 辻メッシュ検索の再現に絞る(第95ラウンド)
     params.set('mode', 'tsujimesh');
 
     params.set('tsujiMeshDays', String(appState.tsujiMeshDays));
@@ -14221,10 +14303,7 @@ function copyTsujiMeshUrl(includeDateTime) {
     params.set('tsujiMeshDowSun', appState.tsujiMeshDowSun ? 'true' : 'false');
     ['tsujiMeshMonthFilter', 'tsujiMeshMonth1', 'tsujiMeshMonth2', 'tsujiMeshMonth3', 'tsujiMeshMonth4', 'tsujiMeshMonth5', 'tsujiMeshMonth6', 'tsujiMeshMonth7', 'tsujiMeshMonth8', 'tsujiMeshMonth9', 'tsujiMeshMonth10', 'tsujiMeshMonth11', 'tsujiMeshMonth12'].forEach(k => params.set(k, appState[k] ? 'true' : 'false'));
 
-    const url = buildShareUrl(params);
-    navigator.clipboard.writeText(url).then(() => {
-        alert('現在の辻メッシュ検索を開くURLをクリップボードにコピーしました。');
-    });
+    deliverShareUrl(buildShareUrl(params), '現在の辻メッシュ検索を開く');
 }
 
 function restoreFromUrl() {

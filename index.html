@@ -56,6 +56,9 @@ GNU General Public License for more details.
     <!-- 地図ライブラリ MapLibre GL JS(本体地図+宙断面ビュー。地図全面移行計画の手順4でLeafletを撤去し一本化) -->
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+    <!-- QRコード生成(URL取得ダイアログの「:QRコード」。MIT・生成はローカル処理で通信なし) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -2132,7 +2135,10 @@ GNU General Public License for more details.
             <div class="picker-item" id="url-picker-access">
                 <div class="picker-name">アクセス日時</div>
             </div>
-            <label class="url-picker-short-row" title="オン: 圧縮した短いURLをコピーします / オフ: キー名やキー値がそのままの長いURLをコピーします"><input type="checkbox" id="url-picker-short" checked>:短いURL</label>
+            <div class="url-picker-opts-row">
+                <label class="url-picker-short-row" title="オン: 圧縮した短いURLをコピーします / オフ: キー名やキー値がそのままの長いURLをコピーします"><input type="checkbox" id="url-picker-short" checked>:短いURL</label>
+                <label class="url-picker-short-row" title="オン: URLの文字列の代わりに、URLのQRコード画像をクリップボードにコピーします(スマホのカメラで読み取れます)"><input type="checkbox" id="url-picker-qr">:QRコード</label>
+            </div>
         </div>
     </div>
 

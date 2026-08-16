@@ -2003,6 +2003,9 @@ input[type="range"] {
     cursor: pointer;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
+/* 「:短いURL」と「:QRコード」を1段に横並び(第95ラウンド。QRは短いURLの右側) */
+.url-picker-opts-row { display: flex; }
+.url-picker-opts-row .url-picker-short-row { flex: 1 1 50%; }
 
 .palette-colors {
     display: grid;

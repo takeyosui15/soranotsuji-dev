@@ -18,10 +18,10 @@ python3 tests/harness/sync-apptest.py $SP/apptest   # アプリ一式コピー+C
 # vendor/が空なら、上のコマンドが表示するcurl一覧を実行して入手する(プロキシ環境でそのまま通る)
 ```
 
-Playwright(playwright-core)が無ければ:
+Playwright(playwright-core)が無ければ(jsqrはverify160のQRコード復号検査で使う):
 
 ```bash
-mkdir -p $SP/harness && cd $SP/harness && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright-core
+mkdir -p $SP/harness && cd $SP/harness && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright-core jsqr
 ```
 
 ブラウザは環境にプリインストール済み: `/opt/pw-browsers/chromium-*/chrome-linux/chrome`

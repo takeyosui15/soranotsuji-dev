@@ -53,6 +53,7 @@ SUBS = [
     (r"https://cdn\.jsdelivr\.net/npm/three@0\.160\.0/build/three\.min\.js", "vendor/three.min.js"),
     (r"https://unpkg\.com/maplibre-gl@4\.7\.1/dist/maplibre-gl\.css", "vendor/maplibre-gl.css"),
     (r"https://unpkg\.com/maplibre-gl@4\.7\.1/dist/maplibre-gl\.js", "vendor/maplibre-gl.js"),
+    (r"https://cdn\.jsdelivr\.net/npm/qrcode-generator@1\.4\.4/qrcode\.min\.js", "vendor/qrcode.min.js"),
 ]
 idx = os.path.join(APP, 'index.html')
 s = open(idx, encoding='utf-8').read()
@@ -94,6 +95,7 @@ NEED = {
     'three.min.js':    'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
     'geographiclib-geodesic.min.js': 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js',
     'geographiclib-dms.min.js':      'https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js',
+    'qrcode.min.js': 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js',
     'draco/draco_wasm_wrapper.js': 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/draco_wasm_wrapper.js',
     'draco/draco_decoder.wasm':    'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/draco_decoder.wasm',
 }
