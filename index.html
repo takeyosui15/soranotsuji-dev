@@ -564,22 +564,22 @@ GNU General Public License for more details.
                 </div>
                 <div id="sora-ctrl-twilight"></div>
                 <div class="control-row">
-                    <button id="btn-sora-move-left" class="nav-btn" title="観測点を1m左へ(移動の向き基準。宙の窓の見え方だけ先に動き、「位置反映」で確定します)">◀︎左</button>
-                    <button id="btn-sora-move-back" class="nav-btn" title="観測点を1m後へ(移動の向き基準)">▼後</button>
-                    <button id="btn-sora-move-fwd" class="nav-btn" title="観測点を1m前へ(移動の向き基準)">前▲</button>
-                    <button id="btn-sora-move-right" class="nav-btn" title="観測点を1m右へ(移動の向き基準)">右▶︎</button>
+                    <button id="btn-sora-move-left" class="nav-btn" title="観測点を1m左へ(体の向き=カメラの向き基準。宙の窓の見え方だけ先に動き、「位置反映」で確定します)">◀︎左</button>
+                    <button id="btn-sora-move-back" class="nav-btn" title="観測点を1m後へ(体の向き基準)">▼後</button>
+                    <button id="btn-sora-move-fwd" class="nav-btn" title="観測点を1m前へ(体の向き基準)">前▲</button>
+                    <button id="btn-sora-move-right" class="nav-btn" title="観測点を1m右へ(体の向き基準)">右▶︎</button>
                 </div>
                 <div class="control-row">
-                    <button id="btn-sora-move-rot-left" class="nav-btn" title="体の向きを1°左へ回します(体に載ったカメラも一緒に回り、画面が左へ回ります。カメラオフセット方位角は体基準なので変わりません。以後の前後左右の移動も回した向きで歩きます)">◀︎左回転</button>
+                    <button id="btn-sora-move-rot-left" class="nav-btn" title="体の向き(=カメラの向き)を1°左へ回します(画面が左へ回り、カメラオフセット方位角も-1°されます。以後の前後左右の移動も回した向きで歩きます)">◀︎左回転</button>
                     <button id="btn-sora-move-down" class="nav-btn" title="観測点高を1m下へ">▼下</button>
                     <button id="btn-sora-move-up" class="nav-btn" title="観測点高を1m上へ">上▲</button>
-                    <button id="btn-sora-move-rot-right" class="nav-btn" title="体の向きを1°右へ回します(体に載ったカメラも一緒に回り、画面が右へ回ります。カメラオフセット方位角は体基準なので変わりません。以後の前後左右の移動も回した向きで歩きます)">右回転▶︎</button>
+                    <button id="btn-sora-move-rot-right" class="nav-btn" title="体の向き(=カメラの向き)を1°右へ回します(画面が右へ回り、カメラオフセット方位角も+1°されます。以後の前後左右の移動も回した向きで歩きます)">右回転▶︎</button>
                 </div>
                 <div class="control-row">
                     <span id="sora-move-readout" class="sora-move-readout"></span>
                 </div>
                 <div class="control-row">
-                    <button id="btn-sora-move-reset" class="nav-btn" title="観測点の移動と体の向きの回転を取り消して、移動ボタンを押す前に戻します">リセット</button>
+                    <button id="btn-sora-move-reset" class="nav-btn" title="観測点の移動を取り消して、移動ボタンを押す前に戻します(体の向きの回転はカメラ側の「リセット」で戻します)">リセット</button>
                     <button id="btn-sora-move-apply" class="nav-btn main-btn" title="移動後の位置を緯度経度高さ・基準方位角/視高度に反映して確定します(リセットでは戻らなくなります)">位置反映</button>
                 </div>
                 <div class="control-row">
@@ -589,7 +589,7 @@ GNU General Public License for more details.
                     <button id="btn-sora-cam-right" class="nav-btn" title="カメラオフセット方位角を1°右へ(+1°)">📷右▶︎</button>
                 </div>
                 <div class="control-row">
-                    <button id="btn-sora-cam-reset" class="nav-btn" title="カメラ向きの変更を取り消して、カメラ向きボタンを押す前の向きに戻します(その間のドラッグパンや手入力の変更も戻ります)">リセット</button>
+                    <button id="btn-sora-cam-reset" class="nav-btn" title="カメラ向きの変更を取り消して、カメラ向き・回転ボタンを押す前の向きに戻します(その間のドラッグパンや手入力の変更も戻ります)">リセット</button>
                     <button id="btn-sora-cam-apply" class="nav-btn main-btn" title="今のカメラオフセット方位角/視高度で確定します(リセットでは戻らなくなります)">カメラ反映</button>
                 </div>
                 <div class="control-row">
