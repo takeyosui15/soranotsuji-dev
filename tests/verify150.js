@@ -68,7 +68,8 @@ check('V1 lookAtがカメラ位置を補正する(通常+パノラマ×2経路=4
     const okN = Math.abs(r.nudge.e-1)<1e-9 && Math.abs(r.nudge.n-1)<1e-9 && r.nudge.u===1;
     check('B2 前/右/上の各1mがENUに積もり、カメラだけ(1,1,1)へ動き、位置情報は不変',
       okN && r.cam.x===1 && r.cam.y===1 && r.cam.z===1 && r.startUnchanged, JSON.stringify(r));
-    check('B2 移動量の読み(前+1.0m 右+1.0m 上+1.0m)', r.readout==='移動中: 前+1.0m 右+1.0m 上+1.0m', r.readout);
+    // 第98ラウンドの意図更新: 読みの並びを移動ボタンと同順(上・前・右)へ(依頼者指定)
+    check('B2 移動量の読み(上+1.0m 前+1.0m 右+1.0m)', r.readout==='移動中: 上+1.0m 前+1.0m 右+1.0m', r.readout);
   }
 
   // B3: リセットで移動が消える(読みも空・カメラも原点へ)
