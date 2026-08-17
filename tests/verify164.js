@@ -1,4 +1,5 @@
-// 第99→100→101→102ラウンド検証: v1.84.0
+// 第99→100→101→102→103ラウンド検証: v1.85.0
+// 第103: 読みの「-0.0」表示の解消(前/右の分解の丸め残差±1e-16mが負に振れても表示精度0で+0.0と出す)。
 // 観測点の回転ボタン(依頼者仕様・第102で最終確定): 体の向きとカメラの向きは同じ
 //   (どちらも基準方位角+カメラオフセット方位角)。回転ボタンはカメラオフセット方位角を±1°回す
 //   (=カメラ向きボタンの方位側と同じ動き。値も入力欄も変わり、画面も移動の向きも一緒に回る)。
@@ -18,8 +19,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.84.0', /APP_VERSION = '1\.84\.0'/.test(src));
-check('V0 Version Historyに1.84.0の行がある', src.includes('Version 1.84.0 - ') || !!process.argv[2]);
+check('V0 版数ピン 1.85.0', /APP_VERSION = '1\.85\.0'/.test(src));
+check('V0 Version Historyに1.85.0の行がある', src.includes('Version 1.85.0 - ') || !!process.argv[2]);
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
@@ -111,6 +112,29 @@ check('V0 Version Historyに1.84.0の行がある', src.includes('Version 1.84.0
       return { offAz:appState.soraOffsetAz, readout:document.getElementById('sora-move-readout').textContent };
     });
     check('H2b 回転ボタンで読みも即再分解(北1mの移動が右-1.0mへ)', r.offAz===90&&r.readout==='移動中: 上+0.0m 前+0.0m 右-1.0m', JSON.stringify(r));
+  }
+
+  // F1: 読みに「-0.0」を出さない(第103)。分解の丸め残差(負の極小値)は表示精度0.1mで+0.0へ
+  {
+    const r=await p.evaluate(async()=>{
+      appState.soraBaseAz=0; appState.soraOffsetAz=0;
+      _smObsNudge={e:0,n:-1e-13,u:0}; _smObsNudgeReadout();   // 数学上0の前成分が負の残差になった状況を注入
+      const injected=document.getElementById('sora-move-readout').textContent;
+      // 実操作の掃引: 基準方位角を変えながら「右▶︎」1回→読みの前は常に+0.0
+      // (残差の符号は方位角次第で負にもなる。60°/100°は負になることを事前計算で確認済みの角)
+      const degs=[...Array.from({length:52},(_,i)=>i*7), 60, 100];
+      const bad=[];
+      for(const deg of degs){
+        appState.soraBaseAz=deg; _smObsNudge={e:0,n:0,u:0};
+        document.getElementById('btn-sora-move-right').click();
+        const t=document.getElementById('sora-move-readout').textContent;
+        if(t.includes('-0.0')) bad.push(deg+':'+t);
+      }
+      _smObsNudge={e:0,n:0,u:0}; appState.soraBaseAz=0; appState.soraOffsetAz=90; _smObsNudgeReadout();   // H3の前提(オフセット90°)へ復元
+      return { injected, bad };
+    });
+    check('F1 負の丸め残差でも読みは「前+0.0m」(注入で実測)', r.injected==='移動中: 上+0.0m 前+0.0m 右+0.0m', r.injected);
+    check('F1 基準方位角の掃引(54方位×右▶︎1回・負残差の60°/100°込み)で「-0.0」が一度も出ない', r.bad.length===0, r.bad.slice(0,3).join(' | '));
   }
 
   // H3: 移動側のリセットは位置のみ(回転=オフセットは残る)・位置反映は位置だけ確定しオフセット不変
