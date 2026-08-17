@@ -1,6 +1,7 @@
-// 第99→第100ラウンド検証: v1.82.0
-// 観測点の回転ボタン(依頼者仕様): 観測点(観測者自身)を中心に「移動の向き」を回す。
-//   カメラも位置も動かず、以後の前後左右の移動ボタンが回した向きで歩く。
+// 第99→100→101ラウンド検証: v1.83.0
+// 観測点の回転ボタン(依頼者仕様・第101で確定): 観測点(体)を中心に「体の向き」を回す。
+//   体に載っているカメラも一緒に回る(画面は回る)が、カメラオフセット方位角は体基準なので値は不変。
+//   観測点の位置は動かず、以後の前後左右の移動ボタンが回した向きで歩く。
 //   段構成=1段目:左/後/前/右・2段目:左回転/下/上/右回転・3段目:読み・4段目:リセット/位置反映・
 //   5段目:📷4・6段目:リセット/カメラ反映(第100ラウンドの依頼者指定)。
 const { chromium } = require('playwright-core');
@@ -16,8 +17,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.82.0', /APP_VERSION = '1\.82\.0'/.test(src));
-check('V0 Version Historyに1.82.0の行がある', src.includes('Version 1.82.0 - ') || !!process.argv[2]);
+check('V0 版数ピン 1.83.0', /APP_VERSION = '1\.83\.0'/.test(src));
+check('V0 Version Historyに1.83.0の行がある', src.includes('Version 1.83.0 - ') || !!process.argv[2]);
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
@@ -51,19 +52,28 @@ check('V0 Version Historyに1.82.0の行がある', src.includes('Version 1.82.0
       JSON.stringify(r.row6)===JSON.stringify(['btn-sora-cam-reset','btn-sora-cam-apply']), JSON.stringify({order:r.order,row4:r.row4,row6:r.row6}));
   }
 
-  // H1: 回転はカメラも位置も動かさない(移動の向きだけが回る)
+  // H1: 回転で画面(カメラの向き)は回るが、オフセット方位角の値と観測点の位置は不変
   {
     const r=await p.evaluate(async()=>{
       window.confirm=()=>true; window.alert=()=>{};
-      appState.soraBaseAz=0; appState.soraOffsetAz=0; appState.soraOffsetAlt=0;
+      if(!appState.isSoramadoActive) toggleSoramado();
+      await new Promise(r=>setTimeout(r,500));
+      appState.soraBaseAz=0; appState.soraOffsetAz=0; appState.soraOffsetAlt=0; appState.soraBaseAlt=0;
       _smObsNudge={e:0,n:0,u:0}; _smMoveHeading=0; _smCamNudgeBase=null;
+      drawSoramado();
+      const bearing0=(()=>{ const d=_smCamera.getWorldDirection(new THREE.Vector3()); return Math.atan2(d.x,d.y)*180/Math.PI; })();
       document.getElementById('btn-sora-move-rot-right').click();
-      await new Promise(r=>setTimeout(r,50));
+      await new Promise(r=>setTimeout(r,100));
+      const bearing1=(()=>{ const d=_smCamera.getWorldDirection(new THREE.Vector3()); return Math.atan2(d.x,d.y)*180/Math.PI; })();
+      const shown=document.getElementById('input-sora-ctrl-offset-az').value;
       return { heading:_smMoveHeading, offAz:appState.soraOffsetAz, baseAz:appState.soraBaseAz,
-               nudge:{..._smObsNudge}, readout:document.getElementById('sora-move-readout').textContent };
+               nudge:{..._smObsNudge}, bearing0, bearing1, shown,
+               readout:document.getElementById('sora-move-readout').textContent };
     });
-    check('H1 右回転→移動の向き+1°のみ(カメラオフセット/基準方位角/観測点の移動は全て不変)',
-      r.heading===1&&r.offAz===0&&r.baseAz===0&&!r.nudge.e&&!r.nudge.n&&!r.nudge.u, JSON.stringify(r));
+    check('H1 右回転→体の向き+1°。カメラオフセット方位角(値と入力欄)/基準方位角/観測点の移動は不変',
+      r.heading===1&&r.offAz===0&&r.baseAz===0&&r.shown==='0.0000'&&!r.nudge.e&&!r.nudge.n&&!r.nudge.u, JSON.stringify(r));
+    check('H1 画面(カメラの向き)は体と一緒に右へ1°回る', Math.abs(r.bearing0)<0.01&&Math.abs(r.bearing1-1)<0.01,
+      JSON.stringify({bearing0:+r.bearing0.toFixed(4),bearing1:+r.bearing1.toFixed(4)}));
     check('H1 読みに「回転+1°」が出る', r.readout==='移動中: 上+0.0m 前+0.0m 右+0.0m 回転+1°', r.readout);
   }
 

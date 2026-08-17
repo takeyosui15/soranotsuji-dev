@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.83.0 - 2026-08-17: fix: 第101ラウンド — 観測点の回転を依頼者仕様に確定(第3の明確化への対応): 回転=体の向きを回す。体に載っているカメラも一緒に回るので画面(見え方)は回る。ただしカメラオフセット方位角は「体基準」の角度なので値は変わらない(0°のまま)。第100との差分=プレビューのカメラ角(2描画経路のaz)に体の回転を追加した1点(観測点の位置・前後左右の歩く向き・読み・リセット/位置反映の扱いは第100のまま)。ツールチップ・デッサン06を体の向きの表現へ更新
 Version 1.82.0 - 2026-08-17: fix: 第100ラウンド — 観測点の回転を依頼者仕様に修正+移動ボタンの段構成再編 ①回転の意味を修正: 第99の「目的点中心の回り込み」ではなく「観測点(観測者自身)を中心に移動の向きを回す」(依頼者指示)。カメラの向きも観測点の位置も変わらず、以後の前後左右の移動ボタンが回した向きで歩く(_smMoveHeading。読みの前/右の分解も同じ向き基準)。「リセット」で移動と一緒に0へ・「位置反映」は位置だけ確定し向きは残る ②段構成を依頼者指定の6段へ: 1段目=◀︎左・▼後・前▲・右▶︎/2段目=◀︎左回転・▼下・上▲・右回転▶︎/3段目=移動量の読み/4段目=リセット・位置反映/5段目=📷4ボタン/6段目=リセット・カメラ反映(ボタン文字がはみ出ない4個組へ) ③リリースノートの回転の記述も新仕様へ更新。デッサン06を再編(10.15段目新設)
 Version 1.81.0 - 2026-08-17: feat: 第99ラウンド — リリース前の最終修正: 観測点の回転ボタン(依頼者指定の追加忘れ分) ①宙の窓ctrlのカメラ向きボタンの両脇に「◀︎左回転」「右回転▶︎」を追加: 観測点を目的点を中心に水平に1°回り込ませる(目的点までの距離と高さは保持)。プレビューではカメラの向きも同角で回るため目的点は画面中心に留まり、背景だけが回る(ダイヤモンド/パール狙いの立ち位置探しの道具) ②位置の扱いは移動ボタンと同じ未確定プレビュー(_smObsRot: 「位置反映」で確定・「リセット」で移動と一緒に戻る)。確定時は基準方位角の再計算が回転を引き継ぐため向きの二重回転はしない。回転プレビュー中の前後左右移動と読みは回した後の向き基準 ③移動量の読みに「回転±N°」の項を追加。デッサン06(10.3段目)更新
 Version 1.80.0 - 2026-08-17: fix: 第98ラウンド — ご確認フィードバック第2弾 ①移動量の読みの並びを移動ボタンと同順へ(依頼者指定「移動中: 上+0.0m 前-0.0m 右+1.0m」の順) ②Myセット切り替え確認メッセージの「My宙検索」を封鎖に連動(公開ビルドでは出さない・?forecast=1では従来どおり。第97のss系キーと同じ「封鎖の出口」の棚卸し) ③都市モードの無テクスチャビルの調査(依頼者質問「そもそもテクスチャがないのでしょうか」への実測回答): b3dm実測で、lod2系タイルセットはテクスチャ画像を持つ建物と持たない建物がデータ側で混在(都庁タイルの13棟すら混在)・LOD1のみの148都市はテクスチャ自体が無い、を確認。アプリはマテリアル毎に正しく貼り分けており取りこぼしなし=元データの整備状況によるもの。ヘルプ(都市モードの節)とデッサン06に記載
@@ -146,7 +147,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.82.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.83.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -16076,7 +16077,7 @@ function soraExpCredit(d) {
 function _smComposeFrame(w, h, canvas2d) {
     if (!_smInited || _smFailed || !_smRenderer) return null;
     const o = soraComputeOptics();
-    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smMoveHeading;   // +体の向きの回転(第101。カメラは体に載って一緒に回る=カメラオフセットは体基準のまま)
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const pano = appState.soraPanorama;
     const panoAov = pano ? soraPanoEffAov(o) : 0;
@@ -16798,8 +16799,8 @@ function setupSoramadoControls() {
     btnH('btn-sora-move-right', () => _smObsNudgeMove('right'));
     btnH('btn-sora-move-reset', _smObsNudgeReset);
     btnH('btn-sora-move-apply', _smObsNudgeApply);
-    btnH('btn-sora-move-rot-left', () => _smObsRotMove(-1));   // 観測点の回転(第100): 移動の向きを左へ1°回す
-    btnH('btn-sora-move-rot-right', () => _smObsRotMove(1));   // 右へ1°回す(カメラも位置も動かない)
+    btnH('btn-sora-move-rot-left', () => _smObsRotMove(-1));   // 観測点の回転(第101): 体の向きを左へ1°回す(画面も回る)
+    btnH('btn-sora-move-rot-right', () => _smObsRotMove(1));   // 右へ1°回す(カメラオフセット方位角は体基準のまま不変)
     btnH('btn-sora-cam-left', () => _smCamNudgeMove(-1, 0));
     btnH('btn-sora-cam-down', () => _smCamNudgeMove(0, -1));
     btnH('btn-sora-cam-up', () => _smCamNudgeMove(0, 1));
@@ -17056,10 +17057,11 @@ function _smDir(azDeg, altDeg) {
 // --- 観測点/カメラ移動ボタン (第83ラウンド・怒号の項目10) ---
 // 観測点の未確定移動(m, ENU)。シーンは組み直さずカメラだけ動かして見え方を先に確かめ、「位置反映」で確定する
 let _smObsNudge = { e: 0, n: 0, u: 0 };
-// 観測点の回転(第99→第100ラウンドで依頼者仕様に修正): 観測点(観測者自身)を中心に「移動の向き」を回す。
-// カメラも位置も動かさず、以後の前後左右の移動ボタンが回した向き基準で歩くようになる(体の向きだけ回すイメージ)。
-// 「リセット」で移動と一緒に0へ戻る。「位置反映」は位置だけを確定し、向きはそのまま残る
-let _smMoveHeading = 0;   // 移動の向きの回転角(°。右回転=+)
+// 観測点の回転(第99→100→101ラウンドで依頼者仕様に確定): 観測点(観測者=体)を中心に「体の向き」を回す。
+// カメラは体に載っているので、体が回れば画面(カメラの向き)も一緒に回る。ただしカメラオフセット方位角は
+// 「体基準」の角度なので値は変わらない(0°のまま)。前後左右の移動ボタンも回した体の向き基準で歩く。
+// 「リセット」で移動と一緒に0へ戻る。「位置反映」は位置だけを確定し、体の向きはそのまま残る
+let _smMoveHeading = 0;   // 体の向きの回転角(°。右回転=+。プレビューのカメラ角と移動の向きの両方に効く)
 let _smCamNudgeBase = null;   // カメラ向きボタンの戻り先 {az, alt}(null=未操作。「カメラ反映」で忘れて確定)
 
 /** 観測点移動の合計をカメラの向き基準(前/右/上)の読みで表示。全て0なら空欄 */
@@ -17095,9 +17097,9 @@ function _smObsNudgeMove(kind) {
     _smObsNudgeDraw();
 }
 
-/** 観測点の回転(第100ラウンド・依頼者仕様): 観測点を中心に「移動の向き」を1°回す(sign: +1=右回転 / -1=左回転)。
- *  カメラの向きも観測点の位置も変わらず、以後の前後左右の移動ボタンが回した向きで歩く。
- *  読みの「前/右」の分解も回した向き基準。「リセット」で移動と一緒に0へ戻る */
+/** 観測点の回転(第101ラウンド・依頼者仕様): 観測点(体)を中心に体の向きを1°回す(sign: +1=右回転 / -1=左回転)。
+ *  体に載っているカメラも一緒に回る(画面が回る)が、カメラオフセット方位角は体基準なので値は変わらない。
+ *  観測点の位置は変わらず、以後の前後左右の移動ボタンと読みの「前/右」の分解は回した体の向き基準 */
 function _smObsRotMove(sign) {
     _smMoveHeading += sign;
     _smObsNudgeDraw();
@@ -17175,7 +17177,7 @@ function drawSoramado() {
     _smRenderer.setSize(w, h, false);
 
     const o = soraComputeOptics();
-    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smMoveHeading;   // +体の向きの回転(第101。カメラは体に載って一緒に回る=カメラオフセットは体基準のまま)
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const pano = appState.soraPanorama;
     const panoAov = pano ? soraPanoEffAov(o) : 0;
