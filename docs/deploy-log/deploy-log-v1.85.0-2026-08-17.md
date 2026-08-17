@@ -283,11 +283,11 @@ GitHub Pagesのデプロイには1-2分かかる場合がある。
   - 4. 記録を残すために `*** work ***` にコミットする。
 
 ```
-デプロイ日時: YYYY-MM-DD HH:MM
-バージョン: vX.Y.Z
-デプロイ元コミット: abc1234 (soranotsuji-dev)
-デプロイ先コミット: xyz5678 (soranotsuji)
-確認結果: OK / NG
+デプロイ日時: 2026-08-17 16:54
+バージョン: v1.85.0
+デプロイ元コミット: f1623d1 (soranotsuji-dev)
+デプロイ先コミット: a5f5ab9 (soranotsuji)
+確認結果: OK
 ```
 
 ---
