@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.82.0 - 2026-08-17: fix: 第100ラウンド — 観測点の回転を依頼者仕様に修正+移動ボタンの段構成再編 ①回転の意味を修正: 第99の「目的点中心の回り込み」ではなく「観測点(観測者自身)を中心に移動の向きを回す」(依頼者指示)。カメラの向きも観測点の位置も変わらず、以後の前後左右の移動ボタンが回した向きで歩く(_smMoveHeading。読みの前/右の分解も同じ向き基準)。「リセット」で移動と一緒に0へ・「位置反映」は位置だけ確定し向きは残る ②段構成を依頼者指定の6段へ: 1段目=◀︎左・▼後・前▲・右▶︎/2段目=◀︎左回転・▼下・上▲・右回転▶︎/3段目=移動量の読み/4段目=リセット・位置反映/5段目=📷4ボタン/6段目=リセット・カメラ反映(ボタン文字がはみ出ない4個組へ) ③リリースノートの回転の記述も新仕様へ更新。デッサン06を再編(10.15段目新設)
 Version 1.81.0 - 2026-08-17: feat: 第99ラウンド — リリース前の最終修正: 観測点の回転ボタン(依頼者指定の追加忘れ分) ①宙の窓ctrlのカメラ向きボタンの両脇に「◀︎左回転」「右回転▶︎」を追加: 観測点を目的点を中心に水平に1°回り込ませる(目的点までの距離と高さは保持)。プレビューではカメラの向きも同角で回るため目的点は画面中心に留まり、背景だけが回る(ダイヤモンド/パール狙いの立ち位置探しの道具) ②位置の扱いは移動ボタンと同じ未確定プレビュー(_smObsRot: 「位置反映」で確定・「リセット」で移動と一緒に戻る)。確定時は基準方位角の再計算が回転を引き継ぐため向きの二重回転はしない。回転プレビュー中の前後左右移動と読みは回した後の向き基準 ③移動量の読みに「回転±N°」の項を追加。デッサン06(10.3段目)更新
 Version 1.80.0 - 2026-08-17: fix: 第98ラウンド — ご確認フィードバック第2弾 ①移動量の読みの並びを移動ボタンと同順へ(依頼者指定「移動中: 上+0.0m 前-0.0m 右+1.0m」の順) ②Myセット切り替え確認メッセージの「My宙検索」を封鎖に連動(公開ビルドでは出さない・?forecast=1では従来どおり。第97のss系キーと同じ「封鎖の出口」の棚卸し) ③都市モードの無テクスチャビルの調査(依頼者質問「そもそもテクスチャがないのでしょうか」への実測回答): b3dm実測で、lod2系タイルセットはテクスチャ画像を持つ建物と持たない建物がデータ側で混在(都庁タイルの13棟すら混在)・LOD1のみの148都市はテクスチャ自体が無い、を確認。アプリはマテリアル毎に正しく貼り分けており取りこぼしなし=元データの整備状況によるもの。ヘルプ(都市モードの節)とデッサン06に記載
 Version 1.79.0 - 2026-08-16: fix: 第97ラウンド — ご確認フィードバックへの対応 ①ctrlのNowボタンの縦ラインずれ修正(依頼者指摘): 宙の窓ctrl/全天儀ctrlのNowボタンが自然幅のままで、下段のスペーサー(46px)と数px合っていなかった。日時情報メニューの#btn-nowと同じ46px固定へ(#btn-sora-ctrl-now/#btn-mw-ctrl-now) ②宙の窓ctrlの移動量の読みの文字サイズ修正(依頼者指摘): 11px指定で他の行より小さかったのを、タイムゾーン表示と同じ継承サイズに(サイズ指定を外して同じ文脈の素のspanに揃える) ③宙検索(ss系)キーの発行を封鎖に連動(依頼者の精査指摘「ssUnkaiMode=avoidとかあるのですが」): 宙検索は第33ラウンドで封鎖中の予測系機能のため、公開ビルドでは位置情報URL(full)にもss系21キーを発行しない。?forecast=1の開発時のみ発行(復元側は従来どおり=発行済みURLは読める)。デッサン00の表を更新
@@ -145,7 +146,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.81.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.82.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -16075,7 +16076,7 @@ function soraExpCredit(d) {
 function _smComposeFrame(w, h, canvas2d) {
     if (!_smInited || _smFailed || !_smRenderer) return null;
     const o = soraComputeOptics();
-    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smObsRot.az;   // +観測点の回転プレビュー(第99)
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const pano = appState.soraPanorama;
     const panoAov = pano ? soraPanoEffAov(o) : 0;
@@ -16099,8 +16100,7 @@ function _smComposeFrame(w, h, canvas2d) {
         _smCamera.fov = Math.max(1, Math.min(170, o.aovV * (_fe ? _fe.fovScale : 1)));
     }
     _smCamera.up.set(0, 0, 1);
-    // 観測点の未確定移動+回転(「位置反映」前のプレビュー。回転は向きも同角で回す=目的点が中心に留まる)
-    _smCamera.position.set(_smObsNudge.e + _smObsRot.e, _smObsNudge.n + _smObsRot.n, _smObsNudge.u);
+    _smCamera.position.set(_smObsNudge.e, _smObsNudge.n, _smObsNudge.u);   // 観測点の未確定移動(「位置反映」前のプレビュー)
     _smCamera.lookAt(_smDir(az, alt).add(_smCamera.position));
     _smUpdateSky();
     _smBuildBodies();
@@ -16798,8 +16798,8 @@ function setupSoramadoControls() {
     btnH('btn-sora-move-right', () => _smObsNudgeMove('right'));
     btnH('btn-sora-move-reset', _smObsNudgeReset);
     btnH('btn-sora-move-apply', _smObsNudgeApply);
-    btnH('btn-sora-move-rot-left', () => _smObsRotMove(1));    // 観測点の回転(第99): 左=目的点中心に左へ回り込む
-    btnH('btn-sora-move-rot-right', () => _smObsRotMove(-1));  // 右=右へ回り込む
+    btnH('btn-sora-move-rot-left', () => _smObsRotMove(-1));   // 観測点の回転(第100): 移動の向きを左へ1°回す
+    btnH('btn-sora-move-rot-right', () => _smObsRotMove(1));   // 右へ1°回す(カメラも位置も動かない)
     btnH('btn-sora-cam-left', () => _smCamNudgeMove(-1, 0));
     btnH('btn-sora-cam-down', () => _smCamNudgeMove(0, -1));
     btnH('btn-sora-cam-up', () => _smCamNudgeMove(0, 1));
@@ -17056,10 +17056,10 @@ function _smDir(azDeg, altDeg) {
 // --- 観測点/カメラ移動ボタン (第83ラウンド・怒号の項目10) ---
 // 観測点の未確定移動(m, ENU)。シーンは組み直さずカメラだけ動かして見え方を先に確かめ、「位置反映」で確定する
 let _smObsNudge = { e: 0, n: 0, u: 0 };
-// 観測点の回転(第99ラウンド): 目的点を中心とした水平の回り込み。azは累計角(°)・e/nはその位置ずれ分(m)。
-// プレビューではカメラの向きもazだけ回して目的点が画面中心に留まる(「位置反映」で確定すると
-// 基準方位角の再計算が同じ回転を含むため、確定時にazは捨てる=二重に回らない)
-let _smObsRot = { az: 0, e: 0, n: 0 };
+// 観測点の回転(第99→第100ラウンドで依頼者仕様に修正): 観測点(観測者自身)を中心に「移動の向き」を回す。
+// カメラも位置も動かさず、以後の前後左右の移動ボタンが回した向き基準で歩くようになる(体の向きだけ回すイメージ)。
+// 「リセット」で移動と一緒に0へ戻る。「位置反映」は位置だけを確定し、向きはそのまま残る
+let _smMoveHeading = 0;   // 移動の向きの回転角(°。右回転=+)
 let _smCamNudgeBase = null;   // カメラ向きボタンの戻り先 {az, alt}(null=未操作。「カメラ反映」で忘れて確定)
 
 /** 観測点移動の合計をカメラの向き基準(前/右/上)の読みで表示。全て0なら空欄 */
@@ -17067,14 +17067,14 @@ function _smObsNudgeReadout() {
     const el = document.getElementById('sora-move-readout');
     if (!el) return;
     const { e, n, u } = _smObsNudge;
-    if (!e && !n && !u && !_smObsRot.az) { el.textContent = ''; return; }
-    const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smObsRot.az) * Math.PI / 180;
+    if (!e && !n && !u && !_smMoveHeading) { el.textContent = ''; return; }
+    const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smMoveHeading) * Math.PI / 180;
     const fwd = e * Math.sin(az) + n * Math.cos(az);
     const right = e * Math.cos(az) - n * Math.sin(az);
     const f = v => (v >= 0 ? '+' : '') + v.toFixed(1);
     // 並びは移動ボタン(…上・前・右)と同順(第98ラウンド・依頼者指定)。回転は独立の項として最後に出す
     el.textContent = `移動中: 上${f(u)}m 前${f(fwd)}m 右${f(right)}m` +
-        (_smObsRot.az ? ` 回転${_smObsRot.az > 0 ? '+' : ''}${_smObsRot.az}°` : '');
+        (_smMoveHeading ? ` 回転${_smMoveHeading > 0 ? '+' : ''}${_smMoveHeading}°` : '');
 }
 
 function _smObsNudgeDraw() {
@@ -17088,36 +17088,24 @@ function _smObsNudgeMove(kind) {
         _smObsNudge.u += (kind === 'up') ? 1 : -1;
     } else {
         const turn = { fwd: 0, right: 90, back: 180, left: 270 }[kind] || 0;
-        const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smObsRot.az + turn) * Math.PI / 180;   // 回転プレビュー中は回した後の向き基準
+        const az = (Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smMoveHeading + turn) * Math.PI / 180;   // 移動の向きの回転(第100)を含めた向き基準
         _smObsNudge.e += Math.sin(az);
         _smObsNudge.n += Math.cos(az);
     }
     _smObsNudgeDraw();
 }
 
-/** 観測点の回転(第99ラウンド): 目的点を中心に水平に1°回り込む(sign: +1=左回転 / -1=右回転)。
- *  目的点までの距離と高さは保たれ、プレビューの向きも同じ角度だけ回るので目的点は画面中心に留まる。
- *  「位置反映」で確定・「リセット」で移動と一緒に戻る(未確定移動と同じ扱い) */
+/** 観測点の回転(第100ラウンド・依頼者仕様): 観測点を中心に「移動の向き」を1°回す(sign: +1=右回転 / -1=左回転)。
+ *  カメラの向きも観測点の位置も変わらず、以後の前後左右の移動ボタンが回した向きで歩く。
+ *  読みの「前/右」の分解も回した向き基準。「リセット」で移動と一緒に0へ戻る */
 function _smObsRotMove(sign) {
-    const a = sign * Math.PI / 180;
-    // 目的点のENU(確定済み観測点原点。数kmの回転半径でも局所平面近似で充分=確定時に厳密再計算)
-    const lat0 = Number(appState.start.lat), lng0 = Number(appState.start.lng);
-    const Te = (Number(appState.end.lng) - lng0) * 111320 * Math.cos(lat0 * Math.PI / 180);
-    const Tn = (Number(appState.end.lat) - lat0) * 111320;
-    // 今のプレビュー位置P(移動+回転の合計)から目的点へのベクトルを方位角+a°回し、P' = T - R(a)v
-    const pe = _smObsNudge.e + _smObsRot.e, pn = _smObsNudge.n + _smObsRot.n;
-    const ve = Te - pe, vn = Tn - pn;
-    const re = ve * Math.cos(a) + vn * Math.sin(a);
-    const rn = -ve * Math.sin(a) + vn * Math.cos(a);
-    _smObsRot.e += (Te - re) - pe;
-    _smObsRot.n += (Tn - rn) - pn;
-    _smObsRot.az += sign;
+    _smMoveHeading += sign;
     _smObsNudgeDraw();
 }
 
 function _smObsNudgeReset() {
     _smObsNudge = { e: 0, n: 0, u: 0 };
-    _smObsRot = { az: 0, e: 0, n: 0 };
+    _smMoveHeading = 0;
     _smObsNudgeDraw();
 }
 
@@ -17126,13 +17114,11 @@ function _smObsNudgeReset() {
  *  新しい位置→目的点で再計算する。確定待ちの間に押された移動は残す(適用した分だけ差し引く) */
 async function _smObsNudgeApply() {
     const { e, n, u } = _smObsNudge;
-    const rot = { az: _smObsRot.az, e: _smObsRot.e, n: _smObsRot.n };   // 回転(第99)も一緒に確定する
-    const te = e + rot.e, tn = n + rot.n;
-    if (!te && !tn && !u && !rot.az) return;
+    if (!e && !n && !u) return;
     const lat0 = Number(appState.start.lat), lng0 = Number(appState.start.lng);
-    // 数m〜回転の弧の移動は局所平面近似で充分(確定後の基準方位角/視高度は厳密系が再計算する)
-    const lat = lat0 + (tn / 111320);
-    const lng = lng0 + (te / (111320 * Math.cos(lat0 * Math.PI / 180)));
+    // 数mの移動なので局所平面近似で充分(1mあたりの誤差はサブmm)
+    const lat = lat0 + (n / 111320);
+    const lng = lng0 + (e / (111320 * Math.cos(lat0 * Math.PI / 180)));
     const ticket = _locSetTicket(true);
     const elev = await getElevation(lat, lng);
     if (!_locSetLatest(true, ticket)) return;   // より新しい地点設定に追い越された(この確定は破棄)
@@ -17142,8 +17128,7 @@ async function _smObsNudgeApply() {
     appState.startApiElev = apiElev;
     appState.startHeight = height;
     _smObsNudge = { e: _smObsNudge.e - e, n: _smObsNudge.n - n, u: _smObsNudge.u - u };
-    // 回転の確定分を差し引く(視線の回転分は基準方位角の再計算が引き継ぐため捨てる=二重に回らない)
-    _smObsRot = { az: _smObsRot.az - rot.az, e: _smObsRot.e - rot.e, n: _smObsRot.n - rot.n };
+    // 移動の向きの回転(_smMoveHeading)は位置ではないので確定対象外(そのまま残る。戻すのは「リセット」)
     _smObsNudgeReadout();
     saveAppState();
     updateAll();
@@ -17190,7 +17175,7 @@ function drawSoramado() {
     _smRenderer.setSize(w, h, false);
 
     const o = soraComputeOptics();
-    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz) + _smObsRot.az;   // +観測点の回転プレビュー(第99)
+    const az = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const alt = Number(appState.soraBaseAlt) + Number(appState.soraOffsetAlt);
     const pano = appState.soraPanorama;
     const panoAov = pano ? soraPanoEffAov(o) : 0;
@@ -17214,8 +17199,7 @@ function drawSoramado() {
     }
     _smCamera.aspect = finderAspect;
     _smCamera.up.set(0, 0, 1);
-    // 観測点の未確定移動+回転(「位置反映」前のプレビュー。回転は向きも同角で回す=目的点が中心に留まる)
-    _smCamera.position.set(_smObsNudge.e + _smObsRot.e, _smObsNudge.n + _smObsRot.n, _smObsNudge.u);
+    _smCamera.position.set(_smObsNudge.e, _smObsNudge.n, _smObsNudge.u);   // 観測点の未確定移動(「位置反映」前のプレビュー)
     _smCamera.lookAt(_smDir(az, alt).add(_smCamera.position));
     _smCamera.updateProjectionMatrix();
 
