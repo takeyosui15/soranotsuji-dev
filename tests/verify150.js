@@ -19,8 +19,9 @@ check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.67.0の行がある', src.includes('Version 1.67.0 - ') || !!process.argv[2]);
 
 // ---- V1: 静的な形(カメラの未確定移動が両方の描画経路に入っている) ----
-check('V1 カメラ位置が未確定移動(_smObsNudge)を使う(通常描画+書き出しの2箇所)',
-  (src.match(/_smCamera\.position\.set\(_smObsNudge\.e, _smObsNudge\.n, _smObsNudge\.u\)/g) || []).length === 2);
+// 第99ラウンドの意図更新: 観測点の回転(_smObsRot)も加わった形(移動+回転)へ
+check('V1 カメラ位置が未確定移動+回転(_smObsNudge+_smObsRot)を使う(通常描画+書き出しの2箇所)',
+  (src.match(/_smCamera\.position\.set\(_smObsNudge\.e \+ _smObsRot\.e, _smObsNudge\.n \+ _smObsRot\.n, _smObsNudge\.u\)/g) || []).length === 2);
 check('V1 lookAtがカメラ位置を補正する(通常+パノラマ×2経路=4箇所)',
   (src.match(/lookAt\(_smDir\((?:az|sAz), alt\)\.add\(_smCamera\.position\)\)/g) || []).length === 4);
 
