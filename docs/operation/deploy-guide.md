@@ -43,8 +43,7 @@ claude/yyy ←→ work ←→ develop ──→ main ──→ soranotsuji/main
 - [ ] 上記の機能は、組み込みの**README.md**に内容が反映されているかを確認する。
   - [ ] 1. 
 - [ ] バージョン番号が更新されている。
-  - [ ] index.html:1箇所:バージョン表記
-  - [ ] script.js:2箇所:バージョン履歴とコンソール出力
+  - [ ] script.js:2箇所:バージョン履歴と定数APP_VERSION
 
 ### デプロイの流れ
 
@@ -265,12 +264,12 @@ GitHub Pagesのデプロイには1-2分かかる場合がある。
 
 - [ ] `https://soranotsuji.net` にアクセスして動作確認
 - [ ] 主要機能のチェック:
+  - [ ] vX.Y.Zが更新されている
   - [ ] 地図が正常に表示される
   - [ ] 天体の方位角・高度が計算される
   - [ ] 辻検索が動作する
   - [ ] LocalStorageへの保存・読込が正常
   - [ ] Googleログインが動作する(ブロックされる場合はOAuth同意画面の公開設定を確認 → google-oauth-guide.md)
-
 ---
 
 ### Step 6: デプロイ記録
