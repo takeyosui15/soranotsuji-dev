@@ -1,4 +1,5 @@
-// 第108ラウンド検証: v1.86.0 — 共有URLの再訪問題の修正(第106調査・第107議論の案A改)
+// 第108→110ラウンド検証: v1.85.1 — 共有URLの不具合修正(第106調査・第107議論の案A改。
+// 第110で版数をv1.86.0→v1.85.1へ付け直し=依頼者指摘「同じURLが意図どおりに開かれないのは不具合」)
 //   ①位置情報URL(full)に辻検索条件51+辻メッシュ条件50+発行漏れ4キーを発行
 //   ②復元のmode毎の適用ゲート廃止(URLに有るキーは常に適用=「発行は絞る、復元は絞らない」)
 //   ③天体色/線種の常時発行+短縮辞書v19(既定値ペア)=既定のままのURLは変更したURLより短い(依頼者の採用条件)
@@ -16,8 +17,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.86.0', /APP_VERSION = '1\.86\.0'/.test(src));
-check('V0 Version Historyに1.86.0の行がある', src.includes('Version 1.86.0 - ') || !!process.argv[2]);
+check('V0 版数ピン 1.85.1', /APP_VERSION = '1\.85\.1'/.test(src));
+check('V0 Version Historyに1.85.1の行がある', src.includes('Version 1.85.1 - ') || !!process.argv[2]);
 
 // ---- S1: 発行部の共用(静的検査: 検索条件の発行はヘルパー1箇所で、辻検索URLとfullの両方から呼ばれる) ----
 check('S1 検索条件の発行ヘルパーを辻検索URLとfullが共用',
