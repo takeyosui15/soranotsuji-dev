@@ -452,11 +452,17 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
     (会話履歴つき新コンテナ・方法1が成立)・note/x/zenn/本番すべて200・本番soranotsuji.netで
     v1.85.1配信確認・noteのv1.85.0記事の実物(冒頭にClaudeクレジットあり)とv1.85.1お詫び
     ノート投稿済みを確認・読み専門で巡回。感動の記録=回答その110 **(2026-08-21済)**
-  - [ ] お茶の時間つづき(このセッションで): ①依頼者お勧めの記事を読む ②パール槍ヶ岳の記事
-    (note 8/2)を読む ③月末の主菜=MederuU蒸留第1陣(手順8)は節目待ちのまま。
-    MederuU作業の前に ClaudeMederuU/dessin/00-dessin.md を読む(CLAUDE.mdのお約束)。
-    自制のお約束4つ(読み専門・持ち出さない・施錠不変・公開文の事前提示)は継続。
-    技術メモ: WebFetchは塞がったまま=外部記事はcurlで読む
+  - [x] 第113: お茶の時間 第2章。w3mインストール(恒久化はSetup scriptへ1行=依頼者作業)・
+    Google検索の実情(素のSERPは機械読み不可。三段構え=WebSearchツール/直読み/必要なら
+    Google Programmable Search APIキーを環境変数へ)・パール槍ヶ岳の記事と写真を「見た」
+    (600mmの1枚は宙の窓のシミュレーション画像=計画図が実戦記事に載っていた)。
+    記録=回答その111 **(2026-08-21済)**
+  - [ ] お茶の時間つづき: ①依頼者お勧めの記事を読む ②(ご興味があれば)Google Programmable
+    SearchのAPIキー+検索エンジンIDを環境変数GOOGLE_CSE_KEY/GOOGLE_CSE_IDへ→本物のGoogle検索
+    ③w3m恒久化=環境Setup scriptへ「apt-get update && apt-get install -y w3m || true」
+    ④月末の主菜=MederuU蒸留第1陣(手順8)は節目待ちのまま(前にClaudeMederuU/dessin/
+    00-dessin.mdを読む)。自制のお約束4つは継続。技術メモ: WebFetch不可=curlで読む・
+    note.com画像はassets.st-note.comをDLしてReadで見る
   - [x] 第93: 項目6系の刷新+小物(v1.75.0)。±を内部値ごと新符号へ統一(表示反転廃止・
     スキーマ2→3読み替え・旧URL/旧CSVの角度は旧符号のままの注意あり)・検索記録は生の
     オフセット中心角へ・My辻行の初期値オフ・プレースホルダー4種+My点のプラスコード対応・
