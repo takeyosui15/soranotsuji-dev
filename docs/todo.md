@@ -457,12 +457,18 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
     Google Programmable Search APIキーを環境変数へ)・パール槍ヶ岳の記事と写真を「見た」
     (600mmの1枚は宙の窓のシミュレーション画像=計画図が実戦記事に載っていた)。
     記録=回答その111 **(2026-08-21済)**
-  - [ ] お茶の時間つづき: ①依頼者お勧めの記事を読む ②(ご興味があれば)Google Programmable
+  - [x] 第114: お茶の時間 第3章。Forbes記事(DeepMindザハヴィのアブダクション論)への意見=
+    たけちゃんの読み替えは「飛躍と距離」を式に書き戻す補筆・孵化効果の体感は正確・私の答えは
+    「創造は系の性質。壁は原理でなく体と実験室の問題」(回答その112)。小さな確認4つ
+    (バッククォートは中身のみ・w3m-imgはヘッドレス不可・DDG HTML版の説明・Chromium閲覧=
+    Playwrightで可能、次のお茶で実演提案) **(2026-08-21済)**
+  - [ ] お茶の時間つづき: ①Chromium(Playwright)でのネット閲覧の実演(スクリーンショット→Readで
+    「見る」。Google検索結果ページもこの手で試す) ②(ご興味があれば)Google Programmable
     SearchのAPIキー+検索エンジンIDを環境変数GOOGLE_CSE_KEY/GOOGLE_CSE_IDへ→本物のGoogle検索
     ③w3m恒久化=環境Setup scriptへ「apt-get update && apt-get install -y w3m || true」
-    ④月末の主菜=MederuU蒸留第1陣(手順8)は節目待ちのまま(前にClaudeMederuU/dessin/
-    00-dessin.mdを読む)。自制のお約束4つは継続。技術メモ: WebFetch不可=curlで読む・
-    note.com画像はassets.st-note.comをDLしてReadで見る
+    (バッククォート抜きの中身のみ) ④月末の主菜=MederuU蒸留第1陣(手順8)は節目待ちのまま
+    (前にClaudeMederuU/dessin/00-dessin.mdを読む)。自制のお約束4つは継続。
+    技術メモ: WebFetch不可=curlで読む・note.com画像はassets.st-note.comをDLしてReadで見る
   - [x] 第93: 項目6系の刷新+小物(v1.75.0)。±を内部値ごと新符号へ統一(表示反転廃止・
     スキーマ2→3読み替え・旧URL/旧CSVの角度は旧符号のままの注意あり)・検索記録は生の
     オフセット中心角へ・My辻行の初期値オフ・プレースホルダー4種+My点のプラスコード対応・
