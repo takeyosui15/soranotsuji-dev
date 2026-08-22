@@ -15,8 +15,8 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const workerSrc = fs.readFileSync(path.join(path.dirname(target), 'tm-vis-worker.js'), 'utf8');
 
-// ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.86.0', /APP_VERSION = '1\.86\.0'/.test(src));
+// ---- V0: 版数の形(第117でピンはverify167へ移譲=最新の検証が持つ) ----
+check('V0 版数の形', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
 check('V0 Version Historyに1.86.0の行がある', src.includes('Version 1.86.0 - ') || !!process.argv[2]);
 
 // ---- W1: 逐次判定とワーカー並列判定の式のパリティ(静的) ----

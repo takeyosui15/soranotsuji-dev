@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
-Version 1.86.0 - 2026-08-22: fix/feat: 第116ラウンド — 可視判定へ地球の丸み+大気差を導入(茶臼山→ダイヤ槍の実戦報告=第115調査の帰結・依頼者GO)+宙の窓の写真テクスチャ: ①統一可視判定コア(_visJudgeCore)を「沈み込み補正付き比較」へ(drop=d²/2Reff を各標高から引いてから従来の直線補間と比較=見かけ高度比較と等価。Reffは視高度計算と同じWGS84局所半径+気差kの実効半径。放物線近似の誤差は300kmで数m)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタが一度に正確化(判定は保守側へ変わる=遠距離でOK→NGになり得る)。辻メッシュのワーカー並列判定(tm-vis-worker)も同一式・同一値でビット一致を維持 ②標高グラフの赤い見通し線を同じ実効地球でたわむ曲線描画へ+可視判定ポップアップの注記を「地球の丸みと大気差を考慮」へ更新 ③宙の窓「:写真テクスチャ」新設(soraPhotoTex・初期値オフ): 地理院の全国最新写真(シームレス)をDEMと同じタイル座標から頂点色として拾い山肌に貼る(頂点単位ドレープ。取得はDEMワーカー相乗り・域外/失敗は標高グレーのまま・太陽光ヒルシェードは写真にも掛かる) ④天体の軌跡線にマーカーと同じ大気差を適用(従来は無しで地平線際に最大0.5°のずれ) ⑤短縮URL辞書v20(soraPhotoTexの2シード。v19以前は復号のみ保証で凍結)
+Version 1.86.0 - 2026-08-22: fix/feat: 第116ラウンド — 可視判定へ地球の丸み+大気差を導入(茶臼山→ダイヤ槍の実戦報告=第115調査の帰結・依頼者GO)+宙の窓の写真テクスチャ: ①統一可視判定コア(_visJudgeCore)を「沈み込み補正付き比較」へ(drop=d²/2Reff を各標高から引いてから従来の直線補間と比較=見かけ高度比較と等価。Reffは視高度計算と同じWGS84局所半径+気差kの実効半径。放物線近似の誤差は300kmで数m)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタが一度に正確化(判定は保守側へ変わる=遠距離でOK→NGになり得る)。辻メッシュのワーカー並列判定(tm-vis-worker)も同一式・同一値でビット一致を維持 ②標高グラフの赤い見通し線を同じ実効地球でたわむ曲線描画へ+可視判定ポップアップの注記を「地球の丸みと大気差を考慮」へ更新 ③宙の窓「:写真テクスチャ」新設(soraPhotoTex・初期値オフ): 地理院の全国最新写真(シームレス)をDEMと同じタイル座標から頂点色として拾い山肌に貼る(頂点単位ドレープ。取得はDEMワーカー相乗り・域外/失敗は標高グレーのまま・太陽光ヒルシェードは写真にも掛かる) ④天体の軌跡線にマーカーと同じ大気差を適用(従来は無しで地平線際に最大0.5°のずれ) ⑤短縮URL辞書v20(soraPhotoTexの2シード。v19以前は復号のみ保証で凍結) ⑥第117ラウンド(リリース前の追補): 可視判定ポップアップ注記の「(v1.86.0から)」を削除(リリースノートが持ち場)・全天儀の天体軌跡線を方位線(中心→天体)と同じ太さのチューブ+背面破線3本重ねへ(_mwFrontBackLine→_mwTrajCircle。等赤緯円はトーラスで厳密描画)・ヘルプの可視判定2箇所を丸み+大気差込みの記述へ更新+「:写真テクスチャ」のヘルプ項目と出典(全国最新写真の構成・GRUS/Landsat-8の個別出所)を追加・地図ⓘの出典を「国土地理院(標高・写真)」へ
 Version 1.85.1 - 2026-08-20: fix: 第108→110ラウンド — 共有URLの不具合修正(第106〜107の調査・議論を受けた案A改・依頼者GO。第110ラウンド: 依頼者指摘「同じURLが意図どおりに開かれないのは不具合」により、機能追加の1.86.0ではなく不具合修正のパッチ版1.85.1として版数を付け直し):①位置情報URL(全部盛り)に辻検索条件51キー+辻メッシュ条件50キーを発行(発行部は辻検索/辻メッシュURLと共用の_emitTsujiSearchCondParams等へ抽出)。検索結果を出した画面の共有は「条件+パネル開閉由来の自動実行」で開くたび同じ結果を再計算して再現 ②復元のmode毎の適用ゲートを廃止(URLに有るキーは常に適用=「発行は絞る、復元は絞らない」。基準方位角/視高度の上書き保護もmode問わずへ) ③天体色/線種を常時発行に(既定値でも省略しない。開いた側の変更色が残らない。既定値のままのURLが変更したURLより短くなるよう短縮辞書v19に既定値ペア44個を追加=依頼者の採用条件・実測536字<592字) ④発行漏れ4キー(soraGrayscale・soraLabelScale・smBldg・smBldgTex)の発行+復元を追加 ⑤短縮URL辞書v19(天体色44ペア+新4キーの8シード。v18以前は復号のみ保証で凍結)
 Version 1.85.0 - 2026-08-17: fix: 第103ラウンド — 移動量の読みの「-0.0」表示を解消: 前/右の分解は三角関数の丸め残差で数学上0の成分が±1e-16m規模の負値になることがあり(基準方位角60°などで「前-0.0m」)、表示精度0.1mで0になる負値は「+0.0」と出すよう整形を修正(実移動・位置反映への影響はもとから皆無=残差は原子1個より小さい)
 Version 1.84.0 - 2026-08-17: fix: 第102ラウンド — 観測点の回転を最終確定(依頼者のデッサン整合の修正): 体の向きとカメラの向きは同じ(どちらも基準方位角+カメラオフセット方位角)。回転ボタン=体を回す=カメラオフセット方位角が±1°変わる(値も入力欄も動く。カメラ向きボタンの方位側と同じ動き)。実装は_smMoveHeadingを全廃し、回転ボタンを_smCamNudgeMoveへ接続(第98までの形+接続1点に収束)。移動と読みの分解は体の向き=基準+オフセット基準。カメラ向きボタン押下時に読みも再分解するよう改善。ツールチップ・デッサン06・リリースノートを更新
@@ -962,8 +962,8 @@ function initMapGL(mapEl) {
     glMap.addControl(new maplibregl.AttributionControl({
         compact: true,   // ⓘアイコンで折りたたみ(タップ/クリックで展開。常時1行表示より省スペース)
         // ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、ここには
-        // 地図ソースでないデータの出典のみ載せる(標高タイル=国土地理院・気象=Open-Meteo。重複表示の防止)
-        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高)</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
+        // 地図ソースでないデータの出典のみ載せる(標高タイル+宙の窓の写真テクスチャ=国土地理院・気象=Open-Meteo。重複表示の防止)
+        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高・写真)</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
     }), 'bottom-right');
     // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)。
     // ※辻メッシュ画像は第36ラウンドでcanvasソース化し非同期ロード自体が無くなったため、
@@ -12010,7 +12010,7 @@ async function showVisibilityResult(generation) {
         appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
         appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
     if (generation !== undefined && generation !== _elevFetchGeneration) return;
-    const note = '\n\n※ 地球の丸みと大気差(:大気差設定・気象値に連動)を考慮した判定です(v1.86.0から)';
+    const note = '\n\n※ 地球の丸みと大気差(:大気差設定・気象値に連動)を考慮した判定です';
     if (r.visible) {
         alert('可視判定: OK\n観測点から目的点が見通せます' + note);
     } else {
@@ -15113,12 +15113,7 @@ function _mwUpdateBodies() {
         const pos = new THREE.Vector3(v[0] * R, v[1] * R, v[2] * R);
         const col = new THREE.Color(body.color || '#DDA0DD');
         // 軌跡: 日周運動=EQJ系の等赤緯円(中心座標を0°として±180°=全周を常に描画)
-        const circPts = [];
-        for (let a = 0; a <= 360; a += 4) {
-            const cv = _mwEquVec(ra + a / 15, dec);
-            circPts.push(new THREE.Vector3(cv[0] * R, cv[1] * R, cv[2] * R));
-        }
-        _mwBodiesObjGrp.add(_mwFrontBackLine(circPts, col, 0.55, false));   // 前面=実線/背面=破線(回転に追従)
+        _mwBodiesObjGrp.add(_mwTrajCircle(ra, dec, R, col, 0.55));   // 前面=方位線と同じ太さのチューブ実線/背面=破線(回転に追従)
         _mwLabelItems.push({ name: body.name, color: body.color || '#DDA0DD', pos });
         if (body.id === 'MilkyWay') return;   // 天の川のマーカー/方位線は _mwBuildMilkyWayRing 側で表現(基準点の軌跡とラベルのみここで)
         const mat = new THREE.MeshBasicMaterial({ color: col });
@@ -15310,15 +15305,27 @@ function _mwPatchFrontBack(mat, frontOnly) {
     return mat;
 }
 
-/** 球面上のポリラインを「前面=実線/背面=破線」の2本組(Group)で作る。globe/world中心が原点にあるオブジェクト用 */
-function _mwFrontBackLine(points, color, opacity, loop) {
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    const Ctor = loop ? THREE.LineLoop : THREE.Line;
-    const solid = new Ctor(geo, _mwPatchFrontBack(new THREE.LineBasicMaterial({ color, transparent: true, opacity }), true));
-    const dashed = new Ctor(geo, _mwPatchFrontBack(new THREE.LineDashedMaterial({ color, transparent: true, opacity: opacity * 0.75, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
-    dashed.computeLineDistances();
+/** 天体軌跡の等赤緯円を「前面=チューブ実線/背面=破線」の組(Group)で作る(第117ラウンド: 旧_mwFrontBackLineの置き換え)。
+ *  前面の実線は方位線(中心→天体)と同じ太さ(0.0025R)のチューブ。等赤緯円はZ軸(EQJ極)まわりの真円なので
+ *  トーラスで厳密に描ける(ジオメトリ側をtranslateして原点=天球中心を保ち、_mwPatchFrontBackの前面判定を守る)。
+ *  背面の破線は地平線円と同じ「少しずらした3本重ね」で実線の太さに揃える。 */
+function _mwTrajCircle(raHours, decDeg, R, color, opacity) {
+    const decR = decDeg * _MW_D2R;
     const grp = new THREE.Group();
-    grp.add(solid); grp.add(dashed);
+    const torGeo = new THREE.TorusGeometry(R * Math.cos(decR), 0.0025 * _MW_R, 6, 128);
+    torGeo.translate(0, 0, R * Math.sin(decR));
+    grp.add(new THREE.Mesh(torGeo, _mwPatchFrontBack(new THREE.MeshBasicMaterial({ color, transparent: true, opacity }), true)));
+    for (const rr of [0.9975, 1.0, 1.0025]) {
+        const pts = [];
+        for (let a = 0; a < 360; a += 4) {
+            const cv = _mwEquVec(raHours + a / 15, decDeg);
+            pts.push(new THREE.Vector3(cv[0] * R * rr, cv[1] * R * rr, cv[2] * R * rr));
+        }
+        const dashed = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+            _mwPatchFrontBack(new THREE.LineDashedMaterial({ color, transparent: true, opacity: opacity * 0.75, dashSize: 0.035 * _MW_R, gapSize: 0.025 * _MW_R }), false));
+        dashed.computeLineDistances();
+        grp.add(dashed);
+    }
     return grp;
 }
 
