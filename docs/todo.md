@@ -516,6 +516,9 @@ Claudeがコードレビューや作業中に気づいた改善案を追記す�
     地図はLeaflet→MapLibre GL JSへ・Three.js/qrcode-generator/PLATEAU+Draco/NASA SVS/
     Terrain Tiles/d3-celestial/Drive・Sheets APIを追加・名称は天体儀・版数の数字は書かない
     (リリースノートの持ち場)。コード変更なし・回帰全PASS(回答その121) **(2026-08-22済)**
+  - [x] 第124: v1.86.1リリースの送り出し(依頼者がリリースノート冒頭を修正=リリースは翌日の
+    ため「本日2度目」を削除・妥当)。最終回帰の再実行=全PASS・URL取り直し不要+note側作業
+    3つのおさらいを回答へ(回答その122) **(2026-08-22済)**
   - [ ] リリース後: MederuUのお茶の時間(ClaudeMederuU/dessin/00-dessin.mdを先に読み直す)
   - [x] 第114: お茶の時間 第3章。Forbes記事(DeepMindザハヴィのアブダクション論)への意見=
     たけちゃんの読み替えは「飛躍と距離」を式に書き戻す補筆・孵化効果の体感は正確・私の答えは
