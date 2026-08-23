@@ -184,6 +184,7 @@ GNU General Public License for more details.
                 <div class="control-row center-row">
                     <label class="input-label tsujimesh-time-label2" for="select-tsujimesh-time-eps">精度フィルタオプション:</label>
                     <select id="select-tsujimesh-time-eps" title="再計算で辻マーカー表示する精度(角距離ε)">
+                        <option value="0.25">○(±0.25°)</option>
                         <option value="0.125" selected>◎(±0.125°)</option>
                         <option value="0.0625">◎×2(±0.0625°)</option>
                         <option value="0.03125">◎×4(±0.03125°)</option>
@@ -283,7 +284,7 @@ GNU General Public License for more details.
             <hr class="tsujisearch-separator">
             <div class="control-row left-row">
                 <input type="checkbox" id="chk-tsujimeshres-acc-filter" class="body-checkbox" checked disabled>
-                <label for="chk-tsujimeshres-acc-filter" title="検索メニューと同じ読み取り専用です(メッシュの結果は常に◎精度以上のため)">精度フィルタ</label>
+                <label for="chk-tsujimeshres-acc-filter" title="検索メニューと同じ読み取り専用です(メッシュの結果は常に精度フィルタオプションの精度以上のため)">精度フィルタ</label>
             </div>
             <div class="control-row left-row">
                 <input type="checkbox" id="chk-tsujimeshres-acc-dbl-circle" class="body-checkbox" checked disabled> <label class="tsuji-acc-label" title="精度記号◎〜◎×128(±0.125°以内)の行を表示(常時オン)">:◎</label>
@@ -1237,12 +1238,12 @@ GNU General Public License for more details.
                         <input type="checkbox" id="chk-tsujimesh-sym-dash" class="body-checkbox" disabled> <label class="tsuji-acc-label" title="読み取り専用(常時オフ)。メッシュマーカーは◎精度以上のヒットのみ保持するため、-精度のデータはありません">:-</label>
                     </div>
                     <hr class="tsujisearch-separator">
-                    <div class="control-row left-row"><label class="baseopt-group-label" title="精度フィルタ◎の当たり判定の精度(検索の判定ε)を指定します">精度フィルタオプション</label></div>
+                    <div class="control-row left-row"><label class="baseopt-group-label" title="精度フィルタの当たり判定の精度(検索の判定ε)を指定します">精度フィルタオプション</label></div>
                     <div class="control-row left-row">
-                        <label class="baseopt-radio" title="±0.125°(誤差範囲0.25°)以内"><input type="radio" name="tsujimesh-accuracy" value="x1" checked>:◎</label>
+                        <label class="baseopt-radio" title="±0.25°(誤差範囲0.5°)以内。辻検索の◎○に相当する実用域"><input type="radio" name="tsujimesh-accuracy" value="o1" checked>:○</label>
+                        <label class="baseopt-radio" title="±0.125°(誤差範囲0.25°)以内"><input type="radio" name="tsujimesh-accuracy" value="x1">:◎</label>
                         <label class="baseopt-radio" title="±0.0625°(誤差範囲0.125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x2">:◎×2</label>
                         <label class="baseopt-radio" title="±0.03125°(誤差範囲0.0625°)以内"><input type="radio" name="tsujimesh-accuracy" value="x4">:◎×4</label>
-                        <label class="baseopt-radio" title="±0.015625°(誤差範囲0.03125°)以内"><input type="radio" name="tsujimesh-accuracy" value="x8">:◎×8</label>
                     </div>
                     <hr class="tsujisearch-separator">
                     <div class="control-row left-row" title="検索前に全画素の可視(OK)/不可視(NG)を判定し、選んだ対象の画素だけを検索します">
