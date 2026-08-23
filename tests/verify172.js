@@ -1,7 +1,8 @@
-// 第128ラウンド検証: v1.87.0への追補 — ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に
+// 第128〜130ラウンド検証: v1.87.0への追補 — ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に
 // (×8撤去=x8はx4へ読み替え・ctrlのselectにも○・辞書v21) ②宙の窓ボタンで開き直す度にカメラ
 // オフセットをリセット(URL自動オープンは守る) ③更新系の結合レベルテスト(第126の未カバー4件:
-// 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト)。
+// 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト)
+// ④第130: 読み取り専用の精度フィルタ表示「:○」がオプションへ連動(依頼者のリリース直前指摘)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -55,6 +56,27 @@ check('V0 版数ピン 1.87.0+Version Historyに第128の追補', /APP_VERSION =
     check('M2 旧保存/URLのx8は最も近いx4へ読み替え(既定の○へ落とさない)', r.mig);
     check('M3 辻時刻の精度フィルタオプションselectの先頭に○(±0.25°)が入り9段', r.sel);
     check('M4 既定URLにtsujiMeshAccuracy=o1が乗り、短縮URLはv21で往復', r.emitted&&r.ver==='~21~'&&r.round, JSON.stringify({v:r.ver}));
+  }
+
+  // ---- M5: 読み取り専用の精度フィルタ表示「:○」のオプション連動(第130) ----
+  {
+    const r=await p.evaluate(()=>{
+      const st=(id)=>document.getElementById(id).checked;
+      const setAcc=(v)=>{ const el=document.querySelector(`input[name="tsujimesh-accuracy"][value="${v}"]`); el.checked=true; el.dispatchEvent(new Event('change')); };
+      const out={};
+      setAcc('o1');
+      out.o1=st('chk-tsujimesh-sym-maru')&&st('chk-tsujimeshres-acc-circle')&&st('chk-tsujimesh-sym-maru2');
+      setAcc('x1');
+      out.x1=!st('chk-tsujimesh-sym-maru')&&!st('chk-tsujimeshres-acc-circle')&&st('chk-tsujimesh-sym-maru2');
+      setAcc('x4');
+      out.x4=!st('chk-tsujimesh-sym-maru')&&!st('chk-tsujimeshres-acc-circle');
+      setAcc('o1');
+      out.back=st('chk-tsujimesh-sym-maru')&&st('chk-tsujimeshres-acc-circle');
+      out.symO=appState.tsujiMeshSymO===false;   // 状態キーは触らない(URL/保存互換)
+      return out;
+    });
+    check('M5 読み取り専用「:○」がオプション連動(○=両面オン・◎系=オフ・◎は常時オン・状態キー不変)',
+      r.o1&&r.x1&&r.x4&&r.back&&r.symO, JSON.stringify(r));
   }
 
   // ---- S1/S2: 宙の窓カメラオフセットのリセット ----
