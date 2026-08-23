@@ -1,8 +1,9 @@
-// 第128〜130ラウンド検証: v1.87.0への追補 — ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に
+// 第128〜131ラウンド検証: v1.87.0への追補 — ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に
 // (×8撤去=x8はx4へ読み替え・ctrlのselectにも○・辞書v21) ②宙の窓ボタンで開き直す度にカメラ
 // オフセットをリセット(URL自動オープンは守る) ③更新系の結合レベルテスト(第126の未カバー4件:
 // 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト)
-// ④第130: 読み取り専用の精度フィルタ表示「:○」がオプションへ連動(依頼者のリリース直前指摘)。
+// ④第130→131: 読み取り専用の精度フィルタ表示「:○」は常時オンの固定表示(依頼者の設計モデル:
+// 精度フィルタ=対象の下限○までを示す固定の枠・精度フィルタオプション=保持する精度の範囲を決める)。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -58,25 +59,23 @@ check('V0 版数ピン 1.87.0+Version Historyに第128の追補', /APP_VERSION =
     check('M4 既定URLにtsujiMeshAccuracy=o1が乗り、短縮URLはv21で往復', r.emitted&&r.ver==='~21~'&&r.round, JSON.stringify({v:r.ver}));
   }
 
-  // ---- M5: 読み取り専用の精度フィルタ表示「:○」のオプション連動(第130) ----
+  // ---- M5: 読み取り専用の精度フィルタ表示「:○」は常時オン(第131・オプションを切り替えても不変) ----
   {
     const r=await p.evaluate(()=>{
       const st=(id)=>document.getElementById(id).checked;
       const setAcc=(v)=>{ const el=document.querySelector(`input[name="tsujimesh-accuracy"][value="${v}"]`); el.checked=true; el.dispatchEvent(new Event('change')); };
+      const both=()=>st('chk-tsujimesh-sym-maru')&&st('chk-tsujimeshres-acc-circle')&&st('chk-tsujimesh-sym-maru2');
       const out={};
-      setAcc('o1');
-      out.o1=st('chk-tsujimesh-sym-maru')&&st('chk-tsujimeshres-acc-circle')&&st('chk-tsujimesh-sym-maru2');
-      setAcc('x1');
-      out.x1=!st('chk-tsujimesh-sym-maru')&&!st('chk-tsujimeshres-acc-circle')&&st('chk-tsujimesh-sym-maru2');
-      setAcc('x4');
-      out.x4=!st('chk-tsujimesh-sym-maru')&&!st('chk-tsujimeshres-acc-circle');
-      setAcc('o1');
-      out.back=st('chk-tsujimesh-sym-maru')&&st('chk-tsujimeshres-acc-circle');
+      setAcc('o1'); out.o1=both();
+      setAcc('x1'); out.x1=both();
+      setAcc('x4'); out.x4=both();
+      setAcc('o1'); out.back=both();
       out.symO=appState.tsujiMeshSymO===false;   // 状態キーは触らない(URL/保存互換)
+      out.noSync=typeof window._tmSyncSymODisplay==='undefined';   // 第130の連動関数は撤去済み
       return out;
     });
-    check('M5 読み取り専用「:○」がオプション連動(○=両面オン・◎系=オフ・◎は常時オン・状態キー不変)',
-      r.o1&&r.x1&&r.x4&&r.back&&r.symO, JSON.stringify(r));
+    check('M5 読み取り専用「:○」は常時オン(○/◎/◎×4どれを選んでも両面オン・◎も常時オン・状態キー不変・連動関数撤去)',
+      r.o1&&r.x1&&r.x4&&r.back&&r.symO&&r.noSync, JSON.stringify(r));
   }
 
   // ---- S1/S2: 宙の窓カメラオフセットのリセット ----
