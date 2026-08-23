@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.87.0 - 2026-08-23: feat: 第127ラウンド — Googleドライブ同期の「:自動更新」(依頼者提案・GO): 同期ダイアログの一番下に「:自動更新」チェック(初期値オフ・appState.googleDrive.autoSyncに永続)。オンの間、端末の内容に変更があるとデバウンス(最後の変更から30秒後にまとめて1回=saveAppStateから_autoSyncArm→_autoSyncFlush。画面が裏に回るvisibilitychangeでも待たずに1回)でドライブへ自動保存(quiet=成功/失敗のalertなし)。設計条件3つ: ①デバウンスでAPI割り当てと通信量を守る ②競合ガード=書き込み直前にドライブのmodifiedTimeが前回同期と一致するか確認し、不一致(他端末が先に保存・この端末が未同期)なら自動では上書きせず👎に戻して人に委ねる ③トークン切れは🈚️でログインを促す・通信失敗は静かに諦めて次の機会に(変更は端末に残る)。内容の変更なし(簿記保存のみ=指紋一致)は書かない
 Version 1.86.2 - 2026-08-23: fix: 第125ラウンド — Googleドライブ同期ダイアログの[New]が両方に付くことがある不具合の修正(依頼者報告)。原因は日付比較ではなく[New]の意味: 旧実装は「前回同期からその側が変わったか」を両側独立に表示(第36設計)しており、①両側とも変わった競合時 ②同期簿記が無い時のフォールバック、の2経路で両方に点灯した。修正: [New]は常にどちらか一方だけ=片側だけ変わっていればその側(簿記保存でsavedAtが進んでも付かない第36の性質は維持)・両側変わった競合時は更新日時そのもの(ミリ秒までの日時比較)で新しい側だけに付ける。👍/👎の判定(指紋+modifiedTime)は不変
 Version 1.86.1 - 2026-08-22: fix: 第122ラウンド — ①天体儀の天の川オフセット点の逆回り修正(依頼者報告: オフセット中心角を変えると中心→オフセット点の方位線が軌跡とズレる)。原因は_mwBuildMilkyWayRingのオフセット点だけ収録角を生のまま銀経へ渡していた反転漏れ(第93の符号統一「夏の天の川を上から見て時計回りが正」の取り残し=v1.75.0以来)。依頼者の基準(2026-06-21夏至の日の入・天頂から中心を見て時計回りが正)で数値検証: 正典のgetMilkyWayBaseRaDec系(天体儀の軌跡・辻ライン・辻検索・辻メッシュ・My辻検索)は角度+30/+60でaz126°→156°→186°と時計回り=正しく、天体儀のオフセット点マーカー+方位線だけ逆回り(+30が-30の位置)だった。修正はgetMilkyWayBaseRaDecへの一本化(以後この点は構造的に軌跡・検索と一致) ②名称修正「全天儀」→「天体儀」(依頼者指摘: 全天儀は造語だった。UI・ツールチップ・ヘルプ・デッサン等の全文置換。DOM idとVersion History過去行はそのまま)
 Version 1.86.0 - 2026-08-22: fix/feat: 第116ラウンド — 可視判定へ地球の丸み+大気差を導入(茶臼山→ダイヤ槍の実戦報告=第115調査の帰結・依頼者GO)+宙の窓の写真テクスチャ: ①統一可視判定コア(_visJudgeCore)を「沈み込み補正付き比較」へ(drop=d²/2Reff を各標高から引いてから従来の直線補間と比較=見かけ高度比較と等価。Reffは視高度計算と同じWGS84局所半径+気差kの実効半径。放物線近似の誤差は300kmで数m)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタが一度に正確化(判定は保守側へ変わる=遠距離でOK→NGになり得る)。辻メッシュのワーカー並列判定(tm-vis-worker)も同一式・同一値でビット一致を維持 ②標高グラフの赤い見通し線を同じ実効地球でたわむ曲線描画へ+可視判定ポップアップの注記を「地球の丸みと大気差を考慮」へ更新 ③宙の窓「:写真テクスチャ」新設(soraPhotoTex・初期値オフ): 地理院の全国最新写真(シームレス)をDEMと同じタイル座標から頂点色として拾い山肌に貼る(頂点単位ドレープ。取得はDEMワーカー相乗り・域外/失敗は標高グレーのまま・太陽光ヒルシェードは写真にも掛かる) ④天体の軌跡線にマーカーと同じ大気差を適用(従来は無しで地平線際に最大0.5°のずれ) ⑤短縮URL辞書v20(soraPhotoTexの2シード。v19以前は復号のみ保証で凍結) ⑥第117ラウンド(リリース前の追補): 可視判定ポップアップ注記の「(v1.86.0から)」を削除(リリースノートが持ち場)・全天儀の天体軌跡線を方位線(中心→天体)と同じ太さのチューブ+背面破線3本重ねへ(_mwFrontBackLine→_mwTrajCircle。等赤緯円はトーラスで厳密描画)・ヘルプの可視判定2箇所を丸み+大気差込みの記述へ更新+「:写真テクスチャ」のヘルプ項目と出典(全国最新写真の構成・GRUS/Landsat-8の個別出所)を追加・地図ⓘの出典を「国土地理院(標高・写真)」へ ⑦第118ラウンド(リリース前の追補2): 全天儀の軌跡線をさらに2倍の太さ(0.005R=方位線の2倍)へ(スマホでの見やすさ=依頼者指定)
@@ -153,7 +154,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.86.2';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.87.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -569,7 +570,8 @@ let appState = {
         lastSyncDriveModifiedTime: null,   // 最後に同期した時のドライブ側modifiedTime
         lastSyncFingerprint: null,         // 最後に同期した時のローカル内容の指紋
         lastDriveModifiedTime: null,       // 最後に確認したドライブ側modifiedTime(表示用)
-        lastDriveSize: null                // 最後に確認したドライブ側サイズ(表示用)
+        lastDriveSize: null,               // 最後に確認したドライブ側サイズ(表示用)
+        autoSync: false                    // 「:自動更新」(第127ラウンド。変更をデバウンスして自動でドライブへ保存)
     },
 
     // My辻検索
@@ -2267,6 +2269,11 @@ function setupUI() {
     document.getElementById('gdrive-sync-save').onclick = () => { closeGdriveSyncDialog(); saveAppToDrive(); };
     document.getElementById('gdrive-sync-load').onclick = () => { closeGdriveSyncDialog(); loadAppFromDrive(); };
     document.getElementById('gdrive-sync-cancel').onclick = closeGdriveSyncDialog;
+    document.getElementById('chk-gdrive-autosync').addEventListener('change', (e) => {
+        appState.googleDrive.autoSync = e.target.checked;
+        saveAppState();
+        if (e.target.checked) _autoSyncArm();   // オンにした直後の未保存変更も拾う
+    });
 
     // Myセット
     document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
@@ -2574,6 +2581,7 @@ function saveAppState() {
     }
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        _autoSyncArm();   // 「:自動更新」(第127): 変更のたびにデバウンスタイマーを引き直す(オフ時・自動保存中は中で無視)
     } catch (e) {
         // 容量超過(QuotaExceeded)等。呼び出し元(全UIハンドラ約200箇所)を例外で
         // 巻き込まない+無音で保存されない状態を作らない(第36ラウンドの整合性調査)
@@ -12388,8 +12396,54 @@ async function resolveAppFile() {
     return null;
 }
 
-/** 端末の内容をGoogleドライブに保存 (作成/上書き+サイズ検証) */
-async function saveAppToDrive() {
+// ---- 「:自動更新」(第127ラウンド・依頼者GO。設計条件3つ込み) ----
+// 変更のたびに即アップロードはせず、最後の変更から一定時間後にまとめて1回書き込む(デバウンス)。
+// 画面が裏に回る時(visibilitychange)は待たずに1回。書き込み直前に競合ガード:
+// ドライブのmodifiedTimeが前回同期と一致しない(=他端末が先に保存した・またはこの端末が
+// まだ一度も同期していない)時は、自動では上書きせず👎に戻して同期ダイアログ(人の判断)に委ねる。
+// トークン切れは🈚️(ログインのお願い)・通信の失敗は静かに諦めて次の機会に(変更は端末に残る)。
+var _autoSyncTimer = null;
+var _autoSyncBusy = false;
+var _autoSyncDebounceMs = 30000;   // 最後の変更から30秒(検証から差し替えられるようvar)
+function _autoSyncArm() {
+    if (!appState.googleDrive.autoSync || _autoSyncBusy) return;
+    if (_autoSyncTimer) clearTimeout(_autoSyncTimer);
+    _autoSyncTimer = setTimeout(() => { _autoSyncTimer = null; _autoSyncFlush(); }, _autoSyncDebounceMs);
+}
+async function _autoSyncFlush() {
+    const gd = appState.googleDrive;
+    if (_autoSyncBusy || !gd.autoSync) return;
+    if (_autoSyncTimer) { clearTimeout(_autoSyncTimer); _autoSyncTimer = null; }
+    if (!isGoogleLoggedIn()) { googleSyncState = 'none'; updateGoogleLoginIcon(); return; }   // トークン切れ=🈚️でログインを促す
+    _autoSyncBusy = true;
+    try {
+        if (localContentFingerprint() === gd.lastSyncFingerprint) return;   // 内容の変更なし(簿記保存のみ)は書かない
+        const meta = await resolveAppFile();
+        if (meta && meta.modifiedTime !== gd.lastSyncDriveModifiedTime) {
+            // 競合ガード: 他端末が先に保存した(またはこの端末が未同期の)ドライブを自動では上書きしない
+            gd.lastDriveModifiedTime = meta.modifiedTime;
+            gd.lastDriveSize = Number(meta.size) || null;
+            googleSyncState = 'stale';
+            updateGoogleLoginIcon();
+            return;
+        }
+        await saveAppToDrive({ quiet: true });
+    } catch (e) {
+        console.error('_autoSyncFlush:', e);   // 通信の失敗等は静かに諦めて次の機会に
+        googleSyncState = 'stale';
+        updateGoogleLoginIcon();
+    } finally {
+        _autoSyncBusy = false;
+    }
+}
+// 画面を閉じる/裏に回る時: デバウンス待ちの変更があれば待たずに書き込む
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && appState.googleDrive.autoSync && _autoSyncTimer) _autoSyncFlush();
+});
+
+/** 端末の内容をGoogleドライブに保存 (作成/上書き+サイズ検証)。opts.quiet=trueで成功/失敗のalertを出さない(自動更新用) */
+async function saveAppToDrive(opts) {
+    const quiet = !!(opts && opts.quiet);
     const gd = appState.googleDrive;
     googleSyncState = 'checking';
     updateGoogleLoginIcon();
@@ -12417,13 +12471,13 @@ async function saveAppToDrive() {
         googleSyncState = 'ok';
         saveAppState();
         updateGoogleLoginIcon();
-        alert('端末の内容をGoogleドライブに保存しました。');
+        if (!quiet) alert('端末の内容をGoogleドライブに保存しました。');
         return true;
     } catch (e) {
         console.error('saveAppToDrive:', e);
         googleSyncState = 'broken';
         updateGoogleLoginIcon();
-        alert('Googleドライブへの保存に失敗しました。\n' + e.message);
+        if (!quiet) alert('Googleドライブへの保存に失敗しました。\n' + e.message);
         return false;
     }
 }
@@ -12534,6 +12588,8 @@ function openGdriveSyncDialog() {
         `更新: ${formatMySetDateTime(localSavedAt)}${localNew ? NEW_MARK : ''}`;
     document.getElementById('gdrive-sync-drive').innerHTML =
         `更新: ${driveTime ? formatMySetDateTime(driveTime) : '-'}${driveNew ? NEW_MARK : ''}`;
+    const autoChk = document.getElementById('chk-gdrive-autosync');
+    if (autoChk) autoChk.checked = !!gd.autoSync;
     dlg.classList.remove('hidden');
 }
 
