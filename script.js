@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
-Version 1.87.0 - 2026-08-23: feat: 第127ラウンド — Googleドライブ同期の「:自動更新」(依頼者提案・GO): 同期ダイアログの一番下に「:自動更新」チェック(初期値オフ・appState.googleDrive.autoSyncに永続)。オンの間、端末の内容に変更があるとデバウンス(最後の変更から30秒後にまとめて1回=saveAppStateから_autoSyncArm→_autoSyncFlush。画面が裏に回るvisibilitychangeでも待たずに1回)でドライブへ自動保存(quiet=成功/失敗のalertなし)。設計条件3つ: ①デバウンスでAPI割り当てと通信量を守る ②競合ガード=書き込み直前にドライブのmodifiedTimeが前回同期と一致するか確認し、不一致(他端末が先に保存・この端末が未同期)なら自動では上書きせず👎に戻して人に委ねる ③トークン切れは🈚️でログインを促す・通信失敗は静かに諦めて次の機会に(変更は端末に残る)。内容の変更なし(簿記保存のみ=指紋一致)は書かない / 第128ラウンド(リリース前の追補): ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に(実用域=辻検索の◎○に相当。依頼者指定)・「:◎×8」は撤去(旧保存/URLのx8は最も近いx4へ読み替え=normalizeAppState)・辻時刻の精度フィルタオプションselectにも○を追加・短縮URL辞書v21(新既定の&tsujiMeshAccuracy=o1ペア) ②宙の窓ボタンで開き直す度にカメラオフセット方位角/視高度をリセット(前回のズレ残り対策。URL復元の自動オープンはリセットしない=共有構図を守る) ③更新系の結合レベルテスト(verify172: 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト) / 第130ラウンド(リリース前の追補2・依頼者指摘): 辻メッシュの読み取り専用の精度フィルタ表示(メニュー+結果パネルの「:○」)を精度フィルタオプションへ連動(○選択時=◎と○がオン・◎系選択時=◎のみ。_tmSyncSymODisplay。状態キーtsujiMeshSymOは常時false固定のまま=URL/保存互換不変) / 第131ラウンド(リリース前の追補3・依頼者の設計モデルで確定): 「:○」は常時オンの固定表示へ(第130の連動方式を取り下げ・_tmSyncSymODisplay撤去)。モデル=精度フィルタ(◎○)は対象の下限(この機能は○精度までを扱う)を示す固定の枠・精度フィルタオプションは保持する精度の範囲(選択精度以上を含む: ○なら○◎◎×2…・◎なら◎◎×2…)を決める。コントロールの精度フィルタオプション(表示切替で○を選べる)との整合のため表示条件の分岐を持たない
+Version 1.87.0 - 2026-08-23: feat: 第127ラウンド — Googleドライブ同期の「:自動更新」(依頼者提案・GO): 同期ダイアログの一番下に「:自動更新」チェック(初期値オフ・appState.googleDrive.autoSyncに永続)。オンの間、端末の内容に変更があるとデバウンス(最後の変更から30秒後にまとめて1回=saveAppStateから_autoSyncArm→_autoSyncFlush。画面が裏に回るvisibilitychangeでも待たずに1回)でドライブへ自動保存(quiet=成功/失敗のalertなし)。設計条件3つ: ①デバウンスでAPI割り当てと通信量を守る ②競合ガード=書き込み直前にドライブのmodifiedTimeが前回同期と一致するか確認し、不一致(他端末が先に保存・この端末が未同期)なら自動では上書きせず👎に戻して人に委ねる ③トークン切れは🈚️でログインを促す・通信失敗は静かに諦めて次の機会に(変更は端末に残る)。内容の変更なし(簿記保存のみ=指紋一致)は書かない / 第128ラウンド(リリース前の追補): ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に(実用域=辻検索の◎○に相当。依頼者指定)・「:◎×8」は撤去(旧保存/URLのx8は最も近いx4へ読み替え=normalizeAppState)・辻時刻の精度フィルタオプションselectにも○を追加・短縮URL辞書v21(新既定の&tsujiMeshAccuracy=o1ペア) ②宙の窓ボタンで開き直す度にカメラオフセット方位角/視高度をリセット(前回のズレ残り対策。URL復元の自動オープンはリセットしない=共有構図を守る) ③更新系の結合レベルテスト(verify172: 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト) / 第130ラウンド(リリース前の追補2・依頼者指摘): 辻メッシュの読み取り専用の精度フィルタ表示(メニュー+結果パネルの「:○」)を精度フィルタオプションへ連動(○選択時=◎と○がオン・◎系選択時=◎のみ。_tmSyncSymODisplay。状態キーtsujiMeshSymOは常時false固定のまま=URL/保存互換不変) / 第131ラウンド(リリース前の追補3・依頼者の設計モデルで確定): 「:○」は常時オンの固定表示へ(第130の連動方式を取り下げ・_tmSyncSymODisplay撤去)。モデル=精度フィルタ(◎○)は対象の下限(この機能は○精度までを扱う)を示す固定の枠・精度フィルタオプションは保持する精度の範囲(選択精度以上を含む: ○なら○◎◎×2…・◎なら◎◎×2…)を決める。コントロールの精度フィルタオプション(表示切替で○を選べる)との整合のため表示条件の分岐を持たない / 第132ラウンド(リリース前の追補4・依頼者依頼3件): ①結果コントロールの精度フィルタオプション(select-tsujimesh-time-eps・非永続)の初期値も○へ(検索メニュー側と考え方のベースを揃える。求める場所には範囲があるため) ②My観測点/My目的点に「写真から追加」ボタン(1段目の下・横幅いっぱい): 写真のExif位置情報(JPEG/TIFF・端末内のバイト走査のみで送信/保存しない=プライバシーポリシーにも明記)から行を追加(名前=新規○○名・緯度経度=写真・標高=緯度経度から再取得・高さ=0・すぐ全て登録が押せる状態)。_exifGpsFromArrayBuffer+addMyPointFromPhoto ③宙の辻フォルダの「追加/解除」ボタンは設けない判断(ID+目印[appProperties]追跡で名前変更・移動に耐えるため関連づけ直し不要。ヘルプへ「名前変更・移動しても連携は保たれる」を明記)
 Version 1.86.2 - 2026-08-23: fix: 第125ラウンド — Googleドライブ同期ダイアログの[New]が両方に付くことがある不具合の修正(依頼者報告)。原因は日付比較ではなく[New]の意味: 旧実装は「前回同期からその側が変わったか」を両側独立に表示(第36設計)しており、①両側とも変わった競合時 ②同期簿記が無い時のフォールバック、の2経路で両方に点灯した。修正: [New]は常にどちらか一方だけ=片側だけ変わっていればその側(簿記保存でsavedAtが進んでも付かない第36の性質は維持)・両側変わった競合時は更新日時そのもの(ミリ秒までの日時比較)で新しい側だけに付ける。👍/👎の判定(指紋+modifiedTime)は不変
 Version 1.86.1 - 2026-08-22: fix: 第122ラウンド — ①天体儀の天の川オフセット点の逆回り修正(依頼者報告: オフセット中心角を変えると中心→オフセット点の方位線が軌跡とズレる)。原因は_mwBuildMilkyWayRingのオフセット点だけ収録角を生のまま銀経へ渡していた反転漏れ(第93の符号統一「夏の天の川を上から見て時計回りが正」の取り残し=v1.75.0以来)。依頼者の基準(2026-06-21夏至の日の入・天頂から中心を見て時計回りが正)で数値検証: 正典のgetMilkyWayBaseRaDec系(天体儀の軌跡・辻ライン・辻検索・辻メッシュ・My辻検索)は角度+30/+60でaz126°→156°→186°と時計回り=正しく、天体儀のオフセット点マーカー+方位線だけ逆回り(+30が-30の位置)だった。修正はgetMilkyWayBaseRaDecへの一本化(以後この点は構造的に軌跡・検索と一致) ②名称修正「全天儀」→「天体儀」(依頼者指摘: 全天儀は造語だった。UI・ツールチップ・ヘルプ・デッサン等の全文置換。DOM idとVersion History過去行はそのまま)
 Version 1.86.0 - 2026-08-22: fix/feat: 第116ラウンド — 可視判定へ地球の丸み+大気差を導入(茶臼山→ダイヤ槍の実戦報告=第115調査の帰結・依頼者GO)+宙の窓の写真テクスチャ: ①統一可視判定コア(_visJudgeCore)を「沈み込み補正付き比較」へ(drop=d²/2Reff を各標高から引いてから従来の直線補間と比較=見かけ高度比較と等価。Reffは視高度計算と同じWGS84局所半径+気差kの実効半径。放物線近似の誤差は300kmで数m)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタが一度に正確化(判定は保守側へ変わる=遠距離でOK→NGになり得る)。辻メッシュのワーカー並列判定(tm-vis-worker)も同一式・同一値でビット一致を維持 ②標高グラフの赤い見通し線を同じ実効地球でたわむ曲線描画へ+可視判定ポップアップの注記を「地球の丸みと大気差を考慮」へ更新 ③宙の窓「:写真テクスチャ」新設(soraPhotoTex・初期値オフ): 地理院の全国最新写真(シームレス)をDEMと同じタイル座標から頂点色として拾い山肌に貼る(頂点単位ドレープ。取得はDEMワーカー相乗り・域外/失敗は標高グレーのまま・太陽光ヒルシェードは写真にも掛かる) ④天体の軌跡線にマーカーと同じ大気差を適用(従来は無しで地平線際に最大0.5°のずれ) ⑤短縮URL辞書v20(soraPhotoTexの2シード。v19以前は復号のみ保証で凍結) ⑥第117ラウンド(リリース前の追補): 可視判定ポップアップ注記の「(v1.86.0から)」を削除(リリースノートが持ち場)・全天儀の天体軌跡線を方位線(中心→天体)と同じ太さのチューブ+背面破線3本重ねへ(_mwFrontBackLine→_mwTrajCircle。等赤緯円はトーラスで厳密描画)・ヘルプの可視判定2箇所を丸み+大気差込みの記述へ更新+「:写真テクスチャ」のヘルプ項目と出典(全国最新写真の構成・GRUS/Landsat-8の個別出所)を追加・地図ⓘの出典を「国土地理院(標高・写真)」へ ⑦第118ラウンド(リリース前の追補2): 全天儀の軌跡線をさらに2倍の太さ(0.005R=方位線の2倍)へ(スマホでの見やすさ=依頼者指定)
@@ -2242,6 +2242,12 @@ function setupUI() {
     // My観測点ボタン
     document.getElementById('btn-myobs-apply').onclick = () => applyMyPoint('obs');
     document.getElementById('btn-myobs-get').onclick = () => getMyPointFromLocation('obs');
+    document.getElementById('btn-myobs-photo').onclick = () => document.getElementById('file-myobs-photo').click();
+    document.getElementById('file-myobs-photo').addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        e.target.value = '';   // 同じ写真を選び直してもchangeが発火するように空へ戻す
+        addMyPointFromPhoto('obs', f);
+    });
     document.getElementById('btn-myobs-regall').onclick = () => registerAllMyPoints('obs');
     document.getElementById('btn-myobs-up').onclick = () => moveMyPointUp('obs');
     document.getElementById('btn-myobs-down').onclick = () => moveMyPointDown('obs');
@@ -2255,6 +2261,12 @@ function setupUI() {
     // My目的点ボタン
     document.getElementById('btn-mytgt-apply').onclick = () => applyMyPoint('tgt');
     document.getElementById('btn-mytgt-get').onclick = () => getMyPointFromLocation('tgt');
+    document.getElementById('btn-mytgt-photo').onclick = () => document.getElementById('file-mytgt-photo').click();
+    document.getElementById('file-mytgt-photo').addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        e.target.value = '';   // 同じ写真を選び直してもchangeが発火するように空へ戻す
+        addMyPointFromPhoto('tgt', f);
+    });
     document.getElementById('btn-mytgt-regall').onclick = () => registerAllMyPoints('tgt');
     document.getElementById('btn-mytgt-up').onclick = () => moveMyPointUp('tgt');
     document.getElementById('btn-mytgt-down').onclick = () => moveMyPointDown('tgt');
@@ -6175,6 +6187,92 @@ function getMyPointFromLocation(type) {
     renderMyPointsList(type);
 }
 
+/** 写真(JPEG/TIFF)のExifから位置情報を読み取る。成功で{lat,lng}(度・符号付き)、無ければnull(第132ラウンド)。
+ *  端末内で完結: ArrayBufferのバイト走査だけで、画像のデコード・送信・保存はしない。
+ *  JPEGはAPP1(Exif)セグメント→TIFF構造、TIFFは先頭から。GPS IFDのタグ1〜4(緯度経度の参照と度分秒)を読む */
+function _exifGpsFromArrayBuffer(buf) {
+    const dv = new DataView(buf);
+    let tiffOff = -1;
+    if (dv.byteLength >= 4 && dv.getUint16(0) === 0xFFD8) {
+        let off = 2;
+        while (off + 4 <= dv.byteLength) {
+            if (dv.getUint8(off) !== 0xFF) break;
+            const marker = dv.getUint8(off + 1);
+            if (marker === 0xFF) { off += 1; continue; }   // 詰め物のFFは読み飛ばす
+            if (marker === 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || marker === 0x01) { off += 2; continue; }
+            if (marker === 0xDA) break;                    // 画像データ(SOS)以降にExifは無い
+            const len = dv.getUint16(off + 2);
+            if (len < 2 || off + 2 + len > dv.byteLength) break;
+            if (marker === 0xE1 && len >= 10 && dv.getUint32(off + 4) === 0x45786966 && dv.getUint16(off + 8) === 0) {   // 'Exif\0\0'
+                tiffOff = off + 10;
+                break;
+            }
+            off += 2 + len;
+        }
+    } else if (dv.byteLength >= 8) {
+        const head = dv.getUint16(0);
+        if (head === 0x4949 || head === 0x4D4D) tiffOff = 0;   // TIFF(Exif構造そのもの)
+    }
+    if (tiffOff < 0 || tiffOff + 8 > dv.byteLength) return null;
+    const little = dv.getUint16(tiffOff) === 0x4949;
+    const u16 = (o) => dv.getUint16(o, little), u32 = (o) => dv.getUint32(o, little);
+    if (u16(tiffOff + 2) !== 42) return null;
+    const findTag = (ifdOff, tag) => {
+        if (ifdOff < 0 || ifdOff + 2 > dv.byteLength) return -1;
+        const n = u16(ifdOff);
+        for (let i = 0; i < n; i++) {
+            const e = ifdOff + 2 + i * 12;
+            if (e + 12 > dv.byteLength) return -1;
+            if (u16(e) === tag) return e;
+        }
+        return -1;
+    };
+    const gpsPtr = findTag(tiffOff + u32(tiffOff + 4), 0x8825);   // IFD0のGPS IFDポインタ
+    if (gpsPtr < 0) return null;
+    const gpsIfd = tiffOff + u32(gpsPtr + 8);
+    const refChar = (e) => {   // ASCIIタグの先頭1文字('N'/'S'/'E'/'W')。値4バイト以下はエントリ内に直置き
+        if (e < 0) return '';
+        const o = u32(e + 4) <= 4 ? e + 8 : tiffOff + u32(e + 8);
+        return o < dv.byteLength ? String.fromCharCode(dv.getUint8(o)) : '';
+    };
+    const dms = (e) => {       // RATIONAL×3(度・分・秒)→度。壊れた分母0は0扱い
+        if (e < 0) return null;
+        const type = u16(e + 2);
+        if ((type !== 5 && type !== 10) || u32(e + 4) < 3) return null;
+        const o = tiffOff + u32(e + 8);
+        if (o + 24 > dv.byteLength) return null;
+        const g = type === 5 ? u32 : (x) => dv.getInt32(x, little);
+        const r = (k) => { const den = g(o + k * 8 + 4); return den ? g(o + k * 8) / den : 0; };
+        return r(0) + r(1) / 60 + r(2) / 3600;
+    };
+    const lat = dms(findTag(gpsIfd, 2)), lng = dms(findTag(gpsIfd, 4));
+    if (lat === null || lng === null || (lat === 0 && lng === 0)) return null;
+    const sLat = (refChar(findTag(gpsIfd, 1)) === 'S' ? -1 : 1) * lat;
+    const sLng = (refChar(findTag(gpsIfd, 3)) === 'W' ? -1 : 1) * lng;
+    if (!(Math.abs(sLat) <= 90 && Math.abs(sLng) <= 180)) return null;
+    return { lat: sLat, lng: sLng };
+}
+
+/** 「写真から追加」: 選択した写真のExif位置情報からMy観測点/My目的点の行を1件追加する(第132ラウンド・依頼者依頼)。
+ *  行の初期値は依頼者指定: 名前=「新規○○名」・緯度経度=写真の位置情報・標高=緯度経度から再取得・高さ=0。
+ *  追加後は「観測点取得」と同じ未登録状態(dirty)になり、すぐ「全て登録」が押せる。写真は端末内で読むだけで送信・保存しない */
+async function addMyPointFromPhoto(type, file) {
+    if (!file) return;
+    const cfg = myPointConfig(type);
+    let gps = null;
+    try { gps = _exifGpsFromArrayBuffer(await file.arrayBuffer()); } catch (e) { console.error(e); }
+    if (!gps) return alert('写真から位置情報を読み取れませんでした。\n(位置情報(Exif)付きのJPEG写真に対応しています。スクリーンショットや、SNS・メッセージアプリを経由した画像は、位置情報が取り除かれていることが多いです)');
+    const lat = parseFloat(gps.lat.toFixed(6)), lng = parseFloat(gps.lng.toFixed(6));
+    if (!confirm(`写真の位置情報(緯度${lat}、経度${lng})を${cfg.labelFull}リストに追加しますか？\n(標高は緯度経度から取得し直します)`)) return;
+    const elev = await getElevation(lat, lng);   // 写真のExif標高は使わない(気圧高度等でずれるため。依頼者指定=再取得)
+    const id = getNextMyPointId(type);
+    if (id === null) return alert(`${cfg.labelFull}の登録上限(1000件)に達しています`);
+    cfg.list().push({ id, name: `新規${cfg.label}名`, lat, lng, elev, height: 0, memo: '' });
+    saveAppState();
+    setMyPointDirty(type, true);
+    renderMyPointsList(type);
+}
+
 /** 全て登録 */
 function registerAllMyPoints(type) {
     const cfg = myPointConfig(type);
@@ -9052,7 +9150,7 @@ let _tsujiMeshCalc = null;     // 辻時刻コントロールの再計算用ス�
 let _tmCtrlDay0 = null;        // 選択行の日0:00(ms)。実効辻時刻 = day0 + スライダー(その日の通算秒) + サブ秒
 let _tmCtrlFracMs = 0;         // 実効辻時刻のサブ秒(ms)。行選択/ジャンプ時は精細化時刻の端数、スライダー手動操作で0にリセット
 let _tmCtrlWidth = 0;          // 辻時刻の幅(±秒) 0〜30 (0=指定した1秒のみ)
-let _tmCtrlEps = 0.125;        // 精度フィルタオプション(角距離ε°) ◎〜◎×128
+let _tmCtrlEps = 0.25;         // 精度フィルタオプション(角距離ε°) ○〜◎×128(第132: 初期値を検索メニュー側と同じ○へ=考え方のベースを揃える)
 let _tmPostMode = 'attime';    // 行選択後表示オプション: 'attime'=表示辻時刻での最高精度点(既定) / 'near'=近傍の最高精度点(≠辻時刻)
 let _tmSearchArea = 3;         // 検索エリア: DEM標高タイルの範囲 N×N (3/4/5/6)
 let _tmMeshGray = 0;           // メッシュマーカー色: グレースケール% (0=白〜100=黒)。グラデーションの基準色(1件の色)
@@ -11092,7 +11190,7 @@ function setupTsujiMeshPanelControls() {
     document.getElementById('btn-tsujimesh-time-prev').addEventListener('click', () => stepTimeSlider(-1));
     document.getElementById('btn-tsujimesh-time-next').addEventListener('click', () => stepTimeSlider(1));
     document.getElementById('select-tsujimesh-time-eps').addEventListener('change', (e) => {
-        _tmCtrlEps = parseFloat(e.target.value) || 0.125;
+        _tmCtrlEps = parseFloat(e.target.value) || 0.25;
         recalcTsujiMeshGoldAtTime();
     });
     // メッシュマーカー色: 白(0%)〜黒(100%)のグレースケール(グラデーションの基準色=1件の色)。追従して再描画。

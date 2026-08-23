@@ -16,8 +16,8 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 
-// ---- V0: 版数ピン(最新の検証が持つ。第128はリリース前の追補なので1.87.0のまま) ----
-check('V0 版数ピン 1.87.0+Version Historyに第128の追補', /APP_VERSION = '1\.87\.0'/.test(src) && (src.includes('第128ラウンド(リリース前の追補)') || !!process.argv[2]));
+// ---- V0: 版数の形(等価ピンは最新のverify173へ移譲) ----
+check('V0 版数の形+Version Historyに第128の追補', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第128ラウンド(リリース前の追補)') || !!process.argv[2]));
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
