@@ -1,8 +1,10 @@
-// 第132ラウンド検証: v1.87.0への追補4(依頼者依頼3件) — ①結果コントロールの精度フィルタ
+// 第132〜133ラウンド検証: v1.87.0への追補4/5(依頼者依頼・指摘) — ①結果コントロールの精度フィルタ
 // オプション(select-tsujimesh-time-eps)の初期値も○へ(検索メニュー側とベースを揃える)
 // ②My観測点/My目的点の「写真から追加」(Exif位置情報の端末内読み取り→行追加。
 // 名前=新規○○名・緯度経度=写真・標高=再取得・高さ=0・すぐ全て登録できる状態)
 // ③宙の辻フォルダの追加/解除ボタンは設けない判断+ヘルプ(名前変更・移動OK)とプライバシーポリシー追記
+// ④第133: 検索完了スナップショットの固定値が:○を強制オフ+○の行を結果リストから落とす不具合の修正
+// (第64の固定値が第128の○追加後も◎のみオンだった)。ツールチップ簡素化・reset.htmlのドライブ注記
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +18,7 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const idxSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const privSrc = fs.readFileSync(path.join(__dirname, '..', 'privacy.html'), 'utf8');
+const resetSrc = fs.readFileSync(path.join(__dirname, '..', 'reset.html'), 'utf8');
 
 // ---- 合成写真: Exif GPS入りの最小JPEG/TIFFをバイト列で組み立てる(実写真は使わない=決定的) ----
 // little: II/MMの別, latRef/lngRef: 'N'/'S'/'E'/'W', lat/lng: [度,分,秒x100]の整数
@@ -50,8 +53,13 @@ const PHOTO_NE = buildExifJpeg({ little: true, latRef: 'N', lngRef: 'E', lat: [3
 const PHOTO_SW = buildExifJpeg({ little: false, latRef: 'S', lngRef: 'W', lat: [35, 21, 3870], lng: [138, 43, 3850] });
 const PHOTO_NOGPS = buildExifJpeg({ little: true, noGps: true });
 
-// ---- V0: 版数ピン(最新の検証が持つ。第132もリリース前の追補なので1.87.0のまま) ----
-check('V0 版数ピン 1.87.0+Version Historyに第132の追補4', /APP_VERSION = '1\.87\.0'/.test(src) && (src.includes('第132ラウンド(リリース前の追補4') || !!process.argv[2]));
+// ---- V0: 版数ピン(最新の検証が持つ。第132/133もリリース前の追補なので1.87.0のまま) ----
+check('V0 版数ピン 1.87.0+Version Historyに第132/133の追補4/5', /APP_VERSION = '1\.87\.0'/.test(src) && ((src.includes('第132ラウンド(リリース前の追補4') && src.includes('第133ラウンド(リリース前の追補5')) || !!process.argv[2]));
+
+// ---- T1: UI文言(第133): ○ラジオのツールチップからデッサンの考え方を削除+reset.htmlのドライブ注記 ----
+check('T1 「:○」ラジオのtitleは±0.25°のみ(実用域の説明はデッサンへ)+reset.htmlにドライブは残る注記',
+  !idxSrc.includes('辻検索の◎○に相当する実用域') &&
+  resetSrc.includes('Googleドライブに保存した内容（宙の辻フォルダ）はそのまま残り'));
 
 // ---- F1/F2: 公開文書の明記(プライバシーポリシー+ヘルプ) ----
 check('F1 プライバシーポリシー: 写真は端末内処理のみ・送信/保存しない+改定日',
@@ -80,6 +88,24 @@ check('F2 ヘルプ: 宙の辻フォルダは名前変更・移動しても連�
     });
     check('C1 コントロールの精度フィルタオプション初期値=○(±0.25°)・9段・_tmCtrlEps=0.25',
       r.v==='0.25'&&r.idx===0&&r.first==='○(±0.25°)'&&r.n===9&&r.eps, JSON.stringify(r));
+  }
+
+  // ---- C2/C3: 検索完了スナップショットの固定値(第133・依頼者指摘の不具合を実測) ----
+  {
+    const r=await p.evaluate(()=>{
+      const F=_resCtlFromAppState('tsujiMesh');
+      const snap={ filter:F.accuracyFilter, dbl:F.accDblCircle, circle:F.accCircle, tri:F.accTriangle, dash:F.accDash };
+      _resCtlSet('tsujimeshres', F, false);   // 検索完了時と同じ経路でコントロールへ展開
+      const chk=(id)=>document.getElementById(id).checked;
+      const dom={ dbl:chk('chk-tsujimeshres-acc-dbl-circle'), circle:chk('chk-tsujimeshres-acc-circle'),
+                  tri:chk('chk-tsujimeshres-acc-triangle'), dash:chk('chk-tsujimeshres-acc-dash') };
+      const readBack=_resCtlRead('tsujimeshres');   // _tmBuildRowsの行絞り込みが読む値
+      return { snap, dom, rbCircle: readBack.accCircle, rbDbl: readBack.accDblCircle };
+    });
+    check('C2 スナップショット値: メッシュの精度フィルタは◎○オン・△-オフの固定の枠(○が落ちない)',
+      r.snap.filter&&r.snap.dbl&&r.snap.circle&&!r.snap.tri&&!r.snap.dash, JSON.stringify(r.snap));
+    check('C3 検索完了経路(_resCtlSet)後もコントロールの:○はオン+行絞り込みの読み値もオン(○の行が結果リストに残る)',
+      r.dom.dbl&&r.dom.circle&&!r.dom.tri&&!r.dom.dash&&r.rbCircle&&r.rbDbl, JSON.stringify(r.dom));
   }
 
   // ---- P1: Exif位置情報パーサ単体(リトルエンディアンJPEG N/E・ビッグエンディアンTIFF S/W・GPS無し) ----
