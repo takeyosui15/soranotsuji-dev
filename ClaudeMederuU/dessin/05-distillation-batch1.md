@@ -12,14 +12,19 @@ legends/として本体へ書き込む(その際にフロントマターを付�
 
 ```yaml
 ---
-type: knowledge
+type: legend
 title: 凍結標本は意図して更新する
 description: 初期値・書式・辞書の変更は、凍結標本(ゴールデン)の差分を「意図した変更の証拠」として残す
 tags: [testing, golden, regression]
 timestamp: 2026-08-29
+status: active
 source: soranotsuji 第40/52/65/108/128ラウンド
 ---
 ```
+
+(第137ラウンド追記: typeは`knowledge`でなく`legend`が正 — MederuU本体のlegends/README.mdの
+既存規約に合わせて清書時に修正した。status: activeも付与[降格運用の決定に伴う]。
+**清書完了**: 12件ともMederuU本体のlegends/へ書き込み済み・依頼者検品済みの候補書はこのまま歴史記録として残す)
 
 ## 候補12件
 
