@@ -155,6 +155,21 @@ GNU General Public License for more details.
         </div>
     </div>
 
+    <div id="kashimap-panel" class="hidden">
+        <div id="kashimap-header"><button id="btn-kashimap-max" title="可視マップの表示領域を最大化">⛶</button> 可視マップ <span id="kashimap-status"></span><button id="btn-kashimap-close" class="panel-close-btn" title="可視マップを閉じる">✕</button></div>
+        <div id="kashimap-progress" class="tsuji-progress-bar hidden"><div id="kashimap-progress-fill"></div></div>
+        <div id="kashimap-toolbar">
+            <button id="btn-kashimap-select-all" class="nav-btn small" title="表示中の山を全て選択">全て選択</button>
+            <button id="btn-kashimap-select-none" class="nav-btn small" title="選択を全て解除">全て解除</button>
+            <span id="kashimap-toolbar-note" class="kashimap-note">行のチェックで山を選択(山頂にマーカー)、行クリックでその山頂へ移動</span>
+        </div>
+        <div id="kashimap-content"></div>
+        <div id="kashimap-detail" class="hidden">
+            <div id="kashimap-detail-header">島リスト(0件)</div>
+            <div id="kashimap-detail-body"></div>
+        </div>
+    </div>
+
     <div id="tsujimesh-panel" class="hidden">
         <div id="tsujimesh-header"><button id="btn-tsujimesh-max" title="検索結果表示領域を最大化">⛶</button> 辻メッシュ検索結果 <span id="tsujimesh-status"></span><button id="btn-tsujimesh-close" class="panel-close-btn" title="辻メッシュ検索結果を閉じる">✕</button></div>
         <div id="tsujimesh-progress" class="tsuji-progress-bar hidden"><div id="tsujimesh-progress-fill"></div></div>
@@ -891,6 +906,9 @@ GNU General Public License for more details.
                     <div class="control-row main-buttons-row">
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
                         <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
+                        <button id="btn-kashimap" class="nav-btn main-btn" title="推し山がどこから見えるかを地図に塗る可視マップ(現在は山リストの検索と山頂マーカーまで)">可視マップ</button>
+                    </div>
+                    <div class="control-row main-buttons-row">
                         <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
                     </div>
                     <div id="ff-slot-soradanmen-btn" class="hidden"></div>
@@ -1264,6 +1282,41 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <button id="btn-url-tsujimesh" class="nav-btn main-btn" title="現在の辻メッシュ検索を開くURLをクリップボードにコピー">URL取得</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection('sec-kashimap')">
+                    <span>可視マップ</span>
+                    <span id="icon-sec-kashimap">▼</span>
+                </div>
+                <div id="sec-kashimap" class="section-content closed">
+                    <div class="control-row">
+                        <label class="input-label tsujisearch-label">推し山:</label>
+                        <input type="text" id="input-kashimap-query" placeholder="山名、読み、都道府県名" maxlength="100" autocomplete="off" title="スペース区切りで複数指定できます。各語は山名・読み・別名・都道府県名のどれかに部分一致します">
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="radio" name="kashimap-andor" id="radio-kashimap-and" value="and" class="body-checkbox" checked> <label for="radio-kashimap-and" class="tsuji-acc-label" title="全部の語に当たる山">:AND</label>
+                        <input type="radio" name="kashimap-andor" id="radio-kashimap-or" value="or" class="body-checkbox"> <label for="radio-kashimap-or" class="tsuji-acc-label" title="どれかの語に当たる山(例:「長野 山梨」で両県の山)">:OR</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-kashimap-100" class="body-checkbox" checked> <label for="chk-kashimap-100" class="tsuji-acc-label" title="日本百名山(深田久弥)">:百名山</label>
+                        <input type="checkbox" id="chk-kashimap-200" class="body-checkbox"> <label for="chk-kashimap-200" class="tsuji-acc-label" title="日本二百名山(深田クラブ。百名山を含む200座)">:二百名山</label>
+                        <input type="checkbox" id="chk-kashimap-300" class="body-checkbox"> <label for="chk-kashimap-300" class="tsuji-acc-label" title="日本三百名山(日本山岳会。百名山を含む300座)">:三百名山</label>
+                    </div>
+                    <div class="control-row left-row">
+                        <input type="checkbox" id="chk-kashimap-high" class="body-checkbox"> <label for="chk-kashimap-high" class="tsuji-acc-label" title="日本百高山(標高順上位100)">:百高山</label>
+                        <input type="checkbox" id="chk-kashimap-other" class="body-checkbox"> <label for="chk-kashimap-other" class="tsuji-acc-label" title="国土地理院「日本の主な山岳標高(1003山)」のうち、上の4つのリストに入らない山">:その他</label>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-kashimap-search" class="nav-btn main-btn" title="山リストを検索して結果パネルに表示します(推し山の欄が空ならチェックしたリストの山を全部)">検索</button>
+                    </div>
+                    <div class="control-row">
+                        <button id="btn-kashimap-mytgt" class="nav-btn main-btn" disabled title="今のMyセットのMy目的点を対象に、その場で可視マップを計算します(準備中)">My目的点で計算</button>
+                    </div>
+                    <div class="control-row">
+                        <span class="kashimap-note">標高・建物・木の高さからの概算です。現地では見えないこともあります。</span>
                     </div>
                 </div>
             </div>
@@ -2368,6 +2421,16 @@ GNU General Public License for more details.
                         <li><strong>辻時刻コントロール</strong>: 「辻日時」表示 (日付+曜日+時刻。<strong>時刻は0.01秒表示</strong>) と秒スライダー (範囲は<strong>その行の全ヒット画素の辻時刻の範囲</strong>に自動調整・1秒刻み・◀▶で1秒ずつ) で辻時刻を指定。行選択やポップアップの行クリックの直後は行と同じ精細化時刻 (サブ秒付き。例 16:36:07.93) になり、スライダーを手動で動かすと秒単位 (サブ秒0) になります。スライダーに追従してライブ再計算します。「辻時刻の幅(s)±」(0〜86400秒・初期値0=指定した1秒のみ)で前後の秒も含めた集合にできます (最大で丸1日分。幅が大きいほど再計算に時間がかかります)。<strong>精度フィルタオプションは ◎(±0.125°)/◎×2(±0.0625°)/◎×4(±0.03125°)/◎×8(±0.015625°)/◎×16(±0.0078125°)/◎×32(±0.00390625°)/◎×64(±0.001953125°)/◎×128(±0.0009765625°) の8段階</strong>で判定の厳しさを変えられます。</li>
                         <li><strong>行の選択</strong>: 結果リストの行クリックで選択。選択のたびに行選択後表示オプションに従って辻時刻コントロールが初期化され、優辻マーカーが立ちます (行選択でのズーム・センタリングはしません。検索直後に一度ズームしています)。</li>
                         <li><strong>標高フィルタ</strong>: ONにすると、検索前に許容範囲内の対象画素それぞれを観測点として、<strong>標高グラフと同一のアルゴリズム</strong>で可視 (OK) / 不可視 (NG) を判定し、チェックで選んだ対象の画素だけを辻メッシュ検索します: <strong>OKのみ=可視画素だけ / NGのみ=不可視画素だけ / 両方またはどちらもオフ=全画素</strong>。判定は<strong>統一可視判定 (標高グラフの可視判定・辻検索の標高フィルタと共通のコア)</strong> で、画素→目的点の経路を<strong>DEM分解能固定のズーム15半画素 (約2m) 刻み</strong>で歩き (点数固定ではないので経路長に関わらずDEM画素を取りこぼしません)、各点の標高を<strong>DEM5A/5B/5C (ズーム15・5mメッシュ) → DEM10B (ズーム14)</strong> の順で参照して見通し線 (画素の標高+観測点高→目的点標高。地球の丸みと大気差を考慮) と比較します。除外範囲 (チェックで有効。目的点側/観測点側それぞれの半径○m以内の遮蔽を無視) も標高グラフと同じ規則で適用されるため、<strong>その画素を観測点に設定して標高グラフを実行した時と同じ判定</strong>になります (除外範囲0で目的点直近の点が遮ってNGになる挙動も同一。判定中は「標高タイル取得中…」「可視判定中… i/N画素」の進捗を表示)。判定は<strong>ワーカープール (CPU数+1) で並列実行</strong>され、経路を帯域に分割して各ワーカーが担当分を判定するため、判定結果は従来の逐次処理と完全に同一のまま、コア数分高速になります (再検索やトグルオフで実行中の判定はキャンセルされます)。結果リストの「標高グラフ」列は、その行の表示値を出した地点=<strong>その日の最良画素の位置の可視判定</strong>を表示します。</li>
+                    </ul>
+                </section>
+
+                <section class="help-section">
+                    <h3>可視マップ</h3>
+                    <p>推し山が「どこから見えるか」を地図に塗る機能です。現在は、その土台となる<strong>山リストの検索と山頂マーカー</strong>まで使えます (見える範囲の塗り・島のリスト・My目的点での計算は準備中)。</p>
+                    <ul class="help-list">
+                        <li><strong>山リスト</strong>: 国土地理院「日本の主な山岳標高 (1003山)」の全山頂に、日本百名山・日本二百名山・日本三百名山・日本百高山 (標高順上位100) の印を付けたものです。「:百名山」〜「:百高山」「:その他」のチェックで絞り込み、「推し山:」欄にスペース区切りで語を入れると、山名・読み・別名・都道府県名への部分一致で検索します (「:AND」=全部の語に当たる山、「:OR」=どれかの語に当たる山)。</li>
+                        <li><strong>結果パネル</strong>: 「検索」または位置情報メニューの「可視マップ」ボタンで開きます。見出しクリックで列毎にソート、行のチェックで山を選択 (「全て選択」「全て解除」)、行クリックでその山頂へ地図を移動します。選んだ山の山頂には色付きのマーカーが立ちます (色は選んだ順に表示天体のスタイル設定の16色)。</li>
+                        <li><strong>出典</strong>: 山の位置・標高は国土地理院「日本の主な山岳標高一覧 (1003山)」(2026年3月31日版) を加工して作成。名山の選定は深田久弥 (日本百名山)・深田クラブ (日本二百名山)・日本山岳会 (日本三百名山)。地理院の一覧に無い三百名山4座 (二岐山・諏訪山・藤原岳・吾妻山[広島]) は、地理院の標高データから山頂の位置を求めています。</li>
                     </ul>
                 </section>
 

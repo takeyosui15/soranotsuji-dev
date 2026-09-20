@@ -2517,3 +2517,84 @@ input[type="range"] {
 /* 結果コントロール内の時間フィルタ群と水平線は宙の窓ctrlと同じ中央寄せ(第63ラウンド・依頼者指摘) */
 #tsujires-ctrl-body .tsuji-time-group, #tsujimesh-ctrl-body .tsuji-time-group { max-width: 360px; margin: 4px auto; box-sizing: border-box; }
 #tsujires-ctrl-body hr.tsujisearch-separator, #tsujimesh-ctrl-body hr.tsujisearch-separator { max-width: 360px; margin: 6px auto; }
+
+/* --- 可視マップの結果パネル(辻メッシュと同じ配置/最大化/積み上げ規則。デッサン05・段1) --- */
+#kashimap-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 33.33%;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-top: 1px solid #8a7a2a;
+    z-index: 910;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+    color: #eee;
+}
+#kashimap-panel.hidden { display: none; }
+#kashimap-panel.with-elevation,
+#kashimap-panel.with-milkyway,
+#kashimap-panel.with-soramado { bottom: 33.33%; }
+#kashimap-panel.with-soramado-max,
+#kashimap-panel.with-milkyway-max { bottom: 66.67%; }
+#kashimap-panel.with-soradanmen { bottom: 33.33%; }
+#kashimap-panel.with-soradanmen-max { bottom: 66.67%; }
+#kashimap-panel.maximized { height: 66.67%; }
+#kashimap-panel.maximized.with-elevation,
+#kashimap-panel.maximized.with-milkyway,
+#kashimap-panel.maximized.with-soramado { height: 33.33%; }
+#kashimap-header {
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #ffd700;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+}
+#btn-kashimap-max {
+    padding: 0 6px;
+    margin-right: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: #fff;
+    background: rgba(70, 70, 70, 0.7);
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#btn-kashimap-max.active { background: #b8860b; border-color: #ffd700; }
+#kashimap-toolbar {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #ccc;
+    border-bottom: 1px solid #333;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+#kashimap-content {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 4px 10px;
+    font-size: 14px;
+}
+#kashimap-content .td-table { width: 100%; border-collapse: collapse; }
+#kashimap-content .td-table th,
+#kashimap-content .td-table td { padding: 3px 6px; text-align: left; white-space: nowrap; }
+#kashimap-content .td-table th {
+    color: #aaa; font-weight: normal; font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: sticky; top: 0; background: #2a2416; z-index: 1; cursor: pointer;
+}
+#kashimap-content .td-table th:hover { color: #fff; }
+#kashimap-content .td-table tr.td-data-row { cursor: pointer; }
+#kashimap-content .td-table tr.td-data-row:hover { background: rgba(255, 255, 255, 0.12); }
+#kashimap-content .td-table tr.td-data-row.selected { background: rgba(255, 215, 0, 0.22); }
+#kashimap-detail { flex: 0 0 auto; }
+.kashimap-note { font-size: 11px; color: #aaa; }
+.kashimap-swatch { display: inline-block; width: 10px; height: 10px; border: 1px solid #222; margin-left: 4px; vertical-align: middle; }

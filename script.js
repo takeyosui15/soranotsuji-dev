@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.88.0 - 2026-09-21: feat: 第148ラウンド — 可視マップ(段1=山データ+山リスト。デッサン05第7版「実装の段取り」): ①data/mountains.json(地理院「日本の主な山岳標高(1003山)」2026-03-31版1059行+地理院に無い三百名山4座=1063山頂。百/二百/三百名山・百高山[標高順上位100]の印・別名・都道府県[JISコード順]・山頂座標[最高地点]。生成はtools/kashimap/。名山対応表は依頼者検品済み)を遅延読込 ②位置情報メニューに「可視マップ」ボタン(辻検索・辻メッシュと同じ段。宙の窓は次の段へ)と「可視マップ」節(推し山:テキスト[スペース区切り・山名/読み/別名/都道府県名に部分一致]・:AND/:ORラジオ[既定AND]・:百名山[既定オン]/:二百名山/:三百名山/:百高山/:その他チェック・検索ボタン・My目的点で計算ボタン[準備中=無効]・注記) ③結果パネル(辻メッシュと同じ配置/最大化/積み上げ規則・辻検索/辻メッシュ/宙検索とは排他): 山リスト(列=選択・連番・索引番号・山名・読み・所属・都道府県・山頂の緯度/経度・標高・種別。見出しソート・行チェックで選択・全て選択/全て解除・行クリックで山頂へ移動)・件数「山N件 / 選択M」 ④選んだ山の山頂に山色のマーカー(色の席=空いている最小番号・解除で空く・17山目は1山目の色。選択は閉じても保つ) ⑤ヘルプ「可視マップ」節(出典明記)。verify174=16チェック。段2(計算の道具)以降は次ラウンド〜
 Version 1.87.0 - 2026-08-23: feat: 第127ラウンド — Googleドライブ同期の「:自動更新」(依頼者提案・GO): 同期ダイアログの一番下に「:自動更新」チェック(初期値オフ・appState.googleDrive.autoSyncに永続)。オンの間、端末の内容に変更があるとデバウンス(最後の変更から30秒後にまとめて1回=saveAppStateから_autoSyncArm→_autoSyncFlush。画面が裏に回るvisibilitychangeでも待たずに1回)でドライブへ自動保存(quiet=成功/失敗のalertなし)。設計条件3つ: ①デバウンスでAPI割り当てと通信量を守る ②競合ガード=書き込み直前にドライブのmodifiedTimeが前回同期と一致するか確認し、不一致(他端末が先に保存・この端末が未同期)なら自動では上書きせず👎に戻して人に委ねる ③トークン切れは🈚️でログインを促す・通信失敗は静かに諦めて次の機会に(変更は端末に残る)。内容の変更なし(簿記保存のみ=指紋一致)は書かない / 第128ラウンド(リリース前の追補): ①辻メッシュ精度フィルタに「:○」(±0.25°)を追加して初期値に(実用域=辻検索の◎○に相当。依頼者指定)・「:◎×8」は撤去(旧保存/URLのx8は最も近いx4へ読み替え=normalizeAppState)・辻時刻の精度フィルタオプションselectにも○を追加・短縮URL辞書v21(新既定の&tsujiMeshAccuracy=o1ペア) ②宙の窓ボタンで開き直す度にカメラオフセット方位角/視高度をリセット(前回のズレ残り対策。URL復元の自動オープンはリセットしない=共有構図を守る) ③更新系の結合レベルテスト(verify172: 一括更新の進捗%・checking多重押下・シート作成の実往復・ログイン/ログアウト) / 第130ラウンド(リリース前の追補2・依頼者指摘): 辻メッシュの読み取り専用の精度フィルタ表示(メニュー+結果パネルの「:○」)を精度フィルタオプションへ連動(○選択時=◎と○がオン・◎系選択時=◎のみ。_tmSyncSymODisplay。状態キーtsujiMeshSymOは常時false固定のまま=URL/保存互換不変) / 第131ラウンド(リリース前の追補3・依頼者の設計モデルで確定): 「:○」は常時オンの固定表示へ(第130の連動方式を取り下げ・_tmSyncSymODisplay撤去)。モデル=精度フィルタ(◎○)は対象の下限(この機能は○精度までを扱う)を示す固定の枠・精度フィルタオプションは保持する精度の範囲(選択精度以上を含む: ○なら○◎◎×2…・◎なら◎◎×2…)を決める。コントロールの精度フィルタオプション(表示切替で○を選べる)との整合のため表示条件の分岐を持たない / 第132ラウンド(リリース前の追補4・依頼者依頼3件): ①結果コントロールの精度フィルタオプション(select-tsujimesh-time-eps・非永続)の初期値も○へ(検索メニュー側と考え方のベースを揃える。求める場所には範囲があるため) ②My観測点/My目的点に「写真から追加」ボタン(1段目の下・横幅いっぱい): 写真のExif位置情報(JPEG/TIFF・端末内のバイト走査のみで送信/保存しない=プライバシーポリシーにも明記)から行を追加(名前=新規○○名・緯度経度=写真・標高=緯度経度から再取得・高さ=0・すぐ全て登録が押せる状態)。_exifGpsFromArrayBuffer+addMyPointFromPhoto ③宙の辻フォルダの「追加/解除」ボタンは設けない判断(ID+目印[appProperties]追跡で名前変更・移動に耐えるため関連づけ直し不要。ヘルプへ「名前変更・移動しても連携は保たれる」を明記) / 第133ラウンド(リリース前の追補5・依頼者指摘2件): ①不具合修正: 結果コントロールのスナップショット固定値(第64)が「:○」を検索完了時に強制オフ→◎○オンへ(_resCtlSet/_resCtlFromAppState。第128で○が既定になって以降、_tmBuildRowsの行絞り込みで最良精度が○の日の行が結果リストから落ちていた=リリース前に発見・修正) ②精度フィルタオプション「:○」ツールチップから「辻検索の◎○に相当する実用域」を削除(デッサンの考え方はUIに書かない) ③reset.htmlへ「消去は端末内のみ・ドライブの宙の辻フォルダは残りログインし直すと再同期」の注記(依頼者の疑問への回答を利用者向けに明文化)
 Version 1.86.2 - 2026-08-23: fix: 第125ラウンド — Googleドライブ同期ダイアログの[New]が両方に付くことがある不具合の修正(依頼者報告)。原因は日付比較ではなく[New]の意味: 旧実装は「前回同期からその側が変わったか」を両側独立に表示(第36設計)しており、①両側とも変わった競合時 ②同期簿記が無い時のフォールバック、の2経路で両方に点灯した。修正: [New]は常にどちらか一方だけ=片側だけ変わっていればその側(簿記保存でsavedAtが進んでも付かない第36の性質は維持)・両側変わった競合時は更新日時そのもの(ミリ秒までの日時比較)で新しい側だけに付ける。👍/👎の判定(指紋+modifiedTime)は不変
 Version 1.86.1 - 2026-08-22: fix: 第122ラウンド — ①天体儀の天の川オフセット点の逆回り修正(依頼者報告: オフセット中心角を変えると中心→オフセット点の方位線が軌跡とズレる)。原因は_mwBuildMilkyWayRingのオフセット点だけ収録角を生のまま銀経へ渡していた反転漏れ(第93の符号統一「夏の天の川を上から見て時計回りが正」の取り残し=v1.75.0以来)。依頼者の基準(2026-06-21夏至の日の入・天頂から中心を見て時計回りが正)で数値検証: 正典のgetMilkyWayBaseRaDec系(天体儀の軌跡・辻ライン・辻検索・辻メッシュ・My辻検索)は角度+30/+60でaz126°→156°→186°と時計回り=正しく、天体儀のオフセット点マーカー+方位線だけ逆回り(+30が-30の位置)だった。修正はgetMilkyWayBaseRaDecへの一本化(以後この点は構造的に軌跡・検索と一致) ②名称修正「全天儀」→「天体儀」(依頼者指摘: 全天儀は造語だった。UI・ツールチップ・ヘルプ・デッサン等の全文置換。DOM idとVersion History過去行はそのまま)
@@ -154,7 +155,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.87.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.88.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1839,6 +1840,7 @@ function setupUI() {
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
     document.getElementById('btn-tsujimesh').onclick = toggleTsujiMesh;
     setupTsujiMeshPanelControls();
+    setupKashimapControls();   // 可視マップ(第148・段1)
 
     // 位置情報: 観測点/目的点モードの変更をlocalStorage保存
     document.querySelectorAll('input[name="loc-mode"]').forEach(radio => {
@@ -9123,6 +9125,7 @@ function toggleTsujiSearch() {
     if (appState.isTsujiSearchActive) {
         if (appState.isTsujiMeshActive) closeTsujiMesh();   // 辻メッシュ検索とは同時表示不可
         if (appState.isSoraSearchActive) closeSoraSearchPanel();   // 宙検索結果とは同時表示不可
+        if (_kmActive) closeKashimap();                      // 可視マップとは同時表示不可(第148)
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         // タイトルのみ書き換える(ヘッダのinnerHTMLを丸ごと書き換えると最大化ボタン⛶がリスナーごと消えるため)
@@ -10785,7 +10788,7 @@ async function startTsujiMeshSearch() {
     // 初期画面: 最大ズーム-3で観測点を(下部パネルに隠れない領域の)中央に表示する
     if (glMap) {
         let coveredPx = 0;
-        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel']) {
+        for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel', 'kashimap-panel']) {
             const el = document.getElementById(id);
             if (!el || el.classList.contains('hidden')) continue;
             coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
@@ -11098,6 +11101,212 @@ async function _tmExportMeshRowsCsv(rows) {
     if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${list.length.toLocaleString()}行)`;
 }
 
+
+// ============================================================
+// 可視マップ(デッサン05 第7版「実装の段取り」段1=山データ+山リスト。第148ラウンド)
+// 山データ data/mountains.json(地理院1003山+地理院に無い三百名山4座。tools/kashimap/で生成)を遅延読込し、
+// 位置情報メニューの「可視マップ」節の検索条件で絞り込んだ山リストを結果パネルに出す。
+// 選んだ山の山頂に山色のマーカー。塗り・島・動的計算(段2〜4)はまだ無い。
+// ============================================================
+const KM_DATA_URL = 'data/mountains.json';
+let _kmDataP = null;               // 山データの読込Promise(1回だけ。失敗時はnullに戻して再試行可)
+let _kmById = null;                // id -> 山データ
+let _kmActive = false;             // 結果パネル表示中(辻検索/辻メッシュ/宙検索とは排他)
+let _kmRows = [];                  // 今の検索結果(山データの参照)
+const _kmSelected = new Map();     // 選択中の山 id -> 色の席(0〜)。席は空いている最小番号(解除で空く。17席目は1席目の色)
+const KM_LIST_LABEL = { '100': '百', '200': '二百', '300': '三百', 'high': '高' };
+
+/** 山データの遅延読込(1回だけ) */
+function _kmLoadData() {
+    if (!_kmDataP) {
+        _kmDataP = fetch(KM_DATA_URL)
+            .then(r => { if (!r.ok) throw new Error('mountains.json ' + r.status); return r.json(); })
+            .then(d => {
+                const list = (d && Array.isArray(d.mountains)) ? d.mountains : [];
+                _kmById = new Map(list.map(m => [m.id, m]));
+                return list;
+            })
+            .catch(e => { _kmDataP = null; throw e; });
+    }
+    return _kmDataP;
+}
+/** 検索語の正規化: 全角スペース→半角・小文字・カタカナ→ひらがな(読みと当たるように) */
+function _kmNorm(s) {
+    return String(s || '').replace(/　/g, ' ').trim().toLowerCase()
+        .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+function _kmMatchTerm(m, term) {
+    const hay = [m.name, m.yomi, m.peak].concat(m.alias || [], m.pref || []).map(_kmNorm);
+    return hay.some(h => h && h.includes(term));
+}
+/** 可視マップ節の検索条件を読む */
+function _kmReadFilters() {
+    const terms = _kmNorm(document.getElementById('input-kashimap-query').value).split(/\s+/).filter(Boolean);
+    const or = document.getElementById('radio-kashimap-or').checked;
+    const lists = [];
+    for (const [id, key] of [['chk-kashimap-100', '100'], ['chk-kashimap-200', '200'], ['chk-kashimap-300', '300'], ['chk-kashimap-high', 'high']]) {
+        if (document.getElementById(id).checked) lists.push(key);
+    }
+    return { terms, or, lists, other: document.getElementById('chk-kashimap-other').checked };
+}
+/** 山データを検索条件で絞る(リストの印→語。テキストが空ならチェックしたリストの山を全部=Q7) */
+function _kmFilter(all, f) {
+    return all.filter(m => {
+        const ls = m.lists || [];
+        const inList = ls.some(l => f.lists.includes(l)) || (f.other && ls.length === 0);
+        if (!inList) return false;
+        if (!f.terms.length) return true;
+        return f.or ? f.terms.some(t => _kmMatchTerm(m, t)) : f.terms.every(t => _kmMatchTerm(m, t));
+    });
+}
+function _kmListsLabel(m) { const ls = (m.lists || []).map(l => KM_LIST_LABEL[l] || l); return ls.length ? ls.join('/') : '他'; }
+function _kmListsRank(m) { const ls = m.lists || []; return ls.includes('100') ? 0 : ls.includes('200') ? 1 : ls.includes('300') ? 2 : ls.includes('high') ? 3 : 4; }
+function _kmIdxCmp(a, b) {
+    const pa = String(a).split('-'), pb = String(b).split('-');
+    const na = parseInt(pa[0], 10), nb = parseInt(pb[0], 10);
+    if (isNaN(na) || isNaN(nb)) return String(a).localeCompare(String(b));
+    return (na - nb) || (parseInt(pa[1] || '0', 10) - parseInt(pb[1] || '0', 10));
+}
+/** 山色: 席番号→表示天体のスタイル設定の16色(17席目は1席目に戻る) */
+function _kmSeatColor(seat) { return COLOR_MAP[seat % COLOR_MAP.length].code; }
+function _kmSelect(id, on) {
+    if (on) {
+        if (_kmSelected.has(id)) return;
+        const used = new Set(_kmSelected.values());
+        let seat = 0; while (used.has(seat)) seat++;
+        _kmSelected.set(id, seat);
+    } else {
+        _kmSelected.delete(id);
+    }
+}
+/** 選んだ山の山頂マーカー(山色のピン。選択順の席で色が決まり、解除しても他の山の色は動かない) */
+function _kmUpdateMarkers() {
+    if (!glMap) return;
+    _glClearMarkerGroup('kashimap');
+    if (!_kmActive || !_kmById) return;
+    for (const [id, seat] of _kmSelected) {
+        const m = _kmById.get(id);
+        if (!m) continue;
+        _glAddMarker('kashimap', m.lat, m.lon, null, {
+            pin: _kmSeatColor(seat), className: 'location-marker kashimap-summit', zIndex: 5,
+            popupHtml: `<b>${escapeHtml(m.name)}</b>${m.peak ? ' (' + escapeHtml(m.peak) + ')' : ''}<br>` +
+                       `読み: ${escapeHtml(m.yomi || '')}<br>標高: ${m.elev !== null && m.elev !== undefined ? m.elev : '--'} m<br>` +
+                       `${escapeHtml((m.pref || []).join(' '))}<br>緯度: ${m.lat}°<br>経度: ${m.lon}°<br>` +
+                       `所属: ${_kmListsLabel(m)}`,
+        });
+    }
+}
+function _kmUpdateStatus() {
+    const st = document.getElementById('kashimap-status');
+    if (st) st.textContent = `(山${_kmRows.length}件 / 選択${_kmSelected.size})`;
+}
+function _kmRenderRow(m) {
+    const tr = document.createElement('tr');
+    tr.className = 'td-data-row' + (_kmSelected.has(m.id) ? ' selected' : '');
+    tr.dataset.id = m.id;
+    const sel = _kmSelected.has(m.id);
+    const swatch = sel ? `<span class="kashimap-swatch" style="background:${_kmSeatColor(_kmSelected.get(m.id))}"></span>` : '';
+    tr.innerHTML = `<td><input type="checkbox" class="body-checkbox kashimap-check" ${sel ? 'checked' : ''}>${swatch}</td>` +
+        `<td>${m.seq || ''}</td><td>${escapeHtml(m.id)}</td><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.yomi || '')}</td>` +
+        `<td>${_kmListsLabel(m)}</td><td>${escapeHtml((m.pref || []).join(' '))}</td>` +
+        `<td>${m.lat}</td><td>${m.lon}</td><td>${m.elev !== null && m.elev !== undefined ? m.elev : ''}</td><td>${escapeHtml(m.kind || '')}</td>`;
+    const chk = tr.querySelector('input.kashimap-check');
+    chk.addEventListener('click', ev => ev.stopPropagation());
+    chk.addEventListener('change', () => {
+        _kmSelect(m.id, chk.checked);
+        tr.classList.toggle('selected', chk.checked);
+        const old = tr.querySelector('.kashimap-swatch'); if (old) old.remove();
+        if (chk.checked) chk.insertAdjacentHTML('afterend', `<span class="kashimap-swatch" style="background:${_kmSeatColor(_kmSelected.get(m.id))}"></span>`);
+        _kmUpdateStatus(); _kmUpdateMarkers();
+    });
+    tr.addEventListener('click', () => { if (typeof recenterPointInView === 'function') recenterPointInView({ lat: m.lat, lng: m.lon }); });
+    return tr;
+}
+/** 山リストの描画(見出しソート=setupTableSort。初期は連番の昇順) */
+function _kmRenderList() {
+    const content = document.getElementById('kashimap-content');
+    content.innerHTML = '';
+    if (!_kmRows.length) { content.innerHTML = '<div class="kashimap-note">該当する山がありません</div>'; _kmUpdateStatus(); _kmUpdateMarkers(); return; }
+    const cols = [
+        { label: '選択', compare: (a, b) => (_kmSelected.has(b.id) ? 1 : 0) - (_kmSelected.has(a.id) ? 1 : 0) },
+        { label: '連番', compare: (a, b) => (a.seq || 1e9) - (b.seq || 1e9) },
+        { label: '索引番号', compare: (a, b) => _kmIdxCmp(a.id, b.id) },
+        { label: '山名', compare: (a, b) => a.name.localeCompare(b.name, 'ja') },
+        { label: '読み', compare: (a, b) => (a.yomi || '').localeCompare(b.yomi || '', 'ja') },
+        { label: '所属', compare: (a, b) => _kmListsRank(a) - _kmListsRank(b) },
+        { label: '都道府県', compare: (a, b) => (((a.prefCode && a.prefCode[0]) || 99) - ((b.prefCode && b.prefCode[0]) || 99)) || (b.lat - a.lat) },
+        { label: '山頂の緯度', compare: (a, b) => a.lat - b.lat },
+        { label: '山頂の経度', compare: (a, b) => a.lon - b.lon },
+        { label: '標高(m)', compare: (a, b) => (a.elev || 0) - (b.elev || 0) },
+        { label: '種別', compare: (a, b) => (a.kind || '').localeCompare(b.kind || '', 'ja') },
+    ];
+    const table = document.createElement('table');
+    table.className = 'td-table';
+    table.innerHTML = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody></tbody>';
+    content.appendChild(table);
+    setupTableSort(table, _kmRows, cols, _kmRenderRow, null, { initialColIdx: 1, initialAsc: true });
+    _kmUpdateStatus(); _kmUpdateMarkers();
+}
+/** 検索を実行して結果パネルに出す(パネルが閉じていれば開く) */
+async function runKashimapSearch() {
+    openKashimapPanel();
+    const content = document.getElementById('kashimap-content');
+    content.innerHTML = '<div class="kashimap-note">読み込み中…</div>';
+    let all;
+    try { all = await _kmLoadData(); }
+    catch (e) {
+        console.error(e);
+        content.innerHTML = '<div class="kashimap-note">山データ(data/mountains.json)の取得に失敗しました</div>';
+        _kmRows = []; _kmUpdateStatus(); return;
+    }
+    if (!_kmActive) return;
+    _kmRows = _kmFilter(all, _kmReadFilters());
+    _kmRenderList();
+}
+function openKashimapPanel() {
+    if (_kmActive) return;
+    if (appState.isTsujiMeshActive) closeTsujiMesh();
+    if (appState.isTsujiSearchActive) toggleTsujiSearch();
+    if (appState.isSoraSearchActive) closeSoraSearchPanel();
+    _kmActive = true;
+    document.getElementById('btn-kashimap').classList.add('active');
+    document.getElementById('kashimap-panel').classList.remove('hidden');
+    syncBottomPanels();
+}
+/** 結果パネルを閉じる(選択は保つ=開き直すとマーカーが戻る) */
+function closeKashimap() {
+    if (!_kmActive) return;
+    _kmActive = false;
+    document.getElementById('btn-kashimap').classList.remove('active');
+    document.getElementById('kashimap-panel').classList.add('hidden');
+    document.getElementById('btn-kashimap-max').classList.remove('active');
+    document.getElementById('kashimap-panel').classList.remove('maximized');
+    _kmUpdateMarkers();
+    syncBottomPanels();
+}
+/** 位置情報メニューの「可視マップ」ボタン=検索実行+結果パネル表示(辻メッシュと同じ・Q11) */
+function toggleKashimap() { if (_kmActive) closeKashimap(); else runKashimapSearch(); }
+function setupKashimapControls() {
+    document.getElementById('btn-kashimap').onclick = toggleKashimap;
+    document.getElementById('btn-kashimap-search').onclick = () => runKashimapSearch();
+    document.getElementById('input-kashimap-query').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); runKashimapSearch(); } });
+    document.getElementById('btn-kashimap-max').addEventListener('click', () => {
+        const pnl = document.getElementById('kashimap-panel');
+        const on = pnl.classList.toggle('maximized');
+        document.getElementById('btn-kashimap-max').classList.toggle('active', on);
+        syncBottomPanels();
+    });
+    document.getElementById('btn-kashimap-close').addEventListener('click', () => closeKashimap());
+    document.getElementById('btn-kashimap-select-all').addEventListener('click', () => {
+        _kmRows.forEach(m => _kmSelect(m.id, true));
+        _kmRenderList();
+    });
+    document.getElementById('btn-kashimap-select-none').addEventListener('click', () => {
+        _kmSelected.clear();
+        _kmRenderList();
+    });
+}
+
 function toggleTsujiMesh() {
     appState.isTsujiMeshActive = !appState.isTsujiMeshActive;
     const btn = document.getElementById('btn-tsujimesh');
@@ -11105,6 +11314,7 @@ function toggleTsujiMesh() {
     if (appState.isTsujiMeshActive) {
         if (appState.isTsujiSearchActive) toggleTsujiSearch();   // 辻検索とは同時表示不可
         if (appState.isSoraSearchActive) closeSoraSearchPanel();   // 宙検索結果とは同時表示不可
+        if (_kmActive) closeKashimap();                           // 可視マップとは同時表示不可(第148)
         btn.classList.add('active');
         pnl.classList.remove('hidden');
         startTsujiMeshSearch();
@@ -11258,13 +11468,20 @@ function syncBottomPanels() {
         ssPnl.classList.toggle('with-milkyway', appState.isSoraSearchActive && appState.isMilkyWayActive);
         ssPnl.classList.toggle('with-soramado', appState.isSoraSearchActive && appState.isSoramadoActive);
     }
+    // 可視マップの結果パネル(第148: 辻メッシュと同じ積み上げ規則。辻検索/辻メッシュ/宙検索とは排他)
+    const kmPnl = document.getElementById('kashimap-panel');
+    if (kmPnl) {
+        kmPnl.classList.toggle('with-elevation', _kmActive && appState.isElevationActive);
+        kmPnl.classList.toggle('with-milkyway', _kmActive && appState.isMilkyWayActive);
+        kmPnl.classList.toggle('with-soramado', _kmActive && appState.isSoramadoActive);
+    }
     // 宙断面パネル(天体儀と同じ規則: 結果パネル併用時は1/3、最大化100%⇄併用66.67%)
     const sdPnl = document.getElementById('soradanmen-panel');
     if (sdPnl) {
-        const anyResult = appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive;
+        const anyResult = appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive || _kmActive;
         sdPnl.classList.toggle('with-tsuji', appState.isSoradanmenActive && anyResult);
         const sdMax = sdPnl.classList.contains('maximized');
-        for (const [pnl, active] of [[tdPnl, appState.isTsujiSearchActive], [tmPnl, appState.isTsujiMeshActive], [ssPnl, appState.isSoraSearchActive]]) {
+        for (const [pnl, active] of [[tdPnl, appState.isTsujiSearchActive], [tmPnl, appState.isTsujiMeshActive], [ssPnl, appState.isSoraSearchActive], [kmPnl, _kmActive]]) {
             if (!pnl) continue;
             pnl.classList.toggle('with-soradanmen', active && appState.isSoradanmenActive);
             pnl.classList.toggle('with-soradanmen-max', active && appState.isSoradanmenActive && sdMax);
@@ -11273,25 +11490,29 @@ function syncBottomPanels() {
     }
     const smPnl = document.getElementById('soramado-panel');
     if (smPnl) {
-        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive);
+        smPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive || _kmActive);
         tdPnl.classList.toggle('with-soramado-max',
             appState.isTsujiSearchActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
         if (tmPnl) tmPnl.classList.toggle('with-soramado-max',
             appState.isTsujiMeshActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
         if (ssPnl) ssPnl.classList.toggle('with-soramado-max',
             appState.isSoraSearchActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
+        if (kmPnl) kmPnl.classList.toggle('with-soramado-max',
+            _kmActive && appState.isSoramadoActive && smPnl.classList.contains('maximized'));
         resizeSoramado();   // 高さ変更に合わせてプレビューを再描画
     }
     // 天体儀領域(宙の窓と同じ規則: 通常2/3⇄辻検索と併用1/3、最大化100%⇄辻検索と併用66.67%)
     const mwPnl = document.getElementById('milkyway-panel');
     if (mwPnl) {
-        mwPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive);
+        mwPnl.classList.toggle('with-tsuji', appState.isTsujiSearchActive || appState.isTsujiMeshActive || appState.isSoraSearchActive || _kmActive);
         tdPnl.classList.toggle('with-milkyway-max',
             appState.isTsujiSearchActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
         if (tmPnl) tmPnl.classList.toggle('with-milkyway-max',
             appState.isTsujiMeshActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
         if (ssPnl) ssPnl.classList.toggle('with-milkyway-max',
             appState.isSoraSearchActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
+        if (kmPnl) kmPnl.classList.toggle('with-milkyway-max',
+            _kmActive && appState.isMilkyWayActive && mwPnl.classList.contains('maximized'));
         resizeMilkyWayGlobe();   // 高さ変更に合わせて天体儀を再描画
     }
     // 下部パネルのトグルで隠れる領域が変わるので、観測点を可視領域の中央へ移動
@@ -11308,7 +11529,7 @@ function recenterPointInView(p, animate = true) {
     // パネルは画面下から積み上がる(各1/3)。他パネル排他＋辻検索は併用可(最大2/3)。
     // 実際に表示中の下部パネルの上端から、隠れている高さを実測する(プレビュー領域2/3・最大化にも対応)
     let coveredPx = 0;
-    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel', 'sorasearch-panel', 'soradanmen-panel']) {
+    for (const id of ['elevation-panel', 'milkyway-panel', 'soramado-panel', 'tsujisearch-panel', 'tsujimesh-panel', 'sorasearch-panel', 'soradanmen-panel', 'kashimap-panel']) {
         const el = document.getElementById(id);
         if (!el || el.classList.contains('hidden')) continue;
         coveredPx = Math.max(coveredPx, window.innerHeight - el.getBoundingClientRect().top);
@@ -18840,6 +19061,7 @@ function ssClearMapOverlay() {
 function openSoraSearchPanel() {
     if (appState.isTsujiMeshActive) closeTsujiMesh();
     if (appState.isTsujiSearchActive) toggleTsujiSearch();
+    if (_kmActive) closeKashimap();   // 可視マップとは排他(第148)
     if (!appState.isSoraSearchActive) {
         appState.isSoraSearchActive = true;
         document.getElementById('sorasearch-panel').classList.remove('hidden');

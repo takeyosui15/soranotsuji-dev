@@ -53,8 +53,8 @@ const PHOTO_NE = buildExifJpeg({ little: true, latRef: 'N', lngRef: 'E', lat: [3
 const PHOTO_SW = buildExifJpeg({ little: false, latRef: 'S', lngRef: 'W', lat: [35, 21, 3870], lng: [138, 43, 3850] });
 const PHOTO_NOGPS = buildExifJpeg({ little: true, noGps: true });
 
-// ---- V0: 版数ピン(最新の検証が持つ。第132/133もリリース前の追補なので1.87.0のまま) ----
-check('V0 版数ピン 1.87.0+Version Historyに第132/133の追補4/5', /APP_VERSION = '1\.87\.0'/.test(src) && ((src.includes('第132ラウンド(リリース前の追補4') && src.includes('第133ラウンド(リリース前の追補5')) || !!process.argv[2]));
+// ---- V0: 版数の形(等価ピンは最新のverify174へ移譲。第148) ----
+check('V0 版数の形+Version Historyに第132/133の追補4/5', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && ((src.includes('第132ラウンド(リリース前の追補4') && src.includes('第133ラウンド(リリース前の追補5')) || !!process.argv[2]));
 
 // ---- T1: UI文言(第133): ○ラジオのツールチップからデッサンの考え方を削除+reset.htmlのドライブ注記 ----
 check('T1 「:○」ラジオのtitleは±0.25°のみ(実用域の説明はデッサンへ)+reset.htmlにドライブは残る注記',
