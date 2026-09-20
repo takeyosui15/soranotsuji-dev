@@ -61,6 +61,14 @@ CONFIRMED = {
     ('lhigh', '観音岳（鳳凰山）'): '表記違い: 観音岳=観音ヶ岳',
     ('lhigh', '悪沢岳（荒川東岳）'): '表記違い: 悪沢岳=東岳(悪沢岳)',
 }
+# 地理院1003山に無い山の座標: Wikipediaの座標の周り300mで地理院DEM5A(z15)の最高画素を探した値(2026-09-21・第146)。
+# 標高APIでも照合済み。依頼者の検品待ち。key = 名山側の表示名 -> (緯度, 経度, DEMの標高, 備考)
+EXTRA_COORDS = {
+    '二岐山': (37.246472, 139.967258, 1543.9, '地理院DEM5Aの最高画素。Wikipedia座標から約10m'),
+    '諏訪山': (36.039921, 138.729494, 1548.4, '地理院DEM5Aの最高画素。Wikipedia座標から約10m'),
+    '藤原岳': (35.158705, 136.452749, 1141.1, '地理院DEM5Aの最高画素(展望丘)。Wikipedia座標から約110m西'),
+    '吾妻山': (35.067290, 133.054197, 1236.0, '地理院DEM5Aの最高画素。Wikipedia座標から約350m南東'),
+}
 LIST_LABEL = {'l100': '百名山', 'l200': '二百名山', 'l300': '三百名山', 'lhigh': '百高山'}
 
 def norm(s):
@@ -171,10 +179,16 @@ for g in gsi:
                      *flags, '/'.join(alias), how, state, note])
 for x in extra:
     e = x['entry']; k = x['list']
-    out_rows.append(['', '', e['name'], e.get('yomi', ''), '', '', e.get('elev', ''), 'Wikipedia座標(仮)', e.get('pref', ''),
-                     f"{e['lat']:.4f}" if e.get('lat') else '', f"{e['lon']:.4f}" if e.get('lon') else '',
+    ec = EXTRA_COORDS.get(e['name'])
+    if ec:
+        lat, lon, dem_elev, ecnote = ec
+        kind = '地理院DEM最高画素(要確認)'; note = x['note'] + f' / 座標は{ecnote}(DEM標高{dem_elev:.1f}m)'
+    else:
+        lat, lon = e.get('lat'), e.get('lon'); kind = 'Wikipedia座標(仮)'; note = x['note']
+    out_rows.append(['', '', e['name'], e.get('yomi', ''), '', '', e.get('elev', ''), kind, e.get('pref', ''),
+                     f"{lat:.6f}" if lat else '', f"{lon:.6f}" if lon else '',
                      '1' if k == 'l100' else '', '1' if k == 'l200' else '', '1' if k == 'l300' else '', '1' if k == 'lhigh' else '',
-                     '', f"{LIST_LABEL[k]}:Wikipedia", x['state'], x['note']])
+                     '', f"{LIST_LABEL[k]}:Wikipedia", x['state'], note])
 
 with open(OUT, 'w', encoding='utf-8-sig', newline='') as f:
     w = csv.writer(f); w.writerow(cols); w.writerows(out_rows)
