@@ -15,8 +15,9 @@
 | `kenpin-2026-09-21.md` | 検品シート(第146作成・第147で依頼者が回答: 1:A 2:A 3:A 4:B 5:A 6:B 7〜9:OK 10:座標修正)。記録として残す |
 | `make-mountains-json.py` | 対応表→アプリ用 `data/mountains.json`(1063山頂・約260KB)。列名は英語、都道府県はJISコード順 |
 | `viewshed.js` | **段2: 計算の道具**(Node・依存なし)。推し山を中心に範囲(km四方)の地理院DEMを読み、全画素の「山頂が見えるか」を計算して島にする(下の節) |
-| `cache/` | 地理院DEMタイルのキャッシュ(gitに入れない)。`out/` の visible.bin と islands.geojson も同じ |
-| `out/<id>-<range>km-z<z>-<terrain|canopy>/` | 出力: `meta.json`(計算条件と結果の数)・`islands.json`(島の索引)・`preview.png`(縮小画像)はgitに入れる |
+| `cache/` | 地理院DEMタイルのキャッシュ(gitに入れない)。`out/` の visible.bin・islands.geojson・outline.json も同じ(outline.jsonはアプリ用資産と同じ物) |
+| `out/<id>-<range>km-z<z>-<terrain|canopy>[-<tag>]/` | 出力: `meta.json`(計算条件と結果の数)・`islands.json`(島の索引)・`preview.png`(縮小画像)はgitに入れる |
+| `../../data/kashimap/v1/` | **アプリ用の静的資産**(`--asset` で書く): `index.json`(山ごとの計算済みの範囲と島の数)+`{id}/{terrain\|canopy}/{range}/{meta,islands,outline}.json`。段4で別リポジトリへ |
 
 ## 出力の列
 
@@ -49,26 +50,42 @@
 4. 答えは `docs/order.md` に「1:A 2:A …」のように書くか、`kenpin-2026-09-21.md` の `[ ]` に `x` を付けてコミット。
    反映(スクリプトの手動指定表への書き込みと再生成)はClaudeが行う。CSVを直接直す必要はない。
 
-## viewshed.js(段2: 計算の道具)
+## viewshed.js(段2: 計算の道具・v2)
 
 ```
-node --max-old-space-size=6000 tools/kashimap/viewshed.js --id 368 --range 60 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6] [--check 3000] [--preview 1200] [--outline 3000]
+node --max-old-space-size=6000 tools/kashimap/viewshed.js --id 368 --range 60 --asset data/kashimap/v1 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6]
+     [--check 3000] [--preview 1200] [--summit-mode region|circle] [--summit-drop 300] [--summit-search 3000] [--excl-target M] [--tol 1.0] [--tag 名前] [--geojson true]
+     [--probe "緯度,経度,名前;緯度,経度,名前"]
 ```
 
 - 入力: `--id`=data/mountains.json の索引番号(地理院に無い4座は x1〜x4)。`--range`=範囲(km四方)。`--zoom`=DEMのズーム(15=約3.9m画素)。
   `--k`=大気差の係数(静的資産はアプリの標準値0.132で固定・Q23)。`--obs`=観測者の高さ(m・既定1.5)。
 - DEMは dem5a→5b→5c(z15)→dem_png(z14を2倍)の順に取り、`cache/` に置く(2回目からはネットに行かない)。同時取得は `--concurrency`(既定6)。
-  地理院のタイルサーバーへの負荷を考え、1つの山の1回の実行より多くを続けて回さない(60km四方=3,721枚≈330MB)。
+  地理院のタイルサーバーへの負荷を考え、1つの山の1回の実行より多くを続けて回さない(60km四方=3,721枚≈330MB。初回は約10分、2回目から13秒)。
 - 判定: 山頂から窓の縁の全画素へ光線を伸ばし(R2)、見かけ高度角 (h−d²/(2Reff)−hS)/d の最大を更新しながら外へ歩く。
-  観測者は地上+1.5m。式と観測点側の除外(10m)はアプリの統一可視判定(_visJudgeCore)と同じ。
-  目的点側の除外は「山頂部の広がり」(山頂から `--summit-drop`[既定120]m以内の高さの画素が山頂から最も遠い距離。`--summit-search`[既定3000]m内。
-  `--excl-target` で指定も可)。山頂の1点だけを目的点にすると火口の縁や山頂の肩に隠れて「見えない」だらけになるため(富士山で実測)。
-  山頂の標高は3×3画素のDEM最大。
-  `--check N` で、アプリと同じ歩き方(z15半画素刻み)で標本N画素を判定して一致率を出す。
-- 出力(`out/<id>-<range>km-z<z>-terrain/`): `visible.bin`(1bit・行優先・W×H)・`islands.json`(島の索引: 項番=北→南の固定番号・
-  画素数・面積km²・代表点[緯度,経度]・bbox・山頂からの距離km)・`islands.geojson`(大きい島は外周・小さい島は画素の四角)・
-  `meta.json`・`preview.png`(見える割合を金色の濃さに。山頂は赤)。
-- まだ無いもの: 樹冠(Meta/WRI)・建物(PLATEAU)・輪郭の穴・PMTiles化・小→大の段階計算と水平線フィルタ(段2後半)。
+  観測者は地上+1.5m。式と観測点側の除外(10m)はアプリの統一可視判定(_visJudgeCore)と同じ。山頂の標高は3×3画素のDEM最大。
+- **目的点側の除外=山頂部**(`--summit-mode`): 山頂の1点だけを目的点にすると火口の縁や山頂の肩に隠れて「見えない」だらけになる(富士山で3.3%)。
+  - `region`(既定): 山頂から `--summit-drop`[300]m以内の高さで**山頂につながる**画素(`--summit-search`[3000]m内・8近傍)=山の体そのものを
+    遮蔽に数えない(+アプリと同じ最小の半径15m)。中心も半径も要らず、離れた隣の峰の帯は含めない。さらに、帯が**別の山**(山リストの山頂。
+    索引番号の親番号が違う山)の山頂を含む時は、含まない高さまで自動で縮める(双子峰で隣を除外しない)。
+  - `circle`: 山頂から一定半径の円(`--excl-target` で指定。無指定なら帯の最遠距離を自動)。第149の方式。
+  - 富士山60kmの比べ(見える画素/島/アプリの歩き方との一致): 1点=3.3% / 円350m=33.8%・6,605・99.3% / 帯120m=40.7%・9,632・99.5% /
+    円918m=45.1%(第149の46.6%は斜め方向で半径が√2倍に伸びていた分) / **帯300m(既定)=47.5%・10,129・99.4%** / 帯500m=49.2%。
+    帯120mは「火口の縁の外側の斜面(3,650m)」が壁になり、富士吉田・須走・御殿場口など北〜東の平地まで見えない側になる(山体が2億画素の
+    暗い円になる)。帯300mなら既知の展望地は全て「見える」(富士宮口五合目=山頂直下の斜面の上、滝沢林道=北東の肩の陰、は見えない)。
+    帯の幅が決めごと(デッサン05のQ25)。
+  - `--probe "緯度,経度,名前;…"`: 既知の展望地から山頂への見通しを1本ずつ歩いて、見える/見えないと遮った画素(山頂からの距離・標高)を出す
+    (答えの検算。第149の学び「線を1本歩いて確かめる」を道具に)。
+  - `--check N` で、アプリと同じ歩き方(z15半画素刻み・同じ除外)で標本N画素を判定して一致率を出す。
+- 島=8近傍の連結成分(行の連の合併)。**輪郭=外周+穴**を全島で辿り(境界の辺を全部・左折優先)、環の符号付き面積の合計が画素数と一致する
+  自己検査を通してから Douglas-Peucker(`--tol`[1.0]px)で間引く(富士山60km: 頂点305万→99万・outline.json 2.8MB)。
+- 出力(`out/<id>-<range>km-z<z>-terrain[-<tag>]/`): `visible.bin`(1bit・行優先・W×H)・`islands.json`(島の索引: 項番=北→南の固定番号・
+  画素数・穴の数・面積km²・代表点[緯度,経度]・bbox・山頂からの距離km)・`outline.json`(島ごとに[項番,画素数,外周,穴…]。各環は画素の角の
+  整数座標[窓の左上が0,0]を先頭=絶対・以降=差分でGoogle polyline符号[倍率なし])・`meta.json`(version 2: summit_mode/summit_area/outlineの数も)・
+  `preview.png`(見える割合を金色の濃さに。山頂は赤)。`--geojson true` で確認用の islands.geojson(穴つき・大きい)も。
+- `--asset <dir>`: `<dir>/<id>/<terrain|canopy>/<range>/` に meta/islands/outline を置き、`<dir>/index.json` を更新する(アプリはこれを読む)。
+  同梱の資産: 富士山(368)60km(島10,129・outline 3.0MB)・毛無山(370)20km(島919)。いずれも地形のみ・k=0.132・観測者1.5m・帯300m。
+- まだ無いもの: 樹冠(Meta/WRI)・建物(PLATEAU)・PMTiles化・小→大の段階計算と水平線フィルタ・境目の厳密化(段2後半)。
 
 ## 再生成
 

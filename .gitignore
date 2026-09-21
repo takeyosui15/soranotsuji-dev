@@ -7,3 +7,4 @@ test-results/
 tools/kashimap/cache/
 tools/kashimap/out/*/visible.bin
 tools/kashimap/out/*/islands.geojson
+tools/kashimap/out/*/outline.json

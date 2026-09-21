@@ -5,10 +5,14 @@
 // 判定: 山頂から放射状(R2=窓の縁の全画素へ光線)に、地球の丸み+大気差(k固定)の沈み込み d²/(2Reff) を引いた
 // 見かけ高度角の最大値を更新しながら外へ歩く(1画素を光線ごとに1回)。アプリの統一可視判定(_visJudgeCore)と同じ式
 // (e − d²·inv2R と直線の比較)で、除外規則(目的点側15m・観測点側10m)も同じ。
-// 出力(out/<id>-<range>km-z<z>-<canopy>/): visible.bin(1bitの見える/見えない・行優先)・islands.json(島の索引)・
-// islands.geojson(島の輪郭。大きい島は外周をたどる・小さい島は画素の四角)・meta.json(計算条件)・preview.png(縮小画像)。
+// 目的点側の除外は「山頂部」(山頂から summit-drop 以内の高さの画素の広がり)。--summit-mode region(既定)はその画素の地形を
+// 遮蔽に数えない(中心も半径も要らない)。circle は山頂から一定半径の円(--excl-target。無指定なら山頂部の最遠距離から自動)。
+// 出力(out/<id>-<range>km-z<z>-<canopy>[-<tag>]/): visible.bin(1bitの見える/見えない・行優先)・islands.json(島の索引)・
+// outline.json(島の輪郭=外周+穴。画素の角の整数座標を間引いてポリライン符号で圧縮・アプリ用)・meta.json(計算条件)・preview.png(縮小画像)。
+// --asset <dir> を付けると <dir>/<id>/<terrain|canopy>/<range>/ にアプリ用の3点(meta/islands/outline)を置き、<dir>/index.json を更新する。
 // 使い方: node tools/kashimap/viewshed.js --id 368 --range 60 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6]
-//         [--check 2000] [--preview 1024] [--outline 2000] [--cache tools/kashimap/cache] [--out tools/kashimap/out]
+//         [--check 2000] [--preview 1024] [--summit-mode region|circle] [--summit-drop 300] [--summit-search 3000] [--excl-target M]
+//         [--tol 1.0] [--tag 名前] [--asset data/kashimap/v1] [--geojson true] [--cache tools/kashimap/cache] [--out tools/kashimap/out]
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -28,10 +32,16 @@ const OBS_H = parseFloat(args.obs || '1.5');
 const CONC = parseInt(args.concurrency || '6', 10);
 const CHECK_N = parseInt(args.check || '2000', 10);
 const PREVIEW = parseInt(args.preview || '1024', 10);
-const OUTLINE_N = parseInt(args.outline || '2000', 10);
+const SUMMIT_MODE = String(args['summit-mode'] || 'region');   // region=山頂部の画素を遮蔽に数えない / circle=山頂から一定半径の円を除外
+if (!['region', 'circle'].includes(SUMMIT_MODE)) { console.error('--summit-mode は region か circle'); process.exit(1); }
+const DP_TOL = parseFloat(args.tol || '1.0');      // 輪郭の間引き(Douglas-Peucker)の許容値(画素)。1.0で頂点が約1/3(富士山60km: 305万→99万)。0.5未満なら1画素幅の水路でも線が交差しないが資産が2倍
+const TAG = args.tag ? '-' + String(args.tag).replace(/[^\w.-]/g, '_') : '';   // 出力フォルダの添え名(実験の区別)
+const ASSET_DIR = args.asset ? path.resolve(args.asset) : null;              // アプリ用資産の置き場(例 data/kashimap/v1)
+const WRITE_GEOJSON = args.geojson === 'true';                               // 確認用のGeoJSON(大きい。既定は書かない)
+const PROBES = (args.probe || '').split(';').map(t => t.trim()).filter(Boolean).map(t => { const [lat, lon, name] = t.split(','); return { lat: +lat, lon: +lon, name: name || `${lat},${lon}` }; });   // 既知の展望地の見通しを1本ずつ歩いて報告
 const CANOPY = args.canopy === 'true';      // 段2後半(樹冠)。今はfalse固定
 const EXCL_TARGET_ARG = args['excl-target'] !== undefined ? parseFloat(args['excl-target']) : null;   // 目的点側の除外半径(m)。無指定=山頂部の広がりから自動
-const SUMMIT_DROP_M = parseFloat(args['summit-drop'] || '120');   // 「山頂部」= 山頂からこの高さ以内の画素(自動除外半径の決め方)
+const SUMMIT_DROP_M = parseFloat(args['summit-drop'] || '300');   // 「山頂部」= 山頂からこの高さ以内で山頂につながる画素(山の体そのもの。他の山の山頂を含まない高さまで縮める)
 const SUMMIT_SEARCH_M = parseFloat(args['summit-search'] || '3000');   // 山頂部を探す半径(m)
 const CACHE = path.resolve(args.cache || path.join(HERE, 'cache'));
 const OUT_ROOT = path.resolve(args.out || path.join(HERE, 'out'));
@@ -192,20 +202,60 @@ function summitInfo() {
   let hS = -Infinity;
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const c = grid[(CY + dy) * W + (CX + dx)]; if (c !== NODATA) hS = Math.max(hS, c / 10 - 100); }
   if (hS === -Infinity) hS = M.elev;
-  const rPx = Math.ceil(SUMMIT_SEARCH_M / MPP); let far = 0, nCap = 0;
+  const rPx = Math.ceil(SUMMIT_SEARCH_M / MPP); const bw = 2 * rPx + 1;
+  // 探索の箱の中にある「別の山」(山リストの山頂。索引番号の親番号が同じ峰=同じ山の別峰は除く)。山頂部にこれらを含めない
+  const baseId = String(M.id).split('-')[0];
+  const others = mdata.mountains.filter(o => o.id !== M.id && String(o.id).split('-')[0] !== baseId)
+    .map(o => ({ name: o.name, elev: o.elev, bx: Math.floor(lonToX(o.lon)) - X0 - CX + rPx, by: Math.floor(latToY(o.lat)) - Y0 - CY + rPx }))
+    .filter(o => o.bx >= 0 && o.by >= 0 && o.bx < bw && o.by < bw && Math.hypot(o.bx - rPx, o.by - rPx) * MPP <= SUMMIT_SEARCH_M);
+  const elevBox = new Float32Array(bw * bw).fill(-Infinity);
   for (let dy = -rPx; dy <= rPx; dy++) for (let dx = -rPx; dx <= rPx; dx++) {
     const x = CX + dx, y = CY + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue;
     const c = grid[y * W + x]; if (c === NODATA) continue;
-    const dM = Math.sqrt(dx * dx + dy * dy) * MPP; if (dM > SUMMIT_SEARCH_M) continue;
-    if (c / 10 - 100 >= hS - SUMMIT_DROP_M) { nCap++; if (dM > far) far = dM; }
+    if (Math.sqrt(dx * dx + dy * dy) * MPP > SUMMIT_SEARCH_M) continue;
+    elevBox[(dy + rPx) * bw + (dx + rPx)] = c / 10 - 100;
   }
+  // 帯(山頂からdrop以内の高さ)のうち山頂につながる部分(8近傍)を取る。山頂につながらない帯(離れた隣の峰)は含めない
+  const bandOf = (drop) => {
+    const keep = new Uint8Array(bw * bw); const stack = [rPx * bw + rPx]; keep[stack[0]] = 1; let n = 0;
+    while (stack.length) {
+      const i = stack.pop(); n++; const x = i % bw, y = (i - x) / bw;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= bw || ny >= bw) continue;
+        const j = ny * bw + nx; if (!keep[j] && elevBox[j] >= hS - drop) { keep[j] = 1; stack.push(j); }
+      }
+    }
+    return { keep, n };
+  };
+  const hasOther = (keep) => others.find(o => keep[o.by * bw + o.bx] === 1) || null;
+  let drop = SUMMIT_DROP_M, band = bandOf(drop); const blocker = hasOther(band.keep);
+  if (blocker) {   // 別の山の山頂を含んでしまう→含まない最大の高さまで二分探索で縮める
+    let lo = 0, hi = drop;
+    for (let it = 0; it < 12; it++) { const mid = (lo + hi) / 2; if (hasOther(bandOf(mid).keep)) hi = mid; else lo = mid; }
+    drop = Math.floor(lo); band = bandOf(drop);
+    log(`山頂部: 帯 −${SUMMIT_DROP_M}m では別の山「${blocker.name}」(${blocker.elev}m)の山頂を含むため、−${drop}m に縮めた`);
+  }
+  const capBox = band.keep; let far = 0, nCap = 0;
+  for (let i = 0; i < capBox.length; i++) { if (!capBox[i]) continue; const x = i % bw, y = (i - x) / bw; const dM = Math.hypot(x - rPx, y - rPx) * MPP; nCap++; if (dM > far) far = dM; }
+  const dropUsed = drop;
   const auto = Math.max(15, Math.ceil(far));
-  return { hS, capPx: nCap, capFarM: +far.toFixed(1), exclTargetM: EXCL_TARGET_ARG !== null ? EXCL_TARGET_ARG : auto, exclAuto: EXCL_TARGET_ARG === null };
+  // circle: 除外半径=指定値か山頂部の最遠距離(自動)。region: 半径は最小の15m(アプリと同じ)+山頂部の画素そのもの
+  const exclTargetM = EXCL_TARGET_ARG !== null ? EXCL_TARGET_ARG : (SUMMIT_MODE === 'circle' ? auto : 15);
+  return { hS, capPx: nCap, capFarM: +far.toFixed(1), exclTargetM, exclAuto: EXCL_TARGET_ARG === null, rPx, bw, capBox, dropUsed, others: others.map(o => o.name) };
+}
+let _SI = null;
+/** 目的点側の除外: その画素の地形を遮蔽に数えないか。circle=山頂からEXCL_TGT_M以内 / region=それに加えて山頂部の画素(高さの帯) */
+function isExcludedTarget(px, py, dM) {
+  if (dM <= EXCL_TGT_M) return true;
+  if (SUMMIT_MODE !== 'region' || !_SI) return false;
+  const bx = px - CX + _SI.rPx, by = py - CY + _SI.rPx;
+  if (bx < 0 || by < 0 || bx >= _SI.bw || by >= _SI.bw) return false;
+  return _SI.capBox[by * _SI.bw + bx] === 1;
 }
 function computeViewshed(hS) {
   const visible = new Uint8Array(W * H);           // 1=見える 0=見えない/データ無し 2=山頂
   const inv2R = (1 - K) / (2 * R_EARTH);           // 1/(2·Reff), Reff = R/(1−k)
-  const exclObsPx = Math.ceil(EXCL_OBS_M / MPP), exclTgtPx = Math.ceil(EXCL_TGT_M / MPP);
+  const exclObsPx = Math.ceil(EXCL_OBS_M / MPP);
   const maxSteps = 2 * halfPx + 2;
   const thetaT = new Float64Array(maxSteps);        // 光線上の地形の見かけ高度角(手前から)
   const prefix = new Float64Array(maxSteps);        // 手前までの最大(除外画素を除く)
@@ -223,13 +273,13 @@ function computeViewshed(hS) {
         const h = code / 10 - 100; const drop = dM * dM * inv2R;
         th = (h - drop - hS) / dM;                                   // 地形の見かけ高度角(山頂から)
         const thP = (h + OBS_H - drop - hS) / dM;                   // 観測者(地上+OBS_H)の見かけ高度角
-        // 手前の地形の最大(観測者側の除外=直前exclObsPx画素を除く。目的点側の除外=最初のexclTgtPx画素はprefixに入れない)
+        // 手前の地形の最大(観測者側の除外=直前exclObsPx画素を除く。目的点側の除外=山頂部/除外半径の画素はprefixに入れない)
         const refIdx = s - 1 - exclObsPx;
         const ref = refIdx >= 1 ? prefix[refIdx] : -Infinity;
         if (thP >= ref) visible[gi] = 1;
       }
       thetaT[s] = th;
-      if (s > exclTgtPx) runMax = Math.max(runMax, th);
+      if (!isExcludedTarget(px, py, dM)) runMax = Math.max(runMax, th);
       prefix[s] = runMax;
     }
     raysDone++;
@@ -240,6 +290,30 @@ function computeViewshed(hS) {
   let nVis = 0; for (let i = 0; i < visible.length; i++) if (visible[i] === 1) nVis++;
   return { visible, nVis, rays: raysDone };
 }
+
+/** 1地点の見通しを山頂から歩いて報告する(答えの検算用): 見える/見えないと、遮った画素(山頂からの距離・標高・見かけ高度角) */
+function probeRay(lat, lon, hS) {
+  const px = Math.floor(lonToX(lon)) - X0, py = Math.floor(latToY(lat)) - Y0;
+  if (px < 0 || py < 0 || px >= W || py >= H) return { out: true };
+  const inv2R = (1 - K) / (2 * R_EARTH); const exclObsPx = Math.ceil(EXCL_OBS_M / MPP);
+  const dx = px - CX, dy = py - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); const sx = dx / steps, sy = dy / steps;
+  const th = new Float64Array(steps + 1); const excl = new Uint8Array(steps + 1); let runMax = -Infinity, argMax = -1;
+  const prefixMax = new Float64Array(steps + 1), prefixArg = new Int32Array(steps + 1);
+  for (let s2 = 1; s2 <= steps; s2++) {
+    const qx = Math.round(CX + sx * s2), qy = Math.round(CY + sy * s2); const code = grid[qy * W + qx]; const dM = Math.sqrt((qx - CX) ** 2 + (qy - CY) ** 2) * MPP;
+    th[s2] = code === NODATA ? -Infinity : ((code / 10 - 100) - dM * dM * inv2R - hS) / dM;
+    excl[s2] = isExcludedTarget(qx, qy, dM) ? 1 : 0;
+    if (!excl[s2] && th[s2] > runMax) { runMax = th[s2]; argMax = s2; }
+    prefixMax[s2] = runMax; prefixArg[s2] = argMax;
+  }
+  const code = grid[py * W + px]; if (code === NODATA) return { nodata: true };
+  const dM = Math.sqrt(dx * dx + dy * dy) * MPP; const h = code / 10 - 100;
+  const thP = (h + OBS_H - dM * dM * inv2R - hS) / dM; const refIdx = steps - 1 - exclObsPx; const ref = refIdx >= 1 ? prefixMax[refIdx] : -Infinity; const arg = refIdx >= 1 ? prefixArg[refIdx] : -1;
+  const blk = arg > 0 ? { qx: Math.round(CX + sx * arg), qy: Math.round(CY + sy * arg) } : null;
+  const blkD = blk ? Math.sqrt((blk.qx - CX) ** 2 + (blk.qy - CY) ** 2) * MPP : null; const blkH = blk ? grid[blk.qy * W + blk.qx] / 10 - 100 : null;
+  return { visible: thP >= ref, distKm: dM / 1000, h, thP, ref, blkD, blkH, gridVisible: visible_[py * W + px] === 1 };
+}
+let visible_ = null;
 
 // ---------- 島(8近傍の連結成分。行の連(run)の合併で省メモリ) ----------
 function labelIslands(visible) {
@@ -281,56 +355,90 @@ function labelIslands(visible) {
   // 項番=代表点を北から南(同じなら東から西)に並べた固定番号(Q2)。北=小さいy、東=大きいx
   islands.sort((a, b) => (a.rep[1] - b.rep[1]) || (b.rep[0] - a.rep[0]));
   islands.forEach((isl, i) => { isl.no = i + 1; });
-  return { runs, islands };
+  return { runs, islands, rowStart };
 }
-// 島の外周をたどる(Moore近傍・8連結。穴は省略)。bbox内の小さなビットマップで処理する
-function traceOutline(visible, isl) {
-  const [minx, miny, maxx, maxy] = isl.bbox; const bw = maxx - minx + 3, bh = maxy - miny + 3;
-  const bm = new Uint8Array(bw * bh);
-  // このコンポーネントの画素だけを立てる(bboxに他の島が混ざっても外周は正しい)
-  for (const ri of isl.runs) { const r = isl._runs[ri]; const by = r[0] - miny + 1; for (let x = r[1]; x <= r[2]; x++) bm[by * bw + (x - minx + 1)] = 1; }
-  const at = (x, y) => (x >= 0 && y >= 0 && x < bw && y < bh) ? bm[y * bw + x] : 0;
-  // 開始点=最上段の最左画素。境界は画素の左上角を頂点にした格子上の輪郭(square tracing)
-  let sx = -1, sy = -1;
-  for (let y = 0; y < bh && sy < 0; y++) for (let x = 0; x < bw; x++) if (bm[y * bw + x]) { sx = x; sy = y; break; }
-  // 画素の縁を辿る(右手法: 内側を左に見て進む)。方向: 0=東 1=南 2=西 3=北。頂点座標は画素の角
-  const ring = []; let x = sx, y = sy, dir = 0;   // 開始頂点=画素(sx,sy)の左上角、東へ
-  const startX = x, startY = y; let guard = 0;
-  do {
-    ring.push([x, y]);
-    // 次の方向を決める: 前方左の画素と前方右の画素で判定(格子の辺に沿って進む)
-    const dxs = [1, 0, -1, 0], dys = [0, 1, 0, -1];
-    const fx = x + dxs[dir], fy = y + dys[dir];
-    // 進行方向の辺の両側の画素: 左側と右側(dirに対して)
-    const leftPix = (d, vx, vy) => d === 0 ? at(vx, vy - 1) : d === 1 ? at(vx, vy) : d === 2 ? at(vx - 1, vy) : at(vx - 1, vy - 1);
-    const rightPix = (d, vx, vy) => d === 0 ? at(vx, vy) : d === 1 ? at(vx - 1, vy) : d === 2 ? at(vx - 1, vy - 1) : at(vx, vy - 1);
-    // 現在の辺(x,y)->(fx,fy)は「左が外(0)・右が内(1)」の向きで進む(時計回りに外周)
-    x = fx; y = fy;
-    // 次の辺: 左折できるか(左前が内)、直進か、右折か
-    const dl = (dir + 3) % 4, dr = (dir + 1) % 4;
-    if (rightPix(dl, x, y) === 1 && leftPix(dl, x, y) === 0) dir = dl;
-    else if (rightPix(dir, x, y) === 1 && leftPix(dir, x, y) === 0) { /* 直進 */ }
-    else if (rightPix(dr, x, y) === 1 && leftPix(dr, x, y) === 0) dir = dr;
-    else dir = (dir + 2) % 4;   // 行き止まり(1画素幅の突起): 折り返す
-    if (++guard > 8 * (bw + bh) * 4 + 100000) break;
-  } while (!(x === startX && y === startY && dir === 0) && guard < 20000000);
-  ring.push([startX, startY]);
-  // 直線上の中間点を落とす(格子の辺の連続)+1画素の許容で間引き
-  const simp = [];
-  for (let i = 0; i < ring.length; i++) {
-    const p = ring[i]; const q = simp[simp.length - 1], o = simp[simp.length - 2];
-    if (q && o && ((o[0] === q[0] && q[0] === p[0]) || (o[1] === q[1] && q[1] === p[1]))) simp[simp.length - 1] = p; else simp.push(p);
+// ---------- 島の輪郭(外周+穴)。境界の辺を全部たどる ----------
+// 画素の角を頂点にした格子の上で、「見える」と「見えない(データ無し・山頂を含む)」の境の辺を、内側(見える)を右に見て進む。
+// 分岐(斜めに接する画素の角)では左折を優先する=前景は8連結(labelIslandsと同じ)・穴は4連結。
+// 水平の辺を上の行から左から順に走査し、未通過の辺から環を1つずつ起こす(出発点は環の最上段の左端なので、出発点に戻ったら閉じる)。
+// 環の符号付き面積(y下向きの座標)は外周が正・穴が負。島ごとの合計が画素数と一致することを自己検査に使う。
+function extractRings(visible, runs, rowStart, runIsland, nIslands) {
+  const hSeen = new Uint8Array(Math.ceil(W * (H + 1) / 8));   // 水平辺(x, L): 画素(x,L-1)と(x,L)の間。L∈[0,H]
+  const at = (x, y) => (x >= 0 && y >= 0 && x < W && y < H && visible[y * W + x] === 1) ? 1 : 0;
+  const hGet = (x, L) => { const i = L * W + x; return (hSeen[i >> 3] >> (i & 7)) & 1; };
+  const hSet = (x, L) => { const i = L * W + x; hSeen[i >> 3] |= 1 << (i & 7); };
+  const rightPix = (d, vx, vy) => d === 0 ? at(vx, vy) : d === 1 ? at(vx - 1, vy) : d === 2 ? at(vx - 1, vy - 1) : at(vx, vy - 1);
+  const leftPix = (d, vx, vy) => d === 0 ? at(vx, vy - 1) : d === 1 ? at(vx, vy) : d === 2 ? at(vx - 1, vy) : at(vx - 1, vy - 1);
+  const dxs = [1, 0, -1, 0], dys = [0, 1, 0, -1];   // 0=東 1=南 2=西 3=北
+  const islandOfPixel = (x, y) => { let lo = rowStart[y], hi = rowStart[y + 1] - 1; while (lo <= hi) { const mid = (lo + hi) >> 1; const r = runs[mid]; if (x < r[1]) hi = mid - 1; else if (x > r[2]) lo = mid + 1; else return runIsland[mid]; } return -1; };
+  const rings = Array.from({ length: nIslands }, () => []);
+  let nEdges = 0, nRings = 0, nVerts = 0;
+  const trace = (sx, sy, dir0) => {
+    const ring = [[sx, sy]]; let x = sx, y = sy, dir = dir0;
+    for (;;) {
+      if (dir === 0) hSet(x, y); else if (dir === 2) hSet(x - 1, y);   // 水平辺を通過済みに(走査で二度起こさない)
+      nEdges++;
+      x += dxs[dir]; y += dys[dir];
+      if (x === sx && y === sy) break;
+      const dl = (dir + 3) % 4, dr = (dir + 1) % 4, prev = dir;
+      if (rightPix(dl, x, y) === 1 && leftPix(dl, x, y) === 0) dir = dl;
+      else if (rightPix(dir, x, y) === 1 && leftPix(dir, x, y) === 0) { /* 直進 */ }
+      else if (rightPix(dr, x, y) === 1 && leftPix(dr, x, y) === 0) dir = dr;
+      else dir = (dir + 2) % 4;   // 行き止まり(1画素幅の突起)
+      if (dir !== prev) ring.push([x, y]);   // 向きが変わる頂点だけ残す(直線上の中間点は落とす)
+    }
+    return ring;
+  };
+  for (let L = 0; L <= H; L++) {
+    for (let x = 0; x < W; x++) {
+      const below = at(x, L), above = at(x, L - 1);
+      if (below === above || hGet(x, L)) continue;
+      let ring, isl;
+      if (below) { ring = trace(x, L, 0); isl = islandOfPixel(x, L); }          // 上辺=外周か穴の上端(内側は下)。東へ
+      else { ring = trace(x + 1, L, 2); isl = islandOfPixel(x, L - 1); }        // 下辺=穴の上端(内側は上)。西へ
+      if (isl < 0) throw new Error(`輪郭の帰属が取れません (${x},${L})`);
+      rings[isl].push(ring); nRings++; nVerts += ring.length;
+    }
   }
-  return simp.map(([bx, by]) => [xToLon(X0 + bx - 1 + minx), yToLat(Y0 + by - 1 + miny)]);
+  return { rings, nEdges, nRings, nVerts };
+}
+/** 符号付き面積(y下向き。外周が正・穴が負)。閉路(最後と最初を結ぶ) */
+function ringArea(r) { let a = 0; for (let i = 0, n = r.length; i < n; i++) { const p = r[i], q = r[(i + 1) % n]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+/** Douglas-Peucker(閉路。先頭を固定して一周を折れ線とみなす)。3点未満になる時は元のまま */
+function dpSimplify(pts, tol) {
+  const n = pts.length; if (n <= 4 || tol <= 0) return pts;
+  const keep = new Uint8Array(n + 1); keep[0] = 1; keep[n] = 1;
+  const P = i => pts[i % n]; const tol2 = tol * tol; const stack = [[0, n]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); if (b - a < 2) continue;
+    const ax = P(a)[0], ay = P(a)[1], dx = P(b)[0] - ax, dy = P(b)[1] - ay, len2 = dx * dx + dy * dy;
+    let maxD = -1, idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const px = P(i)[0] - ax, py = P(i)[1] - ay; let d;
+      if (len2 === 0) d = px * px + py * py; else { const t = Math.max(0, Math.min(1, (px * dx + py * dy) / len2)); const ex = px - t * dx, ey = py - t * dy; d = ex * ex + ey * ey; }
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (maxD > tol2) { keep[idx] = 1; stack.push([a, idx], [idx, b]); }
+  }
+  const out = []; for (let i = 0; i < n; i++) if (keep[i]) out.push(pts[i]);
+  return out.length >= 3 ? out : pts;
+}
+/** 整数のポリライン符号(Googleのpolyline符号と同じ5bit可変長+63・座標の倍率なし)。先頭は絶対値・以降は差分 */
+function encodeIntPolyline(pts) {
+  let s = '', px = 0, py = 0;
+  const enc = v => { let r = ''; v = v < 0 ? ~(v << 1) : (v << 1); while (v >= 0x20) { r += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; } return r + String.fromCharCode(v + 63); };
+  for (const [x, y] of pts) { s += enc(x - px) + enc(y - py); px = x; py = y; }
+  return s;
 }
 
 // ---------- 答え合わせ(アプリの _visJudgeCore と同じ歩き方で標本画素を判定) ----------
 function judgeLikeApp(px, py, hS, inv2R) {
   const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
   const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
-  const elevAt = (gx15, gy15) => {   // z15の世界画素→窓の格子(zoomがZの格子へ換算)
+  let lastGx = -1, lastGy = -1;
+  const elevAt = (gx15, gy15) => {   // z15の世界画素→窓の格子(zoomがZの格子へ換算)。除外判定のため画素位置も控える
     const f = Math.pow(2, Z - 15); const gx = Math.floor(gx15 * f) - X0, gy = Math.floor(gy15 * f) - Y0;
-    if (gx < 0 || gy < 0 || gx >= W || gy >= H) return null; const c = grid[gy * W + gx]; return c === NODATA ? null : c / 10 - 100;
+    if (gx < 0 || gy < 0 || gx >= W || gy >= H) return null; lastGx = gx; lastGy = gy; const c = grid[gy * W + gx]; return c === NODATA ? null : c / 10 - 100;
   };
   const sLat = yToLat(Y0 + py + 0.5), sLng = xToLon(X0 + px + 0.5);
   const c0 = grid[py * W + px]; if (c0 === NODATA) return null;
@@ -347,7 +455,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
     for (let j = j0; j <= j1; j++) {
       const e = elevAt((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0); if (e === null) continue;
       const r = j / steps, d = distM * r; const lineElev = startTotal + (endTotal - endDrop - startTotal) * r;
-      if (e - d * d * inv2R > lineElev) { if (distM * (1 - r) <= EXCL_TGT_M) continue; if (d <= EXCL_OBS_M) continue; return false; }
+      if (e - d * d * inv2R > lineElev) { if (isExcludedTarget(lastGx, lastGy, distM * (1 - r))) continue; if (d <= EXCL_OBS_M) continue; return false; }
     }
   }
   return true;
@@ -360,15 +468,37 @@ function judgeLikeApp(px, py, hS, inv2R) {
   let nData = 0; for (let i = 0; i < grid.length; i++) if (grid[i] !== NODATA) nData++;
   log(`タイル取得完了: 5A ${stats.from5a} 5B ${stats.from5b} 5C ${stats.from5c} z14 ${stats.from14} 無し ${stats.missing}。データ画素 ${nData}/${W * H}`);
   const t1 = Date.now();
-  const SI = summitInfo(); const hS = SI.hS; EXCL_TGT_M = SI.exclTargetM;
-  log(`山頂: DEM標高 ${hS}m(一覧 ${M.elev}m) 山頂部(−${SUMMIT_DROP_M}m以内)の広がり ${SI.capFarM}m(${SI.capPx}画素) → 目的点側の除外半径 ${EXCL_TGT_M}m${SI.exclAuto ? '(自動)' : '(指定)'}`);
-  const { visible, nVis, rays } = computeViewshed(hS);
+  const SI = summitInfo(); _SI = SI; const hS = SI.hS; EXCL_TGT_M = SI.exclTargetM;
+  log(`山頂: DEM標高 ${hS}m(一覧 ${M.elev}m) 山頂部(−${SI.dropUsed}m以内で山頂につながる画素・探索${SUMMIT_SEARCH_M}m)の広がり ${SI.capFarM}m(${SI.capPx}画素) → 除外=${SUMMIT_MODE === 'region' ? `山頂部の画素そのもの+半径${EXCL_TGT_M}m` : `半径${EXCL_TGT_M}m${SI.exclAuto ? '(自動)' : '(指定)'}の円`}`);
+  const { visible, nVis, rays } = computeViewshed(hS); visible_ = visible;
   const t2 = Date.now();
+  for (const pr of PROBES) {
+    const r = probeRay(pr.lat, pr.lon, hS);
+    if (r.out) log(`  検算 ${pr.name}: 窓の外`); else if (r.nodata) log(`  検算 ${pr.name}: 標高データ無し`);
+    else log(`  検算 ${pr.name}: ${r.visible ? '見える' : '見えない'}(格子=${r.gridVisible ? '見える' : '見えない'}) 距離${r.distKm.toFixed(1)}km 標高${r.h.toFixed(0)}m 観測者の見かけ角${r.thP.toFixed(4)} 手前の最大${isFinite(r.ref) ? r.ref.toFixed(4) : '-'}` + (r.blkD !== null ? ` (山頂から${r.blkD.toFixed(0)}m・標高${r.blkH.toFixed(0)}mの画素)` : ''));
+  }
   log(`視域計算: 光線${rays}本 見える画素 ${nVis} (${(100 * nVis / Math.max(1, nData)).toFixed(2)}%)  ${((t2 - t1) / 1000).toFixed(1)}s`);
-  const { runs, islands } = labelIslands(visible);
-  islands.forEach(i => { i._runs = runs; });
+  const { runs, islands, rowStart } = labelIslands(visible);
+  const runIsland = new Int32Array(runs.length);
+  islands.forEach((isl, i) => { for (const ri of isl.runs) runIsland[ri] = i; });
   const t3 = Date.now();
   log(`島: ${islands.length}個 (最大 ${Math.max(...islands.map(i => i.px))}画素)  ${((t3 - t2) / 1000).toFixed(1)}s`);
+  // 輪郭(外周+穴)を全島で取り、面積の自己検査(環の符号付き面積の合計=画素数)をしてから間引く
+  const RG = extractRings(visible, runs, rowStart, runIsland, islands.length);
+  let areaNg = 0, nHoles = 0;
+  islands.forEach((isl, i) => {
+    const rs = RG.rings[i]; let sum = 0, holes = 0;
+    for (const r of rs) { const a = ringArea(r); sum += a; if (a < 0) holes++; }
+    isl.holes = holes; nHoles += holes;
+    if (Math.round(sum) !== isl.px) { areaNg++; if (areaNg <= 5) log(`  面積不一致: 島${isl.no} 画素${isl.px} 環の面積${sum} 環${rs.length}`); }
+    // 外周を先頭に(符号付き面積が最大の環)
+    rs.sort((a, b) => ringArea(b) - ringArea(a));
+  });
+  if (areaNg) throw new Error(`輪郭の自己検査に失敗: ${areaNg}島で面積が合いません`);
+  let nVertsDp = 0;
+  const ringsDp = RG.rings.map(rs => rs.map(r => { const d = dpSimplify(r, DP_TOL); nVertsDp += d.length; return d; }));
+  const t4 = Date.now();
+  log(`輪郭: 辺${RG.nEdges} 環${RG.nRings}(穴${nHoles}) 頂点${RG.nVerts}→間引き(${DP_TOL}px)後${nVertsDp} 自己検査OK  ${((t4 - t3) / 1000).toFixed(1)}s`);
   // 答え合わせ
   let agree = 0, checked = 0, disagreeVis = 0, disagreeInv = 0;
   if (CHECK_N > 0) {
@@ -382,26 +512,26 @@ function judgeLikeApp(px, py, hS, inv2R) {
     log(`答え合わせ(アプリと同じ歩き方・${checked}画素): 一致 ${agree} (${(100 * agree / checked).toFixed(2)}%) 道具だけ見える ${disagreeVis} アプリだけ見える ${disagreeInv}`);
   }
   // 出力
-  const outDir = path.join(OUT_ROOT, `${ID}-${RANGE_KM}km-z${Z}-${CANOPY ? 'canopy' : 'terrain'}`);
+  const outDir = path.join(OUT_ROOT, `${ID}-${RANGE_KM}km-z${Z}-${CANOPY ? 'canopy' : 'terrain'}${TAG}`);
   fs.mkdirSync(outDir, { recursive: true });
   const bits = Buffer.alloc(Math.ceil(W * H / 8));
   for (let i = 0; i < visible.length; i++) if (visible[i] === 1) bits[i >> 3] |= (128 >> (i & 7));
   fs.writeFileSync(path.join(outDir, 'visible.bin'), bits);
   const pxArea = MPP * MPP;
   const distKm = (isl) => Math.hypot(isl.rep[0] - CX, isl.rep[1] - CY) * MPP / 1000;
-  const idx = islands.map(i => ({ no: i.no, px: i.px, area_km2: +(i.px * pxArea / 1e6).toFixed(4), rep: [+yToLat(Y0 + i.rep[1] + 0.5).toFixed(6), +xToLon(X0 + i.rep[0] + 0.5).toFixed(6)],
+  const idx = islands.map(i => ({ no: i.no, px: i.px, holes: i.holes, area_km2: +(i.px * pxArea / 1e6).toFixed(4), rep: [+yToLat(Y0 + i.rep[1] + 0.5).toFixed(6), +xToLon(X0 + i.rep[0] + 0.5).toFixed(6)],
     bbox: [+xToLon(X0 + i.bbox[0]).toFixed(6), +yToLat(Y0 + i.bbox[3] + 1).toFixed(6), +xToLon(X0 + i.bbox[2] + 1).toFixed(6), +yToLat(Y0 + i.bbox[1]).toFixed(6)], dist_km: +distKm(i).toFixed(2) }));
   fs.writeFileSync(path.join(outDir, 'islands.json'), JSON.stringify({ mountain: { id: M.id, name: M.name }, count: idx.length, islands: idx }));
-  // 輪郭: 大きい順にOUTLINE_N島は外周をたどる。それ以外は代表点の画素の四角
-  const byArea = islands.slice().sort((a, b) => b.px - a.px);
-  const feats = [];
-  for (let i = 0; i < byArea.length; i++) {
-    const isl = byArea[i]; let coords;
-    if (i < OUTLINE_N && isl.px >= 2) coords = traceOutline(visible, isl);
-    else { const [x, y] = isl.rep; coords = [[xToLon(X0 + x), yToLat(Y0 + y)], [xToLon(X0 + x + 1), yToLat(Y0 + y)], [xToLon(X0 + x + 1), yToLat(Y0 + y + 1)], [xToLon(X0 + x), yToLat(Y0 + y + 1)], [xToLon(X0 + x), yToLat(Y0 + y)]]; }
-    feats.push({ type: 'Feature', properties: { no: isl.no, px: isl.px, area_km2: +(isl.px * pxArea / 1e6).toFixed(4), dist_km: +distKm(isl).toFixed(2), outline: i < OUTLINE_N && isl.px >= 2 ? 'traced' : 'pixel' }, geometry: { type: 'Polygon', coordinates: [coords.map(c => [+c[0].toFixed(6), +c[1].toFixed(6)])] } });
+  // アプリ用の輪郭 outline.json: 画素の角の整数座標(窓の左上=0,0)。島ごとに [項番, 画素数, 外周, 穴, 穴, ...](各環はポリライン符号)
+  const outline = { v: 2, id: M.id, name: M.name, range_km: RANGE_KM, zoom: Z, canopy: CANOPY, x0: X0, y0: Y0, w: W, h: H, tol_px: DP_TOL,
+    islands: islands.map((isl, i) => [isl.no, isl.px].concat(ringsDp[i].map(encodeIntPolyline))) };
+  fs.writeFileSync(path.join(outDir, 'outline.json'), JSON.stringify(outline));
+  if (WRITE_GEOJSON) {
+    const toLL = r => r.concat([r[0]]).map(([bx, by]) => [+xToLon(X0 + bx).toFixed(6), +yToLat(Y0 + by).toFixed(6)]);
+    const feats = islands.map((isl, i) => ({ type: 'Feature', properties: { no: isl.no, px: isl.px, area_km2: +(isl.px * pxArea / 1e6).toFixed(4), dist_km: +distKm(isl).toFixed(2), holes: isl.holes },
+      geometry: { type: 'Polygon', coordinates: ringsDp[i].map(toLL) } }));
+    fs.writeFileSync(path.join(outDir, 'islands.geojson'), JSON.stringify({ type: 'FeatureCollection', features: feats }));
   }
-  fs.writeFileSync(path.join(outDir, 'islands.geojson'), JSON.stringify({ type: 'FeatureCollection', features: feats }));
   // プレビュー(縮小): 見える割合を金色の濃さに。山頂は赤
   if (PREVIEW > 0) {
     const S = Math.max(1, Math.ceil(W / PREVIEW)); const pw = Math.ceil(W / S), ph = Math.ceil(H / S); const rgb = Buffer.alloc(pw * ph * 3);
@@ -412,15 +542,36 @@ function judgeLikeApp(px, py, hS, inv2R) {
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = spx + dx, y = spy + dy; if (x >= 0 && y >= 0 && x < pw && y < ph) { const i = (y * pw + x) * 3; rgb[i] = 255; rgb[i + 1] = 40; rgb[i + 2] = 40; } }
     fs.writeFileSync(path.join(outDir, 'preview.png'), pngEncodeRGB(pw, ph, rgb));
   }
-  const meta = { tool: 'tools/kashimap/viewshed.js', version: 1, generated: new Date().toISOString(), mountain: { id: M.id, name: M.name, peak: M.peak, elev_list: M.elev, elev_dem: hS, lat: M.lat, lon: M.lon },
+  const meta = { tool: 'tools/kashimap/viewshed.js', version: 2, generated: new Date().toISOString(), mountain: { id: M.id, name: M.name, peak: M.peak, elev_list: M.elev, elev_dem: hS, lat: M.lat, lon: M.lon },
     range_km: RANGE_KM, zoom: Z, canopy: CANOPY, buildings: false, observer_h_m: OBS_H, k: K, earth_radius_m: R_EARTH, reff_m: R_EARTH / (1 - K),
-    excl_target_m: EXCL_TGT_M, excl_target_how: SI.exclAuto ? `自動: 山頂から${SUMMIT_DROP_M}m以内の高さの画素が山頂から最も遠い距離(${SI.capFarM}m・${SI.capPx}画素。探索半径${SUMMIT_SEARCH_M}m)。最小15m` : '指定値', summit_elev_how: '3×3画素のDEM最大', excl_observer_m: EXCL_OBS_M,
+    summit_mode: SUMMIT_MODE, summit_area: { drop_m: SI.dropUsed, drop_requested_m: SUMMIT_DROP_M, search_m: SUMMIT_SEARCH_M, px: SI.capPx, far_m: SI.capFarM, other_peaks_in_search: SI.others, how: `山頂から${SI.dropUsed}m以内の高さで山頂につながる画素(探索半径${SUMMIT_SEARCH_M}m。別の山の山頂を含まない高さまで)` },
+    excl_target_m: EXCL_TGT_M, excl_target_how: SUMMIT_MODE === 'region' ? `山頂部の画素そのもの(中心・半径なし)+半径${EXCL_TGT_M}m(アプリの既定と同じ最小値)` : (SI.exclAuto ? `自動: 山頂部の最遠距離${SI.capFarM}m(最小15m)の円` : '指定値の円'), summit_elev_how: '3×3画素のDEM最大', excl_observer_m: EXCL_OBS_M,
     grid: { w: W, h: H, x0: X0, y0: Y0, mpp_center: +MPP.toFixed(4), note: '1画素の大きさは中心緯度の値で一定とした(窓の中で約±0.4%の差)' },
     dem: { sources: 'cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)', tiles: NT, from5a: stats.from5a, from5b: stats.from5b, from5c: stats.from5c, from14: stats.from14, missing: stats.missing, data_px: nData },
-    method: 'R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部の広がり・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部の広がりへ一般化)',
+    method: 'R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部へ一般化)',
+    outline: { tol_px: DP_TOL, edges: RG.nEdges, rings: RG.nRings, holes: nHoles, vertices_raw: RG.nVerts, vertices: nVertsDp, encoding: 'outline.json: 島ごとに[項番,画素数,外周,穴…]。各環は画素の角の整数座標(窓の左上が0,0)を先頭=絶対・以降=差分でGoogle polyline符号(倍率なし)' },
     result: { visible_px: nVis, visible_km2: +(nVis * pxArea / 1e6).toFixed(3), islands: islands.length, rays, check: { n: checked, agree, agree_pct: checked ? +(100 * agree / checked).toFixed(2) : null, tool_only_visible: disagreeVis, app_only_visible: disagreeInv } },
-    timing_s: { tiles: +((t1 - t0) / 1000).toFixed(1), viewshed: +((t2 - t1) / 1000).toFixed(1), islands: +((t3 - t2) / 1000).toFixed(1), total: +((Date.now() - t0) / 1000).toFixed(1) },
+    timing_s: { tiles: +((t1 - t0) / 1000).toFixed(1), viewshed: +((t2 - t1) / 1000).toFixed(1), islands: +((t3 - t2) / 1000).toFixed(1), outline: +((t4 - t3) / 1000).toFixed(1), total: +((Date.now() - t0) / 1000).toFixed(1) },
     attribution: '国土地理院 標高タイル(DEM5A/5B/5C/10B)を加工して作成。日本の主な山岳標高(国土地理院)を加工して作成' };
   fs.writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify(meta, null, 1));
-  log(`出力: ${outDir} (visible.bin ${(bits.length / 1e6).toFixed(1)}MB, islands ${idx.length}, geojson ${feats.length}件)  合計 ${meta.timing_s.total}s`);
+  const osz = fs.statSync(path.join(outDir, 'outline.json')).size;
+  log(`出力: ${outDir} (visible.bin ${(bits.length / 1e6).toFixed(1)}MB, islands ${idx.length}, outline.json ${(osz / 1e6).toFixed(2)}MB)  合計 ${meta.timing_s.total}s`);
+  // アプリ用資産: <asset>/<id>/<terrain|canopy>/<range>/{meta,islands,outline}.json と索引 index.json(山リストの「島の数」「静的」列の元)
+  if (ASSET_DIR) {
+    const kind = CANOPY ? 'canopy' : 'terrain';
+    const ad = path.join(ASSET_DIR, ID, kind, String(RANGE_KM));
+    fs.mkdirSync(ad, { recursive: true });
+    for (const f of ['meta.json', 'islands.json', 'outline.json']) fs.copyFileSync(path.join(outDir, f), path.join(ad, f));
+    const ip = path.join(ASSET_DIR, 'index.json');
+    let index = { v: 1, mountains: {} };
+    try { index = JSON.parse(fs.readFileSync(ip, 'utf8')); } catch (_) { /* 初回 */ }
+    const ent = index.mountains[ID] || (index.mountains[ID] = { name: M.name, terrain: [], canopy: [], islands: {} });
+    ent.name = M.name; ent[kind] = ent[kind] || []; ent.islands = ent.islands || {};
+    if (!ent[kind].includes(RANGE_KM)) { ent[kind].push(RANGE_KM); ent[kind].sort((a, b) => a - b); }
+    ent.islands[`${kind}:${RANGE_KM}`] = islands.length;
+    index.generated = new Date().toISOString();
+    index.attribution = meta.attribution;
+    fs.writeFileSync(ip, JSON.stringify(index, null, 1));
+    log(`資産: ${ad} と ${ip} を更新`);
+  }
 })().catch(e => { console.error('ERROR', e); process.exit(1); });
