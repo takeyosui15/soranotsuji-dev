@@ -14,6 +14,9 @@
 | `meizan-map.csv` | **出力=名山対応表**(UTF-8 BOM付き)。1行=地理院の1山頂。名山に無い山は「その他」 |
 | `kenpin-2026-09-21.md` | 検品シート(第146作成・第147で依頼者が回答: 1:A 2:A 3:A 4:B 5:A 6:B 7〜9:OK 10:座標修正)。記録として残す |
 | `make-mountains-json.py` | 対応表→アプリ用 `data/mountains.json`(1063山頂・約260KB)。列名は英語、都道府県はJISコード順 |
+| `viewshed.js` | **段2: 計算の道具**(Node・依存なし)。推し山を中心に範囲(km四方)の地理院DEMを読み、全画素の「山頂が見えるか」を計算して島にする(下の節) |
+| `cache/` | 地理院DEMタイルのキャッシュ(gitに入れない)。`out/` の visible.bin と islands.geojson も同じ |
+| `out/<id>-<range>km-z<z>-<terrain|canopy>/` | 出力: `meta.json`(計算条件と結果の数)・`islands.json`(島の索引)・`preview.png`(縮小画像)はgitに入れる |
 
 ## 出力の列
 
@@ -45,6 +48,27 @@
    リンク先の地図で山頂に落ちているかを見る。
 4. 答えは `docs/order.md` に「1:A 2:A …」のように書くか、`kenpin-2026-09-21.md` の `[ ]` に `x` を付けてコミット。
    反映(スクリプトの手動指定表への書き込みと再生成)はClaudeが行う。CSVを直接直す必要はない。
+
+## viewshed.js(段2: 計算の道具)
+
+```
+node --max-old-space-size=6000 tools/kashimap/viewshed.js --id 368 --range 60 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6] [--check 3000] [--preview 1200] [--outline 3000]
+```
+
+- 入力: `--id`=data/mountains.json の索引番号(地理院に無い4座は x1〜x4)。`--range`=範囲(km四方)。`--zoom`=DEMのズーム(15=約3.9m画素)。
+  `--k`=大気差の係数(静的資産はアプリの標準値0.132で固定・Q23)。`--obs`=観測者の高さ(m・既定1.5)。
+- DEMは dem5a→5b→5c(z15)→dem_png(z14を2倍)の順に取り、`cache/` に置く(2回目からはネットに行かない)。同時取得は `--concurrency`(既定6)。
+  地理院のタイルサーバーへの負荷を考え、1つの山の1回の実行より多くを続けて回さない(60km四方=3,721枚≈330MB)。
+- 判定: 山頂から窓の縁の全画素へ光線を伸ばし(R2)、見かけ高度角 (h−d²/(2Reff)−hS)/d の最大を更新しながら外へ歩く。
+  観測者は地上+1.5m。式と観測点側の除外(10m)はアプリの統一可視判定(_visJudgeCore)と同じ。
+  目的点側の除外は「山頂部の広がり」(山頂から `--summit-drop`[既定120]m以内の高さの画素が山頂から最も遠い距離。`--summit-search`[既定3000]m内。
+  `--excl-target` で指定も可)。山頂の1点だけを目的点にすると火口の縁や山頂の肩に隠れて「見えない」だらけになるため(富士山で実測)。
+  山頂の標高は3×3画素のDEM最大。
+  `--check N` で、アプリと同じ歩き方(z15半画素刻み)で標本N画素を判定して一致率を出す。
+- 出力(`out/<id>-<range>km-z<z>-terrain/`): `visible.bin`(1bit・行優先・W×H)・`islands.json`(島の索引: 項番=北→南の固定番号・
+  画素数・面積km²・代表点[緯度,経度]・bbox・山頂からの距離km)・`islands.geojson`(大きい島は外周・小さい島は画素の四角)・
+  `meta.json`・`preview.png`(見える割合を金色の濃さに。山頂は赤)。
+- まだ無いもの: 樹冠(Meta/WRI)・建物(PLATEAU)・輪郭の穴・PMTiles化・小→大の段階計算と水平線フィルタ(段2後半)。
 
 ## 再生成
 

@@ -20,7 +20,8 @@ const cssSrc = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
 const dataPath = path.join(__dirname, '..', 'data', 'mountains.json');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.88.0+Version Historyに第148', /APP_VERSION = '1\.88\.0'/.test(src) && (src.includes('第148ラウンド — 可視マップ(段1') || !!process.argv[2]));
+check('V0 版数ピン 1.88.1+Version Historyに第148/第149', /APP_VERSION = '1\.88\.1'/.test(src) && ((src.includes('第148ラウンド — 可視マップ(段1') && src.includes('第149ラウンド — 可視マップ節の注記')) || !!process.argv[2]));
+check('S0 可視マップ節に山リストの出典と「それ以外の山はMy目的点に」の注記(第149・依頼者起草)', idxSrc.includes('それ以外の山は、My目的点に登録してご利用ください') && idxSrc.includes('日本の主な山岳標高(1003山)」を元にしています'));
 
 // ---- D1: 山データの形 ----
 {

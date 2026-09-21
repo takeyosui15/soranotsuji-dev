@@ -1,0 +1,65 @@
+{
+ "tool": "tools/kashimap/viewshed.js",
+ "version": 1,
+ "generated": "2026-09-21T03:46:16.547Z",
+ "mountain": {
+  "id": "368",
+  "name": "富士山",
+  "peak": "剣ヶ峯",
+  "elev_list": 3776,
+  "elev_dem": 3772.7,
+  "lat": 35.360738,
+  "lon": 138.727373
+ },
+ "range_km": 60,
+ "zoom": 15,
+ "canopy": false,
+ "buildings": false,
+ "observer_h_m": 1.5,
+ "k": 0.132,
+ "earth_radius_m": 6371000,
+ "reff_m": 7339861.751152074,
+ "excl_target_m": 918,
+ "excl_target_how": "自動: 山頂から120m以内の高さの画素が山頂から最も遠い距離(917.8m・41043画素。探索半径3000m)。最小15m",
+ "summit_elev_how": "3×3画素のDEM最大",
+ "excl_observer_m": 10,
+ "grid": {
+  "w": 15403,
+  "h": 15403,
+  "x0": 7419185,
+  "y0": 3304724,
+  "mpp_center": 3.896,
+  "note": "1画素の大きさは中心緯度の値で一定とした(窓の中で約±0.4%の差)"
+ },
+ "dem": {
+  "sources": "cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)",
+  "tiles": 3721,
+  "from5a": 3625,
+  "from5b": 0,
+  "from5c": 1,
+  "from14": 27,
+  "missing": 68,
+  "data_px": 227266237
+ },
+ "method": "R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部の広がり・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部の広がりへ一般化)",
+ "result": {
+  "visible_px": 105947475,
+  "visible_km2": 1608.171,
+  "islands": 10102,
+  "rays": 61608,
+  "check": {
+   "n": 3000,
+   "agree": 2940,
+   "agree_pct": 98,
+   "tool_only_visible": 60,
+   "app_only_visible": 0
+  }
+ },
+ "timing_s": {
+  "tiles": 13.4,
+  "viewshed": 35.8,
+  "islands": 1.1,
+  "total": 54.1
+ },
+ "attribution": "国土地理院 標高タイル(DEM5A/5B/5C/10B)を加工して作成。日本の主な山岳標高(国土地理院)を加工して作成"
+}
