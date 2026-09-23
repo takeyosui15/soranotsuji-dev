@@ -22,7 +22,7 @@ const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.j
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数ピン 1.89.0+Version Historyに第150', /APP_VERSION = '1\.89\.0'/.test(src) && (src.includes('第150ラウンド — 可視マップ段3') || !!process.argv[2]));
+check('V0 版数(ピンはverify176へ移譲)+Version Historyに第150', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第150ラウンド — 可視マップ段3') || !!process.argv[2]));
 
 // ---- S1/S2: 静的な形 ----
 check('S1 index.html: 島リスト(縞島のみ・全て選択/解除)・コントロール(範囲60/100/300/700・可視タイル・樹冠あり・山頂/全展望マーカー・注記・File出力)・ヘルプに島リスト/縞島/山頂部',
@@ -32,7 +32,7 @@ check('S1 index.html: 島リスト(縞島のみ・全て選択/解除)・コン�
   /<strong>島リスト<\/strong>/.test(idxSrc) && idxSrc.includes('縞島') && idxSrc.includes('山頂部') && idxSrc.includes('それ以外の山は、My目的点に登録してご利用ください'));
 check('S1b ヘルプ・UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
 check('S2 style.css: 島リスト・コントロールの骨組み(open/with-detail)・全展望マーカー', cssSrc.includes('#kashimap-ctrl.open') && cssSrc.includes('#kashimap-panel.with-detail #kashimap-ctrl.open') && cssSrc.includes('#kashimap-detail-body .td-table th') && cssSrc.includes('.kashimap-zen'));
-check('S3 段2の道具v2: summit-mode(region/circle)・輪郭の外周+穴(extractRings)と自己検査・--asset・間引き1px', toolSrc.includes("SUMMIT_MODE") && toolSrc.includes("'region'") && toolSrc.includes('function extractRings') && toolSrc.includes('輪郭の自己検査に失敗') && toolSrc.includes('ASSET_DIR') && /DP_TOL = parseFloat\(args\.tol \|\| '1\.0'\)/.test(toolSrc));
+check('S3 段2の道具v2: summit-mode(region/circle)・輪郭の外周+穴(extractRings)と自己検査・--asset・間引きは--tol(既定は第151で0)', toolSrc.includes("SUMMIT_MODE") && toolSrc.includes("'region'") && toolSrc.includes('function extractRings') && toolSrc.includes('輪郭の自己検査に失敗') && toolSrc.includes('ASSET_DIR') && /DP_TOL = parseFloat\(args\.tol \|\| '[0-9.]+'\)/.test(toolSrc));
 
 // ---- A1/A2: 静的資産の形と復号の自己検査 ----
 function decodePoly(s) { const out = []; let i = 0, x = 0, y = 0; const next = () => { let r = 0, sh = 0, b; do { b = s.charCodeAt(i++) - 63; r |= (b & 0x1f) << sh; sh += 5; } while (b >= 0x20); return (r & 1) ? ~(r >> 1) : (r >> 1); }; while (i < s.length) { x += next(); y += next(); out.push([x, y]); } return out; }
@@ -47,7 +47,7 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   fujiIslands = isl.islands; fujiMeta = meta; fujiN = isl.count; kenashiN = m370 ? m370.islands['terrain:20'] : 0;
   check('A1 index.json: 富士山368=terrain[60]・毛無山370=terrain[20]・島の数=islands.json=meta.result.islands・meta=version2/region/山頂部(300m)/k=0.132/観測者1.5m',
     m368 && m368.terrain.join() === '60' && m368.islands['terrain:60'] === isl.count && isl.islands.length === isl.count && meta.result.islands === isl.count &&
-    m370 && m370.terrain.join() === '20' && meta.version === 2 && meta.summit_mode === 'region' && meta.summit_area.drop_m === 300 && meta.k === 0.132 && meta.observer_h_m === 1.5 && meta.outline.tol_px === 1 && ol.v === 2 && ol.islands.length === isl.count,
+    m370 && m370.terrain.join() === '20' && meta.version === 2 && meta.summit_mode === 'region' && meta.summit_area.drop_m === 300 && meta.k === 0.132 && meta.observer_h_m === 1.5 && meta.outline.tol_px === 0 && ol.v === 2 && ol.islands.length === isl.count,
     JSON.stringify({ m368, m370, count: isl.count, metaIslands: meta.result.islands, mode: meta.summit_mode, olV: ol.v, olN: ol.islands.length }));
   // 復号の自己検査: 大きい順に5島と穴のある島を1つ、符号付き面積(外周が正・穴が負)の合計が画素数と一致(間引き1pxの分だけ違う→許容は画素数の1%か外周の頂点数の2倍)
   const byPx = ol.islands.slice().sort((a, b) => b[1] - a[1]);
@@ -165,10 +165,10 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   const c7 = await p.evaluate(() => { const c = glMap.getCenter(); return { lng: c.lng, lat: c.lat }; });
   check('K7 島リストの行クリックで地図がその島の代表点へ', Math.abs(c7.lng - +r7.c[7]) < 0.002 && c7.lat <= +r7.c[6] + 0.001, JSON.stringify({ row: r7.c.slice(1, 8), c7 }));
 
-  // K8: File出力(山リスト+島リストのCSV・BOM・全件)
-  const k8 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t) => { got = { n, t }; }; try { _kmExportCsv(); } finally { window.downloadTextFile = orig; }
-    const lines = got.t.split('\n'); const iIsl = lines.indexOf('#島リスト'); return { name: got.n, bom: got.t.charCodeAt(0) === 0xFEFF, head: lines[1], mRows: iIsl - 2, iHead: lines[iIsl + 1], iRows: lines.length - iIsl - 3, expM: _kmRows.length, expI: _kmIslandRows.length }; });
-  check('K8 File出力: soranotsuji-可視マップ-*.csv・BOM・山リスト(全件)+島リスト(縞島を含む全件)', /^soranotsuji-可視マップ-\d{8}-\d{6}\.csv$/.test(k8.name) && k8.bom && k8.head.startsWith('連番,索引番号,山名') && k8.mRows === k8.expM && k8.iHead.startsWith('項番,縞,重複数,所属山') && k8.iRows === k8.expI, JSON.stringify(k8));
+  // K8: File出力(第151で資産のJSONへ: 描画中の2山の資産=meta/islands/outline)
+  const k8 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t, m) => { got = { n, m, obj: JSON.parse(t) }; }; try { _kmExportAssets(); } finally { window.downloadTextFile = orig; }
+    return got && { name: got.n, mime: got.m, format: got.obj.format, ids: got.obj.assets.map(a => a.meta.mountain.id).sort(), ok: got.obj.assets.every(a => a.meta && a.islands && a.outline && a.outline.islands.length === a.islands.islands.length) }; });
+  check('K8 File出力: soranotsuji-可視マップ資産-*.json・描画中の2山(富士山・毛無山)の資産(meta/islands/outline)', k8 && /^soranotsuji-可視マップ資産-.+\.json$/.test(k8.name) && /json/.test(k8.mime) && k8.format === 'soranotsuji-kashimap-assets' && k8.ids.join() === '368,370' && k8.ok, JSON.stringify(k8));
 
   // K9: 「:縞島のみ」→縞島だけ / 山の全て解除→島リストが消え、ソースが空
   await setChk('chk-kashimap-stripe-only', true);

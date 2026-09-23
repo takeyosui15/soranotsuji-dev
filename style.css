@@ -2663,6 +2663,13 @@ input[type="range"] {
 #kashimap-ctrl-body .control-row.center-row { justify-content: center; }
 #kashimap-ctrl-body .baseopt-radio input:disabled + span,
 #kashimap-ctrl-body .baseopt-radio.disabled { color: #777; }
+/* 可視マップ節の「端末に保存した資産」の一覧(第151) */
+#kashimap-store { max-width: 360px; margin: 2px auto; }
+#kashimap-store-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #ddd; }
+#kashimap-store-table th { color: #aaa; font-weight: normal; text-align: left; padding: 1px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+#kashimap-store-table td { padding: 1px 4px; white-space: nowrap; }
+#kashimap-store-table.hidden { display: none; }
+#kashimap-store-table .kashimap-store-del { padding: 0 6px; line-height: 16px; }
 .kashimap-note { font-size: 11px; color: #aaa; }
 .kashimap-swatch { display: inline-block; width: 10px; height: 10px; border: 1px solid #222; margin-left: 4px; vertical-align: middle; }
 /* 全展望マーカー(重複数がいちばん多い縞島の代表点): 金地に赤枠の丸 */

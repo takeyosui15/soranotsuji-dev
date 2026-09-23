@@ -54,7 +54,7 @@
 
 ```
 node --max-old-space-size=6000 tools/kashimap/viewshed.js --id 368 --range 60 --asset data/kashimap/v1 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6]
-     [--check 3000] [--preview 1200] [--summit-mode region|circle] [--summit-drop 300] [--summit-search 3000] [--excl-target M] [--tol 1.0] [--tag 名前] [--geojson true]
+     [--check 3000] [--preview 1200] [--summit-mode region|circle] [--summit-drop 300] [--summit-search 3000] [--excl-target M] [--tol 0] [--tag 名前] [--geojson true]
      [--probe "緯度,経度,名前;緯度,経度,名前"]
 ```
 
@@ -78,13 +78,15 @@ node --max-old-space-size=6000 tools/kashimap/viewshed.js --id 368 --range 60 --
     (答えの検算。第149の学び「線を1本歩いて確かめる」を道具に)。
   - `--check N` で、アプリと同じ歩き方(z15半画素刻み・同じ除外)で標本N画素を判定して一致率を出す。
 - 島=8近傍の連結成分(行の連の合併)。**輪郭=外周+穴**を全島で辿り(境界の辺を全部・左折優先)、環の符号付き面積の合計が画素数と一致する
-  自己検査を通してから Douglas-Peucker(`--tol`[1.0]px)で間引く(富士山60km: 頂点305万→99万・outline.json 2.8MB)。
+  自己検査を通す。`--tol`(既定0=**間引かない**。第151・依頼者「PC向け機能なので正確な情報を」)を付けると Douglas-Peucker で間引く
+  (富士山60km: 0で頂点328万・outline.json 7.5MB、1.0で107万・3.0MB)。
 - 出力(`out/<id>-<range>km-z<z>-terrain[-<tag>]/`): `visible.bin`(1bit・行優先・W×H)・`islands.json`(島の索引: 項番=北→南の固定番号・
   画素数・穴の数・面積km²・代表点[緯度,経度]・bbox・山頂からの距離km)・`outline.json`(島ごとに[項番,画素数,外周,穴…]。各環は画素の角の
   整数座標[窓の左上が0,0]を先頭=絶対・以降=差分でGoogle polyline符号[倍率なし])・`meta.json`(version 2: summit_mode/summit_area/outlineの数も)・
   `preview.png`(見える割合を金色の濃さに。山頂は赤)。`--geojson true` で確認用の islands.geojson(穴つき・大きい)も。
 - `--asset <dir>`: `<dir>/<id>/<terrain|canopy>/<range>/` に meta/islands/outline を置き、`<dir>/index.json` を更新する(アプリはこれを読む)。
-  同梱の資産: 富士山(368)60km(島10,129・outline 3.0MB)・毛無山(370)20km(島919)。いずれも地形のみ・k=0.132・観測者1.5m・帯300m。
+  同梱の資産: 富士山(368)60km(島10,129・頂点328万・outline 7.5MB)・毛無山(370)20km(島919・0.6MB)。いずれも地形のみ・k=0.132・観測者1.5m・帯300m・間引きなし。
+  アプリの「File出力」はこの3点(meta/islands/outline)を1つのJSONにしたもので、「File読込」で端末(IndexedDB)に入る(第151)。
 - まだ無いもの: 樹冠(Meta/WRI)・建物(PLATEAU)・PMTiles化・小→大の段階計算と水平線フィルタ・境目の厳密化(段2後半)。
 
 ## 再生成

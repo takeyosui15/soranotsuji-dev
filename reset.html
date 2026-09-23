@@ -118,6 +118,7 @@ GNU General Public License for more details.
         <input type="file" id="restoreFile" accept=".json" style="display:none;">
     </div>
 
+    <p>「すべてのデータを消去する」は、ローカルストレージのほかに、可視マップの資産と標高タイル・天気のキャッシュ (ブラウザのIndexedDB) も消去します。</p>
     <button id="clearBtn">すべてのデータを消去する</button>
     <p id="statusMessage" class="alert-message"></p>
 
@@ -186,6 +187,10 @@ GNU General Public License for more details.
             if (confirm('本当にすべてのデータを消去してもよろしいですか？\nこの操作は元に戻せません。')) {
                 // ローカルストレージを全クリア
                 localStorage.clear();
+                // IndexedDB(可視マップの資産と標高タイル・天気のキャッシュ)も消去する(宙の辻に関わる端末内のデータを全て空にする)
+                for (const name of ['soranotsuji-kashimap', 'soranotsuji-wx']) {
+                    try { indexedDB.deleteDatabase(name); } catch (e) { /* 対応していないブラウザは無視 */ }
+                }
                 
                 // 画面を更新して空になったことを示す
                 renderStorageData();

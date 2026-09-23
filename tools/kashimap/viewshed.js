@@ -12,7 +12,7 @@
 // --asset <dir> を付けると <dir>/<id>/<terrain|canopy>/<range>/ にアプリ用の3点(meta/islands/outline)を置き、<dir>/index.json を更新する。
 // 使い方: node tools/kashimap/viewshed.js --id 368 --range 60 [--zoom 15] [--k 0.132] [--obs 1.5] [--concurrency 6]
 //         [--check 2000] [--preview 1024] [--summit-mode region|circle] [--summit-drop 300] [--summit-search 3000] [--excl-target M]
-//         [--tol 1.0] [--tag 名前] [--asset data/kashimap/v1] [--geojson true] [--cache tools/kashimap/cache] [--out tools/kashimap/out]
+//         [--tol 0] [--tag 名前] [--asset data/kashimap/v1] [--geojson true] [--cache tools/kashimap/cache] [--out tools/kashimap/out]
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -34,7 +34,7 @@ const CHECK_N = parseInt(args.check || '2000', 10);
 const PREVIEW = parseInt(args.preview || '1024', 10);
 const SUMMIT_MODE = String(args['summit-mode'] || 'region');   // region=山頂部の画素を遮蔽に数えない / circle=山頂から一定半径の円を除外
 if (!['region', 'circle'].includes(SUMMIT_MODE)) { console.error('--summit-mode は region か circle'); process.exit(1); }
-const DP_TOL = parseFloat(args.tol || '1.0');      // 輪郭の間引き(Douglas-Peucker)の許容値(画素)。1.0で頂点が約1/3(富士山60km: 305万→99万)。0.5未満なら1画素幅の水路でも線が交差しないが資産が2倍
+const DP_TOL = parseFloat(args.tol || '0');        // 輪郭の間引き(Douglas-Peucker)の許容値(画素)。既定0=間引かない(第151・依頼者指示: 正確な情報を。直線上の中間点だけ落とす)。1.0で頂点が約1/3(富士山60km: 328万→107万)
 const TAG = args.tag ? '-' + String(args.tag).replace(/[^\w.-]/g, '_') : '';   // 出力フォルダの添え名(実験の区別)
 const ASSET_DIR = args.asset ? path.resolve(args.asset) : null;              // アプリ用資産の置き場(例 data/kashimap/v1)
 const WRITE_GEOJSON = args.geojson === 'true';                               // 確認用のGeoJSON(大きい。既定は書かない)

@@ -1,7 +1,7 @@
 {
  "tool": "tools/kashimap/viewshed.js",
  "version": 2,
- "generated": "2026-09-21T06:25:25.486Z",
+ "generated": "2026-09-23T09:56:25.216Z",
  "mountain": {
   "id": "368",
   "name": "富士山",
@@ -53,12 +53,12 @@
  },
  "method": "R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部へ一般化)",
  "outline": {
-  "tol_px": 1,
+  "tol_px": 0,
   "edges": 5300488,
   "rings": 113794,
   "holes": 103665,
   "vertices_raw": 3278413,
-  "vertices": 1067953,
+  "vertices": 3278413,
   "encoding": "outline.json: 島ごとに[項番,画素数,外周,穴…]。各環は画素の角の整数座標(窓の左上が0,0)を先頭=絶対・以降=差分でGoogle polyline符号(倍率なし)"
  },
  "result": {
@@ -67,19 +67,19 @@
   "islands": 10129,
   "rays": 61608,
   "check": {
-   "n": 3000,
-   "agree": 2982,
-   "agree_pct": 99.4,
-   "tool_only_visible": 18,
+   "n": 1000,
+   "agree": 993,
+   "agree_pct": 99.3,
+   "tool_only_visible": 7,
    "app_only_visible": 0
   }
  },
  "timing_s": {
-  "tiles": 16.5,
-  "viewshed": 17.9,
-  "islands": 1.2,
-  "outline": 2.5,
-  "total": 41
+  "tiles": 38.4,
+  "viewshed": 18.7,
+  "islands": 1.8,
+  "outline": 3.9,
+  "total": 66.7
  },
  "attribution": "国土地理院 標高タイル(DEM5A/5B/5C/10B)を加工して作成。日本の主な山岳標高(国土地理院)を加工して作成"
 }

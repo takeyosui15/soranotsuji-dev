@@ -204,8 +204,13 @@ GNU General Public License for more details.
                 <div class="control-row left-row">
                     <span class="kashimap-note">標高・建物・木の高さからの概算です。現地では見えないこともあります。</span>
                 </div>
+                <div class="control-row left-row">
+                    <span class="kashimap-note">この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。</span>
+                </div>
                 <div class="control-row center-row">
-                    <button id="btn-kashimap-export" class="nav-btn" title="山リストと島リスト(縞島を含む)をCSVファイルに出力します">File出力</button>
+                    <button id="btn-kashimap-export" class="nav-btn" title="選んだ山の資産(計算条件・島の索引・島の輪郭)を1つのJSONファイルに出力します。File読込で別の端末でも使えます">File出力</button>
+                    <button id="btn-kashimap-import" class="nav-btn" title="File出力したJSONファイルを端末に保存して、山リストから使えるようにします(可視マップ節の「端末に保存した資産」に並びます)">File読込</button>
+                    <input type="file" id="input-kashimap-import" accept=".json,application/json" class="hidden" multiple>
                 </div>
             </div>
         </div>
@@ -947,7 +952,7 @@ GNU General Public License for more details.
                     <div class="control-row main-buttons-row">
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
                         <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
-                        <button id="btn-kashimap" class="nav-btn main-btn" title="推し山がどこから見えるかを地図に塗る可視マップ(計算済みの山は島の輪郭と塗り・島リスト。My目的点での計算は準備中)">可視マップ</button>
+                        <button id="btn-kashimap" class="nav-btn main-btn" title="推し山がどこから見えるかを地図に塗る可視マップ(計算済みの山は島の輪郭と塗り・島リスト。資産のFile出力/File読込。My目的点での計算は準備中)">可視マップ</button>
                     </div>
                     <div class="control-row main-buttons-row">
                         <button id="btn-soramado" class="nav-btn main-btn">宙の窓</button>
@@ -1361,6 +1366,23 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <span class="kashimap-note">標高・建物・木の高さからの概算です。現地では見えないこともあります。</span>
+                    </div>
+                    <div class="control-row left-row">
+                        <span class="kashimap-note">この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。</span>
+                    </div>
+                    <div class="control-row left-row">
+                        <label class="baseopt-group-label" title="File読込で取り込んだ資産と、その場で計算した資産(準備中)を端末(ブラウザのIndexedDB)に保存したもの。山ごとに削除できます">端末に保存した資産</label>
+                    </div>
+                    <div id="kashimap-store">
+                        <div id="kashimap-store-empty" class="kashimap-note">保存した資産はありません(コントロールの「File読込」で取り込めます)</div>
+                        <table id="kashimap-store-table" class="hidden"><thead><tr><th>山</th><th>範囲</th><th>樹冠</th><th>島</th><th>サイズ</th><th></th></tr></thead><tbody></tbody></table>
+                    </div>
+                    <div class="control-row left-row">
+                        <span id="kashimap-store-total" class="kashimap-note">合計: 0 MB</span>
+                    </div>
+                    <div class="control-row center-row">
+                        <button id="btn-kashimap-store-clear" class="nav-btn small" title="端末に保存した可視マップの資産を全て削除します(サーバーの資産は消えません)">資産を全て削除</button>
+                        <button id="btn-kashimap-tiles-clear" class="nav-btn small" title="その場で計算するために端末に貯めた標高タイルだけをまとめて削除します(資産は残ります)">標高タイルを削除<span id="kashimap-tiles-size">(0 MB)</span></button>
                     </div>
                 </div>
             </div>
@@ -2472,11 +2494,13 @@ GNU General Public License for more details.
                     <h3>可視マップ</h3>
                     <p>推し山が「どこから見えるか」を地図に塗る機能です。計算済みの山 (山リストの「静的」欄に「静」が付く山) を選ぶと、地上1.5mに立った人から山頂が見える場所の<strong>島</strong> (見える画素のつながり) を地図に描きます。それ以外の山の計算 (My目的点での計算) は準備中です。</p>
                     <ul class="help-list">
-                        <li><strong>山リスト</strong>: 国土地理院「日本の主な山岳標高 (1003山)」の全山頂に、日本百名山・日本二百名山・日本三百名山・日本百高山 (標高順上位100) の印を付けたものです。「:百名山」〜「:百高山」「:その他」のチェックで絞り込み、「推し山:」欄にスペース区切りで語を入れると、山名・読み・別名・都道府県名への部分一致で検索します (「:AND」=全部の語に当たる山、「:OR」=どれかの語に当たる山)。「島の数」「静的/動的」欄は、今の範囲・樹冠の設定で計算済みの資産があるかを示します。</li>
+                        <li><strong>山リスト</strong>: 国土地理院「日本の主な山岳標高 (1003山)」の全山頂に、日本百名山・日本二百名山・日本三百名山・日本百高山 (標高順上位100) の印を付けたものです。「:百名山」〜「:百高山」「:その他」のチェックで絞り込み、「推し山:」欄にスペース区切りで語を入れると、山名・読み・別名・都道府県名への部分一致で検索します (「:AND」=全部の語に当たる山、「:OR」=どれかの語に当たる山)。「島の数」「静的/動的」欄は、今の範囲・樹冠の設定で計算済みの資産があるかを示します (「静」=サーバーにある資産、「動」=端末に保存した資産、「静/動」=両方。両方ある時は端末の資産を使います)。</li>
                         <li><strong>結果パネル</strong>: 「検索」または位置情報メニューの「可視マップ」ボタンで開きます。見出しクリックで列毎にソート、行のチェックで山を選択 (「全て選択」「全て解除」)、行クリックでその山頂へ地図を移動します。選んだ山の山頂には色付きのマーカーが立ち、計算済みの山は島の輪郭を山色の線で、見える場所を金色の塗り (<strong>可視辻マーカー</strong>。複数の山が見える場所ほど濃い金) で描きます (色は選んだ順に表示天体のスタイル設定の16色)。</li>
                         <li><strong>島リスト</strong>: 選んだ山の島と、2つ以上の山が見える場所の<strong>縞島</strong> (「縞」印・重複数=見える山の数) を一つに並べます。初期の並びは重複数の多い順→面積の大きい順。行クリックでその島へ地図を移動、行のチェックで輪郭が点滅します (「:縞島のみ」で縞島だけに絞れます)。重複数がいちばん多い縞島は地図に金と赤の縞で塗り、「:全展望マーカー」でその代表点にマーカーを立てられます。地図の塗りにマウスを乗せると「可視辻 (重複数N): 山名」を表示し、クリックで固定します (「観測点に設定」でその場所を観測点に)。</li>
-                        <li><strong>コントロール</strong>: 範囲 (60/100/300/700km四方。計算済みの範囲だけ選べます)・「:可視タイル」(塗りの表示/非表示)・「:樹冠あり」(木の高さを入れた資産があればそちらを使う)・「:山頂マーカー」・「:全展望マーカー」・「File出力」(山リストと島リストをCSVで)。</li>
-                        <li><strong>計算のしかた</strong>: 国土地理院の標高タイル (DEM5A/5B/5C、無い所はDEM10B) を1画素≒4mで読み、山頂から放射状に光線を伸ばして、地球の丸みと大気差 (標準大気) を入れた見通しで「見える/見えない」を全画素で判定します。山頂は1点ではなく<strong>山頂部</strong> (山頂から300m以内の高さで山頂につながる山の体。別の山の山頂を含まない高さまで) として扱い、その中の地形 (火口の縁や山頂直下の斜面) は遮るものに数えません。建物・木の高さは今は入っていません。標高からの概算ですので、現地では見えないこともあります。</li>
+                        <li><strong>コントロール</strong>: 範囲 (60/100/300/700km四方。計算済みの範囲だけ選べます)・「:可視タイル」(塗りの表示/非表示)・「:樹冠あり」(木の高さを入れた資産があればそちらを使う)・「:山頂マーカー」・「:全展望マーカー」・「File出力」(選んだ山の資産=計算条件・島の索引・島の輪郭を1つのJSONファイルに)・「File読込」(File出力したファイルを端末に保存して使う)。</li>
+                        <li><strong>端末に保存した資産</strong>: File読込で取り込んだ資産は端末 (ブラウザのIndexedDB) に保存され、可視マップ節の注記の下に山ごとに並びます (範囲・樹冠・島の数・サイズ・合計)。「✕」で1つずつ、「資産を全て削除」でまとめて削除できます。「標高タイルを削除」は、その場で計算するために貯めた標高タイルだけを削除します (準備中の機能の分)。すべてのデータの消去は <a href="reset.html">reset.html</a> から。</li>
+                        <li><strong>PC向けの機能です</strong>: 島の輪郭は間引かずにそのまま (富士山60kmで約330万頂点) 描くため、スマートフォンでは動作が重たく感じる場合があります。</li>
+                        <li><strong>計算のしかた</strong>: 国土地理院の標高タイル (DEM5A/5B/5C、無い所はDEM10B) を1画素≒4mで読み、山頂から放射状に光線を伸ばして、地球の丸みと大気差 (標準大気) を入れた見通しで「見える/見えない」を全画素で判定します。島の輪郭はその画素の縁をそのまま (間引かずに) 持ちます。山頂は1点ではなく<strong>山頂部</strong> (山頂から300m以内の高さで山頂につながる山の体。別の山の山頂を含まない高さまで) として扱い、その中の地形 (火口の縁や山頂直下の斜面) は遮るものに数えません。建物・木の高さは今は入っていません。標高からの概算ですので、現地では見えないこともあります。</li>
                         <li><strong>出典</strong>: 山の位置・標高は国土地理院「日本の主な山岳標高一覧 (1003山)」(2026年3月31日版) を加工して作成。名山の選定は深田久弥 (日本百名山)・深田クラブ (日本二百名山)・日本山岳会 (日本三百名山)。地理院の一覧に無い三百名山4座 (二岐山・諏訪山・藤原岳・吾妻山[広島]) は、地理院の標高データから山頂の位置を求めています。</li>
                     </ul>
                 </section>
