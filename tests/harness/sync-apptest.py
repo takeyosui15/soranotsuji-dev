@@ -28,7 +28,7 @@ FILES = [
     'index.html', 'script.js', 'style.css', 'forecast-features.html', 'reset.html',
     'privacy.html', 'terms.html',
     'dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker.js',
-    'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js',
+    'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js', 'kashimap-worker.js',
     'celestial_db.json', 'constellations.borders.json', 'constellations.lines.json',
     'constellation_bounds_skymap_4k_print.webp', 'constellation_figures_skymap_4k_print.webp',
     'milkyway-skymap.webp', 'milkyway-skymap_4k.webp', 'milkyway-skymap_print.webp',

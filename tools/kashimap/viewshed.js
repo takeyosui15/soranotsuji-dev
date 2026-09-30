@@ -149,22 +149,26 @@ async function fetchTileCached(kind, z, x, y) {
 }
 const grid = new Uint16Array(W * H).fill(NODATA);
 const stats = { fetched: 0, cached: 0, from5a: 0, from5b: 0, from5c: 0, from14: 0, missing: 0 };
-function decodeElevInto(png, tx, ty, zt) {
-  // タイル(zt)の画素を窓の格子へ。zt=Z-1 のときは2倍に引き伸ばす(最近傍)。既に値のある画素は上書きしない
+function decodeElevInto(png, tx, ty, zt, clip) {
+  // タイル(zt)の画素を窓の格子へ。zt=Z-1 のときは2倍に引き伸ばす(最近傍)。既に値のある画素は上書きしない。
+  // clip=書き込む窓の範囲(zのタイル1枚分。z-1の親タイルを隣のタイルの分まで書いて、後から来る隣の5A/5B/5Cを塞がないため。第153)
   const scale = Math.pow(2, Z - zt);
   const { w, ch, data } = png;
   const originX = tx * 256 * scale - X0, originY = ty * 256 * scale - Y0;
+  const cx0 = Math.max(0, clip ? clip.x0 : 0), cy0 = Math.max(0, clip ? clip.y0 : 0), cx1 = Math.min(W - 1, clip ? clip.x1 : W - 1), cy1 = Math.min(H - 1, clip ? clip.y1 : H - 1);
   for (let py = 0; py < 256; py++) {
+    const gy0 = originY + py * scale; if (gy0 + scale - 1 < cy0 || gy0 > cy1) continue;
     for (let px = 0; px < 256; px++) {
+      const gx0 = originX + px * scale; if (gx0 + scale - 1 < cx0 || gx0 > cx1) continue;
       const o = (py * w + px) * ch; let v = (data[o] << 16) | (data[o + 1] << 8) | data[o + 2];
       if (v === 0x800000) continue;
       if (v > 0x800000) v -= 0x1000000;
       const code = Math.round((v * 0.01 + 100) * 10);
       if (code < 0 || code >= NODATA) continue;
       for (let sy = 0; sy < scale; sy++) {
-        const gy = originY + py * scale + sy; if (gy < 0 || gy >= H) continue;
+        const gy = gy0 + sy; if (gy < cy0 || gy > cy1) continue;
         for (let sx = 0; sx < scale; sx++) {
-          const gx = originX + px * scale + sx; if (gx < 0 || gx >= W) continue;
+          const gx = gx0 + sx; if (gx < cx0 || gx > cx1) continue;
           const gi = gy * W + gx; if (grid[gi] === NODATA) grid[gi] = code;
         }
       }
@@ -178,14 +182,15 @@ async function loadTiles() {
   const worker = async () => {
     while (next < jobs.length) {
       const [tx, ty] = jobs[next++];
+      const clip = { x0: tx * 256 - X0, y0: ty * 256 - Y0, x1: tx * 256 + 255 - X0, y1: ty * 256 + 255 - Y0 };   // このタイル1枚分だけ書く
       let got = false;
       for (const kind of ['dem5a_png', 'dem5b_png', 'dem5c_png']) {
         const buf = await fetchTileCached(kind, Z, tx, ty);
-        if (buf) { decodeElevInto(pngDecode(buf), tx, ty, Z); stats['from' + kind.slice(3, 5)]++; got = true; break; }
+        if (buf) { decodeElevInto(pngDecode(buf), tx, ty, Z, clip); stats['from' + kind.slice(3, 5)]++; got = true; break; }
       }
       if (!got) {
         const buf = await fetchTileCached('dem_png', Z - 1, tx >> 1, ty >> 1);
-        if (buf) { decodeElevInto(pngDecode(buf), tx >> 1, ty >> 1, Z - 1); stats.from14++; } else stats.missing++;
+        if (buf) { decodeElevInto(pngDecode(buf), tx >> 1, ty >> 1, Z - 1, clip); stats.from14++; } else stats.missing++;
       }
       doneN++; if (doneN % 100 === 0 || doneN === jobs.length) log(`タイル ${doneN}/${jobs.length}`);
     }

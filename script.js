@@ -13,6 +13,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.92.0 - 2026-10-01: feat: 第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」(その場計算・デッサン05 段4/Q20): ①kashimap-worker.js=静的資産を作る道具(tools/kashimap/viewshed.js)と同じ計算(R2の光線・島・輪郭[外周+穴・間引きなし]・ポリライン符号)をブラウザのワーカーで。標高タイル(地理院 5A→5B→5C→10B)はワーカーが取り、端末の店(IndexedDB tiles)に貯めて次からは取りに行かない(枚数の上限・取得の失敗の安全弁つき。「標高タイルを削除」で消せる) ②目的点側の除外はアプリの統一可視判定と同じ規則(山頂部の帯・基準の標高=DEMと目的点の標高の高い方・別の山を含まない高さまで縮める・観測点側の除外半径・大気差の係数は今の設定) ③範囲の選択欄 24/36/48km四方(48kmはPC向け)。計算中はボタンが「計算を中止」。進捗は結果パネルの進捗バーと件数欄 ④結果は資産(origin=計算)として端末に保存し、山リストに所属「My」・種別「目的点」の行(索引番号 tgt:緯度,経度)で並べて選択・描画。File出力/File読込・⬇・✕もそのまま使える。「My目的点で計算」は今のMyセットのMy目的点を順に。verify178
+Version 1.91.1 - 2026-10-01: fix: 第153ラウンド — 山頂部の基準の標高(依頼者の報告「観測点を富士吉田に置いても:山頂部のオン/オフで結果が変わらずプレビューも出ない」): 初期値の富士山の目的点は火口の中心(座標は山頂の代表点・標高は剣ヶ峯の3776m)で、DEMはそこでは火口の底(約3540m)。山頂部の基準を目的点の画素のDEM標高だけで取っていたため、山リストの剣ヶ峯(3776m)が「目的点より226m高い別の山」と判定され山頂部なし(帯が効かない・プレビューは理由の行だけ)になっていた。基準の標高hTを「DEM(3×3画素の最大)と目的点の標高(位置情報の目的点標高。構造物の高さは含めない)の高い方」に。判定(標高グラフ・辻検索・My辻・辻メッシュ)とプレビューへ目的点の標高を渡す(_visSummitBandFor/Raw・computePathVisibilityの7つ目の引数)。プレビューの情報行に「基準の標高…m(目的点の標高。DEMは…m)」。verify177 B7
 Version 1.91.0 - 2026-09-30: feat: 第152ラウンド — 除外範囲メニューに「山頂部」(デッサン05 Q24/Q25・依頼者決定): ①基本オプション>標高グラフ>除外範囲に「:山頂部」チェック(初期値オン)+「山頂部(帯,m)」(初期値300・0〜2000)+「:プレビュー」(目的点の山頂部の範囲を地図に薄い赤で描く。目的点を動かすと描き直す)+「除外範囲をリセット」(15/10/300/チェックを初期値へ)。状態はelevSummitBandEnabled/elevSummitBandM(LS保存。URLは段4の設計で) ②統一可視判定(_visJudgeCore)と辻メッシュのワーカー(tm-vis-worker)に「山頂部の画素の遮蔽は無視」を追加。山頂部=目的点の標高(3×3画素の最大)から帯の高さ以内で目的点につながる画素(8近傍・探索半径3km)。別の山(山リストの山頂)の山頂を含む時は含まない高さまで縮める(可視マップの道具と同じ規則)。目的点ごとに1回計算して保持(_visSummitBandFor)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタに共通で効く(富士山を北から見た時の「北側の縁に隠れてNG」が直る) ③可視マップ節(メニュー側)に範囲ラジオ・「目的点で計算」(準備中)・「:可視タイル/:樹冠あり/:山頂マーカー/:全展望マーカー」を置き、コントロールと連動(依頼者のデザイン。全展望マーカーは初期値オンへ) ④サーバーから一度読んだ資産は端末(IndexedDB)にも保存して次からは取りに行かない(列は「静(端末)」)。端末の資産の一覧に「⬇」(その山だけをFile出力)。verify177
 Version 1.90.0 - 2026-09-23: feat: 第151ラウンド — 可視マップの資産のFile出力/File読込と端末の資産の管理(依頼者の依頼): ①コントロールの「File出力」を山リスト/島リストのCSVから「選んだ山の資産(計算条件meta・島の索引islands・島の輪郭outline)を1つのJSONに」へ(1山でも複数でも)。「File読込」でそのJSONを端末(IndexedDB: soranotsuji-kashimap/assets)に保存し、山リストから使えるように(同じ資産がサーバーと端末の両方にあれば端末を使う。「静的/動的」列=静[サーバー]/動[端末]/静/動[両方]) ②可視マップ節の注記の下に「端末に保存した資産」の一覧(山・範囲・樹冠・島・サイズ・✕で個別削除)と合計、「資産を全て削除」「標高タイルを削除(段4のその場計算用の店=今は0MB)」 ③reset.htmlの「すべてのデータを消去」でIndexedDB(可視マップの資産・標高タイル・天気のキャッシュ)も消去 ④注記「この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります」(依頼者起草)を節とコントロールとヘルプへ ⑤静的資産は間引きなし(道具の--tol既定0。富士山60km=頂点328万・outline 7MB)。verify176
 Version 1.89.0 - 2026-09-21: feat: 第150ラウンド — 可視マップ段3(地図表示。デッサン05「実装の段取り」段3の第1弾): ①静的資産(data/kashimap/v1/: index.json+山ごとの{id}/{terrain|canopy}/{range}/{meta,islands,outline}.json。段2の道具 --asset の出力。outline.json=島の外周+穴を画素の角の整数座標でポリライン符号化)を遅延読込し、選んだ山の島を地図に描く: 輪郭=暗い縁取り+山色の線・塗り=同じ金を重ねる(重なるほど濃い=可視辻マーカーの濃淡) ②縞島=選んだ山の島全体を覆う作業用の格子(最大2048画素四方)に各山の島を描いて画素ごとの「見える山の組み合わせ」を求め、同じ組み合わせのつながり(8近傍)を縞島に(重複数2以上。面積・代表点は格子での概算)。重複数がいちばん多い縞島は金と赤の縞で塗る ③島リスト(各山の島+縞島を一つに。列=選択[点滅]・項番・縞・重複数・所属山・読み・代表点の緯度/経度・面積・画素数・山頂からの距離。初期は重複数の降順→面積の降順。行クリックで島へ移動・行チェックで輪郭が点滅[0.5秒交互。選択0/閉じた/裏に回ったら止める]・:縞島のみ・全て選択/解除。表示は上位3000件) ④コントロールメニュー(範囲60/100/300/700km=計算済みだけ選べる・:可視タイル・:樹冠あり[無い山は地形の資産に落とす]・:山頂マーカー・:全展望マーカー[重複数最大の縞島の代表点]・注記・File出力=山リスト+島リストのCSV) ⑤ホバー(PC)で「可視辻(重複数N): 山名」のツールチップと島リストの該当行の強調、クリックで固定ポップアップ(観測点/目的点に設定)。山リストに「島の数」「静的/動的」列。段2の道具はv2(山頂部=山頂から300m以内の高さで山頂につながる山の体そのもの[別の山の山頂を含まない高さまで縮める]を遮蔽に数えない[region。circleは従来の円]・輪郭は外周+穴を全島で辿り面積の自己検査・間引き1px・アプリ用資産の出力・--probeで既知の展望地の見通しを検算)。富士山60km(地形のみ)と毛無山20kmの資産を同梱。verify175
@@ -159,7 +161,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.91.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.92.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -7391,7 +7393,7 @@ async function decorateMyTsujiResults(results) {
         if (visCache.has(vkey)) continue;
         const sTot = (r.obs.elev || 0) + (r.obs.height || 0);
         const eTot = (r.tgt.elev || 0) + (r.tgt.height || 0);
-        const v = await computePathVisibility(r.obs.lat, r.obs.lng, sTot, r.tgt.lat, r.tgt.lng, eTot);
+        const v = await computePathVisibility(r.obs.lat, r.obs.lng, sTot, r.tgt.lat, r.tgt.lng, eTot, r.tgt.elev);
         visCache.set(vkey, v.visible ? 'OK' : 'NG');
     }
     const decorated = [];
@@ -10245,7 +10247,7 @@ function selectTsujiMeshRow(idx, jump) {
  *  - 除外範囲(目的点の半径○m以内)のNGは無視
  *  タイルは対象領域〜目的点のコリドー(扇形)を先取りする(5B/5Cは前段で取得できなかった座標のみ)。
  *  戻り値: Uint8Array(kept) 1=OK / 中断(世代交代)は null */
-async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus) {
+async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, refLat, generation, setStatus, endGroundElev) {
     const _exclR = elevExcludeRadii();
     const exclKm = _exclR.tgt / 1000;
     const obsExclM = _exclR.obs;
@@ -10370,7 +10372,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     // 実効地球(丸み+気差)は全画素で共通の1値(目的点緯度で代表。画素間の局所半径差は判定に無視できる。
     // 逐次判定とワーカー並列判定へ同じ値を渡してビット一致を保つ)
     const visInv2R = _visInv2Reff(end.lat, end.lat);
-    const band = await _visSummitBandFor(end.lat, end.lng);   // 山頂部(第152)。逐次判定とワーカー判定へ同じ帯を渡す
+    const band = await _visSummitBandFor(end.lat, end.lng, endGroundElev);   // 山頂部(第152)。逐次判定とワーカー判定へ同じ帯を渡す。endGroundElev=目的点の標高(第153)
     if (generation !== tsujiMeshGeneration) return null;
     const flags = new Uint8Array(kept);
     if (kept === 0) { window._tmLastVisFlags = flags; return flags; }
@@ -10658,7 +10660,7 @@ async function startTsujiMeshSearch() {
     // 標高フィルタ: 許容範囲内の対象画素それぞれを、標高グラフと同一のアルゴリズムで可視判定する
     let visFlags = null;   // Uint8Array(kept) 1=OK(可視)
     if (elevOptOn) {
-        visFlags = await computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus);
+        visFlags = await computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeight, end, endElev, gxBase, gyBase, gridW, start.lat, generation, setStatus, appState.endApiElev);
         if (generation !== tsujiMeshGeneration || !visFlags) return;
         if (viewshedMode !== 'all') {
             // OK/NGチェックで選んだ対象だけへ圧縮(グリッド索引も再構築)
@@ -11140,7 +11142,7 @@ let _kmById = null;                // id -> 山データ
 let _kmActive = false;             // 結果パネル表示中(辻検索/辻メッシュ/宙検索とは排他)
 let _kmRows = [];                  // 今の検索結果(山データの参照)
 const _kmSelected = new Map();     // 選択中の山 id -> 色の席(0〜)。席は空いている最小番号(解除で空く。17席目は1席目の色)
-const KM_LIST_LABEL = { '100': '百', '200': '二百', '300': '三百', 'high': '高' };
+const KM_LIST_LABEL = { '100': '百', '200': '二百', '300': '三百', 'high': '高', 'my': 'My' };   // my=その場で計算した目的点(山リストに無い山・構造物)
 let _kmIndexP = null, _kmIndex = null;        // 静的資産の索引(index.json)。取れない時は空の索引
 const _kmDeviceIndex = new Map();             // 端末(IndexedDB)に保存した資産の索引 key -> {key,id,name,kind,range,islands,size,savedAt,origin}
 let _kmDeviceLoaded = false;                  // 端末の索引を一度でも読んだか(検索のたびに読み直さない=大きな保存中の待ちを避ける)
@@ -11222,7 +11224,7 @@ async function _kmLoadDeviceIndex() {
                 const c = req.result;
                 if (!c) { ok(); return; }
                 const v = c.value;
-                next.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM, origin: v.origin || 'import' });
+                next.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM, origin: v.origin || 'import', lat: v.lat, lon: v.lon, elev: v.elev, height: v.height });
                 c.continue();
             };
             req.onerror = () => ng(req.error);
@@ -11230,6 +11232,7 @@ async function _kmLoadDeviceIndex() {
         _kmDeviceIndex.clear(); for (const [k, v] of next) _kmDeviceIndex.set(k, v);
     } catch (e) { console.warn('可視マップ: 端末の資産の索引', e); }
     _kmDeviceLoaded = true;
+    _kmSyncPseudo();
     _kmRenderStoreList();
     return _kmDeviceIndex;
 }
@@ -11296,12 +11299,16 @@ function _kmRenderStoreList() {
     total.textContent = `合計: ${_kmMB(sum)}(${recs.length}件)`;
     _kmTilesSize().then(b => { const el = document.getElementById('kashimap-tiles-size'); if (el) el.textContent = `(${_kmMB(b)})`; });
 }
+function _kmNum(v) { return (v !== null && v !== undefined && v !== '' && isFinite(+v)) ? +v : undefined; }
 /** 資産1件を端末(IndexedDB)に保存する(origin: 'server'=サーバーから読んだ / 'import'=File読込 / 'compute'=その場計算)。戻り値=要約 */
 async function _kmStoreSave(meta, isl, ol, origin, bytes) {
     const id = String(meta.mountain.id), kind = meta.canopy ? 'canopy' : 'terrain', range = +meta.range_km;
     const key = `${id}/${kind}/${range}`;
     const size = bytes || new Blob([JSON.stringify(meta), JSON.stringify(isl), JSON.stringify(ol)]).size;   // 大きさ(バイト)。分かっていればJSON化し直さない
-    await _kmStorePut({ key, id, name: meta.mountain.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, meta, islandsObj: isl, outlineObj: ol });
+    const mt = meta.mountain;
+    await _kmStorePut({ key, id, name: mt.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin,
+        lat: _kmNum(mt.lat), lon: _kmNum(mt.lon), elev: _kmNum(mt.elev_list), height: _kmNum(mt.height_m),   // 目的点の計算(id=tgt:…)を山リストの行にする元(無い値はundefined。+null=0にしない)
+        meta, islandsObj: isl, outlineObj: ol });
     await _kmLoadDeviceIndex();
     if (_kmActive) _kmRefreshListCells();
     return { key, name: meta.mountain.name || id, range, kind, islands: isl.islands.length, size };
@@ -11878,7 +11885,7 @@ function _kmFilter(all, f) {
     });
 }
 function _kmListsLabel(m) { const ls = (m.lists || []).map(l => KM_LIST_LABEL[l] || l); return ls.length ? ls.join('/') : '他'; }
-function _kmListsRank(m) { const ls = m.lists || []; return ls.includes('100') ? 0 : ls.includes('200') ? 1 : ls.includes('300') ? 2 : ls.includes('high') ? 3 : 4; }
+function _kmListsRank(m) { const ls = m.lists || []; return ls.includes('100') ? 0 : ls.includes('200') ? 1 : ls.includes('300') ? 2 : ls.includes('high') ? 3 : ls.includes('my') ? 4 : 5; }
 function _kmIdxCmp(a, b) {
     const pa = String(a).split('-'), pb = String(b).split('-');
     const na = parseInt(pa[0], 10), nb = parseInt(pb[0], 10);
@@ -11986,7 +11993,9 @@ async function runKashimapSearch() {
         _kmRows = []; _kmUpdateStatus(); return;
     }
     if (!_kmActive) return;
-    _kmRows = _kmFilter(all, _kmReadFilters());
+    _kmSyncPseudo();
+    const filters = _kmReadFilters();
+    _kmRows = _kmFilter(all, filters).concat(_kmPseudoRows(filters));   // その場で計算した目的点は所属「My」で末尾に並ぶ
     _kmRenderList();
     _kmUpdateRangeRadios();
     _kmRefresh();
@@ -12016,6 +12025,158 @@ function closeKashimap() {
     _kmApplyLayerVisibility();
     _kmUpdateMarkers(); _kmUpdateZenMarkers();
     syncBottomPanels();
+}
+// ---- その場計算(デッサン05 段4・「目的点で計算」「My目的点で計算」): 静的資産を作る道具と同じ計算をワーカー(kashimap-worker.js)で行い、
+//      資産(meta・islands・outline)を端末に保存(origin=compute)して、山リストに所属「My」の行(id=tgt:緯度,経度)で載せて選択する。
+//      標高タイルはワーカーが端末の店(IndexedDB tiles)に貯める。目的点側の除外はアプリの判定と同じ(山頂部の帯・基準の標高=DEMと目的点の標高の高い方) ----
+const KM_TGT_RANGES = [24, 36, 48];            // その場計算の範囲(km四方。Q20: 辻メッシュ検索の最大[約24km四方]以上。48kmはPC向け)
+const KM_TGT_MAX_TILES = 2600;                 // 標高タイルの枚数の上限(48km四方≒2,304枚。安全弁)
+let _kmWorker = null, _kmWorkerReject = null, _kmComputeBusy = false, _kmComputeCancelled = false, _kmComputeLabel = '';
+/** 窓(z15の画素格子)。ワーカーの windowGeom と同じ式(テスト用の合成標高の格子をここで作るため) */
+function _kmWindow(lat, lon, rangeKm) {
+    const WORLD = 256 * Math.pow(2, 15);
+    const lonToX = (ln) => (ln + 180) / 360 * WORLD;
+    const latToY = (lt) => (1 - Math.log(Math.tan(lt * Math.PI / 180) + 1 / Math.cos(lt * Math.PI / 180)) / Math.PI) / 2 * WORLD;
+    const MPP = 40075016.686 * Math.cos(lat * Math.PI / 180) / WORLD;
+    const halfPx = Math.ceil(rangeKm * 1000 / 2 / MPP);
+    const X0 = Math.floor(lonToX(lon)) - halfPx, Y0 = Math.floor(latToY(lat)) - halfPx;
+    const W = 2 * halfPx + 1;
+    return { X0, Y0, W, H: W, CX: halfPx, CY: halfPx, MPP };
+}
+function _kmTgtId(lat, lng) { return `tgt:${(+lat).toFixed(6)},${(+lng).toFixed(6)}`; }
+/** 端末の資産のうち目的点の計算(id が tgt:…)を、山リストの擬似の山(所属「My」・種別「目的点」)として _kmById に載せる/外す(端末の索引の読み直しと検索のたびに) */
+function _kmSyncPseudo() {
+    if (!_kmById) return;
+    const want = new Map();
+    for (const d of _kmDeviceIndex.values()) {
+        if (!String(d.id).startsWith('tgt:') || !isFinite(+d.lat) || !isFinite(+d.lon)) continue;
+        const cur = want.get(d.id);
+        if (!cur || String(d.savedAt || '') > String(cur.savedAt || '')) want.set(d.id, d);
+    }
+    for (const [id, m] of Array.from(_kmById.entries())) {
+        if (!m.pseudo || want.has(id)) continue;
+        _kmById.delete(id); _kmSelected.delete(id); _kmRows = _kmRows.filter(r => r.id !== id);   // 資産を消したら行も選択も消える
+    }
+    for (const [id, d] of want) {
+        const m = _kmById.get(id) || { id, pseudo: true, seq: null, yomi: '', peak: null, alias: [], pref: [], prefCode: [], lists: ['my'], kind: '目的点', state: '', src: 'compute' };
+        m.name = d.name || id; m.lat = +d.lat; m.lon = +d.lon; m.elev = _kmNum(d.elev) === undefined ? null : +d.elev; m.height = _kmNum(d.height) || 0;
+        _kmById.set(id, m);
+    }
+}
+/** 検索結果に載せる擬似の山(推し山の語があれば山名に部分一致。リストの印では絞らない) */
+function _kmPseudoRows(f) {
+    return Array.from(_kmById ? _kmById.values() : []).filter(m => m.pseudo && (!f.terms.length || (f.or ? f.terms.some(t => _kmMatchTerm(m, t)) : f.terms.every(t => _kmMatchTerm(m, t)))));
+}
+function _kmSetComputeUi(busy, label) {
+    _kmComputeBusy = busy;
+    const b1 = document.getElementById('btn-kashimap-tgt'), b2 = document.getElementById('btn-kashimap-mytgt'), sel = document.getElementById('sel-kashimap-tgt-range');
+    if (b1) { b1.textContent = busy ? '計算を中止' : '目的点で計算'; b1.classList.toggle('active', busy); }
+    if (b2) { b2.textContent = busy ? '計算を中止' : 'My目的点で計算'; b2.classList.toggle('active', busy); }
+    if (sel) sel.disabled = busy;
+    const st = document.getElementById('kashimap-status'); if (st && label !== undefined) st.textContent = label;
+    const prog = document.getElementById('kashimap-progress'), fill = document.getElementById('kashimap-progress-fill');
+    if (prog && fill) { prog.classList.toggle('hidden', !busy); fill.style.width = '0%'; }
+}
+function _kmComputeCancel() {
+    _kmComputeCancelled = true;
+    if (_kmWorker) { try { _kmWorker.terminate(); } catch (_) { /* 無視 */ } _kmWorker = null; }
+    if (_kmWorkerReject) { const rj = _kmWorkerReject; _kmWorkerReject = null; rj(new Error('中止しました')); }
+}
+/** 進捗(タイル0〜70%・山頂部72%・視域72〜90%・島91%・輪郭91〜97%・符号化98%)を進捗バーと件数欄へ */
+function _kmComputeProgress(m) {
+    const fill = document.getElementById('kashimap-progress-fill'), st = document.getElementById('kashimap-status');
+    const frac = m.total ? Math.min(1, m.done / m.total) : 0;
+    let pct = 0, text = '';
+    if (m.phase === 'tiles') { pct = 70 * frac; text = `標高タイル ${m.done.toLocaleString()}/${m.total.toLocaleString()}`; }
+    else if (m.phase === 'summit') { pct = 72; text = '山頂部'; }
+    else if (m.phase === 'rays') { pct = 72 + 18 * frac; text = `視域計算 ${Math.round(100 * frac)}%`; }
+    else if (m.phase === 'islands') { pct = 91; text = '島'; }
+    else if (m.phase === 'outline') { pct = 91 + 6 * frac; text = `輪郭 ${Math.round(100 * frac)}%`; }
+    else if (m.phase === 'encode') { pct = 98; text = '符号化'; }
+    if (fill) fill.style.width = `${Math.round(pct)}%`;
+    if (st) st.textContent = `(計算中${_kmComputeLabel ? ' ' + _kmComputeLabel : ''}: ${text})`;
+}
+/** 目的点1つをその場で計算して端末に保存し、山リストに「My」の行で載せて選択する。target={id?,name,lat,lng,elev(目的点の標高),height(構造物の高さ)}。
+ *  opts.rangeKm=範囲(既定は選択欄)・opts.returnBits=見える/見えないの1bit列も受け取る(テスト用) */
+async function _kmComputeOne(target, opts) {
+    opts = opts || {};
+    const sel = document.getElementById('sel-kashimap-tgt-range');
+    const rangeKm = +opts.rangeKm || +(sel && sel.value) || KM_TGT_RANGES[0];
+    const lat = +target.lat, lon = +target.lng;
+    if (!isFinite(lat) || !isFinite(lon)) throw new Error('目的点の位置がありません');
+    if (!_pointInsideJapan(lat, lon)) throw new Error('目的点が日本域の外です(国土地理院の標高タイルがありません)');
+    const id = target.id || _kmTgtId(lat, lon);
+    const name = String(target.name || '').trim() || `目的点(${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+    const ex = elevExcludeRadii();
+    const list = await _kmLoadData();
+    if (_kmComputeCancelled) throw new Error('中止しました');
+    const peaks = list.filter(m => isFinite(+m.lat) && isFinite(+m.lon)).map(m => ({ id: String(m.id), name: m.name, elev: m.elev, lat: +m.lat, lon: +m.lon, d: _geoDistM(lat, lon, +m.lat, +m.lon) })).filter(p => p.d <= SB_SEARCH_M + 100);
+    const hasElev = target.elev !== null && target.elev !== undefined && target.elev !== '' && isFinite(+target.elev);   // 標高が無い(null)時はDEMを基準にする(+null=0にしない)
+    const job = { id, name, lat, lon, elevGround: hasElev ? +target.elev : null, heightM: +target.height || 0, rangeKm,
+        inv2R: _visInv2Reff(lat, lat), k: appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0,
+        obsH: 1.5, exclTgtM: ex.tgt, exclObsM: ex.obs, bandM: ex.band, searchM: SB_SEARCH_M, upM: SB_UP_M, peaks, maxTiles: KM_TGT_MAX_TILES, returnBits: !!opts.returnBits };
+    const transfer = [];
+    if (typeof window._tmSyntheticElev15 === 'function') {   // テスト用の合成標高: 窓の格子をここで作ってワーカーへ渡す(標高タイルは取らない)
+        const G = _kmWindow(lat, lon, rangeKm); const grid = new Uint16Array(G.W * G.H);
+        for (let y = 0; y < G.H; y++) for (let x = 0; x < G.W; x++) {
+            const e = window._tmSyntheticElev15(G.X0 + x, G.Y0 + y);
+            const c = (e === null || e === undefined || !isFinite(e)) ? 65535 : Math.round((e + 100) * 10);
+            grid[y * G.W + x] = (c < 0 || c >= 65535) ? 65535 : c;
+        }
+        job.grid = grid; transfer.push(grid.buffer);
+    }
+    const w = new Worker('kashimap-worker.js'); _kmWorker = w;
+    const res = await new Promise((ok, ng) => {
+        _kmWorkerReject = ng;
+        w.onmessage = (ev) => {
+            const m = ev.data || {};
+            if (m.type === 'progress') _kmComputeProgress(m);
+            else if (m.type === 'done') ok(m);
+            else if (m.type === 'error') ng(new Error(m.message || '計算に失敗しました'));
+        };
+        w.onerror = (e) => ng(new Error(e && e.message ? e.message : 'ワーカーの読み込みに失敗しました'));
+        w.postMessage({ type: 'compute', job }, transfer);
+    }).finally(() => { if (_kmWorker === w) _kmWorker = null; _kmWorkerReject = null; try { w.terminate(); } catch (_) { /* 無視 */ } });
+    const st = document.getElementById('kashimap-status'); if (st) st.textContent = '(計算中: 保存)';
+    const d = await _kmStoreSave(res.meta, res.islands, res.outline, 'compute');
+    _kmAssets.delete(d.key);   // 前に読んだ同じ鍵の資産があれば作り直す
+    _kmSyncPseudo();
+    if (_kmActive && !_kmRows.some(r => r.id === id)) { const m = _kmById.get(id); if (m) _kmRows.push(m); }
+    _kmSelect(id, true);
+    return { ...d, id, bits: res.bits || null, meta: res.meta };
+}
+/** 目的点(位置情報メニューの今の目的点。標高+構造物の高さ)をその場で計算する。計算中に呼ぶと中止 */
+async function _kmComputeTarget(opts) {
+    if (_kmComputeBusy) { _kmComputeCancel(); return null; }
+    const end = appState.end; if (!end) return null;
+    const nameEl = document.getElementById('input-end-name');
+    const target = { lat: end.lat, lng: end.lng, elev: appState.endApiElev, height: appState.endHeight, name: (opts && opts.name) || (nameEl && nameEl.value.trim()) || '' };
+    return _kmComputeRun([target], opts);
+}
+/** 今のMyセットのMy目的点を順にその場で計算する(地元の複数の山向け)。計算中に呼ぶと中止 */
+async function _kmComputeMyTargets(opts) {
+    if (_kmComputeBusy) { _kmComputeCancel(); return null; }
+    const list = (appState.myTargets || []).filter(t => isFinite(+t.lat) && isFinite(+t.lng));
+    if (!list.length) { alert('今のMyセットにMy目的点がありません'); return null; }
+    return _kmComputeRun(list.map(t => ({ lat: t.lat, lng: t.lng, elev: t.elev, height: t.height, name: t.name })), opts);
+}
+async function _kmComputeRun(targets, opts) {
+    if (!_kmActive) await runKashimapSearch();
+    _kmComputeCancelled = false; _kmSetComputeUi(true, '(計算の準備…)');
+    const done = [], errs = [];
+    try {
+        for (let i = 0; i < targets.length; i++) {
+            if (_kmComputeCancelled) break;
+            const t = targets[i]; _kmComputeLabel = targets.length > 1 ? `${i + 1}/${targets.length} ${t.name || ''}` : (t.name || '');
+            try { done.push(await _kmComputeOne(t, opts)); }
+            catch (e) { if (_kmComputeCancelled) break; console.warn('可視マップ: その場計算に失敗', t, e); errs.push(`${t.name || ''}: ${e.message}`); }
+        }
+    } finally {
+        _kmComputeLabel = ''; _kmSetComputeUi(false); _kmUpdateStatus();
+    }
+    if (_kmActive) { _kmRenderList(); await _kmRefresh(); }
+    if (errs.length && !(opts && opts.quiet)) alert('その場計算:\n' + errs.join('\n'));
+    return { done, errs, cancelled: _kmComputeCancelled };
 }
 /** 位置情報メニューの「可視マップ」ボタン=検索実行+結果パネル表示(辻メッシュと同じ・Q11) */
 function toggleKashimap() { if (_kmActive) closeKashimap(); else runKashimapSearch(); }
@@ -12084,6 +12245,10 @@ function setupKashimapControls() {
         if (!confirm('端末に貯めた標高タイルを全て削除しますか？(資産は残ります)')) return;
         await _kmTilesClear(); _kmRenderStoreList();
     });
+    // その場計算(「目的点で計算」「My目的点で計算」。計算中はどちらも「計算を中止」)
+    const tgtBtn = document.getElementById('btn-kashimap-tgt'), myBtn = document.getElementById('btn-kashimap-mytgt');
+    if (tgtBtn) { tgtBtn.disabled = false; tgtBtn.addEventListener('click', () => { _kmComputeTarget().catch(e => console.warn('可視マップ: 目的点で計算', e)); }); }
+    if (myBtn) { myBtn.disabled = false; myBtn.addEventListener('click', () => { _kmComputeMyTargets().catch(e => console.warn('可視マップ: My目的点で計算', e)); }); }
     // 起動時に端末の資産の一覧(可視マップ節)を出しておく
     _kmLoadDeviceIndex().catch(() => {});
     // 画面が裏に回ったら点滅を止め、戻ったら再開(P5)
@@ -12572,7 +12737,7 @@ async function startTsujiSearch() {
         statusEl.textContent = '(標高判定中…)';
         const vis = await computePathVisibility(
             appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
-            appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
+            appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight, appState.endApiElev);
         if (generation !== appState.tsujiSearchGeneration) return;
         elevStatus = vis.visible ? 'OK' : 'NG';
     }
@@ -12930,26 +13095,31 @@ function _sbHas(band, gx, gy) {
     const i = by * band.w + bx;
     return ((band.bits[i >> 3] >> (i & 7)) & 1) === 1;
 }
-/** 今の設定で目的点(lat,lng)の山頂部(生の結果。帯なしの時は {none:true, reason})。除外範囲オフ/山頂部オフ/帯0なら null。失敗時も null */
-async function _visSummitBandRaw(lat, lng) {
+/** 今の設定で目的点(lat,lng)の山頂部(生の結果。帯なしの時は {none:true, reason})。除外範囲オフ/山頂部オフ/帯0なら null。失敗時も null。
+ *  groundElev=目的点の標高(位置情報の目的点標高。構造物の高さは含めない)。DEMの目的点の画素より高い時はこちらを山頂部の基準にする(第153) */
+async function _visSummitBandRaw(lat, lng, groundElev) {
     const bandM = elevExcludeRadii().band;
     if (!bandM || !isFinite(lat) || !isFinite(lng)) return null;
-    const key = `${(+lat).toFixed(6)},${(+lng).toFixed(6)},${bandM}`;
+    const gElev = (groundElev !== null && groundElev !== undefined && isFinite(+groundElev)) ? +groundElev : null;
+    const key = `${(+lat).toFixed(6)},${(+lng).toFixed(6)},${bandM},${gElev === null ? '' : gElev.toFixed(1)}`;
     if (!_sbCache.has(key)) {
         if (_sbCache.size >= 32) _sbCache.delete(_sbCache.keys().next().value);   // My辻の標高フィルタは目的点ごとに1回(目的点が多くても持てる数)
-        const pr = _visSummitBand(lat, lng, bandM, SB_SEARCH_M).catch(e => { console.warn('山頂部の計算に失敗(帯なしで判定)', e); return null; })
+        const pr = _visSummitBand(lat, lng, bandM, SB_SEARCH_M, gElev).catch(e => { console.warn('山頂部の計算に失敗(帯なしで判定)', e); return null; })
             .then(b => { if (!b) _sbCache.delete(key); return b; });   // 標高データが取れなかった時(圏外・障害)は覚えず、次の判定で取り直す
         _sbCache.set(key, pr);
     }
     return _sbCache.get(key);
 }
 /** 判定に渡す山頂部(帯なしの時は null=従来どおり目的点側の除外半径だけ) */
-async function _visSummitBandFor(lat, lng) {
-    const b = await _visSummitBandRaw(lat, lng);
+async function _visSummitBandFor(lat, lng, groundElev) {
+    const b = await _visSummitBandRaw(lat, lng, groundElev);
     return (b && !b.none) ? b : null;
 }
-/** 山頂部の計算本体。DEMは標高グラフと同じチェーン(DEM5A→5B→5C→10B。テストの合成標高があればそれ) */
-async function _visSummitBand(lat, lng, bandM, searchM) {
+/** 山頂部の計算本体。DEMは標高グラフと同じチェーン(DEM5A→5B→5C→10B。テストの合成標高があればそれ)。
+ *  groundElev(目的点の標高)が目的点のDEM標高(3×3画素の最大)より高い時はgroundElevを山頂部の基準(hT)にする(第153・依頼者の報告):
+ *  初期値の富士山の目的点は火口の中心(座標は山頂の代表点・標高は剣ヶ峯の3776m)で、DEMは火口の底(約3540m)。
+ *  DEMだけを基準にすると山リストの剣ヶ峯(3776m)が「目的点より226m高い別の山」になり山頂部なし(=帯が効かない)になってしまう */
+async function _visSummitBand(lat, lng, bandM, searchM, groundElev) {
     const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
     const gx0 = Math.floor(128 * (lng / 180 + 1) * scale15);
     const gy0 = Math.floor((128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15);
@@ -12986,9 +13156,11 @@ async function _visSummitBand(lat, lng, bandM, searchM) {
         if ((by & 255) === 255) await yieldUI();
     }
     // 目的点の標高=3×3画素の最大(道具と同じ)。データが無ければ山頂部なし
-    let hT = -Infinity;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const e = elevAtPix15(gx0 + dx, gy0 + dy); if (e !== null && e !== undefined && e > hT) hT = e; }
-    if (hT === -Infinity) return null;   // hTはDEMの値そのまま(Float32の格子ではなく元の値から。丸めると目的点の画素自身が帯から外れうる)
+    let hDem = -Infinity;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const e = elevAtPix15(gx0 + dx, gy0 + dy); if (e !== null && e !== undefined && e > hDem) hDem = e; }
+    if (hDem === -Infinity) return null;   // hDemはDEMの値そのまま(Float32の格子ではなく元の値から。丸めると目的点の画素自身が帯から外れうる)
+    // 基準の標高hT=DEMと目的点の標高の高い方。帯はhT−帯の高さより高くて目的点につながる画素(目的点の画素自身は帯の高さに関わらず含む)
+    const hT = (groundElev !== null && groundElev !== undefined && isFinite(groundElev) && groundElev > hDem) ? groundElev : hDem;
     // 別の山(山リスト)の山頂。目的点自身(60m以内の山頂)と同じ山の別峰(索引番号の親番号が同じ)は除く
     let others = [];
     try {
@@ -13022,18 +13194,18 @@ async function _visSummitBand(lat, lng, bandM, searchM) {
         // 帯0(目的点の標高以上でつながる画素)でも別の山の山頂を含む=目的点がその山の山腹・肩にある(山小屋・駅・展望台など)。
         // その時は山頂部なし(帯なし=従来の目的点側の除外だけ)。上の山体を透明にしてしまうのを防ぐ(第152の検品の指摘)
         await yieldUI();
-        if (hasOther(bandOf(0))) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」が目的点より高くつながっている=目的点はその山の山腹)`, hT, lat, lng };
+        if (hasOther(bandOf(0))) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」が目的点より高くつながっている=目的点はその山の山腹)`, hT, hDem, lat, lng };
         let lo = 0, hi = drop;
         while (hi - lo >= 1) { const mid = (lo + hi) / 2; await yieldUI(); if (hasOther(bandOf(mid))) hi = mid; else lo = mid; }   // 1mの精度で止める(帯300mなら最大9回)
         drop = Math.floor(lo); await yieldUI(); keep = bandOf(drop);
-        if (hasOther(keep)) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」を含まない帯が取れない)`, hT, lat, lng };
+        if (hasOther(keep)) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」を含まない帯が取れない)`, hT, hDem, lat, lng };
     }
     // 目的点が山頂でない(帯の中に目的点より SB_UP_M を超えて高い地形が続く=谷・山腹・裾の地点)時も山頂部なし。周りの山を透明にしない
-    if (bandMax > hT + SB_UP_M) return { none: true, reason: `山頂部なし(目的点より${Math.round(bandMax - hT)}m高い地形がつながっている=目的点は山頂ではない)`, hT, lat, lng };
+    if (bandMax > hT + SB_UP_M) return { none: true, reason: `山頂部なし(目的点より${Math.round(bandMax - hT)}m高い地形がつながっている=目的点は山頂ではない)`, hT, hDem, lat, lng };
     const bits = new Uint8Array(Math.ceil(w * h / 8)); let px = 0, far2 = 0;
     for (let i = 0; i < w * h; i++) { if (!keep[i]) continue; bits[i >> 3] |= 1 << (i & 7); px++; const x = i % w, y = (i - x) / w; const d2 = (x - rPx) * (x - rPx) + (y - rPx) * (y - rPx); if (d2 > far2) far2 = d2; }
     const far = Math.sqrt(far2) * mpp;
-    return { x0, y0, w, h, bits, hT, dropUsed: drop, dropRequested: bandM, px, farM: Math.round(far), others: others.map(o => o.name), shrunkBy: blocker ? blocker.name : null, lat, lng };
+    return { x0, y0, w, h, bits, hT, hDem, dropUsed: drop, dropRequested: bandM, px, farM: Math.round(far), others: others.map(o => o.name), shrunkBy: blocker ? blocker.name : null, lat, lng };
 }
 // 山頂部のプレビュー(基本オプション「:プレビュー」。目的点の山頂部の範囲を地図に描く。目的点が変わると描き直す)
 let _sbPreviewOn = false, _sbPreviewKey = null, _sbPreviewSeq = 0;
@@ -13041,13 +13213,14 @@ async function _sbUpdatePreview(force) {
     if (!glMap || !glMap.getSource || !glMap.getSource('summit-band')) return;
     const end = appState.end;
     const bandM = elevExcludeRadii().band;
-    const key = (_sbPreviewOn && end && bandM) ? `${(+end.lat).toFixed(6)},${(+end.lng).toFixed(6)},${bandM}` : null;
+    const gElev = isFinite(+appState.endApiElev) ? +appState.endApiElev : null;   // 目的点の標高(構造物の高さは含めない)。DEMより高ければ山頂部の基準(第153)
+    const key = (_sbPreviewOn && end && bandM) ? `${(+end.lat).toFixed(6)},${(+end.lng).toFixed(6)},${bandM},${gElev === null ? '' : gElev.toFixed(1)}` : null;
     if (!force && key === _sbPreviewKey) return;
     _sbPreviewKey = key;
     const seq = ++_sbPreviewSeq;
     const infoEl = document.getElementById('baseopt-summit-preview-info');
     if (!key) { _glSetSourceData('summit-band', []); if (infoEl) infoEl.textContent = ''; return; }
-    const band = await _visSummitBandRaw(end.lat, end.lng);
+    const band = await _visSummitBandRaw(end.lat, end.lng, gElev);
     if (seq !== _sbPreviewSeq) return;
     if (!band || band.none) { _glSetSourceData('summit-band', []); const el0 = document.getElementById('baseopt-summit-preview-info'); if (el0) el0.textContent = band && band.none ? band.reason : ''; return; }
     const WORLD = 256 * Math.pow(2, 15);
@@ -13055,7 +13228,7 @@ async function _sbUpdatePreview(force) {
     const rings = _kmTraceRings((x, y) => _sbHas(band, band.x0 + x, band.y0 + y) ? 1 : 0, band.w, band.h);
     rings.sort((a, b) => _kmRingArea(b) - _kmRingArea(a));
     const coords = rings.map(r => { const c = r.map(([x, y]) => toLL(x, y)); c.push(c[0]); return c; });
-    const label = `山頂部: 帯${band.dropUsed}m${band.shrunkBy ? `(別の山「${band.shrunkBy}」を含まないよう縮小)` : ''} 広がり${band.farM}m 画素${band.px.toLocaleString()} 目的点のDEM標高${band.hT.toFixed(1)}m`;
+    const label = `山頂部: 帯${band.dropUsed}m${band.shrunkBy ? `(別の山「${band.shrunkBy}」を含まないよう縮小)` : ''} 広がり${band.farM}m 画素${band.px.toLocaleString()} 基準の標高${band.hT.toFixed(1)}m${band.hT > band.hDem + 0.05 ? `(目的点の標高。DEMは${band.hDem.toFixed(1)}m)` : '(DEM)'}`;
     _glSetSourceData('summit-band', coords.length ? [{ type: 'Feature', properties: { label }, geometry: { type: 'Polygon', coordinates: coords } }] : []);
     const el = document.getElementById('baseopt-summit-preview-info'); if (el) el.textContent = label;
 }
@@ -13123,7 +13296,7 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
  *  経路上のタイルだけを取得し(_getTileImageDataの共有キャッシュを再利用)、5B/5Cは前段で
  *  取得できなかったタイルのみ取得する。startTotalElev/endTotalElev は (API標高+高さ)[m]。
  *  返り値: { visible, blockingDist?(観測点からkm), blockingElev?, lineElevAtBlocking? } */
-async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev) {
+async function computePathVisibility(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, endGroundElev) {
     const { tgt: exclM, obs: obsExclM } = elevExcludeRadii();
     const synthetic = (typeof window._tmSyntheticElev === 'function');
     const scale15 = Math.pow(2, 15);
@@ -13193,7 +13366,7 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
         }
         elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
     }
-    const band = await _visSummitBandFor(endLat, endLng);   // 山頂部(第152)。設定オフ/失敗時はnull=従来どおり
+    const band = await _visSummitBandFor(endLat, endLng, endGroundElev);   // 山頂部(第152)。設定オフ/失敗時はnull=従来どおり。endGroundElev=目的点の標高(第153)
     return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15, undefined, band);
 }
 
@@ -13284,7 +13457,7 @@ function _makeRiseSetForDay(observer) {
 async function showVisibilityResult(generation) {
     const r = await computePathVisibility(
         appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
-        appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight);
+        appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight, appState.endApiElev);
     if (generation !== undefined && generation !== _elevFetchGeneration) return;
     const note = '\n\n※ 地球の丸みと大気差(:大気差設定・気象値に連動)を考慮した判定です';
     if (r.visible) {

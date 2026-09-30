@@ -1,7 +1,7 @@
 // 第148ラウンド検証: v1.88.0 可視マップ(段1=山データ+山リスト。デッサン05第7版「実装の段取り」)
 // ①data/mountains.json(地理院1003山+地理院に無い三百名山4座=1063山頂・名山の印・別名・JIS順の都道府県)の遅延読込
 // ②位置情報メニューの「可視マップ」ボタン(検索実行+結果パネル表示)と「可視マップ」節(推し山テキスト・AND/OR・
-//   百/二百/三百/百高/その他のチェック・検索ボタン・My目的点で計算[準備中=無効])
+//   百/二百/三百/百高/その他のチェック・検索ボタン・My目的点で計算[第148〜152は準備中=無効。第153で有効=verify178])
 // ③結果パネル: 山リスト(ソート・行チェックで選択・全て選択/解除・行クリックで山頂へ移動)・件数表示・
 //   選んだ山の山頂に山色のマーカー(色の席=空いている最小番号・解除で空く)・辻検索/辻メッシュとの排他・閉じても選択は保つ
 const { chromium } = require('playwright-core');
@@ -37,10 +37,10 @@ check('S0 可視マップ節に山リストの出典と「それ以外の山はM
     JSON.stringify({count:d.count, n100, nany, extras: extras.map(e=>e.name), fuji: fuji && [fuji.id, fuji.peak, fuji.elev, fuji.prefCode]}));
 }
 // ---- S1: 静的な形(メニュー・節・パネル・ヘルプ・CSS) ----
-check('S1 index.html: 可視マップボタンが辻検索/辻メッシュと同じ段・節(推し山/AND/OR/5チェック/検索/My目的点で計算=無効)・結果パネル・ヘルプ「可視マップ」',
+check('S1 index.html: 可視マップボタンが辻検索/辻メッシュと同じ段・節(推し山/AND/OR/5チェック/検索/My目的点で計算[第153で有効])・結果パネル・ヘルプ「可視マップ」',
   /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-kashimap"/.test(idxSrc) &&
   ['input-kashimap-query','radio-kashimap-and','radio-kashimap-or','chk-kashimap-100','chk-kashimap-200','chk-kashimap-300','chk-kashimap-high','chk-kashimap-other','btn-kashimap-search','kashimap-panel','btn-kashimap-max','btn-kashimap-close','btn-kashimap-select-all','btn-kashimap-select-none','kashimap-status'].every(id => idxSrc.includes(`id="${id}"`)) &&
-  /id="btn-kashimap-mytgt"[^>]*disabled/.test(idxSrc) && idxSrc.includes('<h3>可視マップ</h3>') && idxSrc.includes('日本の主な山岳標高一覧 (1003山)') &&
+  /<button id="btn-kashimap-mytgt"[^>]*>My目的点で計算<\/button>/.test(idxSrc) && !/id="btn-kashimap-mytgt"[^>]*disabled/.test(idxSrc) && idxSrc.includes('<h3>可視マップ</h3>') && idxSrc.includes('日本の主な山岳標高一覧 (1003山)') &&
   cssSrc.includes('#kashimap-panel.maximized') && cssSrc.includes('#kashimap-panel.with-soramado-max'));
 check('S1b ヘルプ・UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
 

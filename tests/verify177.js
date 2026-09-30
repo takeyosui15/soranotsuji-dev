@@ -1,7 +1,7 @@
 // 第152ラウンド検証: v1.91.0 除外範囲メニューの「山頂部」(デッサン05 Q24/Q25・依頼者決定)と可視マップのメニュー側の連動・資産の端末保存
 // ①基本オプション>除外範囲に「:山頂部」「山頂部(帯,m)」「:プレビュー」「除外範囲をリセット」 ②統一可視判定と辻メッシュのワーカーが山頂部の画素の遮蔽を無視
 //   (合成標高の火口: 帯オフ=向こう側の縁に隠れてNG・帯オン=OK) ③別の山の山頂を含む時は帯を縮める ④プレビューの多角形と情報行
-// ⑤可視マップ節の範囲ラジオ/目的点で計算(準備中)/4つのチェック(全展望は初期値オン)がコントロールと連動 ⑥サーバーから読んだ資産の端末保存(静(端末))と「⬇」
+// ⑤可視マップ節の範囲ラジオ/目的点で計算(第152は準備中。第153で有効=verify178)/4つのチェック(全展望は初期値オン)がコントロールと連動 ⑥サーバーから読んだ資産の端末保存(静(端末))と「⬇」
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -18,15 +18,15 @@ const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const wkSrc = fs.readFileSync(path.join(ROOT, 'tm-vis-worker.js'), 'utf8');
 const mountains = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'mountains.json'), 'utf8')).mountains;
 
-check('V0 版数ピン 1.91.0+Version Historyに第152', /APP_VERSION = '1\.91\.0'/.test(src) && (src.includes('第152ラウンド — 除外範囲メニューに「山頂部」') || !!process.argv[2]));
-check('S1 index.html: 除外範囲に「:山頂部」「:プレビュー」「山頂部(帯,m)」情報行「除外範囲をリセット」・可視マップ節に範囲ラジオ4つ/「目的点で計算」(無効)/4つのチェック(全展望も初期値オン)・コントロールの全展望も初期値オン・ヘルプ',
+check('V0 版数(ピンはverify178へ移譲)+Version Historyに第152・第153', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第152ラウンド — 除外範囲メニューに「山頂部」') && src.includes('第153ラウンド — 山頂部の基準の標高') || !!process.argv[2]));
+check('S1 index.html: 除外範囲に「:山頂部」「:プレビュー」「山頂部(帯,m)」情報行「除外範囲をリセット」・可視マップ節に範囲ラジオ4つ/「目的点で計算」(第153で有効)/4つのチェック(全展望も初期値オン)・コントロールの全展望も初期値オン・ヘルプ',
   ['chk-baseopt-summit-band','chk-baseopt-summit-preview','input-baseopt-summit-band','baseopt-summit-preview-info','btn-baseopt-excl-reset','btn-kashimap-tgt','chk-kashimap-menu-tiles','chk-kashimap-menu-canopy','chk-kashimap-menu-summit','chk-kashimap-menu-zen'].every(id => idxSrc.includes(`id="${id}"`)) &&
-  [60,100,300,700].every(v => idxSrc.includes(`name="kashimap-range-menu" value="${v}"`)) && /id="btn-kashimap-tgt"[^>]*disabled/.test(idxSrc) &&
+  [60,100,300,700].every(v => idxSrc.includes(`name="kashimap-range-menu" value="${v}"`)) && /<button id="btn-kashimap-tgt"[^>]*>目的点で計算<\/button>/.test(idxSrc) && !/id="btn-kashimap-tgt"[^>]*disabled/.test(idxSrc) &&
   /id="chk-kashimap-menu-zen" class="body-checkbox" checked/.test(idxSrc) && /id="chk-kashimap-zen" class="body-checkbox" checked/.test(idxSrc) &&
   idxSrc.includes('<strong>「:山頂部」</strong>') && idxSrc.includes('「除外範囲をリセット」で初期値に戻ります') && idxSrc.includes('「静(端末)」') && idxSrc.includes('どちらを操作しても連動します'));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')) && !/山頂部[^<\n]*第1\d\dラウンド/.test(idxSrc));
 check('S2 統一可視判定・辻メッシュ(逐次/ワーカー)・ワーカー本体に山頂部の除外が入っている', src.includes('function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15, inv2ReffOpt, bandOpt)') && src.includes('if (bandOpt && _sbHas(bandOpt, gx, gy)) continue;') &&
-  src.includes("const band = await _visSummitBandFor(endLat, endLng);") && src.includes("const band = await _visSummitBandFor(end.lat, end.lng);") && src.includes('elevAtPix15, visInv2R, band).visible') && /band: band \? \{ x0: band\.x0/.test(src) &&
+  src.includes("const band = await _visSummitBandFor(endLat, endLng, endGroundElev);") && src.includes("const band = await _visSummitBandFor(end.lat, end.lng, endGroundElev);") && src.includes('elevAtPix15, visInv2R, band).visible') && /band: band \? \{ x0: band\.x0/.test(src) &&
   wkSrc.includes('const band = m.band || null;') && wkSrc.includes('if (band && bandHas(gx, gy)) continue;'));
 check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜2000)・LS保存/復元に含む', /elevSummitBandEnabled: \{ def: true, bool: 'nf' \}/.test(src) && /elevSummitBandM: \{ def: 300, min: 0, max: 2000 \}/.test(src) && src.includes('elevSummitBandM: appState.elevSummitBandM,') && src.includes("'elevSummitBandEnabled','elevSummitBandM']"));
 
@@ -67,7 +67,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
 
   // B2: プレビュー(多角形1つ・情報行)。オフで消える。除外範囲オフ/山頂部オフでは帯なし
   const b2 = await p.evaluate(async () => {
-    appState.end = { lat: window._t.tgt.lat, lng: window._t.tgt.lng, elev: window._t.eTgt };
+    appState.end = { lat: window._t.tgt.lat, lng: window._t.tgt.lng, elev: window._t.eTgt }; appState.endApiElev = window._t.eTgt; appState.endHeight = 0;   // アプリと同じ不変条件(end.elev=endApiElev+endHeight)。山頂部の基準は endApiElev(第153)
     const pv = document.getElementById('chk-baseopt-summit-preview'); pv.checked = true; pv.dispatchEvent(new Event('change', { bubbles: true }));
     await new Promise(r => setTimeout(r, 50)); await _sbUpdatePreview(true);
     const feats = glMap.getSource('summit-band')._data.features; const info = document.getElementById('baseopt-summit-preview-info').textContent;
@@ -100,7 +100,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     const toLL = (gx, gy) => ({ lng: (gx + 0.5) / scale15 / 128 * 180 - 180, lat: Math.atan(Math.sinh(Math.PI * (1 - 2 * (gy + 0.5) / (256 * scale15)))) * 180 / Math.PI });
     _sbCache.clear();
     const slope = toLL(cx + 300, cy); const rawSlope = await _visSummitBandRaw(slope.lat, slope.lng); const forSlope = await _visSummitBandFor(slope.lat, slope.lng);
-    appState.end = { lat: slope.lat, lng: slope.lng, elev: 3118 }; _sbPreviewOn = true; await _sbUpdatePreview(true);
+    appState.end = { lat: slope.lat, lng: slope.lng, elev: 3118 }; appState.endApiElev = 3118; appState.endHeight = 0; _sbPreviewOn = true; await _sbUpdatePreview(true);
     const pvN = glMap.getSource('summit-band')._data.features.length, info = document.getElementById('baseopt-summit-preview-info').textContent; _sbPreviewOn = false; await _sbUpdatePreview(true);
     const near = toLL(cx + 100, cy); const rawNear = await _visSummitBandRaw(near.lat, near.lng);
     return { slope: rawSlope && { none: rawSlope.none, reason: rawSlope.reason }, forSlope, pvN, info, near: rawNear && { none: !!rawNear.none, drop: rawNear.dropUsed, req: rawNear.dropRequested, others: rawNear.others, shrunkBy: rawNear.shrunkBy } };
@@ -123,6 +123,35 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     return { foot: rawFoot && { none: !!rawFoot.none, reason: rawFoot.reason }, top: rawTop && { none: !!rawTop.none, drop: rawTop.dropUsed }, near: rawNear && { none: !!rawNear.none, drop: rawNear.dropUsed } };
   });
   check('B3d 目的点が山頂でない(頂上より125m低い裾)→山頂部なし(理由「目的点より…m高い地形」) / 頂上・頂上より75m低い点は山頂部あり(帯300m)', b3d.foot && b3d.foot.none === true && /目的点は山頂ではない/.test(b3d.foot.reason) && b3d.top && b3d.top.none === false && b3d.top.drop === 300 && b3d.near && b3d.near.none === false && b3d.near.drop === 300, JSON.stringify(b3d));
+
+  // B7(第153・依頼者の報告): 目的点=初期値の富士山(火口の中心。座標は山頂の代表点・標高3776m)。合成標高: 火口の底3550(d≤90px)・縁3776(d≤106px。山リストの剣ヶ峯[385m≒99px]が縁に乗る)・上部は急(0.25/px)・下部は緩(0.13/px)。
+  //   目的点の標高を渡さない(DEM 3550基準)→剣ヶ峯が「226m高い別の山」で山頂部なし(旧の症状) / 目的点の標高3776を渡す→基準3776で剣ヶ峯は自身の山=帯300mが取れ、東2000画素の観測点は帯オフ=縁に隠れてNG・帯オン=OK。プレビューの情報行に「基準の標高3776.0m(目的点の標高。DEMは3550.0m)」
+  const b7 = await p.evaluate(async () => {
+    const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
+    const END = { lat: DEFAULT_END.lat, lng: DEFAULT_END.lng };
+    const cx = Math.floor(128 * (END.lng / 180 + 1) * scale15), cy = Math.floor((128 - R128 * Math.atanh(Math.sin(END.lat * Math.PI / 180))) * scale15);
+    window._tmSyntheticElev15 = (gx, gy) => { const d = Math.hypot(gx - cx, gy - cy); if (d <= 90) return 3550; if (d <= 106) return 3776; if (d <= 400) return 3776 - 0.25 * (d - 106); return Math.max(0, 3702.5 - 0.13 * (d - 400)); };
+    window._tmSyntheticElev = (gx14, gy14) => window._tmSyntheticElev15(gx14 * 2, gy14 * 2);
+    const toLL = (gx, gy) => ({ lng: (gx + 0.5) / scale15 / 128 * 180 - 180, lat: Math.atan(Math.sinh(Math.PI * (1 - 2 * (gy + 0.5) / (256 * scale15)))) * 180 / Math.PI });
+    const obs = toLL(cx + 2000, cy), eObs = window._tmSyntheticElev15(cx + 2000, cy);
+    appState.elevExcludeEnabled = true; appState.elevExcludeRadius = 15; appState.elevExcludeObsRadius = 10; appState.elevSummitBandEnabled = true; appState.elevSummitBandM = 300; _sbCache.clear();
+    const rawNo = await _visSummitBandRaw(END.lat, END.lng);          // 目的点の標高なし(DEM基準)=旧の振る舞い
+    const raw = await _visSummitBandRaw(END.lat, END.lng, 3776);      // 目的点の標高3776
+    const on = await computePathVisibility(obs.lat, obs.lng, eObs + 1.5, END.lat, END.lng, 3776, 3776);
+    const onNo = await computePathVisibility(obs.lat, obs.lng, eObs + 1.5, END.lat, END.lng, 3776);   // 標高を渡さない=山頂部なし=NG(旧の症状)
+    appState.elevSummitBandEnabled = false; _sbCache.clear();
+    const off = await computePathVisibility(obs.lat, obs.lng, eObs + 1.5, END.lat, END.lng, 3776, 3776);
+    appState.elevSummitBandEnabled = true; _sbCache.clear();
+    appState.end = { lat: END.lat, lng: END.lng, elev: 3776 }; appState.endApiElev = 3776; appState.endHeight = 0;
+    const pv = document.getElementById('chk-baseopt-summit-preview'); pv.checked = true; pv.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 50)); await _sbUpdatePreview(true);
+    const n = glMap.getSource('summit-band')._data.features.length, info = document.getElementById('baseopt-summit-preview-info').textContent;
+    pv.checked = false; pv.dispatchEvent(new Event('change', { bubbles: true })); await _sbUpdatePreview(true);
+    return { eObs, rawNo: rawNo && { none: !!rawNo.none, reason: rawNo.reason, hT: rawNo.hT }, raw: raw && { none: !!raw.none, hT: raw.hT, hDem: raw.hDem, drop: raw.dropUsed, px: raw.px, farM: raw.farM, others: raw.others, shrunkBy: raw.shrunkBy }, on, onNo, off, n, info };
+  });
+  check('B7 初期値の富士山(火口の中心・標高3776・DEMは火口の底3550): 標高なし=剣ヶ峯が別の山で山頂部なし(旧の症状) / 標高3776=基準3776で帯300m(縮小なし) / 観測点(東7.8km)は帯オフNG・帯オンOK・標高を渡さないとNG / プレビューの情報行に基準の標高とDEM',
+    b7.rawNo && b7.rawNo.none === true && /別の山「富士山」/.test(b7.rawNo.reason) && b7.rawNo.hT === 3550 && b7.raw && b7.raw.none === false && b7.raw.hT === 3776 && b7.raw.hDem === 3550 && b7.raw.drop === 300 && b7.raw.others.length === 0 && b7.raw.shrunkBy === null && b7.raw.px > 100000 &&
+    b7.on && b7.on.visible === true && b7.onNo && b7.onNo.visible === false && b7.off && b7.off.visible === false && b7.n === 1 && /基準の標高3776\.0m\(目的点の標高。DEMは3550\.0m\)/.test(b7.info), JSON.stringify(b7));
 
   // B4: 入力とリセット(値の丸め・主チェックオフで入力無効・リセットで15/10/300/オン)
   const b4 = await p.evaluate(() => {
@@ -151,7 +180,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     const ctrlRadios = Array.from(document.querySelectorAll('input[name="kashimap-range"]')).map(e => e.value + (e.disabled ? 'x' : 'o') + (e.checked ? '*' : '')).join(',');
     return { zen0, zen1, tiles, radios, ctrlRadios, tgt: document.getElementById('btn-kashimap-tgt').disabled, mytgt: document.getElementById('btn-kashimap-mytgt').disabled };
   });
-  check('B5 メニュー側の全展望をオフ→コントロールと状態が連動 / コントロールの可視タイルをオフ→メニュー側と塗りが連動 / 範囲ラジオの灰色も両方 / 目的点で計算・My目的点で計算は準備中(無効)', b5.zen0.join() === 'true,true,true' && b5.zen1.join() === 'false,false' && b5.tiles.join() === 'false,false,none' && b5.radios === '60o*,100x,300x,700x' && b5.ctrlRadios === '60o*,100x,300x,700x' && b5.tgt && b5.mytgt, JSON.stringify(b5));
+  check('B5 メニュー側の全展望をオフ→コントロールと状態が連動 / コントロールの可視タイルをオフ→メニュー側と塗りが連動 / 範囲ラジオの灰色も両方 / 目的点で計算・My目的点で計算は有効(第153)', b5.zen0.join() === 'true,true,true' && b5.zen1.join() === 'false,false' && b5.tiles.join() === 'false,false,none' && b5.radios === '60o*,100x,300x,700x' && b5.ctrlRadios === '60o*,100x,300x,700x' && b5.tgt === false && b5.mytgt === false, JSON.stringify(b5));
 
   // B6: サーバーから読んだ資産は端末に保存(静(端末))・次は端末から・「⬇」でその山だけFile出力
   await p.evaluate(() => { const tr = document.querySelector('#kashimap-content tr[data-id="370"]'); const c = tr.querySelector('input.kashimap-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); });
