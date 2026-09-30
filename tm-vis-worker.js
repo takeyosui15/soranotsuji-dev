@@ -1,6 +1,6 @@
 // 辻メッシュ検索 標高オプションの可視判定ワーカー
 // 統一可視判定コア(_visJudgeCore)と同一のサンプリング(z15半画素・SEG=64チャンク)・同一の丸め・
-// 同一の除外規則で、割り当てられたチャンク帯域 [chunk0, chunk1) のみを判定する。
+// 同一の除外規則(目的点側/観測点側/山頂部の帯)で、割り当てられたチャンク帯域 [chunk0, chunk1) のみを判定する。
 // 標高はメインスレッドで dm(0.1m)のInt32に符号化したタイル(z15=5A→5B→5Cマージ済み / z14)を参照する。
 // dm/10 はメインスレッドの Math.round(e*10)/10 と同一のdouble値になるため、判定結果は逐次版とビット一致する。
 
@@ -26,6 +26,8 @@ self.onmessage = (ev) => {
     const { jobId, chunk0, chunk1, lat, lng, startTotal, endLat, endLng, endTotal, exclM } = m;
     const obsExclM = m.obsExclM || 0;   // 除外範囲(観測点側)。旧メッセージ形式では0(=無効)
     const inv2R = m.inv2R || 0;         // 地球の丸み+気差 1/(2·Reff) (第116ラウンド。0=補正なし=旧動作)
+    const band = m.band || null;        // 山頂部(第152): {x0,y0,w,h,bits(1bit/画素)}。目的点につながる帯の画素の遮蔽は無視(本体の_sbHasと同じ)
+    const bandHas = (gx, gy) => { const bx = gx - band.x0, by = gy - band.y0; if (bx < 0 || by < 0 || bx >= band.w || by >= band.h) return false; const i = by * band.w + bx; return ((band.bits[i >> 3] >> (i & 7)) & 1) === 1; };
 
     // タイル索引: key = tx*32768+ty → Int32Array(256*256, dm)
     const tiles15 = new Map();
@@ -77,13 +79,15 @@ self.onmessage = (ev) => {
             const gyA = gpy15At(sLat + dLat * (j0 / steps));
             const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
             for (let j = j0; j <= j1; j++) {
-                const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
+                const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+                const e = elevAtPix15(gx, gy);
                 if (e === null || e === undefined) continue;
                 const r = j / steps;
                 const d = distM * r;
                 const lineElev = sTotal + (endTotal - endDrop - sTotal) * r;
                 if (e - d * d * inv2R > lineElev) {
                     if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                    if (band && bandHas(gx, gy)) continue;    // 山頂部(目的点につながる帯)の地形は遮蔽に数えない(第152)
                     if (d <= obsExclM) continue;              // 除外範囲(観測点側)のNGは無視
                     blocked[i] = 1;
                     break outer;   // この画素はNG確定(帯域内の早期打ち切り)

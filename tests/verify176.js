@@ -20,11 +20,11 @@ const resetSrc = fs.readFileSync(path.join(ROOT, 'reset.html'), 'utf8');
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
-check('V0 版数ピン 1.90.0+Version Historyに第151', /APP_VERSION = '1\.90\.0'/.test(src) && (src.includes('第151ラウンド — 可視マップの資産のFile出力/File読込') || !!process.argv[2]));
-check('S1 index.html: File出力(資産)/File読込/読込input・端末に保存した資産の一覧(表・合計・全て削除・標高タイル削除)・PC向けの注記(節とコントロール)・ヘルプ(静/動/静/動・端末に保存した資産・PC向け)',
+check('V0 版数(ピンはverify177へ移譲)+Version Historyに第151', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第151ラウンド — 可視マップの資産のFile出力/File読込') || !!process.argv[2]));
+check('S1 index.html: File出力(資産)/File読込/読込input・端末に保存した資産の一覧(表・合計・全て削除・標高タイル削除)・PC向けの注記(節とコントロール)・ヘルプ(静/静(端末)/動・端末に保存した資産・PC向け)',
   ['btn-kashimap-export','btn-kashimap-import','input-kashimap-import','kashimap-store','kashimap-store-empty','kashimap-store-table','kashimap-store-total','btn-kashimap-store-clear','btn-kashimap-tiles-clear','kashimap-tiles-size'].every(id => idxSrc.includes(`id="${id}"`)) &&
   (idxSrc.match(/この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。/g) || []).length >= 2 &&
-  !/title="山リストと島リスト\(縞島を含む\)をCSV/.test(idxSrc) && idxSrc.includes('「静/動」=両方') && idxSrc.includes('<strong>端末に保存した資産</strong>') && idxSrc.includes('<strong>PC向けの機能です</strong>'));
+  !/title="山リストと島リスト\(縞島を含む\)をCSV/.test(idxSrc) && idxSrc.includes('「静(端末)」=サーバーの資産を端末にも保存済み') && idxSrc.includes('<strong>端末に保存した資産</strong>') && idxSrc.includes('<strong>PC向けの機能です</strong>'));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
 check('S2 reset.htmlの「すべてのデータを消去」がIndexedDB(soranotsuji-kashimap・soranotsuji-wx)も消す+注記', resetSrc.includes("indexedDB.deleteDatabase(name)") && resetSrc.includes("'soranotsuji-kashimap', 'soranotsuji-wx'") && resetSrc.includes('IndexedDB) も消去します'));
 check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /DP_TOL = parseFloat\(args\.tol \|\| '0'\)/.test(toolSrc) && !src.includes('function _kmExportCsv'));
@@ -60,6 +60,7 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
   // K2: File読込(=_kmImportText)で愛鷹山(369)の資産を作って取り込む(毛無山の資産を元にした検査用)→一覧・列・端末から描画
   const k2 = await p.evaluate(async () => {
     const a = await _kmLoadAsset('370', 'terrain', 20);
+    await new Promise(r => setTimeout(r, 500)); await _kmStoreClear(); await _kmLoadDeviceIndex();   // 第152: サーバーの資産は端末にも保存されるので、この検査では一度空にする
     const files = JSON.parse(JSON.stringify(a.files));
     files.meta.mountain.id = '369'; files.meta.mountain.name = '愛鷹山'; files.outline.id = '369'; files.outline.name = '愛鷹山';
     const done = await _kmImportText(JSON.stringify({ format: 'soranotsuji-kashimap-assets', v: 1, assets: [files] }));
@@ -82,7 +83,7 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
     const b = await _kmLoadAsset('370', 'terrain', 20);
     return { before, after: b.src, marker: b.meta.marker, info: _kmIndexInfo('370') };
   });
-  check('K3 サーバーと端末の両方にある資産=「静/動」・読込は端末を優先(単体JSONも読める)', k3.before === 'server' && k3.after === 'device' && k3.marker === 'device-copy' && k3.info.label === '静/動' && k3.info.rank === 3, JSON.stringify(k3));
+  check('K3 サーバーと端末の両方にある資産=「静(端末)」・読込は端末を優先(単体JSONも読める)', k3.before === 'server' && k3.after === 'device' && k3.marker === 'device-copy' && k3.info.label === '静(端末)' && k3.info.rank === 3, JSON.stringify(k3));
 
   // K4: File出力=描画中の山の資産を1つのJSONに(愛鷹山+富士山)
   await selectMountain('368', true);
@@ -96,7 +97,7 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
   await p.waitForFunction(() => !_kmDeviceIndex.has('369/terrain/20') && !_kmShown.has('369'), {timeout: 30000});
   const st2 = await storeState();
   const k5 = await p.evaluate(() => ({ info369: _kmIndexInfo('369'), cell: Array.from(document.querySelector('#kashimap-content tr[data-id="369"]').children).slice(11).map(td => td.textContent), shown: [..._kmShown.keys()], info370: _kmIndexInfo('370') && _kmIndexInfo('370').label }));
-  check('K5 ✕で愛鷹山の資産を削除→一覧は毛無山だけ・愛鷹山は資産なし(—)・描画から外れる・毛無山は静/動のまま', st2.n === 1 && st2.rows[0].key === '370/terrain/20' && k5.info369 === null && k5.cell.join() === '—,' && k5.shown.join() === '368' && k5.info370 === '静/動', JSON.stringify({ st2, k5 }));
+  check('K5 ✕で愛鷹山の資産を削除→一覧から消え(毛無山は残る。富士山はサーバー由来で保存済み)・愛鷹山は資産なし(—)・描画から外れる・毛無山は静(端末)のまま', !st2.rows.some(r => r.key === '369/terrain/20') && st2.rows.some(r => r.key === '370/terrain/20') && k5.info369 === null && k5.cell.join() === '—,' && k5.shown.join() === '368' && k5.info370 === '静(端末)', JSON.stringify({ st2, k5 }));
 
   // K6: 資産を全て削除・標高タイルを削除(0MB)・読めないファイルはエラー文
   await jsClick('btn-kashimap-store-clear');

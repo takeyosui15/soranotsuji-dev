@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.91.0 - 2026-09-30: feat: 第152ラウンド — 除外範囲メニューに「山頂部」(デッサン05 Q24/Q25・依頼者決定): ①基本オプション>標高グラフ>除外範囲に「:山頂部」チェック(初期値オン)+「山頂部(帯,m)」(初期値300・0〜2000)+「:プレビュー」(目的点の山頂部の範囲を地図に薄い赤で描く。目的点を動かすと描き直す)+「除外範囲をリセット」(15/10/300/チェックを初期値へ)。状態はelevSummitBandEnabled/elevSummitBandM(LS保存。URLは段4の設計で) ②統一可視判定(_visJudgeCore)と辻メッシュのワーカー(tm-vis-worker)に「山頂部の画素の遮蔽は無視」を追加。山頂部=目的点の標高(3×3画素の最大)から帯の高さ以内で目的点につながる画素(8近傍・探索半径3km)。別の山(山リストの山頂)の山頂を含む時は含まない高さまで縮める(可視マップの道具と同じ規則)。目的点ごとに1回計算して保持(_visSummitBandFor)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタに共通で効く(富士山を北から見た時の「北側の縁に隠れてNG」が直る) ③可視マップ節(メニュー側)に範囲ラジオ・「目的点で計算」(準備中)・「:可視タイル/:樹冠あり/:山頂マーカー/:全展望マーカー」を置き、コントロールと連動(依頼者のデザイン。全展望マーカーは初期値オンへ) ④サーバーから一度読んだ資産は端末(IndexedDB)にも保存して次からは取りに行かない(列は「静(端末)」)。端末の資産の一覧に「⬇」(その山だけをFile出力)。verify177
 Version 1.90.0 - 2026-09-23: feat: 第151ラウンド — 可視マップの資産のFile出力/File読込と端末の資産の管理(依頼者の依頼): ①コントロールの「File出力」を山リスト/島リストのCSVから「選んだ山の資産(計算条件meta・島の索引islands・島の輪郭outline)を1つのJSONに」へ(1山でも複数でも)。「File読込」でそのJSONを端末(IndexedDB: soranotsuji-kashimap/assets)に保存し、山リストから使えるように(同じ資産がサーバーと端末の両方にあれば端末を使う。「静的/動的」列=静[サーバー]/動[端末]/静/動[両方]) ②可視マップ節の注記の下に「端末に保存した資産」の一覧(山・範囲・樹冠・島・サイズ・✕で個別削除)と合計、「資産を全て削除」「標高タイルを削除(段4のその場計算用の店=今は0MB)」 ③reset.htmlの「すべてのデータを消去」でIndexedDB(可視マップの資産・標高タイル・天気のキャッシュ)も消去 ④注記「この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります」(依頼者起草)を節とコントロールとヘルプへ ⑤静的資産は間引きなし(道具の--tol既定0。富士山60km=頂点328万・outline 7MB)。verify176
 Version 1.89.0 - 2026-09-21: feat: 第150ラウンド — 可視マップ段3(地図表示。デッサン05「実装の段取り」段3の第1弾): ①静的資産(data/kashimap/v1/: index.json+山ごとの{id}/{terrain|canopy}/{range}/{meta,islands,outline}.json。段2の道具 --asset の出力。outline.json=島の外周+穴を画素の角の整数座標でポリライン符号化)を遅延読込し、選んだ山の島を地図に描く: 輪郭=暗い縁取り+山色の線・塗り=同じ金を重ねる(重なるほど濃い=可視辻マーカーの濃淡) ②縞島=選んだ山の島全体を覆う作業用の格子(最大2048画素四方)に各山の島を描いて画素ごとの「見える山の組み合わせ」を求め、同じ組み合わせのつながり(8近傍)を縞島に(重複数2以上。面積・代表点は格子での概算)。重複数がいちばん多い縞島は金と赤の縞で塗る ③島リスト(各山の島+縞島を一つに。列=選択[点滅]・項番・縞・重複数・所属山・読み・代表点の緯度/経度・面積・画素数・山頂からの距離。初期は重複数の降順→面積の降順。行クリックで島へ移動・行チェックで輪郭が点滅[0.5秒交互。選択0/閉じた/裏に回ったら止める]・:縞島のみ・全て選択/解除。表示は上位3000件) ④コントロールメニュー(範囲60/100/300/700km=計算済みだけ選べる・:可視タイル・:樹冠あり[無い山は地形の資産に落とす]・:山頂マーカー・:全展望マーカー[重複数最大の縞島の代表点]・注記・File出力=山リスト+島リストのCSV) ⑤ホバー(PC)で「可視辻(重複数N): 山名」のツールチップと島リストの該当行の強調、クリックで固定ポップアップ(観測点/目的点に設定)。山リストに「島の数」「静的/動的」列。段2の道具はv2(山頂部=山頂から300m以内の高さで山頂につながる山の体そのもの[別の山の山頂を含まない高さまで縮める]を遮蔽に数えない[region。circleは従来の円]・輪郭は外周+穴を全島で辿り面積の自己検査・間引き1px・アプリ用資産の出力・--probeで既知の展望地の見通しを検算)。富士山60km(地形のみ)と毛無山20kmの資産を同梱。verify175
 Version 1.88.1 - 2026-09-21: docs: 第149ラウンド — 可視マップ節の注記に「山リストは百名山・二百名山・三百名山・日本百高山と地理院1003山を元にしています。それ以外の山はMy目的点に登録してご利用ください」を追加(依頼者起草・デッサン05コントロールメニュー6.)。段2の計算の道具 tools/kashimap/viewshed.js(Node: 地理院DEMタイル取得→山頂から放射状R2の視域計算→島の索引/輪郭GeoJSON/計算条件/縮小プレビュー。アプリの統一可視判定と同じ式・除外規則で標本画素を答え合わせ)を追加。アプリの動きは注記の1行以外変更なし
@@ -158,7 +159,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.90.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.91.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -460,6 +461,8 @@ const APP_DEFAULTS = {
     elevExcludeEnabled: { def: true, bool: 'nf' },
     elevExcludeRadius: { def: 15, min: 0, max: 10000 },   // 目的点側: 自己遮蔽+鋭峰の写り込みを吸収する既定15m
     elevExcludeObsRadius: { def: 10, min: 0, max: 10000 },// 観測点側: 自己遮蔽を吸収しつつ足元の実在遮蔽を無視しすぎない既定10m
+    elevSummitBandEnabled: { def: true, bool: 'nf' },     // 山頂部(第152・Q25): 目的点の山頂部(帯)の地形を遮蔽に数えない
+    elevSummitBandM: { def: 300, min: 0, max: 2000 },     // 山頂部の帯の高さ(m)。既定300=山頂の肩まで(第151・依頼者決定。可視マップの静的資産と同じ)
     // ---- 辻検索 ----
     tsujiSearchBaseAz: { def: 0 },
     tsujiSearchOffsetAz: { def: 0 },
@@ -1172,6 +1175,10 @@ function initMapGL(mapEl) {
         glMap.on('mouseleave', 'tm-gold-dots', () => { glMap.getCanvas().style.cursor = ''; _glTmHideTip(); });
         // 可視マップ(第150・段3): 島の輪郭/塗り・縞島・点滅のソースとレイヤ(ホバー/クリックもここで配線)
         try { _kmAddMapLayers(); } catch (e) { console.warn('可視マップ レイヤ:', e); }
+        // 山頂部のプレビュー(第152・基本オプション「:プレビュー」): 目的点の山頂部の範囲(薄い赤の塗り+赤い線)
+        glMap.addSource('summit-band', { type: 'geojson', data: emptyFC });
+        glMap.addLayer({ id: 'sb-fill', type: 'fill', source: 'summit-band', paint: { 'fill-color': '#e53935', 'fill-opacity': 0.25 } });
+        glMap.addLayer({ id: 'sb-line', type: 'line', source: 'summit-band', paint: { 'line-color': '#c62828', 'line-width': 2 } });
         // スタイル準備前に描画された分をやり直す(マーカーはDOMなので影響なし・線/円が対象)
         if (typeof appState === 'object' && appState.start) {
             try { updateLocationDisplay(); } catch (e) { console.warn('MapLibre(R2) 初回再描画:', e); }
@@ -2520,6 +2527,8 @@ function buildStateToSave() {
         elevExcludeEnabled: appState.elevExcludeEnabled,
         elevExcludeRadius: appState.elevExcludeRadius,
         elevExcludeObsRadius: appState.elevExcludeObsRadius,
+        elevSummitBandEnabled: appState.elevSummitBandEnabled,
+        elevSummitBandM: appState.elevSummitBandM,
         tsujiMoonFilterEnabled: appState.tsujiMoonFilterEnabled,
         tsujiMoonBase: appState.tsujiMoonBase,
         tsujiMoonTolerance: appState.tsujiMoonTolerance,
@@ -2699,7 +2708,7 @@ function loadAppState() {
             ['soraSensorKey','soraAspectW','soraAspectH','soraFNumberIdx','soraFisheye','soraPeaking','soraGrayscale','soraBaseAz','soraBaseAlt','soraTraj','soraCenterCross','soraTargetCross','soraSearchCenter','soraOrient','soraFisheyeShape','soraPanorama',
              'soraMovInterval','soraMovShots','soraMovFps','soraMovDispStep','soraMovImgMb','soraMovPlayMode',
              'soraMwBrightness','soraElevShade','soraSunShade','soraExpFormat','soraExpW','soraExpH','soraLabelScale','soraPhotoTex',
-             'baseOptMwBase','mwOffsetAngle','tsujiLineIncludeOffset','mySetFilterText','mySetFilterName','mySetFilterMemo','mySetFilterEnabled','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
+             'baseOptMwBase','mwOffsetAngle','tsujiLineIncludeOffset','mySetFilterText','mySetFilterName','mySetFilterMemo','mySetFilterEnabled','mwShowBodies','mwShowBodyNames','mwShowConstFig','mwShowConstBounds','mwShowConstNames','mwConstNameSort','elevExcludeEnabled','elevExcludeRadius','elevExcludeObsRadius','elevSummitBandEnabled','elevSummitBandM'].forEach(k => { if (saved[k] !== undefined) appState[k] = saved[k]; });
             // 標高関連（API標高とユーザー入力高）
             if(saved.startApiElev !== undefined) appState.startApiElev = saved.startApiElev;
             if(saved.endApiElev !== undefined) appState.endApiElev = saved.endApiElev;
@@ -3082,6 +3091,7 @@ function _locNameApplyDefaultIfHome(side) {
 }
 
 function updateLocationDisplay() {
+    if (_sbPreviewOn) _sbUpdatePreview(false);   // 目的点が変わったら山頂部のプレビューを描き直す(第152)
 
     const fmt = (pos) => `${pos.lat}, ${pos.lng}`;
 
@@ -10360,6 +10370,8 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     // 実効地球(丸み+気差)は全画素で共通の1値(目的点緯度で代表。画素間の局所半径差は判定に無視できる。
     // 逐次判定とワーカー並列判定へ同じ値を渡してビット一致を保つ)
     const visInv2R = _visInv2Reff(end.lat, end.lat);
+    const band = await _visSummitBandFor(end.lat, end.lng);   // 山頂部(第152)。逐次判定とワーカー判定へ同じ帯を渡す
+    if (generation !== tsujiMeshGeneration) return null;
     const flags = new Uint8Array(kept);
     if (kept === 0) { window._tmLastVisFlags = flags; return flags; }
 
@@ -10371,7 +10383,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             const sx15 = 128 * (sLng / 180 + 1) * scale15;
             const s0 = elevAtPix15(sx15 | 0, gpy15At(sLat) | 0);
             const startTotal = (s0 !== null && s0 !== undefined ? s0 : elevA[i]) + pixHeight;
-            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, obsExclM, elevAtPix15, visInv2R).visible ? 1 : 0;
+            flags[i] = _visJudgeCore(sLat, sLng, startTotal, end.lat, end.lng, endElev, exclM, obsExclM, elevAtPix15, visInv2R, band).visible ? 1 : 0;
             if ((i & 255) === 0 || i === kept - 1) {
                 setStatus(`(標高フィルタ可視判定中… ${(i + 1).toLocaleString()}/${kept.toLocaleString()}画素)`);
                 setTsujiMeshProgress(i + 1, kept);
@@ -10475,6 +10487,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
                 lat: latArr, lng: lngArr, startTotal: startTotals,
                 endLat: end.lat, endLng: end.lng, endTotal: endElev, exclM, obsExclM,
                 inv2R: visInv2R,   // 地球の丸み+気差(第116ラウンド。逐次判定と同じ値でビット一致)
+                band: band ? { x0: band.x0, y0: band.y0, w: band.w, h: band.h, bits: band.bits } : null,   // 山頂部(第152。構造化クローンで各ワーカーへ)
                 tiles15: t15, tiles14: t14,
             }, transfer, (p) => { doneCounts[jobIdx] = p.done; }));
             await new Promise(r2 => setTimeout(r2, 0));   // 符号化中もUIへ制御を返す
@@ -11129,11 +11142,13 @@ let _kmRows = [];                  // 今の検索結果(山データの参照)
 const _kmSelected = new Map();     // 選択中の山 id -> 色の席(0〜)。席は空いている最小番号(解除で空く。17席目は1席目の色)
 const KM_LIST_LABEL = { '100': '百', '200': '二百', '300': '三百', 'high': '高' };
 let _kmIndexP = null, _kmIndex = null;        // 静的資産の索引(index.json)。取れない時は空の索引
-const _kmDeviceIndex = new Map();             // 端末(IndexedDB)に保存した資産の索引 key -> {key,id,name,kind,range,islands,size,savedAt}
+const _kmDeviceIndex = new Map();             // 端末(IndexedDB)に保存した資産の索引 key -> {key,id,name,kind,range,islands,size,savedAt,origin}
+let _kmDeviceLoaded = false;                  // 端末の索引を一度でも読んだか(検索のたびに読み直さない=大きな保存中の待ちを避ける)
+const _kmNoAutoSave = new Set();              // 一覧から消した直後の資産はサーバーから読み直しても保存し直さない(山を選び直すまで)
 let _kmDbP = null;                            // IndexedDB(DB: soranotsuji-kashimap / store: assets=資産, tiles=標高タイル[段4])
 const _kmAssets = new Map();                  // 'id/kind/range' -> Promise<資産>(1回だけ読む)
 const _kmShown = new Map();                   // 描画中の山 id -> {id, seat, kind, range, asset}
-let _kmRange = 60, _kmCanopy = true, _kmTiles = true, _kmSummitMk = true, _kmZenMk = false, _kmStripeOnly = false;
+let _kmRange = 60, _kmCanopy = true, _kmTiles = true, _kmSummitMk = true, _kmZenMk = true, _kmStripeOnly = false;   // 全展望マーカーは初期値オン(第152・依頼者のデザイン)
 let _kmIslandRows = [];                       // 島リストの行(各山の島+縞島)
 let _kmStripes = [];                          // 縞島(作業用格子の連結成分。重複数の降順→面積の降順)
 let _kmStripeGrid = null;                     // 縞島の作業用格子(点滅用の輪郭を後から辿る)
@@ -11161,8 +11176,26 @@ function _kmDb() {
     if (_kmDbP) return _kmDbP;
     _kmDbP = new Promise((ok, ng) => {
         try {
-            const req = indexedDB.open('soranotsuji-kashimap', 1);
-            req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'key' }); if (!db.objectStoreNames.contains('tiles')) db.createObjectStore('tiles', { keyPath: 'key' }); };
+            // v2(第152): assets=要約だけ(一覧と索引はこれだけ読む) / bodies=本文(meta・islandsObj・outlineObj。使う時だけ読む) / tiles=標高タイル(段4)
+            const req = indexedDB.open('soranotsuji-kashimap', 2);
+            req.onupgradeneeded = (ev) => {
+                const db = req.result, tx = req.transaction;
+                if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'key' });
+                if (!db.objectStoreNames.contains('tiles')) db.createObjectStore('tiles', { keyPath: 'key' });
+                if (!db.objectStoreNames.contains('bodies')) db.createObjectStore('bodies', { keyPath: 'key' });
+                if (ev.oldVersion === 1) {   // v1の資産(要約+本文が1件)を要約と本文に分ける
+                    const st = tx.objectStore('assets'), bd = tx.objectStore('bodies');
+                    st.openCursor().onsuccess = (e2) => {
+                        const c = e2.target.result; if (!c) return;
+                        const v = c.value;
+                        if (v.meta || v.islandsObj || v.outlineObj) {
+                            bd.put({ key: v.key, meta: v.meta, islandsObj: v.islandsObj, outlineObj: v.outlineObj });
+                            const { meta, islandsObj, outlineObj, ...summary } = v; c.update(summary);
+                        }
+                        c.continue();
+                    };
+                }
+            };
             req.onsuccess = () => ok(req.result);
             req.onerror = () => ng(req.error);
         } catch (e) { ng(e); }
@@ -11178,9 +11211,9 @@ async function _kmIdb(store, mode, fn) {
         r.onerror = () => ng(r.error);
     });
 }
-/** 端末の資産の索引を読み直す(本文の大きい欄は読まない=カーソルで要約だけ) */
+/** 端末の資産の索引を読み直す(assets=要約だけを読む。本文 bodies は触らない) */
 async function _kmLoadDeviceIndex() {
-    _kmDeviceIndex.clear();
+    const next = new Map();   // 読み終えてから一度に差し替える(読んでいる途中に描画更新が走っても端末の資産が一瞬消えないように)
     try {
         const db = await _kmDb();
         await new Promise((ok, ng) => {
@@ -11189,19 +11222,35 @@ async function _kmLoadDeviceIndex() {
                 const c = req.result;
                 if (!c) { ok(); return; }
                 const v = c.value;
-                _kmDeviceIndex.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM });
+                next.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM, origin: v.origin || 'import' });
                 c.continue();
             };
             req.onerror = () => ng(req.error);
         });
+        _kmDeviceIndex.clear(); for (const [k, v] of next) _kmDeviceIndex.set(k, v);
     } catch (e) { console.warn('可視マップ: 端末の資産の索引', e); }
+    _kmDeviceLoaded = true;
     _kmRenderStoreList();
     return _kmDeviceIndex;
 }
-async function _kmStoreGet(key) { return _kmIdb('assets', 'readonly', st => st.get(key)); }
-async function _kmStorePut(rec) { return _kmIdb('assets', 'readwrite', st => st.put(rec)); }
-async function _kmStoreDelete(key) { return _kmIdb('assets', 'readwrite', st => st.delete(key)); }
-async function _kmStoreClear() { return _kmIdb('assets', 'readwrite', st => st.clear()); }
+/** 資産1件(要約+本文)を読む。無ければ undefined */
+async function _kmStoreGet(key) {
+    const [summary, body] = await Promise.all([_kmIdb('assets', 'readonly', st => st.get(key)), _kmIdb('bodies', 'readonly', st => st.get(key))]);
+    if (!summary) return undefined;
+    return { ...summary, meta: body && body.meta, islandsObj: body && body.islandsObj, outlineObj: body && body.outlineObj };
+}
+/** 資産1件を書く(要約は assets、本文は bodies へ) */
+async function _kmStorePut(rec) {
+    const { meta, islandsObj, outlineObj, ...summary } = rec;
+    const db = await _kmDb();
+    return new Promise((ok, ng) => {
+        const tx = db.transaction(['assets', 'bodies'], 'readwrite');
+        tx.objectStore('assets').put(summary); tx.objectStore('bodies').put({ key: rec.key, meta, islandsObj, outlineObj });
+        tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); tx.onabort = () => ng(tx.error);
+    });
+}
+async function _kmStoreDelete(key) { const db = await _kmDb(); return new Promise((ok, ng) => { const tx = db.transaction(['assets', 'bodies'], 'readwrite'); tx.objectStore('assets').delete(key); tx.objectStore('bodies').delete(key); tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); }); }
+async function _kmStoreClear() { const db = await _kmDb(); return new Promise((ok, ng) => { const tx = db.transaction(['assets', 'bodies'], 'readwrite'); tx.objectStore('assets').clear(); tx.objectStore('bodies').clear(); tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); }); }
 async function _kmTilesClear() { return _kmIdb('tiles', 'readwrite', st => st.clear()); }
 /** 標高タイル(段4でその場計算に使う分)の合計サイズ(バイト) */
 async function _kmTilesSize() {
@@ -11226,11 +11275,18 @@ function _kmRenderStoreList() {
         sum += r.size || 0;
         const tr = document.createElement('tr');
         tr.dataset.key = r.key;
-        tr.innerHTML = `<td>${escapeHtml(r.name)}</td><td>${r.range}km</td><td>${r.kind === 'canopy' ? 'あり' : 'なし'}</td><td>${(r.islands || 0).toLocaleString()}</td><td>${_kmMB(r.size || 0)}</td>` +
-            `<td><button class="nav-btn small kashimap-store-del" title="この資産を端末から削除">✕</button></td>`;
+        const originLabel = r.origin === 'server' ? 'サーバー' : (r.origin === 'compute' ? '計算' : '読込');
+        tr.innerHTML = `<td title="${originLabel}の資産">${escapeHtml(r.name)}</td><td>${r.range}km</td><td>${r.kind === 'canopy' ? 'あり' : 'なし'}</td><td>${(r.islands || 0).toLocaleString()}</td><td>${_kmMB(r.size || 0)}</td>` +
+            `<td><button class="nav-btn small kashimap-store-dl" title="この山の資産だけをFile出力(JSON)">⬇</button><button class="nav-btn small kashimap-store-del" title="この資産を端末から削除">✕</button></td>`;
+        tr.querySelector('.kashimap-store-dl').addEventListener('click', async () => {
+            const rec = await _kmStoreGet(r.key); if (!rec) return;
+            const out = { format: 'soranotsuji-kashimap-assets', v: 1, exported: new Date().toISOString(), app: APP_VERSION, assets: [{ meta: rec.meta, islands: rec.islandsObj, outline: rec.outlineObj }] };
+            downloadTextFile(`soranotsuji-可視マップ資産-${r.name}${r.range}km-${formatFileDateTime()}.json`, JSON.stringify(out), 'application/json;charset=utf-8');
+        });
         tr.querySelector('.kashimap-store-del').addEventListener('click', async () => {
             if (!confirm(`${r.name} ${r.range}km(樹冠${r.kind === 'canopy' ? 'あり' : 'なし'})の資産を端末から削除しますか？`)) return;
-            await _kmStoreDelete(r.key); _kmAssets.delete(r.key);
+            await _kmStoreDelete(r.key); _kmNoAutoSave.add(r.key);
+            if (r.origin !== 'server') _kmAssets.delete(r.key);   // 端末だけの資産(読込/計算)は描画からも外す。サーバー由来は読み込み済みの分をそのまま使う(削除直後に取り直して保存し直さない)
             await _kmLoadDeviceIndex();
             if (_kmActive) { _kmRenderList(); _kmRefresh(); }
         });
@@ -11239,6 +11295,23 @@ function _kmRenderStoreList() {
     table.classList.toggle('hidden', recs.length === 0); empty.classList.toggle('hidden', recs.length > 0);
     total.textContent = `合計: ${_kmMB(sum)}(${recs.length}件)`;
     _kmTilesSize().then(b => { const el = document.getElementById('kashimap-tiles-size'); if (el) el.textContent = `(${_kmMB(b)})`; });
+}
+/** 資産1件を端末(IndexedDB)に保存する(origin: 'server'=サーバーから読んだ / 'import'=File読込 / 'compute'=その場計算)。戻り値=要約 */
+async function _kmStoreSave(meta, isl, ol, origin, bytes) {
+    const id = String(meta.mountain.id), kind = meta.canopy ? 'canopy' : 'terrain', range = +meta.range_km;
+    const key = `${id}/${kind}/${range}`;
+    const size = bytes || new Blob([JSON.stringify(meta), JSON.stringify(isl), JSON.stringify(ol)]).size;   // 大きさ(バイト)。分かっていればJSON化し直さない
+    await _kmStorePut({ key, id, name: meta.mountain.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, meta, islandsObj: isl, outlineObj: ol });
+    await _kmLoadDeviceIndex();
+    if (_kmActive) _kmRefreshListCells();
+    return { key, name: meta.mountain.name || id, range, kind, islands: isl.islands.length, size };
+}
+/** 山リストの「島の数」「静的/動的」欄だけを描き直す(資産の保存/削除で変わる。行の並びとチェックは保つ) */
+function _kmRefreshListCells() {
+    document.querySelectorAll('#kashimap-content tr.td-data-row').forEach(tr => {
+        const info = _kmIndexInfo(tr.dataset.id);
+        if (tr.children.length >= 13) { tr.children[11].textContent = info && info.islands !== null ? info.islands.toLocaleString() : '—'; tr.children[12].textContent = info ? info.label : ''; }
+    });
 }
 /** File読込: File出力したJSON(1山でも複数でも)を端末に保存する。戻り値=取り込んだ資産の要約 */
 async function _kmImportText(text) {
@@ -11250,14 +11323,10 @@ async function _kmImportText(text) {
         const meta = a.meta, isl = a.islands, ol = a.outline;
         if (!meta || !meta.mountain || !meta.mountain.id || !isl || !Array.isArray(isl.islands) || !ol || ol.v !== 2 || !Array.isArray(ol.islands)) throw new Error('資産の形が違います');
         if (ol.islands.length !== isl.islands.length) throw new Error('島の索引と輪郭の数が合いません');
-        const id = String(meta.mountain.id), kind = meta.canopy ? 'canopy' : 'terrain', range = +meta.range_km;
-        const key = `${id}/${kind}/${range}`;
-        const size = new Blob([JSON.stringify(meta), JSON.stringify(isl), JSON.stringify(ol)]).size;
-        await _kmStorePut({ key, id, name: meta.mountain.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, meta, islandsObj: isl, outlineObj: ol });
-        _kmAssets.delete(key);
-        done.push({ key, name: meta.mountain.name || id, range, kind, islands: isl.islands.length, size });
+        const d = await _kmStoreSave(meta, isl, ol, 'import');
+        _kmAssets.delete(d.key);
+        done.push(d);
     }
-    await _kmLoadDeviceIndex();
     if (_kmActive) { _kmRenderList(); _kmRefresh(); }
     return done;
 }
@@ -11306,8 +11375,10 @@ function _kmIndexInfo(id) {
     const ch = _kmAssetChoice(id);
     if (!ch) return null;
     const e = _kmAssetAvail(id)[ch.kind].get(ch.range);
-    const label = e.server && e.device ? '静/動' : (e.device ? '動' : '静');
-    return { kind: ch.kind, range: ch.range, src: ch.src, islands: (e.islands === undefined ? null : e.islands), label, rank: (e.server ? 1 : 0) + (e.device ? 2 : 0) };
+    const dev = _kmDeviceIndex.get(`${id}/${ch.kind}/${ch.range}`);
+    // 静=サーバーの資産 / 静(端末)=サーバーの資産を端末に保存済み(次からは取りに行かない) / 動=端末だけの資産(File読込・その場計算)
+    const label = e.server ? (e.device ? '静(端末)' : '静') : '動';
+    return { kind: ch.kind, range: ch.range, src: ch.src, islands: (e.islands === undefined ? null : e.islands), label, origin: dev ? dev.origin : null, rank: (e.server ? 1 : 0) + (e.device ? 2 : 0) };
 }
 /** 整数のポリライン符号(Google polyline符号と同じ5bit可変長+63・倍率なし。先頭は絶対値・以降は差分)→ [[x,y],...] */
 function _kmDecodePoly(s) {
@@ -11321,12 +11392,15 @@ function _kmLoadAsset(id, kind, range) {
     const key = `${id}/${kind}/${range}`;
     if (!_kmAssets.has(key)) {
         const base = `${KM_ASSET_BASE}${id}/${kind}/${range}/`;
-        const get = f => fetch(base + f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.json(); });
-        // 端末に保存した資産(File読込・その場計算)があればそれを使い、無ければサーバーの静的資産を取る
+        let bytes = 0;   // サーバーから読んだ時の大きさ(端末に保存する時の表示用。JSON化し直さずに済ませる)
+        const get = f => fetch(base + f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.text(); }).then(t => { bytes += new Blob([t]).size; return JSON.parse(t); });
+        // 端末に保存した資産(File読込・その場計算・サーバーから読んだ分)があればそれを使い、無ければサーバーの静的資産を取る
         const source = _kmDeviceIndex.has(key)
             ? _kmStoreGet(key).then(rec => { if (!rec) throw new Error('端末の資産が見つかりません ' + key); return [rec.islandsObj, rec.outlineObj, rec.meta, 'device']; })
             : Promise.all([get('islands.json'), get('outline.json'), get('meta.json')]).then(a => a.concat(['server']));
         const p = source.then(([isl, ol, meta, src]) => {
+            // サーバーから読んだ資産は端末(IndexedDB)にも保存し、次からは取りに行かない(第152・依頼者の依頼)。描画を先に返し、保存は後回し。失敗しても描画は続ける
+            if (src === 'server' && !_kmNoAutoSave.has(key)) setTimeout(() => _kmStoreSave(meta, isl, ol, 'server', bytes).catch(e => console.warn('可視マップ: 端末への保存に失敗', e)), 0);
             const WORLD = 256 * Math.pow(2, ol.zoom);
             const toLL = (x, y) => [(ol.x0 + x) / WORLD * 360 - 180, Math.atan(Math.sinh(Math.PI * (1 - 2 * (ol.y0 + y) / WORLD))) * 180 / Math.PI];
             const byNo = new Map(isl.islands.map(i => [i.no, i]));
@@ -11721,13 +11795,18 @@ function _kmUpdateRangeRadios() {
         for (const kind of ['terrain', 'canopy']) for (const r of av[kind].keys()) { const k = KM_RANGES.find(v => v >= r); if (k !== undefined) avail.add(k); }
     }
     let firstOk = null;
-    document.querySelectorAll('input[name="kashimap-range"]').forEach(el => {
+    document.querySelectorAll('input[name="kashimap-range"], input[name="kashimap-range-menu"]').forEach(el => {
         const ok = avail.has(+el.value); el.disabled = !ok; el.parentElement.classList.toggle('disabled', !ok);
         if (ok && firstOk === null) firstOk = +el.value;
     });
-    if (!avail.has(_kmRange) && firstOk !== null) {
-        _kmRange = firstOk;
-        const el = document.querySelector(`input[name="kashimap-range"][value="${firstOk}"]`); if (el) el.checked = true;
+    if (!avail.has(_kmRange) && firstOk !== null) _kmRange = firstOk;
+    _kmSyncUi();
+}
+/** 可視マップ節(メニュー側)とコントロールの同名項目(範囲・可視タイル・樹冠あり・山頂マーカー・全展望マーカー)を状態に合わせる(第152・依頼者のデザイン=両方に置いて連動) */
+function _kmSyncUi() {
+    document.querySelectorAll('input[name="kashimap-range"], input[name="kashimap-range-menu"]').forEach(el => { el.checked = (+el.value === _kmRange); });
+    for (const [state, ids] of [[_kmTiles, ['chk-kashimap-tiles', 'chk-kashimap-menu-tiles']], [_kmCanopy, ['chk-kashimap-canopy', 'chk-kashimap-menu-canopy']], [_kmSummitMk, ['chk-kashimap-summit', 'chk-kashimap-menu-summit']], [_kmZenMk, ['chk-kashimap-zen', 'chk-kashimap-menu-zen']]]) {
+        for (const id of ids) { const el = document.getElementById(id); if (el) el.checked = state; }
     }
 }
 /** 選んだ山の資産を読み、地図(輪郭・塗り・縞島・マーカー)と島リストを作り直す(選び直し・範囲/樹冠の切替で) */
@@ -11810,6 +11889,7 @@ function _kmIdxCmp(a, b) {
 function _kmSeatColor(seat) { return COLOR_MAP[seat % COLOR_MAP.length].code; }
 function _kmSelect(id, on) {
     if (on) {
+        for (const k of Array.from(_kmNoAutoSave)) if (k.startsWith(id + '/')) _kmNoAutoSave.delete(k);   // 選び直したら、また端末に保存してよい
         if (_kmSelected.has(id)) return;
         const used = new Set(_kmSelected.values());
         let seat = 0; while (used.has(seat)) seat++;
@@ -11899,7 +11979,7 @@ async function runKashimapSearch() {
     const content = document.getElementById('kashimap-content');
     content.innerHTML = '<div class="kashimap-note">読み込み中…</div>';
     let all;
-    try { [all] = await Promise.all([_kmLoadData(), _kmLoadIndex(), _kmLoadDeviceIndex()]); }
+    try { [all] = await Promise.all([_kmLoadData(), _kmLoadIndex(), _kmDeviceLoaded ? null : _kmLoadDeviceIndex()]); }
     catch (e) {
         console.error(e);
         content.innerHTML = '<div class="kashimap-note">山データ(data/mountains.json)の取得に失敗しました</div>';
@@ -11972,14 +12052,16 @@ function setupKashimapControls() {
         document.getElementById('kashimap-ctrl-arrow').textContent = open ? '▲' : '▼';
         document.getElementById('kashimap-ctrl').classList.toggle('open', open);
     });
-    document.querySelectorAll('input[name="kashimap-range"]').forEach(el => el.addEventListener('change', () => {
+    // 範囲・可視タイル・樹冠あり・山頂マーカー・全展望マーカー: メニュー側とコントロールの両方に置き、どちらを操作しても連動(第152)
+    document.querySelectorAll('input[name="kashimap-range"], input[name="kashimap-range-menu"]').forEach(el => el.addEventListener('change', () => {
         if (!el.checked) return;
-        _kmRange = +el.value; _kmRenderList(); _kmRefresh();
+        _kmRange = +el.value; _kmSyncUi(); if (_kmActive) { _kmRenderList(); _kmRefresh(); }
     }));
-    document.getElementById('chk-kashimap-tiles').addEventListener('change', ev => { _kmTiles = ev.target.checked; _kmApplyLayerVisibility(); });
-    document.getElementById('chk-kashimap-canopy').addEventListener('change', ev => { _kmCanopy = ev.target.checked; _kmRenderList(); _kmRefresh(); });
-    document.getElementById('chk-kashimap-summit').addEventListener('change', ev => { _kmSummitMk = ev.target.checked; _kmUpdateMarkers(); });
-    document.getElementById('chk-kashimap-zen').addEventListener('change', ev => { _kmZenMk = ev.target.checked; _kmUpdateZenMarkers(); });
+    for (const id of ['chk-kashimap-tiles', 'chk-kashimap-menu-tiles']) document.getElementById(id).addEventListener('change', ev => { _kmTiles = ev.target.checked; _kmSyncUi(); _kmApplyLayerVisibility(); });
+    for (const id of ['chk-kashimap-canopy', 'chk-kashimap-menu-canopy']) document.getElementById(id).addEventListener('change', ev => { _kmCanopy = ev.target.checked; _kmSyncUi(); if (_kmActive) { _kmRenderList(); _kmRefresh(); } });
+    for (const id of ['chk-kashimap-summit', 'chk-kashimap-menu-summit']) document.getElementById(id).addEventListener('change', ev => { _kmSummitMk = ev.target.checked; _kmSyncUi(); _kmUpdateMarkers(); });
+    for (const id of ['chk-kashimap-zen', 'chk-kashimap-menu-zen']) document.getElementById(id).addEventListener('change', ev => { _kmZenMk = ev.target.checked; _kmSyncUi(); _kmUpdateZenMarkers(); });
+    _kmSyncUi();
     document.getElementById('btn-kashimap-export').addEventListener('click', () => _kmExportAssets());
     document.getElementById('btn-kashimap-import').addEventListener('click', () => document.getElementById('input-kashimap-import').click());
     document.getElementById('input-kashimap-import').addEventListener('change', async (ev) => {
@@ -11994,7 +12076,7 @@ function setupKashimapControls() {
     document.getElementById('btn-kashimap-store-clear').addEventListener('click', async () => {
         if (!_kmDeviceIndex.size) { alert('端末に保存した資産はありません'); return; }
         if (!confirm(`端末に保存した可視マップの資産(${_kmDeviceIndex.size}件)を全て削除しますか？(サーバーの資産は消えません)`)) return;
-        await _kmStoreClear(); for (const k of Array.from(_kmDeviceIndex.keys())) _kmAssets.delete(k);
+        await _kmStoreClear(); for (const [k, d] of Array.from(_kmDeviceIndex.entries())) { _kmNoAutoSave.add(k); if (d.origin !== 'server') _kmAssets.delete(k); }
         await _kmLoadDeviceIndex();
         if (_kmActive) { _kmRenderList(); _kmRefresh(); }
     });
@@ -12831,8 +12913,151 @@ function drawProfileGraph() {
 
 /** 除外範囲の実効値(m)。チェックボックスがオフの時は両側とも0(=一切無視しない) */
 function elevExcludeRadii() {
-    if (appState.elevExcludeEnabled === false) return { tgt: 0, obs: 0 };
-    return { tgt: Number(appState.elevExcludeRadius) || 0, obs: Number(appState.elevExcludeObsRadius) || 0 };
+    if (appState.elevExcludeEnabled === false) return { tgt: 0, obs: 0, band: 0 };
+    return { tgt: Number(appState.elevExcludeRadius) || 0, obs: Number(appState.elevExcludeObsRadius) || 0,
+             band: appState.elevSummitBandEnabled === false ? 0 : (Number(appState.elevSummitBandM) || 0) };   // 山頂部の帯(m)。0=使わない
+}
+
+// ---- 山頂部(帯)の除外(第152・デッサン05 Q24/Q25): 目的点の「山頂部」=目的点の標高から帯の高さ以内で目的点につながる画素(8近傍・探索半径3km)。
+//      別の山(山リスト data/mountains.json の山頂)の山頂を含む時は含まない高さまで縮める。判定では山頂部の画素の遮蔽を無視する
+//      (可視マップの道具 tools/kashimap/viewshed.js の --summit-mode region と同じ規則)。目的点ごとに1回計算して保持する ----
+const SB_SEARCH_M = 3000;
+const SB_UP_M = 100;          // 目的点より100mを超えて高い地形が帯につながる時は「目的点は山頂ではない」=山頂部なし(谷の神社・山腹の地点で周りの山を透明にしない)
+const _sbCache = new Map();   // 'lat,lng,band' -> Promise<band|null>。band={x0,y0,w,h,bits,hT,dropUsed,px,farM,others}
+function _sbHas(band, gx, gy) {
+    const bx = gx - band.x0, by = gy - band.y0;
+    if (bx < 0 || by < 0 || bx >= band.w || by >= band.h) return false;
+    const i = by * band.w + bx;
+    return ((band.bits[i >> 3] >> (i & 7)) & 1) === 1;
+}
+/** 今の設定で目的点(lat,lng)の山頂部(生の結果。帯なしの時は {none:true, reason})。除外範囲オフ/山頂部オフ/帯0なら null。失敗時も null */
+async function _visSummitBandRaw(lat, lng) {
+    const bandM = elevExcludeRadii().band;
+    if (!bandM || !isFinite(lat) || !isFinite(lng)) return null;
+    const key = `${(+lat).toFixed(6)},${(+lng).toFixed(6)},${bandM}`;
+    if (!_sbCache.has(key)) {
+        if (_sbCache.size >= 32) _sbCache.delete(_sbCache.keys().next().value);   // My辻の標高フィルタは目的点ごとに1回(目的点が多くても持てる数)
+        const pr = _visSummitBand(lat, lng, bandM, SB_SEARCH_M).catch(e => { console.warn('山頂部の計算に失敗(帯なしで判定)', e); return null; })
+            .then(b => { if (!b) _sbCache.delete(key); return b; });   // 標高データが取れなかった時(圏外・障害)は覚えず、次の判定で取り直す
+        _sbCache.set(key, pr);
+    }
+    return _sbCache.get(key);
+}
+/** 判定に渡す山頂部(帯なしの時は null=従来どおり目的点側の除外半径だけ) */
+async function _visSummitBandFor(lat, lng) {
+    const b = await _visSummitBandRaw(lat, lng);
+    return (b && !b.none) ? b : null;
+}
+/** 山頂部の計算本体。DEMは標高グラフと同じチェーン(DEM5A→5B→5C→10B。テストの合成標高があればそれ) */
+async function _visSummitBand(lat, lng, bandM, searchM) {
+    const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
+    const gx0 = Math.floor(128 * (lng / 180 + 1) * scale15);
+    const gy0 = Math.floor((128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15);
+    const mpp = 40075016.686 * Math.cos(lat * Math.PI / 180) / (scale15 * 256);
+    const rPx = Math.ceil(searchM / mpp);
+    const w = 2 * rPx + 1, h = w, x0 = gx0 - rPx, y0 = gy0 - rPx;
+    let elevAtPix15;
+    if (typeof window._tmSyntheticElev === 'function') {
+        elevAtPix15 = _syntheticElevAtPix15;
+    } else {
+        const keys15 = new Set();
+        for (let ty = y0 >> 8; ty <= (y0 + h - 1) >> 8; ty++) for (let tx = x0 >> 8; tx <= (x0 + w - 1) >> 8; tx++) keys15.add(tx * 32768 + ty);
+        const z15Sources = GSI_DEM_SOURCES.filter(d => d.zoom === 15 && !d.global);
+        const dem14 = GSI_DEM_SOURCES.find(d => d.zoom === TSUJIMESH_ZOOM);
+        const maps15 = z15Sources.map(() => new Map()), map14 = new Map(), mapT = new Map();
+        // 同時8本まで(辻メッシュの先取りと同じ。タイルの共有キャッシュに当たる分は取りに行かない)
+        const fetchAll = async (keys, dem, map) => { let qi = 0; const loop = async () => { while (qi < keys.length) { const key = keys[qi++]; const tx = Math.floor(key / 32768), ty = key % 32768; let img = null; try { img = await _getTileImageData(_makeTileUrl(dem, tx, ty)); } catch (_) {} map.set(key, img); } }; await Promise.all(Array.from({ length: 8 }, loop)); };
+        let pend = [...keys15];
+        for (let si = 0; si < z15Sources.length && pend.length; si++) {
+            await fetchAll(pend, z15Sources[si], maps15[si]);
+            pend = pend.filter(key => !maps15[si].get(key));
+        }
+        await fetchAll([...new Set([...keys15].map(key => { const tx = Math.floor(key / 32768), ty = key % 32768; return (tx >> 1) * 32768 + (ty >> 1); }))], dem14, map14);
+        elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
+    }
+    const elev = new Float32Array(w * h).fill(NaN);
+    const r2 = (searchM / mpp) * (searchM / mpp);
+    const yieldUI = () => new Promise(r => setTimeout(r, 0));   // 数百msの計算を細切れにして描画と進捗の更新に制御を返す(第152の検品の指摘)
+    for (let by = 0; by < h; by++) { const dy = by - rPx; const half = Math.floor(Math.sqrt(Math.max(0, r2 - dy * dy)));
+        for (let bx = Math.max(0, rPx - half); bx <= Math.min(w - 1, rPx + half); bx++) {
+            const e = elevAtPix15(x0 + bx, y0 + by);
+            if (e !== null && e !== undefined) elev[by * w + bx] = e;
+        }
+        if ((by & 255) === 255) await yieldUI();
+    }
+    // 目的点の標高=3×3画素の最大(道具と同じ)。データが無ければ山頂部なし
+    let hT = -Infinity;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const e = elevAtPix15(gx0 + dx, gy0 + dy); if (e !== null && e !== undefined && e > hT) hT = e; }
+    if (hT === -Infinity) return null;   // hTはDEMの値そのまま(Float32の格子ではなく元の値から。丸めると目的点の画素自身が帯から外れうる)
+    // 別の山(山リスト)の山頂。目的点自身(60m以内の山頂)と同じ山の別峰(索引番号の親番号が同じ)は除く
+    let others = [];
+    try {
+        const list = await _kmLoadData();
+        const inBox = list.filter(m => { const bx = Math.floor(128 * (m.lon / 180 + 1) * scale15) - x0, by = Math.floor((128 - R128 * Math.atanh(Math.sin(m.lat * Math.PI / 180))) * scale15) - y0; return bx >= 0 && by >= 0 && bx < w && by < h && Math.hypot(bx - rPx, by - rPx) * mpp <= searchM; })
+            .map(m => ({ name: m.name, id: String(m.id), elev: m.elev, bx: Math.floor(128 * (m.lon / 180 + 1) * scale15) - x0, by: Math.floor((128 - R128 * Math.atanh(Math.sin(m.lat * Math.PI / 180))) * scale15) - y0, d: _geoDistM(lat, lng, m.lat, m.lon) }));
+        // 目的点自身の山=60m以内の山頂、または500m以内で山頂の標高が目的点の標高+100m以内(火口の縁や山頂部の中に置いた目的点)。同じ索引番号の親番号の峰も自身
+        const self = inBox.filter(m => m.d <= 60 || (m.d <= 500 && (m.elev === null || m.elev === undefined || m.elev - hT <= 100))).sort((a, b) => a.d - b.d)[0];
+        const selfBase = self ? self.id.split('-')[0] : null;
+        others = inBox.filter(m => !(self && m.id === self.id) && !(selfBase && m.id.split('-')[0] === selfBase));
+    } catch (_) { /* 山リストが取れない時は別の山の規則なし */ }
+    // 帯(目的点の標高−dropより高くて目的点につながる画素)。作業用の配列は使い回す(二分探索で何度も呼ぶ)
+    const keepBuf = new Uint8Array(w * h), stackBuf = new Int32Array(w * h);
+    let bandMax = -Infinity;   // 直近の帯の中の最高標高(目的点より高い地形が続いていないかの検査用)
+    const bandOf = (drop) => {
+        const keep = keepBuf; keep.fill(0); let sp = 0; stackBuf[sp++] = rPx * w + rPx; keep[rPx * w + rPx] = 1; bandMax = hT;
+        const thr = hT - drop;
+        while (sp) {
+            const i = stackBuf[--sp]; const x = i % w, y = (i - x) / w;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                const j = ny * w + nx; const e = elev[j];
+                if (!keep[j] && e >= thr) { keep[j] = 1; stackBuf[sp++] = j; if (e > bandMax) bandMax = e; }
+            }
+        }
+        return keep;
+    };
+    const hasOther = (keep) => others.find(o => keep[o.by * w + o.bx] === 1) || null;
+    let drop = bandM, keep = bandOf(drop); const blocker = hasOther(keep);
+    if (blocker) {
+        // 帯0(目的点の標高以上でつながる画素)でも別の山の山頂を含む=目的点がその山の山腹・肩にある(山小屋・駅・展望台など)。
+        // その時は山頂部なし(帯なし=従来の目的点側の除外だけ)。上の山体を透明にしてしまうのを防ぐ(第152の検品の指摘)
+        await yieldUI();
+        if (hasOther(bandOf(0))) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」が目的点より高くつながっている=目的点はその山の山腹)`, hT, lat, lng };
+        let lo = 0, hi = drop;
+        while (hi - lo >= 1) { const mid = (lo + hi) / 2; await yieldUI(); if (hasOther(bandOf(mid))) hi = mid; else lo = mid; }   // 1mの精度で止める(帯300mなら最大9回)
+        drop = Math.floor(lo); await yieldUI(); keep = bandOf(drop);
+        if (hasOther(keep)) return { none: true, reason: `山頂部なし(別の山「${blocker.name}」を含まない帯が取れない)`, hT, lat, lng };
+    }
+    // 目的点が山頂でない(帯の中に目的点より SB_UP_M を超えて高い地形が続く=谷・山腹・裾の地点)時も山頂部なし。周りの山を透明にしない
+    if (bandMax > hT + SB_UP_M) return { none: true, reason: `山頂部なし(目的点より${Math.round(bandMax - hT)}m高い地形がつながっている=目的点は山頂ではない)`, hT, lat, lng };
+    const bits = new Uint8Array(Math.ceil(w * h / 8)); let px = 0, far2 = 0;
+    for (let i = 0; i < w * h; i++) { if (!keep[i]) continue; bits[i >> 3] |= 1 << (i & 7); px++; const x = i % w, y = (i - x) / w; const d2 = (x - rPx) * (x - rPx) + (y - rPx) * (y - rPx); if (d2 > far2) far2 = d2; }
+    const far = Math.sqrt(far2) * mpp;
+    return { x0, y0, w, h, bits, hT, dropUsed: drop, dropRequested: bandM, px, farM: Math.round(far), others: others.map(o => o.name), shrunkBy: blocker ? blocker.name : null, lat, lng };
+}
+// 山頂部のプレビュー(基本オプション「:プレビュー」。目的点の山頂部の範囲を地図に描く。目的点が変わると描き直す)
+let _sbPreviewOn = false, _sbPreviewKey = null, _sbPreviewSeq = 0;
+async function _sbUpdatePreview(force) {
+    if (!glMap || !glMap.getSource || !glMap.getSource('summit-band')) return;
+    const end = appState.end;
+    const bandM = elevExcludeRadii().band;
+    const key = (_sbPreviewOn && end && bandM) ? `${(+end.lat).toFixed(6)},${(+end.lng).toFixed(6)},${bandM}` : null;
+    if (!force && key === _sbPreviewKey) return;
+    _sbPreviewKey = key;
+    const seq = ++_sbPreviewSeq;
+    const infoEl = document.getElementById('baseopt-summit-preview-info');
+    if (!key) { _glSetSourceData('summit-band', []); if (infoEl) infoEl.textContent = ''; return; }
+    const band = await _visSummitBandRaw(end.lat, end.lng);
+    if (seq !== _sbPreviewSeq) return;
+    if (!band || band.none) { _glSetSourceData('summit-band', []); const el0 = document.getElementById('baseopt-summit-preview-info'); if (el0) el0.textContent = band && band.none ? band.reason : ''; return; }
+    const WORLD = 256 * Math.pow(2, 15);
+    const toLL = (x, y) => [(band.x0 + x) / WORLD * 360 - 180, Math.atan(Math.sinh(Math.PI * (1 - 2 * (band.y0 + y) / WORLD))) * 180 / Math.PI];
+    const rings = _kmTraceRings((x, y) => _sbHas(band, band.x0 + x, band.y0 + y) ? 1 : 0, band.w, band.h);
+    rings.sort((a, b) => _kmRingArea(b) - _kmRingArea(a));
+    const coords = rings.map(r => { const c = r.map(([x, y]) => toLL(x, y)); c.push(c[0]); return c; });
+    const label = `山頂部: 帯${band.dropUsed}m${band.shrunkBy ? `(別の山「${band.shrunkBy}」を含まないよう縮小)` : ''} 広がり${band.farM}m 画素${band.px.toLocaleString()} 目的点のDEM標高${band.hT.toFixed(1)}m`;
+    _glSetSourceData('summit-band', coords.length ? [{ type: 'Feature', properties: { label }, geometry: { type: 'Polygon', coordinates: coords } }] : []);
+    const el = document.getElementById('baseopt-summit-preview-info'); if (el) el.textContent = label;
 }
 
 /** 可視判定の実効地球の逆数 1/(2·Reff) (第116ラウンド)。視高度計算(calculateApparentAltitude)と
@@ -12857,7 +13082,7 @@ function _visInv2Reff(latA, latB) {
  *  メルカトルYは64サンプル毎に厳密再計算して区間内は線形補間する(誤差はサブピクセル)。
  *  inv2ReffOptは辞メッシュのワーカー並列判定とのビット一致用(省略時は_visInv2Reffで算出)。
  *  返り値のlineElevAtBlockingは遮蔽点での「見通し光線の海抜高さ」(沈み込みを戻した値) */
-function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15, inv2ReffOpt) {
+function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15, inv2ReffOpt, bandOpt) {
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
@@ -12875,13 +13100,15 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
         const gyA = gpy15At(sLat + dLat * (j0 / steps));
         const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
         for (let j = j0; j <= j1; j++) {
-            const e = elevAtPix15((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0);
+            const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+            const e = elevAtPix15(gx, gy);
             if (e === null || e === undefined) continue;   // データ無し点は判定対象外
             const r = j / steps;
             const d = distM * r;
             const lineElev = startTotal + (endTotal - endDrop - startTotal) * r;
             if (e - d * d * inv2R > lineElev) {
                 if (distM * (1 - r) <= exclM) continue;   // 除外範囲(目的点側)のNGは無視
+                if (bandOpt && _sbHas(bandOpt, gx, gy)) continue;   // 山頂部(目的点につながる帯)の地形は遮蔽に数えない(第152)
                 if (d <= obsExclM) continue;              // 除外範囲(観測点側)のNGは無視
                 return { visible: false, blockingDist: d / 1000, blockingElev: e, lineElevAtBlocking: lineElev + d * d * inv2R };
             }
@@ -12966,7 +13193,8 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
         }
         elevAtPix15 = _makeElevAtPix15(maps15, map14, mapT);
     }
-    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15);
+    const band = await _visSummitBandFor(endLat, endLng);   // 山頂部(第152)。設定オフ/失敗時はnull=従来どおり
+    return _visJudgeCore(startLat, startLng, startTotalElev, endLat, endLng, endTotalElev, exclM, obsExclM, elevAtPix15, undefined, band);
 }
 
 /** テスト用合成標高のz15画素参照(リファクタリングB第2弾③: 辻メッシュ/統一可視判定の
@@ -17717,13 +17945,20 @@ function syncBaseOptionUI() {
     });
     set('input-baseopt-elev-exclude', appState.elevExcludeRadius);
     set('input-baseopt-elev-exclude-obs', appState.elevExcludeObsRadius);
+    set('input-baseopt-summit-band', appState.elevSummitBandM);
     const exclChk = document.getElementById('chk-baseopt-elev-exclude');
     if (exclChk) exclChk.checked = appState.elevExcludeEnabled !== false;
-    // チェックボックスがオフの間は目的点側/観測点側の入力を無効化(値は保持)
+    const sbChk = document.getElementById('chk-baseopt-summit-band');
+    if (sbChk) { sbChk.checked = appState.elevSummitBandEnabled !== false; sbChk.disabled = appState.elevExcludeEnabled === false; }
+    // チェックボックスがオフの間は目的点側/観測点側/山頂部の入力を無効化(値は保持)
     for (const eid of ['input-baseopt-elev-exclude', 'input-baseopt-elev-exclude-obs']) {
         const el = document.getElementById(eid);
         if (el) el.disabled = appState.elevExcludeEnabled === false;
     }
+    const sbIn = document.getElementById('input-baseopt-summit-band');
+    if (sbIn) sbIn.disabled = appState.elevExcludeEnabled === false || appState.elevSummitBandEnabled === false;
+    const sbPvChk = document.getElementById('chk-baseopt-summit-preview');
+    if (sbPvChk) sbPvChk.checked = _sbPreviewOn;   // プレビューは保存しない(ブラウザのフォーム復元とずれないよう状態から描く)
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
     chk('chk-baseopt-mw-bodies', appState.mwShowBodies);
     chk('chk-baseopt-mw-body-names', appState.mwShowBodyNames);
@@ -17906,6 +18141,23 @@ function setupBaseOptionControls() {
         appState.elevExcludeEnabled = exclChk2.checked;
         saveAppState();
         syncBaseOptionUI();
+        _sbUpdatePreview(false);
+    });
+    // 山頂部(第152・Q25): 帯の高さ・オン/オフ・プレビュー・リセット
+    const sbIn = document.getElementById('input-baseopt-summit-band');
+    if (sbIn) sbIn.addEventListener('change', () => {
+        let v = parseFloat(sbIn.value); if (isNaN(v)) v = 0;
+        appState.elevSummitBandM = Math.max(0, Math.min(2000, Math.round(v)));
+        saveAppState(); syncBaseOptionUI(); _sbUpdatePreview(false);
+    });
+    const sbChk = document.getElementById('chk-baseopt-summit-band');
+    if (sbChk) sbChk.addEventListener('change', () => { appState.elevSummitBandEnabled = sbChk.checked; saveAppState(); syncBaseOptionUI(); _sbUpdatePreview(false); });
+    const sbPv = document.getElementById('chk-baseopt-summit-preview');
+    if (sbPv) sbPv.addEventListener('change', () => { _sbPreviewOn = sbPv.checked; _sbUpdatePreview(true); });
+    const sbReset = document.getElementById('btn-baseopt-excl-reset');
+    if (sbReset) sbReset.addEventListener('click', () => {
+        for (const k of ['elevExcludeEnabled', 'elevExcludeRadius', 'elevExcludeObsRadius', 'elevSummitBandEnabled', 'elevSummitBandM']) appState[k] = APP_DEFAULTS[k].def;
+        saveAppState(); syncBaseOptionUI(); _sbUpdatePreview(false);
     });
     syncBaseOptionUI();
 }
