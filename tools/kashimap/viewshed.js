@@ -148,7 +148,9 @@ async function fetchTileCached(kind, z, x, y) {
   return buf;
 }
 const grid = new Uint16Array(W * H).fill(NODATA);
-const stats = { fetched: 0, cached: 0, from5a: 0, from5b: 0, from5c: 0, from14: 0, missing: 0 };
+const stats = { fetched: 0, cached: 0, from5a: 0, from5b: 0, from5c: 0, from14: 0, filled: 0, missing: 0 };
+// 標高タイルの源(窓のズームごと。順に試し、画素ごとに無い所を次の源で埋める=第154。前はタイルが在れば次の源を見ず、5Aの測量範囲の縁でタイルの形の穴が残っていた)
+const SOURCES = Z >= 15 ? [{ kind: 'dem5a_png', z: 15 }, { kind: 'dem5b_png', z: 15 }, { kind: 'dem5c_png', z: 15 }, { kind: 'dem_png', z: 14 }] : [{ kind: 'dem_png', z: Z }];
 function decodeElevInto(png, tx, ty, zt, clip) {
   // タイル(zt)の画素を窓の格子へ。zt=Z-1 のときは2倍に引き伸ばす(最近傍)。既に値のある画素は上書きしない。
   // clip=書き込む窓の範囲(zのタイル1枚分。z-1の親タイルを隣のタイルの分まで書いて、後から来る隣の5A/5B/5Cを塞がないため。第153)
@@ -183,15 +185,16 @@ async function loadTiles() {
     while (next < jobs.length) {
       const [tx, ty] = jobs[next++];
       const clip = { x0: tx * 256 - X0, y0: ty * 256 - Y0, x1: tx * 256 + 255 - X0, y1: ty * 256 + 255 - Y0 };   // このタイル1枚分だけ書く
-      let got = false;
-      for (const kind of ['dem5a_png', 'dem5b_png', 'dem5c_png']) {
-        const buf = await fetchTileCached(kind, Z, tx, ty);
-        if (buf) { decodeElevInto(pngDecode(buf), tx, ty, Z, clip); stats['from' + kind.slice(3, 5)]++; got = true; break; }
+      const holes = () => { let n = 0; for (let y = Math.max(0, clip.y0); y <= Math.min(H - 1, clip.y1); y++) { const o = y * W; for (let x = Math.max(0, clip.x0); x <= Math.min(W - 1, clip.x1); x++) if (grid[o + x] === NODATA) n++; } return n; };
+      let first = null, nSrc = 0;
+      for (const s of SOURCES) {
+        const f = Math.pow(2, Z - s.z), x = Math.floor(tx / f), y = Math.floor(ty / f);   // 粗い源は親タイルの番号
+        const buf = await fetchTileCached(s.kind, s.z, x, y);
+        if (!buf) continue;
+        decodeElevInto(pngDecode(buf), x, y, s.z, clip); nSrc++; if (!first) first = s;
+        if (holes() === 0) break;   // 穴が無くなったら次の源は要らない
       }
-      if (!got) {
-        const buf = await fetchTileCached('dem_png', Z - 1, tx >> 1, ty >> 1);
-        if (buf) { decodeElevInto(pngDecode(buf), tx >> 1, ty >> 1, Z - 1, clip); stats.from14++; } else stats.missing++;
-      }
+      if (first) { stats[first.kind === 'dem_png' ? 'from14' : 'from' + first.kind.slice(3, 5)]++; if (nSrc > 1) stats.filled++; } else stats.missing++;
       doneN++; if (doneN % 100 === 0 || doneN === jobs.length) log(`タイル ${doneN}/${jobs.length}`);
     }
   };
@@ -471,7 +474,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
   const t0 = Date.now();
   await loadTiles();
   let nData = 0; for (let i = 0; i < grid.length; i++) if (grid[i] !== NODATA) nData++;
-  log(`タイル取得完了: 5A ${stats.from5a} 5B ${stats.from5b} 5C ${stats.from5c} z14 ${stats.from14} 無し ${stats.missing}。データ画素 ${nData}/${W * H}`);
+  log(`タイル取得完了: 5A ${stats.from5a} 5B ${stats.from5b} 5C ${stats.from5c} z14 ${stats.from14} 無し ${stats.missing}(次の源で穴埋めしたタイル ${stats.filled})。データ画素 ${nData}/${W * H}`);
   const t1 = Date.now();
   const SI = summitInfo(); _SI = SI; const hS = SI.hS; EXCL_TGT_M = SI.exclTargetM;
   log(`山頂: DEM標高 ${hS}m(一覧 ${M.elev}m) 山頂部(−${SI.dropUsed}m以内で山頂につながる画素・探索${SUMMIT_SEARCH_M}m)の広がり ${SI.capFarM}m(${SI.capPx}画素) → 除外=${SUMMIT_MODE === 'region' ? `山頂部の画素そのもの+半径${EXCL_TGT_M}m` : `半径${EXCL_TGT_M}m${SI.exclAuto ? '(自動)' : '(指定)'}の円`}`);
@@ -552,7 +555,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
     summit_mode: SUMMIT_MODE, summit_area: { drop_m: SI.dropUsed, drop_requested_m: SUMMIT_DROP_M, search_m: SUMMIT_SEARCH_M, px: SI.capPx, far_m: SI.capFarM, other_peaks_in_search: SI.others, how: `山頂から${SI.dropUsed}m以内の高さで山頂につながる画素(探索半径${SUMMIT_SEARCH_M}m。別の山の山頂を含まない高さまで)` },
     excl_target_m: EXCL_TGT_M, excl_target_how: SUMMIT_MODE === 'region' ? `山頂部の画素そのもの(中心・半径なし)+半径${EXCL_TGT_M}m(アプリの既定と同じ最小値)` : (SI.exclAuto ? `自動: 山頂部の最遠距離${SI.capFarM}m(最小15m)の円` : '指定値の円'), summit_elev_how: '3×3画素のDEM最大', excl_observer_m: EXCL_OBS_M,
     grid: { w: W, h: H, x0: X0, y0: Y0, mpp_center: +MPP.toFixed(4), note: '1画素の大きさは中心緯度の値で一定とした(窓の中で約±0.4%の差)' },
-    dem: { sources: 'cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)', tiles: NT, from5a: stats.from5a, from5b: stats.from5b, from5c: stats.from5c, from14: stats.from14, missing: stats.missing, data_px: nData },
+    dem: { sources: Z >= 15 ? 'cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)。画素ごとに無い所を次の源で埋める' : `cyberjapandata.gsi.go.jp dem_png(z${Z}, DEM10B)`, tiles: NT, from5a: stats.from5a, from5b: stats.from5b, from5c: stats.from5c, from14: stats.from14, filled_from_next: stats.filled, missing: stats.missing, data_px: nData },
     method: 'R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部へ一般化)',
     outline: { tol_px: DP_TOL, edges: RG.nEdges, rings: RG.nRings, holes: nHoles, vertices_raw: RG.nVerts, vertices: nVertsDp, encoding: 'outline.json: 島ごとに[項番,画素数,外周,穴…]。各環は画素の角の整数座標(窓の左上が0,0)を先頭=絶対・以降=差分でGoogle polyline符号(倍率なし)' },
     result: { visible_px: nVis, visible_km2: +(nVis * pxArea / 1e6).toFixed(3), islands: islands.length, rays, check: { n: checked, agree, agree_pct: checked ? +(100 * agree / checked).toFixed(2) : null, tool_only_visible: disagreeVis, app_only_visible: disagreeInv } },

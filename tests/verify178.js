@@ -22,19 +22,19 @@ const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-apptest.py'), 'utf8');
 
-check('V0 版数ピン 1.92.0+Version Historyに第153(段4)', /APP_VERSION = '1\.92\.0'/.test(src) && (src.includes('第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」') || !!process.argv[2]));
+check('V0 版数(ピンはverify179へ移譲)+Version Historyに第153(段4)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('id="kashimap-store-total"'));
-check('S1 index.html: 範囲の選択欄(24/36/48)・「目的点で計算」「My目的点で計算」は有効・ヘルプ「その場で計算」・「準備中」の文言なし',
-  /<select id="sel-kashimap-tgt-range"[^>]*>\s*<option value="24" selected>24km<\/option>\s*<option value="36">36km<\/option>\s*<option value="48">48km<\/option>/.test(idxSrc) &&
+check('S1 index.html: 範囲の選択欄(24/36/48…)・「目的点で計算」「My目的点で計算」は有効・ヘルプ「その場で計算」・「準備中」の文言なし',
+  /<select id="sel-kashimap-tgt-range"[^>]*>\s*<option value="24">24km[^<]*<\/option>\s*<option value="36">36km[^<]*<\/option>\s*<option value="48">48km[^<]*<\/option>/.test(idxSrc) &&   // 第154で24〜700の7つ(初期値60)=verify179
   /<button id="btn-kashimap-tgt" class="nav-btn main-btn" title="[^"]*">目的点で計算<\/button>/.test(idxSrc) && /<button id="btn-kashimap-mytgt" class="nav-btn main-btn" title="[^"]*">My目的点で計算<\/button>/.test(idxSrc) &&
-  idxSrc.includes('<li><strong>その場で計算 (「目的点で計算」「My目的点で計算」)</strong>') && idxSrc.includes('範囲は 24/36/48km四方') && !/準備中/.test(kmHtml) && !idxSrc.split('\n').some(l => /kashimap|可視マップ/.test(l) && /準備中/.test(l)));
+  idxSrc.includes('<li><strong>その場で計算 (「目的点で計算」「My目的点で計算」)</strong>') && /範囲は「計算範囲リスト」の 24\/36\/48/.test(idxSrc) && !/準備中/.test(kmHtml) && !idxSrc.split('\n').some(l => /kashimap|可視マップ/.test(l) && /準備中/.test(l)));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')) && !/第1\d\dラウンド|ラウンド/.test(wkSrc.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')));
 check('S2 ワーカー: 窓・山頂部(アプリと同じ規則)・視域(R2)・島・輪郭・ポリライン符号・端末の店(tiles)・安全弁(上限枚数/失敗の連続)・z14は子タイル1枚分だけ書く',
   ['function windowGeom(', 'function summitBand(', 'function computeViewshed(', 'function labelIslands(', 'function extractRings(', 'function encodeIntPolyline(', "indexedDB.open('soranotsuji-kashimap')", 'MAX_NET_ERRORS', 'maxTiles', 'function decodeElevInto(grid, G, png, tx, ty, zt, clip)', "m.d <= 60 || (m.d <= 500 && (m.elev === null || m.elev === undefined || m.elev - hT <= 100))", 'bandMax > hT + (job.upM || 100)'].every(t => wkSrc.includes(t)) &&
   wkSrc.includes("self.postMessage({ type: 'done'") && wkSrc.includes("{ type: 'progress', phase, done, total, note }"));
 check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTarget/_kmComputeMyTargets/_kmSyncPseudo/_kmPseudoRows・所属「My」・端末の索引に位置と標高・ハーネスのFILESにワーカー・道具のz14の書き込み範囲(clip)',
-  ["new Worker('kashimap-worker.js')", 'async function _kmComputeOne(', 'async function _kmComputeTarget(', 'async function _kmComputeMyTargets(', 'function _kmSyncPseudo(', 'function _kmPseudoRows(', "'my': 'My'", 'lat: v.lat, lon: v.lon, elev: v.elev, height: v.height', 'const KM_TGT_RANGES = [24, 36, 48];'].every(t => src.includes(t)) &&
-  harnessSrc.includes("'kashimap-worker.js'") && toolSrc.includes('function decodeElevInto(png, tx, ty, zt, clip)') && toolSrc.includes('decodeElevInto(pngDecode(buf), tx >> 1, ty >> 1, Z - 1, clip)'));
+  ["new Worker('kashimap-worker.js')", 'async function _kmComputeOne(', 'async function _kmComputeTarget(', 'async function _kmComputeMyTargets(', 'function _kmSyncPseudo(', 'function _kmPseudoRows(', "'my': 'My'", 'lat: v.lat, lon: v.lon, elev: v.elev, height: v.height', 'const KM_TGT_RANGES = [24, 36, 48'].every(t => src.includes(t)) &&   // 第154で24〜700の7つ(verify179)
+  harnessSrc.includes("'kashimap-worker.js'") && toolSrc.includes('function decodeElevInto(png, tx, ty, zt, clip)') && /decodeElevInto\(pngDecode\(buf\), (tx >> 1, ty >> 1, Z - 1|x, y, s\.z), clip\)/.test(toolSrc));   // 第154で源ごとの汎用の呼び出しに
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});

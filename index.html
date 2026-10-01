@@ -190,7 +190,7 @@ GNU General Public License for more details.
                     <input type="checkbox" id="chk-kashimap-tiles" class="body-checkbox" checked><label for="chk-kashimap-tiles" title="見える場所の塗り(可視辻マーカー。重なるほど濃い金)の表示/非表示">:可視タイル</label>
                 </div>
                 <div class="control-row left-row">
-                    <input type="checkbox" id="chk-kashimap-canopy" class="body-checkbox" checked><label for="chk-kashimap-canopy" title="木の高さ(樹冠)を入れて計算した資産を使います(無い山は地形だけの資産)">:樹冠あり</label>
+                    <input type="checkbox" id="chk-kashimap-canopy" class="body-checkbox" checked><label for="chk-kashimap-canopy" title="木の高さ(樹冠)や建物(構造物)を入れて計算した資産を使います(無い山は地形だけの資産)">:樹冠・構造物あり</label>
                 </div>
                 <div class="control-row left-row">
                     <input type="checkbox" id="chk-kashimap-summit" class="body-checkbox" checked><label for="chk-kashimap-summit" title="選んだ山の山頂マーカー(山色のピン)の表示/非表示">:山頂マーカー</label>
@@ -1361,41 +1361,48 @@ GNU General Public License for more details.
                         <input type="radio" name="kashimap-andor" id="radio-kashimap-or" value="or" class="body-checkbox"> <label for="radio-kashimap-or" class="tsuji-acc-label" title="どれかの語に当たる山(例:「長野 山梨」で両県の山)">:OR</label>
                     </div>
                     <div class="control-row left-row">
-                        <input type="checkbox" id="chk-kashimap-100" class="body-checkbox" checked> <label for="chk-kashimap-100" class="tsuji-acc-label" title="日本百名山(深田久弥)">:百名山</label>
-                        <input type="checkbox" id="chk-kashimap-200" class="body-checkbox"> <label for="chk-kashimap-200" class="tsuji-acc-label" title="日本二百名山(深田クラブ。百名山を含む200座)">:二百名山</label>
-                        <input type="checkbox" id="chk-kashimap-300" class="body-checkbox"> <label for="chk-kashimap-300" class="tsuji-acc-label" title="日本三百名山(日本山岳会。百名山を含む300座)">:三百名山</label>
+                        <input type="checkbox" id="chk-kashimap-100" class="body-checkbox" checked> <label for="chk-kashimap-100" class="km-label" title="日本百名山(深田久弥)">:百名山</label>
+                        <input type="checkbox" id="chk-kashimap-200" class="body-checkbox"> <label for="chk-kashimap-200" class="km-label" title="日本二百名山(深田クラブ。百名山を含む200座)">:二百名山</label>
+                        <input type="checkbox" id="chk-kashimap-300" class="body-checkbox"> <label for="chk-kashimap-300" class="km-label" title="日本三百名山(日本山岳会。百名山を含む300座)">:三百名山</label>
                     </div>
                     <div class="control-row left-row">
-                        <input type="checkbox" id="chk-kashimap-high" class="body-checkbox"> <label for="chk-kashimap-high" class="tsuji-acc-label" title="日本百高山(標高順上位100)">:百高山</label>
-                        <input type="checkbox" id="chk-kashimap-other" class="body-checkbox"> <label for="chk-kashimap-other" class="tsuji-acc-label" title="国土地理院「日本の主な山岳標高(1003山)」のうち、上の4つのリストに入らない山">:その他</label>
-                    </div>
-                    <div class="control-row">
-                        <button id="btn-kashimap-search" class="nav-btn main-btn" title="山リストを検索して結果パネルに表示します(推し山の欄が空ならチェックしたリストの山を全部)">検索</button>
+                        <input type="checkbox" id="chk-kashimap-high" class="body-checkbox"> <label for="chk-kashimap-high" class="km-label" title="日本百高山(標高順上位100)">:百高山</label>
+                        <input type="checkbox" id="chk-kashimap-other" class="body-checkbox"> <label for="chk-kashimap-other" class="km-label" title="国土地理院「日本の主な山岳標高(1003山)」のうち、上の4つのリストに入らない山">:その他</label>
                     </div>
                     <div class="control-row left-row">
-                        <label class="baseopt-radio" title="60km四方"><input type="radio" name="kashimap-range-menu" value="60" checked>:60km</label>
+                        <label class="baseopt-radio" title="60km四方(表示する範囲。計算済みの範囲だけ選べます。コントロールと連動)"><input type="radio" name="kashimap-range-menu" value="60" checked>:60km</label>
                         <label class="baseopt-radio" title="100km四方"><input type="radio" name="kashimap-range-menu" value="100">:100km</label>
+                    </div>
+                    <div class="control-row left-row">
                         <label class="baseopt-radio" title="300km四方"><input type="radio" name="kashimap-range-menu" value="300">:300km</label>
                         <label class="baseopt-radio" title="700km四方"><input type="radio" name="kashimap-range-menu" value="700">:700km</label>
                     </div>
                     <div class="control-row">
-                        <button id="btn-kashimap-tgt" class="nav-btn main-btn" title="今の目的点(位置情報メニューの目的点。標高+構造物の高さ)を対象に、その場で可視マップを計算して端末に保存します(山リストに無い地元の山や、東京タワーなどの構造物向け。標高タイルの取得に時間がかかります。計算中に押すと中止)">目的点で計算</button>
-                        <select id="sel-kashimap-tgt-range" title="その場計算の範囲(目的点を中心にした四方の幅)。広いほど標高タイルの取得と計算に時間がかかります(48kmはPC向け)">
-                            <option value="24" selected>24km</option>
-                            <option value="36">36km</option>
-                            <option value="48">48km</option>
-                        </select>
+                        <button id="btn-kashimap-search" class="nav-btn main-btn" title="山リストを検索して結果パネルに表示します(推し山の欄が空ならチェックしたリストの山を全部)">検索</button>
+                    </div>
+                    <div class="control-row kashimap-btn-row">
+                        <button id="btn-kashimap-tgt" class="nav-btn main-btn" title="今の目的点(位置情報メニューの目的点。標高+構造物の高さ)を対象に、下の計算範囲でその場で可視マップを計算して端末に保存します(山リストに無い地元の山や、東京タワーなどの構造物向け。標高タイルの取得に時間がかかります。計算中に押すと中止)">目的点で計算</button>
+                        <button id="btn-kashimap-mytgt" class="nav-btn main-btn" title="今のMyセットのMy目的点を対象に、下の計算範囲で順にその場で可視マップを計算して端末に保存します(山リストに無い地元の複数の山向け。計算中に押すと中止)">My目的点で計算</button>
                     </div>
                     <div class="control-row">
-                        <button id="btn-kashimap-mytgt" class="nav-btn main-btn" title="今のMyセットのMy目的点を対象に、順にその場で可視マップを計算して端末に保存します(山リストに無い地元の複数の山向け。計算中に押すと中止)">My目的点で計算</button>
+                        <label class="input-label tsujisearch-label" for="sel-kashimap-tgt-range" title="その場計算の範囲(目的点を中心にした四方の幅)。60kmまでは1画素約4m(DEM5A/5B/5C)、100kmは約8m・300kmは約30m・700kmは約60m(DEM10B)の解像度で計算します。広いほど標高タイルの取得と計算に時間がかかり、60km四方以上はメモリも多く使います(PC向け)">計算範囲リスト:</label>
+                        <select id="sel-kashimap-tgt-range" title="その場計算の範囲(目的点を中心にした四方の幅)と解像度(1画素の大きさ)">
+                            <option value="24">24km (1画素≈4m)</option>
+                            <option value="36">36km (1画素≈4m)</option>
+                            <option value="48">48km (1画素≈4m)</option>
+                            <option value="60" selected>60km (1画素≈4m)</option>
+                            <option value="100">100km (1画素≈8m)</option>
+                            <option value="300">300km (1画素≈30m)</option>
+                            <option value="700">700km (1画素≈60m)</option>
+                        </select>
                     </div>
                     <div class="control-row left-row">
-                        <input type="checkbox" id="chk-kashimap-menu-tiles" class="body-checkbox" checked> <label for="chk-kashimap-menu-tiles" class="tsuji-acc-label" title="見える場所の塗り(可視辻マーカー。重なるほど濃い金)の表示/非表示(コントロールと連動)">:可視タイル</label>
-                        <input type="checkbox" id="chk-kashimap-menu-canopy" class="body-checkbox" checked> <label for="chk-kashimap-menu-canopy" class="tsuji-acc-label" title="木の高さ(樹冠)を入れて計算した資産を使う(無い山は地形だけの資産。コントロールと連動)">:樹冠あり</label>
+                        <input type="checkbox" id="chk-kashimap-menu-tiles" class="body-checkbox" checked> <label for="chk-kashimap-menu-tiles" class="km-label" title="見える場所の塗り(可視辻マーカー。重なるほど濃い金)の表示/非表示(コントロールと連動)">:可視タイル</label>
+                        <input type="checkbox" id="chk-kashimap-menu-canopy" class="body-checkbox" checked> <label for="chk-kashimap-menu-canopy" class="km-label" title="木の高さ(樹冠)や建物(構造物)を入れて計算した資産があればそちらを使う(無い山は地形だけの資産。コントロールと連動)">:樹冠・構造物あり</label>
                     </div>
                     <div class="control-row left-row">
-                        <input type="checkbox" id="chk-kashimap-menu-summit" class="body-checkbox" checked> <label for="chk-kashimap-menu-summit" class="tsuji-acc-label" title="選んだ山の山頂マーカーの表示/非表示(コントロールと連動)">:山頂マーカー</label>
-                        <input type="checkbox" id="chk-kashimap-menu-zen" class="body-checkbox" checked> <label for="chk-kashimap-menu-zen" class="tsuji-acc-label" title="重なりがいちばん多い縞島の代表点のマーカーの表示/非表示(コントロールと連動)">:全展望マーカー</label>
+                        <input type="checkbox" id="chk-kashimap-menu-summit" class="body-checkbox" checked> <label for="chk-kashimap-menu-summit" class="km-label" title="選んだ山の山頂マーカーの表示/非表示(コントロールと連動)">:山頂マーカー</label>
+                        <input type="checkbox" id="chk-kashimap-menu-zen" class="body-checkbox" checked> <label for="chk-kashimap-menu-zen" class="km-label" title="重なりがいちばん多い縞島の代表点のマーカーの表示/非表示(コントロールと連動)">:全展望マーカー</label>
                     </div>
                     <div class="control-row">
                         <span class="kashimap-note">山リストは百名山・二百名山・三百名山・日本百高山と、国土地理院「日本の主な山岳標高(1003山)」を元にしています。それ以外の山は、My目的点に登録してご利用ください。</span>
@@ -1418,7 +1425,9 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row center-row">
                         <button id="btn-kashimap-store-clear" class="nav-btn small" title="端末に保存した可視マップの資産を全て削除します(サーバーの資産は消えません)">資産を全て削除</button>
-                        <button id="btn-kashimap-tiles-clear" class="nav-btn small" title="その場で計算するために端末に貯めた標高タイルだけをまとめて削除します(資産は残ります)">標高タイルを削除<span id="kashimap-tiles-size">(0 MB)</span></button>
+                    </div>
+                    <div class="control-row center-row">
+                        <button id="btn-kashimap-tiles-clear" class="nav-btn small" title="その場で計算するために端末に貯めた標高タイルだけをまとめて削除します(資産は残ります)">標高タイルを削除 <span id="kashimap-tiles-size">(0 MB)</span></button>
                     </div>
                 </div>
             </div>
@@ -2533,8 +2542,8 @@ GNU General Public License for more details.
                         <li><strong>山リスト</strong>: 国土地理院「日本の主な山岳標高 (1003山)」の全山頂に、日本百名山・日本二百名山・日本三百名山・日本百高山 (標高順上位100) の印を付けたものです。「:百名山」〜「:百高山」「:その他」のチェックで絞り込み、「推し山:」欄にスペース区切りで語を入れると、山名・読み・別名・都道府県名への部分一致で検索します (「:AND」=全部の語に当たる山、「:OR」=どれかの語に当たる山)。「島の数」「静的/動的」欄は、今の範囲・樹冠の設定で計算済みの資産があるかを示します (「静」=サーバーにある資産、「静(端末)」=サーバーの資産を端末にも保存済み、「動」=端末だけにある資産 [File読込・その場計算]。端末にある時はサーバーに取りに行きません)。</li>
                         <li><strong>結果パネル</strong>: 「検索」または位置情報メニューの「可視マップ」ボタンで開きます。見出しクリックで列毎にソート、行のチェックで山を選択 (「全て選択」「全て解除」)、行クリックでその山頂へ地図を移動します。選んだ山の山頂には色付きのマーカーが立ち、計算済みの山は島の輪郭を山色の線で、見える場所を金色の塗り (<strong>可視辻マーカー</strong>。複数の山が見える場所ほど濃い金) で描きます (色は選んだ順に表示天体のスタイル設定の16色)。</li>
                         <li><strong>島リスト</strong>: 選んだ山の島と、2つ以上の山が見える場所の<strong>縞島</strong> (「縞」印・重複数=見える山の数) を一つに並べます。初期の並びは重複数の多い順→面積の大きい順。行クリックでその島へ地図を移動、行のチェックで輪郭が点滅します (「:縞島のみ」で縞島だけに絞れます)。重複数がいちばん多い縞島は地図に金と赤の縞で塗り、「:全展望マーカー」でその代表点にマーカーを立てられます。地図の塗りにマウスを乗せると「可視辻 (重複数N): 山名」を表示し、クリックで固定します (「観測点に設定」でその場所を観測点に)。</li>
-                        <li><strong>コントロール</strong>: 範囲 (60/100/300/700km四方。計算済みの範囲だけ選べます)・「:可視タイル」(塗りの表示/非表示)・「:樹冠あり」(木の高さを入れた資産があればそちらを使う)・「:山頂マーカー」・「:全展望マーカー」・「File出力」(選んだ山の資産=計算条件・島の索引・島の輪郭を1つのJSONファイルに)・「File読込」(File出力したファイルを端末に保存して使う)。範囲と4つのチェックは可視マップ節にも同じものがあり、どちらを操作しても連動します。</li>
-                        <li><strong>その場で計算 (「目的点で計算」「My目的点で計算」)</strong>: 山リストに無い地元の山や、東京タワーなどの構造物 (目的点の標高+構造物の高さ) を対象に、その端末で可視マップを計算します。「目的点で計算」は位置情報メニューの今の目的点、「My目的点で計算」は今のMyセットのMy目的点を順に。範囲は 24/36/48km四方 (目的点を中心にした四方の幅) から選びます。国土地理院の標高タイルを取ってから計算するため時間がかかります (24km四方で約600枚。取ったタイルは端末に貯めて次からは取りに行きません)。計算のしかたと目的点側の除外 (山頂部の帯・基準の標高) は計算済みの資産およびアプリの可視判定と同じで、大気差の係数は今の設定を使います。結果は資産として端末に保存され (「端末に保存した資産」に「計算」の資産として並びます)、山リストに所属「My」・種別「目的点」の行で並んで選択・描画できます。File出力でほかの端末へ渡せます。計算中はボタンが「計算を中止」になります。48km四方はメモリを多く使うためPC向けです。</li>
+                        <li><strong>コントロール</strong>: 範囲 (60/100/300/700km四方。計算済みの範囲だけ選べます)・「:可視タイル」(塗りの表示/非表示)・「:樹冠・構造物あり」(木や建物の高さを入れた資産があればそちらを使う)・「:山頂マーカー」・「:全展望マーカー」・「File出力」(選んだ山の資産=計算条件・島の索引・島の輪郭を1つのJSONファイルに)・「File読込」(File出力したファイルを端末に保存して使う)。範囲と4つのチェックは可視マップ節にも同じものがあり、どちらを操作しても連動します。</li>
+                        <li><strong>その場で計算 (「目的点で計算」「My目的点で計算」)</strong>: 山リストに無い地元の山や、東京タワーなどの構造物 (目的点の標高+構造物の高さ) を対象に、その端末で可視マップを計算します。「目的点で計算」は位置情報メニューの今の目的点、「My目的点で計算」は今のMyセットのMy目的点を順に。範囲は「計算範囲リスト」の 24/36/48/60/100/300/700km四方 (目的点を中心にした四方の幅) から選びます。60km四方までは1画素約4m (DEM5A/5B/5C)、100kmは約8m、300kmは約30m、700kmは約60m (DEM10B) の解像度で計算します (広い範囲ほど粗く、遠くの山の見え方は目安です)。国土地理院の標高タイルを目的点に近い順に取ってから計算するため時間がかかります (24km四方で約600枚、60kmで約3,700枚。取ったタイルは端末に貯めて次からは取りに行きません。1枚の中で無い画素は次の種類の標高タイルで埋めます)。計算中は、見える場所の広がりが薄い金の経過表示として地図に描かれ、輪郭ができると置き換わります。計算のしかたと目的点側の除外 (山頂部の帯・基準の標高) は計算済みの資産およびアプリの可視判定と同じで、大気差の係数は今の設定を使います。結果は資産として端末に保存され (「端末に保存した資産」に「計算」の資産として並びます)、山リストに所属「My」・種別「目的点」の行で並んで選択・描画できます。File出力でほかの端末へ渡せます。計算中はボタンが「計算を中止」になります。60km四方以上はメモリを多く使う (60kmで約0.8GB) ためPC向けです。</li>
                         <li><strong>端末に保存した資産</strong>: File読込で取り込んだ資産と、サーバーから一度読んだ資産は端末 (ブラウザのIndexedDB) に保存され、可視マップ節の注記の下に山ごとに並びます (範囲・樹冠・島の数・サイズ・合計。「⬇」でその山だけをFile出力)。次からはサーバーに取りに行かず端末の資産を使います (山リストの列は「静(端末)」)。「✕」で1つずつ、「資産を全て削除」でまとめて削除できます。「標高タイルを削除」は、その場で計算するために貯めた標高タイルだけを削除します (資産は残ります)。すべてのデータの消去は <a href="reset.html">reset.html</a> から。</li>
                         <li><strong>PC向けの機能です</strong>: 島の輪郭は間引かずにそのまま (富士山60kmで約330万頂点) 描くため、スマートフォンでは動作が重たく感じる場合があります。</li>
                         <li><strong>計算のしかた</strong>: 国土地理院の標高タイル (DEM5A/5B/5C、無い所はDEM10B) を1画素≒4mで読み、山頂から放射状に光線を伸ばして、地球の丸みと大気差 (標準大気) を入れた見通しで「見える/見えない」を全画素で判定します。島の輪郭はその画素の縁をそのまま (間引かずに) 持ちます。山頂は1点ではなく<strong>山頂部</strong> (山頂から300m以内の高さで山頂につながる山の体。別の山の山頂を含まない高さまで) として扱い、その中の地形 (火口の縁や山頂直下の斜面) は遮るものに数えません。建物・木の高さは今は入っていません。標高からの概算ですので、現地では見えないこともあります。</li>

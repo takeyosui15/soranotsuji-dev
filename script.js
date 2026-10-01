@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.93.0 - 2026-10-01: fix/feat: 第154ラウンド — その場計算の「タイルの継ぎ目の模様」の直しと、計算範囲リスト24〜700km・経過表示(依頼者の報告と設計変更): ①槍ヶ岳48kmで出た縦横の継ぎ目=標高タイル1枚の中の無効画素(DEM5Aの測量範囲の縁)を次の源(5B/5C/10B)で埋めておらず、タイルの形の穴(データ無し=見えない)が残っていた(道具で再現: 2,500枚中、データ画素96.4%)。ワーカーと道具を「画素ごとに無い所を次の源で埋める」に ②取得は同時4本・3回まで再試行(通信の失敗・5xx・429)・地図タイルより低い優先度(priority:low)・目的点に近い順 ③計算範囲リスト(デッサン05 8段目)24/36/48/60/100/300/700km四方(初期値60)。範囲で窓の解像度を変える(60kmまでz15≈4m・100km=z14≈8m・300km=z12≈31m・700km=z11≈62m。粗い範囲はDEM10Bをそのズームで読む=小→大の段階計算。枚数の上限4,000) ④計算中の経過表示: 見える画素の広がりを縮小した格子で地図に薄い金で描き(光線が一周するにつれて埋まる)、輪郭ができたら消す ⑤可視マップ節の整列(デッサン05の段組み: 範囲ラジオ→検索→「目的点で計算」「My目的点で計算」を1段→計算範囲リスト→チェック2段。チェックの文言は折り返さない・下のボタンは1段ずつ)・「:樹冠あり」→「:樹冠・構造物あり」。verify179
 Version 1.92.0 - 2026-10-01: feat: 第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」(その場計算・デッサン05 段4/Q20): ①kashimap-worker.js=静的資産を作る道具(tools/kashimap/viewshed.js)と同じ計算(R2の光線・島・輪郭[外周+穴・間引きなし]・ポリライン符号)をブラウザのワーカーで。標高タイル(地理院 5A→5B→5C→10B)はワーカーが取り、端末の店(IndexedDB tiles)に貯めて次からは取りに行かない(枚数の上限・取得の失敗の安全弁つき。「標高タイルを削除」で消せる) ②目的点側の除外はアプリの統一可視判定と同じ規則(山頂部の帯・基準の標高=DEMと目的点の標高の高い方・別の山を含まない高さまで縮める・観測点側の除外半径・大気差の係数は今の設定) ③範囲の選択欄 24/36/48km四方(48kmはPC向け)。計算中はボタンが「計算を中止」。進捗は結果パネルの進捗バーと件数欄 ④結果は資産(origin=計算)として端末に保存し、山リストに所属「My」・種別「目的点」の行(索引番号 tgt:緯度,経度)で並べて選択・描画。File出力/File読込・⬇・✕もそのまま使える。「My目的点で計算」は今のMyセットのMy目的点を順に。verify178
 Version 1.91.1 - 2026-10-01: fix: 第153ラウンド — 山頂部の基準の標高(依頼者の報告「観測点を富士吉田に置いても:山頂部のオン/オフで結果が変わらずプレビューも出ない」): 初期値の富士山の目的点は火口の中心(座標は山頂の代表点・標高は剣ヶ峯の3776m)で、DEMはそこでは火口の底(約3540m)。山頂部の基準を目的点の画素のDEM標高だけで取っていたため、山リストの剣ヶ峯(3776m)が「目的点より226m高い別の山」と判定され山頂部なし(帯が効かない・プレビューは理由の行だけ)になっていた。基準の標高hTを「DEM(3×3画素の最大)と目的点の標高(位置情報の目的点標高。構造物の高さは含めない)の高い方」に。判定(標高グラフ・辻検索・My辻・辻メッシュ)とプレビューへ目的点の標高を渡す(_visSummitBandFor/Raw・computePathVisibilityの7つ目の引数)。プレビューの情報行に「基準の標高…m(目的点の標高。DEMは…m)」。verify177 B7
 Version 1.91.0 - 2026-09-30: feat: 第152ラウンド — 除外範囲メニューに「山頂部」(デッサン05 Q24/Q25・依頼者決定): ①基本オプション>標高グラフ>除外範囲に「:山頂部」チェック(初期値オン)+「山頂部(帯,m)」(初期値300・0〜2000)+「:プレビュー」(目的点の山頂部の範囲を地図に薄い赤で描く。目的点を動かすと描き直す)+「除外範囲をリセット」(15/10/300/チェックを初期値へ)。状態はelevSummitBandEnabled/elevSummitBandM(LS保存。URLは段4の設計で) ②統一可視判定(_visJudgeCore)と辻メッシュのワーカー(tm-vis-worker)に「山頂部の画素の遮蔽は無視」を追加。山頂部=目的点の標高(3×3画素の最大)から帯の高さ以内で目的点につながる画素(8近傍・探索半径3km)。別の山(山リストの山頂)の山頂を含む時は含まない高さまで縮める(可視マップの道具と同じ規則)。目的点ごとに1回計算して保持(_visSummitBandFor)。標高グラフ・辻検索/My辻/辻メッシュの標高フィルタに共通で効く(富士山を北から見た時の「北側の縁に隠れてNG」が直る) ③可視マップ節(メニュー側)に範囲ラジオ・「目的点で計算」(準備中)・「:可視タイル/:樹冠あり/:山頂マーカー/:全展望マーカー」を置き、コントロールと連動(依頼者のデザイン。全展望マーカーは初期値オンへ) ④サーバーから一度読んだ資産は端末(IndexedDB)にも保存して次からは取りに行かない(列は「静(端末)」)。端末の資産の一覧に「⬇」(その山だけをFile出力)。verify177
@@ -161,7 +162,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.92.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.93.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -12029,19 +12030,49 @@ function closeKashimap() {
 // ---- その場計算(デッサン05 段4・「目的点で計算」「My目的点で計算」): 静的資産を作る道具と同じ計算をワーカー(kashimap-worker.js)で行い、
 //      資産(meta・islands・outline)を端末に保存(origin=compute)して、山リストに所属「My」の行(id=tgt:緯度,経度)で載せて選択する。
 //      標高タイルはワーカーが端末の店(IndexedDB tiles)に貯める。目的点側の除外はアプリの判定と同じ(山頂部の帯・基準の標高=DEMと目的点の標高の高い方) ----
-const KM_TGT_RANGES = [24, 36, 48];            // その場計算の範囲(km四方。Q20: 辻メッシュ検索の最大[約24km四方]以上。48kmはPC向け)
-const KM_TGT_MAX_TILES = 2600;                 // 標高タイルの枚数の上限(48km四方≒2,304枚。安全弁)
+const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 700];   // その場計算の範囲(km四方。デッサン05 8段目「計算範囲リスト」。初期値60。Q20: 辻メッシュ検索の最大[約24km四方]以上)
+const KM_TGT_MAX_TILES = 4000;                 // 標高タイルの枚数の上限(60km四方のz15≒3,721枚。安全弁)
+/** 範囲ごとの窓のズーム(解像度の段): 60kmまでz15(1画素≈4m・60kmで格子2.4億画素≒メモリ0.8GB) / 100km=z14(≈8m・2,500枚) / 300km=z12(≈31m・1,444枚) / 700km=z11(≈62m・1,936枚)。
+ *  広い範囲は粗いDEM10B(dem_png)をそのズームで読む(タイルの枚数と格子の大きさを一定の範囲に収める=小→大の段階計算) */
+function _kmZoomForRange(rangeKm) { return rangeKm <= 60 ? 15 : rangeKm <= 100 ? 14 : rangeKm <= 300 ? 12 : 11; }
 let _kmWorker = null, _kmWorkerReject = null, _kmComputeBusy = false, _kmComputeCancelled = false, _kmComputeLabel = '';
-/** 窓(z15の画素格子)。ワーカーの windowGeom と同じ式(テスト用の合成標高の格子をここで作るため) */
-function _kmWindow(lat, lon, rangeKm) {
-    const WORLD = 256 * Math.pow(2, 15);
+/** 窓(ズームzoomの画素格子。既定z15)。ワーカーの windowGeom と同じ式(テスト用の合成標高の格子をここで作るため) */
+function _kmWindow(lat, lon, rangeKm, zoom) {
+    const Z = zoom || 15, WORLD = 256 * Math.pow(2, Z);
     const lonToX = (ln) => (ln + 180) / 360 * WORLD;
     const latToY = (lt) => (1 - Math.log(Math.tan(lt * Math.PI / 180) + 1 / Math.cos(lt * Math.PI / 180)) / Math.PI) / 2 * WORLD;
     const MPP = 40075016.686 * Math.cos(lat * Math.PI / 180) / WORLD;
     const halfPx = Math.ceil(rangeKm * 1000 / 2 / MPP);
     const X0 = Math.floor(lonToX(lon)) - halfPx, Y0 = Math.floor(latToY(lat)) - halfPx;
     const W = 2 * halfPx + 1;
-    return { X0, Y0, W, H: W, CX: halfPx, CY: halfPx, MPP };
+    return { Z, X0, Y0, W, H: W, CX: halfPx, CY: halfPx, MPP };
+}
+// 計算中の経過表示(ワーカーの preview=見える画素の数をセルごとに数えた縮小格子)を地図の画像ソースに描く。終わったら消す
+let _kmPreviewCanvas = null, _kmPreviewN = 0;
+function _kmPreviewDraw(m) {
+    if (!glMap || !glMap.getLayer || !glMap.getLayer('km-fill') || !m || !m.data) return;
+    _kmPreviewN++;
+    if (!_kmPreviewCanvas) _kmPreviewCanvas = document.createElement('canvas');
+    const cv = _kmPreviewCanvas; cv.width = m.pw; cv.height = m.ph;
+    const ctx = cv.getContext('2d'); const img = ctx.createImageData(m.pw, m.ph); const d = img.data;
+    for (let i = 0; i < m.data.length; i++) { const a = m.data[i]; if (!a) continue; const o = i * 4; d[o] = 255; d[o + 1] = 215; d[o + 2] = 0; d[o + 3] = Math.min(255, Math.round(a * 0.9)); }
+    ctx.putImageData(img, 0, 0);
+    const WORLD = 256 * Math.pow(2, m.zoom);
+    const ll = (x, y) => [x / WORLD * 360 - 180, Math.atan(Math.sinh(Math.PI * (1 - 2 * y / WORLD))) * 180 / Math.PI];
+    const coords = [ll(m.x0, m.y0), ll(m.x0 + m.w, m.y0), ll(m.x0 + m.w, m.y0 + m.h), ll(m.x0, m.y0 + m.h)];
+    const url = cv.toDataURL('image/png');
+    try {
+        const src = glMap.getSource('km-preview');
+        if (src) src.updateImage({ url, coordinates: coords });
+        else {
+            glMap.addSource('km-preview', { type: 'image', url, coordinates: coords });
+            glMap.addLayer({ id: 'km-preview-layer', type: 'raster', source: 'km-preview', paint: { 'raster-opacity': 0.6, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } }, 'km-fill');
+        }
+    } catch (e) { console.warn('可視マップ: 経過表示', e); }
+}
+function _kmPreviewClear() {
+    if (!glMap || !glMap.getLayer) return;
+    try { if (glMap.getLayer('km-preview-layer')) glMap.removeLayer('km-preview-layer'); if (glMap.getSource('km-preview')) glMap.removeSource('km-preview'); } catch (_) { /* 無視 */ }
 }
 function _kmTgtId(lat, lng) { return `tgt:${(+lat).toFixed(6)},${(+lng).toFixed(6)}`; }
 /** 端末の資産のうち目的点の計算(id が tgt:…)を、山リストの擬似の山(所属「My」・種別「目的点」)として _kmById に載せる/外す(端末の索引の読み直しと検索のたびに) */
@@ -12078,7 +12109,7 @@ function _kmSetComputeUi(busy, label) {
     if (prog && fill) { prog.classList.toggle('hidden', !busy); fill.style.width = '0%'; }
 }
 function _kmComputeCancel() {
-    _kmComputeCancelled = true;
+    _kmComputeCancelled = true; _kmPreviewClear();
     if (_kmWorker) { try { _kmWorker.terminate(); } catch (_) { /* 無視 */ } _kmWorker = null; }
     if (_kmWorkerReject) { const rj = _kmWorkerReject; _kmWorkerReject = null; rj(new Error('中止しました')); }
 }
@@ -12087,7 +12118,7 @@ function _kmComputeProgress(m) {
     const fill = document.getElementById('kashimap-progress-fill'), st = document.getElementById('kashimap-status');
     const frac = m.total ? Math.min(1, m.done / m.total) : 0;
     let pct = 0, text = '';
-    if (m.phase === 'tiles') { pct = 70 * frac; text = `標高タイル ${m.done.toLocaleString()}/${m.total.toLocaleString()}`; }
+    if (m.phase === 'tiles') { pct = 70 * frac; text = `標高タイル ${m.done.toLocaleString()}/${m.total.toLocaleString()}`; }   // 取得は目的点に近い順(地図の経過表示は視域計算の段から)
     else if (m.phase === 'summit') { pct = 72; text = '山頂部'; }
     else if (m.phase === 'rays') { pct = 72 + 18 * frac; text = `視域計算 ${Math.round(100 * frac)}%`; }
     else if (m.phase === 'islands') { pct = 91; text = '島'; }
@@ -12101,7 +12132,8 @@ function _kmComputeProgress(m) {
 async function _kmComputeOne(target, opts) {
     opts = opts || {};
     const sel = document.getElementById('sel-kashimap-tgt-range');
-    const rangeKm = +opts.rangeKm || +(sel && sel.value) || KM_TGT_RANGES[0];
+    const rangeKm = +opts.rangeKm || +(sel && sel.value) || 60;
+    const zoom = +opts.zoom || _kmZoomForRange(rangeKm);   // 窓のズーム(解像度の段)。opts.zoomはテスト用
     const lat = +target.lat, lon = +target.lng;
     if (!isFinite(lat) || !isFinite(lon)) throw new Error('目的点の位置がありません');
     if (!_pointInsideJapan(lat, lon)) throw new Error('目的点が日本域の外です(国土地理院の標高タイルがありません)');
@@ -12112,14 +12144,14 @@ async function _kmComputeOne(target, opts) {
     if (_kmComputeCancelled) throw new Error('中止しました');
     const peaks = list.filter(m => isFinite(+m.lat) && isFinite(+m.lon)).map(m => ({ id: String(m.id), name: m.name, elev: m.elev, lat: +m.lat, lon: +m.lon, d: _geoDistM(lat, lon, +m.lat, +m.lon) })).filter(p => p.d <= SB_SEARCH_M + 100);
     const hasElev = target.elev !== null && target.elev !== undefined && target.elev !== '' && isFinite(+target.elev);   // 標高が無い(null)時はDEMを基準にする(+null=0にしない)
-    const job = { id, name, lat, lon, elevGround: hasElev ? +target.elev : null, heightM: +target.height || 0, rangeKm,
+    const job = { id, name, lat, lon, elevGround: hasElev ? +target.elev : null, heightM: +target.height || 0, rangeKm, zoom, preview: opts.preview !== false,
         inv2R: _visInv2Reff(lat, lat), k: appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0,
         obsH: 1.5, exclTgtM: ex.tgt, exclObsM: ex.obs, bandM: ex.band, searchM: SB_SEARCH_M, upM: SB_UP_M, peaks, maxTiles: KM_TGT_MAX_TILES, returnBits: !!opts.returnBits };
     const transfer = [];
     if (typeof window._tmSyntheticElev15 === 'function') {   // テスト用の合成標高: 窓の格子をここで作ってワーカーへ渡す(標高タイルは取らない)
-        const G = _kmWindow(lat, lon, rangeKm); const grid = new Uint16Array(G.W * G.H);
+        const G = _kmWindow(lat, lon, rangeKm, zoom); const grid = new Uint16Array(G.W * G.H); const fz = Math.pow(2, 15 - zoom);   // 合成標高はz15の画素で定義(粗い窓はその倍率で参照)
         for (let y = 0; y < G.H; y++) for (let x = 0; x < G.W; x++) {
-            const e = window._tmSyntheticElev15(G.X0 + x, G.Y0 + y);
+            const e = window._tmSyntheticElev15((G.X0 + x) * fz, (G.Y0 + y) * fz);
             const c = (e === null || e === undefined || !isFinite(e)) ? 65535 : Math.round((e + 100) * 10);
             grid[y * G.W + x] = (c < 0 || c >= 65535) ? 65535 : c;
         }
@@ -12131,12 +12163,13 @@ async function _kmComputeOne(target, opts) {
         w.onmessage = (ev) => {
             const m = ev.data || {};
             if (m.type === 'progress') _kmComputeProgress(m);
+            else if (m.type === 'preview') _kmPreviewDraw(m);
             else if (m.type === 'done') ok(m);
             else if (m.type === 'error') ng(new Error(m.message || '計算に失敗しました'));
         };
         w.onerror = (e) => ng(new Error(e && e.message ? e.message : 'ワーカーの読み込みに失敗しました'));
         w.postMessage({ type: 'compute', job }, transfer);
-    }).finally(() => { if (_kmWorker === w) _kmWorker = null; _kmWorkerReject = null; try { w.terminate(); } catch (_) { /* 無視 */ } });
+    }).finally(() => { if (_kmWorker === w) _kmWorker = null; _kmWorkerReject = null; try { w.terminate(); } catch (_) { /* 無視 */ } _kmPreviewClear(); });
     const st = document.getElementById('kashimap-status'); if (st) st.textContent = '(計算中: 保存)';
     const d = await _kmStoreSave(res.meta, res.islands, res.outline, 'compute');
     _kmAssets.delete(d.key);   // 前に読んだ同じ鍵の資産があれば作り直す
