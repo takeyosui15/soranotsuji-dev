@@ -2677,6 +2677,18 @@ input[type="range"] {
 #sec-kashimap .kashimap-btn-row .nav-btn { flex: 1 1 0; min-width: 0; }
 #sec-kashimap .control-row.center-row { justify-content: center; }
 #sec-kashimap select { max-width: 55%; }
+/* 可視マップ節(第155・デッサン05の新しい画面構成): 推し山の入力は横幅いっぱい・項目が入らない段は折り返す・資産の一覧は2行1組(薄い緑の背景)・全て登録は変更があると赤い太字 */
+#sec-kashimap .km-query { flex: 1 1 auto; min-width: 0; }
+#sec-kashimap .km-wrap-row { flex-wrap: wrap; row-gap: 4px; }
+#sec-kashimap .km-pair { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }   /* チェックと文言は一緒に折り返す */
+#sec-kashimap .km-sub { font-size: 13px; }
+#sec-kashimap .km-stat-row { gap: 16px; }
+#sec-kashimap .km-store-actions { gap: 8px; }
+#kashimap-store-table tr.km-store-row td, #kashimap-store-table tr.km-store-row2 td { background: rgba(40, 140, 60, 0.22); }
+#kashimap-store-table tr.km-store-row2 td { border-bottom: 4px solid transparent; font-size: 11px; }
+#kashimap-store-table td.km-store-chk { width: 22px; vertical-align: middle; }
+#kashimap-store-table .kashimap-store-name { width: 100%; box-sizing: border-box; font-size: 12px; padding: 1px 4px; }
+#btn-kashimap-store-apply.dirty { color: #c00; font-weight: bold; border-color: #c00; }
 .kashimap-swatch { display: inline-block; width: 10px; height: 10px; border: 1px solid #222; margin-left: 4px; vertical-align: middle; }
 /* 全展望マーカー(重複数がいちばん多い縞島の代表点): 金地に赤枠の丸 */
 .kashimap-zen { width: 22px; height: 22px; border-radius: 50%; background: #ffd700; border: 2px solid #c00; color: #600; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center; box-sizing: border-box; box-shadow: 0 0 3px #000; }

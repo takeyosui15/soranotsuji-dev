@@ -25,7 +25,7 @@ const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-app
 check('V0 版数(ピンはverify179へ移譲)+Version Historyに第153(段4)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('id="kashimap-store-total"'));
 check('S1 index.html: 範囲の選択欄(24/36/48…)・「目的点で計算」「My目的点で計算」は有効・ヘルプ「その場で計算」・「準備中」の文言なし',
-  /<select id="sel-kashimap-tgt-range"[^>]*>\s*<option value="24">24km[^<]*<\/option>\s*<option value="36">36km[^<]*<\/option>\s*<option value="48">48km[^<]*<\/option>/.test(idxSrc) &&   // 第154で24〜700の7つ(初期値60)=verify179
+  /<select id="sel-kashimap-tgt-range"[^>]*>\s*<option value="24"( selected)?>24km[^<]*<\/option>\s*<option value="36">36km[^<]*<\/option>\s*<option value="48">48km[^<]*<\/option>/.test(idxSrc) &&   // 第154で24〜700の7つ(初期値60)=verify179
   /<button id="btn-kashimap-tgt" class="nav-btn main-btn" title="[^"]*">目的点で計算<\/button>/.test(idxSrc) && /<button id="btn-kashimap-mytgt" class="nav-btn main-btn" title="[^"]*">My目的点で計算<\/button>/.test(idxSrc) &&
   idxSrc.includes('<li><strong>その場で計算 (「目的点で計算」「My目的点で計算」)</strong>') && /範囲は「計算範囲リスト」の 24\/36\/48/.test(idxSrc) && !/準備中/.test(kmHtml) && !idxSrc.split('\n').some(l => /kashimap|可視マップ/.test(l) && /準備中/.test(l)));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')) && !/第1\d\dラウンド|ラウンド/.test(wkSrc.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')));
@@ -88,7 +88,7 @@ check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTa
       visible: meta.result.visible_px, data: meta.result.data_px, islands: meta.result.islands, outlineN: rec && rec.outlineObj.islands.length, holes: meta.outline.holes, verts: meta.outline.vertices,
       mode: meta.summit_mode, basis: meta.summit_area.summit_elev_basis_m, dem: meta.summit_area.summit_elev_dem_m, drop: meta.summit_area.drop_m, others: meta.summit_area.other_peaks_in_search, total: meta.summit_area.target_total_m, k: meta.k, reff: meta.reff_m, tool: meta.tool, synthetic: /synthetic/.test(meta.dem.sources),
       agree, n, bitVis, label: info && info.label, infoIslands: info && info.islands, rowText: tr && tr.textContent, checked: tr && tr.querySelector('input.kashimap-check').checked, feats: feats.length, featMid: feats.length ? feats[0].properties.mid : null,
-      markers: document.querySelectorAll('.kashimap-summit').length, storeRow: storeRow && storeRow.textContent, storeTitle: storeRow && storeRow.querySelector('td').title, status: document.getElementById('kashimap-status').textContent, busy: _kmComputeBusy, btn: document.getElementById('btn-kashimap-tgt').textContent,
+      markers: document.querySelectorAll('.kashimap-summit').length, storeRow: storeRow && (storeRow.querySelector('.kashimap-store-name').value + storeRow.nextElementSibling.textContent), storeTitle: storeRow && storeRow.querySelector('.kashimap-store-name').title, status: document.getElementById('kashimap-status').textContent, busy: _kmComputeBusy, btn: document.getElementById('btn-kashimap-tgt').textContent,
       selDisabled: document.getElementById('sel-kashimap-tgt-range').disabled, alerts: window._alerts || [] };
   });
   check('D1 目的点で計算(火口の中心・標高3776・帯オン・8km四方): ほぼ全画素が見える・島は少数・輪郭の自己検査OK・meta(基準3776/DEM3550/帯300/目的点の高さ3776/合成標高)・アプリの判定との一致97%以上・保存(origin=compute・列「動」)・山リストに「My」「目的点」の行(選択済み)・地図に描画・山頂マーカー・一覧に「計算」・UIが戻る',
@@ -96,7 +96,7 @@ check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTa
     d1.mode === 'region' && d1.basis === 3776 && d1.dem === 3550 && d1.drop === 300 && Array.isArray(d1.others) && d1.others.length === 0 && d1.total === 3776 && d1.synthetic && d1.tool === 'kashimap-worker.js' && d1.reff > 6371000 &&
     d1.n >= 100 && d1.agree >= 0.97 * d1.n && d1.id === 'tgt:35.362799,138.730781' && d1.key === d1.id + '/terrain/8' && d1.name === 'テスト富士' && d1.origin === 'compute' && Math.abs(d1.lat - 35.3627986) < 1e-5 && d1.elevRec === 3776 &&
     d1.label === '動' && d1.infoIslands === d1.islands && d1.rowText && /テスト富士/.test(d1.rowText) && /My/.test(d1.rowText) && /目的点/.test(d1.rowText) && d1.checked === true && d1.feats >= 1 && d1.featMid === d1.id && d1.markers >= 1 &&
-    d1.storeRow && /テスト富士/.test(d1.storeRow) && /8km/.test(d1.storeRow) && d1.storeTitle === '計算の資産' && d1.busy === false && d1.btn === '目的点で計算' && d1.selDisabled === false && !/計算中/.test(d1.status) && d1.alerts.length === 0, JSON.stringify(d1));
+    d1.storeRow && /テスト富士/.test(d1.storeRow) && /8km/.test(d1.storeRow) && /計算の資産/.test(d1.storeTitle) && d1.busy === false && d1.btn === '目的点で計算' && d1.selDisabled === false && !/計算中/.test(d1.status) && d1.alerts.length === 0, JSON.stringify(d1));
 
   // D2: 帯オフ(山頂部オフ)→火口の底と縁だけが見える。同じ鍵に上書き保存。答え合わせ(底・縁の標本も)
   const d2 = await p.evaluate(async () => {
@@ -131,12 +131,12 @@ check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTa
   const d3 = await p.evaluate(async () => {
     window.downloadTextFile = (n, t) => { window._dl = { n, t }; };
     const row = Array.from(document.querySelectorAll('#kashimap-store-table tbody tr')).find(t => t.dataset.key === 'tgt:35.362799,138.730781/terrain/8');
-    row.querySelector('.kashimap-store-dl').click();
+    const c = row.querySelector('.kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-dl').click();
     for (let i = 0; i < 50 && !window._dl; i++) await new Promise(r => setTimeout(r, 100));
     const o = window._dl ? JSON.parse(window._dl.t) : null;
     return { n: window._dl && window._dl.n, format: o && o.format, id: o && o.assets[0].meta.mountain.id, name: o && o.assets[0].meta.mountain.name, outlineN: o && o.assets[0].outline.islands.length, islandsN: o && o.assets[0].islands.count, v: o && o.assets[0].outline.v };
   });
-  check('D3 「⬇」でその場計算の資産をFile出力(format/資産のid=tgt:…/山名/輪郭と索引の数が揃う/outline v2)', d3.n && /テスト富士8km/.test(d3.n) && d3.format === 'soranotsuji-kashimap-assets' && d3.id === 'tgt:35.362799,138.730781' && d3.name === 'テスト富士' && d3.outlineN === d3.islandsN && d3.v === 2, JSON.stringify(d3));
+  check('D3 チェック+「⬇DL」でその場計算の資産をFile出力(format/資産のid=tgt:…/山名/輪郭と索引の数が揃う/outline v2)', d3.n && /テスト富士8km/.test(d3.n) && d3.format === 'soranotsuji-kashimap-assets' && d3.id === 'tgt:35.362799,138.730781' && d3.name === 'テスト富士' && d3.outlineN === d3.islandsN && d3.v === 2, JSON.stringify(d3));
 
   // D4: 「My目的点で計算」(今のMyセットのMy目的点2件を順に・4km四方): 山腹の点=山頂部なし(別の山「富士山」の山腹) / 構造物の高さ100m
   const d4 = await p.evaluate(async () => {
@@ -176,15 +176,15 @@ check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTa
   // D6: 「✕」でその場計算の資産を削除→山リストの行・選択・描画も消える(残り2件)
   const d6 = await p.evaluate(async () => {
     const key = 'tgt:35.362799,138.730781/terrain/8';
-    const row = Array.from(document.querySelectorAll('#kashimap-store-table tbody tr')).find(t => t.dataset.key === key);
-    row.querySelector('.kashimap-store-del').click();
+    document.querySelectorAll('#kashimap-store-table .kashimap-store-check').forEach(c => { c.checked = c.closest('tr').dataset.key === key; c.dispatchEvent(new Event('change', { bubbles: true })); });
+    document.getElementById('btn-kashimap-store-del').click();
     for (let i = 0; i < 100 && _kmDeviceIndex.has(key); i++) await new Promise(r => setTimeout(r, 100));
     await new Promise(r => setTimeout(r, 300));
     for (let i = 0; i < 50 && document.querySelector('#kashimap-content tr[data-id="tgt:35.362799,138.730781"]'); i++) await new Promise(r => setTimeout(r, 100));
     return { has: _kmDeviceIndex.has(key), byId: _kmById.has('tgt:35.362799,138.730781'), row: !!document.querySelector('#kashimap-content tr[data-id="tgt:35.362799,138.730781"]'), sel: _kmSelected.has('tgt:35.362799,138.730781'),
-      rows: document.querySelectorAll('#kashimap-content tr.td-data-row[data-id^="tgt:"]').length, nDev: _kmDeviceIndex.size, storeRows: document.querySelectorAll('#kashimap-store-table tbody tr').length };
+      rows: document.querySelectorAll('#kashimap-content tr.td-data-row[data-id^="tgt:"]').length, nDev: _kmDeviceIndex.size, storeRows: document.querySelectorAll('#kashimap-store-table tr.km-store-row').length };
   });
-  check('D6 「✕」で削除→端末の索引・擬似の山・山リストの行・選択から消える(残り2件)', d6.has === false && d6.byId === false && d6.row === false && d6.sel === false && d6.rows === 2 && d6.nDev === 2 && d6.storeRows === 2, JSON.stringify(d6));
+  check('D6 チェック+「削除」で削除→端末の索引・擬似の山・山リストの行・選択から消える(残り2件)', d6.has === false && d6.byId === false && d6.row === false && d6.sel === false && d6.rows === 2 && d6.nDev === 2 && d6.storeRows === 2, JSON.stringify(d6));
 
   check('E ページエラーなし', errs.length===0, errs.join(' | '));
   await b.close();

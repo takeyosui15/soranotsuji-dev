@@ -52,6 +52,7 @@ SUBS = [
     (r"https://cdn\.jsdelivr\.net/npm/mathjax@3/es5/tex-mml-chtml\.js", "vendor/mathjax-stub.js"),
     (r"https://cdn\.jsdelivr\.net/npm/astronomy-engine@2\.1\.19/astronomy\.browser\.min\.js", "vendor/astronomy.browser.min.js"),
     (r"https://cdn\.jsdelivr\.net/npm/three@0\.160\.0/build/three\.min\.js", "vendor/three.min.js"),
+    (r"https://cdn\.jsdelivr\.net/npm/three@0\.160\.0/build/three\.module\.min\.js", "./vendor/three.module.min.js"),   # ES Modulesのimportは相対参照(./)が要る
     (r"https://unpkg\.com/maplibre-gl@4\.7\.1/dist/maplibre-gl\.css", "vendor/maplibre-gl.css"),
     (r"https://unpkg\.com/maplibre-gl@4\.7\.1/dist/maplibre-gl\.js", "vendor/maplibre-gl.js"),
     (r"https://cdn\.jsdelivr\.net/npm/qrcode-generator@1\.4\.4/qrcode\.min\.js", "vendor/qrcode.min.js"),
@@ -94,6 +95,7 @@ NEED = {
     'maplibre-gl.css': 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',
     'astronomy.browser.min.js': 'https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js',
     'three.min.js':    'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
+    'three.module.min.js': 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js',
     'geographiclib-geodesic.min.js': 'https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js',
     'geographiclib-dms.min.js':      'https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js',
     'qrcode.min.js': 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js',

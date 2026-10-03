@@ -21,8 +21,8 @@ const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.j
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
 check('V0 版数(ピンはverify177へ移譲)+Version Historyに第151', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第151ラウンド — 可視マップの資産のFile出力/File読込') || !!process.argv[2]));
-check('S1 index.html: File出力(資産)/File読込/読込input・端末に保存した資産の一覧(表・合計・全て削除・標高タイル削除)・PC向けの注記(節とコントロール)・ヘルプ(静/静(端末)/動・端末に保存した資産・PC向け)',
-  ['btn-kashimap-export','btn-kashimap-import','input-kashimap-import','kashimap-store','kashimap-store-empty','kashimap-store-table','kashimap-store-total','btn-kashimap-store-clear','btn-kashimap-tiles-clear','kashimap-tiles-size'].every(id => idxSrc.includes(`id="${id}"`)) &&
+check('S1 index.html: File出力(資産)/File読込/読込input・端末に保存した資産の一覧(表・合計・一括選択/⬇DL/削除[第155で全て削除から]・標高タイル全削除)・PC向けの注記(節とコントロール)・ヘルプ(静/静(端末)/動・端末に保存した資産・PC向け)',
+  ['btn-kashimap-export','btn-kashimap-import','input-kashimap-import','kashimap-store','kashimap-store-empty','kashimap-store-table','kashimap-store-total','btn-kashimap-store-selall','btn-kashimap-store-dl','btn-kashimap-store-del','btn-kashimap-tiles-clear','kashimap-tiles-size'].every(id => idxSrc.includes(`id="${id}"`)) &&
   (idxSrc.match(/この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。/g) || []).length >= 2 &&
   !/title="山リストと島リスト\(縞島を含む\)をCSV/.test(idxSrc) && idxSrc.includes('「静(端末)」=サーバーの資産を端末にも保存済み') && idxSrc.includes('<strong>端末に保存した資産</strong>') && idxSrc.includes('<strong>PC向けの機能です</strong>'));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
@@ -55,7 +55,7 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
   await p.waitForFunction(() => document.querySelectorAll('#kashimap-content tr.td-data-row').length > 0, {timeout: 10000});
   const st0 = await storeState();
   const k1 = await p.evaluate(() => ({ f: _kmIndexInfo('368'), a: _kmIndexInfo('369'), cellF: Array.from(document.querySelector('#kashimap-content tr[data-id="368"]').children).slice(11).map(td => td.textContent), cellA: Array.from(document.querySelector('#kashimap-content tr[data-id="369"]').children).slice(11).map(td => td.textContent) }));
-  check('K1 端末の資産なし(一覧は空・合計0)・富士山=静(サーバー)・愛鷹山=資産なし', st0.empty && st0.n === 0 && /合計: 0\.0 MB\(0件\)/.test(st0.total) && k1.f && k1.f.label === '静' && k1.f.src === 'server' && k1.a === null && k1.cellF.join() === '10,129,静' && k1.cellA.join() === '—,', JSON.stringify({ st0, k1 }));
+  check('K1 端末の資産なし(一覧は空・合計0)・富士山=静(サーバー)・愛鷹山=資産なし', st0.empty && st0.n === 0 && st0.total === '0.0 MB' && k1.f && k1.f.label === '静' && k1.f.src === 'server' && k1.a === null && k1.cellF.join() === '10,129,静' && k1.cellA.join() === '—,', JSON.stringify({ st0, k1 }));
 
   // K2: File読込(=_kmImportText)で愛鷹山(369)の資産を作って取り込む(毛無山の資産を元にした検査用)→一覧・列・端末から描画
   const k2 = await p.evaluate(async () => {
@@ -70,10 +70,10 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
   await selectMountain('369', true);
   await p.waitForFunction(() => _kmShown.has('369') && _kmIslandRows.length > 0, {timeout: 60000});
   const k2b = await p.evaluate(() => ({ src: _kmShown.get('369').src, range: _kmShown.get('369').range, note: document.getElementById('kashimap-detail-note').textContent, feats: glMap.getSource('km-islands')._data.features.length, radios: Array.from(document.querySelectorAll('input[name="kashimap-range"]')).map(e => e.value + (e.disabled ? 'x' : 'o')).join(',') }));
-  check('K2 File読込→端末に保存(一覧に愛鷹山 20km 樹冠なし 島919 サイズ)・山リストは島の数919/「動」・選ぶと端末の資産から描画(注記に「端末の資産: 愛鷹山」・範囲60が選べる)',
+  check('K2 File読込→端末に保存(一覧に愛鷹山 20km 樹冠なし 島919 サイズ)・山リストは島の数919/「動」・選ぶと端末の資産から描画(注記に「端末の資産: 愛鷹山」・範囲100が選べる[第155])',
     k2.done.length === 1 && k2.done[0].name === '愛鷹山' && k2.done[0].islands === 919 && k2.done[0].size > 100000 && k2.info && k2.info.label === '動' && k2.info.src === 'device' && k2.info.islands === 919 && k2.cell.join() === '919,動' &&
-    !st1.empty && st1.n === 1 && st1.rows.length === 1 && st1.rows[0].key === '369/terrain/20' && st1.rows[0].c[0] === '愛鷹山' && st1.rows[0].c[1] === '20km' && st1.rows[0].c[2] === 'なし' && st1.rows[0].c[3] === '919' && /MB/.test(st1.rows[0].c[4]) && /合計: [0-9.]+ MB\(1件\)/.test(st1.total) &&
-    k2b.src === 'device' && k2b.range === 20 && k2b.note.includes('端末の資産: 愛鷹山') && k2b.feats === 919 && k2b.radios === '60o,100x,300x,700x', JSON.stringify({ k2, st1, k2b }));
+    !st1.empty && st1.n === 1 && st1.rows.length === 2 && st1.rows[0].key === '369/terrain/20' && st1.rows[1].key === '369/terrain/20' && st1.rows[1].c[0] === '20km' && st1.rows[1].c[1] === '樹冠-' && st1.rows[1].c[2] === '構造物-' && st1.rows[1].c[3] === '島919' && /MB/.test(st1.rows[1].c[4]) && /^[0-9.]+ MB$/.test(st1.total) &&   // 第155: 2行1組(1行目=チェック+目的点名の入力)・合計はMBだけ
+    k2b.src === 'device' && k2b.range === 20 && k2b.note.includes('端末の資産: 愛鷹山') && k2b.feats === 919 && /^100o\*?,300x,700x$/.test(k2b.radios), JSON.stringify({ k2, st1, k2b }));
 
   // K3: 同じ資産がサーバーと端末の両方(毛無山)→「静/動」・端末を優先(キャッシュは捨てて読み直す)
   const k3 = await p.evaluate(async () => {
@@ -92,21 +92,21 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
     return got && { n: got.n, m: got.m, format: got.obj.format, ids: got.obj.assets.map(a => a.meta.mountain.id).sort(), ok: got.obj.assets.every(a => a.meta && a.islands && a.outline && a.outline.islands.length === a.islands.islands.length) }; });
   check('K4 File出力: soranotsuji-可視マップ資産-*.json(application/json)・format・選んだ2山の資産(meta/islands/outlineが揃い島の数が一致)', k4 && /^soranotsuji-可視マップ資産-.+\.json$/.test(k4.n) && /json/.test(k4.m) && k4.format === 'soranotsuji-kashimap-assets' && k4.ids.join() === '368,369' && k4.ok, JSON.stringify(k4));
 
-  // K5: 一覧の✕で個別削除→山リストは資産なしに戻り、描画からも外れる
-  await p.evaluate(() => { document.querySelector('#kashimap-store-table tr[data-key="369/terrain/20"] .kashimap-store-del').click(); });
+  // K5: 一覧のチェック+「削除」で個別削除(第155: 行の✕から)→山リストは資産なしに戻り、描画からも外れる
+  await p.evaluate(() => { const c = document.querySelector('#kashimap-store-table tr[data-key="369/terrain/20"] .kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-del').click(); });
   await p.waitForFunction(() => !_kmDeviceIndex.has('369/terrain/20') && !_kmShown.has('369'), {timeout: 30000});
   const st2 = await storeState();
   const k5 = await p.evaluate(() => ({ info369: _kmIndexInfo('369'), cell: Array.from(document.querySelector('#kashimap-content tr[data-id="369"]').children).slice(11).map(td => td.textContent), shown: [..._kmShown.keys()], info370: _kmIndexInfo('370') && _kmIndexInfo('370').label }));
-  check('K5 ✕で愛鷹山の資産を削除→一覧から消え(毛無山は残る。富士山はサーバー由来で保存済み)・愛鷹山は資産なし(—)・描画から外れる・毛無山は静(端末)のまま', !st2.rows.some(r => r.key === '369/terrain/20') && st2.rows.some(r => r.key === '370/terrain/20') && k5.info369 === null && k5.cell.join() === '—,' && k5.shown.join() === '368' && k5.info370 === '静(端末)', JSON.stringify({ st2, k5 }));
+  check('K5 チェック+削除で愛鷹山の資産を削除→一覧から消え(毛無山は残る。富士山はサーバー由来で保存済み)・愛鷹山は資産なし(—)・描画から外れる・毛無山は静(端末)のまま', !st2.rows.some(r => r.key === '369/terrain/20') && st2.rows.some(r => r.key === '370/terrain/20') && k5.info369 === null && k5.cell.join() === '—,' && k5.shown.join() === '368' && k5.info370 === '静(端末)', JSON.stringify({ st2, k5 }));
 
-  // K6: 資産を全て削除・標高タイルを削除(0MB)・読めないファイルはエラー文
-  await jsClick('btn-kashimap-store-clear');
+  // K6: 一括選択+削除で資産を全て削除(第155: 「資産を全て削除」から)・標高タイルを全削除(0MB)・読めないファイルはエラー文
+  await p.evaluate(() => { document.getElementById('btn-kashimap-store-selall').click(); document.getElementById('btn-kashimap-store-del').click(); });
   await p.waitForFunction(() => _kmDeviceIndex.size === 0, {timeout: 30000});
   await jsClick('btn-kashimap-tiles-clear');
   await p.waitForTimeout(400);
   const st3 = await storeState();
   const k6 = await p.evaluate(async () => { let err = null; try { await _kmImportText('{"hello":1}'); } catch (e) { err = e.message; } return { err, info370: _kmIndexInfo('370').label }; });
-  check('K6 資産を全て削除→空・合計0・毛無山は「静」に戻る / 標高タイルを削除(0.0 MB) / 資産でないJSONはエラー', st3.empty && st3.n === 0 && /\(0件\)/.test(st3.total) && st3.tiles === '(0.0 MB)' && k6.info370 === '静' && /資産のファイルではありません/.test(k6.err), JSON.stringify({ st3, k6 }));
+  check('K6 資産を全て削除→空・合計0・毛無山は「静」に戻る / 標高タイルを削除(0.0 MB) / 資産でないJSONはエラー', st3.empty && st3.n === 0 && st3.total === '0.0 MB' && st3.tiles === '0.0 MB' && k6.info370 === '静' && /資産のファイルではありません/.test(k6.err), JSON.stringify({ st3, k6 }));
 
   check('E ページエラーなし', errs.length===0, errs.join(' | '));
   await b.close();
