@@ -18,13 +18,14 @@
 //         returnBits?(見える/見えないの1bit列も返す), preview?(経過表示を送る。既定true) }
 'use strict';
 
-const NODATA = 65535;                 // Uint16格子の「データ無し」。値=round((標高+100)×10)(0.1m刻み・−100m〜)
-const TILE_URL = (kind, z, x, y) => `https://cyberjapandata.gsi.go.jp/xyz/${kind}/${z}/${x}/${y}.png`;
+importScripts('sora-constants.js');   // 数の単一情報源(地球・標高タイルの符号・日本域・1画素の長さ・既定値)。本体・道具と同じ値
+const NODATA = SORA.DEM.GRID_NODATA;  // Uint16格子の「データ無し」。値=round((標高+100)×10)(0.1m刻み・−100m〜)
+const TILE_URL = (kind, z, x, y) => `${SORA.DEM.GSI_TILE_BASE}${kind}/${z}/${x}/${y}.png`;
 const FETCH_TIMEOUT_MS = 15000;       // 1枚の取得の上限(応答が返らない接続で永久待ちにならないように)
 const FETCH_CONCURRENCY = 4;          // 同時に取る枚数(地図タイルの読み込みを邪魔しないよう控えめに)
 const FETCH_RETRIES = 3;              // 1枚あたりの試行回数(通信の失敗・5xx・429は間を置いてやり直す)
 const MAX_NET_ERRORS = 30;            // 取得の失敗(再試行の後も)がこれだけ続いたら中止(安全弁)
-const GSI_BBOX = { latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 };   // 地理院のDEMは日本域のみ(アプリと同じ範囲)
+const GSI_BBOX = SORA.DEM.JAPAN_BBOX;   // 地理院のDEMは日本域のみ(アプリと同じ範囲。値は sora-constants.js)
 const PREVIEW_MAX = 512;              // 経過表示の格子の一辺(画素)
 /** 大きな配列の確保(第156): Chromeは1本のArrayBufferを約2GB(2^31−2MiB)までしか確保できず、700kmのz13の格子(Uint16・約4.0GB)は new Uint16Array で RangeError になる。
  *  失敗したら WebAssembly.Memory(最大4GiB=65,536ページ。ページ割り当て器で確保されるので上の上限に掛からない)の上に同じ型の配列を作る。forceWasm はテスト用 */
@@ -50,7 +51,7 @@ function windowGeom(lat, lon, rangeKm, Z) {
     const WORLD = 256 * Math.pow(2, Z);
     const lonToX = (ln) => (ln + 180) / 360 * WORLD;
     const latToY = (lt) => (1 - Math.log(Math.tan(lt * Math.PI / 180) + 1 / Math.cos(lt * Math.PI / 180)) / Math.PI) / 2 * WORLD;
-    const MPP = 40075016.686 * Math.cos(lat * Math.PI / 180) / WORLD;   // 中心緯度での1画素(m)。窓の中で少し変わる(48km四方で約±0.4%)
+    const MPP = SORA.metersPerPixel(lat, Z);   // 中心緯度での1画素(m)。窓の中で少し変わる(48km四方で約±0.4%)。式は sora-constants.js(本体の _kmWindow と同じ)
     const halfPx = Math.ceil(rangeKm * 1000 / 2 / MPP);
     const X0 = Math.floor(lonToX(lon)) - halfPx, Y0 = Math.floor(latToY(lat)) - halfPx;
     const W = 2 * halfPx + 1;
@@ -152,9 +153,9 @@ function decodeElevInto(grid, G, png, tx, ty, zt, clip) {
         for (let px = 0; px < w; px++) {
             const gx0 = originX + px * scale; if (gx0 + scale - 1 < cx0 || gx0 > cx1) continue;
             const o = (py * w + px) * 4; let v = (data[o] << 16) | (data[o + 1] << 8) | data[o + 2];
-            if (v === 0x800000) continue;
-            if (v > 0x800000) v -= 0x1000000;
-            const code = Math.round((v * 0.01 + 100) * 10);
+            if (v === SORA.DEM.GSI_INVALID_CODE) continue;
+            if (v > SORA.DEM.GSI_INVALID_CODE) v -= SORA.DEM.GSI_CODE_WRAP;
+            const code = Math.round((v * SORA.DEM.GSI_UNIT_M + SORA.DEM.GRID_OFFSET_M) * SORA.DEM.GRID_SCALE);
             if (code < 0 || code >= NODATA) continue;
             for (let sy = 0; sy < scale; sy++) {
                 const gy = gy0 + sy; if (gy < cy0 || gy > cy1) continue;
@@ -470,7 +471,7 @@ async function compute(job) {
     const heightM = isFinite(+job.heightM) ? +job.heightM : 0;
     const hS = (gElev !== null ? gElev : band.hDem) + heightM;   // 光線の目的点の高さ=目的点の標高+構造物の高さ(アプリの判定の目的点の高さと同じ)
     const inv2R = +job.inv2R;
-    const exclTgtM = isFinite(+job.exclTgtM) ? +job.exclTgtM : 15, exclObsM = isFinite(+job.exclObsM) ? +job.exclObsM : 10, obsH = isFinite(+job.obsH) ? +job.obsH : 1.5;
+    const exclTgtM = isFinite(+job.exclTgtM) ? +job.exclTgtM : SORA.VISIBILITY.EXCLUDE_TARGET_M, exclObsM = isFinite(+job.exclObsM) ? +job.exclObsM : SORA.VISIBILITY.EXCLUDE_OBSERVER_M, obsH = isFinite(+job.obsH) ? +job.obsH : SORA.OBSERVER.EYE_HEIGHT_M;   // 既定値は sora-constants.js(本体は常に明示して渡す)
     const { visible, nVis, rays } = computeViewshed(grid, G, hS, inv2R, obsH, exclTgtM, exclObsM, band, job.preview !== false);
     const t2 = now();
     post('islands', 0, 1);
@@ -500,7 +501,7 @@ async function compute(job) {
     const k = isFinite(+job.k) ? +job.k : null;
     const srcText = st.synthetic ? 'synthetic(テスト用の合成標高)' : (Z >= 15 ? 'cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)。画素ごとに無い所を次の源で埋める。端末の店(IndexedDB tiles)を優先' : `cyberjapandata.gsi.go.jp dem_png(z${Z}, DEM10B)。端末の店(IndexedDB tiles)を優先`);
     const meta = { tool: 'kashimap-worker.js', version: 2, generated: new Date().toISOString(), mountain,
-        range_km: job.rangeKm, zoom: Z, canopy: false, buildings: false, observer_h_m: obsH, k, earth_radius_m: 6371000, reff_m: +(1 / (2 * inv2R)).toFixed(1),
+        range_km: job.rangeKm, zoom: Z, canopy: false, buildings: false, observer_h_m: obsH, k, earth_radius_m: (k !== null ? +((1 - k) / (2 * inv2R)).toFixed(1) : null), reff_m: +(1 / (2 * inv2R)).toFixed(1),   // earth_radius_m=実際に使った局所半径(=(1−k)·Reff)
         summit_mode: band.none ? (band.off ? 'off' : 'none') : 'region',
         summit_area: { drop_m: band.none ? 0 : band.dropUsed, drop_requested_m: job.bandM || 0, search_m: job.searchM || 3000, px: band.none ? 0 : band.px, far_m: band.none ? 0 : band.farM,
             other_peaks_in_search: band.none ? [] : band.others, shrunk_by: band.none ? null : band.shrunkBy, none_reason: band.none ? band.reason : null,

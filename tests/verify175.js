@@ -82,11 +82,12 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   await jsClick('btn-kashimap');
   await p.waitForFunction(() => document.querySelectorAll('#kashimap-content tr.td-data-row').length > 0, {timeout: 10000});
   const k1 = await p.evaluate(() => { const g = id => { const tr = document.querySelector(`#kashimap-content tr[data-id="${id}"]`); return tr ? [tr.children[11].textContent, tr.children[12].textContent] : null; }; return { f: g('368'), k: g('370'), r: g('5'), heads: Array.from(document.querySelectorAll('#kashimap-content th')).map(th => th.textContent.replace(/[▲▼]/g, '')) }; });
-  check('K1 山リストに「島の数」「静的/動的」列: 富士山=索引の島数/静・毛無山=索引の島数/静・羅臼岳=—/空', k1.f && k1.f[0] === fujiN.toLocaleString() && k1.f[1] === '静' && k1.k && k1.k[0] === kenashiN.toLocaleString() && k1.k[1] === '静' && k1.r && k1.r[0] === '—' && k1.r[1] === '' && k1.heads.slice(-6).join() === '島の数,静的/動的,範囲,樹冠,構造物,サイズ', JSON.stringify(k1));   // 第156: 範囲・樹冠・構造物・サイズの列
+  check('K1 山リストに「島の数」「静的/動的」列: 富士山=索引の島数/静・毛無山=索引の島数/静・羅臼岳=—/空', k1.f && k1.f[0] === fujiN.toLocaleString() && k1.f[1] === '静' && k1.k && k1.k[0] === kenashiN.toLocaleString() && k1.k[1] === '静' && k1.r && k1.r[0] === '—' && k1.r[1] === '' && k1.heads.slice(-7).join() === '島の数,静的/動的,範囲,樹冠,構造物,ズーム,サイズ', JSON.stringify(k1));   // 第156: 範囲・樹冠・構造物・サイズの列 / 第157: ズーム
 
   // K2: 富士山を選ぶ→資産を読んで島の輪郭/塗り・島リスト
   await selectMountain('368', true);
   await p.waitForFunction(() => _kmShown.size === 1 && _kmIslandRows.length > 0, {timeout: 60000});
+  await p.waitForFunction(() => !/描画中/.test(document.getElementById('kashimap-detail-title').textContent), {timeout: 60000});   // 第157: 島リストは分割描画(進捗つき)。描き終わるまで待つ
   await p.waitForTimeout(300);
   const maxIsl = fujiIslands.slice().sort((a, b) => b.px - a.px)[0];
   const k2 = await p.evaluate(() => ({ feats: glMap.getSource('km-islands')._data.features.length, fill: glMap.getLayoutProperty('km-fill', 'visibility'), line: glMap.getLayoutProperty('km-line', 'visibility'),

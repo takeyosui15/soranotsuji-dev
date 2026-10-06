@@ -39,25 +39,15 @@ if (!A) {
     self.postMessage({ error: 'Astronomy engine failed to load in DP line worker.' });
 }
 
-// WGS84 楕円体パラメータ
-const WGS84_A = 6378137;          // 赤道半径 (semi-major)
-const WGS84_B = 6356752.3142;     // 極半径 (semi-minor)
-const WGS84_F = 1 / 298.257223563; // 扁平率
+importScripts('sora-constants.js');   // 数の単一情報源(WGS84・局所半径)。本体と同じ値・同じ式
+// WGS84 楕円体パラメータ(値は sora-constants.js)
+const WGS84_A = SORA.EARTH.WGS84_SEMI_MAJOR_M;   // 赤道半径 (semi-major)
+const WGS84_B = SORA.EARTH.WGS84_SEMI_MINOR_M;   // 極半径 (semi-minor)
+const WGS84_F = SORA.EARTH.WGS84_FLATTENING;     // 扁平率
 
 /** 観測点緯度における WGS84 楕円体上の地心距離 (geocentric radius)
  *  ρ(φ) = sqrt[((a²cosφ)² + (b²sinφ)²) / ((a cosφ)² + (b sinφ)²)] */
-function getLocalEarthRadius(latDeg) {
-    const lat = latDeg * Math.PI / 180;
-    const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
-    const a2cos = WGS84_A * WGS84_A * cosLat;
-    const b2sin = WGS84_B * WGS84_B * sinLat;
-    const acos = WGS84_A * cosLat;
-    const bsin = WGS84_B * sinLat;
-    return Math.sqrt(
-        (a2cos * a2cos + b2sin * b2sin) /
-        (acos * acos + bsin * bsin)
-    );
-}
+function getLocalEarthRadius(latDeg) { return SORA.getLocalEarthRadius(latDeg); }   // 式は sora-constants.js(本体と同じ関数)
 
 /** 観測者高 hObs / ターゲット高 hTarget のとき、観測高度 altObs に見える距離。
  *  有効地球半径モデル: 気差で光路が曲がる効果を「Reff = R/(1-k) に膨らんだ地球」

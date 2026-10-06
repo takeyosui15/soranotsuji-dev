@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.96.0 - 2026-10-07: refactor/feat: 第157ラウンド — 数の単一情報源 sora-constants.js(地球の大きさ・大気差・観測者・標高タイル・可視判定の既定値と、気差係数の式・局所半径・ハバーサイン・1画素の長さ・大円の補間。本体はscriptタグ、ワーカーはimportScripts、道具はrequireで同じ値を読む=1箇所を直すと他も直る)。気差係数は「設定に表示されている値」で全処理が計算(refractionKInUse: 大気差補正オフ=測量標準0.132、オン=気象条件から算出。標高グラフ・辻検索/My辻・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火の8箇所の『オフ=0』を1つに)。統一可視判定(標高グラフ・辻検索・辻メッシュのワーカー)も可視マップと同じ3つに=経路を大円に(区間ごとに球面補間)・海(データ無し)は海面0mで遮る(日本域)・K。山リストに「ズーム」列(z15(1画素≈4m・DEM5A/5B/5C)など。索引index.jsonにzooms・端末の索引にzoom[無ければ資産の計算条件から補う])。最大表示範囲より広い資産しか無い山は範囲に▲を付けて示し、選ぶと表示範囲を繰り上げる(「:端末保存」で列が空だった件)。島リストは4,000行ずつ描き、残りは進捗(描画中 n/N)を出しながら続ける(富士山700kmの4万行)。可視マップ節: 「可視タイル:」の上に水平線・「範囲を計算」の下に剣ヶ峯の注記(依頼者起草)。verify182。差分のレビューで直した: 基準視高度の自動算出の鍵にK(気差係数を切り替えると再計算・URL復元は気象値の後で鍵を取り直す)・宙の窓の陰影の鍵にK・古い形式のバックアップ取り込みで設定の大気差の部品を同期(syncRefractionUiFromState)・辻メッシュの帯域分割もPATH_CHUNK・端末の資産の再利用はKが同じ時だけ・道具の答え合わせ(judgeLikeApp)も大円+海面0m
 Version 1.95.0 - 2026-10-06: feat/fix: 第156ラウンド — 可視マップ節をデッサン05の改訂版に(依頼者): ①段組み=検索条件:/山リスト:(+:端末保存)/最大表示範囲:/障害物オプション:→「計算済み可視マップを検索」→注記→水平線→「:目的点/:My目的点」ラジオ+計算範囲リスト(500を外し24〜700)+「:精細」「:最高精細(700kmをz13。約31,000枚・20億画素・PC向け。格子約4GBはChromeの1本2GBの壁を避けてWebAssembly.Memoryの上に)」+「範囲を計算」→水平線→可視タイル/山頂マーカー・全展望マーカー→水平線→標高タイル(件数/容量・注記「可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。」・全削除は横幅いっぱい)→可視タイル(件数/容量・一括選択/一括解除トグル=Myセットと同じ黄色・⬇DL/削除/全て登録の三等分・全て登録はMy観測点と同じ赤太字) ②資産の一覧は3行1組(チェック段抜き+目的点名[入力欄の文字はMy観測点と同じ16px] / 範囲・樹冠・構造物 / 島数・サイズ。背景色なし・水平線で区切る) ③山リストに「範囲」「樹冠」「構造物」「サイズ」列(検索条件で選ばれる資産。サーバーの索引にsizes) ④直し: 目的点で計算した島の点滅(鍵「tgt:lat,lon:項番」を最後の「:」で切る)・島リストは全件表示(3,000件の上限を撤廃)・標高タイルの上限8,000→9,500枚・計算前に端末の同じ範囲の資産を探して使う(確認付き。構造物など山リストに無い目的点向け) ⑤気差係数: 可視マップのその場計算は大気差補正オフでも測量標準k=0.132で計算(静的資産と同じ。オンなら設定の値)。気温減率の既定値を0.0065→0.0125(K=0.169→0.132=測量標準。保存済みの値が旧既定のままなら新既定へ) ⑥辻ライン: 線の端を境界(見かけ高度の下限または400km)の時刻へ二分で詰めて揃える(1分刻みの365では端が270〜365kmとまちまちだった)。辻ライン365も400km。verify181
 Version 1.94.0 - 2026-10-03: feat/fix: 第155ラウンド — 可視マップ節の新しい画面構成(デッサン05・依頼者)と、700kmの表示の直し・辻ライン400km・可視フィルタ: ①可視マップ節=推し山の入力(ラベル無し・横幅いっぱい・150字)→AND/OR→百/二百/三百→百高/その他→表示範囲ラジオ100/300/700(60kmを外す・初期値100)→「:樹冠」「:構造物」(別のチェック。資産の種類 terrain/canopy/building/canopy-building を優先順で選ぶ)→検索→「目的点で計算」「My目的点で計算」→計算範囲リスト24〜700(500kmを追加・初期値24)+「:精細(300km以上を1段細かく)」(300km=z13≈15m・700km=z12≈31m。PC向け)→可視タイル/山頂/全展望→注記→端末に保存した資産=標高タイルの件数/容量と「標高タイルを全削除」・可視タイル(資産)の件数/容量と「一括選択」「⬇DL」「削除」「全て登録」・資産ごとに2行(チェック+目的点名の入力欄[150字・空で離れると元に戻る・変更で「全て登録」が赤い太字]/範囲・樹冠・構造物・島数・サイズ)。コントロールも同じ(範囲3つ・樹冠/構造物) ②700kmを計算しても表示範囲が60kmのままで60kmの資産が選ばれていた→計算した範囲まで表示範囲を広げる ③その場計算の後に地図タイル(ラスタ)のソースを読み直す(計算中に取りこぼして縮尺違いのまま残る「マダラ」) ④辻ラインの長さ300km→400km(依頼者: 富士山が見えた最遠が300km台) ⑤辻検索/辻メッシュ/My辻検索の「標高フィルタ」を「可視フィルタ」に改名(表示文言と状況表示。My辻リストCSVの列名は互換のため据え置き)+「:樹冠」「:構造物」のチェック(資産ができるまで無効) ⑥three.jsをES Modules版(three.module.min.js)で読み込む(非推奨の警告を消す)。verify180
 Version 1.93.0 - 2026-10-01: fix/feat: 第154ラウンド — その場計算の「タイルの継ぎ目の模様」の直しと、計算範囲リスト24〜700km・経過表示(依頼者の報告と設計変更): ①槍ヶ岳48kmで出た縦横の継ぎ目=標高タイル1枚の中の無効画素(DEM5Aの測量範囲の縁)を次の源(5B/5C/10B)で埋めておらず、タイルの形の穴(データ無し=見えない)が残っていた(道具で再現: 2,500枚中、データ画素96.4%)。ワーカーと道具を「画素ごとに無い所を次の源で埋める」に ②取得は同時4本・3回まで再試行(通信の失敗・5xx・429)・地図タイルより低い優先度(priority:low)・目的点に近い順 ③計算範囲リスト(デッサン05 8段目)24/36/48/60/100/300/700km四方(初期値60)。範囲で窓の解像度を変える(60kmまでz15≈4m・100km=z14≈8m・300km=z12≈31m・700km=z11≈62m。粗い範囲はDEM10Bをそのズームで読む=小→大の段階計算。枚数の上限4,000) ④計算中の経過表示: 見える画素の広がりを縮小した格子で地図に薄い金で描き(光線が一周するにつれて埋まる)、輪郭ができたら消す ⑤可視マップ節の整列(デッサン05の段組み: 範囲ラジオ→検索→「目的点で計算」「My目的点で計算」を1段→計算範囲リスト→チェック2段。チェックの文言は折り返さない・下のボタンは1段ずつ)・「:樹冠あり」→「:樹冠・構造物あり」。verify179
@@ -164,7 +165,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.95.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.96.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -198,13 +199,13 @@ async function loadMuniData() {
     muniData = await resp.json();
     return muniData;
 }
-const EARTH_RADIUS = 6378137;
-const REFRACTION_K = 0.132; // 大気差補正定数: 0.132
-// 標準大気モデルの定数
-const STD_P = 1013.25;  // 標準気圧 (hPa)
-const STD_T = 15.0;     // 標準気温 (°C)
-const STD_L = 0.0125;   // 既定の気温減率 Γ (K/m) 正値。0.0125=測量標準(K=0.132になる。第156・依頼者: 富士山ココとの答え合わせ)。0.0065は国際標準大気(K≒0.169)
-const STD_L_OLD = 0.0065;   // 旧既定値(v1.94.0まで)。保存データの移行判定に使う
+// 数の単一情報源は sora-constants.js(SORA)。ここは本体の中で使ってきた名前を SORA の値に結びつけるだけ(値はここに書かない)
+const EARTH_RADIUS = SORA.EARTH.WGS84_SEMI_MAJOR_M;   // 注意: 名前は「地球半径」だが値は赤道半径a。航程線の終点(getDestinationRhumb)・球面の終点(_smDestPoint)・建物タイルの半径で球の半径として使っている(0.1%長い。直すなら数値が動くので別途)
+const REFRACTION_K = SORA.REFRACTION.K_STANDARD;      // 測量標準の気差係数0.132。大気差補正オフの時に使う(refractionKInUse)
+const STD_P = SORA.REFRACTION.STD_PRESSURE_HPA;       // 標準気圧 (hPa)
+const STD_T = SORA.REFRACTION.STD_TEMPERATURE_C;      // 標準気温 (°C)
+const STD_L = SORA.REFRACTION.STD_LAPSE_RATE_K_PER_M; // 既定の気温減率 Γ (K/m)。0.0125=測量標準(K=0.132になる)
+const STD_L_OLD = SORA.REFRACTION.ISA_LAPSE_RATE_K_PER_M;   // 旧既定値(国際標準大気0.0065)。保存データの移行判定に使う
 
 const POLARIS_RA = 2.530304;
 const POLARIS_DEC = 89.264109;
@@ -465,10 +466,10 @@ const APP_DEFAULTS = {
     mwShowConstNames: { def: false, bool: 'coerce' },
     mwConstNameSort: { def: 'aiueo', enum: ['aiueo', 'pos'] },   // 50音順 / 座標順
     elevExcludeEnabled: { def: true, bool: 'nf' },
-    elevExcludeRadius: { def: 15, min: 0, max: 10000 },   // 目的点側: 自己遮蔽+鋭峰の写り込みを吸収する既定15m
-    elevExcludeObsRadius: { def: 10, min: 0, max: 10000 },// 観測点側: 自己遮蔽を吸収しつつ足元の実在遮蔽を無視しすぎない既定10m
+    elevExcludeRadius: { def: SORA.VISIBILITY.EXCLUDE_TARGET_M, min: 0, max: 10000 },   // 目的点側: 自己遮蔽+鋭峰の写り込みを吸収する既定15m
+    elevExcludeObsRadius: { def: SORA.VISIBILITY.EXCLUDE_OBSERVER_M, min: 0, max: 10000 },// 観測点側: 自己遮蔽を吸収しつつ足元の実在遮蔽を無視しすぎない既定10m
     elevSummitBandEnabled: { def: true, bool: 'nf' },     // 山頂部(第152・Q25): 目的点の山頂部(帯)の地形を遮蔽に数えない
-    elevSummitBandM: { def: 300, min: 0, max: 2000 },     // 山頂部の帯の高さ(m)。既定300=山頂の肩まで(第151・依頼者決定。可視マップの静的資産と同じ)
+    elevSummitBandM: { def: SORA.VISIBILITY.SUMMIT_BAND_M, min: 0, max: 2000 },     // 山頂部の帯の高さ(m)。既定300=山頂の肩まで(第151・依頼者決定。可視マップの静的資産と同じ)
     // ---- 辻検索 ----
     tsujiSearchBaseAz: { def: 0 },
     tsujiSearchOffsetAz: { def: 0 },
@@ -893,13 +894,7 @@ const mapAdapter = {
 // Leaflet CRS.Earth.distance互換のHaversine距離(m)。R=6371000。
 // 手順4のLeaflet撤去にあたり、L.latLng().distanceTo()を使っていた箇所の数値を変えないため
 // 同じ式・同じ半径で置き換える(可視判定・検索条件表示などで従来値と一致させる)
-function _geoDistM(lat1, lng1, lat2, lng2) {
-    const rad = Math.PI / 180, R = 6371000;
-    const sinDLat = Math.sin((lat2 - lat1) * rad / 2);
-    const sinDLng = Math.sin((lng2 - lng1) * rad / 2);
-    const a = sinDLat * sinDLat + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * sinDLng * sinDLng;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+function _geoDistM(lat1, lng1, lat2, lng2) { return SORA.haversineDistanceM(lat1, lng1, lat2, lng2); }   // 式と半径は sora-constants.js(辻メッシュのワーカーと同じ関数)
 
 // MapLibre用の小型コントロール(IControl)。Leaflet版と同じマークアップ/IDを使い、CSSと配線を共有する
 function _glDivControl(build) {
@@ -2434,9 +2429,12 @@ function setupUI() {
     chkRefraction.addEventListener('change', (e) => {
         appState.refractionEnabled = e.target.checked;
         setRefractionFormEnabled(e.target.checked);
+        showKInUse();
         saveAppState();
         updateAll();
     });
+    // 係数欄には「いま使う値」を出す(オフ=測量標準0.132・オン=気象条件からの算出値)。全ての地形の見通しの計算がこの値を使う(第157)
+    const showKInUse = () => { iK.value = refractionKInUse().toFixed(4); };
 
     // 気象条件が変わったら K を再計算して表示する関数
     const updateK = () => {
@@ -2465,16 +2463,8 @@ function setupUI() {
     // 設定登録ボタン
     btnRegSettings.onclick = registerSettings;
 
-    // 起動時の初期値を入力欄にセット
-    if(appState.meteo) {
-        iP.value = appState.meteo.p;
-        iT.value = appState.meteo.t;
-        iL.value = appState.meteo.l;
-        iK.value = appState.refractionK.toFixed(4);
-    }
-    // 起動時のチェックボックス状態を反映
-    chkRefraction.checked = appState.refractionEnabled;
-    setRefractionFormEnabled(appState.refractionEnabled);
+    // 起動時: チェック・気象3欄・係数欄を appState に合わせる(バックアップの取り込みでも同じ関数を呼ぶ)
+    syncRefractionUiFromState();
 
 }
 
@@ -4054,8 +4044,8 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     const valElev = appState.start.elev;
     const dip = getHorizonDip(valElev);
     const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
-    const refr = appState.refractionEnabled ? "normal" : null;
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const refr = appState.refractionEnabled ? "normal" : null;   // 天体の見かけ高度の大気差(チェックのオン/オフ)
+    const k = refractionKInUse();                                 // 地形の見通しの気差係数(表示されている値)
 
     // 天体メッセージを構築 (固定恒星は ra/dec をプリセット)
     const isFixed = isFixedStar(body.id);
@@ -4234,26 +4224,14 @@ function getFixedStarRaDec(bodyId) {
  * @param {number} hObs 観測者の標高 (m)
  * @param {number} hTarget ターゲットの標高 (m)
  */
-// WGS84 楕円体パラメータ
-const WGS84_SEMI_MAJOR = 6378137;          // 赤道半径
-const WGS84_SEMI_MINOR = 6356752.3142;     // 極半径
+// WGS84 楕円体パラメータ(値は sora-constants.js)
+const WGS84_SEMI_MAJOR = SORA.EARTH.WGS84_SEMI_MAJOR_M;   // 赤道半径
+const WGS84_SEMI_MINOR = SORA.EARTH.WGS84_SEMI_MINOR_M;   // 極半径
 
 /** 観測点緯度 (deg) における WGS84 楕円体上の地心距離 (geocentric radius)。
  *  ρ(φ) = sqrt[((a²cosφ)² + (b²sinφ)²) / ((a cosφ)² + (b sinφ)²)]
  *  lat=0 で a (赤道半径), lat=90 で b (極半径), lat=35° で約 6371km。 */
-function getLocalEarthRadius(latDeg) {
-    const lat = latDeg * Math.PI / 180;
-    const cosLat = Math.cos(lat), sinLat = Math.sin(lat);
-    const a = WGS84_SEMI_MAJOR, b = WGS84_SEMI_MINOR;
-    const a2cos = a * a * cosLat;
-    const b2sin = b * b * sinLat;
-    const acos = a * cosLat;
-    const bsin = b * sinLat;
-    return Math.sqrt(
-        (a2cos * a2cos + b2sin * b2sin) /
-        (acos * acos + bsin * bsin)
-    );
-}
+function getLocalEarthRadius(latDeg) { return SORA.getLocalEarthRadius(latDeg); }   // 式は sora-constants.js(辻ラインのワーカーと同じ関数)
 
 function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat, tgtLat) {
     // 観測者高 hObs / ターゲット高 hTarget で、観測高度 altObs に見える地表距離。
@@ -4262,8 +4240,7 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat, tgtLat) {
     const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
     const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
 
-    // 気差係数kを気象パラメータから都度計算 (気差OFF時は0)
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
     // 有効地球半径モデル: 光路の屈折を「地球半径が 1/(1-k) 倍に膨らんだ」
     // と等価に扱うため、各点の地心距離も Reff ベースで計算する。
     const Reff_obs = R_obs / (1 - k);
@@ -4403,11 +4380,13 @@ function calculateGreatCirclePoints(start, end) {
  * K = 503 * (P / T^2) * (0.034 - Γ)
  * Γ: 気温減率 (正値, K/m)
  */
-function calculateKFromMeteo(p, tCel, l) {
-    const tKelvin = tCel + 273.15; // ケルビンに変換
-    // 近似式 (l = 気温減率Γ、正値)
-    const k = 503 * (p / (tKelvin * tKelvin)) * (0.034 - l);
-    return k;
+function calculateKFromMeteo(p, tCel, l) { return SORA.calculateKFromMeteo(p, tCel, l); }   // 式は sora-constants.js
+
+/** いま使う気差係数K=設定メニューに表示されている値。大気差補正オンなら気象条件から算出した値、オフなら測量標準の0.132(第157・依頼者: 「表示されている値で計算」)。
+ *  地形の見通しに関わる計算(標高グラフ・辻検索/My辻検索・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火)は全てこの1つの関数から値を取る。
+ *  天体の見かけ高度の大気差(Astronomy.Horizonの'normal')は、これまでどおりチェックのオン/オフに従う(別の量) */
+function refractionKInUse() {
+    return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : REFRACTION_K;
 }
 
 // ------------------------------------------------------
@@ -4692,10 +4671,8 @@ const GSI_DEM_SOURCES = [
 
 // GSIのDEMタイルは日本域のみ。この範囲外のGSI URLは取得自体をスキップする(海外での404嵐=
 // 「標高グラフが固まって見える」主因の対策。範囲は離島含め広めに取る: 南鳥島154.0E/沖ノ鳥島20.4N)
-const _GSI_BBOX = { latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 };
-function _pointInsideJapan(lat, lng) {
-    return lat >= _GSI_BBOX.latMin && lat <= _GSI_BBOX.latMax && lng >= _GSI_BBOX.lngMin && lng <= _GSI_BBOX.lngMax;
-}
+const _GSI_BBOX = SORA.DEM.JAPAN_BBOX;   // 値は sora-constants.js(可視マップのワーカーと同じ範囲)
+function _pointInsideJapan(lat, lng) { return SORA.insideJapan(lat, lng); }
 function _tileOutsideJapan(z, x, y) {
     const n = Math.pow(2, z);
     const lngW = x / n * 360 - 180, lngE = (x + 1) / n * 360 - 180;
@@ -5001,8 +4978,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
 function calculateApparentAltitude(dist, hObs, hTarget, obsLat, tgtLat) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
 
-    // 気差係数k (気差OFF時は0)
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
 
     // 観測点・目的点の局所地球半径 (緯度依存) と有効半径 (気差込み)
     const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
@@ -5931,6 +5907,7 @@ function importBackup() {
                 if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
                 if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
             }
+            syncRefractionUiFromState();   // チェック・気象3欄・係数欄も取り込んだ値に(第157のレビュー: 画面が古いままで、計算だけ新しいKになっていた)
         }
         normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
         saveAppState();
@@ -8437,6 +8414,21 @@ function applyLineStyle(type) {
 }
 
 // 設定登録 (大気差係数など)
+/** 設定メニューの大気差の部品(チェック・気象3欄の値と有効/無効・係数欄)を appState に合わせる1本。起動時と、古い形式のバックアップの取り込みのように appState 側が先に変わった時に呼ぶ(第157のレビュー) */
+function syncRefractionUiFromState() {
+    const chk = document.getElementById('chk-refraction'), iK = document.getElementById('input-refraction-k');
+    const iP = document.getElementById('input-meteo-p'), iT = document.getElementById('input-meteo-t'), iL = document.getElementById('input-meteo-l');
+    const btnReset = document.getElementById('btn-reset-meteo'), btnReg = document.getElementById('btn-reg-settings');
+    if (!chk || !iK || !iP || !iT || !iL) return;
+    if (appState.meteo) { iP.value = appState.meteo.p; iT.value = appState.meteo.t; iL.value = appState.meteo.l; }
+    const enabled = !!appState.refractionEnabled;
+    chk.checked = enabled;
+    [iP, iT, iL].forEach(el => { el.readOnly = !enabled; el.disabled = !enabled; });   // 係数欄(iK)はデッサン仕様により常に読み取り専用
+    if (btnReset) btnReset.disabled = !enabled;
+    if (btnReg) btnReg.disabled = !enabled;
+    iK.value = refractionKInUse().toFixed(4);   // 係数欄には「いま使う値」(オフ=測量標準0.132・オン=気象条件からの算出値)
+}
+
 function registerSettings() {
     const iK = document.getElementById('input-refraction-k');
     const iP = document.getElementById('input-meteo-p');
@@ -8550,7 +8542,7 @@ function closeMilkyWayInstrument() {
 // --- 辻検索 入力連動 ---
 // 位置が変わった場合のみ再計算（ユーザーの手動入力値を保護）
 function updateTsujiSearchInputs() {
-    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    const posKey = _basePosKey();
     if (posKey === appState._lastTsujiPosKey) return;
     appState._lastTsujiPosKey = posKey;
 
@@ -9046,7 +9038,7 @@ function syncTsujiTimeFilter() {
 // --- 辻メッシュ検索 入力連動/UIヘルパー ---
 /** 位置が変わった場合のみ辻メッシュの基準方位角/視高度を再計算（手動入力値を保護） */
 function updateTsujiMeshSearchInputs() {
-    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    const posKey = _basePosKey();
     if (posKey === appState._lastTsujiMeshPosKey) return;
     appState._lastTsujiMeshPosKey = posKey;
     const dist = _geoDistM(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
@@ -9176,7 +9168,7 @@ function toggleTsujiSearch() {
 
 // --- 辻メッシュ検索 パネル ---
 let tsujiMeshGeneration = 0;   // キャンセル用世代カウンタ
-const TSUJIMESH_ZOOM = 14;     // DEM標高タイルのズーム (dem_png の最大)
+const TSUJIMESH_ZOOM = SORA.DEM.COARSE_ZOOM;     // DEM標高タイルのズーム (dem_png の最大。値は sora-constants.js)
 const TSUJIMESH_EPS = { o1: 0.25, x1: 0.125, x2: 0.0625, x4: 0.03125 };   // 精度フィルタ→角距離ε(°)。第128: ○(0.25)を追加・×8撤去
 
 let _tsujiMeshRows = [];       // 表示中の結果行(現在の表示順)
@@ -10269,7 +10261,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     const tgx15 = 128 * (end.lng / 180 + 1) * scale15;
 
     // コリドー(対象領域〜目的点の扇形)の幾何とタイル列挙(実DEMの先取りと、ワーカーへの帯域割り当ての両方で使う)
-    const EARTH_R = 6371000;
+    const EARTH_R = SORA.EARTH.HAVERSINE_RADIUS_M;   // 球の半径(値は sora-constants.js)
     const mPerDegLat = Math.PI * EARTH_R / 180;
     const mPerDegLng = mPerDegLat * Math.cos(end.lat * Math.PI / 180);
     const scale14 = Math.pow(2, TSUJIMESH_ZOOM);
@@ -10279,23 +10271,28 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
         return { lat: Math.asin((eL - 1) / (eL + 1)) * 180 / Math.PI, lng };
     };
     const toXY = (ll) => ({ x: (ll.lng - end.lng) * mPerDegLng, y: (ll.lat - end.lat) * mPerDegLat });
-    const h14 = 40075016.686 * Math.cos(refLat * Math.PI / 180) / (scale14 * 256);
-    const corners = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]]
-        .map(([gx, gy]) => toXY(pixLL14(gx, gy)));
-    const maxDist = Math.max(...corners.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
+    const h14 = SORA.metersPerPixel(refLat, TSUJIMESH_ZOOM);
+    const cornerLL = [[gxBase, gyBase], [gxBase + gridW, gyBase], [gxBase, gyBase + gridW], [gxBase + gridW, gyBase + gridW]].map(([gx, gy]) => pixLL14(gx, gy));
+    const corners = cornerLL.map(toXY);
+    // 経路は大円(第157)。角から目的点への大円は地図の直線より極側へふくらむ(東西300kmで1〜2km)ので、各角の大円の途中の点も扇形に入れる。
+    // 入れないと、ふくらんだ先の標本が取っていないタイルに当たり「データ無し→海面0m」と誤って見通せてしまう(第157のレビュー)
+    const bowPts = [];
+    for (const ll of cornerLL) { const gc = SORA.greatCirclePath(ll.lat, ll.lng, end.lat, end.lng); for (let i = 1; i < 16; i++) { const q = gc.at(i / 16); bowPts.push(toXY({ lat: q.lat, lng: q.lng })); } }
+    const sectorPts = corners.concat(bowPts);
+    const maxDist = Math.max(...sectorPts.map(c => Math.hypot(c.x, c.y))) + 16 * h14;
     const tgx14 = tgx15 / 2, tgy14 = gpy15At(end.lat) / 2;
     const inside = tgx14 >= gxBase && tgx14 <= gxBase + gridW && tgy14 >= gyBase && tgy14 <= gyBase + gridW;
     const wrapPi = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
     let azC = 0, span = 2 * Math.PI;
     if (!inside) {
-        const azs = corners.map(c => Math.atan2(c.x, c.y));
+        const azs = sectorPts.map(c => Math.atan2(c.x, c.y));   // 角と、角からの大円の途中の点(ふくらみ)の方位で扇形を決める
         const ds = azs.map(a => wrapPi(a - azs[0]));
         azC = azs[0] + (Math.min(...ds) + Math.max(...ds)) / 2;
         span = Math.max(...ds) - Math.min(...ds);
     }
     // コリドー内のタイル座標を列挙(タイル中心の方位/距離でセクター絞り込み)。d=目的点からの平面距離(帯域割り当て用)
     const listTiles = (zoom) => {
-        const tileSizeM = 40075016.686 * Math.cos(refLat * Math.PI / 180) / Math.pow(2, zoom);
+        const tileSizeM = SORA.metersPerPixel(refLat, zoom) * 256;
         const tileR = tileSizeM * 0.75;
         const degLatR = (maxDist + tileR) / mPerDegLat, degLngR = (maxDist + tileR) / mPerDegLng;
         const tNW = _getTileInfo(end.lat + degLatR, end.lng - degLngR, zoom);
@@ -10413,7 +10410,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
     if (!useWorkers) return judgeSequential();
 
     // --- ワーカープール並列判定(結果は逐次判定とビット一致) ---
-    // 経路を統一コアのSEG=64チャンク境界で帯域分割し、各ワーカーが全画素の担当帯域のみ判定する。
+    // 経路を統一コアのSEG(SORA.VISIBILITY.PATH_CHUNK=64)チャンク境界で帯域分割し、各ワーカーが全画素の担当帯域のみ判定する。
     // タイルは帯域毎に必要な環帯(目的点からの距離レンジ+余白)分だけをdm(0.1m)のInt32に符号化して転送する
     // (総転送量≒コリドー1式。ワーカー毎の複製を持たないため、長距離でもメモリが増えない)。
     try {
@@ -10435,13 +10432,14 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             if (al < minAbsLat) minAbsLat = al;
             if (al > maxAbsLat) maxAbsLat = al;
         }
-        const Kc = 40075016.686 / (scale15 * 256) / 2;   // stepM = Kc*cos(lat)
+        const Kc = SORA.EARTH.EQUATOR_CIRCUMFERENCE_M / (scale15 * 256) / 2;   // stepM = Kc*cos(lat)(統一可視判定の刻みと同じ式)
         const maxSteps = Math.max(2, Math.ceil(maxDistM / (Kc * Math.cos(maxAbsLat * Math.PI / 180))));
         const minSteps = Math.max(2, Math.ceil(minDistM / (Kc * Math.cos(minAbsLat * Math.PI / 180))));
-        const Cmax = Math.max(1, Math.ceil((maxSteps - 1) / 64));
+        const SEG = SORA.VISIBILITY.PATH_CHUNK;   // 帯域の区切り=統一コア/ワーカーと同じ値(単一情報源。第157のレビュー: ここだけ64の生の数だった)
+        const Cmax = Math.max(1, Math.ceil((maxSteps - 1) / SEG));
         const W = Math.max(1, Math.min(tmVisPool.size, Cmax));
         const chunkPer = Math.ceil(Cmax / W);
-        const tileSize15M = 40075016.686 * Math.cos(refLat * Math.PI / 180) / scale15;
+        const tileSize15M = SORA.metersPerPixel(refLat, 15) * 256;
         const tileSize14M = tileSize15M * 2;
         const distMargin = Math.max(500, maxDistM * 0.005);
         const SENT = -2147483648;
@@ -10483,7 +10481,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
             const c0 = w * chunkPer, c1 = Math.min(Cmax, c0 + chunkPer);
             if (c0 >= c1) continue;
             // 帯域のサンプルが取り得る「目的点からの距離」レンジ(保守的)でタイルを割り当てる
-            const jS = 1 + c0 * 64, jE = c1 * 64;
+            const jS = 1 + c0 * SEG, jE = c1 * SEG;
             const rMin = Math.min(1, jS / maxSteps);
             const rMax = Math.min(1, jE / minSteps);
             const dNear = (1 - rMax) * minDistM, dFar = (1 - rMin) * maxDistM;
@@ -10615,7 +10613,7 @@ async function startTsujiMeshSearch() {
     const baseAzA = new Float32Array(maxCount), baseAltA = new Float32Array(maxCount);
     const latA = new Float64Array(maxCount), lngA = new Float64Array(maxCount), elevA = new Float32Array(maxCount);
     const dEA = new Float32Array(maxCount), dNA = new Float32Array(maxCount);   // 領域中心からの変位角(rad)。地平座標系の画素位置補正用
-    const EARTH_R = 6371000;
+    const EARTH_R = SORA.EARTH.HAVERSINE_RADIUS_M;   // 球の半径(値は sora-constants.js)
     const mPerDegLat = Math.PI * EARTH_R / 180;
     const mPerDegLng = mPerDegLat * Math.cos(start.lat * Math.PI / 180);
     const geod = geodesic.Geodesic.WGS84;
@@ -11146,6 +11144,7 @@ const KM_DATA_URL = 'data/mountains.json';
 const KM_ASSET_BASE = 'data/kashimap/v1/';   // 静的資産(段2の道具 tools/kashimap/viewshed.js --asset の出力)。別リポジトリのGitHub PagesのURLに差し替えられる
 const KM_RANGES = [100, 300, 700];            // 表示範囲ラジオ(km四方。第155・デッサン05: 60kmを外し100/300/700・初期値100)。資産の範囲がこれ以外(24kmなど)でも、その値以下で最大の資産を使う
 const KM_STRIPE_MAX = 20;                     // 地図に縞で塗る縞島の上限(重複数が最大の縞島を面積の大きい順に)
+const KM_ISLAND_ROW_CHUNK = 4000;             // 島リストを一度に描く行数(これを超える分は画面を止めずに続けて描き、進捗を出す。第157)
 const KM_SOURCE_TOLERANCE = 1.5;              // 島のgeojsonソースの間引き(タイル画素)。MapLibre既定0.375の4倍(下の_kmAddMapLayers参照)
 let _kmDataP = null;               // 山データの読込Promise(1回だけ。失敗時はnullに戻して再試行可)
 let _kmById = null;                // id -> 山データ
@@ -11234,12 +11233,16 @@ async function _kmLoadDeviceIndex() {
                 const c = req.result;
                 if (!c) { ok(); return; }
                 const v = c.value;
-                next.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM, origin: v.origin || 'import', lat: v.lat, lon: v.lon, elev: v.elev, height: v.height, k: v.k });
+                next.set(v.key, { key: v.key, id: v.id, name: v.name, kind: v.kind, range: v.range, islands: v.islands, size: v.size, savedAt: v.savedAt, dropM: v.dropM, origin: v.origin || 'import', lat: v.lat, lon: v.lon, elev: v.elev, height: v.height, k: v.k, zoom: v.zoom });
                 c.continue();
             };
             req.onerror = () => ng(req.error);
         });
         _kmDeviceIndex.clear(); for (const [k, v] of next) _kmDeviceIndex.set(k, v);
+        // 第157より前に保存した資産にはズームが無い→資産の計算条件(meta.zoom)から補って要約だけ書き直す(1回きり)
+        for (const v of Array.from(next.values()).filter(v => v.zoom === undefined || v.zoom === null)) {
+            try { const rec = await _kmStoreGet(v.key); const z = rec && rec.meta ? _kmNum(rec.meta.zoom) : undefined; const zz = (z !== undefined) ? z : 0; v.zoom = zz; if (rec) await _kmStorePutSummary({ ...rec, zoom: zz }); } catch (e) { console.warn('可視マップ: ズームの補完', v.key, e); }   // ズームの無い資産は 0(不明の印)を書いて、次の読み直しで本文を読まない(第157のレビュー)
+        }
     } catch (e) { console.warn('可視マップ: 端末の資産の索引', e); }
     _kmDeviceLoaded = true;
     _kmSyncPseudo();
@@ -11262,6 +11265,8 @@ async function _kmStorePut(rec) {
         tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); tx.onabort = () => ng(tx.error);
     });
 }
+/** 資産の要約だけを書き直す(本文=meta/islands/outlineは触らない。ズームの補完・名前の変更などの軽い更新) */
+async function _kmStorePutSummary(rec) { const { meta, islandsObj, outlineObj, ...summary } = rec; return _kmIdb('assets', 'readwrite', st => st.put(summary)); }
 async function _kmStoreDelete(key) { const db = await _kmDb(); return new Promise((ok, ng) => { const tx = db.transaction(['assets', 'bodies'], 'readwrite'); tx.objectStore('assets').delete(key); tx.objectStore('bodies').delete(key); tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); }); }
 async function _kmStoreClear() { const db = await _kmDb(); return new Promise((ok, ng) => { const tx = db.transaction(['assets', 'bodies'], 'readwrite'); tx.objectStore('assets').clear(); tx.objectStore('bodies').clear(); tx.oncomplete = () => ok(); tx.onerror = () => ng(tx.error); }); }
 async function _kmTilesClear() { return _kmIdb('tiles', 'readwrite', st => st.clear()); }
@@ -11360,24 +11365,30 @@ async function _kmStoreSave(meta, isl, ol, origin, bytes) {
     const key = `${id}/${kind}/${range}`;
     const size = bytes || new Blob([JSON.stringify(meta), JSON.stringify(isl), JSON.stringify(ol)]).size;   // 大きさ(バイト)。分かっていればJSON化し直さない
     const mt = meta.mountain;
-    await _kmStorePut({ key, id, name: mt.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, k: _kmNum(meta.k),
+    await _kmStorePut({ key, id, name: mt.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, k: _kmNum(meta.k), zoom: _kmNum(meta.zoom),
         lat: _kmNum(mt.lat), lon: _kmNum(mt.lon), elev: _kmNum(mt.elev_list), height: _kmNum(mt.height_m),   // 目的点の計算(id=tgt:…)を山リストの行にする元(無い値はundefined。+null=0にしない)
         meta, islandsObj: isl, outlineObj: ol });
     await _kmLoadDeviceIndex();
     if (_kmActive) _kmRefreshListCells();
     return { key, name: meta.mountain.name || id, range, kind, islands: isl.islands.length, size };
 }
-/** 山リストの「島の数」「静的/動的」「範囲」「樹冠」「構造物」「サイズ」欄だけを描き直す(資産の保存/削除で変わる。行の並びとチェックは保つ) */
+/** 山リストの資産の7欄(島の数・静的/動的・範囲・樹冠・構造物・ズーム・サイズ)だけを描き直す(資産の保存/削除で変わる。行の並びとチェックは保つ) */
+const KM_INFO_COL0 = 11;   // 資産の欄が始まる列(選択・連番・索引番号・山名・読み・所属・都道府県・緯度・経度・標高・種別の次)
 function _kmRefreshListCells() {
     document.querySelectorAll('#kashimap-content tr.td-data-row').forEach(tr => {
-        const info = _kmIndexInfo(tr.dataset.id);
-        if (tr.children.length >= 17) { const c = _kmInfoCells(info); for (let i = 0; i < c.length; i++) tr.children[11 + i].textContent = c[i]; }
+        const m = _kmById ? _kmById.get(tr.dataset.id) : null;
+        const cells = _kmInfoCells(_kmIndexInfo(tr.dataset.id), m ? m.lat : undefined);
+        if (tr.children.length >= KM_INFO_COL0 + cells.length) cells.forEach((c, i) => { const td = tr.children[KM_INFO_COL0 + i]; td.textContent = c.text; if (c.title) td.title = c.title; else td.removeAttribute('title'); });
     });
 }
-/** 山リストの資産の6欄(島の数・静的/動的・範囲・樹冠・構造物・サイズ)の文字。検索条件(最大表示範囲・樹冠・構造物)で選ばれる資産のもの(第156・依頼者: どの資産が選ばれるかが見えるように) */
-function _kmInfoCells(info) {
-    if (!info) return ['—', '', '', '', '', ''];
-    return [info.islands !== null ? info.islands.toLocaleString() : '—', info.label, `${info.range}km`, info.canopy ? 'あり' : '-', info.building ? 'あり' : '-', info.size ? _kmMB(info.size) : '—'];
+/** 山リストの資産の7欄の文字 [{text, title?}]。検索条件(最大表示範囲・樹冠・構造物)で選ばれる資産のもの(第156・依頼者: どの資産が選ばれるかが見えるように)。
+ *  最大表示範囲より広い資産しか無い時は範囲に▲(第157) */
+function _kmInfoCells(info, lat) {
+    const t = (text, title) => (title ? { text, title } : { text });
+    if (!info) return [t('—'), t(''), t(''), t(''), t(''), t(''), t('')];
+    const beyondTitle = info.beyond ? `最大表示範囲(${_kmRange}km)より広い資産です。選ぶと最大表示範囲を${_kmRangeBucket(info.range)}kmに広げて表示します` : undefined;
+    return [t(info.islands !== null ? info.islands.toLocaleString() : '—'), t(info.label), t(`${info.range}km${info.beyond ? '▲' : ''}`, beyondTitle), t(info.canopy ? 'あり' : '-'), t(info.building ? 'あり' : '-'),
+        t(_kmZoomLabel(info.zoom, lat)), t(info.size ? _kmMB(info.size) : '—')];
 }
 /** File読込: File出力したJSON(1山でも複数でも)を端末に保存する。戻り値=取り込んだ資産の要約 */
 async function _kmImportText(text) {
@@ -11419,8 +11430,8 @@ function _kmAssetAvail(id) {
     const out = {};
     const add = (kind, r, patch) => { const m = out[kind] || (out[kind] = new Map()); const cur = m.get(r) || { server: false, device: false, islands: undefined }; Object.assign(cur, patch); m.set(r, cur); };
     const ent = _kmIndex && _kmIndex.mountains && _kmIndex.mountains[id];
-    if (ent) for (const kind of Object.keys(ent)) { if (!Array.isArray(ent[kind])) continue; for (const r of ent[kind]) add(kind, r, { server: true, islands: ent.islands ? ent.islands[`${kind}:${r}`] : undefined, size: ent.sizes ? ent.sizes[`${kind}:${r}`] : undefined }); }
-    for (const d of _kmDeviceIndex.values()) { if (d.id !== id) continue; add(d.kind, d.range, { device: true, islands: d.islands, size: d.size }); }
+    if (ent) for (const kind of Object.keys(ent)) { if (!Array.isArray(ent[kind])) continue; for (const r of ent[kind]) add(kind, r, { server: true, islands: ent.islands ? ent.islands[`${kind}:${r}`] : undefined, size: ent.sizes ? ent.sizes[`${kind}:${r}`] : undefined, zoom: ent.zooms ? ent.zooms[`${kind}:${r}`] : undefined }); }
+    for (const d of _kmDeviceIndex.values()) { if (d.id !== id) continue; add(d.kind, d.range, { device: true, islands: d.islands, size: d.size, zoom: d.zoom }); }
     return out;
 }
 /** 今の設定(表示範囲・樹冠・構造物)でその山に使う資産 {kind, range, src} を選ぶ。種類は _kmKindPrefs の順(無ければ地形だけに落とす)。範囲は指定以下で最大。
@@ -11434,16 +11445,35 @@ function _kmAssetChoice(id) {
     }
     return null;
 }
-/** 山リストの「島の数」「静的/動的」欄の元(索引だけで分かる。資産の読込は要らない)。label: 静=サーバー / 動=端末 / 静/動=両方 */
+/** 最大表示範囲より広い資産しか無い山の、いちばん狭い資産 {kind, range, src}(無ければnull)。山リストの列に▲付きで示し、選ぶと表示範囲を繰り上げる(第157: 「:端末保存」で列が空だった件) */
+function _kmNearestLargerAsset(id) {
+    const av = _kmAssetAvail(id);
+    for (const kind of _kmKindPrefs()) {
+        const m = av[kind]; if (!m) continue;
+        const rs = Array.from(m.keys()).filter(r => r > _kmRange);
+        if (rs.length) { const range = Math.min(...rs); const e = m.get(range); return { kind, range, src: e.device ? 'device' : 'server' }; }
+    }
+    return null;
+}
+/** 山リストの「島の数」「静的/動的」「範囲」「樹冠」「構造物」「ズーム」「サイズ」欄の元(索引だけで分かる。資産の読込は要らない)。label: 静=サーバー / 動=端末 / 静/動=両方。
+ *  beyond=true は最大表示範囲より広い資産しか無い時(その中でいちばん狭い資産。今の表示範囲では描けない) */
 function _kmIndexInfo(id) {
-    const ch = _kmAssetChoice(id);
+    let ch = _kmAssetChoice(id), beyond = false;
+    if (!ch) { ch = _kmNearestLargerAsset(id); beyond = true; }
     if (!ch) return null;
     const e = _kmAssetAvail(id)[ch.kind].get(ch.range);
     const dev = _kmDeviceIndex.get(`${id}/${ch.kind}/${ch.range}`);
     // 静=サーバーの資産 / 静(端末)=サーバーの資産を端末に保存済み(次からは取りに行かない) / 動=端末だけの資産(File読込・その場計算)
     const label = e.server ? (e.device ? '静(端末)' : '静') : '動';
+    const zoom = (dev && dev.zoom) || e.zoom || null;
     return { kind: ch.kind, range: ch.range, src: ch.src, islands: (e.islands === undefined ? null : e.islands), label, origin: dev ? dev.origin : null, rank: (e.server ? 1 : 0) + (e.device ? 2 : 0),
-        size: (dev && dev.size) || e.size || null, canopy: ch.kind.includes('canopy'), building: ch.kind.includes('building') };
+        size: (dev && dev.size) || e.size || null, zoom, canopy: ch.kind.includes('canopy'), building: ch.kind.includes('building'), beyond };
+}
+/** 「ズーム」欄の文字: z15(1画素≈4m・DEM5A/5B/5C)。1画素の長さは山の緯度で計算 */
+function _kmZoomLabel(zoom, lat) {
+    if (!zoom) return '—';
+    const mpp = SORA.metersPerPixel(isFinite(+lat) ? +lat : 35, zoom);
+    return `z${zoom}(1画素≈${Math.round(mpp)}m・${zoom >= SORA.DEM.FINE_ZOOM ? 'DEM5A/5B/5C' : 'DEM10B'})`;
 }
 /** 整数のポリライン符号(Google polyline符号と同じ5bit可変長+63・倍率なし。先頭は絶対値・以降は差分)→ [[x,y],...] */
 function _kmDecodePoly(s) {
@@ -11683,7 +11713,7 @@ function _kmComputeStripes(list) {
     }
     // 代表点=重心にいちばん近い成分の画素(必ず縞島の中)。面積は格子の画素の大きさ(中心緯度)から
     const latC = Math.atan(Math.sinh(Math.PI * (1 - 2 * ((by0 + by1) / 2) / Z15))) * 180 / Math.PI;
-    const mppG = 40075016.686 * Math.cos(latC * Math.PI / 180) / Z15 * S;
+    const mppG = SORA.EARTH.EQUATOR_CIRCUMFERENCE_M * Math.cos(latC * Math.PI / 180) / Z15 * S;
     const toLL = (X, Y) => [(bx0 + X * S) / Z15 * 360 - 180, Math.atan(Math.sinh(Math.PI * (1 - 2 * (by0 + Y * S) / Z15))) * 180 / Math.PI];
     for (const c of comps) {
         const cx = c.sx / c.px, cy = c.sy / c.px; let best = null, bd = Infinity;
@@ -11777,9 +11807,11 @@ function _kmRenderIslandList() {
     const title = document.getElementById('kashimap-detail-title');
     if (!body || !title) return;
     body.innerHTML = '';
+    { const prog0 = document.getElementById('kashimap-progress'); if (prog0 && !_kmComputeBusy) prog0.classList.add('hidden'); }   // 前の表の分割描画が途中なら、その進捗バーを下ろす(表ごと作り直すので古い描画は止まる)
     const rows = _kmIslandRows.filter(r => !_kmStripeOnly || r.stripe);
     const nStripe = _kmIslandRows.filter(r => r.stripe).length;
-    title.textContent = `島リスト(${rows.length.toLocaleString()}件${_kmStripeOnly ? '・縞島のみ' : `・縞島${nStripe}`})`;
+    const titleBase = `島リスト(${rows.length.toLocaleString()}件${_kmStripeOnly ? '・縞島のみ' : `・縞島${nStripe}`}`;
+    title.textContent = titleBase + ')';
     document.getElementById('kashimap-detail-note').textContent = _kmDetailNote();
     if (!rows.length) { body.innerHTML = '<div class="kashimap-note">島がありません</div>'; return; }
     const byName = (a, b) => a.names.join('/').localeCompare(b.names.join('/'), 'ja');
@@ -11800,7 +11832,13 @@ function _kmRenderIslandList() {
     table.className = 'td-table';
     table.innerHTML = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody></tbody>';
     body.appendChild(table);
-    setupTableSort(table, rows, cols, _kmRenderIslandRow, null, { initialColIdx: 3, initialAsc: false });
+    // 行が多い時は KM_ISLAND_ROW_CHUNK 行ずつ描き、見出しと進捗バーに「描画中 n/N」を出す(第157・依頼者: 富士山700kmの4万行の並べ替えで待ち時間が分かるように)
+    const prog = document.getElementById('kashimap-progress'), fill = document.getElementById('kashimap-progress-fill');
+    setupTableSort(table, rows, cols, _kmRenderIslandRow, null, { initialColIdx: 3, initialAsc: false, chunk: KM_ISLAND_ROW_CHUNK, onProgress: (done, total) => {
+        if (done >= total) { title.textContent = titleBase + ')'; if (prog && !_kmComputeBusy) prog.classList.add('hidden'); return; }
+        title.textContent = `${titleBase}・描画中 ${done.toLocaleString()}/${total.toLocaleString()})`;
+        if (prog && fill && !_kmComputeBusy) { prog.classList.remove('hidden'); fill.style.width = `${Math.round(100 * done / total)}%`; }
+    } });
 }
 /** 島リスト見出し下の注記「表示中: 60km・樹冠なし」(Q6)。範囲が違う山があればその旨 */
 function _kmDetailNote() {
@@ -11957,10 +11995,13 @@ function _kmSeatColor(seat) { return COLOR_MAP[seat % COLOR_MAP.length].code; }
 function _kmSelect(id, on) {
     if (on) {
         for (const k of Array.from(_kmNoAutoSave)) if (k.startsWith(id + '/')) _kmNoAutoSave.delete(k);   // 選び直したら、また端末に保存してよい
-        if (_kmSelected.has(id)) return;
-        const used = new Set(_kmSelected.values());
-        let seat = 0; while (used.has(seat)) seat++;
-        _kmSelected.set(id, seat);
+        if (!_kmSelected.has(id)) {
+            const used = new Set(_kmSelected.values());
+            let seat = 0; while (used.has(seat)) seat++;
+            _kmSelected.set(id, seat);
+        }
+        // 最大表示範囲より広い資産しか無い山(「300km▲」)を選んだら、範囲を繰り上げてから山リストを描き直す。席を決めた後に描く(描き直した行もチェック済み・色付きになる。第157のレビュー)
+        if (!_kmAssetChoice(id)) { const near = _kmNearestLargerAsset(id); if (near) { const bucket = _kmRangeBucket(near.range); if (_kmRange < bucket) { _kmRange = bucket; _kmSyncUi(); if (_kmActive) _kmRenderList(); } } }
     } else {
         _kmSelected.delete(id);
     }
@@ -11999,7 +12040,7 @@ function _kmRenderRow(m) {
         `<td>${m.seq || ''}</td><td>${escapeHtml(m.id)}</td><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.yomi || '')}</td>` +
         `<td>${_kmListsLabel(m)}</td><td>${escapeHtml((m.pref || []).join(' '))}</td>` +
         `<td>${m.lat}</td><td>${m.lon}</td><td>${m.elev !== null && m.elev !== undefined ? m.elev : ''}</td><td>${escapeHtml(m.kind || '')}</td>` +
-        _kmInfoCells(info).map(c => `<td>${c}</td>`).join('');
+        _kmInfoCells(info, m.lat).map(c => `<td${c.title ? ` title="${escapeHtml(c.title)}"` : ''}>${escapeHtml(c.text)}</td>`).join('');
     const chk = tr.querySelector('input.kashimap-check');
     chk.addEventListener('click', ev => ev.stopPropagation());
     chk.addEventListener('change', () => {
@@ -12035,6 +12076,7 @@ function _kmRenderList() {
         { label: '範囲', compare: (a, b) => { const x = _kmIndexInfo(a.id), y = _kmIndexInfo(b.id); return (x ? x.range : 0) - (y ? y.range : 0); } },
         { label: '樹冠', compare: (a, b) => { const x = _kmIndexInfo(a.id), y = _kmIndexInfo(b.id); return (x && x.canopy ? 1 : 0) - (y && y.canopy ? 1 : 0); } },
         { label: '構造物', compare: (a, b) => { const x = _kmIndexInfo(a.id), y = _kmIndexInfo(b.id); return (x && x.building ? 1 : 0) - (y && y.building ? 1 : 0); } },
+        { label: 'ズーム', compare: (a, b) => { const x = _kmIndexInfo(a.id), y = _kmIndexInfo(b.id); return ((x && x.zoom) || 0) - ((y && y.zoom) || 0); } },
         { label: 'サイズ', compare: (a, b) => { const x = _kmIndexInfo(a.id), y = _kmIndexInfo(b.id); return ((x && x.size) || 0) - ((y && y.size) || 0); } },
     ];
     const table = document.createElement('table');
@@ -12105,10 +12147,6 @@ function _kmZoomForRange(rangeKm, fine, finest) {
     if (finest && rangeKm > 500) return z + 2;   // 「:最高精細(700kmを2段細かく)」=z13(≈15m・約31,000枚・格子約20億画素。第156・依頼者の明示の選択)
     return (fine && (rangeKm === 300 || rangeKm > 500)) ? z + 1 : z;
 }
-/** その場計算の気差係数k: 大気差補正オンなら設定メニューの値、オフでも測量標準(REFRACTION_K=0.132。静的資産の道具と同じ)。可視マップはk=0(補正なし)では作らない(第156・依頼者の確認依頼: 富士山ココとの答え合わせ) */
-function _kmComputeK() { return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : REFRACTION_K; }
-/** その場計算の 1/(2·Reff)(Reff=局所半径/(1−k)。_visInv2Reffと同じ形だが、kは _kmComputeK=大気差補正オフでも0.132) */
-function _kmInv2Reff(lat) { return 1 / (2 * (getLocalEarthRadius(lat) / (1 - _kmComputeK()))); }
 function _kmHasDeviceAsset(id) { for (const d of _kmDeviceIndex.values()) if (d.id === id) return true; return false; }
 /** 計算した範囲を含む表示範囲ラジオの値(24〜100→100・300→300・500〜700→700)。計算の後は表示範囲をここまで広げる(第155: 700kmを計算しても表示範囲が60kmのままで60kmの資産が選ばれていた) */
 function _kmRangeBucket(rangeKm) { return KM_RANGES.find(v => v >= rangeKm) || KM_RANGES[KM_RANGES.length - 1]; }
@@ -12122,7 +12160,7 @@ function _kmWindow(lat, lon, rangeKm, zoom) {
     const Z = zoom || 15, WORLD = 256 * Math.pow(2, Z);
     const lonToX = (ln) => (ln + 180) / 360 * WORLD;
     const latToY = (lt) => (1 - Math.log(Math.tan(lt * Math.PI / 180) + 1 / Math.cos(lt * Math.PI / 180)) / Math.PI) / 2 * WORLD;
-    const MPP = 40075016.686 * Math.cos(lat * Math.PI / 180) / WORLD;
+    const MPP = SORA.metersPerPixel(lat, Z);
     const halfPx = Math.ceil(rangeKm * 1000 / 2 / MPP);
     const X0 = Math.floor(lonToX(lon)) - halfPx, Y0 = Math.floor(latToY(lat)) - halfPx;
     const W = 2 * halfPx + 1;
@@ -12242,8 +12280,8 @@ async function _kmComputeOne(target, opts) {
     const peaks = list.filter(m => isFinite(+m.lat) && isFinite(+m.lon)).map(m => ({ id: String(m.id), name: m.name, elev: m.elev, lat: +m.lat, lon: +m.lon, d: _geoDistM(lat, lon, +m.lat, +m.lon) })).filter(p => p.d <= SB_SEARCH_M + 100);
     const hasElev = target.elev !== null && target.elev !== undefined && target.elev !== '' && isFinite(+target.elev);   // 標高が無い(null)時はDEMを基準にする(+null=0にしない)
     const job = { id, name, lat, lon, elevGround: hasElev ? +target.elev : null, heightM: +target.height || 0, rangeKm, zoom, preview: opts.preview !== false,
-        inv2R: _kmInv2Reff(lat), k: _kmComputeK(),   // 丸み+気差の実効半径(kは大気差補正オフでも測量標準0.132。第156)
-        obsH: 1.5, exclTgtM: ex.tgt, exclObsM: ex.obs, bandM: ex.band, searchM: SB_SEARCH_M, upM: SB_UP_M, peaks, maxTiles, returnBits: !!opts.returnBits };
+        inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),   // 丸み+気差の実効半径。kは設定に表示されている値(オフ=測量標準0.132)=標高グラフ・辻検索と同じ1つの関数(第157)
+        obsH: SORA.OBSERVER.EYE_HEIGHT_M, exclTgtM: ex.tgt, exclObsM: ex.obs, bandM: ex.band, searchM: SB_SEARCH_M, upM: SB_UP_M, peaks, maxTiles, returnBits: !!opts.returnBits };
     const transfer = [];
     if (typeof window._tmSyntheticElev15 === 'function') {   // テスト用の合成標高: 窓の格子をここで作ってワーカーへ渡す(標高タイルは取らない)
         const G = _kmWindow(lat, lon, rangeKm, zoom); const grid = new Uint16Array(G.W * G.H); const fz = Math.pow(2, 15 - zoom);   // 合成標高はz15の画素で定義(粗い窓はその倍率で参照)
@@ -12304,8 +12342,10 @@ async function _kmComputeRun(targets, opts) {
             const t = targets[i]; _kmComputeLabel = targets.length > 1 ? `${i + 1}/${targets.length} ${t.name || ''}` : (t.name || '');
             // 先に端末(IndexedDB)の資産を探す(第156・依頼者: 構造物など山リストに無い目的点は資産が無いので、あれば使い、無ければ標高タイルの取得から計算する)。あれば確認してそれを使う(キャンセル=計算し直す)
             const tid = t.id || (isFinite(+t.lat) && isFinite(+t.lng) ? _kmTgtId(+t.lat, +t.lng) : null);
-            const have = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;
-            if (have && confirm(`「${have.name || tid}」の${rangeKm}kmの可視タイル(島${(have.islands || 0).toLocaleString()}・${_kmMB(have.size || 0)})が端末にあります。\nOK=その資産を使う / キャンセル=計算し直す`)) {
+            const kNow = refractionKInUse();
+            const have0 = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;
+            const have = (have0 && (!isFinite(+have0.k) || Math.abs(+have0.k - kNow) < 1e-4)) ? have0 : null;   // 気差係数が違う資産は別の計算なので候補にしない(kの無い古い資産は候補にする)。第157のレビュー
+            if (have && confirm(`「${have.name || tid}」の${rangeKm}kmの可視タイル(島${(have.islands || 0).toLocaleString()}・${_kmMB(have.size || 0)}・気差係数k=${kNow.toFixed(3)})が端末にあります。\nOK=その資産を使う / キャンセル=計算し直す`)) {
                 _kmSyncPseudo();
                 if (_kmActive && _kmById && !_kmRows.some(r => r.id === tid)) { const m = _kmById.get(tid); if (m) _kmRows.push(m); }   // 山データが読めていない時(_kmById=null)も落ちない(第156のレビュー)
                 const bucket = _kmRangeBucket(rangeKm); if (_kmRange < bucket) { _kmRange = bucket; _kmSyncUi(); }
@@ -12669,6 +12709,28 @@ function setupTableSort(table, rowData, columns, renderRowFn, extraRows, opts) {
     let sortColIdx = -1;
     let sortAsc = true;
 
+    // 行が多い時(島リストの数万行)は chunk 行ずつ描く: 最初の塊はその場で、残りは画面を止めずに続け、進みを onProgress(done, total) で知らせる(第157)。
+    // 並べ替え中に次の並べ替えが来たら古い描画は捨てる(世代)
+    let renderGen = 0;
+    const renderRows = (gen) => {
+        const chunk = (opts && opts.chunk) || Infinity;
+        const total = rowData.length;
+        const appendRange = (from, to) => { const frag = document.createDocumentFragment(); for (let i = from; i < to; i++) frag.appendChild(renderRowFn(rowData[i])); tbody.appendChild(frag); };
+        const finish = () => { if (extraRows) extraRows.forEach(r => tbody.appendChild(r)); if (opts && opts.onProgress) opts.onProgress(total, total); };
+        const first = Math.min(total, chunk);
+        appendRange(0, first);
+        if (first >= total) { finish(); return; }
+        if (opts && opts.onProgress) opts.onProgress(first, total);
+        let done = first;
+        const step = () => {
+            if (gen !== renderGen || !tbody.isConnected) return;   // 古い描画、または表ごと差し替えられた(島リストの作り直し)。続けると外れた表に行を足し、古い見出し/進捗を書いてしまう(第157のレビュー)
+            const to = Math.min(total, done + chunk);
+            appendRange(done, to); done = to;
+            if (done < total) { if (opts && opts.onProgress) opts.onProgress(done, total); setTimeout(step, 0); }
+            else finish();
+        };
+        setTimeout(step, 0);
+    };
     const apply = () => {
         ths.forEach((h, i) => {
             h.textContent = columns[i].label + (i === sortColIdx ? (sortAsc ? '▲' : '▼') : '');
@@ -12678,8 +12740,7 @@ function setupTableSort(table, rowData, columns, renderRowFn, extraRows, opts) {
             return sortAsc ? cmp : -cmp;
         });
         tbody.innerHTML = '';
-        rowData.forEach(d => tbody.appendChild(renderRowFn(d)));
-        if (extraRows) extraRows.forEach(r => tbody.appendChild(r));
+        renderRows(++renderGen);
         if (opts && opts.onSort) opts.onSort(sortColIdx, sortAsc);
     };
     ths.forEach((th, idx) => {
@@ -13093,12 +13154,14 @@ async function startElevationFetch() {
     const steps = 2000;
     const intervalM = dist / steps;
     appState.elevationData.intervalM = intervalM; // グラフ表示用に保持
+    const path = SORA.greatCirclePath(s.lat, s.lng, e.lat, e.lng);   // 標本点も可視判定と同じ大円の上に(第157)
 
     for(let i=0; i<=steps; i++) {
         const r = i/steps;
+        const q = path.at(r);
         appState.elevationData.points.push({
-            lat: s.lat + (e.lat - s.lat)*r,
-            lng: s.lng + (e.lng - s.lng)*r,
+            lat: q.lat,
+            lng: q.lng,
             dist: (dist * r) / 1000, // km単位
             elev: null,
             fetched: false
@@ -13248,8 +13311,8 @@ function elevExcludeRadii() {
 // ---- 山頂部(帯)の除外(第152・デッサン05 Q24/Q25): 目的点の「山頂部」=目的点の標高から帯の高さ以内で目的点につながる画素(8近傍・探索半径3km)。
 //      別の山(山リスト data/mountains.json の山頂)の山頂を含む時は含まない高さまで縮める。判定では山頂部の画素の遮蔽を無視する
 //      (可視マップの道具 tools/kashimap/viewshed.js の --summit-mode region と同じ規則)。目的点ごとに1回計算して保持する ----
-const SB_SEARCH_M = 3000;
-const SB_UP_M = 100;          // 目的点より100mを超えて高い地形が帯につながる時は「目的点は山頂ではない」=山頂部なし(谷の神社・山腹の地点で周りの山を透明にしない)
+const SB_SEARCH_M = SORA.VISIBILITY.SUMMIT_SEARCH_M;   // 山頂部を探す半径(値は sora-constants.js)
+const SB_UP_M = SORA.VISIBILITY.SUMMIT_UP_M;   // 目的点より100mを超えて高い地形が帯につながる時は「目的点は山頂ではない」=山頂部なし(谷の神社・山腹の地点で周りの山を透明にしない)
 const _sbCache = new Map();   // 'lat,lng,band' -> Promise<band|null>。band={x0,y0,w,h,bits,hT,dropUsed,px,farM,others}
 function _sbHas(band, gx, gy) {
     const bx = gx - band.x0, by = gy - band.y0;
@@ -13285,7 +13348,7 @@ async function _visSummitBand(lat, lng, bandM, searchM, groundElev) {
     const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
     const gx0 = Math.floor(128 * (lng / 180 + 1) * scale15);
     const gy0 = Math.floor((128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15);
-    const mpp = 40075016.686 * Math.cos(lat * Math.PI / 180) / (scale15 * 256);
+    const mpp = SORA.metersPerPixel(lat, 15);
     const rPx = Math.ceil(searchM / mpp);
     const w = 2 * rPx + 1, h = w, x0 = gx0 - rPx, y0 = gy0 - rPx;
     let elevAtPix15;
@@ -13397,12 +13460,12 @@ async function _sbUpdatePreview(force) {
 
 /** 可視判定の実効地球の逆数 1/(2·Reff) (第116ラウンド)。視高度計算(calculateApparentAltitude)と
  *  同じ基盤: WGS84の局所半径(両端の緯度の平均)を、大気差の係数kで1/(1-k)倍した実効半径。
- *  大気差オフの時はk=0(幾何学的な地球の丸みのみ) */
-function _visInv2Reff(latA, latB) {
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
-    const Reff = ((getLocalEarthRadius(latA) + getLocalEarthRadius(latB)) / 2) / (1 - k);
-    return 1 / (2 * Reff);
-}
+ *  大気差補正オフの時も測量標準k=0.132(第157: 可視マップ・静的資産と同じ基準) */
+function _visInv2Reff(latA, latB) { return SORA.inv2ReffFor(latA, latB, refractionKInUse()); }
+/** 基準方位角/視高度の自動算出の「位置の鍵」。観測点・目的点と、いま使う気差係数K(視高度はKで変わる)。鍵が同じ間は手動入力を守る(第157のレビュー: Kを切り替えても再計算されなかった) */
+function _basePosKey() {
+    return `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}|K${refractionKInUse().toFixed(6)}`;
+}   // k=設定に表示されている値(オフ=0.132)。式は sora-constants.js
 
 /** 統一可視判定のコア(標高グラフ・辻検索/My辻検索・辻メッシュ検索の標高フィルタ共通)。
  *  観測点(sLat,sLng, 標高+高さ=startTotal)→目的点(endLat,endLng, endTotal)への見通しを、
@@ -13421,23 +13484,26 @@ function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, 
     const scale15 = Math.pow(2, 15);
     const R128 = 128 / Math.PI;
     const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+    const gpx15At = (lng) => 128 * (lng / 180 + 1) * scale15;
     const distM = _geoDistM(sLat, sLng, endLat, endLng);
-    const stepM = 40075016.686 * Math.cos(sLat * Math.PI / 180) / (scale15 * 256) / 2;   // z15の半画素(≒2m)
+    const stepM = SORA.metersPerPixel(sLat, 15) / 2;   // z15の半画素(≒2m)
     const steps = Math.max(2, Math.ceil(distM / stepM));
-    const sx15 = 128 * (sLng / 180 + 1) * scale15;
-    const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
-    const dLat = endLat - sLat;
+    // 経路は観測点と目的点を結ぶ大円(視線が通る鉛直面。第157: 可視マップと同じ)。区間(SEG標本=約128m)の両端を球面補間で求め、中は画素座標の直線で近似する
+    const path = SORA.greatCirclePath(sLat, sLng, endLat, endLng);
+    const seaAsZero = _pointInsideJapan(sLat, sLng) && _pointInsideJapan(endLat, endLng);   // 日本域: 標高タイルの無い所=海→海面0mとして遮る(第157: 可視マップと同じ)
     const inv2R = (inv2ReffOpt !== undefined) ? inv2ReffOpt : _visInv2Reff(sLat, endLat);
     const endDrop = distM * distM * inv2R;
-    const SEG = 64;
+    const SEG = SORA.VISIBILITY.PATH_CHUNK;
     for (let j0 = 1; j0 < steps; j0 += SEG) {
         const j1 = Math.min(j0 + SEG - 1, steps - 1);
-        const gyA = gpy15At(sLat + dLat * (j0 / steps));
-        const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+        const pA = path.at(j0 / steps), pB = (j1 > j0) ? path.at(j1 / steps) : pA;
+        const gxA = gpx15At(pA.lng), gyA = gpy15At(pA.lat);
+        const dgx = (j1 > j0) ? (gpx15At(pB.lng) - gxA) / (j1 - j0) : 0;
+        const dgy = (j1 > j0) ? (gpy15At(pB.lat) - gyA) / (j1 - j0) : 0;
         for (let j = j0; j <= j1; j++) {
-            const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
-            const e = elevAtPix15(gx, gy);
-            if (e === null || e === undefined) continue;   // データ無し点は判定対象外
+            const gx = (gxA + dgx * (j - j0)) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+            let e = elevAtPix15(gx, gy);
+            if (e === null || e === undefined) { if (!seaAsZero) continue; e = 0; }   // データ無し: 日本域なら海面0m・それ以外は判定対象外
             const r = j / steps;
             const d = distM * r;
             const lineElev = startTotal + (endTotal - endDrop - startTotal) * r;
@@ -13468,21 +13534,22 @@ async function computePathVisibility(startLat, startLng, startTotalElev, endLat,
     if (synthetic) {
         elevAtPix15 = _syntheticElevAtPix15;   // テスト用合成(共通)
     } else {
-        // 経路が通るタイル座標を判定と同じ歩きで列挙し、必要なタイルだけ取得する
+        // 経路が通るタイル座標を判定と同じ歩き(大円)で列挙し、必要なタイルだけ取得する
         const distM = _geoDistM(startLat, startLng, endLat, endLng);
-        const stepM = 40075016.686 * Math.cos(startLat * Math.PI / 180) / (scale15 * 256) / 2;
+        const stepM = SORA.metersPerPixel(startLat, 15) / 2;
         const steps = Math.max(2, Math.ceil(distM / stepM));
-        const sx15 = 128 * (startLng / 180 + 1) * scale15;
-        const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps;
-        const dLat = endLat - startLat;
+        const gpx15At = (lng) => 128 * (lng / 180 + 1) * scale15;
+        const path = SORA.greatCirclePath(startLat, startLng, endLat, endLng);
         const keys15 = new Set();
-        const SEG = 64;
+        const SEG = SORA.VISIBILITY.PATH_CHUNK;
         for (let j0 = 0; j0 <= steps; j0 += SEG) {
             const j1 = Math.min(j0 + SEG - 1, steps);
-            const gyA = gpy15At(startLat + dLat * (j0 / steps));
-            const dgy = (j1 > j0) ? (gpy15At(startLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+            const pA = path.at(j0 / steps), pB = (j1 > j0) ? path.at(j1 / steps) : pA;
+            const gxA = gpx15At(pA.lng), gyA = gpy15At(pA.lat);
+            const dgx = (j1 > j0) ? (gpx15At(pB.lng) - gxA) / (j1 - j0) : 0;
+            const dgy = (j1 > j0) ? (gpy15At(pB.lat) - gyA) / (j1 - j0) : 0;
             for (let j = j0; j <= j1; j++) {
-                const gx = (sx15 + dx * j) | 0, gy = (gyA + dgy * (j - j0)) | 0;
+                const gx = (gxA + dgx * (j - j0)) | 0, gy = (gyA + dgy * (j - j0)) | 0;
                 keys15.add((gx >> 8) * 32768 + (gy >> 8));
             }
         }
@@ -13621,7 +13688,9 @@ async function showVisibilityResult(generation) {
         appState.start.lat, appState.start.lng, appState.startApiElev + appState.startHeight,
         appState.end.lat, appState.end.lng, appState.endApiElev + appState.endHeight, appState.endApiElev);
     if (generation !== undefined && generation !== _elevFetchGeneration) return;
-    const note = '\n\n※ 地球の丸みと大気差(:大気差設定・気象値に連動)を考慮した判定です';
+    // 海の扱いは判定と同じ条件で書く(日本域=両端が地理院の標高タイルの範囲にある時だけ海面0m。第157のレビュー)
+    const seaRule = (_pointInsideJapan(appState.start.lat, appState.start.lng) && _pointInsideJapan(appState.end.lat, appState.end.lng)) ? '海は海面0mとして遮る判定です' : '標高データの無い所は判定しません(日本域の外)';
+    const note = `\n\n※ 地球の丸み(大円に沿う経路)と大気差(気差係数K=${refractionKInUse().toFixed(3)}。設定メニューの値)を考慮し、${seaRule}`;
     if (r.visible) {
         alert('可視判定: OK\n観測点から目的点が見通せます' + note);
     } else {
@@ -16242,7 +16311,7 @@ function restoreFromUrl() {
         _MONTH_DEFS.forEach(([suf]) => { if (params.has('tsujiMonth' + suf)) appState['tsujiMonth' + suf] = params.get('tsujiMonth' + suf) === 'true'; });
         // URLの基準方位角/視高度を自動再計算で上書きしない(第36ラウンドの保護。第108でmode問わずへ)
         if (params.has('tsujiAz') || params.has('tsujiAlt')) {
-            appState._lastTsujiPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+            appState._lastTsujiPosKey = _basePosKey();
         }
     }
 
@@ -16275,7 +16344,7 @@ function restoreFromUrl() {
         });
         // URLの基準方位角/視高度を自動再計算で上書きしない(第108でmode問わずへ)
         if (params.has('tsujiMeshAz') || params.has('tsujiMeshAlt')) {
-            appState._lastTsujiMeshPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+            appState._lastTsujiMeshPosKey = _basePosKey();
         }
     }
 
@@ -16315,6 +16384,9 @@ function restoreFromUrl() {
         const key = 'meteo' + mk.toUpperCase();
         if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState.meteo[mk] = v; }
     });
+    // 位置の鍵には気差係数も入る(第157)ので、気象値を復元した後に鍵を取り直す(URLの基準方位角/視高度を自動再計算で上書きしない保護を保つ)
+    if (params.has('tsujiAz') || params.has('tsujiAlt')) appState._lastTsujiPosKey = _basePosKey();
+    if (params.has('tsujiMeshAz') || params.has('tsujiMeshAlt')) appState._lastTsujiMeshPosKey = _basePosKey();
     soraStr('baseOptMwBase'); soraStr('mwConstNameSort');
     ['mwOffsetAngle', 'elevExcludeRadius', 'elevExcludeObsRadius'].forEach(soraNum);
     ['mwShowBodies', 'mwShowBodyNames', 'mwShowConstFig', 'mwShowConstBounds', 'mwShowConstNames',
@@ -16339,7 +16411,7 @@ function restoreFromUrl() {
 
     // 宙の窓の基準方位角/視高度/視界範囲をURL値のまま使う(位置起点の自動再計算で上書きしない)
     if (params.has('soraBaseAz') || params.has('soraBaseAlt')) {
-        appState._soraLastPosKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+        appState._soraLastPosKey = _basePosKey();
     }
 
     // mode=tsujisearchの場合は辻検索を自動実行（UIが準備できた後に。パネルキーを乗せない絞りURL用+
@@ -17597,7 +17669,7 @@ function soraSyncUI() {
 
 /** 観測点・目的点から 基準方位角/視高度・視界範囲既定 を算出 (辻検索とは非連動)。位置変化時のみ */
 function soraUpdateBaseFromPoints() {
-    const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}`;
+    const posKey = _basePosKey();
     if (posKey === appState._soraLastPosKey) return;
     appState._soraLastPosKey = posKey;
     const dist = getDistanceWGS84(appState.start.lat, appState.start.lng, appState.end.lat, appState.end.lng);
@@ -19395,7 +19467,7 @@ function _fwEnu(elevTotal) {
     const d = getDistanceWGS84(oLat, oLng, p.lat, p.lng);
     const az = calculateBearing(oLat, oLng, p.lat, p.lng) * Math.PI / 180;
     const E = d * Math.sin(az), N = d * Math.cos(az);
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
     const Reff1 = getLocalEarthRadius(oLat) / (1 - k), Reff2 = getLocalEarthRadius(p.lat) / (1 - k);
     const r1 = Reff1 + (Number(appState.start.elev) || 0), r2 = Reff2 + elevTotal;
     const c = d / ((Reff1 + Reff2) / 2);
@@ -21887,7 +21959,7 @@ function _smApplyShading() {
     const sun = _smSunDir();
     // 太陽方位/高度を量子化して鍵に含める→日時変化で陰影を再計算
     const sunKey = `${Math.round(sun.az)}_${Math.round(sun.alt)}`;
-    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}|${appState.soraElevShade}|${appState.soraSunShade}|${appState.soraPhotoTex ? 'P' : ''}`;
+    const shadeKey = `${_smGeomKey}|${appState.soraGrayscale}|${appState.soraPeaking}|${focusNear.toFixed(0)}|${focusFar === Infinity ? 'inf' : focusFar.toFixed(0)}|${sunKey}|${appState.soraElevShade}|${appState.soraSunShade}|${appState.soraPhotoTex ? 'P' : ''}|K${refractionKInUse().toFixed(5)}`;   // Kも鍵に(地形の網は実効半径で沈める。建物の扇と同じKで描き直す。第157のレビュー)
     if (shadeKey === _smShadeKey && _smTerrainMesh) return;
     _smShadeKey = shadeKey;
     _smBuildTerrainMesh(_smHeightfield, focusNear, focusFar, sun.vec);
@@ -21899,7 +21971,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     const { nA, nR, samples } = hf;
     const row = nA + 1;
     const obsElev = Number(appState.start.elev) || 0;
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
     const Reff1 = getLocalEarthRadius(appState.start.lat) / (1 - k);
     const r1 = Reff1 + obsElev;
     // 標高レンジ
@@ -22205,7 +22277,7 @@ function _smBldgUpdate() {
     const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
-    const k = appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
     const budget = Math.max(1, Math.min(APP_DEFAULTS.smBldgTiles.max, Math.round(Number(appState.smBldgTiles) || 30)));   // 上限は既定値表を参照して一元化(第64ラウンド: 旧上限150の残置でスライダー151以上が頭打ちになっていたため二重定義をやめた)
     const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
     const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}|${budget}`;

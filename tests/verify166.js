@@ -75,8 +75,8 @@ check('S3 天体軌跡にマーカーと同じ大気差(+キャッシュ鍵に�
       r.curved.visible===false && Math.abs(r.curved.blockingDist-60.2)<0.6, JSON.stringify(r.curved));
     check('J2 補正なし(旧来の直線判定=inv2R:0)なら同じ地形で見える(判定を変えたのは丸みの項)',
       r.flat.visible===true, JSON.stringify(r.flat));
-    check('J3 大気差オフでも隠れる+実効地球は大気差オンで大きくなる(k連動: 比が1-k≒0.8台)',
-      r.noRefr.visible===false && r.ratio>0.78 && r.ratio<0.9, `ratio=${r.ratio.toFixed(3)}`);
+    check('J3 大気差オフでも隠れる+実効地球はkに連動する(第157: オフ=測量標準0.132・オン[Γ0.0065]=0.169なので 比=(1−0.169)/(1−0.132)≒0.957)',
+      r.noRefr.visible===false && r.ratio>0.95 && r.ratio<0.965, `ratio=${r.ratio.toFixed(3)}`);
   }
 
   // T1: 写真テクスチャのUI・保存・URL往復

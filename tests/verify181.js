@@ -23,29 +23,29 @@ const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const indexJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'kashimap', 'v1', 'index.json'), 'utf8'));
 const mysite = fs.readFileSync(path.join(ROOT, 'docs', 'dessin', 'dessin', '09-mysite.md'), 'utf8');
 
-check('V0 版数ピン 1.95.0+Version Historyに第156', /APP_VERSION = '1\.95\.0'/.test(src) && (src.includes('第156ラウンド — 可視マップ節をデッサン05の改訂版に') || !!process.argv[2]));
+check('V0 版数 1.95.0以降(ピンは最新のverifyが持つ)+Version Historyに第156', /APP_VERSION = '1\.9[5-9]\.\d+'/.test(src) && (src.includes('第156ラウンド — 可視マップ節をデッサン05の改訂版に') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf("toggleSection('sec-soramado')"));
-const order = (...ids) => ids.map(t => kmHtml.indexOf(t)).every((v, i, a) => v >= 0 && (i === 0 || a[i - 1] < v));
-check('S1 可視マップ節(デッサン05の改訂版): 推し山→検索条件:→AND/OR→山リスト:→百/二百/三百→百高/その他/:端末保存→最大表示範囲:→100/300/700→障害物オプション:→:樹冠/:構造物→「計算済み可視マップを検索」→注記3つ→水平線→:目的点/:My目的点(1段)→計算範囲リスト(7つ・500なし・初期値24)→:精細→:最高精細→「範囲を計算」→水平線→:可視タイル/:山頂マーカー(1段)→:全展望マーカー(別の段)→水平線→標高タイル:→件数/容量→注記→全削除(横幅いっぱい)→可視タイル:→件数/容量→一括選択(main-btn)→⬇DL/削除/全て登録(三等分)→一覧 / 旧ボタンのidが残らない',
-  order('id="input-kashimap-query"', '>検索条件:</label>', 'id="radio-kashimap-and"', '>山リスト:</label>', 'id="chk-kashimap-100"', 'id="chk-kashimap-high"', 'id="chk-kashimap-other"', 'id="chk-kashimap-device"', '>最大表示範囲:</label>', 'name="kashimap-range-menu" value="100" checked', '>障害物オプション:</label>', 'id="chk-kashimap-menu-canopy"', 'id="chk-kashimap-menu-building"', '>計算済み可視マップを検索</button>', '山リストは百名山', '標高・建物・木の高さからの概算です', 'この機能はPC向け機能なので', '<hr class="tsujisearch-separator km-hr">', 'id="radio-kashimap-tgt" value="tgt" checked>:目的点', 'id="radio-kashimap-mytgt" value="mytgt">:My目的点', 'id="sel-kashimap-tgt-range"', 'id="chk-kashimap-fine"', 'id="chk-kashimap-finest"', '>:最高精細(700kmを2段細かく)</label>', '>範囲を計算</button>', 'id="chk-kashimap-menu-tiles"', 'id="chk-kashimap-menu-summit"', 'id="chk-kashimap-menu-zen"', '>標高タイル:</label>', 'id="kashimap-tiles-count"', 'id="kashimap-tiles-size"', '可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。', 'id="btn-kashimap-tiles-clear" class="nav-btn main-btn"', '>可視タイル:</label>', 'id="kashimap-store-count"', 'id="kashimap-store-total"', 'id="btn-kashimap-store-selall" class="nav-btn main-btn"', '<div class="control-row km-store-actions">', 'id="btn-kashimap-store-dl" class="nav-btn main-btn"', 'id="btn-kashimap-store-del" class="nav-btn main-btn"', 'id="btn-kashimap-store-apply" class="nav-btn main-btn"', 'id="kashimap-store-table"') &&
-  (kmHtml.match(/<hr class="tsujisearch-separator km-hr">/g) || []).length === 3 &&
+const order = (...ids) => { let pos = -1; return ids.every(t => { const v = kmHtml.indexOf(t, pos + 1); if (v < 0) return false; pos = v; return true; }); };   // 第157: 同じ字句(水平線)が複数回並ぶので、直前の位置より後ろで探す
+check('S1 可視マップ節(デッサン05の改訂版): 推し山→検索条件:→AND/OR→山リスト:→百/二百/三百→百高/その他/:端末保存→最大表示範囲:→100/300/700→障害物オプション:→:樹冠/:構造物→「計算済み可視マップを検索」→注記3つ→水平線→:目的点/:My目的点(1段)→計算範囲リスト(7つ・500なし・初期値24)→:精細→:最高精細→「範囲を計算」→注記(剣ヶ峯)[第157]→水平線→:可視タイル/:山頂マーカー(1段)→:全展望マーカー(別の段)→水平線→標高タイル:→件数/容量→注記→全削除(横幅いっぱい)→水平線[第157]→可視タイル:→件数/容量→一括選択(main-btn)→⬇DL/削除/全て登録(三等分)→一覧 / 旧ボタンのidが残らない',
+  order('id="input-kashimap-query"', '>検索条件:</label>', 'id="radio-kashimap-and"', '>山リスト:</label>', 'id="chk-kashimap-100"', 'id="chk-kashimap-high"', 'id="chk-kashimap-other"', 'id="chk-kashimap-device"', '>最大表示範囲:</label>', 'name="kashimap-range-menu" value="100" checked', '>障害物オプション:</label>', 'id="chk-kashimap-menu-canopy"', 'id="chk-kashimap-menu-building"', '>計算済み可視マップを検索</button>', '山リストは百名山', '標高・建物・木の高さからの概算です', 'この機能はPC向け機能なので', '<hr class="tsujisearch-separator km-hr">', 'id="radio-kashimap-tgt" value="tgt" checked>:目的点', 'id="radio-kashimap-mytgt" value="mytgt">:My目的点', 'id="sel-kashimap-tgt-range"', 'id="chk-kashimap-fine"', 'id="chk-kashimap-finest"', '>:最高精細(700kmを2段細かく)</label>', '>範囲を計算</button>', '富士山で範囲を計算する場合は、「火口」を中心とする場合と、「剣ヶ峯」を中心とする場合では、結果が異なります。宙の辻では、「剣ヶ峯」(標高:3771.3m)を推奨します。', '<hr class="tsujisearch-separator km-hr">', 'id="chk-kashimap-menu-tiles"', 'id="chk-kashimap-menu-summit"', 'id="chk-kashimap-menu-zen"', '>標高タイル:</label>', 'id="kashimap-tiles-count"', 'id="kashimap-tiles-size"', '可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。', 'id="btn-kashimap-tiles-clear" class="nav-btn main-btn"', '<hr class="tsujisearch-separator km-hr">', '>可視タイル:</label>', 'id="kashimap-store-count"', 'id="kashimap-store-total"', 'id="btn-kashimap-store-selall" class="nav-btn main-btn"', '<div class="control-row km-store-actions">', 'id="btn-kashimap-store-dl" class="nav-btn main-btn"', 'id="btn-kashimap-store-del" class="nav-btn main-btn"', 'id="btn-kashimap-store-apply" class="nav-btn main-btn"', 'id="kashimap-store-table"') &&
+  (kmHtml.match(/<hr class="tsujisearch-separator km-hr">/g) || []).length === 4 &&
   [...kmHtml.matchAll(/<option value="(\d+)"( selected)?>/g)].map(m => m[1] + (m[2] ? '*' : '')).join(',') === '24*,36,48,60,100,300,700' &&
   /id="chk-kashimap-menu-summit"[^\n]*\n\s*<\/div>\s*<div class="control-row left-row">\s*<input type="checkbox" id="chk-kashimap-menu-zen"/.test(kmHtml) &&   // 全展望マーカーは別の段
   /id="chk-kashimap-menu-tiles"[^\n]*\n\s*<input type="checkbox" id="chk-kashimap-menu-summit"/.test(kmHtml) &&   // 可視タイルと山頂マーカーは同じ段
   !/btn-kashimap-tgt|btn-kashimap-mytgt/.test(idxSrc) && !/btn-kashimap-tgt|btn-kashimap-mytgt/.test(src) && !/kashimap-btn-row/.test(kmHtml) && !/center-row/.test(kmHtml.slice(kmHtml.indexOf('標高タイル:'))));
-check('S1b ヘルプと設定の文言: その場で計算(ラジオ+範囲を計算・端末の資産を先に探す・計算範囲リスト7つ・最高精細・Kは補正オフでも0.132)・一覧は3行・気温減率の既定0.0125(入力欄のtitle・ヘルプ・数式の説明)・辻ラインの端 / UI文言に内輪文脈なし',
+check('S1b ヘルプと設定の文言: その場で計算(ラジオ+範囲を計算・端末の資産を先に探す・計算範囲リスト7つ・最高精細・Kはオフ=0.132/オン=算出値[第157])・一覧は3行・気温減率の既定0.0125(入力欄のtitle・ヘルプ・数式の説明)・辻ラインの端 / UI文言に内輪文脈なし',
   idxSrc.includes('<li><strong>その場で計算 (「:目的点」「:My目的点」+「範囲を計算」)</strong>') && idxSrc.includes('同じ範囲の資産があればそれを使うか聞きます') && idxSrc.includes('24/36/48/60/100/300/700km四方') && !idxSrc.includes('300/500/700km四方') &&
-  idxSrc.includes('「:最高精細」は700kmを約15m') && idxSrc.includes('オフでも測量標準の 0.132 を使います') && idxSrc.includes('一覧は資産ごとに3行で') && idxSrc.includes('3行目は島数・サイズです') &&
+  idxSrc.includes('「:最高精細」は700kmを約15m') && idxSrc.includes('先頭のチェックがオフのときは測量標準の 0.132、オンのときは下の気象条件から算出した値になります') && idxSrc.includes('一覧は資産ごとに3行で') && idxSrc.includes('3行目は島数・サイズです') &&
   idxSrc.includes('既定は 0.0125=測量標準の K=0.132 になる値') && idxSrc.includes('既定は0.0125で、測量標準の K=0.132 になります') && idxSrc.includes('既定の気温減率 <b>\\(0.0125\\)</b> で測量標準の') && !idxSrc.includes('通常は 0.0065') && !idxSrc.includes('通常は0.0065') &&
   idxSrc.includes('その時刻を1秒まで詰めて揃えています') &&
   !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
-check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放物線の反り・行ごとの縮尺)・hSeenの添字・既定Γ0.0125(STD_L)と旧値(STD_L_OLD)・保存データの移行(meteoDefaultsV2)・計算範囲7つ・上限9,500/最高精細45,000・_kmZoomForRange(rangeKm, fine, finest)・_kmComputeK/_kmInv2Reff・jobのk・点滅の鍵はlastIndexOf・KM_ROW_CAPなし・山リストの6欄(_kmInfoCells)と列・:端末保存・資産の再利用(確認)・3行1組・一括選択のトグル見た目・索引のk・DP_DIST_LIMITはモジュール定数で365にも / worker: evalAt+bisect / 道具: sizes / 索引: sizes / CSS',
-  ['const STD_L = 0.0125;', 'const STD_L_OLD = 0.0065;', '+saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };', 'meteoDefaultsV2: true,', 'const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 700];', 'const KM_TGT_MAX_TILES = 9500;', 'const KM_TGT_MAX_TILES_FINEST = 45000;',
-   'function _kmZoomForRange(rangeKm, fine, finest) {', 'if (finest && rangeKm > 500) return z + 2;', 'function _kmComputeK() { return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : REFRACTION_K; }', 'function _kmInv2Reff(lat)', 'inv2R: _kmInv2Reff(lat), k: _kmComputeK(),', '(finest && rangeKm > 500) ? KM_TGT_MAX_TILES_FINEST : KM_TGT_MAX_TILES',
-   "const cut = key.lastIndexOf(':'); const mid = key.slice(0, cut), no = key.slice(cut + 1);", "else if (!_kmShown.has(key.slice(0, key.lastIndexOf(':')))) _kmBlink.delete(key);", 'function _kmInfoCells(info)', "{ label: '範囲', compare:", "{ label: '樹冠', compare:", "{ label: '構造物', compare:", "{ label: 'サイズ', compare:", 'if (tr.children.length >= 17)',
-   'if (f.device && !_kmHasDeviceAsset(m.id)) return false;', "const have = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;", 'OK=その資産を使う / キャンセル=計算し直す', "tr3.className = 'km-store-row3'", '<td rowspan="3" class="km-store-chk">', "all.classList.toggle('myset-toggle-active', allOn);", 'k: _kmNum(meta.k),', 'height: v.height, k: v.k });',
+check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放物線の反り・行ごとの縮尺)・hSeenの添字・既定Γ0.0125(STD_L)と旧値(STD_L_OLD)・保存データの移行(meteoDefaultsV2)・計算範囲7つ・上限9,500/最高精細45,000・_kmZoomForRange(rangeKm, fine, finest)・refractionKInUse/_visInv2Reff[第157]・jobのk・点滅の鍵はlastIndexOf・KM_ROW_CAPなし・山リストの6欄(_kmInfoCells)と列・:端末保存・資産の再利用(確認)・3行1組・一括選択のトグル見た目・索引のk・DP_DIST_LIMITはモジュール定数で365にも / worker: evalAt+bisect / 道具: sizes / 索引: sizes / CSS',
+  ['const STD_L = SORA.REFRACTION.STD_LAPSE_RATE_K_PER_M;', 'const STD_L_OLD = SORA.REFRACTION.ISA_LAPSE_RATE_K_PER_M;', '+saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };', 'meteoDefaultsV2: true,', 'const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 700];', 'const KM_TGT_MAX_TILES = 9500;', 'const KM_TGT_MAX_TILES_FINEST = 45000;',
+   'function _kmZoomForRange(rangeKm, fine, finest) {', 'if (finest && rangeKm > 500) return z + 2;', 'function refractionKInUse() {', 'inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),', '(finest && rangeKm > 500) ? KM_TGT_MAX_TILES_FINEST : KM_TGT_MAX_TILES',
+   "const cut = key.lastIndexOf(':'); const mid = key.slice(0, cut), no = key.slice(cut + 1);", "else if (!_kmShown.has(key.slice(0, key.lastIndexOf(':')))) _kmBlink.delete(key);", 'function _kmInfoCells(info, lat)', "{ label: '範囲', compare:", "{ label: '樹冠', compare:", "{ label: '構造物', compare:", "{ label: 'サイズ', compare:", 'if (tr.children.length >= KM_INFO_COL0 + cells.length)',
+   'if (f.device && !_kmHasDeviceAsset(m.id)) return false;', "const have0 = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;", 'OK=その資産を使う / キャンセル=計算し直す', "tr3.className = 'km-store-row3'", '<td rowspan="3" class="km-store-chk">', "all.classList.toggle('myset-toggle-active', allOn);", 'k: _kmNum(meta.k),', 'height: v.height, k: v.k, zoom: v.zoom });',
    'const DP_DIST_LIMIT = 400000;', "owner: 'dp365', altOffset: offAlt, distLimit: DP_DIST_LIMIT })", "const b = document.getElementById('btn-kashimap-compute');", "const fn = (my && my.checked) ? _kmComputeMyTargets : _kmComputeTarget;"].every(t => src.includes(t)) &&
-  !/KM_ROW_CAP/.test(src) && !/_kmComputeOne[\s\S]{0,400}appState\.refractionEnabled \? calculateKFromMeteo/.test(src.slice(src.indexOf('async function _kmComputeOne'), src.indexOf('async function _kmComputeOne') + 4000)) &&
+  !/KM_ROW_CAP/.test(src) && !/calculateKFromMeteo\(appState\.meteo\.p, appState\.meteo\.t, appState\.meteo\.l\) : 0/.test(src) &&   // 第157: 「オフ=0」は本体から消えた
   ['const evalAt = (timeMs) => {', 'const bisect = (okMs, ngMs) => {', 'if (pt && !lastOk) { const b = bisect(timeMs, lastMs);', 'else if (lastOk && s > startSec) { const b = bisect(lastMs, timeMs);'].every(t => dpSrc.includes(t)) &&
   ['function geodesicHelpers(G)', 'const geo = geodesicHelpers(G);', 'const bend = geo.bend(ex, ey);', 'dM += stepM * geo.rowScale[py];', "path: 'geodesic-parabolic', scale: 'row-cos-lat'", 'const b = Math.floor(i / 8); return (hSeen[b] >> (i - b * 8)) & 1;', 'function allocArray(Ctor, n, forceWasm)', 'grid = allocArray(Uint16Array, W * H, !!job.forceWasm).fill(NODATA);', 'const visible = allocArray(Uint8Array, W * H);'].every(t => wkSrc.includes(t)) &&
   ['function geodesicHelpers() {', 'const geo = geodesicHelpers();', 'dM += stepM * geo.rowScale[py];', 'const bend = geo.bend(px, py);'].every(t => toolSrc.includes(t)) &&
@@ -59,6 +59,7 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
 {
   const vm = require('vm');
   const ctxw = { self: { postMessage() {}, addEventListener() {} }, console, WebAssembly, Uint16Array, Uint8Array, Float64Array, Int32Array, Float32Array, RangeError, Math, setTimeout, fetch: () => {}, indexedDB: undefined, performance };
+  ctxw.self.SORA = undefined; ctxw.importScripts = (f) => { vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctxw); if (ctxw.self && ctxw.self.SORA) ctxw.SORA = ctxw.self.SORA; };   // 第157: ワーカーは sora-constants.js を importScripts で読む
   vm.createContext(ctxw);
   vm.runInContext(wkSrc + '\n;this.__cv = computeViewshed; this.__wg = windowGeom;', ctxw);
   const holesFor = (lat, lon, rangeKm, Z, hS) => {
@@ -88,9 +89,9 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
   const u1 = await p.evaluate(() => {
     const z = [[700,false,true,13],[700,true,false,12],[700,false,false,11],[300,false,true,12],[300,true,true,13],[100,true,true,14],[60,true,true,15]].map(([r,f,ff,e]) => _kmZoomForRange(r,f,ff) === e);
     const sv = [appState.refractionEnabled, { ...appState.meteo }];
-    appState.refractionEnabled = false; const kOff = _kmComputeK(); const inv2ROff = _kmInv2Reff(35.36);
-    appState.refractionEnabled = true; appState.meteo = { p: 1013.25, t: 15, l: 0.0125 }; const kOn = _kmComputeK();
-    appState.meteo = { p: 1013.25, t: 15, l: 0.0065 }; const kOld = _kmComputeK();
+    appState.refractionEnabled = false; const kOff = refractionKInUse(); const inv2ROff = _visInv2Reff(35.36, 35.36);   // 第157: _kmComputeK/_kmInv2Reff は refractionKInUse/_visInv2Reff に統合
+    appState.refractionEnabled = true; appState.meteo = { p: 1013.25, t: 15, l: 0.0125 }; const kOn = refractionKInUse();
+    appState.meteo = { p: 1013.25, t: 15, l: 0.0065 }; const kOld = refractionKInUse();
     [appState.refractionEnabled, appState.meteo] = sv;
     const reffOff = 1 / (2 * inv2ROff);
     return { z: z.every(Boolean), kOff, kOn: +kOn.toFixed(4), kOld: +kOld.toFixed(4), stdL: STD_L, stdLOld: STD_L_OLD, reffOff: Math.round(reffOff), expectReff: Math.round(getLocalEarthRadius(35.36) / (1 - 0.132)), ranges: KM_TGT_RANGES.join(), maxTiles: KM_TGT_MAX_TILES, finest: KM_TGT_MAX_TILES_FINEST, nOpt: document.getElementById('sel-kashimap-tgt-range').options.length };
@@ -164,14 +165,14 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
     return { hrs, full, thirds, thirdsSum: +(thirds.reduce((a, b) => a + b, 0) / secR.width).toFixed(2), tgtRow: row('radio-kashimap-tgt') === row('radio-kashimap-mytgt'), tilesSummitRow: row('chk-kashimap-menu-tiles') === row('chk-kashimap-menu-summit'), zenRowDiff: row('chk-kashimap-menu-zen') - row('chk-kashimap-menu-summit'),
       noteAbove: noteEl && noteEl.getBoundingClientRect().bottom <= r('btn-kashimap-tiles-clear').top + 1, labels: labels.length, oneLine: labels.every(l => l.h <= 24 && !l.over), overflow: sec.scrollWidth <= sec.clientWidth + 1 };
   });
-  check('U2 整列: 水平線3本が見える(節の幅)・「計算済み可視マップを検索」「範囲を計算」「標高タイルを全削除」「一括選択」は横幅いっぱい・⬇DL/削除/全て登録は同じ幅で合計が横幅いっぱい・:目的点/:My目的点は同じ段・可視タイルと山頂マーカーは同じ段で全展望は下の段・注記は全削除の上・km-labelは1行ではみ出さない・横スクロールなし',
-    u2.hrs.length === 3 && u2.hrs.every(h => h.visible && h.w >= 300) && u2.full.every(f => f >= 0.9) && Math.max(...u2.thirds) - Math.min(...u2.thirds) <= 2 && u2.thirdsSum >= 0.9 && u2.tgtRow && u2.tilesSummitRow && u2.zenRowDiff > 10 && u2.noteAbove && u2.labels >= 13 && u2.oneLine && u2.overflow, JSON.stringify(u2));
+  check('U2 整列: 水平線4本が見える[第157](節の幅)・「計算済み可視マップを検索」「範囲を計算」「標高タイルを全削除」「一括選択」は横幅いっぱい・⬇DL/削除/全て登録は同じ幅で合計が横幅いっぱい・:目的点/:My目的点は同じ段・可視タイルと山頂マーカーは同じ段で全展望は下の段・注記は全削除の上・km-labelは1行ではみ出さない・横スクロールなし',
+    u2.hrs.length === 4 && u2.hrs.every(h => h.visible && h.w >= 300) && u2.full.every(f => f >= 0.9) && Math.max(...u2.thirds) - Math.min(...u2.thirds) <= 2 && u2.thirdsSum >= 0.9 && u2.tgtRow && u2.tilesSummitRow && u2.zenRowDiff > 10 && u2.noteAbove && u2.labels >= 13 && u2.oneLine && u2.overflow, JSON.stringify(u2));
 
   // D2: 山リストの列(範囲/樹冠/構造物/サイズ)と「:端末保存」
   await p.evaluate(() => { document.getElementById('input-kashimap-query').value = ''; document.getElementById('chk-kashimap-100').checked = true; document.getElementById('btn-kashimap-search').click(); });   // 語なし=百名山(富士山)+端末の資産の擬似の山(tgt:1/tgt:2)
   await p.waitForFunction(() => document.querySelectorAll('#kashimap-content tr.td-data-row').length > 0, { timeout: 15000 });
   const d2 = await p.evaluate(async () => {
-    const ths = Array.from(document.querySelectorAll('#kashimap-content thead th')).map(t => t.textContent.replace(/[▲▼]/g, ''));
+    const ths = Array.from(document.querySelectorAll('#kashimap-content thead th')).map(t => t.textContent.replace(/[▲▼]/g, ''));   // 第157: 「ズーム」列が加わり18列
     const tr = document.querySelector('#kashimap-content tr[data-id="368"]'); const cells = tr ? Array.from(tr.children).slice(11).map(td => td.textContent) : null;
     const t1 = document.querySelector('#kashimap-content tr[data-id="tgt:1"]'); const c1 = t1 ? Array.from(t1.children).slice(11).map(td => td.textContent) : null;
     _kmCanopy = false; _kmBuilding = false; _kmSyncUi(); _kmRenderList(); const t1n = document.querySelector('#kashimap-content tr[data-id="tgt:1"]'); const c1n = t1n ? Array.from(t1n.children).slice(11).map(td => td.textContent) : null;
@@ -181,10 +182,10 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
     const devRows = Array.from(document.querySelectorAll('#kashimap-content tr.td-data-row')).map(t => t.dataset.id).sort();
     document.getElementById('chk-kashimap-device').checked = false; await runKashimapSearch();
     const allRows = document.querySelectorAll('#kashimap-content tr.td-data-row').length;
-    return { ths: ths.slice(11), nCols: ths.length, cells, c1, c1n, devRows, allRows };
+    return { ths: ths.slice(11), nCols: ths.length, cells, c1, c1n, devRows, allRows };   // 第157: cellsは7欄(…構造物・ズーム・サイズ)
   });
-  check('D2 山リスト: 見出しに「島の数・静的/動的・範囲・樹冠・構造物・サイズ」(17列)・富士山=10,129/静/60km/-/-/8.5 MB(索引のsizes)・端末の資産(tgt:1)は樹冠オンで「樹冠あり」の資産・オフで地形の資産・「:端末保存」で端末に資産がある行だけ(tgt:1・tgt:2)',
-    d2.ths.join() === '島の数,静的/動的,範囲,樹冠,構造物,サイズ' && d2.nCols === 17 && d2.cells && d2.cells.join('|') === '10,129|静|60km|-|-|8.5 MB' && d2.c1 && d2.c1.join('|') === '1|動|24km|あり|-|' + d2.c1[5] && /MB$/.test(d2.c1[5]) && d2.c1n && d2.c1n.join('|').startsWith('1|動|24km|-|-|') &&
+  check('D2 山リスト: 見出しに「島の数・静的/動的・範囲・樹冠・構造物・ズーム・サイズ」(18列・第157)・富士山=10,129/静/60km/-/-/z15/8.5 MB(索引のsizes・zooms)・端末の資産(tgt:1)は樹冠オンで「樹冠あり」の資産・オフで地形の資産・「:端末保存」で端末に資産がある行だけ(tgt:1・tgt:2)',
+    d2.ths.join() === '島の数,静的/動的,範囲,樹冠,構造物,ズーム,サイズ' && d2.nCols === 18 && d2.cells && d2.cells.join('|') === '10,129|静|60km|-|-|z15(1画素≈4m・DEM5A/5B/5C)|8.5 MB' && d2.c1 && d2.c1.join('|') === '1|動|24km|あり|-|z15(1画素≈4m・DEM5A/5B/5C)|' + d2.c1[6] && /MB$/.test(d2.c1[6]) && d2.c1n && d2.c1n.join('|').startsWith('1|動|24km|-|-|') &&
     d2.devRows.join() === 'tgt:1,tgt:2' && d2.allRows >= 100, JSON.stringify(d2));
 
   // D3: 点滅(目的点の資産の鍵「tgt:…:項番」)

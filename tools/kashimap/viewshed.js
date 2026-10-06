@@ -24,11 +24,12 @@ const args = {};
 for (let i = 2; i < process.argv.length; i++) { const a = process.argv[i]; if (a.startsWith('--')) { const k = a.slice(2); const v = (i + 1 < process.argv.length && !process.argv[i + 1].startsWith('--')) ? process.argv[++i] : 'true'; args[k] = v; } }
 const HERE = __dirname;
 const REPO = path.join(HERE, '..', '..');
+const SORA = require(path.join(REPO, 'sora-constants.js'));   // 数の単一情報源(本体・ワーカーと同じ値)
 const ID = String(args.id || '368');
 const RANGE_KM = parseFloat(args.range || '60');
 const Z = parseInt(args.zoom || '15', 10);
-const K = parseFloat(args.k || '0.132');
-const OBS_H = parseFloat(args.obs || '1.5');
+const K = args.k !== undefined ? parseFloat(args.k) : SORA.REFRACTION.K_STANDARD;   // 気差係数(既定=測量標準0.132。sora-constants.js)
+const OBS_H = args.obs !== undefined ? parseFloat(args.obs) : SORA.OBSERVER.EYE_HEIGHT_M;
 const CONC = parseInt(args.concurrency || '6', 10);
 const CHECK_N = parseInt(args.check || '2000', 10);
 const PREVIEW = parseInt(args.preview || '1024', 10);
@@ -41,15 +42,15 @@ const WRITE_GEOJSON = args.geojson === 'true';                               // 
 const PROBES = (args.probe || '').split(';').map(t => t.trim()).filter(Boolean).map(t => { const [lat, lon, name] = t.split(','); return { lat: +lat, lon: +lon, name: name || `${lat},${lon}` }; });   // 既知の展望地の見通しを1本ずつ歩いて報告
 const CANOPY = args.canopy === 'true';      // 段2後半(樹冠)。今はfalse固定
 const EXCL_TARGET_ARG = args['excl-target'] !== undefined ? parseFloat(args['excl-target']) : null;   // 目的点側の除外半径(m)。無指定=山頂部の広がりから自動
-const SUMMIT_DROP_M = parseFloat(args['summit-drop'] || '300');   // 「山頂部」= 山頂からこの高さ以内で山頂につながる画素(山の体そのもの。他の山の山頂を含まない高さまで縮める)
-const SUMMIT_SEARCH_M = parseFloat(args['summit-search'] || '3000');   // 山頂部を探す半径(m)
+const SUMMIT_DROP_M = args['summit-drop'] !== undefined ? parseFloat(args['summit-drop']) : SORA.VISIBILITY.SUMMIT_BAND_M;   // 「山頂部」= 山頂からこの高さ以内で山頂につながる画素(山の体そのもの。他の山の山頂を含まない高さまで縮める)
+const SUMMIT_SEARCH_M = args['summit-search'] !== undefined ? parseFloat(args['summit-search']) : SORA.VISIBILITY.SUMMIT_SEARCH_M;   // 山頂部を探す半径(m)
 const CACHE = path.resolve(args.cache || path.join(HERE, 'cache'));
 const OUT_ROOT = path.resolve(args.out || path.join(HERE, 'out'));
-const R_EARTH = 6371000;
-const EXCL_OBS_M = 10;                       // 観測点側の除外半径(アプリの既定と同じ)
-let EXCL_TGT_M = 15;                          // 目的点側の除外半径。アプリの既定は15m。山頂部の広がりで自動的に広げる(下のsummitInfo)
+const R_EARTH = SORA.EARTH.HAVERSINE_RADIUS_M;   // 球の半径(本体のハバーサインと同じ値)
+const EXCL_OBS_M = SORA.VISIBILITY.EXCLUDE_OBSERVER_M;   // 観測点側の除外半径(アプリの既定と同じ)
+let EXCL_TGT_M = SORA.VISIBILITY.EXCLUDE_TARGET_M;                          // 目的点側の除外半径。アプリの既定は15m。山頂部の広がりで自動的に広げる(下のsummitInfo)
 const UA = 'soranotsuji-dev kashimap viewshed (https://github.com/takeyosui15/soranotsuji-dev)';
-const NODATA = 65535;                        // Uint16格子の「データ無し」。値=round((標高+100)×10)
+const NODATA = SORA.DEM.GRID_NODATA;         // Uint16格子の「データ無し」。値=round((標高+100)×10)
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 // ---------- 山データ ----------
@@ -64,7 +65,7 @@ const lonToX = lon => (lon + 180) / 360 * WORLD;
 const latToY = lat => (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * WORLD;
 const xToLon = x => x / WORLD * 360 - 180;
 const yToLat = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / WORLD))) * 180 / Math.PI;
-const MPP = 40075016.686 * Math.cos(M.lat * Math.PI / 180) / WORLD;   // 中心緯度での1画素(m)。窓の中で約±0.4%変わる
+const MPP = SORA.metersPerPixel(M.lat, Z);   // 中心緯度での1画素(m)。窓の中で約±0.4%変わる(式は sora-constants.js)
 const cxF = lonToX(M.lon), cyF = latToY(M.lat);
 const halfPx = Math.ceil(RANGE_KM * 1000 / 2 / MPP);
 const X0 = Math.floor(cxF) - halfPx, Y0 = Math.floor(cyF) - halfPx;
@@ -141,7 +142,7 @@ async function fetchTileCached(kind, z, x, y) {
   fs.mkdirSync(dir, { recursive: true });
   let buf = null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    try { buf = await fetchBuf(`https://cyberjapandata.gsi.go.jp/xyz/${kind}/${z}/${x}/${y}.png`); break; }
+    try { buf = await fetchBuf(`${SORA.DEM.GSI_TILE_BASE}${kind}/${z}/${x}/${y}.png`); break; }
     catch (e) { if (attempt === 2) throw e; await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); }
   }
   if (buf) fs.writeFileSync(fn, buf); else fs.writeFileSync(miss, '');
@@ -473,27 +474,34 @@ function encodeIntPolyline(pts) {
 
 // ---------- 答え合わせ(アプリの _visJudgeCore と同じ歩き方で標本画素を判定) ----------
 function judgeLikeApp(px, py, hS, inv2R) {
+  // 第157: アプリ(_visJudgeCore / tm-vis-worker)と同じく、経路は大円(区間SEGの両端を球面補間・中は画素座標の直線)・標高データ無し(海)は海面0mとして遮る
   const scale15 = Math.pow(2, 15), R128 = 128 / Math.PI;
   const gpy15At = (lat) => (128 - R128 * Math.atanh(Math.sin(lat * Math.PI / 180))) * scale15;
+  const gpx15At = (lng) => 128 * (lng / 180 + 1) * scale15;
   let lastGx = -1, lastGy = -1;
-  const elevAt = (gx15, gy15) => {   // z15の世界画素→窓の格子(zoomがZの格子へ換算)。除外判定のため画素位置も控える
+  const elevAt = (gx15, gy15) => {   // z15の世界画素→窓の格子(zoomがZの格子へ換算)。窓の外=undefined・データ無し(海)=null。除外判定のため画素位置も控える
     const f = Math.pow(2, Z - 15); const gx = Math.floor(gx15 * f) - X0, gy = Math.floor(gy15 * f) - Y0;
-    if (gx < 0 || gy < 0 || gx >= W || gy >= H) return null; lastGx = gx; lastGy = gy; const c = grid[gy * W + gx]; return c === NODATA ? null : c / 10 - 100;
+    if (gx < 0 || gy < 0 || gx >= W || gy >= H) return undefined; lastGx = gx; lastGy = gy; const c = grid[gy * W + gx]; return c === NODATA ? null : c / 10 - 100;
   };
   const sLat = yToLat(Y0 + py + 0.5), sLng = xToLon(X0 + px + 0.5);
   const c0 = grid[py * W + px]; if (c0 === NODATA) return null;
   const startTotal = c0 / 10 - 100 + OBS_H;
   const endLat = yToLat(Y0 + CY + 0.5), endLng = xToLon(X0 + CX + 0.5), endTotal = hS;
-  const rad = Math.PI / 180, la1 = sLat * rad, la2 = endLat * rad, sdl = Math.sin((endLat - sLat) * rad / 2), sdn = Math.sin((endLng - sLng) * rad / 2);
-  const a = sdl * sdl + Math.cos(la1) * Math.cos(la2) * sdn * sdn; const distM = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const stepM = 40075016.686 * Math.cos(sLat * Math.PI / 180) / (scale15 * 256) / 2;
+  const distM = SORA.haversineDistanceM(sLat, sLng, endLat, endLng);
+  const stepM = SORA.metersPerPixel(sLat, 15) / 2;
   const steps = Math.max(2, Math.ceil(distM / stepM));
-  const sx15 = 128 * (sLng / 180 + 1) * scale15; const dx = (128 * (endLng / 180 + 1) * scale15 - sx15) / steps; const dLat = endLat - sLat;
+  const path = SORA.greatCirclePath(sLat, sLng, endLat, endLng);
+  const SEG = SORA.VISIBILITY.PATH_CHUNK;
   const endDrop = distM * distM * inv2R;
-  for (let j0 = 1; j0 < steps; j0 += 64) {
-    const j1 = Math.min(j0 + 63, steps - 1); const gyA = gpy15At(sLat + dLat * (j0 / steps)); const dgy = (j1 > j0) ? (gpy15At(sLat + dLat * (j1 / steps)) - gyA) / (j1 - j0) : 0;
+  for (let j0 = 1; j0 < steps; j0 += SEG) {
+    const j1 = Math.min(j0 + SEG - 1, steps - 1);
+    const pA = path.at(j0 / steps), pB = (j1 > j0) ? path.at(j1 / steps) : pA;
+    const gxA = gpx15At(pA.lng), gyA = gpy15At(pA.lat);
+    const dgx = (j1 > j0) ? (gpx15At(pB.lng) - gxA) / (j1 - j0) : 0;
+    const dgy = (j1 > j0) ? (gpy15At(pB.lat) - gyA) / (j1 - j0) : 0;
     for (let j = j0; j <= j1; j++) {
-      const e = elevAt((sx15 + dx * j) | 0, (gyA + dgy * (j - j0)) | 0); if (e === null) continue;
+      let e = elevAt((gxA + dgx * (j - j0)) | 0, (gyA + dgy * (j - j0)) | 0);
+      if (e === undefined) continue; if (e === null) e = 0;
       const r = j / steps, d = distM * r; const lineElev = startTotal + (endTotal - endDrop - startTotal) * r;
       if (e - d * d * inv2R > lineElev) { if (isExcludedTarget(lastGx, lastGy, distM * (1 - r))) continue; if (d <= EXCL_OBS_M) continue; return false; }
     }
@@ -610,6 +618,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
     if (!ent[kind].includes(RANGE_KM)) { ent[kind].push(RANGE_KM); ent[kind].sort((a, b) => a - b); }
     ent.islands[`${kind}:${RANGE_KM}`] = islands.length;
     ent.sizes = ent.sizes || {}; ent.sizes[`${kind}:${RANGE_KM}`] = ['meta.json', 'islands.json', 'outline.json'].reduce((a, f) => a + fs.statSync(path.join(ad, f)).size, 0);   // 山リストの「サイズ」列の元(第156)
+    ent.zooms = ent.zooms || {}; ent.zooms[`${kind}:${RANGE_KM}`] = Z;   // 山リストの「ズーム」列の元(第157)
     index.generated = new Date().toISOString();
     index.attribution = meta.attribution;
     fs.writeFileSync(ip, JSON.stringify(index, null, 1));

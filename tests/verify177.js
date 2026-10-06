@@ -28,7 +28,8 @@ check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マッ
 check('S2 統一可視判定・辻メッシュ(逐次/ワーカー)・ワーカー本体に山頂部の除外が入っている', src.includes('function _visJudgeCore(sLat, sLng, startTotal, endLat, endLng, endTotal, exclM, obsExclM, elevAtPix15, inv2ReffOpt, bandOpt)') && src.includes('if (bandOpt && _sbHas(bandOpt, gx, gy)) continue;') &&
   src.includes("const band = await _visSummitBandFor(endLat, endLng, endGroundElev);") && src.includes("const band = await _visSummitBandFor(end.lat, end.lng, endGroundElev);") && src.includes('elevAtPix15, visInv2R, band).visible') && /band: band \? \{ x0: band\.x0/.test(src) &&
   wkSrc.includes('const band = m.band || null;') && wkSrc.includes('if (band && bandHas(gx, gy)) continue;'));
-check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜2000)・LS保存/復元に含む', /elevSummitBandEnabled: \{ def: true, bool: 'nf' \}/.test(src) && /elevSummitBandM: \{ def: 300, min: 0, max: 2000 \}/.test(src) && src.includes('elevSummitBandM: appState.elevSummitBandM,') && src.includes("'elevSummitBandEnabled','elevSummitBandM']"));
+const SORA_BAND = require('../sora-constants.js').VISIBILITY.SUMMIT_BAND_M;   // 第157: 既定300は数の単一情報源(sora-constants.js)から
+check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜2000・第157からSORA定数)・LS保存/復元に含む', /elevSummitBandEnabled: \{ def: true, bool: 'nf' \}/.test(src) && /elevSummitBandM: \{ def: SORA\.VISIBILITY\.SUMMIT_BAND_M, min: 0, max: 2000 \}/.test(src) && SORA_BAND === 300 && src.includes('elevSummitBandM: appState.elevSummitBandM,') && src.includes("'elevSummitBandEnabled','elevSummitBandM']"));
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
@@ -194,7 +195,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     const c = row.querySelector('.kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-dl').click(); await new Promise(r => setTimeout(r, 600)); window.downloadTextFile = orig; c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true }));
     return { label: info && info.label, origin: info && info.origin, cell, rowText, reloadSrc: a.src, dl: got && { n: got.n, n_assets: got.obj.assets.length, id: got.obj.assets[0].meta.mountain.id } };
   });
-  check('B6 サーバーの資産を読むと端末に保存(列=静(端末)・一覧にサーバー由来の行)・読み直しは端末から・「⬇」でその山だけのJSON', b6.label === '静(端末)' && b6.origin === 'server' && b6.cell.join() === '919,静(端末),20km,-,-,0.7 MB' && b6.rowText && b6.rowText.includes('毛無山') && b6.rowText.includes('範囲: 20km') && b6.reloadSrc === 'device' && b6.dl && /毛無山20km/.test(b6.dl.n) && b6.dl.n_assets === 1 && b6.dl.id === '370', JSON.stringify(b6));
+  check('B6 サーバーの資産を読むと端末に保存(列=静(端末)・一覧にサーバー由来の行)・読み直しは端末から・「⬇」でその山だけのJSON', b6.label === '静(端末)' && b6.origin === 'server' && b6.cell.join() === '919,静(端末),20km,-,-,z15(1画素≈4m・DEM5A/5B/5C),0.7 MB' && b6.rowText && b6.rowText.includes('毛無山') && b6.rowText.includes('範囲: 20km') && b6.reloadSrc === 'device' && b6.dl && /毛無山20km/.test(b6.dl.n) && b6.dl.n_assets === 1 && b6.dl.id === '370', JSON.stringify(b6));
 
   check('E ページエラーなし', errs.length===0, errs.join(' | '));
   await b.close();
