@@ -54,6 +54,25 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
   !cssSrc.includes('background: rgba(40, 140, 60, 0.22)') && !cssSrc.includes('#btn-kashimap-store-apply.dirty') && cssSrc.includes('#sec-kashimap .km-store-actions .nav-btn { flex: 1 1 0; min-width: 0; }') &&
   /A\["Myセット\(非公開\)"\]/.test(mysite) && /subgraph viewer\["見る側の端末\(宙の辻\)"\]/.test(mysite));
 
+// S3: ワーカーをNodeで読み、平らな地形(0m)・全画素が地平線の内側(hS=3776・60km)の窓で、どの光線にも標本されない画素が無いこと(=見えない画素が0)。
+//     大円の反りを両軸に掛けると主軸が2画素飛ぶ歩があり、飛ばされた画素が「見えない」のまま残っていた(第156のレビューで検出)。反りは副軸だけに掛ける
+{
+  const vm = require('vm');
+  const ctxw = { self: { postMessage() {}, addEventListener() {} }, console, WebAssembly, Uint16Array, Uint8Array, Float64Array, Int32Array, Float32Array, RangeError, Math, setTimeout, fetch: () => {}, indexedDB: undefined, performance };
+  vm.createContext(ctxw);
+  vm.runInContext(wkSrc + '\n;this.__cv = computeViewshed; this.__wg = windowGeom;', ctxw);
+  const holesFor = (lat, lon, rangeKm, Z, hS) => {
+    const G = ctxw.__wg(lat, lon, rangeKm, Z); const grid = new Uint16Array(G.W * G.H).fill(1000);   // 1000 = 0m
+    const r = ctxw.__cv(grid, G, hS, (1 - 0.132) / (2 * 6371000), 1.5, 15, 10, null, false);
+    let holes = 0; for (let i = 0; i < r.visible.length; i++) if (r.visible[i] === 0) holes++;
+    return { W: G.W, holes, vis: r.nVis };
+  };
+  const t0 = Date.now();
+  const h1 = holesFor(35.3606, 138.7274, 60, 13, 3776);     // 富士山60km(z13)
+  const h2 = holesFor(44.0, 143.0, 200, 11, 30000);          // 北緯44°・200km(反りが大きい。hSを高くして全画素を地平線の内側に)
+  check('S3 ワーカー(Node): 平らな地形で全画素が見える=標本されない画素が0(富士山60km z13・北緯44° 200km z11)', h1.holes === 0 && h2.holes === 0 && h1.vis === h1.W * h1.W - 1 && h2.vis === h2.W * h2.W - 1, JSON.stringify({ h1, h2, ms: Date.now() - t0 }));
+}
+
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});

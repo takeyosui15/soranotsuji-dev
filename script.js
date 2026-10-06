@@ -12307,7 +12307,7 @@ async function _kmComputeRun(targets, opts) {
             const have = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;
             if (have && confirm(`「${have.name || tid}」の${rangeKm}kmの可視タイル(島${(have.islands || 0).toLocaleString()}・${_kmMB(have.size || 0)})が端末にあります。\nOK=その資産を使う / キャンセル=計算し直す`)) {
                 _kmSyncPseudo();
-                if (_kmActive && !_kmRows.some(r => r.id === tid)) { const m = _kmById.get(tid); if (m) _kmRows.push(m); }
+                if (_kmActive && _kmById && !_kmRows.some(r => r.id === tid)) { const m = _kmById.get(tid); if (m) _kmRows.push(m); }   // 山データが読めていない時(_kmById=null)も落ちない(第156のレビュー)
                 const bucket = _kmRangeBucket(rangeKm); if (_kmRange < bucket) { _kmRange = bucket; _kmSyncUi(); }
                 _kmSelect(tid, true); done.push({ key: have.key, id: tid, name: have.name, range: have.range, kind: have.kind, islands: have.islands, size: have.size, reused: true });
                 continue;

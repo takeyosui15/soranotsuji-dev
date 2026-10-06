@@ -305,11 +305,15 @@ function computeViewshed(grid, G, hS, inv2R, obsH, exclTgtM, exclObsM, band, wan
     const walk = (ex, ey) => {
         const dx = ex - CX, dy = ey - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); if (steps === 0) return;
         const sx = dx / steps, sy = dy / steps; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;
-        const bend = geo.bend(ex, ey); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp;   // 反りの最大(弦に直交。符号込み)=4δ
+        // 反りは副軸のずれだけに効かせる(主軸は1画素ずつ厳密に進める)。弦に直交する反り δ·4f を、主軸の座標を保ったまま副軸へ射影すると amp·len/dx(主軸がx)・−amp·len/dy(主軸がy)。
+        // 両軸をずらすと主軸が2画素飛ぶ歩があり、飛ばされた画素がどの光線にも標本されず「見えない」のまま残る(第156のレビューで検出・修正)
+        const bend = geo.bend(ex, ey); const len = Math.sqrt(dx * dx + dy * dy); const xMajor = Math.abs(dx) >= Math.abs(dy);
+        const bowMinor = xMajor ? bend.amp * len / dx : -bend.amp * len / dy;
         let runMax = -Infinity, dM = 0;
         for (let s = 1; s <= steps; s++) {
             const t = s / steps, f = t * (1 - t);
-            let px = Math.round(CX + sx * s + bx * f), py = Math.round(CY + sy * s + by * f);
+            let px = xMajor ? CX + Math.round(sx * s) : Math.round(CX + sx * s + bowMinor * f);
+            let py = xMajor ? Math.round(CY + sy * s + bowMinor * f) : CY + Math.round(sy * s);
             if (px < 0) px = 0; else if (px >= W) px = W - 1;
             if (py < 0) py = 0; else if (py >= H) py = H - 1;
             const gi = py * W + px; const code = grid[gi];

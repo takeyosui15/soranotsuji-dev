@@ -295,11 +295,13 @@ function computeViewshed(hS) {
   const walk = (ex, ey) => {
     const dx = ex - CX, dy = ey - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); if (steps === 0) return;
     const sx = dx / steps, sy = dy / steps; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;
-    const bend = geo.bend(ex, ey); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp;
+    const bend = geo.bend(ex, ey); const len = Math.sqrt(dx * dx + dy * dy); const xMajor = Math.abs(dx) >= Math.abs(dy);
+    const bowMinor = xMajor ? bend.amp * len / dx : -bend.amp * len / dy;   // 反りは副軸だけ(主軸は1画素ずつ。ワーカーと同じ)
     let runMax = -Infinity, dM = 0;
     for (let s = 1; s <= steps; s++) {
       const t = s / steps, f = t * (1 - t);
-      let px = Math.round(CX + sx * s + bx * f), py = Math.round(CY + sy * s + by * f);
+      let px = xMajor ? CX + Math.round(sx * s) : Math.round(CX + sx * s + bowMinor * f);
+      let py = xMajor ? Math.round(CY + sy * s + bowMinor * f) : CY + Math.round(sy * s);
       if (px < 0) px = 0; else if (px >= W) px = W - 1;
       if (py < 0) py = 0; else if (py >= H) py = H - 1;
       const gi = py * W + px; const code = grid[gi];
@@ -333,8 +335,8 @@ function probeRay(lat, lon, hS) {
   if (px < 0 || py < 0 || px >= W || py >= H) return { out: true };
   const inv2R = (1 - K) / (2 * R_EARTH); const exclObsPx = Math.ceil(EXCL_OBS_M / MPP);
   const dx = px - CX, dy = py - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); const sx = dx / steps, sy = dy / steps;
-  const geo = geodesicHelpers(); const bend = geo.bend(px, py); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;   // 第156: 大円+行ごとの縮尺(computeViewshedと同じ歩き方)
-  const at = (s2) => { const t = s2 / steps, f = t * (1 - t); let qx = Math.round(CX + sx * s2 + bx * f), qy = Math.round(CY + sy * s2 + by * f); if (qx < 0) qx = 0; else if (qx >= W) qx = W - 1; if (qy < 0) qy = 0; else if (qy >= H) qy = H - 1; return [qx, qy]; };
+  const geo = geodesicHelpers(); const bend = geo.bend(px, py); const len = Math.sqrt(dx * dx + dy * dy); const xMajor = Math.abs(dx) >= Math.abs(dy); const bowMinor = xMajor ? bend.amp * len / dx : -bend.amp * len / dy; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;   // 第156: 大円(反りは副軸だけ)+行ごとの縮尺(computeViewshedと同じ歩き方)
+  const at = (s2) => { const t = s2 / steps, f = t * (1 - t); let qx = xMajor ? CX + Math.round(sx * s2) : Math.round(CX + sx * s2 + bowMinor * f), qy = xMajor ? Math.round(CY + sy * s2 + bowMinor * f) : CY + Math.round(sy * s2); if (qx < 0) qx = 0; else if (qx >= W) qx = W - 1; if (qy < 0) qy = 0; else if (qy >= H) qy = H - 1; return [qx, qy]; };
   const th = new Float64Array(steps + 1); const excl = new Uint8Array(steps + 1); const dist = new Float64Array(steps + 1); let runMax = -Infinity, argMax = -1, dAcc = 0;
   const prefixMax = new Float64Array(steps + 1), prefixArg = new Int32Array(steps + 1);
   for (let s2 = 1; s2 <= steps; s2++) {
@@ -348,7 +350,7 @@ function probeRay(lat, lon, hS) {
   const dM = dist[steps]; const h = code / 10 - 100;
   const thP = (h + OBS_H - dM * dM * inv2R - hS) / dM; const refIdx = steps - 1 - exclObsPx; const ref = refIdx >= 1 ? prefixMax[refIdx] : -Infinity; const arg = refIdx >= 1 ? prefixArg[refIdx] : -1;
   const blk = arg > 0 ? (([qx, qy]) => ({ qx, qy }))(at(arg)) : null;
-  const blkD = blk ? dist[arg] : null; const blkH = blk ? grid[blk.qy * W + blk.qx] / 10 - 100 : null;
+  const bc = blk ? grid[blk.qy * W + blk.qx] : null; const blkD = blk ? dist[arg] : null; const blkH = blk ? (bc === NODATA ? 0 : bc / 10 - 100) : null;   // 遮る画素が海(データ無し)なら海面0m(第156のレビュー: 65535を標高に復号していた)
   return { visible: thP >= ref, distKm: dM / 1000, h, thP, ref, blkD, blkH, gridVisible: visible_[py * W + px] === 1 };
 }
 let visible_ = null;
