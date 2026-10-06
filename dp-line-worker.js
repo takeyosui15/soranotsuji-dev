@@ -198,8 +198,9 @@ self.onmessage = (e) => {
     // 初期観測点 (反復のスタート地点)
     const initObs = new A.Observer(observerData.lat, observerData.lng, observerData.elev);
 
-    for (let s = startSec; s < endSec; s += stepSec) {
-        const time = new Date(startOfDayMs + s * 1000);
+    // 1時刻ぶんの評価(反復補正つき)。有効なら点、無効(見かけ高度が下限以下・距離が上限以上)なら null
+    const evalAt = (timeMs) => {
+        const time = new Date(timeMs);
 
         // 反復補正: 観測点位置を更新しながら az/alt を再計算 (月の視差等を吸収)
         let curObs = initObs;
@@ -258,8 +259,31 @@ self.onmessage = (e) => {
         if (!limitReached && lastAz != null && lastDist != null) {
             const point = { dist: lastDist, az: lastAz, timeMs: time.getTime() };
             if (dest) { point.lat = dest.lat; point.lng = dest.lng; }
-            points.push(point);
+            return point;
         }
+        return null;
+    };
+    // 線の端を境界の時刻へ詰める(第156・依頼者: 辻ライン365で線の長さがまちまち=1分刻みでは「見かけ高度の下限」や「距離の上限」を跨ぐ直前の標本が
+    // 270〜365kmのどこにでも落ちていた)。有効↔無効が切り替わる2つの標本の間を1秒まで二分し、境界ぎわの点を足す。端は下限の見かけ高度の距離か距離の上限に揃う
+    const bisect = (okMs, ngMs) => {
+        let lo = okMs, hi = ngMs, best = null;
+        for (let it = 0; it < 12 && Math.abs(hi - lo) > 1000; it++) {
+            const mid = Math.round((lo + hi) / 2); const pt = evalAt(mid);
+            if (pt) { lo = mid; best = pt; } else hi = mid;
+        }
+        return best || evalAt(lo);
+    };
+    const prevMs = startOfDayMs + (startSec - stepSec) * 1000;   // 1つ前の標本(前の時間帯の最後)。時間帯の境目でも端を詰められるように
+    let lastMs = prevMs, lastOk = !!evalAt(prevMs);
+    for (let s = startSec; s < endSec; s += stepSec) {
+        const timeMs = startOfDayMs + s * 1000;
+        const pt = evalAt(timeMs);
+        if (pt && !lastOk) { const b = bisect(timeMs, lastMs); if (b && b.timeMs !== timeMs) points.push(b); }   // 弧の始まり: 境界ぎわの点を先に
+        if (pt) points.push(pt);
+        else if (lastOk && s > startSec) { const b = bisect(lastMs, timeMs); if (b && b.timeMs !== lastMs) points.push(b); }   // 弧の終わり: 境界ぎわの点を後に
+        lastMs = timeMs; lastOk = !!pt;
     }
+    // 時間帯の終わりで有効のまま終わった時は、次の時間帯の最初の標本が無効なら(次の時間帯が担当しない)ここで端を詰める
+    if (lastOk) { const nextMs = startOfDayMs + endSec * 1000; if (!evalAt(nextMs)) { const b = bisect(lastMs, nextMs); if (b && b.timeMs !== lastMs) points.push(b); } }
     self.postMessage({ points, hourStart, taskId });
 };

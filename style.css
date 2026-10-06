@@ -2665,7 +2665,7 @@ input[type="range"] {
 #kashimap-ctrl-body .baseopt-radio.disabled { color: #777; }
 /* 可視マップ節の「端末に保存した資産」の一覧(第151) */
 #kashimap-store { max-width: 360px; margin: 2px auto; }
-#kashimap-store-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #ddd; }
+#kashimap-store-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 #kashimap-store-table th { color: #aaa; font-weight: normal; text-align: left; padding: 1px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
 #kashimap-store-table td { padding: 1px 4px; white-space: nowrap; }
 #kashimap-store-table.hidden { display: none; }
@@ -2673,8 +2673,6 @@ input[type="range"] {
 .kashimap-note { font-size: 11px; color: #aaa; }
 /* 可視マップ節の整列(第154・依頼者): チェックの文言は折り返さない・「目的点で計算」「My目的点で計算」は1段に・下のボタンは中央に1段ずつ */
 .km-label { white-space: nowrap; margin-right: 12px; }
-#sec-kashimap .kashimap-btn-row { gap: 8px; }
-#sec-kashimap .kashimap-btn-row .nav-btn { flex: 1 1 0; min-width: 0; }
 #sec-kashimap .control-row.center-row { justify-content: center; }
 #sec-kashimap select { max-width: 55%; }
 /* 可視マップ節(第155・デッサン05の新しい画面構成): 推し山の入力は横幅いっぱい・項目が入らない段は折り返す・資産の一覧は2行1組(薄い緑の背景)・全て登録は変更があると赤い太字 */
@@ -2684,11 +2682,17 @@ input[type="range"] {
 #sec-kashimap .km-sub { font-size: 13px; }
 #sec-kashimap .km-stat-row { gap: 16px; }
 #sec-kashimap .km-store-actions { gap: 8px; }
-#kashimap-store-table tr.km-store-row td, #kashimap-store-table tr.km-store-row2 td { background: rgba(40, 140, 60, 0.22); }
-#kashimap-store-table tr.km-store-row2 td { border-bottom: 4px solid transparent; font-size: 11px; }
+/* 資産の一覧(3行1組=チェック[段抜き]+目的点名 / 範囲・樹冠・構造物 / 島数・サイズ)。背景色は付けず、Myセットと同じく水平線で区切る */
+#kashimap-store-table tr.km-store-row td { padding-top: 4px; }
+#kashimap-store-table tr.km-store-row3 td { border-bottom: 1px solid rgba(255, 255, 255, 0.35); padding-bottom: 4px; }
+#kashimap-store-table tr.km-store-row2 td, #kashimap-store-table tr.km-store-row3 td { font-size: 10px; color: #555; font-weight: normal; line-height: 1.3; }   /* 表示天体の天体名の下の詳細項目(.body-detail-text)と同じ */
+#kashimap-store-table tr.km-store-row3 td:first-child, #kashimap-store-table tr.km-store-row2 td:first-child { padding-left: 4px; }
 #kashimap-store-table td.km-store-chk { width: 22px; vertical-align: middle; }
-#kashimap-store-table .kashimap-store-name { width: 100%; box-sizing: border-box; font-size: 12px; padding: 1px 4px; }
-#btn-kashimap-store-apply.dirty { color: #c00; font-weight: bold; border-color: #c00; }
+#kashimap-store-table .kashimap-store-name { width: 100%; box-sizing: border-box; font-size: 16px; padding: 2px 4px; }   /* My観測点などの入力欄と同じ文字サイズ */
+#sec-kashimap .km-stat { font-size: 13px; color: #000; font-weight: normal; }   /* 合計件数/合計容量: ラベルと同じ文字サイズで黒字細字 */
+#sec-kashimap hr.km-hr { margin: 6px 0; }   /* 色は辻検索の区切り線と同じ(currentColor) */
+#sec-kashimap .km-store-actions .nav-btn { flex: 1 1 0; min-width: 0; }
+#sec-kashimap .control-row > .nav-btn.main-btn:only-child { width: 100%; }
 .kashimap-swatch { display: inline-block; width: 10px; height: 10px; border: 1px solid #222; margin-left: 4px; vertical-align: middle; }
 /* 全展望マーカー(重複数がいちばん多い縞島の代表点): 金地に赤枠の丸 */
 .kashimap-zen { width: 22px; height: 22px; border-radius: 50%; background: #ffd700; border: 2px solid #c00; color: #600; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center; box-sizing: border-box; box-shadow: 0 0 3px #000; }

@@ -131,7 +131,7 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
   const defs = appDefaultsEntries();
   if (defs) {
     const NOT_SCALAR_OK = new Set([
-      'appSchema', 'savedAt',                                     // メタ
+      'appSchema', 'savedAt', 'meteoDefaultsV2',                  // メタ(meteoDefaultsV2=気温減率の既定0.0125への移行済みの印。第156)
       'start', 'end', 'homeStart', 'homeEnd',                     // 位置オブジェクト(既定はDEFAULT_START/END)
       'startApiElev', 'endApiElev', 'startHeight', 'endHeight',   // 位置の導出スカラー(同上)
       'refractionEnabled', 'meteo',                               // 大気差(既定は標準大気STD_*から導出)

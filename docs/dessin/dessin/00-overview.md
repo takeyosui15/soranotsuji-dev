@@ -211,7 +211,7 @@
 | キー | 初期値 | 説明 |
 | --- | --- | --- |
 | refractionEnabled | false | 大気差(設定メニュー)のON/OFF。 |
-| meteoP / meteoT / meteoL | 1013.25 / 15 / 0.0065 | 気圧(hPa)/気温(°C)/気温減率(K/m)。復元は型変換+NaNガードのみ(LS復元と同じ)。 |
+| meteoP / meteoT / meteoL | 1013.25 / 15 / 0.0125 | 気圧(hPa)/気温(°C)/気温減率(K/m)。復元は型変換+NaNガードのみ(LS復元と同じ)。気温減率の既定はv1.95.0(第156)で0.0065→0.0125(K=0.132=測量標準)。短縮URL辞書v16の種「&meteoL=0.0065」は凍結のまま(URLには常に値を乗せるので復元は変わらない)。 |
 | baseOptMwBase | \[ center \| offset \] | 天の川の基準点(=「:天の川オプション」チェックの実体)。 |
 | mwOffsetAngle | 0 | オフセット中心角(収録符号=「夏の天の川を上から見て時計回りが正」。第93ラウンドで内部値ごと統一し表示だけの反転を廃止)。 |
 | mwShowBodies / mwShowBodyNames / mwShowConstFig / mwShowConstBounds / mwShowConstNames | true / false / false / false / false | 天体儀の表示天体/表示天体名/星座線/星座領域/星座名称。 |

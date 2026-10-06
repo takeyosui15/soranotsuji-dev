@@ -9,6 +9,9 @@
    "canopy": [],
    "islands": {
     "terrain:60": 10129
+   },
+   "sizes": {
+    "terrain:60": 8873174
    }
   },
   "370": {
@@ -19,6 +22,9 @@
    "canopy": [],
    "islands": {
     "terrain:20": 919
+   },
+   "sizes": {
+    "terrain:20": 776232
    }
   }
  },

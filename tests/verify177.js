@@ -20,7 +20,7 @@ const mountains = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'mountains.
 
 check('V0 版数(ピンはverify178へ移譲)+Version Historyに第152・第153', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第152ラウンド — 除外範囲メニューに「山頂部」') && src.includes('第153ラウンド — 山頂部の基準の標高') || !!process.argv[2]));
 check('S1 index.html: 除外範囲に「:山頂部」「:プレビュー」「山頂部(帯,m)」情報行「除外範囲をリセット」・可視マップ節に範囲ラジオ(100/300/700)/「目的点で計算」(第153で有効)/4つのチェック(全展望も初期値オン)・コントロールの全展望も初期値オン・ヘルプ',
-  ['chk-baseopt-summit-band','chk-baseopt-summit-preview','input-baseopt-summit-band','baseopt-summit-preview-info','btn-baseopt-excl-reset','btn-kashimap-tgt','chk-kashimap-menu-tiles','chk-kashimap-menu-canopy','chk-kashimap-menu-summit','chk-kashimap-menu-zen'].every(id => idxSrc.includes(`id="${id}"`)) &&
+  ['chk-baseopt-summit-band','chk-baseopt-summit-preview','input-baseopt-summit-band','baseopt-summit-preview-info','btn-baseopt-excl-reset','radio-kashimap-tgt','btn-kashimap-compute','chk-kashimap-menu-tiles','chk-kashimap-menu-canopy','chk-kashimap-menu-summit','chk-kashimap-menu-zen'].every(id => idxSrc.includes(`id="${id}"`)) &&
   [100,300,700].every(v => idxSrc.includes(`name="kashimap-range-menu" value="${v}"`)) &&   // 第155で60kmを外した /<button id="btn-kashimap-tgt"[^>]*>目的点で計算<\/button>/.test(idxSrc) && !/id="btn-kashimap-tgt"[^>]*disabled/.test(idxSrc) &&
   /id="chk-kashimap-menu-zen" class="body-checkbox" checked/.test(idxSrc) && /id="chk-kashimap-zen" class="body-checkbox" checked/.test(idxSrc) &&
   idxSrc.includes('<strong>「:山頂部」</strong>') && idxSrc.includes('「除外範囲をリセット」で初期値に戻ります') && idxSrc.includes('「静(端末)」') && idxSrc.includes('どちらを操作しても連動します'));
@@ -178,7 +178,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     fire('chk-kashimap-tiles', true); fire('chk-kashimap-menu-zen', true);
     const radios = Array.from(document.querySelectorAll('input[name="kashimap-range-menu"]')).map(e => e.value + (e.disabled ? 'x' : 'o') + (e.checked ? '*' : '')).join(',');
     const ctrlRadios = Array.from(document.querySelectorAll('input[name="kashimap-range"]')).map(e => e.value + (e.disabled ? 'x' : 'o') + (e.checked ? '*' : '')).join(',');
-    return { zen0, zen1, tiles, radios, ctrlRadios, tgt: document.getElementById('btn-kashimap-tgt').disabled, mytgt: document.getElementById('btn-kashimap-mytgt').disabled };
+    return { zen0, zen1, tiles, radios, ctrlRadios, tgt: document.getElementById('radio-kashimap-tgt').disabled, mytgt: document.getElementById('btn-kashimap-compute').disabled };   // 第156: ラジオ+「範囲を計算」
   });
   check('B5 メニュー側の全展望をオフ→コントロールと状態が連動 / コントロールの可視タイルをオフ→メニュー側と塗りが連動 / 範囲ラジオの灰色も両方 / 目的点で計算・My目的点で計算は有効(第153)', b5.zen0.join() === 'true,true,true' && b5.zen1.join() === 'false,false' && b5.tiles.join() === 'false,false,none' && b5.radios === '100o*,300x,700x' && b5.ctrlRadios === '100o*,300x,700x' && b5.tgt === false && b5.mytgt === false, JSON.stringify(b5));
 
@@ -194,7 +194,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     const c = row.querySelector('.kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-dl').click(); await new Promise(r => setTimeout(r, 600)); window.downloadTextFile = orig; c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true }));
     return { label: info && info.label, origin: info && info.origin, cell, rowText, reloadSrc: a.src, dl: got && { n: got.n, n_assets: got.obj.assets.length, id: got.obj.assets[0].meta.mountain.id } };
   });
-  check('B6 サーバーの資産を読むと端末に保存(列=静(端末)・一覧にサーバー由来の行)・読み直しは端末から・「⬇」でその山だけのJSON', b6.label === '静(端末)' && b6.origin === 'server' && b6.cell.join() === '919,静(端末)' && b6.rowText && b6.rowText.includes('毛無山') && b6.reloadSrc === 'device' && b6.dl && /毛無山20km/.test(b6.dl.n) && b6.dl.n_assets === 1 && b6.dl.id === '370', JSON.stringify(b6));
+  check('B6 サーバーの資産を読むと端末に保存(列=静(端末)・一覧にサーバー由来の行)・読み直しは端末から・「⬇」でその山だけのJSON', b6.label === '静(端末)' && b6.origin === 'server' && b6.cell.join() === '919,静(端末),20km,-,-,0.7 MB' && b6.rowText && b6.rowText.includes('毛無山') && b6.rowText.includes('範囲: 20km') && b6.reloadSrc === 'device' && b6.dl && /毛無山20km/.test(b6.dl.n) && b6.dl.n_assets === 1 && b6.dl.id === '370', JSON.stringify(b6));
 
   check('E ページエラーなし', errs.length===0, errs.join(' | '));
   await b.close();

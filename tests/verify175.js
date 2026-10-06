@@ -82,7 +82,7 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   await jsClick('btn-kashimap');
   await p.waitForFunction(() => document.querySelectorAll('#kashimap-content tr.td-data-row').length > 0, {timeout: 10000});
   const k1 = await p.evaluate(() => { const g = id => { const tr = document.querySelector(`#kashimap-content tr[data-id="${id}"]`); return tr ? [tr.children[11].textContent, tr.children[12].textContent] : null; }; return { f: g('368'), k: g('370'), r: g('5'), heads: Array.from(document.querySelectorAll('#kashimap-content th')).map(th => th.textContent.replace(/[▲▼]/g, '')) }; });
-  check('K1 山リストに「島の数」「静的/動的」列: 富士山=索引の島数/静・毛無山=索引の島数/静・羅臼岳=—/空', k1.f && k1.f[0] === fujiN.toLocaleString() && k1.f[1] === '静' && k1.k && k1.k[0] === kenashiN.toLocaleString() && k1.k[1] === '静' && k1.r && k1.r[0] === '—' && k1.r[1] === '' && k1.heads.slice(-2).join() === '島の数,静的/動的', JSON.stringify(k1));
+  check('K1 山リストに「島の数」「静的/動的」列: 富士山=索引の島数/静・毛無山=索引の島数/静・羅臼岳=—/空', k1.f && k1.f[0] === fujiN.toLocaleString() && k1.f[1] === '静' && k1.k && k1.k[0] === kenashiN.toLocaleString() && k1.k[1] === '静' && k1.r && k1.r[0] === '—' && k1.r[1] === '' && k1.heads.slice(-6).join() === '島の数,静的/動的,範囲,樹冠,構造物,サイズ', JSON.stringify(k1));   // 第156: 範囲・樹冠・構造物・サイズの列
 
   // K2: 富士山を選ぶ→資産を読んで島の輪郭/塗り・島リスト
   await selectMountain('368', true);
@@ -94,9 +94,9 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
     withDetail: document.getElementById('kashimap-panel').classList.contains('with-detail'), detailHidden: document.getElementById('kashimap-detail').classList.contains('hidden'),
     nRows: document.querySelectorAll('#kashimap-detail-body tr.td-data-row').length, rows: _kmIslandRows.length, first: Array.from(document.querySelector('#kashimap-detail-body tr.td-data-row').children).map(td => td.textContent), markers: (_glMarkerGroups['kashimap'] || []).length }));
   const fujiS = fujiN.toLocaleString();
-  check('K2 富士山を選択→島(索引の島数)のソースと塗り/輪郭が表示・島リスト(重複数降順→面積降順=先頭は最大の島・表示は上位3000件)・注記「表示中: 100km(富士山は60km)・樹冠なし・構造物なし」(第155: 表示範囲は100/300/700)・山頂マーカー',
-    k2.feats === fujiN && k2.fill === 'visible' && k2.line === 'visible' && k2.status.includes(`島${fujiS}`) && k2.title.includes(`${fujiS}件`) && /上位3,000件/.test(k2.title) && k2.note.includes('表示中: 100km(富士山は60km)・樹冠なし・構造物なし') &&
-    k2.withDetail && !k2.detailHidden && k2.nRows === 3000 && k2.rows === fujiN && +k2.first[1] === maxIsl.no && k2.first[3] === '1' && k2.first[4].startsWith('富士山') && Math.abs(+k2.first[8] - maxIsl.area_km2) < 0.01 && k2.markers === 1,
+  check('K2 富士山を選択→島(索引の島数)のソースと塗り/輪郭が表示・島リスト(重複数降順→面積降順=先頭は最大の島・全件を表示[第156])・注記「表示中: 100km(富士山は60km)・樹冠なし・構造物なし」(第155: 表示範囲は100/300/700)・山頂マーカー',
+    k2.feats === fujiN && k2.fill === 'visible' && k2.line === 'visible' && k2.status.includes(`島${fujiS}`) && k2.title.includes(`${fujiS}件`) && !/上位/.test(k2.title) && k2.note.includes('表示中: 100km(富士山は60km)・樹冠なし・構造物なし') &&
+    k2.withDetail && !k2.detailHidden && k2.nRows === fujiN && k2.rows === fujiN && +k2.first[1] === maxIsl.no && k2.first[3] === '1' && k2.first[4].startsWith('富士山') && Math.abs(+k2.first[8] - maxIsl.area_km2) < 0.01 && k2.markers === 1,
     JSON.stringify({ ...k2, first: k2.first.slice(0, 9), maxNo: maxIsl.no, maxArea: maxIsl.area_km2 }));
 
   // K3: 毛無山も選ぶ→縞島(重複数2)・縞の塗り・注記に範囲の違い

@@ -26,6 +26,15 @@ const FETCH_RETRIES = 3;              // 1枚あたりの試行回数(通信の�
 const MAX_NET_ERRORS = 30;            // 取得の失敗(再試行の後も)がこれだけ続いたら中止(安全弁)
 const GSI_BBOX = { latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 };   // 地理院のDEMは日本域のみ(アプリと同じ範囲)
 const PREVIEW_MAX = 512;              // 経過表示の格子の一辺(画素)
+/** 大きな配列の確保(第156): Chromeは1本のArrayBufferを約2GB(2^31−2MiB)までしか確保できず、700kmのz13の格子(Uint16・約4.0GB)は new Uint16Array で RangeError になる。
+ *  失敗したら WebAssembly.Memory(最大4GiB=65,536ページ。ページ割り当て器で確保されるので上の上限に掛からない)の上に同じ型の配列を作る。forceWasm はテスト用 */
+function allocArray(Ctor, n, forceWasm) {
+    if (!forceWasm) { try { return new Ctor(n); } catch (e) { if (!(e instanceof RangeError)) throw e; } }
+    const bytes = n * Ctor.BYTES_PER_ELEMENT, pages = Math.ceil(bytes / 65536);
+    if (typeof WebAssembly === 'undefined' || !WebAssembly.Memory || pages > 65536) throw new RangeError(`配列が大きすぎます(${(bytes / 1073741824).toFixed(2)}GB。この範囲と解像度はブラウザで確保できません)`);
+    const mem = new WebAssembly.Memory({ initial: pages, maximum: pages });
+    return new Ctor(mem.buffer, 0, n);
+}
 
 const post = (phase, done, total, note) => self.postMessage({ type: 'progress', phase, done, total, note });
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -47,6 +56,28 @@ function windowGeom(lat, lon, rangeKm, Z) {
     const W = 2 * halfPx + 1;
     return { Z, WORLD, X0, Y0, W, H: W, CX: halfPx, CY: halfPx, MPP, lonToX, latToY,
              xToLon: (x) => x / WORLD * 360 - 180, yToLat: (y) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / WORLD))) * 180 / Math.PI };
+}
+
+/** 大円と縮尺のヘルパー(computeViewshed用): rowScale[y]=その行の1画素の長さ/中心の1画素の長さ、bend(ex,ey)=中心から(ex,ey)への大円の弦からの反り(画素。弦に直交する単位ベクトルと4δ) */
+function geodesicHelpers(G) {
+    const { W, H, CX, CY, X0, Y0 } = G;
+    const D2R = Math.PI / 180;
+    const lat0 = G.yToLat(Y0 + CY + 0.5), lon0 = G.xToLon(X0 + CX + 0.5), c0 = Math.cos(lat0 * D2R);
+    const rowScale = new Float64Array(H);
+    for (let y = 0; y < H; y++) rowScale[y] = Math.cos(G.yToLat(Y0 + y + 0.5) * D2R) / c0;
+    const p0 = [Math.cos(lat0 * D2R) * Math.cos(lon0 * D2R), Math.cos(lat0 * D2R) * Math.sin(lon0 * D2R), Math.sin(lat0 * D2R)];
+    const bend = (ex, ey) => {
+        const dx = ex - CX, dy = ey - CY; const len = Math.sqrt(dx * dx + dy * dy); if (len < 2) return { nx: 0, ny: 0, amp: 0 };
+        const lat1 = G.yToLat(Y0 + ey + 0.5), lon1 = G.xToLon(X0 + ex + 0.5);
+        const p1 = [Math.cos(lat1 * D2R) * Math.cos(lon1 * D2R), Math.cos(lat1 * D2R) * Math.sin(lon1 * D2R), Math.sin(lat1 * D2R)];
+        const m = [p0[0] + p1[0], p0[1] + p1[1], p0[2] + p1[2]]; const mn = Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);   // 大円の中点(弦の中点を球面へ射影)
+        const mlat = Math.asin(m[2] / mn) / D2R, mlon = Math.atan2(m[1], m[0]) / D2R;
+        const mx = G.lonToX(mlon) - X0 - 0.5, my = G.latToY(mlat) - Y0 - 0.5;   // 画素座標(中心画素の中心を基準)
+        const ox = mx - (CX + dx / 2), oy = my - (CY + dy / 2);                     // 弦の中点からのずれ
+        const nx = -dy / len, ny = dx / len; const delta = ox * nx + oy * ny;      // 弦に直交する成分
+        return { nx, ny, amp: 4 * delta };
+    };
+    return { rowScale, bend };
 }
 
 // ---------- 標高タイル(取得・端末の店・復号) ----------
@@ -245,7 +276,7 @@ function summitBand(job, grid, G) {
 // ---------- 視域計算(R2: 目的点から窓の縁の全画素へ光線)。経過(縮小格子)を途中で送る ----------
 function computeViewshed(grid, G, hS, inv2R, obsH, exclTgtM, exclObsM, band, wantPreview) {
     const { W, H, CX, CY, MPP } = G;
-    const visible = new Uint8Array(W * H);           // 1=見える 0=見えない/データ無し 2=目的点
+    const visible = allocArray(Uint8Array, W * H);   // 1=見える 0=見えない/データ無し 2=目的点(2GB超はWebAssembly.Memoryの上に)
     const exclObsPx = Math.ceil(exclObsM / MPP);
     const prefix = new Float64Array(Math.max(W, H) + 2);   // 手前までの見かけ高度角の最大(除外画素を除く)
     const bandOn = !!(band && !band.none && band.keep);
@@ -267,15 +298,23 @@ function computeViewshed(grid, G, hS, inv2R, obsH, exclTgtM, exclObsM, band, wan
         for (let i = 0; i < out.length; i++) out[i] = Math.min(255, Math.round(255 * prev[i] / full));
         self.postMessage({ type: 'preview', pw, ph, S, x0: G.X0, y0: G.Y0, w: W, h: H, zoom: G.Z, done: rays, total, data: out }, [out.buffer]);
     };
+    // 大円と縮尺(第156・依頼者の正確性の確認依頼): 光線はメルカトル画素空間の直線(航程線)ではなく、目的点と縁の画素を結ぶ大円(視線が通る鉛直面)に沿わせる。
+    // 弦に対する大円の反りは、端点の測地線の中点(球面の線形補間)と弦の中点のずれを測り、放物線 4·δ·t(1−t) で近似する(東西261kmで約950m=数十画素。南北は0)。
+    // 距離はメルカトルの縮尺が緯度で変わる(1画素=MPP·cos(lat)/cos(lat0))ので、行ごとの縮尺を光線に沿って積算する(南北261kmで約±1.5%=沈み込み100〜200m)。
+    const geo = geodesicHelpers(G);
     const walk = (ex, ey) => {
         const dx = ex - CX, dy = ey - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); if (steps === 0) return;
-        const sx = dx / steps, sy = dy / steps;
-        let runMax = -Infinity;
+        const sx = dx / steps, sy = dy / steps; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;
+        const bend = geo.bend(ex, ey); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp;   // 反りの最大(弦に直交。符号込み)=4δ
+        let runMax = -Infinity, dM = 0;
         for (let s = 1; s <= steps; s++) {
-            const px = Math.round(CX + sx * s), py = Math.round(CY + sy * s);
+            const t = s / steps, f = t * (1 - t);
+            let px = Math.round(CX + sx * s + bx * f), py = Math.round(CY + sy * s + by * f);
+            if (px < 0) px = 0; else if (px >= W) px = W - 1;
+            if (py < 0) py = 0; else if (py >= H) py = H - 1;
             const gi = py * W + px; const code = grid[gi];
-            const dM = Math.sqrt((px - CX) * (px - CX) + (py - CY) * (py - CY)) * MPP;
-            let th = -Infinity;
+            dM += stepM * geo.rowScale[py];                      // 大円に沿った距離(行ごとの縮尺を積算)
+            let th;
             if (code !== NODATA) {
                 const h = code / 10 - 100; const drop = dM * dM * inv2R;
                 th = (h - drop - hS) / dM;                       // 地形の見かけ高度角(目的点から)
@@ -283,7 +322,7 @@ function computeViewshed(grid, G, hS, inv2R, obsH, exclTgtM, exclObsM, band, wan
                 const refIdx = s - 1 - exclObsPx;                // 観測点側の除外=直前 exclObsPx 画素を除く
                 const ref = refIdx >= 1 ? prefix[refIdx] : -Infinity;
                 if (thP >= ref && visible[gi] !== 1) { visible[gi] = 1; if (prev) prev[((py / S) | 0) * pw + ((px / S) | 0)]++; }
-            }
+            } else th = (-dM * dM * inv2R - hS) / dM;            // データ無し(海・標高タイルの無い所)は海面0mとして遮る(第156: 遠い海越しで光線が海面の下を通るのに「見える」になっていた)。見える画素にはしない
             if (!isExcl(px, py, dM)) runMax = Math.max(runMax, th);   // 目的点側の除外(山頂部・除外半径)の画素は手前の最大に入れない
             prefix[s] = runMax;
         }
@@ -355,8 +394,8 @@ function extractRings(visible, G, L) {
     const { W, H } = G; const { rowStart, rX0, rX1, runIsland, islands } = L;
     const hSeen = new Uint8Array(Math.ceil(W * (H + 1) / 8));
     const at = (x, y) => (x >= 0 && y >= 0 && x < W && y < H && visible[y * W + x] === 1) ? 1 : 0;
-    const hGet = (x, Lv) => { const i = Lv * W + x; return (hSeen[i >> 3] >> (i & 7)) & 1; };
-    const hSet = (x, Lv) => { const i = Lv * W + x; hSeen[i >> 3] |= 1 << (i & 7); };
+    const hGet = (x, Lv) => { const i = Lv * W + x; const b = Math.floor(i / 8); return (hSeen[b] >> (i - b * 8)) & 1; };   // 添字は2^31を超えうる(700kmのz13)のでビット演算で割らない
+    const hSet = (x, Lv) => { const i = Lv * W + x; const b = Math.floor(i / 8); hSeen[b] |= 1 << (i - b * 8); };
     const rightPix = (d, vx, vy) => d === 0 ? at(vx, vy) : d === 1 ? at(vx - 1, vy) : d === 2 ? at(vx - 1, vy - 1) : at(vx, vy - 1);
     const leftPix = (d, vx, vy) => d === 0 ? at(vx, vy - 1) : d === 1 ? at(vx, vy) : d === 2 ? at(vx - 1, vy) : at(vx - 1, vy - 1);
     const dxs = [1, 0, -1, 0], dys = [0, 1, 0, -1];
@@ -415,7 +454,7 @@ async function compute(job) {
         if (grid.length !== W * H) throw new Error('合成標高の格子の大きさが窓と合いません');
         st = { fetched: 0, cached: 0, retried: 0, bytes: 0, from5a: 0, from5b: 0, from5c: 0, from10b: 0, filled: 0, missing: 0, errors: 0, tiles: 0, synthetic: true };
     } else {
-        grid = new Uint16Array(W * H).fill(NODATA);
+        grid = allocArray(Uint16Array, W * H, !!job.forceWasm).fill(NODATA);   // 700kmのz13(約4GB)はWebAssembly.Memoryの上に(allocArray)
         st = await loadTiles(job, grid, G);
     }
     let nData = 0; for (let i = 0; i < grid.length; i++) if (grid[i] !== NODATA) nData++;
@@ -464,9 +503,9 @@ async function compute(job) {
             summit_elev_basis_m: band.hT, summit_elev_dem_m: band.hDem, target_total_m: hS,
             how: band.none ? band.reason : `目的点の基準の標高(DEMと目的点の標高の高い方)から${band.dropUsed}m以内の高さで目的点につながる画素(探索半径${job.searchM || 3000}m。別の山の山頂を含まない高さまで)` },
         excl_target_m: exclTgtM, excl_target_how: band.none ? `半径${exclTgtM}mの円` : `山頂部の画素そのもの+半径${exclTgtM}m`, summit_elev_how: 'DEM(3×3画素の最大)と目的点の標高の高い方', excl_observer_m: exclObsM,
-        grid: { w: W, h: H, x0: X0, y0: Y0, zoom: Z, mpp_center: +MPP.toFixed(4), note: '1画素の大きさは中心緯度の値で一定とした' },
+        grid: { w: W, h: H, x0: X0, y0: Y0, zoom: Z, mpp_center: +MPP.toFixed(4), note: '距離は行ごとの縮尺(MPP·cos lat/cos lat0)を光線に沿って積算。光線は大円(弦からの反りを放物線で近似)', path: 'geodesic-parabolic', scale: 'row-cos-lat', nodata: 'sea-level-0m' },
         dem: { sources: srcText, tiles: st.tiles, fetched: st.fetched, cached: st.cached, retried: st.retried, bytes: st.bytes, from5a: st.from5a, from5b: st.from5b, from5c: st.from5c, from10b: st.from10b, filled_from_next: st.filled, missing: st.missing, errors: st.errors, data_px: nData },
-        method: 'R2: 目的点から窓の縁の全画素へ光線。見かけ高度角=(h−d²·inv2R−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部+半径)・観測点側(半径)。式・除外はアプリの統一可視判定と同じ',
+        method: 'R2: 目的点から窓の縁の全画素へ光線(大円に沿う。距離は行ごとの縮尺の積算)。見かけ高度角=(h−d²·inv2R−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部+半径)・観測点側(半径)。式・除外はアプリの統一可視判定と同じ',
         outline: { tol_px: 0, edges: RG.nEdges, rings: RG.nRings, holes: nHoles, vertices_raw: RG.nVerts, vertices: RG.nVerts, encoding: 'outline: 島ごとに[項番,画素数,外周,穴…]。各環は画素の角の整数座標(窓の左上が0,0)を先頭=絶対・以降=差分でGoogle polyline符号(倍率なし)' },
         result: { visible_px: nVis, visible_km2: +(nVis * pxArea / 1e6).toFixed(3), data_px: nData, islands: idx.length, rays },
         timing_s: { tiles: +((t1 - t0) / 1000).toFixed(1), viewshed: +((t2 - t1) / 1000).toFixed(1), islands: +((t3 - t2) / 1000).toFixed(1), outline: +((t4 - t3) / 1000).toFixed(1), total: +((now() - t0) / 1000).toFixed(1) },
@@ -474,7 +513,7 @@ async function compute(job) {
     const out = { meta, islands: islandsObj, outline };
     if (job.returnBits) {
         const bits = new Uint8Array(Math.ceil(W * H / 8));
-        for (let i = 0; i < visible.length; i++) if (visible[i] === 1) bits[i >> 3] |= (128 >> (i & 7));
+        for (let i = 0; i < visible.length; i++) if (visible[i] === 1) { const b = Math.floor(i / 8); bits[b] |= (128 >> (i - b * 8)); }
         out.bits = bits;
     }
     return out;

@@ -24,7 +24,7 @@
    ```
    `kashimap/v1/368/terrain/60/{meta,islands,outline}.json` と `kashimap/v1/index.json`(山リストの「島の数」「静的」列の元)が書かれる。
    アプリの「目的点で計算」で作った資産(端末の「⬇」でFile出力したJSON)を静的資産に昇格するなら、JSONの `assets[i].meta/islands/outline` を
-   同じ3つのファイルに分けて置き、`index.json` に山を足す(形は `data/kashimap/v1/index.json` と同じ)。
+   同じ3つのファイルに分けて置き、`index.json` に山を足す(形は `data/kashimap/v1/index.json` と同じ。`sizes`=3ファイルの合計バイト数は山リストの「サイズ」列の元。道具が書く)。
 3. 配布リポジトリで `git add -A && git commit -m "資産: 富士山60km" && git push`。Pagesが数分で更新される。
 4. 確かめる: ブラウザで `https://takeyosui15.github.io/soranotsuji-kashimap/kashimap/v1/index.json` が開く。
 

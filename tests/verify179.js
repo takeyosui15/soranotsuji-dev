@@ -26,17 +26,17 @@ check('V0 版数(ピンはverify180へ移譲)+Version Historyに第154', /APP_VE
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf("toggleSection('sec-soramado')"));   // 可視マップ節の全体(次の節の見出しまで)
 const opts = [...kmHtml.matchAll(/<option value="(\d+)"( selected)?>(\d+)km \(1画素≈(\d+)m\)<\/option>/g)].map(m => [m[1], !!m[2], m[4]]);
 check('S1 index.html: 計算範囲リスト=24/36/48/60/100/300/500/700(第155: 初期値24・500を追加・解像度4/4/4/4/8/30/30/60m)・段組み(ラジオ→樹冠/構造物→検索→「目的点で計算」「My目的点で計算」1段→計算範囲リスト→チェック)・km-label・「:樹冠」「:構造物」(節とコントロール)・下のボタンは1段ずつ・ヘルプ',
-  opts.map(o => o[0]).join(',') === '24,36,48,60,100,300,500,700' && opts.filter(o => o[1]).map(o => o[0]).join() === '24' && opts.map(o => o[2]).join(',') === '4,4,4,4,8,30,30,60' &&
-  kmHtml.indexOf('name="kashimap-range-menu" value="100"') < kmHtml.indexOf('id="btn-kashimap-search"') && kmHtml.indexOf('id="btn-kashimap-search"') < kmHtml.indexOf('class="control-row kashimap-btn-row"') &&
-  /<div class="control-row kashimap-btn-row">\s*<button id="btn-kashimap-tgt"[^>]*>目的点で計算<\/button>\s*<button id="btn-kashimap-mytgt"[^>]*>My目的点で計算<\/button>\s*<\/div>/.test(kmHtml) &&
-  kmHtml.indexOf('id="btn-kashimap-mytgt"') < kmHtml.indexOf('計算範囲リスト:') && kmHtml.indexOf('id="sel-kashimap-tgt-range"') < kmHtml.indexOf('id="chk-kashimap-menu-tiles"') &&
+  opts.map(o => o[0]).join(',') === '24,36,48,60,100,300,700' && opts.filter(o => o[1]).map(o => o[0]).join() === '24' && opts.map(o => o[2]).join(',') === '4,4,4,4,8,30,60' &&   // 第156: 500を外した
+  kmHtml.indexOf('name="kashimap-range-menu" value="100"') < kmHtml.indexOf('id="btn-kashimap-search"') && kmHtml.indexOf('id="btn-kashimap-search"') < kmHtml.indexOf('id="radio-kashimap-tgt"') &&
+  /<input type="radio" name="kashimap-compute-target" id="radio-kashimap-tgt" value="tgt" checked>:目的点<\/label>\s*<label class="baseopt-radio"[^>]*><input type="radio" name="kashimap-compute-target" id="radio-kashimap-mytgt" value="mytgt">:My目的点<\/label>/.test(kmHtml) &&   // 第156: ラジオ2つが1段→計算範囲リスト→精細→「範囲を計算」
+  kmHtml.indexOf('id="radio-kashimap-mytgt"') < kmHtml.indexOf('計算範囲リスト:') && kmHtml.indexOf('id="sel-kashimap-tgt-range"') < kmHtml.indexOf('id="btn-kashimap-compute"') && kmHtml.indexOf('id="btn-kashimap-compute"') < kmHtml.indexOf('id="chk-kashimap-menu-tiles"') &&
   (kmHtml.match(/class="km-label"/g) || []).length >= 9 && (idxSrc.match(/>:樹冠</g) || []).length >= 2 && (idxSrc.match(/>:構造物</g) || []).length >= 2 && !/>:樹冠あり<|>:樹冠・構造物あり</.test(idxSrc) &&
-  /<div class="control-row center-row">\s*<button id="btn-kashimap-tiles-clear"/.test(kmHtml) &&
-  idxSrc.includes('範囲は「計算範囲リスト」の 24/36/48/60/100/300/500/700km四方') && idxSrc.includes('薄い金の経過表示') && cssSrc.includes('.km-label { white-space: nowrap;'));
+  /<div class="control-row">\s*<button id="btn-kashimap-tiles-clear" class="nav-btn main-btn"/.test(kmHtml) &&   // 第156: 横幅いっぱい
+  idxSrc.includes('範囲は「計算範囲リスト」の 24/36/48/60/100/300/700km四方') && idxSrc.includes('薄い金の経過表示') && cssSrc.includes('.km-label { white-space: nowrap;'));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')) && !/ラウンド/.test(wkSrc.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')));
 check('S2 ワーカー: 源はズームごと(sourcesFor)・画素ごとの穴埋め(holes)・再試行3回・priority low・近い順・経過表示(preview)・窓はズーム付き / script.js: _kmZoomForRange(60→15/100→14/300→12/700→11)・経過表示の描画と消去・範囲7つ・上限4000 / 道具: SOURCES・穴埋め・filled_from_next',
   ['function sourcesFor(Z)', 'FETCH_RETRIES = 3', "priority: 'low'", 'if (holes(clip) === 0) break;', 'st.filled++', 'jobs.sort(', "type: 'preview'", 'function windowGeom(lat, lon, rangeKm, Z)', 'filled_from_next: st.filled'].every(t => wkSrc.includes(t)) &&
-  ['function _kmZoomForRange(rangeKm, fine) {', 'function _kmPreviewDraw(m)', 'function _kmPreviewClear()', 'const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 500, 700];', 'const KM_TGT_MAX_TILES = 8000;', "else if (m.type === 'preview') _kmPreviewDraw(m);"].every(t => src.includes(t)) &&   // 第155: 精細(fine)・500km・上限8000
+  ['function _kmZoomForRange(rangeKm, fine, finest) {', 'function _kmPreviewDraw(m)', 'function _kmPreviewClear()', 'const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 700];', 'const KM_TGT_MAX_TILES = 9500;', "else if (m.type === 'preview') _kmPreviewDraw(m);"].every(t => src.includes(t)) &&   // 第155: 精細(fine) / 第156: 500を外す・上限9500・最高精細(finest)
   ['const SOURCES = Z >= 15', 'if (holes() === 0) break;', 'filled_from_next: stats.filled'].every(t => toolSrc.includes(t)));
 
 // ---- 合成の標高PNG(地理院の符号: x=2^16R+2^8G+B。無効=128,0,0) ----
@@ -100,15 +100,16 @@ function tilePng(z, x, y, withHole) {
     const sec = document.getElementById('sec-kashimap'); if (sec.classList.contains('closed')) toggleSection('sec-kashimap');
     const secR = sec.getBoundingClientRect();
     const labels = Array.from(sec.querySelectorAll('label.km-label')).map(l => { const r = l.getBoundingClientRect(); return { t: l.textContent, h: Math.round(r.height), over: r.right > secR.right + 1 }; });
-    const t1 = document.getElementById('btn-kashimap-tgt').getBoundingClientRect(), t2 = document.getElementById('btn-kashimap-mytgt').getBoundingClientRect();
+    const t1 = document.querySelector('label[for]') && document.getElementById('radio-kashimap-tgt').closest('label').getBoundingClientRect(), t2 = document.getElementById('radio-kashimap-mytgt').closest('label').getBoundingClientRect();   // 第156: 「:目的点」「:My目的点」ラジオが同じ段
     const radios = Array.from(sec.querySelectorAll('input[name="kashimap-range-menu"]')).map(r => Math.round(r.getBoundingClientRect().top));
     const sel = document.getElementById('sel-kashimap-tgt-range');
     const selR = sel.getBoundingClientRect();
-    return { labels, sameRow: Math.abs(t1.top - t2.top) < 2 && t2.left > t1.right, btnW: [Math.round(t1.width), Math.round(t2.width)], radioRows: new Set(radios).size, nOpt: sel.options.length, val: sel.value, selOver: selR.right > secR.right + 1,
+    const cb = document.getElementById('btn-kashimap-compute').getBoundingClientRect();
+    return { labels, sameRow: Math.abs(t1.top - t2.top) < 2 && t2.left > t1.right, btnW: [Math.round(cb.width), Math.round(secR.width)], radioRows: new Set(radios).size, nOpt: sel.options.length, val: sel.value, selOver: selR.right > secR.right + 1,
       canopyMenu: document.querySelector('label[for="chk-kashimap-menu-canopy"]').textContent, canopyCtrl: document.querySelector('label[for="chk-kashimap-canopy"]').textContent };
   });
-  check('U1 整列: km-labelは全て1行(高さ24px以下)で節からはみ出さない / 「目的点で計算」「My目的点で計算」は同じ段で同じ幅 / 範囲ラジオは1段(第155: 3つ) / 計算範囲リストは8つ・初期値24・はみ出さない / 樹冠の文言(節とコントロール)',
-    u1.labels.length >= 9 && u1.labels.every(l => l.h <= 24 && !l.over) && u1.sameRow && Math.abs(u1.btnW[0] - u1.btnW[1]) <= 2 && u1.radioRows === 1 && u1.nOpt === 8 && u1.val === '24' && !u1.selOver && u1.canopyMenu === ':樹冠' && u1.canopyCtrl === ':樹冠', JSON.stringify(u1));
+  check('U1 整列: km-labelは全て1行(高さ24px以下)で節からはみ出さない / 「:目的点」「:My目的点」は同じ段・「範囲を計算」は横幅いっぱい(第156) / 範囲ラジオは1段(第155: 3つ) / 計算範囲リストは7つ(第156: 500なし)・初期値24・はみ出さない / 樹冠の文言(節とコントロール)',
+    u1.labels.length >= 9 && u1.labels.every(l => l.h <= 24 && !l.over) && u1.sameRow && u1.btnW[0] >= 0.9 * u1.btnW[1] && u1.radioRows === 1 && u1.nOpt === 7 && u1.val === '24' && !u1.selOver && u1.canopyMenu === ':樹冠' && u1.canopyCtrl === ':樹冠', JSON.stringify(u1));
 
   // D1: 解像度の段(合成標高の火口=verify178と同じ。目的点=初期値の富士山)を8km四方・z13で計算。経過表示が届き、終わると消える。資産はz13の輪郭で描ける
   const d1 = await p.evaluate(async () => {
@@ -148,7 +149,7 @@ function tilePng(z, x, y, withHole) {
     const d = r && r.done && r.done[0]; if (!d) return { r, alerts: window._alerts };
     const G = _kmWindow(lat, lng, 2, 15);
     const size1 = await _kmTilesSize();
-    const r2 = await _kmComputeTarget({ rangeKm: 2 });
+    const r2 = await _kmComputeTarget({ rangeKm: 2, force: true });   // 第156: 同じ範囲の資産があるので force で計算し直す(店からの読み直しを見る)
     const d2 = r2 && r2.done && r2.done[0];
     const uiSize = document.getElementById('kashimap-tiles-size').textContent;
     await _kmTilesClear(); _kmRenderStoreList(); await new Promise(res => setTimeout(res, 300));

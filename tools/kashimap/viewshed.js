@@ -260,6 +260,29 @@ function isExcludedTarget(px, py, dM) {
   if (bx < 0 || by < 0 || bx >= _SI.bw || by >= _SI.bw) return false;
   return _SI.capBox[by * _SI.bw + bx] === 1;
 }
+/** 大円と縮尺のヘルパー(第156・ワーカーの geodesicHelpers と同じ): rowScale[y]=その行の1画素の長さ/中心の1画素の長さ、bend(ex,ey)=大円の弦からの反り(画素。弦に直交する単位ベクトルと4δ) */
+let _geoCache = null;
+function geodesicHelpers() {
+  if (_geoCache) return _geoCache;
+  const D2R = Math.PI / 180;
+  const yToLat = (y) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / WORLD))) * 180 / Math.PI, xToLon = (x) => x / WORLD * 360 - 180;
+  const lat0 = yToLat(Y0 + CY + 0.5), lon0 = xToLon(X0 + CX + 0.5), c0 = Math.cos(lat0 * D2R);
+  const rowScale = new Float64Array(H);
+  for (let y = 0; y < H; y++) rowScale[y] = Math.cos(yToLat(Y0 + y + 0.5) * D2R) / c0;
+  const p0 = [Math.cos(lat0 * D2R) * Math.cos(lon0 * D2R), Math.cos(lat0 * D2R) * Math.sin(lon0 * D2R), Math.sin(lat0 * D2R)];
+  const bend = (ex, ey) => {
+    const dx = ex - CX, dy = ey - CY; const len = Math.sqrt(dx * dx + dy * dy); if (len < 2) return { nx: 0, ny: 0, amp: 0 };
+    const lat1 = yToLat(Y0 + ey + 0.5), lon1 = xToLon(X0 + ex + 0.5);
+    const p1 = [Math.cos(lat1 * D2R) * Math.cos(lon1 * D2R), Math.cos(lat1 * D2R) * Math.sin(lon1 * D2R), Math.sin(lat1 * D2R)];
+    const m = [p0[0] + p1[0], p0[1] + p1[1], p0[2] + p1[2]]; const mn = Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]);
+    const mlat = Math.asin(m[2] / mn) / D2R, mlon = Math.atan2(m[1], m[0]) / D2R;
+    const mx = lonToX(mlon) - X0 - 0.5, my = latToY(mlat) - Y0 - 0.5;
+    const ox = mx - (CX + dx / 2), oy = my - (CY + dy / 2);
+    const nx = -dy / len, ny = dx / len; const delta = ox * nx + oy * ny;
+    return { nx, ny, amp: 4 * delta };
+  };
+  _geoCache = { rowScale, bend }; return _geoCache;
+}
 function computeViewshed(hS) {
   const visible = new Uint8Array(W * H);           // 1=見える 0=見えない/データ無し 2=山頂
   const inv2R = (1 - K) / (2 * R_EARTH);           // 1/(2·Reff), Reff = R/(1−k)
@@ -268,15 +291,20 @@ function computeViewshed(hS) {
   const thetaT = new Float64Array(maxSteps);        // 光線上の地形の見かけ高度角(手前から)
   const prefix = new Float64Array(maxSteps);        // 手前までの最大(除外画素を除く)
   let raysDone = 0;
+  const geo = geodesicHelpers();   // 第156: 光線は大円に沿わせ(放物線近似)、距離は行ごとの縮尺を積算(ワーカーと同じ)
   const walk = (ex, ey) => {
     const dx = ex - CX, dy = ey - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); if (steps === 0) return;
-    const sx = dx / steps, sy = dy / steps;
-    let runMax = -Infinity;
+    const sx = dx / steps, sy = dy / steps; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;
+    const bend = geo.bend(ex, ey); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp;
+    let runMax = -Infinity, dM = 0;
     for (let s = 1; s <= steps; s++) {
-      const px = Math.round(CX + sx * s), py = Math.round(CY + sy * s);
+      const t = s / steps, f = t * (1 - t);
+      let px = Math.round(CX + sx * s + bx * f), py = Math.round(CY + sy * s + by * f);
+      if (px < 0) px = 0; else if (px >= W) px = W - 1;
+      if (py < 0) py = 0; else if (py >= H) py = H - 1;
       const gi = py * W + px; const code = grid[gi];
-      const dM = Math.sqrt((px - CX) * (px - CX) + (py - CY) * (py - CY)) * MPP;
-      let th = -Infinity;
+      dM += stepM * geo.rowScale[py];
+      let th;
       if (code !== NODATA) {
         const h = code / 10 - 100; const drop = dM * dM * inv2R;
         th = (h - drop - hS) / dM;                                   // 地形の見かけ高度角(山頂から)
@@ -285,7 +313,7 @@ function computeViewshed(hS) {
         const refIdx = s - 1 - exclObsPx;
         const ref = refIdx >= 1 ? prefix[refIdx] : -Infinity;
         if (thP >= ref) visible[gi] = 1;
-      }
+      } else th = (-dM * dM * inv2R - hS) / dM;                      // データ無し(海)は海面0mとして遮る(第156・ワーカーと同じ)。見える画素にはしない
       thetaT[s] = th;
       if (!isExcludedTarget(px, py, dM)) runMax = Math.max(runMax, th);
       prefix[s] = runMax;
@@ -305,20 +333,22 @@ function probeRay(lat, lon, hS) {
   if (px < 0 || py < 0 || px >= W || py >= H) return { out: true };
   const inv2R = (1 - K) / (2 * R_EARTH); const exclObsPx = Math.ceil(EXCL_OBS_M / MPP);
   const dx = px - CX, dy = py - CY; const steps = Math.max(Math.abs(dx), Math.abs(dy)); const sx = dx / steps, sy = dy / steps;
-  const th = new Float64Array(steps + 1); const excl = new Uint8Array(steps + 1); let runMax = -Infinity, argMax = -1;
+  const geo = geodesicHelpers(); const bend = geo.bend(px, py); const bx = bend.nx * bend.amp, by = bend.ny * bend.amp; const stepM = Math.sqrt(sx * sx + sy * sy) * MPP;   // 第156: 大円+行ごとの縮尺(computeViewshedと同じ歩き方)
+  const at = (s2) => { const t = s2 / steps, f = t * (1 - t); let qx = Math.round(CX + sx * s2 + bx * f), qy = Math.round(CY + sy * s2 + by * f); if (qx < 0) qx = 0; else if (qx >= W) qx = W - 1; if (qy < 0) qy = 0; else if (qy >= H) qy = H - 1; return [qx, qy]; };
+  const th = new Float64Array(steps + 1); const excl = new Uint8Array(steps + 1); const dist = new Float64Array(steps + 1); let runMax = -Infinity, argMax = -1, dAcc = 0;
   const prefixMax = new Float64Array(steps + 1), prefixArg = new Int32Array(steps + 1);
   for (let s2 = 1; s2 <= steps; s2++) {
-    const qx = Math.round(CX + sx * s2), qy = Math.round(CY + sy * s2); const code = grid[qy * W + qx]; const dM = Math.sqrt((qx - CX) ** 2 + (qy - CY) ** 2) * MPP;
-    th[s2] = code === NODATA ? -Infinity : ((code / 10 - 100) - dM * dM * inv2R - hS) / dM;
+    const [qx, qy] = at(s2); const code = grid[qy * W + qx]; dAcc += stepM * geo.rowScale[qy]; const dM = dAcc; dist[s2] = dM;
+    th[s2] = ((code === NODATA ? 0 : code / 10 - 100) - dM * dM * inv2R - hS) / dM;   // データ無し(海)は海面0m
     excl[s2] = isExcludedTarget(qx, qy, dM) ? 1 : 0;
     if (!excl[s2] && th[s2] > runMax) { runMax = th[s2]; argMax = s2; }
     prefixMax[s2] = runMax; prefixArg[s2] = argMax;
   }
   const code = grid[py * W + px]; if (code === NODATA) return { nodata: true };
-  const dM = Math.sqrt(dx * dx + dy * dy) * MPP; const h = code / 10 - 100;
+  const dM = dist[steps]; const h = code / 10 - 100;
   const thP = (h + OBS_H - dM * dM * inv2R - hS) / dM; const refIdx = steps - 1 - exclObsPx; const ref = refIdx >= 1 ? prefixMax[refIdx] : -Infinity; const arg = refIdx >= 1 ? prefixArg[refIdx] : -1;
-  const blk = arg > 0 ? { qx: Math.round(CX + sx * arg), qy: Math.round(CY + sy * arg) } : null;
-  const blkD = blk ? Math.sqrt((blk.qx - CX) ** 2 + (blk.qy - CY) ** 2) * MPP : null; const blkH = blk ? grid[blk.qy * W + blk.qx] / 10 - 100 : null;
+  const blk = arg > 0 ? (([qx, qy]) => ({ qx, qy }))(at(arg)) : null;
+  const blkD = blk ? dist[arg] : null; const blkH = blk ? grid[blk.qy * W + blk.qx] / 10 - 100 : null;
   return { visible: thP >= ref, distKm: dM / 1000, h, thP, ref, blkD, blkH, gridVisible: visible_[py * W + px] === 1 };
 }
 let visible_ = null;
@@ -556,7 +586,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
     excl_target_m: EXCL_TGT_M, excl_target_how: SUMMIT_MODE === 'region' ? `山頂部の画素そのもの(中心・半径なし)+半径${EXCL_TGT_M}m(アプリの既定と同じ最小値)` : (SI.exclAuto ? `自動: 山頂部の最遠距離${SI.capFarM}m(最小15m)の円` : '指定値の円'), summit_elev_how: '3×3画素のDEM最大', excl_observer_m: EXCL_OBS_M,
     grid: { w: W, h: H, x0: X0, y0: Y0, mpp_center: +MPP.toFixed(4), note: '1画素の大きさは中心緯度の値で一定とした(窓の中で約±0.4%の差)' },
     dem: { sources: Z >= 15 ? 'cyberjapandata.gsi.go.jp dem5a_png/dem5b_png/dem5c_png(z15)→dem_png(z14, 最近傍で2倍)。画素ごとに無い所を次の源で埋める' : `cyberjapandata.gsi.go.jp dem_png(z${Z}, DEM10B)`, tiles: NT, from5a: stats.from5a, from5b: stats.from5b, from5c: stats.from5c, from14: stats.from14, filled_from_next: stats.filled, missing: stats.missing, data_px: nData },
-    method: 'R2: 山頂から窓の縁の全画素へ光線。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部へ一般化)',
+    method: 'R2: 山頂から窓の縁の全画素へ光線(大円に沿う。距離は行ごとの縮尺の積算)。見かけ高度角=(h−d²/(2Reff)−hS)/d の最大を更新。観測者=地上+observer_h。除外=目的点側(山頂部・上記)・観測点側10m(式と観測点側はアプリの統一可視判定と同じ。目的点側はアプリの15mを山頂部へ一般化)',
     outline: { tol_px: DP_TOL, edges: RG.nEdges, rings: RG.nRings, holes: nHoles, vertices_raw: RG.nVerts, vertices: nVertsDp, encoding: 'outline.json: 島ごとに[項番,画素数,外周,穴…]。各環は画素の角の整数座標(窓の左上が0,0)を先頭=絶対・以降=差分でGoogle polyline符号(倍率なし)' },
     result: { visible_px: nVis, visible_km2: +(nVis * pxArea / 1e6).toFixed(3), islands: islands.length, rays, check: { n: checked, agree, agree_pct: checked ? +(100 * agree / checked).toFixed(2) : null, tool_only_visible: disagreeVis, app_only_visible: disagreeInv } },
     timing_s: { tiles: +((t1 - t0) / 1000).toFixed(1), viewshed: +((t2 - t1) / 1000).toFixed(1), islands: +((t3 - t2) / 1000).toFixed(1), outline: +((t4 - t3) / 1000).toFixed(1), total: +((Date.now() - t0) / 1000).toFixed(1) },
@@ -577,6 +607,7 @@ function judgeLikeApp(px, py, hS, inv2R) {
     ent.name = M.name; ent[kind] = ent[kind] || []; ent.islands = ent.islands || {};
     if (!ent[kind].includes(RANGE_KM)) { ent[kind].push(RANGE_KM); ent[kind].sort((a, b) => a - b); }
     ent.islands[`${kind}:${RANGE_KM}`] = islands.length;
+    ent.sizes = ent.sizes || {}; ent.sizes[`${kind}:${RANGE_KM}`] = ['meta.json', 'islands.json', 'outline.json'].reduce((a, f) => a + fs.statSync(path.join(ad, f)).size, 0);   // 山リストの「サイズ」列の元(第156)
     index.generated = new Date().toISOString();
     index.attribution = meta.attribution;
     fs.writeFileSync(ip, JSON.stringify(index, null, 1));
