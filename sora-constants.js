@@ -35,7 +35,7 @@ GNU General Public License for more details.
 
     /** 大気差(地形の見通しに使う気差係数Kと、Kを気象条件から算出する式の係数) */
     const REFRACTION = Object.freeze({
-        K_STANDARD: 0.132,                // 測量標準の気差係数。大気差補正がオフの時はこの値で計算する(設定メニューの表示と同じ値)
+        K_STANDARD: 0.132,                // 測量標準の気差係数(標準気象 P=1013.25/T=15/Γ=0.0125 でのK)。静的資産の道具の既定とヘルプの目安。本体の計算は設定の値(大気差補正オフ=0)を使う
         STD_PRESSURE_HPA: 1013.25,        // 標準気圧
         STD_TEMPERATURE_C: 15.0,          // 標準気温
         STD_LAPSE_RATE_K_PER_M: 0.0125,   // 既定の気温減率(この値でK=0.132になる)
@@ -71,6 +71,11 @@ GNU General Public License for more details.
         FINE_ZOOM: 15,                // DEM5A/5B/5Cのズーム(1画素≈4m)
         COARSE_ZOOM: 14,              // DEM10Bのズーム(1画素≈8m。辻メッシュの格子)
         JAPAN_BBOX: Object.freeze({ latMin: 20.0, latMax: 46.0, lngMin: 122.0, lngMax: 156.0 }),   // 地理院の標高タイルがある範囲(離島を含めて広めに)
+    });
+
+    /** 端末の店(IndexedDB。地図の地理院タイル soranotsuji-maptiles / 標高タイル soranotsuji-kashimap)。第158 */
+    const TILE_STORE = Object.freeze({
+        MISS_TTL_MS: 30 * 24 * 3600 * 1000,   // 「無し」(404)の印の寿命=30日。過ぎたら取り直す(地理院は後からタイルを足すことがある: DEM5Aの範囲の拡大など)
     });
 
     /** 気差係数K = 503·P/T²·(0.034 − Γ)。P: 気圧(hPa)、T: 気温(°C→ケルビン)、Γ: 気温減率(K/m、正値) */
@@ -138,5 +143,5 @@ GNU General Public License for more details.
         return { angleRad: ang, at };
     }
 
-    return Object.freeze({ EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
+    return Object.freeze({ EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, TILE_STORE, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
 });

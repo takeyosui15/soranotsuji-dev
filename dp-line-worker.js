@@ -169,7 +169,7 @@ self.onmessage = (e) => {
     }
 
     const {
-        body, observerData, targetData, refractionEnabled, k,
+        body, observerData, targetData, astroRefraction, k,
         startOfDayMs, hourStart, hourEnd,
         valElev, targetElev, limit, distLimit,
         taskId,
@@ -178,7 +178,7 @@ self.onmessage = (e) => {
     } = e.data;
     const altOff = Number(altOffset) || 0;
 
-    const refr = refractionEnabled ? 'normal' : null;
+    const refr = astroRefraction ? 'normal' : null;
     const points = [];
     const stepSec = (stepSeconds && stepSeconds > 0) ? stepSeconds : 1;
     const startSec = hourStart * 3600;

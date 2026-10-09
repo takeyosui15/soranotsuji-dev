@@ -2670,7 +2670,7 @@ input[type="range"] {
 #kashimap-store-table td { padding: 1px 4px; white-space: nowrap; }
 #kashimap-store-table.hidden { display: none; }
 #kashimap-store-table .kashimap-store-del { padding: 0 6px; line-height: 16px; }
-.kashimap-note { font-size: 11px; color: #aaa; }
+.kashimap-note, .menu-note { font-size: 11px; color: #aaa; }
 /* 可視マップ節の整列(第154・依頼者): チェックの文言は折り返さない・「目的点で計算」「My目的点で計算」は1段に・下のボタンは中央に1段ずつ */
 .km-label { white-space: nowrap; margin-right: 12px; }
 #sec-kashimap .control-row.center-row { justify-content: center; }
@@ -2696,3 +2696,16 @@ input[type="range"] {
 .kashimap-swatch { display: inline-block; width: 10px; height: 10px; border: 1px solid #222; margin-left: 4px; vertical-align: middle; }
 /* 全展望マーカー(重複数がいちばん多い縞島の代表点): 金地に赤枠の丸 */
 .kashimap-zen { width: 22px; height: 22px; border-radius: 50%; background: #ffd700; border: 2px solid #c00; color: #600; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center; box-sizing: border-box; box-shadow: 0 0 3px #000; }
+
+/* 宙の窓コントロールの「辻検索」「辻メッシュ」(2分割。第158) */
+#soramado-ctrl-body .sora-ctrl-search-row .nav-btn { flex: 1 1 0; min-width: 0; }
+
+/* バックアップメニューの地理タイル/標高タイル(第158・デッサン18): 可視マップ節と同じ見た目 */
+#sec-backup .km-sub { font-size: 13px; }
+#sec-backup .km-stat-row { gap: 16px; }
+#sec-backup .km-stat { font-size: 13px; color: #000; font-weight: normal; }
+#sec-backup hr.km-hr { margin: 6px 0; }
+#sec-backup .control-row > .main-btn { flex: 1 1 auto; width: 100%; }
+
+/* 機能封鎖(リリース方針。第158: 可視マップは ?kashimap=1 で開錠) */
+.feature-locked { display: none !important; }

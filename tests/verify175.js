@@ -69,7 +69,7 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   await ctx.route('**/*', route => { route.request().url().startsWith(BASE) ? route.continue() : route.abort(); });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?kashimap=1',{waitUntil:'load'});   // 可視マップは封鎖中(第158)。開錠して検査
   await p.waitForFunction(()=>typeof runKashimapSearch==='function' && typeof glMap!=='undefined' && glMap && glMap.getLayer && !!glMap.getLayer('km-fill') && !!glMap.getLayer('km-stripe-fill') && !!glMap.getLayer('km-blink'),{timeout:15000});
   await p.waitForTimeout(500);
   const jsClick = id => p.evaluate(i => document.getElementById(i).click(), id);

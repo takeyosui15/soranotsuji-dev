@@ -111,6 +111,16 @@
    "bfalse": false,
    "btrue": true
   },
+  "astroRefraction": {
+   "neg": -1000000000,
+   "pos": 1000000000,
+   "frac": 3.7,
+   "str": "garbage",
+   "empty": "",
+   "nul": null,
+   "bfalse": false,
+   "btrue": true
+  },
   "refractionK": {
    "neg": -1000000000,
    "pos": 1000000000,

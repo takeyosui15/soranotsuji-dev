@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.97.0 - 2026-10-09: feat: 第158ラウンド — 気差を2本立てに(依頼者の方針変更): ①設定の「大気差補正」チェック=地形の見通しの気差係数K(オン=気象条件から算出・既定オン / オフ=K=0=気差なし。第157の「オフでも0.132」を取り下げ。K=0の見え方の検証ができるように)。保存データは一度だけ新既定へ(印 refractionV3) ②新しい「:気差オプション(Astronomy Engine気差補正)」=天体の見かけ高度の大気差(既定オン。地上のKとは別の光線なので二重にはかからない)。appState.astroRefraction・ワーカーへは astroRefraction で渡す・共有URL(辞書v22)・ヘルプ ③宙の窓検索(デッサン05): 位置情報メニューのボタンを「宙の窓検索」に(辻検索/辻メッシュ/宙の窓検索の段・可視マップは次の段)・宙の窓メニューに注記・コントロールに「:構図をドラッグ(二本指)で変更」「:辻オフセット点をドラッグ(二本指)で変更」(ドラッグの対象=カメラオフセット/辻オフセット。オフで戻す)と「辻検索」「辻メッシュ」ボタン ④地理院タイルのオフライン(デッサン18): 地図の地理院タイル(標準・淡色・写真・ベクトル)は端末の店(IndexedDB)を先に読み、無い時だけ地理院へ(gsicache://プロトコル)。標高タイル(標高グラフ・辻メッシュ・宙の窓)も可視マップと同じ店を先に読む。バックアップメニューに地理タイル/標高タイルの件数・容量・最終更新・全削除 ⑤リリース向けの封鎖: 可視マップは ?kashimap=1 で開錠(forecastと同じ仕組み)。verify183。差分のレビューで直した: 辻オフセット点のドラッグ(と宙の窓/ctrlの欄)を辻メッシュ側のオフセットにも写す(ctrlの「辻メッシュ」が×の位置で検索する)・ドラッグの値は4桁に丸める・宙断面(forecast)のスロットを封鎖される段の外へ・辻ライン365の鍵に気差(2つのチェックと設定登録は _refractionSettingChanged で保存→再計算→365も引き直す)・旧形式のバックアップの取り込みも一度だけ両方オンへ・気差オプションのヘルプの「効く範囲」を実装どおりに(太陽・月・惑星の出没時刻と天体儀の向きは変わらない)・店の件数と容量は索引の鍵カーソルで数える(本文を読まない。地理タイルの店v2/標高タイルの店v3)・数えるのはバックアップを開いている間だけ・「無し」の印は30日で取り直す(SORA.TILE_STORE.MISS_TTL_MS。本体・地形ワーカー・可視マップのワーカー)・標高タイルの取得の失敗は1回で諦める・封鎖中は標高タイルの注記を可視マップ抜きの文に
 Version 1.96.0 - 2026-10-07: refactor/feat: 第157ラウンド — 数の単一情報源 sora-constants.js(地球の大きさ・大気差・観測者・標高タイル・可視判定の既定値と、気差係数の式・局所半径・ハバーサイン・1画素の長さ・大円の補間。本体はscriptタグ、ワーカーはimportScripts、道具はrequireで同じ値を読む=1箇所を直すと他も直る)。気差係数は「設定に表示されている値」で全処理が計算(refractionKInUse: 大気差補正オフ=測量標準0.132、オン=気象条件から算出。標高グラフ・辻検索/My辻・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火の8箇所の『オフ=0』を1つに)。統一可視判定(標高グラフ・辻検索・辻メッシュのワーカー)も可視マップと同じ3つに=経路を大円に(区間ごとに球面補間)・海(データ無し)は海面0mで遮る(日本域)・K。山リストに「ズーム」列(z15(1画素≈4m・DEM5A/5B/5C)など。索引index.jsonにzooms・端末の索引にzoom[無ければ資産の計算条件から補う])。最大表示範囲より広い資産しか無い山は範囲に▲を付けて示し、選ぶと表示範囲を繰り上げる(「:端末保存」で列が空だった件)。島リストは4,000行ずつ描き、残りは進捗(描画中 n/N)を出しながら続ける(富士山700kmの4万行)。可視マップ節: 「可視タイル:」の上に水平線・「範囲を計算」の下に剣ヶ峯の注記(依頼者起草)。verify182。差分のレビューで直した: 基準視高度の自動算出の鍵にK(気差係数を切り替えると再計算・URL復元は気象値の後で鍵を取り直す)・宙の窓の陰影の鍵にK・古い形式のバックアップ取り込みで設定の大気差の部品を同期(syncRefractionUiFromState)・辻メッシュの帯域分割もPATH_CHUNK・端末の資産の再利用はKが同じ時だけ・道具の答え合わせ(judgeLikeApp)も大円+海面0m
 Version 1.95.0 - 2026-10-06: feat/fix: 第156ラウンド — 可視マップ節をデッサン05の改訂版に(依頼者): ①段組み=検索条件:/山リスト:(+:端末保存)/最大表示範囲:/障害物オプション:→「計算済み可視マップを検索」→注記→水平線→「:目的点/:My目的点」ラジオ+計算範囲リスト(500を外し24〜700)+「:精細」「:最高精細(700kmをz13。約31,000枚・20億画素・PC向け。格子約4GBはChromeの1本2GBの壁を避けてWebAssembly.Memoryの上に)」+「範囲を計算」→水平線→可視タイル/山頂マーカー・全展望マーカー→水平線→標高タイル(件数/容量・注記「可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。」・全削除は横幅いっぱい)→可視タイル(件数/容量・一括選択/一括解除トグル=Myセットと同じ黄色・⬇DL/削除/全て登録の三等分・全て登録はMy観測点と同じ赤太字) ②資産の一覧は3行1組(チェック段抜き+目的点名[入力欄の文字はMy観測点と同じ16px] / 範囲・樹冠・構造物 / 島数・サイズ。背景色なし・水平線で区切る) ③山リストに「範囲」「樹冠」「構造物」「サイズ」列(検索条件で選ばれる資産。サーバーの索引にsizes) ④直し: 目的点で計算した島の点滅(鍵「tgt:lat,lon:項番」を最後の「:」で切る)・島リストは全件表示(3,000件の上限を撤廃)・標高タイルの上限8,000→9,500枚・計算前に端末の同じ範囲の資産を探して使う(確認付き。構造物など山リストに無い目的点向け) ⑤気差係数: 可視マップのその場計算は大気差補正オフでも測量標準k=0.132で計算(静的資産と同じ。オンなら設定の値)。気温減率の既定値を0.0065→0.0125(K=0.169→0.132=測量標準。保存済みの値が旧既定のままなら新既定へ) ⑥辻ライン: 線の端を境界(見かけ高度の下限または400km)の時刻へ二分で詰めて揃える(1分刻みの365では端が270〜365kmとまちまちだった)。辻ライン365も400km。verify181
 Version 1.94.0 - 2026-10-03: feat/fix: 第155ラウンド — 可視マップ節の新しい画面構成(デッサン05・依頼者)と、700kmの表示の直し・辻ライン400km・可視フィルタ: ①可視マップ節=推し山の入力(ラベル無し・横幅いっぱい・150字)→AND/OR→百/二百/三百→百高/その他→表示範囲ラジオ100/300/700(60kmを外す・初期値100)→「:樹冠」「:構造物」(別のチェック。資産の種類 terrain/canopy/building/canopy-building を優先順で選ぶ)→検索→「目的点で計算」「My目的点で計算」→計算範囲リスト24〜700(500kmを追加・初期値24)+「:精細(300km以上を1段細かく)」(300km=z13≈15m・700km=z12≈31m。PC向け)→可視タイル/山頂/全展望→注記→端末に保存した資産=標高タイルの件数/容量と「標高タイルを全削除」・可視タイル(資産)の件数/容量と「一括選択」「⬇DL」「削除」「全て登録」・資産ごとに2行(チェック+目的点名の入力欄[150字・空で離れると元に戻る・変更で「全て登録」が赤い太字]/範囲・樹冠・構造物・島数・サイズ)。コントロールも同じ(範囲3つ・樹冠/構造物) ②700kmを計算しても表示範囲が60kmのままで60kmの資産が選ばれていた→計算した範囲まで表示範囲を広げる ③その場計算の後に地図タイル(ラスタ)のソースを読み直す(計算中に取りこぼして縮尺違いのまま残る「マダラ」) ④辻ラインの長さ300km→400km(依頼者: 富士山が見えた最遠が300km台) ⑤辻検索/辻メッシュ/My辻検索の「標高フィルタ」を「可視フィルタ」に改名(表示文言と状況表示。My辻リストCSVの列名は互換のため据え置き)+「:樹冠」「:構造物」のチェック(資産ができるまで無効) ⑥three.jsをES Modules版(three.module.min.js)で読み込む(非推奨の警告を消す)。verify180
@@ -165,7 +166,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.96.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.97.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -201,7 +202,7 @@ async function loadMuniData() {
 }
 // 数の単一情報源は sora-constants.js(SORA)。ここは本体の中で使ってきた名前を SORA の値に結びつけるだけ(値はここに書かない)
 const EARTH_RADIUS = SORA.EARTH.WGS84_SEMI_MAJOR_M;   // 注意: 名前は「地球半径」だが値は赤道半径a。航程線の終点(getDestinationRhumb)・球面の終点(_smDestPoint)・建物タイルの半径で球の半径として使っている(0.1%長い。直すなら数値が動くので別途)
-const REFRACTION_K = SORA.REFRACTION.K_STANDARD;      // 測量標準の気差係数0.132。大気差補正オフの時に使う(refractionKInUse)
+const REFRACTION_K = SORA.REFRACTION.K_STANDARD;      // 測量標準の気差係数0.132(ヘルプの目安・道具の既定)。第158から本体の計算では使わない(大気差補正オフはK=0=refractionKInUse)
 const STD_P = SORA.REFRACTION.STD_PRESSURE_HPA;       // 標準気圧 (hPa)
 const STD_T = SORA.REFRACTION.STD_TEMPERATURE_C;      // 標準気温 (°C)
 const STD_L = SORA.REFRACTION.STD_LAPSE_RATE_K_PER_M; // 既定の気温減率 Γ (K/m)。0.0125=測量標準(K=0.132になる)
@@ -316,6 +317,22 @@ let _glBaseLayerId = 'std';  // 表示中のベースレイヤ(std/photo/pale/os
 const FEATURE_FORECAST_ENABLED = (() => {
     try { return new URLSearchParams(window.location.search).get('forecast') === '1'; } catch (e) { return false; }
 })();
+
+// ==== リリース方針(2026-10-09 たけちゃんさん判断・第158): 可視マップの一時封鎖 ====
+// 宙の窓検索とオフライン表示を先にリリースし、可視マップ(とMyサイト)はじっくり作り込む。forecastと同じく、開発時はURLに ?kashimap=1 を付けると表示できる。
+// 封鎖中もHTMLとコードはそのまま(配線は走る)で、ボタンの段・メニューの節・ヘルプの節を .feature-locked で隠し、検索/計算の入口で止める。
+const FEATURE_KASHIMAP_ENABLED = (() => {
+    try { return new URLSearchParams(window.location.search).get('kashimap') === '1'; } catch (e) { return false; }
+})();
+function applyFeatureLocks() {
+    if (FEATURE_KASHIMAP_ENABLED) return;
+    for (const id of ['row-kashimap-btn', 'section-kashimap', 'help-kashimap', 'kashimap-panel']) { const el = document.getElementById(id); if (el) el.classList.add('feature-locked'); }
+    // 封鎖中は「可視タイル」が画面に無いので、バックアップメニューの標高タイルの注記とボタンの説明は可視マップ抜きの文に(開錠時はデッサン18の文のまま)
+    const note = document.getElementById('backup-demtiles-note');
+    if (note) note.textContent = '標高グラフ・辻検索・辻メッシュ・宙の窓の計算に使う控えです。いつでも全削除できます(次に使う時に国土地理院から取り直します)。';
+    const bDem = document.getElementById('btn-backup-demtiles-clear');
+    if (bDem) bDem.title = '端末に貯めた標高タイルを全て削除します(次に使う時にまた取りに行きます)';
+}
 
 /** 封鎖中の予測系機能のUIはindex.htmlから分離済み(forecast-features.html)。
  *  開発時(?forecast=1)のみ、各スロット(ff-slot-*)へfetchで注入して復元する。
@@ -596,8 +613,10 @@ let appState = {
                           //   accuracyFilter, accDblCircle, accCircle, accTriangle, accDash,
                           //   checked, memo }
 
-    // 大気差補正の有効/無効
-    refractionEnabled: false,
+    // 大気差補正(地形の見通しの気差係数K): オン=気象条件から算出した値(既定)・オフ=0(気差なし)。第158
+    refractionEnabled: true,
+    // 気差オプション(Astronomy Engineの天体の大気差=見かけ高度)。地上のKとは別の光線(天体→目)なので二重にはかからない。既定オン(第158)
+    astroRefraction: true,
 
     // 大気差補正係数 (meteoから計算)
     refractionK: calculateKFromMeteo(STD_P, STD_T, STD_L),
@@ -677,6 +696,7 @@ window.onload = async function() {
 
     // 2.7. 封鎖中の予測系機能: 開発時(?forecast=1)のみUIを注入(既定は何もしない)
     await loadForecastFeatures();
+    applyFeatureLocks();   // 可視マップの封鎖(第158)
 
     // 3. 地図初期化
     initMap();
@@ -915,7 +935,7 @@ function _glBldg3dToggle(on) {
         if (!glMap.getSource('gsi-bvmap')) {
             glMap.addSource('gsi-bvmap', {
                 type: 'vector',
-                tiles: ['https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf'],
+                tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf')],
                 minzoom: 4, maxzoom: 16,
                 attribution: '<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>',
             });
@@ -939,7 +959,111 @@ function _glBldg3dToggle(on) {
     glMap.easeTo({ pitch: on ? 60 : 0, duration: 600 });   // ONで斜め視点、OFFで真上へ戻す
 }
 
+
+// ==== 地理院タイルの端末キャッシュ(オフライン表示。第158・デッサン18の13〜24段目) ====
+// 地図の地理院タイル(標準・淡色・写真・ベクトル)は、端末の店(IndexedDB 'soranotsuji-maptiles')を先に読み、無い時だけ国土地理院へ取りに行って店に入れる。
+// 国土地理院の回答(問合せ・2026年10月): 端末にキャッシュされ、当該端末にだけ地図が表示されるのであれば、出典の明示のみで利用できる(申請不要)。
+// 店は自動で貯まるので、バックアップメニューに件数・容量・最終更新日時と「全削除」を置く。安全弁: 店の合計が MT_MAX_BYTES を超えたら新しく貯めない(表示はする)。
+const MT_DB = 'soranotsuji-maptiles', MT_STORE = 'tiles';
+const MT_FETCH_TIMEOUT_MS = 20000;
+const MT_MAX_BYTES = 1024 * 1024 * 1024;   // 1GB
+const MT_HOST = 'cyberjapandata.gsi.go.jp';
+let _mtDbP = null, _mtBytes = null, _mtBytesP = null, _mtCapWarned = false, _mtRefreshTimer = null, _mtProtocolAdded = false, _mtProtocolHandler = null;   // _mtProtocolHandler: 検査が直接呼べるように持っておく
+function _mtDb() {
+    if (_mtDbP) return _mtDbP;
+    _mtDbP = new Promise((ok, ng) => {
+        try {
+            const req = indexedDB.open(MT_DB, 2);   // v2(第158): size/savedAt の索引(件数・容量・最終更新を本文を読まずに数える)
+            req.onupgradeneeded = () => { const db = req.result, tx = req.transaction; const st = db.objectStoreNames.contains(MT_STORE) ? tx.objectStore(MT_STORE) : db.createObjectStore(MT_STORE, { keyPath: 'key' }); _idbEnsureStatIndexes(st); };
+            req.onsuccess = () => ok(req.result);
+            req.onerror = () => ng(req.error);
+        } catch (e) { ng(e); }
+    });
+    _mtDbP.catch(() => { _mtDbP = null; });
+    return _mtDbP;
+}
+async function _mtIdb(mode, fn) {
+    const db = await _mtDb();
+    return new Promise((ok, ng) => { const r = fn(db.transaction(MT_STORE, mode).objectStore(MT_STORE)); r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); });
+}
+/** 店の統計用の索引(size・savedAt)。onupgradeneeded の中で呼ぶ(地理タイルの店 v2・標高タイルの店 v3) */
+function _idbEnsureStatIndexes(st) { if (!st.indexNames.contains('size')) st.createIndex('size', 'size'); if (!st.indexNames.contains('savedAt')) st.createIndex('savedAt', 'savedAt'); }
+/** 店の件数・合計バイト・最終更新(ms)を、索引の鍵カーソルだけで数える(本文=タイルのバイト列を読まない。第158のレビュー: 1GBの店を値カーソルで舐めると、タイルが貯まるたびに表示が止まる)。
+ *  「無し」の印(size 0)は件数に入れない。索引の無い店(開けなかった時の保険)は null */
+function _idbStatByIndex(st) {
+    return new Promise((ok, ng) => {
+        if (!st.indexNames.contains('size') || !st.indexNames.contains('savedAt')) { ok(null); return; }
+        let n = 0, bytes = 0, last = 0, pending = 2;
+        const done = () => { if (--pending === 0) ok({ n, bytes, last }); };
+        const rq = st.index('size').openKeyCursor();
+        rq.onsuccess = () => { const c = rq.result; if (!c) { done(); return; } const sz = Number(c.key) || 0; if (sz > 0) n++; bytes += sz; c.continue(); };
+        rq.onerror = () => ng(rq.error);
+        const rl = st.index('savedAt').openKeyCursor(null, 'prev');   // 最終更新=索引の末尾1件
+        rl.onsuccess = () => { const c = rl.result; if (c) last = Number(c.key) || 0; done(); };
+        rl.onerror = () => ng(rl.error);
+    });
+}
+/** 「無し」(404)の印がまだ有効か(寿命は SORA.TILE_STORE.MISS_TTL_MS=30日。過ぎた印は取り直す) */
+function _storeMissFresh(rec) { return !!(rec && rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) < SORA.TILE_STORE.MISS_TTL_MS); }
+/** 地理タイルの店の件数・合計バイト・最終更新(ms) */
+async function _mtStat() {
+    try {
+        const db = await _mtDb();
+        return (await _idbStatByIndex(db.transaction(MT_STORE, 'readonly').objectStore(MT_STORE))) || { n: 0, bytes: 0, last: 0 };
+    } catch (e) { return { n: 0, bytes: 0, last: 0 }; }
+}
+async function _mtClear() { try { await _mtIdb('readwrite', st => st.clear()); } catch (e) {} _mtBytes = 0; _mtCapWarned = false; }
+/** バックアップメニューの地理タイル/標高タイルの行を書き直す(少し待ってまとめて) */
+function _mtScheduleRefresh() { if (_mtRefreshTimer) return; _mtRefreshTimer = setTimeout(() => { _mtRefreshTimer = null; _mtRefreshBackupRows(); }, 1500); }
+async function _mtRefreshBackupRows() {
+    const put = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const when = (ms) => ms ? formatGdriveDateTime(new Date(ms).toISOString()) : '-';
+    if (!document.getElementById('backup-maptiles-count')) return;
+    const sec = document.getElementById('sec-backup');
+    if (sec && sec.classList.contains('closed')) return;   // 閉じている間は数えない(開いた時に toggleSection が数え直す。第158のレビュー: タイルが貯まるたびに2つの店を数えない)
+    const [mt, dem] = await Promise.all([_mtStat(), (typeof _kmTilesStat === 'function') ? _kmTilesStat() : Promise.resolve({ n: 0, bytes: 0, last: 0 })]);
+    _mtBytes = mt.bytes;
+    put('backup-maptiles-count', mt.n.toLocaleString()); put('backup-maptiles-size', _kmMB(mt.bytes)); put('backup-maptiles-updated', when(mt.last));
+    put('backup-demtiles-count', dem.n.toLocaleString()); put('backup-demtiles-size', _kmMB(dem.bytes)); put('backup-demtiles-updated', when(dem.last || 0));
+}
+/** 地図タイルの読み込み: gsicache://<URL> を店→無ければ地理院の順で。404は MapLibre の既定と同じく静かに「タイル無し」(status 404 の例外) */
+function _mtEnsureProtocol() {
+    if (_mtProtocolAdded || typeof maplibregl === 'undefined') return;
+    _mtProtocolAdded = true;
+    try { if (typeof _kmDb === 'function') _kmDb().catch(() => {}); } catch (_) {}   // 標高タイルの店(可視マップと共通)を先に用意しておく(ワーカーも読む)
+    _mtProtocolHandler = async (params, abortController) => {
+        const url = params.url.replace('gsicache://', '');
+        let rec = null;
+        try { rec = await _mtIdb('readonly', st => st.get(url)); } catch (_) { rec = null; }
+        const notFound = () => { const e = new Error('HTTP 404'); e.status = 404; throw e; };
+        if (rec && rec.miss) { if (_storeMissFresh(rec)) notFound(); rec = null; }   // 古い「無し」の印(30日)は取り直す
+        if (rec && rec.buf) return { data: rec.buf };
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), MT_FETCH_TIMEOUT_MS);
+        try { if (abortController && abortController.signal) abortController.signal.addEventListener('abort', () => ctl.abort(), { once: true }); } catch (_) {}
+        let res;
+        try { res = await fetch(url, { signal: ctl.signal, mode: 'cors' }); } finally { clearTimeout(timer); }
+        if (res.status === 404) {
+            _mtIdb('readwrite', st => st.put({ key: url, size: 0, miss: true, savedAt: Date.now() })).catch(() => {});
+            notFound();
+        }
+        if (!res.ok) { const e = new Error('HTTP ' + res.status); e.status = res.status; throw e; }
+        const buf = await res.arrayBuffer();
+        if (_mtBytes === null) { if (!_mtBytesP) _mtBytesP = _mtStat().then(s => { _mtBytes = s.bytes; }, () => { _mtBytes = 0; }); await _mtBytesP; }   // 最初の1枚だけ数える(同時に届いた分は同じ約束を待つ)
+        if (_mtBytes + buf.byteLength <= MT_MAX_BYTES) {
+            _mtBytes += buf.byteLength;
+            _mtIdb('readwrite', st => st.put({ key: url, size: buf.byteLength, buf, savedAt: Date.now() })).catch(() => {});
+            _mtScheduleRefresh();
+        } else if (!_mtCapWarned) { _mtCapWarned = true; console.warn(`地理タイルの店が上限(${_kmMB(MT_MAX_BYTES)})に達したので、これ以上は貯めません(バックアップメニューの「地理タイルを全削除」で空けられます)`); }
+        return { data: buf };
+    };
+    maplibregl.addProtocol('gsicache', _mtProtocolHandler);
+}
+/** 地理院のタイルURLを店経由の形にする(地理院のタイルだけ。OSMなどはそのまま) */
+function _mtUrl(url) { return url.includes(MT_HOST) ? 'gsicache://' + url : url; }
+
 function initMapGL(mapEl) {
+    _mtEnsureProtocol();   // 地理院タイルは端末の店を先に読む(第158)
     const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
     const rasterSrc = (tiles, attribution, maxzoom) => ({ type: 'raster', tiles, tileSize: 256, maxzoom, attribution });
     glMap = new maplibregl.Map({
@@ -950,9 +1074,9 @@ function initMapGL(mapEl) {
             // 生成ツール: tests/build-glyphs.js)
             glyphs: 'fonts/{fontstack}/{range}.pbf',
             sources: {
-                'base-std': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'], gsiAttr, 18),
-                'base-photo': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg'], gsiAttr, 18),
-                'base-pale': rasterSrc(['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'], gsiAttr, 18),
+                'base-std': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png')], gsiAttr, 18),
+                'base-photo': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg')], gsiAttr, 18),
+                'base-pale': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')], gsiAttr, 18),
                 // OSMは単一ホストが現行推奨(HTTP/2下でa/b/cサブドメイン分割は接続数が増えるだけで逆効果)
                 'base-osm': rasterSrc(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>', 19),
@@ -1907,6 +2031,7 @@ function setupUI() {
         if (el) el.addEventListener('change', (e) => {
             appState[key] = Math.max(-360, Math.min(360, parseFloat(e.target.value) || 0));
             e.target.value = appState[key];
+            _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側のオフセットにも写す(辻検索メニューの外の欄なので委譲リスナーが拾わない。第158のレビュー)
             saveAppState();
             updateOffsetDistances();
             if (appState.isSoramadoActive && !_smFailed) drawSoramado();   // 検索中心(×)マーカーの追従
@@ -2402,6 +2527,11 @@ function setupUI() {
     // バックアップ / インポート
     document.getElementById('btn-backup').onclick = exportBackup;
     document.getElementById('btn-import').onclick = importBackup;
+    // 端末の店の全削除(第158・デッサン18): 地理タイル(地図)と標高タイル(可視マップの店と同じ)
+    const bMt = document.getElementById('btn-backup-maptiles-clear');
+    if (bMt) bMt.onclick = async () => { if (!confirm('端末に貯めた地理タイル(地図)を全て削除しますか？(次に地図を表示した時にまた取りに行きます)')) return; await _mtClear(); _mtRefreshBackupRows(); };
+    const bDem = document.getElementById('btn-backup-demtiles-clear');
+    if (bDem) bDem.onclick = async () => { if (!confirm(FEATURE_KASHIMAP_ENABLED ? '端末に貯めた標高タイルを全て削除しますか？(可視タイル=資産は残ります)' : '端末に貯めた標高タイルを全て削除しますか？(次に使う時にまた取りに行きます)')) return; await _kmTilesClear(); _mtRefreshBackupRows(); if (typeof _kmRenderStoreList === 'function') _kmRenderStoreList(); };
 
     // --- ★追加: 気象パラメータ連動 ---
     const iK = document.getElementById('input-refraction-k');
@@ -2430,11 +2560,13 @@ function setupUI() {
         appState.refractionEnabled = e.target.checked;
         setRefractionFormEnabled(e.target.checked);
         showKInUse();
-        saveAppState();
-        updateAll();
+        _refractionSettingChanged();
     });
-    // 係数欄には「いま使う値」を出す(オフ=測量標準0.132・オン=気象条件からの算出値)。全ての地形の見通しの計算がこの値を使う(第157)
-    const showKInUse = () => { iK.value = refractionKInUse().toFixed(4); };
+    // 気差オプション(天体の見かけ高度の大気差。Astronomy Engine)。第158
+    const chkAstro = document.getElementById('chk-astro-refraction');
+    if (chkAstro) chkAstro.addEventListener('change', (e) => { appState.astroRefraction = e.target.checked; _refractionSettingChanged(); });
+    // 係数欄には「いま使う値」を出す(オフ=0・オン=気象条件からの算出値)。全ての地形の見通しの計算がこの値を使う(第157・第158)
+    const showKInUse = () => { iK.value = refractionKInUse().toFixed(4); };   // オフ=0.0000・オン=気象条件からの算出値(第158)
 
     // 気象条件が変わったら K を再計算して表示する関数
     const updateK = () => {
@@ -2500,6 +2632,8 @@ function buildStateToSave() {
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         meteoDefaultsV2: true,   // 気温減率の既定値0.0125への移行済み(v1.95.0)
         refractionEnabled: appState.refractionEnabled,
+        astroRefraction: appState.astroRefraction,
+        refractionV3: true,   // 気差の2本立て(v1.97.0)へ移行済みの印(無い保存データは起動時に新既定=両方オンへ)
         isDPActive: appState.isDPActive,
         // isDP365Active は意図的に保存しない:
         // - 365日計算はキャッシュ無効化(位置/日付変更)を伴うため起動時のキャッシュ復元が困難
@@ -2660,6 +2794,9 @@ function loadAppState() {
             // meteoからKを再計算 (refractionKは保存しない)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
+            if(saved.astroRefraction !== undefined) appState.astroRefraction = saved.astroRefraction;
+            // 気差の2本立て(v1.97.0): 旧い保存データ(1つのチェックが地上のKと天体の大気差の両方を兼ねていた)は、一度だけ新しい既定(両方オン)にする
+            if (saved.refractionV3 !== true) { appState.refractionEnabled = true; appState.astroRefraction = true; }
             if(saved.isDPActive !== undefined) appState.isDPActive = saved.isDPActive;
             // isDP365Active は読み込まない: 起動時は常に OFF で初期化済み (saveAppStateにも保存しない)
             if(saved.locMode) appState.locMode = saved.locMode;
@@ -3138,7 +3275,7 @@ function updateCalculation() {
             dec = eq.dec;
         }
 
-        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
+        const hor = Astronomy.Horizon(obsDate, observer, ra, dec, appState.astroRefraction ? "normal" : null);
 
         let riseStr = "--:--";
         let setStr = "--:--";
@@ -3184,7 +3321,7 @@ function updateCalculation() {
                     let rs = times.rise;
                     let ss = times.set;
                     if (rs === "--:--:--" && ss === "--:--:--") {
-                        const h = Astronomy.Horizon(obsDate, observer, capturedRa, capturedDec, appState.refractionEnabled ? "normal" : null);
+                        const h = Astronomy.Horizon(obsDate, observer, capturedRa, capturedDec, appState.astroRefraction ? "normal" : null);
                         if (h.altitude > 0) { rs = "00:00:00"; ss = "00:00:00"; }
                     }
                     const transitStr = searchStarTransit(capturedRa, capturedDec, observer, startOfDay);
@@ -3390,8 +3527,8 @@ async function updateDP365Lines() {
     const inclOffset = appState.tsujiLineIncludeOffset !== false;
     const offAz = inclOffset ? (Number(appState.tsujiSearchOffsetAz) || 0) : 0;
     const offAlt = inclOffset ? (Number(appState.tsujiSearchOffsetAlt) || 0) : 0;
-    // 計算済みキャッシュはオフセット込みの線なので、オフセットが変わっていたら捨てて引き直す
-    const offKey = `${offAz}|${offAlt}`;
+    // 計算済みキャッシュはオフセット込み・気差込みの線なので、オフセットか気差(天体の大気差・地上のK)が変わっていたら捨てて引き直す(第158のレビュー: 気差を切り替えても365だけ古い線が残っていた)
+    const offKey = `${offAz}|${offAlt}|${appState.astroRefraction ? 1 : 0}|${refractionKInUse()}`;
     if (offKey !== _dp365OffsetsKey) {
         _dp365OffsetsKey = offKey;
         clearAllDP365Layers();
@@ -4044,7 +4181,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
     const valElev = appState.start.elev;
     const dip = getHorizonDip(valElev);
     const limit = -(dip + (16 / 60 + 1.18 / 3600) * 2 + 0.1);
-    const refr = appState.refractionEnabled ? "normal" : null;   // 天体の見かけ高度の大気差(チェックのオン/オフ)
+    const refr = appState.astroRefraction ? "normal" : null;   // 天体の見かけ高度の大気差(チェックのオン/オフ)
     const k = refractionKInUse();                                 // 地形の見通しの気差係数(表示されている値)
 
     // 天体メッセージを構築 (固定恒星は ra/dec をプリセット)
@@ -4112,7 +4249,7 @@ async function calculateDPPathPoints(targetDate, body, observer, opts = {}) {
             body: bodyMsg,
             observerData,
             targetData,  // Worker での反復補正に必要
-            refractionEnabled: appState.refractionEnabled,
+            astroRefraction: appState.astroRefraction,
             k,
             startOfDayMs,
             hourStart: h,
@@ -4240,7 +4377,7 @@ function calculateDistanceForAltitudes(altObs, hObs, hTarget, obsLat, tgtLat) {
     const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
     const R_tgt = (typeof tgtLat === 'number') ? getLocalEarthRadius(tgtLat) : R_obs;
 
-    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0)
     // 有効地球半径モデル: 光路の屈折を「地球半径が 1/(1-k) 倍に膨らんだ」
     // と等価に扱うため、各点の地心距離も Reff ベースで計算する。
     const Reff_obs = R_obs / (1 - k);
@@ -4382,11 +4519,11 @@ function calculateGreatCirclePoints(start, end) {
  */
 function calculateKFromMeteo(p, tCel, l) { return SORA.calculateKFromMeteo(p, tCel, l); }   // 式は sora-constants.js
 
-/** いま使う気差係数K=設定メニューに表示されている値。大気差補正オンなら気象条件から算出した値、オフなら測量標準の0.132(第157・依頼者: 「表示されている値で計算」)。
+/** いま使う気差係数K=設定メニューに表示されている値。大気差補正オンなら気象条件から算出した値(既定)、オフなら0=気差なし(第157・依頼者: 「表示されている値で計算」/第158: オフ=0)。
  *  地形の見通しに関わる計算(標高グラフ・辻検索/My辻検索・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火)は全てこの1つの関数から値を取る。
  *  天体の見かけ高度の大気差(Astronomy.Horizonの'normal')は、これまでどおりチェックのオン/オフに従う(別の量) */
 function refractionKInUse() {
-    return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : REFRACTION_K;
+    return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;   // オフ=0(気差なし。第158・依頼者: K=0の見え方を確かめられるように)
 }
 
 // ------------------------------------------------------
@@ -4807,12 +4944,18 @@ async function _getTileImageData(tileUrl) {
         return null;
     }
     try {
-        const img = await _loadTileImage(tileUrl);
+        const img = await _demTileLoad(tileUrl);   // 端末の店(可視マップと同じ標高タイルの店)を先に読み、無ければ取りに行って店へ(第158)
+        if (img === null) {   // 店に「無し」(404)の印、または取得で404
+            _tileCache.set(tileUrl, _TILE_FAIL);
+            if (_tileCache.size > _TILE_CACHE_MAX) _tileCache.delete(_tileCache.keys().next().value);
+            return null;
+        }
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
+        if (img.close) img.close();
         let imgData = ctx.getImageData(0, 0, 256, 256);
         if (tileUrl.includes('/terrarium/')) imgData = _terrariumToGsi(imgData);   // 全球DEMはGSI符号へ正規化
         _tileCache.set(tileUrl, imgData);
@@ -4822,6 +4965,47 @@ async function _getTileImageData(tileUrl) {
         _tileCache.set(tileUrl, _TILE_FAIL);
         if (_tileCache.size > _TILE_CACHE_MAX) _tileCache.delete(_tileCache.keys().next().value);
         return null;
+    }
+}
+
+// ---- 標高タイルの端末の店(第158): 可視マップのその場計算(kashimap-worker)と同じ IndexedDB 'soranotsuji-kashimap' の tiles(鍵 kind/z/x/y・PNGのバイト列) ----
+const DEM_TILE_URL_RE = /\/xyz\/(dem5a_png|dem5b_png|dem5c_png|dem_png)\/(\d+)\/(\d+)\/(\d+)\.png$/;
+async function _demDecode(buf) {
+    const blob = new Blob([buf], { type: 'image/png' });
+    if (typeof createImageBitmap === 'function') return createImageBitmap(blob);
+    const u = URL.createObjectURL(blob);
+    try { return await _loadTileImage(u); } finally { URL.revokeObjectURL(u); }
+}
+/** 標高タイル1枚の画像(ImageBitmap/Image)。null=無し(404)。店に無ければ取りに行って店へ入れる。店が使えない時や取得に失敗した時は従来の Image 読みへ */
+async function _demTileLoad(tileUrl) {
+    const m = tileUrl.match(DEM_TILE_URL_RE);
+    if (!m) return await _loadTileImage(tileUrl);   // 地理院の標高タイル以外(全球DEMなど)は従来の Image 読み(店は使わない)
+    const key = `${m[1]}/${m[2]}/${m[3]}/${m[4]}`;
+    let db = null;
+    try { db = await _kmDb(); } catch (_) { db = null; }
+    const rec = (k) => _kmIdb('tiles', 'readonly', st => st.get(k)).catch(() => undefined);
+    const put = (r) => _kmIdb('tiles', 'readwrite', st => st.put(r)).catch(() => {});
+    if (db) {
+        const r = await rec(key);
+        if (r) {
+            if (r.miss || !r.buf) { if (_storeMissFresh(r)) return null; }   // 新しい「無し」の印=404。古い印(30日)は取り直す
+            else { try { return await _demDecode(r.buf); } catch (_) {} }
+        }
+    }
+    if (typeof fetch !== 'function') return await _loadTileImage(tileUrl);   // fetch の無い環境は従来の Image 読み
+    let fetched = false;
+    try {
+        const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000);
+        let res; try { res = await fetch(tileUrl, { signal: ctl.signal, mode: 'cors' }); } finally { clearTimeout(timer); }
+        if (res.status === 404) { if (db) await put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() }); return null; }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        fetched = true;
+        if (db) { put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); _mtScheduleRefresh(); }
+        return await _demDecode(buf);
+    } catch (e) {
+        if (fetched) return await _loadTileImage(tileUrl);   // 取れたのに復号できない時だけ従来の Image 読みへ
+        throw e;   // 取得の失敗は1回で諦める(呼び元が失敗の印を付ける。第158のレビュー: 旧経路で取り直すと失敗の待ち時間が2倍だった)
     }
 }
 
@@ -4978,7 +5162,7 @@ function createLocationPopup(title, pos, target, apiElev, height) {
 function calculateApparentAltitude(dist, hObs, hTarget, obsLat, tgtLat) {
     if (dist <= 0) return 0; // 距離0の場合は0度とする
 
-    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0)
 
     // 観測点・目的点の局所地球半径 (緯度依存) と有効半径 (気差込み)
     const R_obs = (typeof obsLat === 'number') ? getLocalEarthRadius(obsLat) : EARTH_RADIUS;
@@ -5050,7 +5234,7 @@ function updateShortcutsData(startOfDay, observer) {
         setT('time-moonrise', mr ? formatTime(mr.date, startOfDay) : "--:--");
         setT('time-moonset', ms ? formatTime(ms.date, startOfDay) : "--:--");
 
-        const refr = appState.refractionEnabled ? "normal" : null;
+        const refr = appState.astroRefraction ? "normal" : null;
         setT('alt-sunrise', sr ? getRiseSetAlt('Sun', sr.date, observer, refr) : "--");
         setT('alt-sunset', ss ? getRiseSetAlt('Sun', ss.date, observer, refr) : "--");
         setT('alt-moonrise', mr ? getRiseSetAlt('Moon', mr.date, observer, refr) : "--");
@@ -5067,7 +5251,7 @@ function updateShortcutsData(startOfDay, observer) {
 
 function updateTwilightData(startOfDay, observer) {
     try {
-        const refr = appState.refractionEnabled ? "normal" : null;
+        const refr = appState.astroRefraction ? "normal" : null;
         // 夜明側 (ascending)
         const astroDawn = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -18);
         const nautDawn  = Astronomy.SearchAltitude('Sun', observer, +1, startOfDay, 1, -12);
@@ -5361,7 +5545,7 @@ function searchStarRiseSet(ra, dec, observer, startOfDay) {
     for (let m = 0; m <= 1440; m += 1) { 
         const time = new Date(start + m * 60000);
         
-        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null); 
+        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.astroRefraction ? "normal" : null); 
         const alt = hor.altitude;
         
         if (prevAlt !== null) {
@@ -5385,7 +5569,7 @@ function searchStarTransit(ra, dec, observer, startOfDay) {
     const start = startOfDay.getTime();
     for (let m = 0; m <= 1440; m += 1) {
         const time = new Date(start + m * 60000);
-        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.refractionEnabled ? "normal" : null);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, appState.astroRefraction ? "normal" : null);
         if (hor.altitude > maxAlt) {
             maxAlt = hor.altitude;
             transitTime = time;
@@ -5902,6 +6086,9 @@ function importBackup() {
         if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
         if (data.settings) {
             if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
+            if (data.settings.astroRefraction !== undefined) appState.astroRefraction = data.settings.astroRefraction;
+            // 気差の2本立て(v1.97.0)より前のバックアップ(astroRefraction が無い)は、1つのチェックが両方を兼ねていた旧い意味なので、loadAppState の移行と同じく両方オン(新既定)にする
+            if (data.settings.astroRefraction === undefined && data.settings.refractionEnabled !== undefined) { appState.refractionEnabled = true; appState.astroRefraction = true; }
             if (data.settings.meteo) {
                 if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
                 if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
@@ -7268,6 +7455,7 @@ function copyMyTsujiSearchUrl(includeDateTime) {
     params.set('tsujiMonth12', t.month12 ? 'true' : 'false');
     // 検索の計算に効く全体設定(第95ラウンド): 大気差/気象は取得時点の値・天の川の基準点は行の値で再現
     params.set('refractionEnabled', appState.refractionEnabled ? 'true' : 'false');
+    params.set('astroRefraction', appState.astroRefraction ? 'true' : 'false');
     params.set('meteoP', String(appState.meteo.p));
     params.set('meteoT', String(appState.meteo.t));
     params.set('meteoL', String(appState.meteo.l));
@@ -7296,7 +7484,7 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
         lng: obs.lng,
         elev: (obs.elev || 0) + (obs.height || 0)
     };
-    const refractionEnabled = appState.refractionEnabled;
+    const astroRefraction = appState.astroRefraction;   // 天体の見かけ高度の大気差(気差オプション)
     let searchStartMs;
     if (searchStartMsOverride != null) {
         searchStartMs = searchStartMsOverride;
@@ -7333,7 +7521,7 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
 
     const bodyChunkResults = await Promise.all(perBodyChunks.map(({ bodyMsg }) =>
         runTsujiChunks({
-            bodyMsg, observerData, refractionEnabled,
+            bodyMsg, observerData, astroRefraction,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
             centerMode: t.centerMode, centerAz0: ((t.baseAz || 0) + 360) % 360, centerAlt0: t.baseAlt || 0,   // 検索中心オプション(行ごとに独立)
             searchStartMs, days: t.days,
@@ -8416,7 +8604,7 @@ function applyLineStyle(type) {
 // 設定登録 (大気差係数など)
 /** 設定メニューの大気差の部品(チェック・気象3欄の値と有効/無効・係数欄)を appState に合わせる1本。起動時と、古い形式のバックアップの取り込みのように appState 側が先に変わった時に呼ぶ(第157のレビュー) */
 function syncRefractionUiFromState() {
-    const chk = document.getElementById('chk-refraction'), iK = document.getElementById('input-refraction-k');
+    const chk = document.getElementById('chk-refraction'), iK = document.getElementById('input-refraction-k'), chkAstro = document.getElementById('chk-astro-refraction');
     const iP = document.getElementById('input-meteo-p'), iT = document.getElementById('input-meteo-t'), iL = document.getElementById('input-meteo-l');
     const btnReset = document.getElementById('btn-reset-meteo'), btnReg = document.getElementById('btn-reg-settings');
     if (!chk || !iK || !iP || !iT || !iL) return;
@@ -8426,9 +8614,17 @@ function syncRefractionUiFromState() {
     [iP, iT, iL].forEach(el => { el.readOnly = !enabled; el.disabled = !enabled; });   // 係数欄(iK)はデッサン仕様により常に読み取り専用
     if (btnReset) btnReset.disabled = !enabled;
     if (btnReg) btnReg.disabled = !enabled;
-    iK.value = refractionKInUse().toFixed(4);   // 係数欄には「いま使う値」(オフ=測量標準0.132・オン=気象条件からの算出値)
+    iK.value = refractionKInUse().toFixed(4);   // 係数欄には「いま使う値」(オフ=0・オン=気象条件からの算出値)
+    if (chkAstro) chkAstro.checked = !!appState.astroRefraction;
 }
 
+/** 気差の設定(大気差補正のチェック・気差オプション・気象条件の登録)が変わった時の共通処理: 保存→再計算→辻ライン365も引き直す。
+ *  updateAll は通常の辻ラインしか引き直さないので、365は鍵(オフセット・気差)の比較を持つ updateDP365Lines を呼んで検知させる(第158のレビュー: 切り替えても365だけ古い線が残っていた) */
+function _refractionSettingChanged() {
+    saveAppState();
+    updateAll();
+    if (appState.isDP365Active) updateDP365Lines();
+}
 function registerSettings() {
     const iK = document.getElementById('input-refraction-k');
     const iP = document.getElementById('input-meteo-p');
@@ -8458,8 +8654,7 @@ function registerSettings() {
     iK.value = k.toFixed(4);
     alert(`大気差補正係数を ${k.toFixed(4)} に設定しました`);
 
-    saveAppState();
-    updateAll(); // 再計算して描画更新
+    _refractionSettingChanged();   // 保存・再計算・辻ライン365の引き直し
 }
 
 function resetBodyStyle() {
@@ -8995,7 +9190,7 @@ function _tsujiLinkRefreshUI(side) {
 
 let _tsujiLinkInitFrom = 'tsuji';   // 起動時にどちらを正として揃えるか(URL復元がメッシュ側なら'mesh')
 /** 連動の実行: from='tsuji'|'mesh'の値をもう一方へ写し、相手側メニューの表示を追従させる */
-function _tsujiLinkPropagate(from) {
+function _tsujiLinkPropagate(from, save = true) {   // save=false: 連続で呼ぶ所(ドラッグ中)は呼び元が最後に1回保存する(第158)
     const fromTsuji = from === 'tsuji';
     let changed = false;
     for (const [tk, mk] of TSUJI_LINK_PAIRS) {
@@ -9003,7 +9198,7 @@ function _tsujiLinkPropagate(from) {
         if (appState[dst] !== appState[src]) { appState[dst] = appState[src]; changed = true; }
     }
     _tsujiLinkRefreshUI(fromTsuji ? 'mesh' : 'tsuji');
-    if (changed) saveAppState();
+    if (changed && save) saveAppState();
 }
 
 /** 時間フィルタのUI状態(活性/非活性)を更新 */
@@ -9644,7 +9839,7 @@ function recalcTsujiMeshGoldAtTime() {
             const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
             ra = eq.ra; dec = eq.dec;
         }
-        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.astroRefraction ? 'normal' : null);
         const az = hor.azimuth, alt = hor.altitude;
         if (alt < C.minAlt + altLo - 0.05 || alt > C.maxAlt + altHi + 0.05) continue;
         const ca = Math.cos(alt * D2R);
@@ -9694,7 +9889,7 @@ function recalcTsujiMeshGoldAtTime() {
             const eq = Astronomy.Equator(row.body.id, time, observer, true, true);
             ra = eq.ra; dec = eq.dec;
         }
-        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.astroRefraction ? 'normal' : null);
         const ca = Math.cos(hor.altitude * D2R);
         const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
         let bestPix = -1, bestDist = Infinity;
@@ -9844,7 +10039,7 @@ function _tmPixDistFn(pix, body) {
         let ra, dec;
         if (fixedRaDec) { ra = fixedRaDec.ra; dec = fixedRaDec.dec; }
         else { const eq = Astronomy.Equator(body.id, time, observer, true, true); ra = eq.ra; dec = eq.dec; }
-        const hor = Astronomy.Horizon(time, observer, ra, dec, C.refractionEnabled ? 'normal' : null);
+        const hor = Astronomy.Horizon(time, observer, ra, dec, C.astroRefraction ? 'normal' : null);
         if (out) { out.az = hor.azimuth; out.alt = hor.altitude; }   // 観測点中心の天体位置(ワーカーのbestAz/bestAltと同義)
         const ca = Math.cos(hor.altitude * D2R);
         const ex = Math.sin(hor.azimuth * D2R) * ca, ny = Math.cos(hor.azimuth * D2R) * ca, uz = Math.sin(hor.altitude * D2R);
@@ -10728,7 +10923,7 @@ async function startTsujiMeshSearch() {
         baseAz, baseAlt, dE, dN, tanLat: Math.tan(start.lat * Math.PI / 180),
         minAlt, maxAlt, binSize, nBins, binIndex, binPixels,
         observerData: { lat: start.lat, lng: start.lng, elev: start.elev },
-        refractionEnabled: appState.refractionEnabled,
+        astroRefraction: appState.astroRefraction,
         offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
         centerMode: appState.tsujiMeshCenterMode,
         grid, gridW, gridPos: gridPosA.slice(0, kept), gxBase, gyBase,
@@ -10777,7 +10972,7 @@ async function startTsujiMeshSearch() {
             try {
                 const res = await tsujiMeshPool.runTask({
                     type: 'search', reqId: `${body.id}_${c}`, body: bodyMsg,
-                    observerData, refractionEnabled: appState.refractionEnabled,
+                    observerData, astroRefraction: appState.astroRefraction,
                     offsetAz: appState.tsujiMeshOffsetAz, offsetAlt: appState.tsujiMeshOffsetAlt,
                     centerMode: appState.tsujiMeshCenterMode, epsilon,
                     searchStartMs, dayStart, dayEnd,
@@ -11188,12 +11383,13 @@ function _kmDb() {
     _kmDbP = new Promise((ok, ng) => {
         try {
             // v2(第152): assets=要約だけ(一覧と索引はこれだけ読む) / bodies=本文(meta・islandsObj・outlineObj。使う時だけ読む) / tiles=標高タイル(段4)
-            const req = indexedDB.open('soranotsuji-kashimap', 2);
+            const req = indexedDB.open('soranotsuji-kashimap', 3);   // v3(第158): tiles に size/savedAt の索引(件数・容量を本文を読まずに数える)
             req.onupgradeneeded = (ev) => {
                 const db = req.result, tx = req.transaction;
                 if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'key' });
                 if (!db.objectStoreNames.contains('tiles')) db.createObjectStore('tiles', { keyPath: 'key' });
                 if (!db.objectStoreNames.contains('bodies')) db.createObjectStore('bodies', { keyPath: 'key' });
+                _idbEnsureStatIndexes(tx.objectStore('tiles'));
                 if (ev.oldVersion === 1) {   // v1の資産(要約+本文が1件)を要約と本文に分ける
                     const st = tx.objectStore('assets'), bd = tx.objectStore('bodies');
                     st.openCursor().onsuccess = (e2) => {
@@ -11274,12 +11470,8 @@ async function _kmTilesClear() { return _kmIdb('tiles', 'readwrite', st => st.cl
 async function _kmTilesStat() {
     try {
         const db = await _kmDb();
-        return await new Promise((ok, ng) => {
-            let sum = 0, n = 0; const req = db.transaction('tiles', 'readonly').objectStore('tiles').openCursor();
-            req.onsuccess = () => { const c = req.result; if (!c) { ok({ n, bytes: sum }); return; } const sz = (c.value && c.value.size) || 0; if (sz > 0) n++; sum += sz; c.continue(); };
-            req.onerror = () => ng(req.error);
-        });
-    } catch (e) { return { n: 0, bytes: 0 }; }
+        return (await _idbStatByIndex(db.transaction('tiles', 'readonly').objectStore('tiles'))) || { n: 0, bytes: 0, last: 0 };   // 索引の鍵カーソルだけで数える(本文を読まない。第158)
+    } catch (e) { return { n: 0, bytes: 0, last: 0 }; }
 }
 async function _kmTilesSize() { return (await _kmTilesStat()).bytes; }
 function _kmMB(bytes) { return (bytes / 1048576).toFixed(bytes >= 10485760 ? 0 : 1) + ' MB'; }
@@ -12088,6 +12280,7 @@ function _kmRenderList() {
 }
 /** 検索を実行して結果パネルに出す(パネルが閉じていれば開く) */
 async function runKashimapSearch() {
+    if (!FEATURE_KASHIMAP_ENABLED) return;   // 封鎖中(リリース方針・第158)
     openKashimapPanel();
     const content = document.getElementById('kashimap-content');
     content.innerHTML = '<div class="kashimap-note">読み込み中…</div>';
@@ -12280,7 +12473,7 @@ async function _kmComputeOne(target, opts) {
     const peaks = list.filter(m => isFinite(+m.lat) && isFinite(+m.lon)).map(m => ({ id: String(m.id), name: m.name, elev: m.elev, lat: +m.lat, lon: +m.lon, d: _geoDistM(lat, lon, +m.lat, +m.lon) })).filter(p => p.d <= SB_SEARCH_M + 100);
     const hasElev = target.elev !== null && target.elev !== undefined && target.elev !== '' && isFinite(+target.elev);   // 標高が無い(null)時はDEMを基準にする(+null=0にしない)
     const job = { id, name, lat, lon, elevGround: hasElev ? +target.elev : null, heightM: +target.height || 0, rangeKm, zoom, preview: opts.preview !== false,
-        inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),   // 丸み+気差の実効半径。kは設定に表示されている値(オフ=測量標準0.132)=標高グラフ・辻検索と同じ1つの関数(第157)
+        inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),   // 丸み+気差の実効半径。kは設定に表示されている値(オフ=0)=標高グラフ・辻検索と同じ1つの関数(第157)
         obsH: SORA.OBSERVER.EYE_HEIGHT_M, exclTgtM: ex.tgt, exclObsM: ex.obs, bandM: ex.band, searchM: SB_SEARCH_M, upM: SB_UP_M, peaks, maxTiles, returnBits: !!opts.returnBits };
     const transfer = [];
     if (typeof window._tmSyntheticElev15 === 'function') {   // テスト用の合成標高: 窓の格子をここで作ってワーカーへ渡す(標高タイルは取らない)
@@ -12331,6 +12524,7 @@ async function _kmComputeMyTargets(opts) {
     return _kmComputeRun(list.map(t => ({ lat: t.lat, lng: t.lng, elev: t.elev, height: t.height, name: t.name })), opts);
 }
 async function _kmComputeRun(targets, opts) {
+    if (!FEATURE_KASHIMAP_ENABLED) return;   // 封鎖中(リリース方針・第158)
     if (!_kmActive) await runKashimapSearch();
     _kmComputeCancelled = false; _kmSetComputeUi(true, '(計算の準備…)');
     const done = [], errs = [];
@@ -12364,7 +12558,7 @@ async function _kmComputeRun(targets, opts) {
     return { done, errs, cancelled: _kmComputeCancelled };
 }
 /** 位置情報メニューの「可視マップ」ボタン=検索実行+結果パネル表示(辻メッシュと同じ・Q11) */
-function toggleKashimap() { if (_kmActive) closeKashimap(); else runKashimapSearch(); }
+function toggleKashimap() { if (!FEATURE_KASHIMAP_ENABLED) return; if (_kmActive) closeKashimap(); else runKashimapSearch(); }   // 封鎖中は何もしない(第158)
 function setupKashimapControls() {
     document.getElementById('btn-kashimap').onclick = toggleKashimap;
     document.getElementById('btn-kashimap-search').onclick = () => runKashimapSearch();
@@ -12597,6 +12791,7 @@ function _tmSyncAreaRadios() {
 }
 
 function syncBottomPanels() {
+    _smSyncSearchButtons();   // 宙の窓コントロールの「辻検索」「辻メッシュ」の押下状態(第158)
     const tdPnl = document.getElementById('tsujisearch-panel');
     // 辻検索パネルは、標高グラフ/天体儀が下にあるとき1段上へ押し上げる
     tdPnl.classList.toggle('with-elevation', appState.isTsujiSearchActive && appState.isElevationActive);
@@ -12816,7 +13011,7 @@ const tsujiPool = (() => {
  *  bodyMsg/共通パラメータと days を渡すと、365日単位でプールに投入し、
  *  完了したチャンクごとに onChunkDone() を呼びつつ全結果をマージして返す。 */
 async function runTsujiChunks({
-    bodyMsg, observerData, refractionEnabled,
+    bodyMsg, observerData, astroRefraction,
     targetAz, targetAlt, toleranceAz, toleranceAlt,
     centerMode, centerAz0, centerAlt0,
     searchStartMs, days, maxResults, onChunkDone
@@ -12827,7 +13022,7 @@ async function runTsujiChunks({
         const dayStart = c * TSUJI_CHUNK_DAYS;
         const dayEnd = Math.min(dayStart + TSUJI_CHUNK_DAYS, days);
         const p = tsujiPool.runTask({
-            body: bodyMsg, observerData, refractionEnabled,
+            body: bodyMsg, observerData, astroRefraction,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
             centerMode: centerMode || 'point', centerAz0: centerAz0 || 0, centerAlt0: centerAlt0 || 0,
             searchStartMs, dayStart, dayEnd, maxResults
@@ -12879,7 +13074,7 @@ async function startTsujiSearch() {
         return;
     }
 
-    const refractionEnabled = appState.refractionEnabled;
+    const astroRefraction = appState.astroRefraction;   // 天体の見かけ高度の大気差(気差オプション)
     const visibleBodies = appState.bodies.filter(b => b.visible);
     const searchStart = new Date(appState.currentDate);
     searchStart.setHours(0, 0, 0, 0);
@@ -12908,7 +13103,7 @@ async function startTsujiSearch() {
             bodyMsg = { id: body.id, fixed: false };
         }
         return runTsujiChunks({
-            bodyMsg, observerData, refractionEnabled,
+            bodyMsg, observerData, astroRefraction,
             targetAz, targetAlt, toleranceAz, toleranceAlt,
             centerMode: appState.tsujiCenterMode, centerAz0: (baseAz + 360) % 360, centerAlt0: baseAlt,   // 検索中心オプション(線=基準点→オフセット点)
             searchStartMs, days: searchDays,
@@ -13460,12 +13655,12 @@ async function _sbUpdatePreview(force) {
 
 /** 可視判定の実効地球の逆数 1/(2·Reff) (第116ラウンド)。視高度計算(calculateApparentAltitude)と
  *  同じ基盤: WGS84の局所半径(両端の緯度の平均)を、大気差の係数kで1/(1-k)倍した実効半径。
- *  大気差補正オフの時も測量標準k=0.132(第157: 可視マップ・静的資産と同じ基準) */
+ *  k=設定に表示されている値(大気差補正オン=気象条件から算出・オフ=0=丸みだけ。第158)。可視マップ・静的資産と同じ基準 */
 function _visInv2Reff(latA, latB) { return SORA.inv2ReffFor(latA, latB, refractionKInUse()); }
 /** 基準方位角/視高度の自動算出の「位置の鍵」。観測点・目的点と、いま使う気差係数K(視高度はKで変わる)。鍵が同じ間は手動入力を守る(第157のレビュー: Kを切り替えても再計算されなかった) */
 function _basePosKey() {
     return `${appState.start.lat},${appState.start.lng},${appState.start.elev}|${appState.end.lat},${appState.end.lng},${appState.end.elev}|K${refractionKInUse().toFixed(6)}`;
-}   // k=設定に表示されている値(オフ=0.132)。式は sora-constants.js
+}   // k=設定に表示されている値(オフ=0)。式は sora-constants.js
 
 /** 統一可視判定のコア(標高グラフ・辻検索/My辻検索・辻メッシュ検索の標高フィルタ共通)。
  *  観測点(sLat,sLng, 標高+高さ=startTotal)→目的点(endLat,endLng, endTotal)への見通しを、
@@ -13823,7 +14018,9 @@ function togglePanel() {
 }
 
 function toggleSection(id) {
-    document.getElementById(id).classList.toggle('closed');
+    const el = document.getElementById(id);
+    el.classList.toggle('closed');
+    if (id === 'sec-backup' && !el.classList.contains('closed') && typeof _mtRefreshBackupRows === 'function') _mtRefreshBackupRows();   // バックアップを開いた時に地理タイル/標高タイルの件数を数え直す(第158)
 }
 
 function toggleHelp() {
@@ -14352,6 +14549,7 @@ function updateBackupDriveUI() {
         gd.lastDriveModifiedTime ? formatGdriveDateTime(gd.lastDriveModifiedTime) : '-';
     document.getElementById('gdrive-size').textContent =
         'ローカルストレージ: ' + (gd.lastDriveSize ? `${Math.round(gd.lastDriveSize / 1024).toLocaleString('ja-JP')}KB` : '-');
+    _mtRefreshBackupRows();   // 地理タイル/標高タイルの件数・容量・最終更新(第158)
 }
 
 /** ドライブ日時の表示 (例: 2026年02月09日(木) 19:32:16。デッサン16に合わせMyセットの日時表示と同形式) */
@@ -15642,7 +15840,9 @@ const _QP_SEEDS_V20 = _QP_SEEDS_V19.concat(['&soraPhotoTex=false', '&soraPhotoTe
 // v21(第128): 辻メッシュ精度フィルタの新既定「○」の既定値ペア(初期値がx1→o1に変わり、
 // 既定のままのURLに&tsujiMeshAccuracy=o1が乗るため)
 const _QP_SEEDS_V21 = _QP_SEEDS_V20.concat(['&tsujiMeshAccuracy=o1']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18, _QP_SEEDS_V19, _QP_SEEDS_V20, _QP_SEEDS_V21];   // 添字+1=版数。最新版でエンコードする
+// v22(第158): 大気差補正の既定がオンに(「&refractionEnabled=true」)+気差オプション astroRefraction。v16の種は凍結のまま
+const _QP_SEEDS_V22 = _QP_SEEDS_V21.concat(['&refractionEnabled=true', '&astroRefraction=true', '&astroRefraction=false', '&astroRefraction=']);
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18, _QP_SEEDS_V19, _QP_SEEDS_V20, _QP_SEEDS_V21, _QP_SEEDS_V22];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -15923,6 +16123,7 @@ function buildCommonUrlParams(dateTimeMode = 'fixed', profile = 'full') {
     // 天体儀の表示チェック=full/宙の窓(星座線等は窓にも映る)・:除外範囲と:辻オフセット=full/辻検索系)
     if (inc.atmo) {
     params.set('refractionEnabled', appState.refractionEnabled ? 'true' : 'false');
+    params.set('astroRefraction', appState.astroRefraction ? 'true' : 'false');
     params.set('meteoP', String(appState.meteo.p));
     params.set('meteoT', String(appState.meteo.t));
     params.set('meteoL', String(appState.meteo.l));
@@ -16379,7 +16580,7 @@ function restoreFromUrl() {
     });
 
     // 大気差・気象・基本オプション(第88ラウンド・v16第1弾。気象はLS復元と同じくNaNガードのみ)
-    soraBool('refractionEnabled');
+    soraBool('refractionEnabled'); soraBool('astroRefraction');
     ['p', 't', 'l'].forEach(mk => {
         const key = 'meteo' + mk.toUpperCase();
         if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState.meteo[mk] = v; }
@@ -17848,7 +18049,7 @@ function soraMovTogglePlay() {
     for (let off = 0; off < n; off += CH) {
         const frames = [];
         for (let f = off; f < Math.min(n, off + CH); f++) frames.push(startMs + shotIdx[f] * iv * 1000);
-        _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.refractionEnabled })
+        _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.astroRefraction })
             .then(res => {
                 if (gen !== _movGen) return;   // 停止済みの世代は破棄
                 (res.frames || []).forEach((fr, i) => { _movQueue[res.off + i] = fr; });
@@ -18896,6 +19097,20 @@ function _smAttachDrag(cv) {
         // px→角度: ファインダー実寸と画角から換算。内容が指に追従(右へドラッグ=視線は左へ=Az減、下へドラッグ=視線は上へ=Alt増)
         const o = soraComputeOptics();
         const hAov = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;   // パノラマ中は画面幅=パノラマ水平画角
+        if (_smDragTsuji) {
+            // 辻オフセット点(検索中心×)だけを指に追従させる: 右へドラッグ=×は右へ=方位角増、上へドラッグ=視高度増(辻検索メニューと連動)。第158
+            const dAz = dx * hAov / _smFinderW;
+            const dAlt = -dy * o.aovV / _smFinderH;
+            const r4 = v => Math.round(v * 1e4) / 1e4;   // 欄・URL・My辻に載る値なので4桁に丸める(カメラオフセットの表示と同じ桁)
+            appState.tsujiSearchOffsetAz = r4(Math.max(-360, Math.min(360, (Number(appState.tsujiSearchOffsetAz) || 0) + dAz)));
+            appState.tsujiSearchOffsetAlt = r4(Math.max(-360, Math.min(360, (Number(appState.tsujiSearchOffsetAlt) || 0) + dAlt)));
+            _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側のオフセットにも写す(ctrlの「辻メッシュ」が×の位置で検索するように。保存はドラッグ終了時に1回)
+            updateOffsetDistances();
+            _dpOffsetEdited();
+            drawSoramado();
+            return;
+        }
+        if (!_smDragFrame) return;   // 構図のドラッグがオフ(どちらも動かさない)
         const dAz = -dx * hAov / _smFinderW;
         const dAlt = dy * o.aovV / _smFinderH;
         appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
@@ -18910,6 +19125,49 @@ function _smAttachDrag(cv) {
     };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
+    _smSetupSearchCtrl();
+}
+
+/** コントロールの「:構図をドラッグ」「:辻オフセット点をドラッグ」と「辻検索」「辻メッシュ」(デッサン05 4.1/4.2段目。第158) */
+function _smSetupSearchCtrl() {
+    const chkFrame = document.getElementById('chk-sora-ctrl-drag-frame'), chkTsuji = document.getElementById('chk-sora-ctrl-drag-tsuji');
+    if (chkFrame) {
+        chkFrame.checked = _smDragFrame;
+        chkFrame.addEventListener('change', (e) => {
+            _smDragFrame = e.target.checked;
+            if (!_smDragFrame) {   // オフ: カメラオフセット方位角/視高度を0に戻す(デッサン)
+                appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0;
+                soraSyncUI(); saveAppState();
+                if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+            }
+        });
+    }
+    if (chkTsuji) {
+        chkTsuji.checked = _smDragTsuji;
+        chkTsuji.addEventListener('change', (e) => {
+            _smDragTsuji = e.target.checked;
+            if (_smDragTsuji) {
+                _smTsujiDragBase = { az: Number(appState.tsujiSearchOffsetAz) || 0, alt: Number(appState.tsujiSearchOffsetAlt) || 0 };   // 戻り先を覚える
+            } else if (_smTsujiDragBase) {   // オフ: 動かす前の辻オフセットに戻す(デッサン)
+                appState.tsujiSearchOffsetAz = _smTsujiDragBase.az; appState.tsujiSearchOffsetAlt = _smTsujiDragBase.alt; _smTsujiDragBase = null;
+                _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側も戻す
+                updateOffsetDistances(); _dpOffsetEdited(); saveAppState();
+                if (appState.isSoramadoActive && !_smFailed) drawSoramado();
+            }
+        });
+    }
+    const b1 = document.getElementById('btn-sora-ctrl-tsuji-search'), b2 = document.getElementById('btn-sora-ctrl-tsujimesh');
+    if (b1) b1.addEventListener('click', toggleTsujiSearch);
+    if (b2) b2.addEventListener('click', toggleTsujiMesh);
+    _smSyncSearchButtons();
+}
+/** コントロールの「辻検索」「辻メッシュ」の押下状態を位置情報メニューのボタンと揃える */
+function _smSyncSearchButtons() {
+    const pairs = [['btn-tsuji-search', 'btn-sora-ctrl-tsuji-search'], ['btn-tsujimesh', 'btn-sora-ctrl-tsujimesh']];
+    for (const [mainId, ctrlId] of pairs) {
+        const m = document.getElementById(mainId), c = document.getElementById(ctrlId);
+        if (m && c) c.classList.toggle('active', m.classList.contains('active'));
+    }
 }
 
 /** 方位az・視高度alt(度) → ワールド単位ベクトル(右手系 ENU: X=東, Y=北, Z=上) */
@@ -18925,6 +19183,9 @@ let _smObsNudge = { e: 0, n: 0, u: 0 };
 // どちらも「基準方位角+カメラオフセット方位角」で、回転ボタンはオフセット方位角を±1°回す
 // (=カメラ向きボタンの方位側と同じ動き。値も入力欄も変わり、画面も前後左右の歩く向きも一緒に回る)
 let _smCamNudgeBase = null;   // カメラ向き/回転ボタンの戻り先 {az, alt}(null=未操作。「カメラ反映」で忘れて確定)
+// プレビューのドラッグの対象(コントロールの2つのチェック。第158・デッサン05 4.1段目): 構図=カメラオフセット / 辻オフセット点=検索中心(×)。保存しない(セッション内)
+let _smDragFrame = true, _smDragTsuji = false;
+let _smTsujiDragBase = null;   // 「:辻オフセット点をドラッグ」をオンにした時の辻オフセット {az, alt}(オフで戻す)
 
 /** 観測点移動の合計を体の向き(=カメラの向き)基準(前/右/上)の読みで表示。全て0なら空欄 */
 function _smObsNudgeReadout() {
@@ -19467,7 +19728,7 @@ function _fwEnu(elevTotal) {
     const d = getDistanceWGS84(oLat, oLng, p.lat, p.lng);
     const az = calculateBearing(oLat, oLng, p.lat, p.lng) * Math.PI / 180;
     const E = d * Math.sin(az), N = d * Math.cos(az);
-    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0)
     const Reff1 = getLocalEarthRadius(oLat) / (1 - k), Reff2 = getLocalEarthRadius(p.lat) / (1 - k);
     const r1 = Reff1 + (Number(appState.start.elev) || 0), r2 = Reff2 + elevTotal;
     const c = d / ((Reff1 + Reff2) / 2);
@@ -20733,7 +20994,7 @@ function _sdInitMap() {
             sources: {
                 gsi: {
                     type: 'raster',
-                    tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+                    tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')],
                     tileSize: 256, maxzoom: 18,
                     attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a> | 雲: <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> (CC BY 4.0)',
                 },
@@ -21509,7 +21770,7 @@ function _smBuildBodies() {
     let observer;
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
     const date = appState.currentDate;
-    const refr = appState.refractionEnabled ? 'normal' : null;
+    const refr = appState.astroRefraction ? 'normal' : null;
     appState.bodies.forEach(body => {
         if (!body.visible) return;
         if (body.id === 'MilkyWay') {
@@ -21572,7 +21833,7 @@ function _smBuildTraj(dateOverride) {
     const centerMs = Math.round((dateOverride || appState.currentDate).getTime() / 3600000) * 3600000;
     const posKey = `${appState.start.lat},${appState.start.lng},${appState.start.elev}`;
     const visibleIds = appState.bodies.filter(b => b.visible).map(b => b.id).join(',');
-    const key = `${centerMs}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}|${appState.refractionEnabled}`;
+    const key = `${centerMs}|${posKey}|${visibleIds}|${appState.soraTraj}|${appState.baseOptMwBase}:${appState.mwOffsetAngle}|${appState.astroRefraction}`;
     if (key === _smTrajKey) return;
     _smTrajKey = key;
     while (_smTrajGrp.children.length) { const c = _smTrajGrp.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); }
@@ -21580,7 +21841,7 @@ function _smBuildTraj(dateOverride) {
     let observer;
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
     const spanMs = 36 * 3600000, N = 288;   // ±36時間を15分刻み(=旧実装の1日96点と同密度)
-    const refr = appState.refractionEnabled ? 'normal' : null;   // 軌跡にも天体マーカーと同じ大気差(第116。従来は無しで地平線際にずれがあった)
+    const refr = appState.astroRefraction ? 'normal' : null;   // 軌跡にも天体マーカーと同じ大気差(第116。従来は無しで地平線際にずれがあった)
     appState.bodies.forEach(body => {
         if (!body.visible) return;
         // 天の川は「基準点(中心座標/オフセット点=基本オプション)」を固定点として軌跡を描く。それ以外は通常天体。
@@ -21621,7 +21882,7 @@ function _smUpdateMilkyWayRing() {
     let observer;
     try { observer = new Astronomy.Observer(appState.start.lat, appState.start.lng, appState.start.elev); } catch (e) { return; }
     const date = appState.currentDate;
-    const refr = appState.refractionEnabled ? 'normal' : null;
+    const refr = appState.astroRefraction ? 'normal' : null;
     const pts = [];
     for (let l = 0; l <= 360; l += 4) {   // 銀河赤道を約91点で大円描画
         const eq = galacticToEquatorial(l, 0);
@@ -21971,7 +22232,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
     const { nA, nR, samples } = hf;
     const row = nA + 1;
     const obsElev = Number(appState.start.elev) || 0;
-    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0)
     const Reff1 = getLocalEarthRadius(appState.start.lat) / (1 - k);
     const r1 = Reff1 + obsElev;
     // 標高レンジ
@@ -22277,7 +22538,7 @@ function _smBldgUpdate() {
     const aovH = appState.soraPanorama ? soraPanoEffAov(o) : o.aovH;
     const centerAz = Number(appState.soraBaseAz) + Number(appState.soraOffsetAz);
     const rangeKm = Math.min(Math.max(1, Number(appState.soraViewRange) || 1), SM_BLDG_RANGE_CAP_KM);
-    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0.132)
+    const k = refractionKInUse();   // 気差係数(設定に表示されている値。オフ=0)
     const budget = Math.max(1, Math.min(APP_DEFAULTS.smBldgTiles.max, Math.round(Number(appState.smBldgTiles) || 30)));   // 上限は既定値表を参照して一元化(第64ラウンド: 旧上限150の残置でスライダー151以上が頭打ちになっていたため二重定義をやめた)
     const geoKey = `${oLat.toFixed(6)},${oLng.toFixed(6)},${obsElev.toFixed(1)}|${k.toFixed(5)}|${appState.smBldgTex ? 'T' : 'N'}`;
     const fanKey = `${geoKey}|${centerAz.toFixed(2)}|${aovH.toFixed(1)}|${rangeKm}|${budget}`;

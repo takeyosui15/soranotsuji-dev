@@ -54,7 +54,7 @@ check('S3 script.js: KM_RANGES=[100,300,700]・_kmRange初期値100・_kmBuildin
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   const warns=[]; p.on('console', m => { if (m.type() === 'warning' || m.type() === 'error') warns.push(m.text()); });
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?kashimap=1',{waitUntil:'load'});   // 可視マップは封鎖中(第158)。開錠して検査
   await p.waitForFunction(()=>typeof runKashimapSearch==='function' && typeof _kmRenderStoreList==='function' && typeof glMap!=='undefined' && glMap && glMap.getLayer && !!glMap.getLayer('km-fill'),{timeout:15000});
   await p.evaluate(async ()=>{ window.confirm=()=>true; window.alert=(m)=>{ (window._alerts = window._alerts || []).push(String(m)); }; try { await _kmStoreClear(); await _kmTilesClear(); await _kmLoadDeviceIndex(); } catch (e) {} });
 

@@ -25,7 +25,7 @@ const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.j
 const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-apptest.py'), 'utf8');
 const indexJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'kashimap', 'v1', 'index.json'), 'utf8'));
 
-check('V0 版数ピン 1.96.0+Version Historyに第157', /APP_VERSION = '1\.96\.0'/.test(src) && (src.includes('第157ラウンド — 数の単一情報源 sora-constants.js') || !!process.argv[2]));
+check('V0 版数 1.96.0以降(ピンは最新のverifyが持つ)+Version Historyに第157', /APP_VERSION = '1\.9[6-9]\.\d+'/.test(src) && (src.includes('第157ラウンド — 数の単一情報源 sora-constants.js') || !!process.argv[2]));
 // 本体に「地球の大きさの生の数」が(注釈以外に)残っていない
 const rawLits = ['6371000', '6378137', '6356752.3142', '40075016.686'];
 const leaks = [];
@@ -39,10 +39,10 @@ check('S1 単一情報源の配線: sora-constants.js(UMD=本体はSORA・道具
    'function _pointInsideJapan(lat, lng) { return SORA.insideJapan(lat, lng); }', 'const SB_SEARCH_M = SORA.VISIBILITY.SUMMIT_SEARCH_M;', 'const SB_UP_M = SORA.VISIBILITY.SUMMIT_UP_M;', 'def: SORA.VISIBILITY.EXCLUDE_TARGET_M', 'def: SORA.VISIBILITY.EXCLUDE_OBSERVER_M', 'def: SORA.VISIBILITY.SUMMIT_BAND_M', 'const TSUJIMESH_ZOOM = SORA.DEM.COARSE_ZOOM;', 'obsH: SORA.OBSERVER.EYE_HEIGHT_M,'].every(t => src.includes(t)) &&
   wkSrc.includes('const NODATA = SORA.DEM.GRID_NODATA;') && wkSrc.includes('const GSI_BBOX = SORA.DEM.JAPAN_BBOX;') && wkSrc.includes('const MPP = SORA.metersPerPixel(lat, Z);') && dpSrc.includes('const WGS84_A = SORA.EARTH.WGS84_SEMI_MAJOR_M;') && dpSrc.includes('function getLocalEarthRadius(latDeg) { return SORA.getLocalEarthRadius(latDeg); }') &&
   toolSrc.includes('const R_EARTH = SORA.EARTH.HAVERSINE_RADIUS_M;') && toolSrc.includes('const MPP = SORA.metersPerPixel(M.lat, Z);') && leaks.length === 0, JSON.stringify({ leaks }));
-check('S2 気差係数は「設定に表示されている値」: refractionKInUse(オフ=0.132・オン=算出値)が1本で、地形の見通しの8箇所がそれを呼ぶ(「オフ=0」の式は本体から消えた)・_visInv2Reffは SORA.inv2ReffFor・可視マップのjobも同じ・係数欄は showKInUse・ヘルプ/設定の文言',
-  src.includes('function refractionKInUse() {') && (src.match(/refractionKInUse\(\)/g) || []).length >= 10 && !/calculateKFromMeteo\(appState\.meteo\.p, appState\.meteo\.t, appState\.meteo\.l\) : 0/.test(src) && !/_kmComputeK|_kmInv2Reff/.test(src) &&
+check('S2 気差係数は「設定に表示されている値」: refractionKInUse(第158: オン=算出値・オフ=0)が1本で、地形の見通しの8箇所がそれを呼ぶ・_visInv2Reffは SORA.inv2ReffFor・可視マップのjobも同じ・係数欄は showKInUse・ヘルプ/設定の文言',
+  src.includes('function refractionKInUse() {') && (src.match(/refractionKInUse\(\)/g) || []).length >= 10 && src.includes('calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;') /* 第158: オフ=0 */ && !/_kmComputeK|_kmInv2Reff/.test(src) &&
   src.includes('function _visInv2Reff(latA, latB) { return SORA.inv2ReffFor(latA, latB, refractionKInUse()); }') && src.includes('inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),') && src.includes('const showKInUse = () => { iK.value = refractionKInUse().toFixed(4); };') &&
-  idxSrc.includes('係数欄に表示されている値で、標高グラフ・辻検索・My辻検索・辻メッシュ検索・可視マップ・辻ライン・宙の窓の地形の見通しを計算します') && idxSrc.includes('title="いま使っている気差係数K。チェックオフ=測量標準の0.132') && idxSrc.includes('オフなら測量標準の 0.132、オンなら気象条件から算出した値) で、標高グラフ・辻検索・辻メッシュ検索と同じ1つの値です'));
+  idxSrc.includes('係数欄に表示されている値で、標高グラフ・辻検索・My辻検索・辻メッシュ検索・可視マップ・辻ライン・宙の窓の地形の見通しを計算します') && idxSrc.includes('title="いま使っている気差係数K。チェックオン=下の気象条件から算出した値(既定)、オフ=0') && idxSrc.includes('オンなら気象条件から算出した値、オフなら 0=気差なし) で、標高グラフ・辻検索・辻メッシュ検索と同じ1つの値です'));
 const walkOf = (t, from) => { const i = t.indexOf(from); const j = t.indexOf('const r = j / steps;', i); return t.slice(i, j).split('\n').map(l => l.replace(/\s*\/\/.*$/, '').trim()).filter(Boolean).join('\n'); };   // 行末コメントは比べない(式だけを比べる)
 const walkMain = walkOf(src.slice(src.indexOf('function _visJudgeCore(')), 'const pA = path.at(j0 / steps)'), walkTm = walkOf(tmSrc, 'const pA = path.at(j0 / steps)');
 check('S3 統一可視判定は大円+海面0m: 本体(_visJudgeCore・タイル列挙・標高グラフの標本点)と辻メッシュのワーカーが SORA.greatCirclePath で同じ歩き(区間の両端を球面補間)・日本域の「データ無し」は0m・ワーカーの内側の式が本体と同一・ヘルプ',
@@ -95,7 +95,7 @@ check('S5 レビューの直し(第157): 基準視高度の自動算出の位置
   await ctx.route('**/*', route => { route.request().url().startsWith(BASE) ? route.continue() : route.abort(); });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?kashimap=1',{waitUntil:'load'});   // 可視マップは封鎖中(第158)。開錠して検査
   await p.waitForFunction(()=>typeof runKashimapSearch==='function' && typeof refractionKInUse==='function' && typeof glMap!=='undefined' && glMap && glMap.getLayer && !!glMap.getLayer('km-fill'),{timeout:15000});
   await p.evaluate(async ()=>{ window.confirm=()=>true; window.alert=(m)=>{ (window._alerts = window._alerts || []).push(String(m)); }; try { await _kmStoreClear(); await _kmTilesClear(); await _kmLoadDeviceIndex(); } catch (e) {} });
 
@@ -104,13 +104,13 @@ check('S5 レビューの直し(第157): 基準視高度の自動算出の位置
     const iK = document.getElementById('input-refraction-k'), chk = document.getElementById('chk-refraction');
     const set = (on) => { chk.checked = on; chk.dispatchEvent(new Event('change', { bubbles: true })); };
     appState.meteo = { p: STD_P, t: STD_T, l: 0.0065 };
-    set(false); const off = { k: refractionKInUse(), shown: iK.value, inv: _visInv2Reff(35, 35), expect: SORA.inv2ReffFor(35, 35, 0.132), dist: calculateDistanceForAltitudes(0.5, 100, 3776, 35.6, 35.36) };
+    set(false); const off = { k: refractionKInUse(), shown: iK.value, inv: _visInv2Reff(35, 35), expect: SORA.inv2ReffFor(35, 35, 0), dist: calculateDistanceForAltitudes(0.5, 100, 3776, 35.6, 35.36) };   // 第158: オフ=0
     set(true); const on = { k: +refractionKInUse().toFixed(4), shown: iK.value, inv: _visInv2Reff(35, 35), expect: SORA.inv2ReffFor(35, 35, refractionKInUse()), dist: calculateDistanceForAltitudes(0.5, 100, 3776, 35.6, 35.36) };
     set(false); appState.meteo = { p: STD_P, t: STD_T, l: STD_L };
     return { off, on, same: window.SORA === SORA && Object.isFrozen(SORA) && REFRACTION_K === SORA.REFRACTION.K_STANDARD && STD_L === 0.0125, frozenK: appState.refractionK };
   });
-  check('U1 K: オフ=0.132(係数欄「0.1320」・実効半径は0.132で)・オン(Γ0.0065)=0.1688(係数欄「0.1688」)・辻ラインの距離もkに連動(オンの方が遠い)・SORAは凍結・別名は同じ値',
-    u1.off.k === 0.132 && u1.off.shown === '0.1320' && u1.off.inv === u1.off.expect && u1.on.k === 0.1688 && u1.on.shown === '0.1688' && u1.on.inv === u1.on.expect && u1.on.dist > u1.off.dist && u1.same, JSON.stringify(u1));
+  check('U1 K: オフ=0(係数欄「0.0000」・実効半径は地球の丸みだけ)[第158]・オン(Γ0.0065)=0.1688(係数欄「0.1688」)・辻ラインの距離もkに連動(オンの方が遠い)・SORAは凍結・別名は同じ値',
+    u1.off.k === 0 && u1.off.shown === '0.0000' && u1.off.inv === u1.off.expect && u1.on.k === 0.1688 && u1.on.shown === '0.1688' && u1.on.inv === u1.on.expect && u1.on.dist > u1.off.dist && u1.same, JSON.stringify(u1));
 
   // U2: 大円(北緯44°・東西100km): 弦の中点から北へ約190m(大円の反り)の所に壁→当たる。弦の上の壁→避ける
   const u2 = await p.evaluate(async () => {
@@ -213,7 +213,7 @@ check('S5 レビューの直し(第157): 基準視高度の自動算出の位置
     delete window._tmSyntheticElev15; delete window._tmSyntheticElev;
     return { k: d.meta.k, earth: d.meta.earth_radius_m, reff: d.meta.reff_m, expectEarth: +getLocalEarthRadius(DEFAULT_END.lat).toFixed(1), obsH: d.meta.observer_h_m, errs: r.errs };
   });
-  check('U6 ワーカーのmeta: k=0.132(補正オフ)・earth_radius_m=実際の局所半径(≈6371014)・reff_m=局所半径/(1−k)・観測者1.5m(単一情報源の値)', u6.k === 0.132 && Math.abs(u6.earth - u6.expectEarth) < 1 && Math.abs(u6.reff - u6.earth / (1 - 0.132)) < 1 && u6.obsH === 1.5 && u6.errs.length === 0, JSON.stringify(u6));
+  check('U6 ワーカーのmeta: k=0(補正オフ。第158)・earth_radius_m=実際の局所半径(≈6371014)・reff_m=局所半径/(1−k)=局所半径・観測者1.5m(単一情報源の値)', u6.k === 0 && Math.abs(u6.earth - u6.expectEarth) < 1 && Math.abs(u6.reff - u6.earth) < 1 && u6.obsH === 1.5 && u6.errs.length === 0, JSON.stringify(u6));
 
   check('E ページエラーなし', errs.length===0, errs.join(' | '));
   await b.close();

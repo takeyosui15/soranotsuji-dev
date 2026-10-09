@@ -114,7 +114,7 @@ async function fetchTile(kind, z, x, y, st) {
     if (tileOutsideJapan(z, x, y)) return null;
     const key = `${kind}/${z}/${x}/${y}`;
     const db = await openDb();
-    if (db) { const rec = await idbGet(db, key); if (rec) { st.cached++; return rec.miss ? null : rec.buf; } }
+    if (db) { const rec = await idbGet(db, key); if (rec && !(rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) >= SORA.TILE_STORE.MISS_TTL_MS)) { st.cached++; return rec.miss ? null : rec.buf; } }   // 古い「無し」の印(30日)は取り直す(第158)
     let lastErr = null;
     for (let attempt = 1; attempt <= FETCH_RETRIES; attempt++) {
         const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);

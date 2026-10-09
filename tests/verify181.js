@@ -33,19 +33,19 @@ check('S1 可視マップ節(デッサン05の改訂版): 推し山→検索条�
   /id="chk-kashimap-menu-summit"[^\n]*\n\s*<\/div>\s*<div class="control-row left-row">\s*<input type="checkbox" id="chk-kashimap-menu-zen"/.test(kmHtml) &&   // 全展望マーカーは別の段
   /id="chk-kashimap-menu-tiles"[^\n]*\n\s*<input type="checkbox" id="chk-kashimap-menu-summit"/.test(kmHtml) &&   // 可視タイルと山頂マーカーは同じ段
   !/btn-kashimap-tgt|btn-kashimap-mytgt/.test(idxSrc) && !/btn-kashimap-tgt|btn-kashimap-mytgt/.test(src) && !/kashimap-btn-row/.test(kmHtml) && !/center-row/.test(kmHtml.slice(kmHtml.indexOf('標高タイル:'))));
-check('S1b ヘルプと設定の文言: その場で計算(ラジオ+範囲を計算・端末の資産を先に探す・計算範囲リスト7つ・最高精細・Kはオフ=0.132/オン=算出値[第157])・一覧は3行・気温減率の既定0.0125(入力欄のtitle・ヘルプ・数式の説明)・辻ラインの端 / UI文言に内輪文脈なし',
+check('S1b ヘルプと設定の文言: その場で計算(ラジオ+範囲を計算・端末の資産を先に探す・計算範囲リスト7つ・最高精細・Kはオン=算出値/オフ=0[第158])・一覧は3行・気温減率の既定0.0125(入力欄のtitle・ヘルプ・数式の説明)・辻ラインの端 / UI文言に内輪文脈なし',
   idxSrc.includes('<li><strong>その場で計算 (「:目的点」「:My目的点」+「範囲を計算」)</strong>') && idxSrc.includes('同じ範囲の資産があればそれを使うか聞きます') && idxSrc.includes('24/36/48/60/100/300/700km四方') && !idxSrc.includes('300/500/700km四方') &&
-  idxSrc.includes('「:最高精細」は700kmを約15m') && idxSrc.includes('先頭のチェックがオフのときは測量標準の 0.132、オンのときは下の気象条件から算出した値になります') && idxSrc.includes('一覧は資産ごとに3行で') && idxSrc.includes('3行目は島数・サイズです') &&
+  idxSrc.includes('「:最高精細」は700kmを約15m') && idxSrc.includes('先頭のチェックがオンのときは下の気象条件から算出した値 (既定。標準の気象条件で K=0.132)、オフのときは 0 (気差なし=地球の丸みだけ。K=0 の見え方を確かめるためのスイッチです)') && idxSrc.includes('一覧は資産ごとに3行で') && idxSrc.includes('3行目は島数・サイズです') &&
   idxSrc.includes('既定は 0.0125=測量標準の K=0.132 になる値') && idxSrc.includes('既定は0.0125で、測量標準の K=0.132 になります') && idxSrc.includes('既定の気温減率 <b>\\(0.0125\\)</b> で測量標準の') && !idxSrc.includes('通常は 0.0065') && !idxSrc.includes('通常は0.0065') &&
   idxSrc.includes('その時刻を1秒まで詰めて揃えています') &&
   !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
-check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放物線の反り・行ごとの縮尺)・hSeenの添字・既定Γ0.0125(STD_L)と旧値(STD_L_OLD)・保存データの移行(meteoDefaultsV2)・計算範囲7つ・上限9,500/最高精細45,000・_kmZoomForRange(rangeKm, fine, finest)・refractionKInUse/_visInv2Reff[第157]・jobのk・点滅の鍵はlastIndexOf・KM_ROW_CAPなし・山リストの6欄(_kmInfoCells)と列・:端末保存・資産の再利用(確認)・3行1組・一括選択のトグル見た目・索引のk・DP_DIST_LIMITはモジュール定数で365にも / worker: evalAt+bisect / 道具: sizes / 索引: sizes / CSS',
+check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放物線の反り・行ごとの縮尺)・hSeenの添字・既定Γ0.0125(STD_L)と旧値(STD_L_OLD)・保存データの移行(meteoDefaultsV2)・計算範囲7つ・上限9,500/最高精細45,000・_kmZoomForRange(rangeKm, fine, finest)・refractionKInUse/_visInv2Reff[第157]・オフ=0[第158]・jobのk・点滅の鍵はlastIndexOf・KM_ROW_CAPなし・山リストの6欄(_kmInfoCells)と列・:端末保存・資産の再利用(確認)・3行1組・一括選択のトグル見た目・索引のk・DP_DIST_LIMITはモジュール定数で365にも / worker: evalAt+bisect / 道具: sizes / 索引: sizes / CSS',
   ['const STD_L = SORA.REFRACTION.STD_LAPSE_RATE_K_PER_M;', 'const STD_L_OLD = SORA.REFRACTION.ISA_LAPSE_RATE_K_PER_M;', '+saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };', 'meteoDefaultsV2: true,', 'const KM_TGT_RANGES = [24, 36, 48, 60, 100, 300, 700];', 'const KM_TGT_MAX_TILES = 9500;', 'const KM_TGT_MAX_TILES_FINEST = 45000;',
    'function _kmZoomForRange(rangeKm, fine, finest) {', 'if (finest && rangeKm > 500) return z + 2;', 'function refractionKInUse() {', 'inv2R: _visInv2Reff(lat, lat), k: refractionKInUse(),', '(finest && rangeKm > 500) ? KM_TGT_MAX_TILES_FINEST : KM_TGT_MAX_TILES',
    "const cut = key.lastIndexOf(':'); const mid = key.slice(0, cut), no = key.slice(cut + 1);", "else if (!_kmShown.has(key.slice(0, key.lastIndexOf(':')))) _kmBlink.delete(key);", 'function _kmInfoCells(info, lat)', "{ label: '範囲', compare:", "{ label: '樹冠', compare:", "{ label: '構造物', compare:", "{ label: 'サイズ', compare:", 'if (tr.children.length >= KM_INFO_COL0 + cells.length)',
    'if (f.device && !_kmHasDeviceAsset(m.id)) return false;', "const have0 = tid && !(opts && opts.force) ? _kmDeviceIndex.get(`${tid}/terrain/${rangeKm}`) : null;", 'OK=その資産を使う / キャンセル=計算し直す', "tr3.className = 'km-store-row3'", '<td rowspan="3" class="km-store-chk">', "all.classList.toggle('myset-toggle-active', allOn);", 'k: _kmNum(meta.k),', 'height: v.height, k: v.k, zoom: v.zoom });',
    'const DP_DIST_LIMIT = 400000;', "owner: 'dp365', altOffset: offAlt, distLimit: DP_DIST_LIMIT })", "const b = document.getElementById('btn-kashimap-compute');", "const fn = (my && my.checked) ? _kmComputeMyTargets : _kmComputeTarget;"].every(t => src.includes(t)) &&
-  !/KM_ROW_CAP/.test(src) && !/calculateKFromMeteo\(appState\.meteo\.p, appState\.meteo\.t, appState\.meteo\.l\) : 0/.test(src) &&   // 第157: 「オフ=0」は本体から消えた
+  !/KM_ROW_CAP/.test(src) && src.includes('calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;') &&   // 第158: 「オフ=0」が本体の規則(第157の「オフでも0.132」は取り下げ)
   ['const evalAt = (timeMs) => {', 'const bisect = (okMs, ngMs) => {', 'if (pt && !lastOk) { const b = bisect(timeMs, lastMs);', 'else if (lastOk && s > startSec) { const b = bisect(lastMs, timeMs);'].every(t => dpSrc.includes(t)) &&
   ['function geodesicHelpers(G)', 'const geo = geodesicHelpers(G);', 'const bend = geo.bend(ex, ey);', 'dM += stepM * geo.rowScale[py];', "path: 'geodesic-parabolic', scale: 'row-cos-lat'", 'const b = Math.floor(i / 8); return (hSeen[b] >> (i - b * 8)) & 1;', 'function allocArray(Ctor, n, forceWasm)', 'grid = allocArray(Uint16Array, W * H, !!job.forceWasm).fill(NODATA);', 'const visible = allocArray(Uint8Array, W * H);'].every(t => wkSrc.includes(t)) &&
   ['function geodesicHelpers() {', 'const geo = geodesicHelpers();', 'dM += stepM * geo.rowScale[py];', 'const bend = geo.bend(px, py);'].every(t => toolSrc.includes(t)) &&
@@ -80,7 +80,7 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
   await ctx.route('**/*', route => { route.request().url().startsWith(BASE) ? route.continue() : route.abort(); });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?kashimap=1',{waitUntil:'load'});   // 可視マップは封鎖中(第158)。開錠して検査
   const ready = () => p.waitForFunction(()=>typeof runKashimapSearch==='function' && typeof _kmRenderStoreList==='function' && typeof glMap!=='undefined' && glMap && glMap.getLayer && !!glMap.getLayer('km-fill') && typeof calculateDPPathPoints==='function',{timeout:15000});
   await ready();
   await p.evaluate(async ()=>{ window.confirm=()=>true; window.alert=(m)=>{ (window._alerts = window._alerts || []).push(String(m)); }; try { await _kmStoreClear(); await _kmTilesClear(); await _kmLoadDeviceIndex(); } catch (e) {} });
@@ -94,10 +94,10 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
     appState.meteo = { p: 1013.25, t: 15, l: 0.0065 }; const kOld = refractionKInUse();
     [appState.refractionEnabled, appState.meteo] = sv;
     const reffOff = 1 / (2 * inv2ROff);
-    return { z: z.every(Boolean), kOff, kOn: +kOn.toFixed(4), kOld: +kOld.toFixed(4), stdL: STD_L, stdLOld: STD_L_OLD, reffOff: Math.round(reffOff), expectReff: Math.round(getLocalEarthRadius(35.36) / (1 - 0.132)), ranges: KM_TGT_RANGES.join(), maxTiles: KM_TGT_MAX_TILES, finest: KM_TGT_MAX_TILES_FINEST, nOpt: document.getElementById('sel-kashimap-tgt-range').options.length };
+    return { z: z.every(Boolean), kOff, kOn: +kOn.toFixed(4), kOld: +kOld.toFixed(4), stdL: STD_L, stdLOld: STD_L_OLD, reffOff: Math.round(reffOff), expectReff: Math.round(getLocalEarthRadius(35.36)), ranges: KM_TGT_RANGES.join(), maxTiles: KM_TGT_MAX_TILES, finest: KM_TGT_MAX_TILES_FINEST, nOpt: document.getElementById('sel-kashimap-tgt-range').options.length };
   });
-  check('U1 単体: 最高精細は700kmだけz13(精細は300→13・700→12)・その場計算のk=補正オフで0.132・オン+既定Γ0.0125で0.132・Γ0.0065なら0.169・STD_L=0.0125・実効半径は局所半径/(1−0.132)・計算範囲7つ・上限9,500/45,000',
-    u1.z && u1.kOff === 0.132 && u1.kOn === 0.132 && u1.kOld === 0.1688 && u1.stdL === 0.0125 && u1.stdLOld === 0.0065 && u1.reffOff === u1.expectReff && u1.ranges === '24,36,48,60,100,300,700' && u1.maxTiles === 9500 && u1.finest === 45000 && u1.nOpt === 7, JSON.stringify(u1));
+  check('U1 単体: 最高精細は700kmだけz13(精細は300→13・700→12)・その場計算のk=補正オフで0[第158]・オン+既定Γ0.0125で0.132・Γ0.0065なら0.169・STD_L=0.0125・実効半径はオフなら局所半径そのもの・計算範囲7つ・上限9,500/45,000',
+    u1.z && u1.kOff === 0 && u1.kOn === 0.132 && u1.kOld === 0.1688 && u1.stdL === 0.0125 && u1.stdLOld === 0.0065 && u1.reffOff === u1.expectReff && u1.ranges === '24,36,48,60,100,300,700' && u1.maxTiles === 9500 && u1.finest === 45000 && u1.nOpt === 7, JSON.stringify(u1));
 
   // U1b: 保存データの移行(旧既定のまま→新既定へ / 触ってあれば据え置き / 一度保存すれば旧値に戻しても触らない)。ページを読み直して loadAppState を通す
   const migrate = async (meteo, flag) => {
@@ -217,7 +217,7 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
   });
   check('D4 島リスト: 3,500件を全部描く(「表示は上位」の注記なし)・緯度の並べ替えで最南/最北が先頭に来る', d4.n === 3500 && /島リスト\(3,500件/.test(d4.title) && !/表示は上位/.test(d4.title) && d4.first === '35.000000' && d4.firstDesc === '35.349900', JSON.stringify(d4));
 
-  // D5: 資産の再利用(端末に同じ範囲の資産があれば確認→使う / キャンセルで計算し直す)・meta.k(補正オフでも0.132・オンなら設定の値)
+  // D5: 資産の再利用(端末に同じ範囲の資産があれば確認→使う / キャンセルで計算し直す)・meta.k(第158: 補正オフは0・オンなら設定の値)
   const d5 = await p.evaluate(async () => {
     window._tmSyntheticElev15 = () => 100; window._tmSyntheticElev = () => 100;   // 平らな地形(標高100m)
     appState.end = { lat: DEFAULT_END.lat, lng: DEFAULT_END.lng, elev: 3776 }; appState.endApiElev = 3776; appState.endHeight = 0; document.getElementById('input-end-name').value = '再利用の富士';
@@ -230,8 +230,8 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
     delete window._tmSyntheticElev15; delete window._tmSyntheticElev;
     return { k1: d1 && d1.meta && d1.meta.k, reff1: d1 && d1.meta && d1.meta.reff_m, reused2: !!(d2 && d2.reused), hasMeta2: !!(d2 && d2.meta), ms2, key2: d2 && d2.key, k3: d3 && d3.meta && +d3.meta.k.toFixed(4), reused3: !!(d3 && d3.reused), nDev: _kmDeviceIndex.size, idxK: (_kmDeviceIndex.get(d1.key) || {}).k, errs: [r1.errs, r2.errs, r3.errs].flat(), sel: _kmSelected.has(d1.id), bucket: _kmRange, btn: document.getElementById('btn-kashimap-compute').textContent };
   });
-  check('D5 資産の再利用: 1回目は計算(meta.k=0.132・補正オフでも・実効半径は/(1−0.132))→2回目はOKで端末の資産を使う(reused・計算なし・速い)→キャンセルで計算し直す(補正オン+Γ0.0065→k=0.169)・索引にk・選択される・ボタンは「範囲を計算」に戻る',
-    d5.k1 === 0.132 && d5.reff1 > 7300000 && d5.reused2 && !d5.hasMeta2 && d5.ms2 < 1500 && d5.key2 && /\/terrain\/2$/.test(d5.key2) && d5.k3 === 0.1688 && !d5.reused3 && d5.nDev === 4 && +(+d5.idxK).toFixed(4) === 0.1688 && d5.errs.length === 0 && d5.sel && d5.bucket === 100 && d5.btn === '範囲を計算', JSON.stringify(d5));
+  check('D5 資産の再利用: 1回目は計算(meta.k=0・補正オフ[第158]・実効半径=局所半径)→2回目はOKで端末の資産を使う(reused・計算なし・速い)→キャンセルで計算し直す(補正オン+Γ0.0065→k=0.169)・索引にk・選択される・ボタンは「範囲を計算」に戻る',
+    d5.k1 === 0 && Math.abs(d5.reff1 - 6371014) < 2 && d5.reused2 && !d5.hasMeta2 && d5.ms2 < 1500 && d5.key2 && /\/terrain\/2$/.test(d5.key2) && d5.k3 === 0.1688 && !d5.reused3 && d5.nDev === 4 && +(+d5.idxK).toFixed(4) === 0.1688 && d5.errs.length === 0 && d5.sel && d5.bucket === 100 && d5.btn === '範囲を計算', JSON.stringify(d5));
 
   // D6: 辻ラインの端(1分刻みでも両端が「見かけ高度の下限の距離」に揃う。5秒刻みとも揃う)
   const d6 = await p.evaluate(async () => {
@@ -251,8 +251,9 @@ check('S2 script.js/worker/道具: 大円に沿う光線(geodesicHelpers・放�
     return { out, fine };
   });
   const ends = d6.out.map(o => [o.first, o.last]).flat();
-  check('D6 辻ラインの端: 太陽の1分刻み(365モード)5日とも両端の距離の差が2km以内・日ごとの端は季節でなだらかに動くだけ(10km以内)・端の直前の刻みは1分未満(二分で詰めた点)・5秒刻み(当日線)の端とも2km以内・端は400km未満(見かけ高度の下限で決まる)',
-    d6.out.every(o => o.n > 100 && Math.abs(o.first - o.last) <= 2 && o.dt0 < 60 && o.dtEnd < 60) && Math.max(...ends) - Math.min(...ends) <= 10 && Math.abs(d6.fine.first - d6.out[0].first) <= 2 && Math.abs(d6.fine.last - d6.out[0].last) <= 2 && Math.max(...ends) < 400, JSON.stringify(d6));
+  // 第158: 境界が標本の1秒以内に落ちると二分の点は足されず刻みは60のまま(端の距離は両端で揃っているのでそれで見る)
+  check('D6 辻ラインの端: 太陽の1分刻み(365モード)5日とも両端の距離の差が2km以内・日ごとの端は季節でなだらかに動くだけ(10km以内)・端の直前の刻みは1分以内(二分で詰めた点。境界が標本の1秒以内なら標本のまま)・5秒刻み(当日線)の端とも2km以内・端は400km未満(見かけ高度の下限で決まる)',
+    d6.out.every(o => o.n > 100 && Math.abs(o.first - o.last) <= 2 && o.dt0 <= 60 && o.dtEnd <= 60) && Math.max(...ends) - Math.min(...ends) <= 10 && Math.abs(d6.fine.first - d6.out[0].first) <= 2 && Math.abs(d6.fine.last - d6.out[0].last) <= 2 && Math.max(...ends) < 400, JSON.stringify(d6));
 
   // D7: 大円の反り(第156): 北緯44°・200km四方・z11(1画素≈55m)。中心(目的点1000m)から東の縁へ向かう光線は、メルカトルの弦より北へ最大約3.4画素反る(δ=L²·tanφ/(8R)=189m)。
   //     弦の3〜4画素北・中点付近(t=0.35〜0.65)に高さ900mの壁を置く→大円に沿う光線は壁に当たって東の縁の中心の行は見えない。南側(t同じ・行CY+6)の壁は当たらない(反りは北)=見える。西の縁(壁なし)は見える

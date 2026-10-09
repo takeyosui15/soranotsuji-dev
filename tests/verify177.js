@@ -37,7 +37,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
   await ctx.route('**/*', route => { route.request().url().startsWith(BASE) ? route.continue() : route.abort(); });
   const p=await ctx.newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-  await p.goto(BASE+'/index.html',{waitUntil:'load'});
+  await p.goto(BASE+'/index.html?kashimap=1',{waitUntil:'load'});   // 可視マップは封鎖中(第158)。開錠して検査
   await p.waitForFunction(()=>typeof runKashimapSearch==='function' && typeof glMap!=='undefined' && glMap && glMap.getSource && !!glMap.getSource('summit-band') && !!glMap.getLayer('sb-fill'),{timeout:15000});
   await p.evaluate(async ()=>{ window.confirm=()=>true; window.alert=()=>{}; try { await _kmStoreClear(); } catch (e) {} });
   const setChk = (id, on) => p.evaluate(([i, o]) => { const el = document.getElementById(i); if (el.checked !== o) { el.checked = o; el.dispatchEvent(new Event('change', { bubbles: true })); } }, [id, on]);
