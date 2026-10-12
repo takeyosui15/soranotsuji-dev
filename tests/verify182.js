@@ -50,7 +50,7 @@ check('S3 統一可視判定は大円+海面0m: 本体(_visJudgeCore・タイル
   src.includes('const path = SORA.greatCirclePath(startLat, startLng, endLat, endLng);') && src.includes('const path = SORA.greatCirclePath(s.lat, s.lng, e.lat, e.lng);') && src.includes('const SEG = SORA.VISIBILITY.PATH_CHUNK;') &&
   tmSrc.includes('const path = SORA.greatCirclePath(sLat, sLng, endLat, endLng);') && tmSrc.includes('const seaAsZero = endInJapan && SORA.insideJapan(sLat, sLng);') && tmSrc.includes('const stepM = SORA.metersPerPixel(sLat, 15) / 2;') && tmSrc.includes('function _distanceM(lat1d, lng1d, lat2d, lng2d) { return SORA.haversineDistanceM(lat1d, lng1d, lat2d, lng2d); }') &&
   walkMain.length > 200 && walkMain === walkTm && idxSrc.includes('経路は観測点と目的点を結ぶ<strong>大円</strong>') && idxSrc.includes('<strong>海面0m</strong>として遮ります') && idxSrc.includes('(日本域で標高タイルの無い所=海は海面0m)'), JSON.stringify({ same: walkMain === walkTm, len: walkMain.length }));
-const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf("toggleSection('sec-soramado')"));
+const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('data-arg="sec-soramado"'));
 const NOTE = '富士山で範囲を計算する場合は、「火口」を中心とする場合と、「剣ヶ峯」を中心とする場合では、結果が異なります。宙の辻では、「剣ヶ峯」(標高:3771.3m)を推奨します。';
 check('S4 UI: 可視マップ節の水平線は4本(「可視タイル:」の上にも)・「範囲を計算」の下に剣ヶ峯の注記(依頼者の文のまま)→水平線・山リストのズーム列(_kmZoomLabel・ズームの見出し)・▲(_kmNearestLargerAsset・繰り上げ)・島リストの分割描画(KM_ISLAND_ROW_CHUNK=4000・onProgress)・索引のzooms・端末の索引のzoomと補完・道具のzooms・ワーカーのmetaの半径',
   (kmHtml.match(/<hr class="tsujisearch-separator km-hr">/g) || []).length === 4 && kmHtml.includes(NOTE) && kmHtml.indexOf('id="btn-kashimap-compute"') < kmHtml.indexOf(NOTE) && kmHtml.indexOf(NOTE) < kmHtml.indexOf('id="chk-kashimap-menu-tiles"') &&

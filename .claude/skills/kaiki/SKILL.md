@@ -14,8 +14,8 @@ description: 宙の辻の回帰テスト(verify群)をローカルハーネス�
 作業領域(スクラッチパッド)を `$SP` とする。
 
 ```bash
-python3 tests/harness/sync-apptest.py $SP/apptest   # アプリ一式コピー+CDN→vendor書き換え
-# vendor/が空なら、上のコマンドが表示するcurl一覧を実行して入手する(プロキシ環境でそのまま通る)
+python3 tests/harness/sync-apptest.py $SP/apptest   # アプリ一式コピー(vendor/ もリポジトリから。第159から第三者ライブラリは自前配信で同梱)
+# 第159より前の作業領域に古い vendor/ (mathjax-stub.js・three.min.js)が残っていても害は無い(index.html が参照しない)
 ```
 
 Playwright(playwright-core)が無ければ(jsqrはverify160のQRコード復号検査で使う):

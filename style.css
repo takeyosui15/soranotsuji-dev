@@ -2709,3 +2709,6 @@ input[type="range"] {
 
 /* 機能封鎖(リリース方針。第158: 可視マップは ?kashimap=1 で開錠) */
 .feature-locked { display: none !important; }
+
+/* ヘルプの数式(第159: MathJax を撤去し、HTMLで書く) */
+.formula { display: block; margin: 6px 0; padding: 4px 8px; font-size: 1.05em; letter-spacing: 0.02em; }

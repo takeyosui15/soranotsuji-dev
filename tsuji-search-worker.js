@@ -19,7 +19,7 @@ GNU General Public License for more details.
 // 粗探索には「安全スキップ」を併用: 天体の移動速度上限から許容範囲外が確定する標本を
 // 飛ばして高速化する(飛ばすのは必ず範囲外の標本のみなので、結果は全標本評価と完全に同一)。
 
-importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
+importScripts('vendor/astronomy.browser.min.js');   // 自前配信(vendor/。版は固定・指紋は vendor/MANIFEST.json)
 
 // astronomy.browser.min.js は UMD で window へ登録する場合がある。
 // Web Worker のグローバルは self なので、window 経由のフォールバックも見ておく。

@@ -16,7 +16,7 @@ const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const resetSrc = fs.readFileSync(path.join(ROOT, 'reset.html'), 'utf8');
+const resetSrc = fs.readFileSync(path.join(ROOT, 'reset.html'), 'utf8') + '\n' + fs.readFileSync(path.join(ROOT, 'reset.js'), 'utf8');   // 第159: スクリプトは reset.js に分離(CSP)
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
@@ -26,7 +26,7 @@ check('S1 index.html: File出力(資産)/File読込/読込input・端末に保�
   (idxSrc.match(/この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。/g) || []).length >= 2 &&
   !/title="山リストと島リスト\(縞島を含む\)をCSV/.test(idxSrc) && idxSrc.includes('「静(端末)」=サーバーの資産を端末にも保存済み') && idxSrc.includes('<strong>端末に保存した資産</strong>') && idxSrc.includes('<strong>PC向けの機能です</strong>'));
 check('S1b UI文言に内輪文脈(ラウンド番号)が無い', !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
-check('S2 reset.htmlの「すべてのデータを消去」がIndexedDB(soranotsuji-kashimap・soranotsuji-wx)も消す+注記', resetSrc.includes("indexedDB.deleteDatabase(name)") && resetSrc.includes("'soranotsuji-kashimap', 'soranotsuji-wx'") && resetSrc.includes('IndexedDB) も消去します'));
+check('S2 reset.htmlの「すべてのデータを消去」がIndexedDB(soranotsuji-kashimap・soranotsuji-wx・soranotsuji-maptiles)も消す+注記', resetSrc.includes("indexedDB.deleteDatabase(name)") && resetSrc.includes("'soranotsuji-kashimap', 'soranotsuji-wx', 'soranotsuji-maptiles'") && resetSrc.includes('IndexedDB) も消去します'));   // 第159: 地図タイルの控えも
 check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /DP_TOL = parseFloat\(args\.tol \|\| '0'\)/.test(toolSrc) && !src.includes('function _kmExportCsv'));
 {
   const meta = JSON.parse(fs.readFileSync(path.join(ASSET, '368', 'terrain', '60', 'meta.json'), 'utf8'));

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.98.0 - 2026-10-12: security: 第159ラウンド — セキュリティ対策(依頼者: 2026年10月の国内の不正アクセス多発(JPCERT-AT-2026-0030・IPAの注意喚起)を受けた点検)。①第三者ライブラリの自前配信: MapLibre 4.7.1・three 0.160.0・astronomy-engine 2.1.19・GeographicLib 2.2.0(npm)・qrcode-generator 1.4.4・Draco を vendor/ に固定(出所・版・ライセンス・内容の指紋 sha384/sha256 を vendor/MANIFEST.json に)。CDN(jsDelivr/unpkg/sourceforge)への読み込みを全て撤去・MathJax を撤去(ヘルプの気差係数の数式(TeX 18行)はHTMLに書き直し)・ワーカーの importScripts と Draco も vendor/ へ ②読み込み元の許可リスト(CSP meta): script-src は自サイト+'wasm-unsafe-eval'(Draco の WASM)+Googleのログイン(accounts.google.com/gsi/client)+ピッカー(apis.google.com)だけ('unsafe-inline'/'unsafe-eval' 無し)・connect-src/img-src/frame-src は使うAPIとタイルの許可リスト・object-src 'none'・base-uri 'self'・worker-src 'self' blob:・Referrer-Policy。CSP違反はコンソールに記録(securitypolicyviolation) ③インラインの onclick=(32箇所: index.html 30+forecast-features.html 2)を data-click 属性+1つの委譲リスナー+許可表(_CLICK_ACTIONS)に・three の読み込みを three-global.js に・reset.html のスクリプトを reset.js に(CSPでインラインを禁じるため) ④保存データの型そろえ(_sanitizeStoredShapes。normalizeAppState の先頭で毎回): 観測点/目的点/Home・My観測点/My目的点/My天体/My辻検索/My宙検索/Myセット・表示天体の色を、数値は数値・文字は文字・色は safeCssColor・真偽は !! に確定させる(他人から受け取ったバックアップJSON/Driveの生ダンプの数値欄に入った文字列(HTML)が innerHTML に届く持続XSSの根を塞ぐ)。escapeHtml は文字列以外も落ちずに文字として扱う。HTML を組む所(地点のポップアップ・My観測点/My目的点/My天体/Myセットの行・ID入りのエラー文・宙検索の一括結果)も Number()/escapeHtml で二重に守る。可視マップの資産の取り込みは島の番号/画素数が数値でなければ拒む・島リスト/ポップアップで escapeHtml ⑤別タブで開くリンクは全て rel=noopener・Myセットのシートを開く window.open は noopener+IDの文字種検査・Sheets/Drive API のパスのシートIDは encodeURIComponent・保存データのシートIDは Google のIDの文字種だけ ⑥reset.html の「すべてのデータを消去」に地図タイルの控え(soranotsuji-maptiles)も。verify184(合格条件の自動検査)。デッサン34(セキュリティ)に脅威モデル・合格条件(自動検査/コンソール点検/運用)を記録
 Version 1.97.0 - 2026-10-09: feat: 第158ラウンド — 気差を2本立てに(依頼者の方針変更): ①設定の「大気差補正」チェック=地形の見通しの気差係数K(オン=気象条件から算出・既定オン / オフ=K=0=気差なし。第157の「オフでも0.132」を取り下げ。K=0の見え方の検証ができるように)。保存データは一度だけ新既定へ(印 refractionV3) ②新しい「:気差オプション(Astronomy Engine気差補正)」=天体の見かけ高度の大気差(既定オン。地上のKとは別の光線なので二重にはかからない)。appState.astroRefraction・ワーカーへは astroRefraction で渡す・共有URL(辞書v22)・ヘルプ ③宙の窓検索(デッサン05): 位置情報メニューのボタンを「宙の窓検索」に(辻検索/辻メッシュ/宙の窓検索の段・可視マップは次の段)・宙の窓メニューに注記・コントロールに「:構図をドラッグ(二本指)で変更」「:辻オフセット点をドラッグ(二本指)で変更」(ドラッグの対象=カメラオフセット/辻オフセット。オフで戻す)と「辻検索」「辻メッシュ」ボタン ④地理院タイルのオフライン(デッサン18): 地図の地理院タイル(標準・淡色・写真・ベクトル)は端末の店(IndexedDB)を先に読み、無い時だけ地理院へ(gsicache://プロトコル)。標高タイル(標高グラフ・辻メッシュ・宙の窓)も可視マップと同じ店を先に読む。バックアップメニューに地理タイル/標高タイルの件数・容量・最終更新・全削除 ⑤リリース向けの封鎖: 可視マップは ?kashimap=1 で開錠(forecastと同じ仕組み)。verify183。差分のレビューで直した: 辻オフセット点のドラッグ(と宙の窓/ctrlの欄)を辻メッシュ側のオフセットにも写す(ctrlの「辻メッシュ」が×の位置で検索する)・ドラッグの値は4桁に丸める・宙断面(forecast)のスロットを封鎖される段の外へ・辻ライン365の鍵に気差(2つのチェックと設定登録は _refractionSettingChanged で保存→再計算→365も引き直す)・旧形式のバックアップの取り込みも一度だけ両方オンへ・気差オプションのヘルプの「効く範囲」を実装どおりに(太陽・月・惑星の出没時刻と天体儀の向きは変わらない)・店の件数と容量は索引の鍵カーソルで数える(本文を読まない。地理タイルの店v2/標高タイルの店v3)・数えるのはバックアップを開いている間だけ・「無し」の印は30日で取り直す(SORA.TILE_STORE.MISS_TTL_MS。本体・地形ワーカー・可視マップのワーカー)・標高タイルの取得の失敗は1回で諦める・封鎖中は標高タイルの注記を可視マップ抜きの文に
 Version 1.96.0 - 2026-10-07: refactor/feat: 第157ラウンド — 数の単一情報源 sora-constants.js(地球の大きさ・大気差・観測者・標高タイル・可視判定の既定値と、気差係数の式・局所半径・ハバーサイン・1画素の長さ・大円の補間。本体はscriptタグ、ワーカーはimportScripts、道具はrequireで同じ値を読む=1箇所を直すと他も直る)。気差係数は「設定に表示されている値」で全処理が計算(refractionKInUse: 大気差補正オフ=測量標準0.132、オン=気象条件から算出。標高グラフ・辻検索/My辻・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火の8箇所の『オフ=0』を1つに)。統一可視判定(標高グラフ・辻検索・辻メッシュのワーカー)も可視マップと同じ3つに=経路を大円に(区間ごとに球面補間)・海(データ無し)は海面0mで遮る(日本域)・K。山リストに「ズーム」列(z15(1画素≈4m・DEM5A/5B/5C)など。索引index.jsonにzooms・端末の索引にzoom[無ければ資産の計算条件から補う])。最大表示範囲より広い資産しか無い山は範囲に▲を付けて示し、選ぶと表示範囲を繰り上げる(「:端末保存」で列が空だった件)。島リストは4,000行ずつ描き、残りは進捗(描画中 n/N)を出しながら続ける(富士山700kmの4万行)。可視マップ節: 「可視タイル:」の上に水平線・「範囲を計算」の下に剣ヶ峯の注記(依頼者起草)。verify182。差分のレビューで直した: 基準視高度の自動算出の鍵にK(気差係数を切り替えると再計算・URL復元は気象値の後で鍵を取り直す)・宙の窓の陰影の鍵にK・古い形式のバックアップ取り込みで設定の大気差の部品を同期(syncRefractionUiFromState)・辻メッシュの帯域分割もPATH_CHUNK・端末の資産の再利用はKが同じ時だけ・道具の答え合わせ(judgeLikeApp)も大円+海面0m
 Version 1.95.0 - 2026-10-06: feat/fix: 第156ラウンド — 可視マップ節をデッサン05の改訂版に(依頼者): ①段組み=検索条件:/山リスト:(+:端末保存)/最大表示範囲:/障害物オプション:→「計算済み可視マップを検索」→注記→水平線→「:目的点/:My目的点」ラジオ+計算範囲リスト(500を外し24〜700)+「:精細」「:最高精細(700kmをz13。約31,000枚・20億画素・PC向け。格子約4GBはChromeの1本2GBの壁を避けてWebAssembly.Memoryの上に)」+「範囲を計算」→水平線→可視タイル/山頂マーカー・全展望マーカー→水平線→標高タイル(件数/容量・注記「可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。」・全削除は横幅いっぱい)→可視タイル(件数/容量・一括選択/一括解除トグル=Myセットと同じ黄色・⬇DL/削除/全て登録の三等分・全て登録はMy観測点と同じ赤太字) ②資産の一覧は3行1組(チェック段抜き+目的点名[入力欄の文字はMy観測点と同じ16px] / 範囲・樹冠・構造物 / 島数・サイズ。背景色なし・水平線で区切る) ③山リストに「範囲」「樹冠」「構造物」「サイズ」列(検索条件で選ばれる資産。サーバーの索引にsizes) ④直し: 目的点で計算した島の点滅(鍵「tgt:lat,lon:項番」を最後の「:」で切る)・島リストは全件表示(3,000件の上限を撤廃)・標高タイルの上限8,000→9,500枚・計算前に端末の同じ範囲の資産を探して使う(確認付き。構造物など山リストに無い目的点向け) ⑤気差係数: 可視マップのその場計算は大気差補正オフでも測量標準k=0.132で計算(静的資産と同じ。オンなら設定の値)。気温減率の既定値を0.0065→0.0125(K=0.169→0.132=測量標準。保存済みの値が旧既定のままなら新既定へ) ⑥辻ライン: 線の端を境界(見かけ高度の下限または400km)の時刻へ二分で詰めて揃える(1分刻みの365では端が270〜365kmとまちまちだった)。辻ライン365も400km。verify181
@@ -166,7 +167,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.97.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.98.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -937,7 +938,7 @@ function _glBldg3dToggle(on) {
                 type: 'vector',
                 tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf')],
                 minzoom: 4, maxzoom: 16,
-                attribution: '<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>',
+                attribution: '<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank" rel="noopener noreferrer">国土地理院最適化ベクトルタイル</a>',
             });
         }
         if (!glMap.getLayer('bldg-3d')) {
@@ -1064,7 +1065,8 @@ function _mtUrl(url) { return url.includes(MT_HOST) ? 'gsicache://' + url : url;
 
 function initMapGL(mapEl) {
     _mtEnsureProtocol();   // 地理院タイルは端末の店を先に読む(第158)
-    const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
+    // 注: attribution/customAttribution/Popup.setHTML に渡す文字列は、必ずこの関数の中の定数だけにする(利用者やシートの値を混ぜない。MapLibre はここをHTMLとして描く。第159)
+    const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル</a>';
     const rasterSrc = (tiles, attribution, maxzoom) => ({ type: 'raster', tiles, tileSize: 256, maxzoom, attribution });
     glMap = new maplibregl.Map({
         container: mapEl,
@@ -1079,7 +1081,7 @@ function initMapGL(mapEl) {
                 'base-pale': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')], gsiAttr, 18),
                 // OSMは単一ホストが現行推奨(HTTP/2下でa/b/cサブドメイン分割は接続数が増えるだけで逆効果)
                 'base-osm': rasterSrc(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                    '<a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>', 19),
+                    '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>', 19),
             },
             layers: [
                 { id: 'base-std', type: 'raster', source: 'base-std', layout: { visibility: 'visible' } },
@@ -1099,7 +1101,7 @@ function initMapGL(mapEl) {
         compact: true,   // ⓘアイコンで折りたたみ(タップ/クリックで展開。常時1行表示より省スペース)
         // ベース地図の出典は各ソースのattribution(表示中のものだけ出る)に任せ、ここには
         // 地図ソースでないデータの出典のみ載せる(標高タイル+宙の窓の写真テクスチャ=国土地理院・気象=Open-Meteo。重複表示の防止)
-        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院(標高・写真)</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a>,<a href="https://open-meteo.com/" target="_blank">Open-Meteo</a>'
+        customAttribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(標高・写真)</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener noreferrer">Terrain Tiles (Mapzen/AWS)</a>,<a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>'
     }), 'bottom-right');
     // タイル取得失敗は警告のみ(オフラインでも他機能を止めない)。
     // ※辻メッシュ画像は第36ラウンドでcanvasソース化し非同期ロード自体が無くなったため、
@@ -1447,13 +1449,13 @@ function glUpdateMyPointMarkers() {
         _glAddMarker('mypoint', pt.lat, pt.lng, null, {
             pin: pinColor, className: `location-marker ${cls}`,
             popupHtml: `
-            <b>${title}</b><br>
+            <b>${escapeHtml(title)}</b><br>
             ${escapeHtml(pt.name)}<br>
-            ID: ${pt.id}<br>
-            緯度: ${pt.lat}°<br>
-            経度: ${pt.lng}°<br>
-            標高: ${pt.elev !== null ? pt.elev : '--'} m<br>
-            高さ: ${pt.height || 0} m
+            ID: ${Number(pt.id)}<br>
+            緯度: ${Number(pt.lat)}°<br>
+            経度: ${Number(pt.lng)}°<br>
+            標高: ${pt.elev !== null && pt.elev !== undefined ? Number(pt.elev) : '--'} m<br>
+            高さ: ${Number(pt.height || 0)} m
         `,
             onClick: () => apply(pt),
         });
@@ -1856,7 +1858,29 @@ function initMap() {
 // 4. UIイベント設定
 // ============================================================
 
+/** HTMLの data-click="関数名" data-arg="引数" を、1つの委譲リスナーで配線する(インラインの onclick= を使わない=CSPで script-src 'self' を保つため)。
+ *  呼べる関数はこの表に載せた物だけ(属性の文字列を評価しない) */
+const _CLICK_ACTIONS = Object.freeze({
+    toggleSection: (a) => toggleSection(a), togglePanel: () => togglePanel(), toggleHelp: () => toggleHelp(),
+    showGraph: (a) => showGraph(a), applyLineStyle: (a) => applyLineStyle(a), resetBodyStyle: () => resetBodyStyle(),
+    closeUrlPicker: () => closeUrlPicker(), closeStarSearchPopup: () => closeStarSearchPopup(), closePalette: () => closePalette(),
+    closeLocationPicker: () => closeLocationPicker(), closeGraph: () => closeGraph(), closeGdriveSyncDialog: () => closeGdriveSyncDialog(),
+});
+function _wireDataClick() {
+    document.addEventListener('click', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('[data-click]') : null;
+        if (!el) return;
+        const fn = _CLICK_ACTIONS[el.dataset.click];
+        if (fn) fn(el.dataset.arg);
+    });
+    // 読み込み元の許可リスト(CSP)に引っかかった物をコンソールに残す(機能が静かに止まらないように。開発者が見つけるための記録)
+    document.addEventListener('securitypolicyviolation', (e) => {
+        console.warn(`CSP違反: ${e.violatedDirective} が ${e.blockedURI || '(インライン)'} を止めました(${e.sourceFile || ''}:${e.lineNumber || ''})`);
+    });
+}
+
 function setupUI() {
+    _wireDataClick();
     // 全テキストボックスのautocomplete無効化 (ブラウザのフォーム復元を防止)
     document.querySelectorAll('input').forEach(el => el.setAttribute('autocomplete', 'off'));
     document.getElementById('btn-help').onclick = toggleHelp;
@@ -2896,7 +2920,94 @@ function loadAppState() {
 
 /** 読み込んだ appState を安全な値に正規化（冪等）。旧バージョン/不整合データの自己修復。 */
 const APP_SCHEMA = 3;
+/** 保存データ(localStorage・バックアップJSON・Driveの生ダンプ・Myセットの写し)から入る「リスト/地点」の型を確定させる(第159のセキュリティ監査)。
+ *  これらは CSV/シートの取り込みと違って検証なしで appState に入っていたので、数値のつもりの欄に文字列(HTML)が入ると、
+ *  行やポップアップを組み立てる innerHTML にそのまま届いていた(他人から受け取ったバックアップで持続するXSS)。
+ *  方針: 数値の欄は数値に(直せない行は捨てる)・文字の欄は文字に(長さに上限)・色は safeCssColor・真偽は !!。
+ *  normalizeAppState の先頭で毎回呼ぶので、起動・取り込み・Myセット切替・URL復元の全部の入口で効く。 */
+function _sanitizeStoredShapes() {
+    const fin = (v) => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : null; };
+    const intId = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 1 && n <= 1000000 ? n : null; };
+    const str = (v, max) => (v === null || v === undefined) ? '' : String(v).slice(0, max);
+    const dropped = [];
+    // 観測点/目的点/Home(緯度経度は必須。標高・APIの標高・高さは数値か null)
+    const fixPoint = (p, label) => {
+        if (!p || typeof p !== 'object') return null;
+        const lat = fin(p.lat), lng = fin(p.lng);
+        if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 360) { dropped.push(label); return null; }
+        const q = { ...p, lat, lng, elev: fin(p.elev) ?? 0 };
+        if ('apiElev' in p) q.apiElev = fin(p.apiElev);
+        if ('height' in p) q.height = fin(p.height) ?? 0;
+        return q;
+    };
+    const dflt = (k) => JSON.parse(JSON.stringify(APP_DEFAULTS[k] && 'def' in APP_DEFAULTS[k] ? APP_DEFAULTS[k].def : null));
+    appState.start = fixPoint(appState.start, 'start') || { lat: DEFAULT_START.lat, lng: DEFAULT_START.lng, elev: DEFAULT_START.elev + DEFAULT_START.height };
+    appState.end = fixPoint(appState.end, 'end') || { lat: DEFAULT_END.lat, lng: DEFAULT_END.lng, elev: DEFAULT_END.elev + DEFAULT_END.height };
+    appState.homeStart = appState.homeStart == null ? null : fixPoint(appState.homeStart, 'homeStart');
+    appState.homeEnd = appState.homeEnd == null ? null : fixPoint(appState.homeEnd, 'homeEnd');
+    for (const k of ['startApiElev', 'endApiElev']) appState[k] = fin(appState[k]);          // 数値でなければ null(=未取得。表示は start.elev に戻る)
+    for (const k of ['startHeight', 'endHeight']) appState[k] = fin(appState[k]) ?? 0;        // 数値でなければ 0
+    // My観測点/My目的点
+    // 緯度経度が「未入力」(null/空)の行は正当な途中の状態(行追加して後で入れる)なので残す。入っているのに数値にならない行だけ捨てる
+    const emptyOrFin = (v) => (v === null || v === undefined || v === '') ? null : fin(v);
+    const fixMyPoints = (list, label) => (Array.isArray(list) ? list : []).map((p, i) => {
+        if (!p || typeof p !== 'object') { dropped.push(`${label}[${i}]`); return null; }
+        const id = intId(p.id), lat = emptyOrFin(p.lat), lng = emptyOrFin(p.lng);
+        const latBad = (p.lat !== null && p.lat !== undefined && p.lat !== '' && lat === null), lngBad = (p.lng !== null && p.lng !== undefined && p.lng !== '' && lng === null);
+        if (id === null || latBad || lngBad || (lat !== null) !== (lng !== null)) { dropped.push(`${label}[${i}]`); return null; }
+        return { ...p, id, lat, lng, elev: fin(p.elev), height: fin(p.height) ?? 0, name: str(p.name, 300), memo: str(p.memo, 1000), checked: !!p.checked };
+    }).filter(Boolean);
+    appState.myObservations = fixMyPoints(appState.myObservations, 'myObservations');
+    appState.myTargets = fixMyPoints(appState.myTargets, 'myTargets');
+    // My天体
+    appState.myStars = (Array.isArray(appState.myStars) ? appState.myStars : []).map((st, i) => {
+        if (!st || typeof st !== 'object') { dropped.push(`myStars[${i}]`); return null; }
+        const id = intId(st.id), ra = fin(st.ra), dec = fin(st.dec);
+        if (id === null || ra === null || dec === null) { dropped.push(`myStars[${i}]`); return null; }
+        return { ...st, id, ra, dec, name: str(st.name, 300), color: safeCssColor(st.color, '#DDA0DD'), visible: !!st.visible, isDashed: !!st.isDashed };
+    }).filter(Boolean);
+    // 表示天体の色・線種
+    if (Array.isArray(appState.bodies)) appState.bodies.forEach(b => { if (!b || typeof b !== 'object') return; const d = DEFAULT_BODIES.find(x => x.id === b.id); b.color = safeCssColor(b.color, d ? d.color : '#DDA0DD'); b.isDashed = !!b.isDashed; b.visible = !!b.visible; });
+    // My辻検索(parseMyTsujiCsvLine と同じ型に。モード/時刻/方向の列挙は normalizeAppState の既存の検査が続けて見る)
+    const numOr = (v, def, min, max) => { const n = fin(v); return n === null ? def : Math.max(min, Math.min(max, n)); };
+    appState.myTsujiSearches = (Array.isArray(appState.myTsujiSearches) ? appState.myTsujiSearches : []).map((t, i) => {
+        if (!t || typeof t !== 'object') { dropped.push(`myTsujiSearches[${i}]`); return null; }
+        const id = intId(t.id); if (id === null) { dropped.push(`myTsujiSearches[${i}]`); return null; }
+        const q = { ...t, id, name: str(t.name, 300), memo: str(t.memo, 1000), bodyIds: str(t.bodyIds, 1000),
+            days: Math.round(numOr(t.days, 365, 1, 36500)), obsId: intId(t.obsId), tgtId: intId(t.tgtId),
+            baseAz: fin(t.baseAz), baseAlt: fin(t.baseAlt), offsetAz: numOr(t.offsetAz, 0, -360, 360), offsetAlt: numOr(t.offsetAlt, 0, -360, 360),
+            toleranceAz: numOr(t.toleranceAz, 15, 0, 360), toleranceAlt: numOr(t.toleranceAlt, 15, 0, 360), mwOffsetAngle: numOr(t.mwOffsetAngle, 0, -360, 360),
+            moonBase: numOr(t.moonBase, 14.8, 0, 30), moonTolerance: numOr(t.moonTolerance, 2, 0, 15), checked: !!t.checked };
+        for (const k of Object.keys(q)) { if (/^(moonFilter|timeFilter|startPrePost|endPrePost|dowFilter|dow[A-Z][a-z]{2}|monthFilter|month\w+|accuracyFilter|acc[A-Z]\w*|elevationOption|elevOK|elevNG|mwOffsetEnabled|visCanopy|visBuilding)$/.test(k)) q[k] = !!q[k]; }
+        for (const k of ['startTime', 'startOffset', 'endTime', 'endOffset']) { if (k in q && !/^\d{1,2}:\d{2}$/.test(String(q[k]))) q[k] = '00:00'; }
+        for (const k of ['startMode', 'endMode', 'startPrePostDir', 'endPrePostDir', 'centerMode']) { if (k in q) q[k] = str(q[k], 20); }
+        return q;
+    }).filter(Boolean);
+    // Googleドライブの控え(フォルダ/ファイルのID)は Google のIDの文字種だけ。違えば null(次の同期で印から探し直す)
+    if (appState.googleDrive && typeof appState.googleDrive === 'object') {
+        for (const k of ['rootFolderId', 'settingsFolderId', 'mySetsFolderId', 'appFileId']) {
+            const v = appState.googleDrive[k];
+            if (v !== null && v !== undefined && !(typeof v === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(v))) appState.googleDrive[k] = null;
+        }
+    }
+    // Myセット(id は整数・名前/メモは文字・シートIDは Google のIDの文字種だけ、違えば未連携に戻す)
+    appState.mySets = (Array.isArray(appState.mySets) ? appState.mySets : []).map((m, i) => {
+        if (!m || typeof m !== 'object') { dropped.push(`mySets[${i}]`); return null; }
+        const id = intId(m.id); if (id === null) { dropped.push(`mySets[${i}]`); return null; }
+        const sheetId = (typeof m.sheetId === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(m.sheetId)) ? m.sheetId : null;
+        return { ...m, id, name: str(m.name, 300), memo: str(m.memo, 1000), sheetId, checked: !!m.checked, offline: !!m.offline, saveMode: m.saveMode === 'load' ? 'load' : 'save' };
+    }).filter(Boolean);
+    // My宙検索の id/観測点ID/目的点ID(他の欄は normalizeAppState の既存の検査)
+    appState.mySoraSearches = (Array.isArray(appState.mySoraSearches) ? appState.mySoraSearches : []).map((t, i) => {
+        if (!t || typeof t !== 'object') return null;
+        const id = intId(t.id); if (id === null) { dropped.push(`mySoraSearches[${i}]`); return null; }
+        return { ...t, id, obsId: intId(t.obsId), tgtId: intId(t.tgtId) };
+    }).filter(Boolean);
+    if (dropped.length) console.warn(`保存データの形が直せない行を外しました: ${dropped.slice(0, 10).join(', ')}${dropped.length > 10 ? ' …' : ''}`);
+}
+
 function normalizeAppState() {
+    _sanitizeStoredShapes();   // 先に型を確定させる(第159)
     // スキーマ1→2: 既定色の変更(天の川:紫→薄紫 / M42:薄紫→紫)。
     // 旧既定色のまま使っていた保存データだけ新既定色へ追従する(カスタム色は保持)。
     if ((appState._loadedSchema || 0) < 2) {
@@ -3745,9 +3856,20 @@ function setupTooltips() {
 // ============================================================
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    if (str === null || str === undefined || str === '') return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')   // 文字列以外(取り込みデータの数値など)も落ちずに文字として扱う(第159)
               .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+/** CSVのセルに書く自由文(名前・メモ): 表計算ソフトが数式として実行する先頭文字(= @ + - タブ)で始まる時は、先頭にアポストロフィを付けて「文字」にする(数値の負号 -12.3 は対象外)。取り込み側 csvUnprefix と対(往復で元に戻る)。第159: 他人のシート由来の名前が =HYPERLINK(…) のような式だった時の対策 */
+function csvText(v) {
+    const t = String(v ?? '');
+    return /^(=|@|\+|-(?![\d.])|\t|\r)/.test(t) ? "'" + t : t;
+}
+/** csvText の逆: 式の先頭文字の前に付けたアポストロフィを外す(取り込み時) */
+function csvUnprefix(t) { return String(t ?? '').replace(/^'(?=[=@+\-\t\r])/, ''); }
+/** CSSの色として安全な文字列だけ通す(#RGB/#RRGGBB/#RRGGBBAA か英字の色名)。style="color: …" に差し込む値はこれを通す(第159: 色欄に「;background:url(…)」等を混ぜたバックアップ対策) */
+function safeCssColor(c, def) {
+    return (typeof c === 'string' && /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|[a-zA-Z]{3,20})$/.test(c)) ? c : def;
 }
 
 
@@ -5147,11 +5269,11 @@ function createLocationPopup(title, pos, target, apiElev, height) {
     const alt = calculateApparentAltitude(dist, pos.elev, target.elev, pos.lat, target.lat);
 
     return `
-        <b>${title}</b><br>
-        緯度: ${pos.lat}°<br>
-        経度: ${pos.lng}°<br>
-        標高: ${apiElev != null ? apiElev : pos.elev} m<br>
-        高さ: ${height != null ? height : 0} m<br>
+        <b>${escapeHtml(title)}</b><br>
+        緯度: ${Number(pos.lat)}°<br>
+        経度: ${Number(pos.lng)}°<br>
+        標高: ${Number(apiElev != null ? apiElev : pos.elev)} m<br>
+        高さ: ${Number(height != null ? height : 0)} m<br>
         相手距離: ${(dist/1000).toFixed(2)} km<br>
         相手方位: ${az.toFixed(4)}°<br>
         相手高度: ${alt.toFixed(4)}°
@@ -5681,16 +5803,16 @@ function renderMyStarsList() {
         const dashClass = star.isDashed ? 'dashed' : 'solid';
         const li = document.createElement('li');
         li.innerHTML = `
-            <input type="radio" name="mystars-select" value="${star.id}" class="mystars-radio">
+            <input type="radio" name="mystars-select" value="${Number(star.id)}" class="mystars-radio">
             <input type="checkbox" class="body-checkbox" ${star.visible ? 'checked' : ''}>
-            <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(star.color)};"></div>
+            <div class="style-indicator ${dashClass}" style="color: ${safeCssColor(star.color, '#DDA0DD')};"></div>
             <div class="body-info">
                 <span class="body-name-label">${escapeHtml(star.name)}</span>
-                <span class="body-name-id" id="bodyid-${star.id}">ID: ${star.id}</span>
-                <span id="data-${star.id}" class="body-detail-text">方位角 --° / 視高度 --°</span>
-                <span id="riseset-${star.id}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
-                <span id="transit-${star.id}" class="body-detail-text">南中時 --:--:-- / 視半径 -.---°</span>
-                <span id="radec-${star.id}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
+                <span class="body-name-id" id="bodyid-${Number(star.id)}">ID: ${Number(star.id)}</span>
+                <span id="data-${Number(star.id)}" class="body-detail-text">方位角 --° / 視高度 --°</span>
+                <span id="riseset-${Number(star.id)}" class="body-detail-text">出時刻 --:--:-- / 入時刻 --:--:--</span>
+                <span id="transit-${Number(star.id)}" class="body-detail-text">南中時 --:--:-- / 視半径 -.---°</span>
+                <span id="radec-${Number(star.id)}" class="body-detail-text">赤経 ${star.ra.toFixed(6)}h / 赤緯 ${star.dec.toFixed(6)}°</span>
             </div>`;
         // チェックボックス: 表示/非表示
         li.querySelector('.body-checkbox').addEventListener('change', function() {
@@ -5789,6 +5911,8 @@ function isCsvCommentLine(line) {
 //  ※動画/画像Blob用のsoraExportDownload(遅延revoke)は用途が異なるため対象外
 // ============================================================
 /** ファイル選択ダイアログを開き、選んだテキストファイルの中身(UTF-8)をコールバックへ渡す */
+const PICK_FILE_MAX_BYTES = 8 * 1024 * 1024;   // 取り込むテキストファイル(バックアップJSON・CSV)の上限。端末の保存枠(localStorage 5〜10MB)に収まる範囲
+const STORE_WRITE_MAX_CHARS = 4 * 1024 * 1024;   // バックアップ/Driveからの書き戻しの合計文字数の上限
 function pickTextFile(accept, onText) {
     const input = document.createElement('input');
     input.type = 'file';
@@ -5796,6 +5920,7 @@ function pickTextFile(accept, onText) {
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (file.size > PICK_FILE_MAX_BYTES) { alert(`ファイルが大きすぎます(${(file.size / 1048576).toFixed(1)}MB)。${PICK_FILE_MAX_BYTES / 1048576}MBまでのファイルを選んでください。`); return; }   // 取り込み口の大きさの上限(第159)
         const reader = new FileReader();
         reader.onload = (ev) => onText(String(ev.target.result));
         reader.readAsText(file, 'UTF-8');
@@ -5832,7 +5957,7 @@ function importMyStarsCsv() {
             const cols = lines[i].split(',');
             if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = cols[1].trim();
+            const name = csvUnprefix(cols[1].trim());
             const ra = parseFloat(toHalfWidth(cols[2].trim()));
             const dec = parseFloat(toHalfWidth(cols[3].trim()));
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
@@ -5869,7 +5994,7 @@ function appendMyStarsCsv() {
             const cols = lines[i].split(',');
             if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = cols[1].trim();
+            const name = csvUnprefix(cols[1].trim());
             const ra = parseFloat(toHalfWidth(cols[2].trim()));
             const dec = parseFloat(toHalfWidth(cols[3].trim()));
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
@@ -5924,7 +6049,7 @@ function exportMyStarsCsv() {
     const bom = '\uFEFF';
     let csv = bom + '天体ID,天体名,赤経,赤緯\r\n';
     targets.forEach(s => {
-        csv += `${s.id},${s.name},${s.ra},${s.dec}\r\n`;
+        csv += `${s.id},${csvText(s.name)},${s.ra},${s.dec}\r\n`;
     });
     downloadTextFile(`soranotsuji-My天体-${formatFileDateTime()}.csv`, csv);
 }
@@ -6218,25 +6343,25 @@ function renderMyPointsList(type) {
         row.innerHTML = `
             <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
-                <input type="radio" name="${cfg.prefix}-select" value="${pt.id}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
-                <input type="checkbox" class="body-checkbox mypoint-check" data-id="${pt.id}" ${pt.checked ? 'checked' : ''} title="CSV出力の選択">
-                <span class="mypoint-id">ID:${String(pt.id).padStart(4, ' ')}</span>
+                <input type="radio" name="${cfg.prefix}-select" value="${Number(pt.id)}" class="mystars-radio" ${idx === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="body-checkbox mypoint-check" data-id="${Number(pt.id)}" ${pt.checked ? 'checked' : ''} title="CSV出力の選択">
+                <span class="mypoint-id">ID:${String(Number(pt.id)).padStart(4, ' ')}</span>
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${pt.id}" autocomplete="off">
+                <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? pt.lat + ', ' + pt.lng : ''}" placeholder="地名、Plus Code、緯度,経度" maxlength="150" data-id="${pt.id}" autocomplete="off">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? Number(pt.lat) + ', ' + Number(pt.lng) : ''}" placeholder="地名、Plus Code、緯度,経度" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
-                <input type="number" class="mypoint-elev" value="${pt.elev !== null && pt.elev !== undefined ? pt.elev : ''}" placeholder="標高" step="0.1" data-id="${pt.id}">
+                <input type="number" class="mypoint-elev" value="${pt.elev !== null && pt.elev !== undefined ? Number(pt.elev) : ''}" placeholder="標高" step="0.1" data-id="${Number(pt.id)}">
                 <label class="mypoint-label">高さ:</label>
-                <input type="number" class="mypoint-height" value="${pt.height !== null && pt.height !== undefined ? pt.height : ''}" placeholder="高さ" step="0.1" data-id="${pt.id}">
+                <input type="number" class="mypoint-height" value="${pt.height !== null && pt.height !== undefined ? Number(pt.height) : ''}" placeholder="高さ" step="0.1" data-id="${Number(pt.id)}">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">メモ:</label>
-                <input type="text" class="mypoint-memo" value="${escapeHtml(pt.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${pt.id}" autocomplete="off">
+                <input type="text" class="mypoint-memo" value="${escapeHtml(pt.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>`;
         // イベント: 名前変更
         row.querySelector('.mypoint-name').addEventListener('input', () => setMyPointDirty(type, true));
@@ -6474,7 +6599,7 @@ function registerAllMyPoints(type) {
     for (const pt of points) {
         if (!pt.name || pt.lat === null || pt.lat === undefined || pt.lng === null || pt.lng === undefined) {
             document.getElementById(`${cfg.prefix}-error`).innerHTML =
-                `<span class="mypoint-error-text">${cfg.label}ID:${pt.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                `<span class="mypoint-error-text">${cfg.label}ID:${escapeHtml(pt.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
             return;
         }
     }
@@ -6584,12 +6709,12 @@ function importMyPointsCsv(type) {
             const cols = lines[i].split(',');
             if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = cols[1].trim();
+            const name = csvUnprefix(cols[1].trim());
             const lat = parseFloat(toHalfWidth(cols[2].trim()));
             const lng = parseFloat(toHalfWidth(cols[3].trim()));
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-            const memo = (cols[6] !== undefined ? cols[6] : '').trim();
+            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim());
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
             if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
             if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
@@ -6631,13 +6756,13 @@ function appendMyPointsCsv(type) {
             const cols = lines[i].split(',');
             if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = cols[1].trim();
+            const name = csvUnprefix(cols[1].trim());
             const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
             const lat = parseFloat(latText);
             const lng = parseFloat(lngText);
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-            const memo = (cols[6] !== undefined ? cols[6] : '').trim();
+            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim());
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
             if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
             csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
@@ -6705,7 +6830,7 @@ function exportMyPointsCsv(type) {
     const bom = '\uFEFF';
     let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ,メモ\r\n`;
     targets.forEach(pt => {
-        csv += `${pt.id},${pt.name},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${pt.memo || ''}\r\n`;
+        csv += `${pt.id},${csvText(pt.name)},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${csvText(pt.memo || '')}\r\n`;
     });
     downloadTextFile(`soranotsuji-${cfg.labelFull}-${formatFileDateTime()}.csv`, csv);
 }
@@ -6977,7 +7102,7 @@ function registerAllMyTsuji() {
             t.obsId == null || t.tgtId == null ||
             t.baseAz == null || t.baseAlt == null) {
             document.getElementById('mytsuji-error').innerHTML =
-                `<span class="mypoint-error-text">辻検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                `<span class="mypoint-error-text">辻検索ID:${escapeHtml(t.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
             return;
         }
     }
@@ -7069,7 +7194,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     if (cols.length < 6) { alert(`${lineNum}行目: 列数が不足しています(最低6列必要)`); return null; }
     const id = parseInt(toHalfWidth(cols[0].trim()));
     if (isNaN(id) || id < 1 || id > 1000) { alert(`${lineNum}行目: 辻検索IDが無効です(1〜1000)`); return null; }
-    const name = cols[1].trim();  // 全角保持
+    const name = csvUnprefix(cols[1].trim()).slice(0, 150);  // 全角保持(上限は画面の入力欄と同じ)
     if (!name) { alert(`${lineNum}行目: 辻検索名が空です`); return null; }
     const days = parseInt(toHalfWidth(cols[2].trim()));
     if (isNaN(days) || days < 1 || days > 36500) { alert(`${lineNum}行目: 検索期間が無効です(1〜36500)`); return null; }
@@ -7179,7 +7304,7 @@ function parseMyTsujiCsvLine(cols, lineNum) {
     const elevOK = legacy ? false : parseBoolOr(cols[33 + ci + di + mfi]);
     const elevNG = legacy ? false : parseBoolOr(cols[34 + ci + di + mfi]);
     // メモ (末尾列)
-    const memo = ((legacy ? cols[20] : cols[35 + ci + di + mfi]) ?? '').trim();
+    const memo = csvUnprefix(((legacy ? cols[20] : cols[35 + ci + di + mfi]) ?? '').trim());
     return {
         id, name, days, bodyIds,
         obsId, tgtId,
@@ -7304,9 +7429,9 @@ function _buildMyTsujiCsv(targets) {
     targets.forEach(t => {
         csv += [
             t.id,
-            t.name ?? '',
+            csvText(t.name ?? ''),
             t.days ?? '',
-            t.bodyIds ?? '',
+            csvText(t.bodyIds ?? ''),
             t.obsId ?? '',
             t.tgtId ?? '',
             t.baseAz ?? '',
@@ -7349,7 +7474,7 @@ function _buildMyTsujiCsv(targets) {
             t.elevationOption ? 'ON' : 'OFF',
             t.elevOK ? 'ON' : 'OFF',
             t.elevNG ? 'ON' : 'OFF',
-            t.memo ?? ''
+            csvText(t.memo ?? '')
         ].join(',') + '\r\n';
     });
     return csv;
@@ -8099,7 +8224,7 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress) {
         'プレビューURL'
     ];
     const esc = v => {
-        const s = String(v ?? '');
+        const s = csvText(v);   // 式の先頭文字はアポストロフィで文字に(第159)
         if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
         return s;
     };
@@ -8516,7 +8641,7 @@ function renderCelestialList() {
         const dashClass = body.isDashed ? 'dashed' : 'solid';
         li.innerHTML = `
             <input type="checkbox" class="body-checkbox" ${body.visible ? 'checked' : ''}>
-            <div class="style-indicator ${dashClass}" style="color: ${escapeHtml(body.color)};"></div>
+            <div class="style-indicator ${dashClass}" style="color: ${safeCssColor(body.color, '#DDA0DD')};"></div>
             <div class="body-info">
                 <span class="body-name-label">${escapeHtml(body.name)}</span>
                 <span class="body-name-id" id="bodyid-${escapeHtml(body.id)}">ID: ${escapeHtml(body.id)}</span>
@@ -11592,6 +11717,9 @@ async function _kmImportText(text) {
         const meta = a.meta, isl = a.islands, ol = a.outline;
         if (!meta || !meta.mountain || !meta.mountain.id || !isl || !Array.isArray(isl.islands) || !ol || ol.v !== 2 || !Array.isArray(ol.islands)) throw new Error('資産の形が違います');
         if (ol.islands.length !== isl.islands.length) throw new Error('島の索引と輪郭の数が合いません');
+        // 島の番号・画素数は数値だけ(他人から受け取るファイルなので、文字列(HTML)が島リストやポップアップに届かないように型を確定させる。第159)
+        for (const it of isl.islands) { if (!it || typeof it !== 'object' || !Number.isFinite(+it.no) || !Number.isFinite(+it.px)) throw new Error('島の索引の形が違います(no/px)'); it.no = +it.no; it.px = +it.px; }
+        for (const rec of ol.islands) { if (!Array.isArray(rec) || !Number.isFinite(+rec[0]) || !Number.isFinite(+rec[1])) throw new Error('島の輪郭の形が違います(no/px)'); rec[0] = +rec[0]; rec[1] = +rec[1]; }
         const d = await _kmStoreSave(meta, isl, ol, 'import');
         _kmAssets.delete(d.key);
         done.push(d);
@@ -11789,7 +11917,7 @@ function _kmShowPopup(lngLat, features) {
     if (_kmPopup) { _kmPopup.remove(); _kmPopup = null; }
     _glTmHideTip();
     const div = document.createElement('div');
-    const lines = features.map(f => { const p = f.properties || {}; return `${escapeHtml(p.name || '')}(島${p.no})`; }).filter((v, i, a) => a.indexOf(v) === i);
+    const lines = features.map(f => { const p = f.properties || {}; return `${escapeHtml(p.name || '')}(島${escapeHtml(p.no)})`; }).filter((v, i, a) => a.indexOf(v) === i);
     const isStart = appState.locMode === 'start';
     div.innerHTML = `<b>可視辻(重複数${info.dup})</b><br>${lines.join('<br>')}<br>` +
         `<div class="kashimap-note">緯度: ${lngLat.lat.toFixed(6)}° 経度: ${lngLat.lng.toFixed(6)}°</div>` +
@@ -11984,8 +12112,8 @@ function _kmRenderIslandRow(r) {
     tr.dataset.key = r.key;
     const swatch = r.seat !== null && r.seat !== undefined ? `<span class="kashimap-swatch" style="background:${_kmSeatColor(r.seat)}"></span>` : '';
     tr.innerHTML = `<td><input type="checkbox" class="body-checkbox kashimap-island-check" ${_kmBlink.has(r.key) ? 'checked' : ''}></td>` +
-        `<td>${r.no}</td><td>${r.stripe ? '縞' : ''}</td><td>${r.dup}</td><td>${escapeHtml(r.names.join('/'))}${swatch}</td><td>${escapeHtml(r.yomi)}</td>` +
-        `<td>${(+r.lat).toFixed(6)}</td><td>${(+r.lon).toFixed(6)}</td><td>${r.stripe ? '約' : ''}${(+r.area).toFixed(2)}</td><td>${r.stripe ? '約' : ''}${r.px}</td>` +
+        `<td>${escapeHtml(r.no)}</td><td>${r.stripe ? '縞' : ''}</td><td>${Number(r.dup)}</td><td>${escapeHtml(r.names.join('/'))}${swatch}</td><td>${escapeHtml(r.yomi)}</td>` +
+        `<td>${(+r.lat).toFixed(6)}</td><td>${(+r.lon).toFixed(6)}</td><td>${r.stripe ? '約' : ''}${(+r.area).toFixed(2)}</td><td>${r.stripe ? '約' : ''}${escapeHtml(r.px)}</td>` +
         `<td>${r.dists.map(d => d === null ? '--' : (+d).toFixed(2)).join('/')}</td>`;
     const chk = tr.querySelector('input.kashimap-island-check');
     chk.addEventListener('click', ev => ev.stopPropagation());
@@ -13907,12 +14035,13 @@ function initVisitorCounter() {
     fetchVisitorData(action, todayStr);
 }
 
-function fetchVisitorData(action, todayStr) {
-    fetch(`${GAS_API_URL}?action=${action}`).then(r=>r.json()).then(d => {
+function fetchVisitorData(action, todayStr, attempt = 1) {
+    fetch(`${GAS_API_URL}?action=${encodeURIComponent(action)}`).then(r=>r.json()).then(d => {
         if (d.error === 'lock_busy') {
-            // ロック解除待ち表示 → 3秒後リトライ
+            // ロック解除待ち表示 → 間を空けて試し直す(合計3回まで=再試行2回。混雑時に全ての画面が叩き続けないように。第159のレビュー)
             setCounterDisplay('- -', '- -', '- -', '- -');
-            setTimeout(() => fetchVisitorData(action, todayStr), 2700);
+            if (attempt < 3) setTimeout(() => fetchVisitorData(action, todayStr, attempt + 1), 2700 * attempt);
+            else setCounterDisplay('- - -', '- - -', '- - -', '- - -');
             return;
         }
         if (d.error === 'no_sheet') {
@@ -14124,7 +14253,7 @@ async function driveApiFetch(path, options = {}) {
 /** Googleログアウト (トークンの取り消し) */
 function googleLogout() {
     if (googleToken && window.google && window.google.accounts && window.google.accounts.oauth2 && google.accounts.oauth2.revoke) {
-        try { google.accounts.oauth2.revoke(googleToken.accessToken, () => {}); } catch (e) { console.error(e); }
+        try { google.accounts.oauth2.revoke(googleToken.accessToken, (r) => { if (!r || !r.successful) console.warn('Googleのトークンの取り消しに失敗しました(有効期限で自然に切れます)', r && r.error); }); } catch (e) { console.error(e); }
     }
     googleToken = null;
     googleSyncState = 'none';
@@ -14133,7 +14262,7 @@ function googleLogout() {
 
 /** ファイルのメタデータ取得 (見つからない場合はnull) */
 async function driveGetMeta(fileId) {
-    try { return await driveApiFetch(`files/${fileId}?fields=id,name,trashed,modifiedTime,size,parents`); }
+    try { return await driveApiFetch(`files/${encodeURIComponent(fileId)}?fields=id,name,trashed,modifiedTime,size,parents`); }
     catch (e) { return null; }
 }
 
@@ -14156,7 +14285,7 @@ async function driveUploadJson(fileId, name, parents, contentString, appProps) {
     const boundary = 'soranotsuji_multipart_boundary';
     const meta = fileId ? {} : { name, parents, appProperties: appProps || {}, mimeType: 'application/json' };
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${contentString}\r\n--${boundary}--`;
-    const url = 'https://www.googleapis.com/upload/drive/v3/files' + (fileId ? '/' + fileId : '') + '?uploadType=multipart&fields=id,size,modifiedTime';
+    const url = 'https://www.googleapis.com/upload/drive/v3/files' + (fileId ? '/' + encodeURIComponent(fileId) : '') + '?uploadType=multipart&fields=id,size,modifiedTime';
     const resp = await fetch(url, {
         method: fileId ? 'PATCH' : 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary },
@@ -14210,8 +14339,11 @@ function collectLocalStorageAll() {
  *  Drive読込とバックアップインポートの両方が使う共通実装(第39ラウンド) */
 function _writeSoranotsujiKeys(obj) {
     let n = 0;
+    const total = Object.keys(obj).reduce((a, k) => a + ((k.startsWith('soranotsuji_') && typeof obj[k] === 'string') ? obj[k].length : 0), 0);
+    if (total > STORE_WRITE_MAX_CHARS) throw new Error(`取り込むデータが大きすぎます(${(total / 1048576).toFixed(1)}M文字。上限 ${STORE_WRITE_MAX_CHARS / 1048576}M文字)`);   // 端末の保存枠を使い切って以後の保存が全部失敗するのを防ぐ(第159)
     for (const k of Object.keys(obj)) {
-        if (k.startsWith('soranotsuji_') && typeof obj[k] === 'string') {
+        if (k === STORAGE_KEY && typeof obj[k] === 'string') {   // 書き戻すのは唯一の保存キーだけ(知らない soranotsuji_* の鍵を植え付けられて永久に持ち回らない。第159)
+            JSON.parse(obj[k]);   // 壊れたJSONは例外で止める
             localStorage.setItem(k, obj[k]);
             n++;
         }
@@ -14357,7 +14489,7 @@ async function loadAppFromDrive() {
         if (!meta) return alert(`Googleドライブに ${SORA_APP_FILENAME} がありません。`);
         const token = await ensureGoogleToken();
         if (!token) return;
-        const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${gd.appFileId}?alt=media`, {
+        const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(gd.appFileId)}?alt=media`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         if (!resp.ok) throw new Error('Drive APIエラー(ダウンロード): ' + resp.status);
@@ -14569,7 +14701,7 @@ async function registerSoraFolderName() {
     updateBackupDriveUI();
     if (isGoogleLoggedIn() && appState.googleDrive.rootFolderId) {
         try {
-            await driveApiJson(`files/${appState.googleDrive.rootFolderId}?fields=id,name`, 'PATCH', { name: real });
+            await driveApiJson(`files/${encodeURIComponent(appState.googleDrive.rootFolderId)}?fields=id,name`, 'PATCH', { name: real });
             alert(`Googleドライブのフォルダ名を「${real}」に変更しました。\n(中のファイルはそのまま追従します)`);
         } catch (e) {
             console.error(e);
@@ -14689,6 +14821,7 @@ async function sheetsApiFetch(path, method, bodyObj) {
     return resp.json();
 }
 
+const MYSET_SHEET_MAX_ROWS = 1100;   // シートから読む行数の上限(IDは1〜1000+見出し/コメント行。これより下は読まない=取り込み口の大きさの上限。第159)
 const MYSET_SHEET_NAMES = FEATURE_FORECAST_ENABLED
     ? ['My辻検索', 'My観測点', 'My目的点', 'My天体', 'My宙検索']
     : ['My辻検索', 'My観測点', 'My目的点', 'My天体'];   // 封鎖中はMy宙検索タブを作成/読み書きしない(既存タブには触れない)
@@ -14732,16 +14865,16 @@ function _mySetSheetRows(data, commentsBySheet) {
  *  【方針】既定名(MYSET_SHEET_NAMES)の5シート以外には一切触らない: ユーザーが独自に作成した
  *  タブ(名前を問わず)は列挙するだけで、作成・改名・削除・書き込みの対象にしない */
 async function _mySetEnsureSheets(s, writeInitial) {
-    const meta = await sheetsApiFetch(`spreadsheets/${s.sheetId}?fields=sheets.properties.title`, 'GET');
+    const meta = await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}?fields=sheets.properties.title`, 'GET');
     const titles = new Set((meta.sheets || []).map(sh => sh.properties && sh.properties.title));
     const missing = MYSET_SHEET_NAMES.filter(n => !titles.has(n));
     if (!missing.length) return;
-    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+    await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}:batchUpdate`, 'POST', {
         requests: missing.map(n => ({ addSheet: { properties: { title: n } } }))
     });
     if (writeInitial) {
         const empty = _mySetSheetRows({ myTsujiSearches: [], myObservations: [], myTargets: [], myStars: [], mySoraSearches: [] });
-        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+        await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchUpdate`, 'POST', {
             valueInputOption: 'RAW',
             data: missing.map(n => ({ range: `'${n}'!A1`, values: empty[n] }))
         });
@@ -14753,8 +14886,8 @@ async function _mySetEnsureSheets(s, writeInitial) {
 async function _mySetFetchCommentRows(s) {
     const commentsBySheet = {};
     try {
-        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
-        const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!1:${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(他人の巨大なシートを丸ごと取らない。第159)
+        const res = await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
         (res.valueRanges || []).forEach((vr, i) => {
             const block = [];
             for (const r of (vr.values || [])) {
@@ -14789,13 +14922,13 @@ function _mySetParsePoints(rows, sheetName) {
         const cols = dataRows[i];
         if (cols.length < 6) throw new Error(`${sheetName}: ${i + 1}件目の列数が不足しています(6列必要)`);
         const id = parseInt(toHalfWidth(cols[0].trim()));
-        const name = cols[1].trim();
+        const name = csvUnprefix(cols[1].trim()).slice(0, 150);   // 画面の入力欄と同じ上限(他人のシートの巨大なセルで端末の保存枠を使い切らせない。第159)
         const lat = parseFloat(toHalfWidth(cols[2].trim()));
         const lng = parseFloat(toHalfWidth(cols[3].trim()));
         let elev = cols[4].trim() === '' ? 0 : parseFloat(toHalfWidth(cols[4].trim()));
         if (isNaN(elev)) elev = 0;
         const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-        const memo = (cols[6] ?? '').trim();
+        const memo = csvUnprefix((cols[6] ?? '').trim().slice(0, 150));
         if (isNaN(id) || id < 1 || id > 1000) throw new Error(`${sheetName}: ${i + 1}件目のIDが無効です(1〜1000)`);
         if (ids.has(id)) throw new Error(`${sheetName}: ID ${id} が重複しています`);
         if (isNaN(lat) || isNaN(lng)) throw new Error(`${sheetName}: ${i + 1}件目の緯度/経度が無効です`);
@@ -14813,7 +14946,7 @@ function _mySetParseStars(rows) {
         const cols = dataRows[i];
         if (cols.length < 4) throw new Error(`My天体: ${i + 1}件目の列数が不足しています(4列必要)`);
         const id = parseInt(toHalfWidth(cols[0].trim()));
-        const name = cols[1].trim();
+        const name = csvUnprefix(cols[1].trim()).slice(0, 150);   // 画面の入力欄と同じ上限(他人のシートの巨大なセルで端末の保存枠を使い切らせない。第159)
         const ra = parseFloat(toHalfWidth(cols[2].trim()));
         const dec = parseFloat(toHalfWidth(cols[3].trim()));
         if (isNaN(id) || id < 1 || id > 1000) throw new Error(`My天体: ${i + 1}件目のIDが無効です(1〜1000)`);
@@ -14850,7 +14983,7 @@ async function mySetCreateSheet(s) {
         appProperties: { soranotsuji: 'myset' }
     });
     s.sheetId = res.id;
-    await sheetsApiFetch(`spreadsheets/${s.sheetId}:batchUpdate`, 'POST', {
+    await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}:batchUpdate`, 'POST', {
         requests: [
             { updateSheetProperties: { properties: { sheetId: 0, title: MYSET_SHEET_NAMES[0] }, fields: 'title' } },
             ...MYSET_SHEET_NAMES.slice(1).map(n => ({ addSheet: { properties: { title: n } } }))
@@ -14877,8 +15010,8 @@ function _mySetParseMySora(rows) {
 
 /** シートから5メニュー分の内容を取得して解析する (適用はしない) */
 async function _mySetFetchSheetData(s) {
-    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'`)).join('&');
-    const res = await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
+    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!1:${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(第159)
+    const res = await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
     const vr = res.valueRanges || [];
     const byIdx = i => (vr[i] && vr[i].values) || [];
     const data = {
@@ -14919,10 +15052,14 @@ function mySetDataOf(s) {
 
 /** 読み込んだ内容をセットへ反映する (保持ルール込み) */
 function mySetSetData(s, data) {
+    // 端末に保持する前に大きさを見る(他人の巨大なシートで localStorage を使い切ると、以後の保存が全部失敗する。第159のレビュー)。
+    // 上限は書き戻しと同じ4M文字(アプリ自身の上限=各リスト1,000行でも約1MB台なので、正当なセットは通る)。超えたら false を返し、呼び元は「読込失敗」として扱う
+    try { const n = JSON.stringify(data).length; if (n > STORE_WRITE_MAX_CHARS) { alert(`Myセット「${s.name}」の内容が大きすぎるため(${(n / 1048576).toFixed(1)}M文字。上限 ${STORE_WRITE_MAX_CHARS / 1048576}M文字)、端末には保持しません。`); return false; } } catch (_) {}
     if (s.id === appState.mySetCurrentId) applyMySetData(data);
     else if (s.id === 0) appState.mySetHomeData = data;   // 既定のセットは常に端末保持
     else if (s.offline) s.data = data;
     else s.data = null;   // 保持ルール(オフライン指定なしは端末に保持しない)
+    return true;
 }
 
 /** 端末の内容をスプレッドシートへ保存 (無ければ作成。保存時にファイル名もMyセット名に揃える) */
@@ -14960,14 +15097,14 @@ async function mySetSaveToSheet(s, opts = {}) {
         }
         const data = mySetDataOf(s);
         const sheets = _mySetSheetRows(data, commentsBySheet);
-        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
-        await sheetsApiFetch(`spreadsheets/${s.sheetId}/values:batchUpdate`, 'POST', {
+        await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchClear`, 'POST', { ranges: MYSET_SHEET_NAMES.map(n => `'${n}'`) });
+        await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchUpdate`, 'POST', {
             valueInputOption: 'RAW',
             data: MYSET_SHEET_NAMES.map(n => ({ range: `'${n}'!A1`, values: sheets[n] }))
         });
         let meta = await driveGetMeta(s.sheetId);
         if (meta && meta.name !== s.name) {
-            meta = await driveApiJson(`files/${s.sheetId}?fields=id,name,modifiedTime,size`, 'PATCH', { name: s.name });   // 名前をMyセット名に揃える
+            meta = await driveApiJson(`files/${encodeURIComponent(s.sheetId)}?fields=id,name,modifiedTime,size`, 'PATCH', { name: s.name });   // 名前をMyセット名に揃える
         }
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
@@ -15004,7 +15141,7 @@ async function mySetLoadFromSheet(s, opts = {}) {
         renderMySetList();
         await _mySetEnsureSheets(s, true);   // タブ削除/改名されていても、初期状態で作成してから読み込む
         const { data, meta } = await _mySetFetchSheetData(s);
-        mySetSetData(s, data);
+        if (!mySetSetData(s, data)) throw new Error('内容が大きすぎるため読み込みませんでした');   // 端末の状態は変えず、読込失敗として扱う(同期済みの印を付けない)
         s.updatedAt = meta ? new Date(meta.modifiedTime).getTime() : Date.now();
         s.lastSyncSheetTime = meta ? meta.modifiedTime : null;
         s.localEdit = false;   // 読込成功=シートの内容が端末に揃った(未保存変更の印を消す: 第68ラウンド)
@@ -15124,7 +15261,8 @@ function openMySetSheet() {
     if (!s) return;
     if (!s.sheetId) return alert('このMyセットにはスプレッドシートが紐付いていません。');
     if (!confirm('チェックされたMyセットのGoogleスプレッドシートを開きますか？')) return;
-    window.open(`https://docs.google.com/spreadsheets/d/${s.sheetId}/edit`, '_blank');
+    if (!/^[A-Za-z0-9_-]+$/.test(String(s.sheetId))) return alert('スプレッドシートIDの形が正しくありません。');   // IDの文字種を限る(URLに他の物を差し込ませない)
+    window.open(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(s.sheetId)}/edit`, '_blank', 'noopener,noreferrer');   // 開いた先から元の画面を触れないように(noopener)
 }
 
 // Google Picker (追加ボタン用)
@@ -15311,26 +15449,26 @@ function renderMySetList() {
         row.innerHTML = `
             <hr class="tsujisearch-separator">
             <div class="mypoint-row-header">
-                <input type="radio" name="myset-select" value="${s.id}" class="mystars-radio">
-                <input type="checkbox" class="body-checkbox myset-check" data-id="${s.id}" ${s.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
-                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span><button type="button" class="myset-fav" data-id="${s.id}" title="お気に入り(タップで切り替え。⭐️のMyセットはリストの上位に表示)">${s.favorite ? '⭐️' : '☆'}</button>
+                <input type="radio" name="myset-select" value="${Number(s.id)}" class="mystars-radio">
+                <input type="checkbox" class="body-checkbox myset-check" data-id="${Number(s.id)}" ${s.checked ? 'checked' : ''} title="更新ボタンの対象の選択">
+                <span class="mypoint-id">ID:${String(s.id).padStart(4, ' ')}</span><button type="button" class="myset-fav" data-id="${Number(s.id)}" title="お気に入り(タップで切り替え。⭐️のMyセットはリストの上位に表示)">${s.favorite ? '⭐️' : '☆'}</button>
                 ${cur === s.id ? '<span>🔛</span>' : ''}
             </div>
             <div class="control-row">
-                <button class="nav-btn myset-status${rowIcon === '🕛' ? ' clock-anim' : ''}" data-id="${s.id}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
-                <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${s.id}" autocomplete="off" title="${escapeHtml(s.name)}">
+                <button class="nav-btn myset-status${rowIcon === '🕛' ? ' clock-anim' : ''}" data-id="${Number(s.id)}" title="${escapeHtml(rowIconTitle)}">${rowIcon}</button>
+                <input type="text" class="myset-name" value="${escapeHtml(s.name)}" placeholder="Myセット名" maxlength="150" data-id="${Number(s.id)}" autocomplete="off" title="${escapeHtml(s.name)}">
             </div>
             <div class="control-row">
-                <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-${s.id}" value="save" ${s.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:保存</label>
-                <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-${s.id}" value="load" ${s.saveMode === 'load' ? 'checked' : ''} class="myset-slmode" data-id="${s.id}">:読込</label>
-                <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${s.id}" ${s.offline ? 'checked' : ''}>:オフライン</label>
+                <label class="baseopt-radio" title="更新時に、端末の内容をGoogleドライブに保存します"><input type="radio" name="myset-sl-${Number(s.id)}" value="save" ${s.saveMode !== 'load' ? 'checked' : ''} class="myset-slmode" data-id="${Number(s.id)}">:保存</label>
+                <label class="baseopt-radio" title="更新時に、Googleドライブの内容を端末に読み込みます"><input type="radio" name="myset-sl-${Number(s.id)}" value="load" ${s.saveMode === 'load' ? 'checked' : ''} class="myset-slmode" data-id="${Number(s.id)}">:読込</label>
+                <label class="baseopt-radio" title="ログインしていなくても切り替え表示できるように、内容を端末に保持します"><input type="checkbox" class="myset-offline" data-id="${Number(s.id)}" ${s.offline ? 'checked' : ''}>:オフライン</label>
             </div>
             <div class="control-row">
                 <span class="mypoint-label">${mySetUpdatedHtml(s)}</span>
             </div>
             <div class="control-row">
                 <label class="mypoint-label">メモ:</label>
-                <input type="text" class="myset-memo" value="${escapeHtml(s.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${s.id}" autocomplete="off">
+                <input type="text" class="myset-memo" value="${escapeHtml(s.memo || '')}" placeholder="メモ(150文字)" maxlength="150" data-id="${Number(s.id)}" autocomplete="off">
             </div>`;
         const nameInput = row.querySelector('.myset-name');
         nameInput.addEventListener('input', () => setMySetDirty(true));
@@ -15393,7 +15531,7 @@ function registerDirtyMyMenus() {
         for (const pt of cfg.list()) {
             if (!pt.name || pt.lat === null || pt.lat === undefined || pt.lng === null || pt.lng === undefined) {
                 document.getElementById(`${cfg.prefix}-error`).innerHTML =
-                    `<span class="mypoint-error-text">${cfg.label}ID:${pt.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                    `<span class="mypoint-error-text">${cfg.label}ID:${escapeHtml(pt.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
                 alert(`${cfg.labelFull}に未入力があるため保存できませんでした。切り替えを中止します。\n${cfg.labelFull}メニューのエラーメッセージをご確認ください。`);
                 return false;
             }
@@ -15412,7 +15550,7 @@ function registerDirtyMyMenus() {
         for (const t of appState.myTsujiSearches) {
             if (!t.name || t.days == null || !t.bodyIds || t.obsId == null || t.tgtId == null || t.baseAz == null || t.baseAlt == null) {
                 document.getElementById('mytsuji-error').innerHTML =
-                    `<span class="mypoint-error-text">辻検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                    `<span class="mypoint-error-text">辻検索ID:${escapeHtml(t.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
                 alert('My辻検索に未入力があるため保存できませんでした。切り替えを中止します。\nMy辻検索メニューのエラーメッセージをご確認ください。');
                 return false;
             }
@@ -15482,7 +15620,7 @@ function registerAllMySets() {
     for (const s of appState.mySets) {
         if (!s.name || !s.name.trim()) {
             document.getElementById('myset-error').innerHTML =
-                `<span class="mypoint-error-text">MyセットID:${s.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+                `<span class="mypoint-error-text">MyセットID:${escapeHtml(s.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
             return;
         }
     }
@@ -15541,7 +15679,7 @@ async function copyMySet() {
     if (src.sheetId && isGoogleLoggedIn()) {
         try {
             await ensureSoraFolders();
-            const res = await driveApiJson(`files/${src.sheetId}/copy?fields=id,modifiedTime`, 'POST', {
+            const res = await driveApiJson(`files/${encodeURIComponent(src.sheetId)}/copy?fields=id,modifiedTime`, 'POST', {
                 name: newSet.name,
                 parents: [appState.googleDrive.mySetsFolderId],
                 appProperties: { soranotsuji: 'myset' }
@@ -16208,7 +16346,7 @@ function deliverShareUrl(url, subject) {
  *  URLが入り切らない長さならLへ落として再試行する(それでも入らなければ短いURLを案内) */
 async function copyShareQr(url, subject) {
     if (typeof qrcode !== 'function') {
-        alert('QRコード部品(CDN)が読み込めていません。ネットワーク接続を確認してページを再読み込みしてください。');
+        alert('QRコード部品(vendor/qrcode.js)が読み込めていません。ネットワーク接続を確認してページを再読み込みしてください。');
         return;
     }
     let qr = null;
@@ -20540,7 +20678,7 @@ function ssRenderResults(view) {
         const v = ssRowValues(r);
         const scoreColor = r.score >= 70 ? '#ffd700' : (r.score >= 40 ? '#eee' : '#888');
         const confColor = r.conf === '高' ? '#8f8' : (r.conf === '中' ? '#ff8' : (r.conf === '統計' ? '#c9f' : '#f88'));
-        const head = view.batch ? `<td>${r._entry ? r._entry.id : '-'}</td><td>${escapeHtml(r._entry ? (r._entry.name || '') : '')}</td>` : '';
+        const head = view.batch ? `<td>${escapeHtml(r._entry ? r._entry.id : '-')}</td><td>${escapeHtml(r._entry ? (r._entry.name || '') : '')}</td>` : '';
         tr.innerHTML = head + `<td>${v[0]}</td><td>${r.isStat ? '-' : '(' + v[1] + ')'}</td><td>${v[2]}</td><td>${escapeHtml(v[3])}</td>` +
             `<td style="color:${scoreColor};font-weight:bold;">${v[4]}</td><td>${v[5]}</td>` +
             `<td>${v[6]}</td><td>${v[7]}</td><td>${v[8]}</td><td>${v[9]}</td><td>${v[10]}</td>` +
@@ -20743,7 +20881,7 @@ async function ssDownloadCsv(snap) {
         '対象', '対象重み', '時間帯フィルタ', '検索期間(日)', '間隔(時間)', '扇角(°)', '範囲(km)', '標本格子数',
     ]);
     const esc = v => {
-        const s = String(v ?? '');
+        const s = csvText(v);   // 式の先頭文字はアポストロフィで文字に(第159)
         if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
         return s;
     };
@@ -20996,7 +21134,7 @@ function _sdInitMap() {
                     type: 'raster',
                     tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')],
                     tileSize: 256, maxzoom: 18,
-                    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank">Terrain Tiles (Mapzen/AWS)</a> | 雲: <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> (CC BY 4.0)',
+                    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院</a>,<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener noreferrer">Terrain Tiles (Mapzen/AWS)</a> | 雲: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> (CC BY 4.0)',
                 },
                 gsidem: {
                     type: 'raster-dem',
@@ -21373,15 +21511,15 @@ function registerAllMySora() {
     const errEl = document.getElementById('mysora-error');
     for (const t of appState.mySoraSearches) {
         if (!t.name || t.obsId == null || t.tgtId == null) {
-            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}に未入力のものがあります。入力するか、行削除してください。</span>`;
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${escapeHtml(t.id)}に未入力のものがあります。入力するか、行削除してください。</span>`;
             return;
         }
         if (!appState.myObservations.some(o => o.id === t.obsId)) {
-            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の観測点ID:${t.obsId}はMy観測点リストに存在しません。</span>`;
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${escapeHtml(t.id)}の観測点ID:${escapeHtml(t.obsId)}はMy観測点リストに存在しません。</span>`;
             return;
         }
         if (!appState.myTargets.some(g => g.id === t.tgtId)) {
-            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の目的点ID:${t.tgtId}はMy目的点リストに存在しません。</span>`;
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${escapeHtml(t.id)}の目的点ID:${escapeHtml(t.tgtId)}はMy目的点リストに存在しません。</span>`;
             return;
         }
     }
@@ -21485,7 +21623,7 @@ async function runMySoraBatch(fileMode) {
         const obs = appState.myObservations.find(o => o.id === t.obsId);
         const tgt = appState.myTargets.find(g => g.id === t.tgtId);
         if (!obs || !tgt) {
-            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${t.id}の${!obs ? `観測点ID:${t.obsId}` : `目的点ID:${t.tgtId}`}がMyリストに存在しません。</span>`;
+            if (errEl) errEl.innerHTML = `<span class="mypoint-error-text">宙検索ID:${escapeHtml(t.id)}の${!obs ? `観測点ID:${escapeHtml(t.obsId)}` : `目的点ID:${escapeHtml(t.tgtId)}`}がMyリストに存在しません。</span>`;
             return;
         }
     }
@@ -21543,7 +21681,7 @@ async function mySoraDownloadCsv(rows) {
         '狙い', '雲低重み', '雲中重み', '雲高重み', '月モード', '月重み', '雲海モード', '雲海重み', '光害重み', '透明度重み',
         '対象', '対象重み', '時間帯フィルタ', '検索期間(日)', '間隔(時間)', '扇角(°)', '範囲(km)', '標本格子数']);
     const esc = v => {
-        const s = String(v ?? '');
+        const s = csvText(v);   // 式の先頭文字はアポストロフィで文字に(第159)
         if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
         return s;
     };
@@ -21599,7 +21737,7 @@ function parseMySoraCsvLine(cols, lineNum) {
     if (cols.length < 22) { alert(`${lineNum}行目: 列が不足しています(22列必要)`); return null; }
     const id = parseInt(toHalfWidth(cols[0].trim()));
     if (isNaN(id) || id < 1 || id > 1000) { alert(`${lineNum}行目: 宙検索IDが無効です(1〜1000)`); return null; }
-    const name = cols[1].trim();
+    const name = csvUnprefix(cols[1].trim());
     const obsId = cols[2].trim() === '' ? null : parseInt(toHalfWidth(cols[2].trim()));
     const tgtId = cols[3].trim() === '' ? null : parseInt(toHalfWidth(cols[3].trim()));
     if (obsId !== null && (isNaN(obsId) || obsId < 1 || obsId > 1000)) { alert(`${lineNum}行目: 観測点IDが無効です(1〜1000)`); return null; }
@@ -21630,7 +21768,7 @@ function parseMySoraCsvLine(cols, lineNum) {
     const fan = Math.max(1, Math.min(180, parseFloat(toHalfWidth(cols[19].trim())) || 24));
     const rv = parseFloat(toHalfWidth(cols[20].trim()));
     const range = isFinite(rv) && rv > 0 ? Math.max(1, Math.min(300, rv)) : null;
-    const memo = cols[21].trim();
+    const memo = csvUnprefix(cols[21].trim());
     return { id, name, obsId, tgtId, preset, weights, days, interval, fan, range, checked: false, memo };
 }
 function importMySoraCsv() {
@@ -22320,7 +22458,7 @@ function _smBuildTerrainMesh(hf, focusNear, focusFar, sunVec) {
 // 実測の目安: LOD2texタイル≈1.8MB/1.1万頂点。スマホは端末性能に合わせて控えめに。
 const SM_BLDG_CACHE_MAX = 520;        // b3dm/幾何/テクスチャのLRU上限(タイル数。スライダー最大500より大きく=表示中タイルを追い出さない)
 const SM_BLDG_RANGE_CAP_KM = 200;     // 建物を取りに行く距離の上限(km。視界範囲とのmin。霞ヶ浦からのダイヤモンド富士+都心ビル群のような遠景シルエット用: 第52ラウンド・依頼者指定)
-const SM_BLDG_DRACO_BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/';   // three同梱のGoogle Draco(既存CDN系列。テストはvendorへ書き換え)
+const SM_BLDG_DRACO_BASE = 'vendor/draco/';   // three同梱のGoogle Draco。自前配信(vendor/。指紋は vendor/MANIFEST.json)
 // 全国対応表(tools/plateau/make-bldg-cities.jsでカタログAPIから生成。448都市ファミリ=306市区町村)
 // 各エントリ: {code, name, bbox[西,南,東,北 度]=tileset root実測, lod1/lod2NoTex/lod2Tex=base相対URL}
 const SM_BLDG_CITIES_URL = 'data/plateau-bldg-cities.json';

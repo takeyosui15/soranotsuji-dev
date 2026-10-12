@@ -15,7 +15,7 @@ const tmSrc = fs.readFileSync(path.join(ROOT, 'tsujimesh-search-worker.js'), 'ut
 const dpSrc = fs.readFileSync(path.join(ROOT, 'dp-line-worker.js'), 'utf8');
 const stSrc = fs.readFileSync(path.join(ROOT, 'sora-terrain-worker.js'), 'utf8');
 
-check('V0 版数ピン 1.97.0+Version Historyに第158', /APP_VERSION = '1\.97\.0'/.test(src) && src.includes('Version 1.97.0 - ') && src.includes('第158ラウンド — 気差を2本立てに'));
+check('V0 版数は1.97以上+Version Historyに第158(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.9[7-9]\.\d+'/.test(src) && src.includes('Version 1.97.0 - ') && src.includes('第158ラウンド — 気差を2本立てに'));
 
 check('S1 気差の2本立て(本体): refractionKInUse はオフ=0・既定は両方オン・保存/復元/移行(refractionV3)・天体の大気差は astroRefraction だけが決める(旧式が残らない)・ワーカーへは astroRefraction・共有URL(2つのビルダー+復元)・辞書v22',
   src.includes("return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;") &&

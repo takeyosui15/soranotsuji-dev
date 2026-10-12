@@ -22,7 +22,7 @@ const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-apptest.py'), 'utf8');
 
 check('V0 版数(ピンはverify181へ移譲)+Version Historyに第155', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第155ラウンド — 可視マップ節の新しい画面構成') || !!process.argv[2]));
-const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf("toggleSection('sec-soramado')"));
+const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('data-arg="sec-soramado"'));
 const ctrlHtml = idxSrc.slice(idxSrc.indexOf('id="kashimap-ctrl-body"'), idxSrc.indexOf('id="tsujimesh-panel"'));
 const order = (...ids) => ids.map(t => kmHtml.indexOf(t)).every((v, i, a) => v >= 0 && (i === 0 || a[i - 1] < v));
 check('S1 可視マップ節(デッサン05第155→第156の改訂版): 推し山の入力はラベル無し・横幅いっぱい(km-query)・150字・プレースホルダー → 検索条件:/AND/OR → 山リスト:/百/二百/三百/百高/その他/端末保存 → 最大表示範囲:/100/300/700(初期値100・60なし) → 障害物オプション:/:樹冠/:構造物 → 計算済み可視マップを検索 → :目的点/:My目的点 → 計算範囲リスト(7つ・初期値24・500なし) → :精細/:最高精細 → 範囲を計算 → 可視タイル/山頂/全展望 → 標高タイル: 件数/容量/全削除 → 可視タイル: 件数/容量/一括選択/⬇DL/削除/全て登録',
@@ -41,7 +41,7 @@ check('S2 可視フィルタ: 辻検索/辻メッシュ/結果コントロール
   /id="chk-tsuji-vis-canopy" class="body-checkbox" disabled>/.test(idxSrc) && /id="chk-tsuji-vis-building" class="body-checkbox" disabled checked>/.test(idxSrc) && /id="chk-tsujimesh-vis-canopy" class="body-checkbox" disabled>/.test(idxSrc) && /id="chk-tsujimesh-vis-building" class="body-checkbox" disabled checked>/.test(idxSrc) &&
   src.includes('class="body-checkbox mytsuji-vis-canopy"') && src.includes('class="body-checkbox mytsuji-vis-building"') && src.includes('<label>可視フィルタ</label>') && src.includes(',精度-フィルタ,標高フィルタ,標高OKフィルタ,') &&
   src.includes('const DP_DIST_LIMIT = 400000;') && idxSrc.includes('<strong>目的点から400km以内</strong>') &&
-  /<script type="module">import \* as THREE from 'https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/build\/three\.module\.min\.js'; window\.THREE = THREE;<\/script>/.test(idxSrc) && !idxSrc.includes('build/three.min.js') && harnessSrc.includes('three.module.min.js') &&
+  /<script type="module" src="three-global.js"><\/script>/.test(idxSrc) && fs.readFileSync(path.join(ROOT, 'three-global.js'), 'utf8').includes("import * as THREE from './vendor/three.module.min.js';") && !idxSrc.includes('build/three.min.js') && harnessSrc.includes("DIRS = ['fonts', 'data', 'vendor']") &&
   src.includes('function _glRefreshRasterTiles()') && src.includes('    _glRefreshRasterTiles();   // 計算中に取りこぼした地図タイル') && src.includes("setStatus('(可視フィルタ 判定データ準備中…)');") && !/setStatus\([^)]*標高フィルタ/.test(src));
 check('S3 script.js: KM_RANGES=[100,300,700]・_kmRange初期値100・_kmBuilding・_kmKindPrefs/_kmKindOf・_kmZoomForRange(rangeKm, fine)・_kmRangeBucket・計算後に表示範囲を広げる・_kmTilesStat・一覧の関数(名前の登録/⬇DL/削除)・CSS(2行1組の背景・dirty)',
   ['const KM_RANGES = [100, 300, 700];', 'let _kmRange = 100, _kmCanopy = true, _kmBuilding = true,', 'function _kmKindPrefs()', 'function _kmKindOf(meta)', 'function _kmZoomForRange(rangeKm, fine, finest) {', 'function _kmRangeBucket(rangeKm)', 'if (_kmRange < bucket) { _kmRange = bucket; _kmSyncUi(); }', 'async function _kmTilesStat()', 'async function _kmStoreRename(key, name)', 'async function _kmStoreExportChecked()', 'async function _kmStoreDeleteChecked()', 'function _kmStoreUpdateButtons()', "kind = _kmKindOf(meta)"].every(t => src.includes(t)) &&

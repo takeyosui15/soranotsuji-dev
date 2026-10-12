@@ -20,7 +20,7 @@ GNU General Public License for more details.
 // 方位角ビン索引で候補画素だけを引き、精度フィルタ(角距離≤ε)で判定する。
 // 秒精細化は天体の秒間位置を1回だけ計算して全ヒット画素で共有する(画素側は算術のみ)。
 
-importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
+importScripts('vendor/astronomy.browser.min.js');   // 自前配信(vendor/。版は固定・指紋は vendor/MANIFEST.json)
 
 const A = (typeof Astronomy !== 'undefined') ? Astronomy
         : (typeof self !== 'undefined' && self.Astronomy) ? self.Astronomy

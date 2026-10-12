@@ -23,7 +23,7 @@ const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 
 check('V0 版数(ピンはverify180へ移譲)+Version Historyに第154', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第154ラウンド — その場計算の「タイルの継ぎ目の模様」の直し') || !!process.argv[2]));
-const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf("toggleSection('sec-soramado')"));   // 可視マップ節の全体(次の節の見出しまで)
+const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('data-arg="sec-soramado"'));   // 可視マップ節の全体(次の節の見出しまで)
 const opts = [...kmHtml.matchAll(/<option value="(\d+)"( selected)?>(\d+)km \(1画素≈(\d+)m\)<\/option>/g)].map(m => [m[1], !!m[2], m[4]]);
 check('S1 index.html: 計算範囲リスト=24/36/48/60/100/300/500/700(第155: 初期値24・500を追加・解像度4/4/4/4/8/30/30/60m)・段組み(ラジオ→樹冠/構造物→検索→「目的点で計算」「My目的点で計算」1段→計算範囲リスト→チェック)・km-label・「:樹冠」「:構造物」(節とコントロール)・下のボタンは1段ずつ・ヘルプ',
   opts.map(o => o[0]).join(',') === '24,36,48,60,100,300,700' && opts.filter(o => o[1]).map(o => o[0]).join() === '24' && opts.map(o => o[2]).join(',') === '4,4,4,4,8,30,60' &&   // 第156: 500を外した

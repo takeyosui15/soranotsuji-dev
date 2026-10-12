@@ -29,7 +29,7 @@ GNU General Public License for more details.
 // このWorkerはプール内で再利用される設計のため、起動時のオーバーヘッドを
 // 1度だけ負担して、以降のメッセージは postMessage のみで処理する。
 
-importScripts('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js');
+importScripts('vendor/astronomy.browser.min.js');   // 自前配信(vendor/。版は固定・指紋は vendor/MANIFEST.json)
 
 const A = (typeof Astronomy !== 'undefined') ? Astronomy
         : (typeof self !== 'undefined' && self.Astronomy) ? self.Astronomy

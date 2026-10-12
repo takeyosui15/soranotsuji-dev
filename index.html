@@ -17,6 +17,9 @@ GNU General Public License for more details.
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 読み込み元の許可リスト(CSP)。スクリプトは自サイトとGoogleのログイン/ピッカーだけ・通信先は使うAPIだけ・埋め込み/プラグインは不可。変えるときは tests/verify184.js も直す -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://apis.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://tile.openstreetmap.org https://s3.amazonaws.com; font-src 'self'; connect-src 'self' https://cyberjapandata.gsi.go.jp https://tile.openstreetmap.org https://s3.amazonaws.com https://msearch.gsi.go.jp https://nominatim.openstreetmap.org https://api.open-meteo.com https://archive-api.open-meteo.com https://air-quality-api.open-meteo.com https://www.googleapis.com https://sheets.googleapis.com https://oauth2.googleapis.com https://accounts.google.com/gsi/ https://script.google.com https://script.googleusercontent.com https://assets.cms.plateau.reearth.io; frame-src https://accounts.google.com/gsi/ https://docs.google.com; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="description" content="宙の辻 - Sora no Tsuji: 天の川/太陽/月/天体の位置を検索して、狙った構図の日時・場所まで逆算して確認できる。天の川富士/ダイヤモンド富士/パール富士のみならず、天の川槍ヶ岳/ダイヤモンド槍ヶ岳/パール槍ヶ岳から天の川百名山/ダイヤモンド百名山/パール百名山も可能かも。">
     <meta property="og:title" content="宙の辻 - Sora no Tsuji">
     <meta property="og:description" content="天の川/太陽/月/天体の位置を検索して、狙った構図の日時・場所まで逆算して確認できる。天の川富士/ダイヤモンド富士/パール富士のみならず、天の川槍ヶ岳/ダイヤモンド槍ヶ岳/パール槍ヶ岳から天の川百名山/ダイヤモンド百名山/パール百名山も可能かも。">
@@ -37,28 +40,19 @@ GNU General Public License for more details.
 
     <link rel="stylesheet" href="style.css">
 
-    <script
-      type="text/javascript"
-      src="https://geographiclib.sourceforge.io/scripts/geographiclib-geodesic.min.js">
-    </script>
-    <script
-      type="text/javascript"
-      src="https://geographiclib.sourceforge.io/scripts/geographiclib-dms.min.js">
-    </script>
-    
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- 第三者ライブラリは自前配信(vendor/。版は固定・内容の指紋は vendor/MANIFEST.json)。CDNや外部ホストにスクリプトの読み込みを頼らない(改ざん・停止・版の勝手な変化への備え) -->
+    <script src="vendor/geographiclib-geodesic.min.js"></script>
+    <script src="vendor/astronomy.browser.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
-
-    <!-- 天体儀(3D)用。グローバル THREE を公開する UMD 最終版(r161でUMD廃止のため0.160.0に固定) -->
-    <script type="module">import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js'; window.THREE = THREE;</script>
+    <!-- 天体儀(3D)用。three.js は ES Modules 版(r161でUMD廃止のため0.160.0に固定)。three-global.js がグローバル THREE を公開する -->
+    <script type="module" src="three-global.js"></script>
 
     <!-- 地図ライブラリ MapLibre GL JS(本体地図+宙断面ビュー。地図全面移行計画の手順4でLeafletを撤去し一本化) -->
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <link rel="stylesheet" href="vendor/maplibre-gl.css">
+    <script src="vendor/maplibre-gl.js"></script>
 
     <!-- QRコード生成(URL取得ダイアログの「:QRコード」。MIT・生成はローカル処理で通信なし) -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="vendor/qrcode.js"></script>
 </head>
 <body>
 
@@ -876,7 +870,7 @@ GNU General Public License for more details.
     </div>
 
     <div id="control-panel" class="control-panel minimized">
-        <div class="panel-header" onclick="togglePanel()">
+        <div class="panel-header" data-click="togglePanel">
             <span id="header-title">
                 <img src="logo.png" alt="ロゴ" class="header-logo">
                 宙の辻<span class="header-subtitle"> - Sora no Tsuji</span>
@@ -891,7 +885,7 @@ GNU General Public License for more details.
         <div id="panel-content" class="panel-content">
             
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-location')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-location">
                     <span>位置情報</span> <span id="icon-sec-location">▲</span>
                 </div>
                 <div id="sec-location" class="section-content">
@@ -976,7 +970,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-baseoption')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-baseoption">
                     <span>基本オプション</span>
                     <span id="icon-sec-baseoption">▼</span>
                 </div>
@@ -1043,7 +1037,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-tsujisearch')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-tsujisearch">
                     <span>辻検索</span>
                     <span id="icon-sec-tsujisearch">▼</span>
                 </div>
@@ -1198,7 +1192,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-tsujimesh')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-tsujimesh">
                     <span>辻メッシュ検索</span>
                     <span id="icon-sec-tsujimesh">▼</span>
                 </div>
@@ -1369,7 +1363,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section" id="section-kashimap">
-                <div class="section-header" onclick="toggleSection('sec-kashimap')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-kashimap">
                     <span>可視マップ</span>
                     <span id="icon-sec-kashimap">▼</span>
                 </div>
@@ -1503,7 +1497,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-soramado')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-soramado">
                     <span>宙の窓</span>
                     <span id="icon-sec-soramado">▼</span>
                 </div>
@@ -1801,7 +1795,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-datetime')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-datetime">
                     <span>日時情報</span> <span id="icon-sec-datetime">▲</span>
                 </div>
                 <div id="sec-datetime" class="section-content">
@@ -1891,7 +1885,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-twilight')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-twilight">
                     <span>薄明</span>
                     <span id="icon-sec-twilight">▼</span>
                 </div>
@@ -2052,7 +2046,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-myset')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-myset">
                     <span id="myset-header-label">Myセット</span> <span id="icon-sec-myset">▼</span>
                 </div>
                 <div id="sec-myset" class="section-content closed">
@@ -2098,7 +2092,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-mytsuji')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-mytsuji">
                     <span>My辻検索</span> <span id="icon-sec-mytsuji">▼</span>
                 </div>
                 <div id="sec-mytsuji" class="section-content closed">
@@ -2139,7 +2133,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-myobs')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-myobs">
                     <span>My観測点</span> <span id="icon-sec-myobs">▼</span>
                 </div>
                 <div id="sec-myobs" class="section-content closed">
@@ -2174,7 +2168,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-mytgt')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-mytgt">
                     <span>My目的点</span> <span id="icon-sec-mytgt">▼</span>
                 </div>
                 <div id="sec-mytgt" class="section-content closed">
@@ -2209,7 +2203,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-starsearch')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-starsearch">
                     <span>天体検索/登録</span> <span id="icon-sec-starsearch">▼</span>
                 </div>
                 <div id="sec-starsearch" class="section-content closed">
@@ -2241,7 +2235,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-bodies')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-bodies">
                     <span>表示天体</span> <span id="icon-sec-bodies">▲</span>
                 </div>
                 <div id="sec-bodies" class="section-content">
@@ -2250,7 +2244,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-mystars')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-mystars">
                     <span>My天体</span> <span id="icon-sec-mystars">▲</span>
                 </div>
                 <div id="sec-mystars" class="section-content">
@@ -2271,7 +2265,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-settings')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-settings">
                     <span>設定</span>
                     <span id="icon-sec-settings">▼</span>
                 </div>
@@ -2317,7 +2311,7 @@ GNU General Public License for more details.
             </div>
 
             <div class="section">
-                <div class="section-header" onclick="toggleSection('sec-backup')">
+                <div class="section-header" data-click="toggleSection" data-arg="sec-backup">
                     <span>バックアップ/インポート</span>
                     <span id="icon-sec-backup">▼</span>
                 </div>
@@ -2375,8 +2369,8 @@ GNU General Public License for more details.
                         <td>昨日: <span id="cnt-yesterday">-</span></td>
                     </tr>
                     <tr>
-                        <td><span class="clickable-stat" onclick="showGraph('current')">今年: <span id="cnt-year">-</span></span></td>
-                        <td><span class="clickable-stat" onclick="showGraph('last')">昨年: <span id="cnt-last">-</span></span></td>
+                        <td><span class="clickable-stat" data-click="showGraph" data-arg="current">今年: <span id="cnt-year">-</span></span></td>
+                        <td><span class="clickable-stat" data-click="showGraph" data-arg="last">昨年: <span id="cnt-last">-</span></span></td>
                     </tr>
                 </table>
             </div>
@@ -2392,7 +2386,7 @@ GNU General Public License for more details.
     <div id="location-picker" class="location-picker hidden">
         <div class="picker-header">
             <span id="picker-title">地名検索結果</span>
-            <span class="close-picker" onclick="closeLocationPicker()">×</span>
+            <span class="close-picker" data-click="closeLocationPicker">×</span>
         </div>
         <div id="picker-list" class="picker-list"></div>
     </div>
@@ -2400,7 +2394,7 @@ GNU General Public License for more details.
     <div id="url-picker" class="location-picker hidden">
         <div class="picker-header">
             <span id="url-picker-title">URL取得</span>
-            <span class="close-picker" onclick="closeUrlPicker()">×</span>
+            <span class="close-picker" data-click="closeUrlPicker">×</span>
         </div>
         <div class="picker-list">
             <div class="picker-item" id="url-picker-fixed">
@@ -2422,7 +2416,7 @@ GNU General Public License for more details.
     <div id="gdrive-sync-dialog" class="location-picker hidden">
         <div class="picker-header">
             <span>どのように更新しますか？</span>
-            <span class="close-picker" onclick="closeGdriveSyncDialog()">×</span>
+            <span class="close-picker" data-click="closeGdriveSyncDialog">×</span>
         </div>
         <div class="picker-list">
             <div class="gdrive-sync-info">ローカルストレージ</div>
@@ -2449,21 +2443,21 @@ GNU General Public License for more details.
 
 
     <div id="style-palette" class="style-palette hidden">
-        <div class="palette-header">スタイル設定 <span class="close-palette" onclick="closePalette()">×</span></div>
+        <div class="palette-header">スタイル設定 <span class="close-palette" data-click="closePalette">×</span></div>
         <div class="palette-colors" id="palette-colors"></div>
         <div class="palette-lines" id="palette-lines">
-            <div class="line-option" onclick="applyLineStyle('solid')">実線 <span class="line-preview solid"></span></div>
-            <div class="line-option" onclick="applyLineStyle('dashed')">破線 <span class="line-preview dashed"></span></div>
+            <div class="line-option" data-click="applyLineStyle" data-arg="solid">実線 <span class="line-preview solid"></span></div>
+            <div class="line-option" data-click="applyLineStyle" data-arg="dashed">破線 <span class="line-preview dashed"></span></div>
         </div>
         <div class="palette-reset-area">
-            <button class="nav-btn palette-reset-btn" onclick="resetBodyStyle()">リセット</button>
+            <button class="nav-btn palette-reset-btn" data-click="resetBodyStyle">リセット</button>
         </div>
     </div>
 
     <div id="starsearch-popup" class="starsearch-popup hidden">
         <div class="starsearch-popup-header">
             <span id="starsearch-popup-title">天体名検索結果</span>
-            <span class="close-starsearch-popup" onclick="closeStarSearchPopup()">×</span>
+            <span class="close-starsearch-popup" data-click="closeStarSearchPopup">×</span>
         </div>
         <div id="starsearch-popup-content" class="starsearch-popup-content"></div>
     </div>
@@ -2472,7 +2466,7 @@ GNU General Public License for more details.
         <div class="help-content formal-style">
             <div class="help-header">
                 <h2>宙の辻 - ヘルプ</h2>
-                <span class="close-help" onclick="toggleHelp()">×</span>
+                <span class="close-help" data-click="toggleHelp">×</span>
             </div>
             <div class="help-body">
                 <section class="help-section">
@@ -2758,23 +2752,23 @@ GNU General Public License for more details.
                 </section>
 
                 <div class="k-knowledge-section-formal">
-                    <h3>気差係数(\( K \))について</h3>
+                    <h3>気差係数(<i>K</i>)について</h3>
                     <p>
                         遠くの景色を見たとき、光は空気の層を通ることで少し曲がります(レンズ効果)。
-                        この「曲がり具合」を表すのが<b>気差係数 \( K \)</b>です。<br>
-                        天気や気温の変化によって \( K \) の値が変わると、山の見え方も変わります。
+                        この「曲がり具合」を表すのが<b>気差係数 <i>K</i></b>です。<br>
+                        天気や気温の変化によって <i>K</i> の値が変わると、山の見え方も変わります。
                     </p>
 
-                    <h4>\( K \) が決まる仕組み(計算式)</h4>
+                    <h4><i>K</i> が決まる仕組み(計算式)</h4>
                     <div class="formula-box-formal">
-                        <p>気差係数 \( K \) は、以下の要素で決まります。</p>
+                        <p>気差係数 <i>K</i> は、以下の要素で決まります。</p>
                         <p class="formula-formal">
-                            \[ K \approx 503 \frac{P}{T^2} \left( 0.034 - \Gamma \right) \]
+                            <span class="formula"><i>K</i> ≈ 503 × <i>P</i> / <i>T</i><sup>2</sup> × (0.034 − <i>Γ</i>)</span>
                         </p>
                         <ul class="formula-list">
-                            <li>\( P \) : 気圧 (hPa)</li>
-                            <li>\( T \) : 気温 (ケルビン)</li>
-                            <li>\( \Gamma \) : <strong>気温減率</strong> (1m上昇あたりの気温低下量、正値)</li>
+                            <li><i>P</i> : 気圧 (hPa)</li>
+                            <li><i>T</i> : 気温 (ケルビン)</li>
+                            <li><i>Γ</i> : <strong>気温減率</strong> (1m上昇あたりの気温低下量、正値)</li>
                         </ul>
                         <p class="note-formal">※ 特に「気温減率(地面と上空の温度差)」が大きく影響します。</p>
                     </div>
@@ -2785,7 +2779,7 @@ GNU General Public License for more details.
                             <tr>
                                 <th>天気・状況</th>
                                 <th>空気の状態</th>
-                                <th>\( K \) の値</th>
+                                <th><i>K</i> の値</th>
                                 <th>見え方</th>
                             </tr>
                         </thead>
@@ -2798,11 +2792,11 @@ GNU General Public License for more details.
                                 <td>
                                     地面が焼けて、下層の空気が膨張。<br>
                                     <b>下が熱く、上が涼しい。</b><br>
-                                    (\( \Gamma \): \(0.01\) 〜)
+                                    (<i>Γ</i>: 0.01 〜)
                                 </td>
                                 <td>
                                     <strong>小さい</strong><br>
-                                    \( 0.13 \) 〜 \( 0.1 \)
+                                    0.13 〜 0.1
                                 </td>
                                 <td>
                                     <b>あまり浮き上がらない</b><br>
@@ -2817,11 +2811,11 @@ GNU General Public License for more details.
                                 <td>
                                     日差しがなく、風で空気が混ざる。<br>
                                     <b>温度差が少ない。</b><br>
-                                    (\( \Gamma \): \(0.0065\) 付近)
+                                    (<i>Γ</i>: 0.0065 付近)
                                 </td>
                                 <td>
                                     <strong>標準的</strong><br>
-                                    \( 0.15 \) 〜 \( 0.17 \)
+                                    0.15 〜 0.17
                                 </td>
                                 <td>
                                     <b>標準的な見え方</b><br>
@@ -2836,11 +2830,11 @@ GNU General Public License for more details.
                                 <td>
                                     地面が冷え切る。<br>
                                     <b>地面より上空の方が暖かい！</b><br>
-                                    (\( \Gamma \): マイナスになる)
+                                    (<i>Γ</i>: マイナスになる)
                                 </td>
                                 <td>
                                     <strong>大きい</strong><br>
-                                    \( 0.3 \) 〜 \( 0.5 \)
+                                    0.3 〜 0.5
                                 </td>
                                 <td>
                                     <b>すごく浮き上がる！</b><br>
@@ -2850,8 +2844,8 @@ GNU General Public License for more details.
                         </tbody>
                     </table>
                     <div class="advice-formal">
-                        <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に \( K \) の値や気温減率を調整してみてください。
-                        (既定の気温減率 <b>\(0.0125\)</b> で測量標準の \( K=0.132 \) になります。国際標準大気の \(0.0065\) では \( K \approx 0.169 \) と大きめです)
+                        <strong>ヒント:</strong> ダイヤモンド富士のラインが実測と合わないときは、この表を参考に <i>K</i> の値や気温減率を調整してみてください。
+                        (既定の気温減率 <b>0.0125</b> で測量標準の <i>K</i> = 0.132 になります。国際標準大気の 0.0065 では <i>K</i> ≈ 0.169 と大きめです)
                     </div>
                 </div>
                 
@@ -2891,7 +2885,7 @@ GNU General Public License for more details.
         <div class="help-content graph-content">
             <div class="help-header">
                 <h2 id="graph-title">訪問者数推移</h2>
-                <span class="close-help" onclick="closeGraph()">×</span>
+                <span class="close-help" data-click="closeGraph">×</span>
             </div>
             <div class="help-body">
                 <canvas id="visitor-canvas" height="300"></canvas>
