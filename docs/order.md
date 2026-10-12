@@ -431,3 +431,23 @@ Claudeさん、ご回答ありがとうございます。
 > 2. C(Google 連携の一巡)。コンソールの行があれば、そのまま貼ってください。
 > 3. D〜F は、都合のよい時に。D5(APIキーの制限)だけは、本番に配る前に。
 > 4. G(本番)は、A〜C が「はい」になってから。配る合図を頂ければ、リリースノートを先に起草します。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show ed3af56
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-10-12)
+Claudeさん、ご回答ありがとうございます。
+A3で、ブラウザのDevToolsでエラーログが出ました。
+そのまま、貼り付けます。
+======
+___vscode_livepreview_injected_script:36 Connecting to 'ws://127.0.0.1:3001/541aa9ec0f28dd964b9da7a91c908c0a5af584c6' violates the following Content Security Policy directive: "connect-src 'self' https://cyberjapandata.gsi.go.jp https://tile.openstreetmap.org https://s3.amazonaws.com https://msearch.gsi.go.jp https://nominatim.openstreetmap.org https://api.open-meteo.com https://archive-api.open-meteo.com https://air-quality-api.open-meteo.com https://www.googleapis.com https://sheets.googleapis.com https://oauth2.googleapis.com https://accounts.google.com/gsi/ https://script.google.com https://script.googleusercontent.com https://assets.cms.plateau.reearth.io". The action has been blocked.
+onLoad	@	___vscode_livepreview_injected_script:36
+（匿名）	@	___vscode_livepreview_injected_script:17
+
+script.js:673 宙の辻: 起動 (v1.98.0)
+======
