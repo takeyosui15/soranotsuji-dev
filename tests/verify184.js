@@ -119,16 +119,16 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
   const { execSync } = require('child_process');
   const SCANNER_FIXTURES = ['ClaudeMederuU/mederuu-repo-staging/sync.js'];   // 秘密情報の検出器そのもの(検出パターンの自己テスト用の見本文字列を持つ)
   const files = execSync('git ls-files --cached --others --exclude-standard', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(f => f && /\.(js|html|css|json|md|py|txt|yml|yaml|sh)$/.test(f) && !f.startsWith('vendor/') && !f.startsWith('node_modules/') && !SCANNER_FIXTURES.includes(f));
-  const SCANNER_SELF = ['tests/verify184.js', 'docs/dessin/dessin/34-security.md'];   // この検査自身と、検査の名前を書いた文書(語そのものを含む)
-  const pat = /ya29\.[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|\b1\/\/0[A-Za-z0-9_-]{20,}|[Cc]lient[_-]?[Ss]ecret|refresh_token|BEGIN (RSA|EC|OPENSSH|PRIVATE) |AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|ghp_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9]{32,}/;
+  // 秘密の「形」で探す(名前だけでは探さない): client_secret/refresh_token は「= または : の右に値がある」時だけ。語そのものは文書(この検査の説明・回答・README)に当然現れるので、語で探すと自分の説明に反応する(第160のスモークで検出)
+  const pat = /ya29\.[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|\b1\/\/0[A-Za-z0-9_-]{20,}|[Cc]lient[_-]?[Ss]ecret["']?\s*[:=]\s*["']?[A-Za-z0-9_\-]{8,}|refresh_token["']?\s*[:=]\s*["']?[A-Za-z0-9_\-\/]{8,}|BEGIN (RSA|EC|OPENSSH|PRIVATE) |AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|ghp_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9]{32,}/;
   const hits = [];
   const keys = new Set();
   for (const f of files) {
     let t; try { t = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (_) { continue; }
-    if (pat.test(SCANNER_SELF.includes(f) ? t.replace(/client_secret|refresh_token|GOCSPX-|ya29\./g, '') : t)) hits.push(f);   // 自己言及(検査の名前)は除いて走査
+    if (pat.test(t)) hits.push(f);
     for (const m of t.matchAll(/AIza[0-9A-Za-z_-]{35}/g)) keys.add(m[0]);
   }
-  check("S6 追跡ファイル+未追跡の新しいファイルに秘密情報のパターン(ya29./GOCSPX-/1//0 のリフレッシュトークン/client_secret(大小)/refresh_token/秘密鍵/AKIA/xox/ghp_/sk-)が無い・AIza のAPIキーは Google Picker 用の1つだけ・アクセストークンはメモリだけ(localStorage/保存/バックアップに書かない)",
+  check("S6 追跡ファイル+未追跡の新しいファイルに秘密情報の形(ya29./GOCSPX-/1//0 のリフレッシュトークン/client_secret=値・refresh_token=値(語だけは対象外)/秘密鍵/AKIA/xox/ghp_/sk-)が無い・AIza のAPIキーは Google Picker 用の1つだけ・アクセストークンはメモリだけ(localStorage/保存/バックアップに書かない)",
     hits.length === 0 && keys.size === 1 && keys.has('AIzaSyBQsU3b8eSF2gISUkOvi_FDp-N0k2hpE-Y') && src.includes('let googleToken = null;') && !/localStorage\.setItem\([^)]*[Tt]oken/.test(noComments(src)) && !/googleToken[^\n]*saveAppState|appState\.googleToken|accessToken:\s*appState/.test(noComments(src)),
     JSON.stringify({ hits, keys: [...keys].map(k => k.slice(0, 8) + '…'), files: files.length }));
 }

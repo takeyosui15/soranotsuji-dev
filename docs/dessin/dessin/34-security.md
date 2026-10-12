@@ -63,7 +63,7 @@
 - CSP meta が期待どおり(script-src にインライン/evalが無い・object-src 'none'・base-uri・許可リストの中身とワイルドカード無し)・Referrer-Policy。reset.html も。
 - インラインの on*= と \<script\> ブロックが無い・data-click の名前が許可表と一致・eval/new Function/javascript:/document.write が無い。
 - target=_blank は全て noopener・window.open は noopener・シートIDの文字種。
-- 追跡ファイル+未追跡の新しいファイル(コミットの前に回す検査なので)に秘密情報のパターン(ya29./GOCSPX-/1//0 のリフレッシュトークン/client_secret(大小)/refresh_token/秘密鍵/AKIA/xox/ghp_/sk-)が無い・APIキーはピッカー用の1つだけ・トークンはメモリだけ。
+- 追跡ファイル+未追跡の新しいファイル(コミットの前に回す検査なので)に秘密情報の形(ya29./GOCSPX-/1//0 のリフレッシュトークン/client_secret=値・refresh_token=値(語だけは対象外。検査の説明文に反応しないため)/秘密鍵/AKIA/xox/ghp_/sk-)が無い・APIキーはピッカー用の1つだけ・トークンはメモリだけ。
 - ブラウザ: CSPの下で自サイトの資源が止められない・ライブラリの実体・ワーカー4種・トークンが localStorage/バックアップ/appState/URL に出ない・毒入りの保存データを入れて描画しても HTML として解釈されない・資産ファイルの取り込みの拒否。
 
 ### 層2: 依頼者がコンソールで1回確かめる(証拠はスクリーンショットを手元に)
@@ -91,16 +91,16 @@
 | 2 | 同 > OAuth同意画面 > スコープ | 列挙されるスコープ | `…/auth/drive.file` だけ(drive・drive.readonly・spreadsheets が残っていれば削除) |
 | 3 | 同 > 認証情報 > OAuthクライアント(本番 …cb6fqb…) | 承認済みのJavaScript生成元 | `https://soranotsuji.net` と `https://www.soranotsuji.net` だけ。リダイレクトURIは不要 |
 | 4 | 同 > OAuthクライアント(開発 …r77t8c…) | 承認済みのJavaScript生成元 | `https://takeyosui15.github.io` と `http://127.0.0.1:<ハーネスのポート>` だけ。注: takeyosui15.github.io は他のGitHub Pagesプロジェクトと同じオリジン(他の公開ページを同じアカウントに置かない) |
-| 5 | 同 > 認証情報 > APIキー(AIzaSyBQ…) | アプリケーションの制限・APIの制限 | ウェブサイト: `https://soranotsuji.net/*`・`https://www.soranotsuji.net/*`・`https://takeyosui15.github.io/*`・`http://127.0.0.1:*/*`。API: Google Picker API だけ |
+| 5 | 同 > 認証情報 > APIキー(AIzaSyBQ…) | アプリケーションの制限・APIの制限 | ウェブサイト: `https://soranotsuji.net/*`・`https://www.soranotsuji.net/*`・`https://takeyosui15.github.io/*`・`http://127.0.0.1/*`(ポートを書かない=全ポート。ポートの位置に `*` は書けない)。API: Google Picker API だけ |
 | 6 | 同 > 認証情報 | 使っていないOAuthクライアント・APIキー・サービスアカウント | 無い(あれば削除) |
-| 7 | 同 > 有効なAPI | 有効なAPIの一覧 | Google Drive API・Google Sheets API・Google Picker API だけ(Maps等の課金APIは無効) |
+| 7 | 同 > 有効なAPI | 有効なAPIの一覧 | Google Drive API・Google Sheets API・Google Picker API がある。Maps 等の「使った分だけ課金される」API は無効。Google Cloud の基盤系(Service Usage・Logging・Monitoring 等)は触らない |
 | 8 | Googleアカウント(プロジェクトの持ち主) > セキュリティ | 2段階認証 | オン(パスキー推奨)・再設定用の電話/メールが現在の物 |
 | 9 | Apps Script(訪問者カウンタ) > デプロイ | 実行するユーザー・アクセスできるユーザー・紐付くスプレッドシート | 自分・全員(匿名で数えるため必要)・カウンタのシートだけ。`gas_spredsheet.js` の新版(例外文を出さない)を再デプロイ(URLは変わらない) |
-| 10 | Googleアカウント > セキュリティ > 第三者によるアクセス | 宙の辻でログアウトした後 | 一覧から「宙の辻」が消える(取り消しが届いている) |
+| 10 | Googleアカウントの「リンク済みアプリ」(https://myaccount.google.com/linkedapps。旧 /connections。回答その157では「第三者によるアクセス」と書いた同じ画面) | 宙の辻でログアウトした後 | 一覧から「宙の辻」が消える(取り消しが届いている) |
 | 11 | GitHub > Settings > Password and authentication | 2段階認証 | オン(パスキー推奨) |
-| 12 | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > Branches | 配信元ブランチの保護 | 本番の配信元(main等)に保護ルール(直接pushの禁止・force pushの禁止) |
+| 12 | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > Branches | 配信元ブランチの保護 | 本番の配信元(main等)と開発の develop/main にルールセット(削除の禁止・force pushの禁止)。PR必須は入れない(deploy-guide の Step 1 と work→develop は直接 push なので。第160で取り下げ) |
 | 13 | GitHub > Settings > Pages | 配信元 | 本番: soranotsuji の決めたブランチ / 開発: soranotsuji-dev の develop。知らないブランチになっていない |
-| 14 | GitHub > Settings > Code security | Secret scanning(・Dependabot alerts) | オン |
+| 14 | GitHub > Settings > Advanced Security(旧 Code security)> Secret Protection | Secret scanning・Push protection(・Dependabot alerts) | オン |
 | 15 | ドメイン(soranotsuji.net)のレジストラ | ログインの2段階認証・ドメインロック・自動更新 | オン・オン・オン |
 | 16 | 実機(soranotsuji.net)で DevTools のコンソールを開いたまま | ログイン→Drive保存→Myセットの保存/読込→ピッカーで追加→開く→ログアウト | 「CSP違反」の警告が1つも出ない(出たらその行をそのまま報告) |
 
@@ -114,13 +114,13 @@
 
 ## 7c. 非常停止(いつでも止められることの確認)
 
-- script.js の GOOGLE_CONFIG の clientId を '' にして配れば、ログインは案内表示だけになり(14179行目付近の分岐)、既存のトークンも1時間で切れる。
+- script.js の GOOGLE_CONFIG の clientId を '' にして配れば、ログインは案内表示だけになり(googleLogin の先頭の分岐。案内文は利用者向け「Google連携は現在ご利用いただけません」=第160で差し替え。Myセットの更新も同じ分岐に入る)、既存のトークンも1時間で切れる。
 - Google Cloud Console で OAuth クライアントを削除すれば、その場で全トークンが無効になる。
 - Apps Script のデプロイをアーカイブすればカウンタの通信は 404 になるだけ(アプリは動く)。
 
 ## 8. 次の段(todo)
 
-- GitHub: 配信元ブランチの保護ルール(develop/main は無保護だった)・迷子のブランチ「>」の削除・Secret scanning/Push protection・Actions の無効化(層2 #12〜#14)。
+- GitHub: 配信元ブランチのルールセット(develop/main は無保護だった。削除と force push の禁止。PR必須は配布手順と両立しないので入れない)・迷子のブランチ「>」の削除・Secret scanning/Push protection(層2 #12〜#14)。Actions は Pages の配信に使われているので無効にしない(第160で「無効化」を取り下げ)。
 - MapLibre を 6.4.1 以上へ(CVE-2026-85061: 属性文字列のサニタイザのバイパス。宙の辻は属性文字列が全て定数で、外部のTileJSONも読まないので今は悪用できない。4→6の大きな版上げなので、全走+実機で別ラウンド)。
 - Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
 - Myサイト: 読み取りに docs.google.com を connect-src に足す時は、?mysite= のIDの文字種検査と一緒に。
