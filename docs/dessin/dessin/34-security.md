@@ -61,7 +61,7 @@
 - 外部ホストからスクリプト/スタイルを読み込まない(index.html・ワーカー・動的に作るスクリプトはGoogleの2つだけ・Dracoも vendor/)。
 - vendor/ の中身と MANIFEST.json の指紋が一致・台帳に無いファイルが無い・版は固定・ライセンス全文あり。
 - CSP meta が期待どおり(script-src にインライン/evalが無い・object-src 'none'・base-uri・許可リストの中身とワイルドカード無し)・Referrer-Policy。reset.html も。
-- インラインの on*= と <script> ブロックが無い・data-click の名前が許可表と一致・eval/new Function/javascript:/document.write が無い。
+- インラインの on*= と \<script\> ブロックが無い・data-click の名前が許可表と一致・eval/new Function/javascript:/document.write が無い。
 - target=_blank は全て noopener・window.open は noopener・シートIDの文字種。
 - 追跡ファイル+未追跡の新しいファイル(コミットの前に回す検査なので)に秘密情報のパターン(ya29./GOCSPX-/1//0 のリフレッシュトークン/client_secret(大小)/refresh_token/秘密鍵/AKIA/xox/ghp_/sk-)が無い・APIキーはピッカー用の1つだけ・トークンはメモリだけ。
 - ブラウザ: CSPの下で自サイトの資源が止められない・ライブラリの実体・ワーカー4種・トークンが localStorage/バックアップ/appState/URL に出ない・毒入りの保存データを入れて描画しても HTML として解釈されない・資産ファイルの取り込みの拒否。
