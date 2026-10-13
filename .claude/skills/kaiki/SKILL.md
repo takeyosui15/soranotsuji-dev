@@ -45,7 +45,9 @@ export NODE_PATH=$SP/harness/node_modules
 node tests/verifyNNN.js          # 単発
 # スモーク(毎ラウンドの定番)= この7本79チェック+そのラウンドで追加した最新verify:
 for n in 96 117 123 124 125 126 127; do node tests/verify$n.js; done
-# 全回帰は tests/ のverify全部(節目のみ。verify102だけ実ネットワーク用のため常用しない)
+# 全回帰は tests/ のverify全部(節目のみ。verify102だけ実ネットワーク用のため常用しない)。
+# 必ずディレクトリから列挙する(番号を手で並べると抜ける。第164: 第157〜159の「全走」は 96〜184 のうち31本を回していなかった):
+for f in tests/verify*.js; do case $f in *verify102.js) continue;; esac; node $f; done
 ```
 
 - 各verifyの対象と注意は `tests/README.md`(封鎖機能は`?forecast=1`、フレークの扱い等)。
