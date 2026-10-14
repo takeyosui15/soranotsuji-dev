@@ -856,3 +856,66 @@ Claudeさん、ありがとうございます。
 > 1. 上の③(`https://github.com/watching` と通知設定)だけ見て、よければ G(deploy-guide の Step 1〜6。rsync の後に `ls -a` で `.nojekyll`・`vendor/`・`.well-known/`)。
 > 2. 配ったら H。箱からも本番を確かめます(起動時の CSP 違反0・security.txt の Contact 2行・MANIFEST.json)。
 > 3. 任意: SECURITY.md(回答その171の 5.)。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 39a6c38
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-10-14)
+Claudeさん、ありがとうございます。
+
+①と②は、確認できました。
+③なのですが、これば自分以外のリポジトリをウォッチするためのものではないのでしょうか。
+あと、`https://github.com/takeyosui15/soranotsuji/security/secret-scanning/1`に、
+======
+← Secret scanning alerts
+Google API Key #1
+Open
+GitHub detected a secret • Aug 17
+Publicly leaked secret
+Secret	
+AIzaSyBQsU3b8eSF2gISUkOvi_FDp-N0k2hpE-Y
+Validity	
+Unknown
+Follow the steps below before you close this alert.
+1 (1)Rotate the secret if it's in use to prevent breaking workflows.
+2 (2)Revoke this Google API Key through Google to prevent unauthorized access. Learn more about Google tokens.
+3 (3)Check security logs for potential breaches.
+4 (4)Close the alert as revoked.
+Detected in 1 location
+script.js
+Preview unavailable
+This file is too large to show a preview
+
+Commit author avatar
+deploy: soranotsuji-dev コミット f1623d1 からデプロイ (v1.85.0)a5f5ab9
+on Aug 17
+GitHub
+opened this alert · on Aug 17
+======
+と出ていました。
+でも、これは、公開APIでしたよね。
+
+あと、リポジトリ毎の
+======
+Advanced Security / Private vulnerability reporting
+Private vulnerability reporting
+Submission requirements
+Require a CWE assignment
+
+Require at least one CWE before submission.
+
+Off
+Daily advisory limit
+
+Limit how many private vulnerability reports this repository can receive per day.
+
+10
+Trusted reporters
+Find a trusted reporter
+======
+で、`Require a CWE assignment`は`Off`で良いのでしょうか。
