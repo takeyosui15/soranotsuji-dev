@@ -100,26 +100,26 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 
 - [x] E8 Googleアカウント(Cloudプロジェクトの持ち主) > セキュリティ > **2段階認証プロセス** = オン。パスキーが使えるなら追加。再設定用の電話/メールが現在の物。
 - [x] E11 GitHub > Settings > Password and authentication > **Two-factor authentication** = オン。
-- [ ] E12 GitHub > `soranotsuji`(本番)と `soranotsuji-dev` > Settings > Rules > **Rulesets** — 本番の `main` と、開発の `develop`・`main` に「Restrict deletions」「Block force pushes」の2つ。「Require a pull request」は**入れない**(回答その157では「PR必須」と書いたが、deploy-guide の Step 1・Step 4 と B1 は main/develop へ直接 push するので、PR必須にすると push が拒まれる。取り下げ。どうしても入れるなら Bypass list に自分=Repository admin を足す)。作っただけでは効かないので Enforcement status を **Active** に。Target branches は「Add target → Include by pattern」で `main`(開発は `develop` も)。
+- [x] E12 GitHub > `soranotsuji`(本番)と `soranotsuji-dev` > Settings > Rules > **Rulesets** — 本番の `main` と、開発の `develop`・`main` に「Restrict deletions」「Block force pushes」の2つ。「Require a pull request」は**入れない**(回答その157では「PR必須」と書いたが、deploy-guide の Step 1・Step 4 と B1 は main/develop へ直接 push するので、PR必須にすると push が拒まれる。取り下げ。どうしても入れるなら Bypass list に自分=Repository admin を足す)。作っただけでは効かないので Enforcement status を **Active** に。Target branches は「Add target → Include by pattern」で `main`(開発は `develop` も)。
   - 作り方(第170。GitHub の画面は英語): ①リポジトリを開き、上の **Settings**(無ければ「…」の中)→ 左の「Code and automation」の **Rules** → **Rulesets**。②右上の **New ruleset** → **New branch ruleset**。③**Ruleset Name** に `protect-branches`(名前は自由)。④**Enforcement status** を **Active** に(既定は Disabled なので必ず変える)。⑤**Bypass list** は何も足さない(自分でも削除と force push は止まる。それでよい)。⑥**Target branches** で **Add target** → **Include by pattern** → `main` → Add。開発リポジトリではもう一度 Add target → Include by pattern → `develop` → Add。⑦**Rules** の一覧で **Restrict deletions** と **Block force pushes** の2つだけにチェック(Require a pull request before merging などは触らない)。⑧一番下の **Create**。⑨一覧に Active で出れば完了。本番 `soranotsuji` でも同じ(Target は `main` だけ)。
   - 効き方: ブランチの削除と force push が止まるだけで、普段の push・マージ・deploy-guide の手順はそのまま通る。迷子のブランチ「>」の削除(E-追)も止まらない(対象が main/develop だけなので)。
   - 確認: `soranotsuji-dev` は Claude が箱から API で確かめられる(第170の時点では rulesets は空だった)。本番は画面の一覧(Active・2 rules・targets)で。
-- [ ] E13 GitHub > Settings > Pages > **配信元(Source)** — 本番: soranotsuji の `main`(Deploy from a branch / main / (root)) / 開発: soranotsuji-dev の `develop`。知らないブランチになっていない。
-- [ ] E14 GitHub > Settings > **Advanced Security**(旧 Code security)> **Secret Protection** を Enable(その中に Secret scanning と Push protection のスイッチ)。
-- [ ] E15 ドメイン(soranotsuji.net)のレジストラ — ログインの2段階認証・ドメインロック(移管ロック)・自動更新 = オン。
-- [ ] E-追(点検表には無い追加) `soranotsuji-dev` に名前が「>」だけの迷子のブランチ(2026-07-06)が残っている → GitHub の Branches 画面で削除(コマンドなら `git push origin --delete '>'`)。
+- [x] E13 GitHub > Settings > Pages > **配信元(Source)** — 本番: soranotsuji の `main`(Deploy from a branch / main / (root)) / 開発: soranotsuji-dev の `develop`。知らないブランチになっていない。
+- [x] E14 GitHub > Settings > **Advanced Security**(旧 Code security)> **Secret Protection** を Enable(その中に Secret scanning と Push protection のスイッチ)。
+- [x] E15 ドメイン(soranotsuji.net)のレジストラ — ログインの2段階認証・ドメインロック(移管ロック)・自動更新 = オン。
+- [x] E-追(点検表には無い追加) `soranotsuji-dev` に名前が「>」だけの迷子のブランチ(2026-07-06)が残っている → GitHub の Branches 画面で削除(コマンドなら `git push origin --delete '>'`)。
 - 注: E の番号は点検表の番号。GitHub Actions は、Pages の配信(pages-build-deployment)が Actions の仕組みで動くので**無効にしない**(回答その157の「Actions は無効に」は取り下げ)。
 
 ## F. Apps Script(訪問者カウンタ)の再デプロイ(影響: カウンタだけ)
 
 第159でサーバー側のコード(`gas_spredsheet.js`)を1か所直した(例外の本文を外へ出さない)。再デプロイしないと旧コードのまま(害は無いが、直しが効かない)。
 
-- [ ] F1 `script.google.com` のプロジェクト **「宙の辻アクセスカウンタ」**(第168で改名)を開き、`gas_spredsheet.js` の全文を貼り替え → 保存。
-- [ ] F1b **再承認**(第168: リンク済みアプリから許可を消した後に必要): エディタ上部の関数の選択で `doGet` を選び **「実行」** → 「承認が必要です」→「権限を確認」→ アカウントを選ぶ →(「このアプリは Google で確認されていません」が出たら「詳細」→「宙の辻アクセスカウンタ(安全ではないページ)に移動」)→ **「許可」**。実行そのものは「e.parameter が無い」で失敗して終わるが、それでよい(欲しいのは許可)。リンク済みアプリに「宙の辻アクセスカウンタ」が戻る。
-- [ ] F2 「デプロイ」→「**デプロイを管理**」→ 既存のデプロイの鉛筆(編集)→ バージョン「**新バージョン**」→「デプロイ」。**WebアプリのURLは変わらない。**
+- [x] F1 `script.google.com` のプロジェクト **「宙の辻アクセスカウンタ」**(第168で改名)を開き、`gas_spredsheet.js` の全文を貼り替え → 保存。
+- [x] F1b **再承認**(第168: リンク済みアプリから許可を消した後に必要): エディタ上部の関数の選択で `doGet` を選び **「実行」** → 「承認が必要です」→「権限を確認」→ アカウントを選ぶ →(「このアプリは Google で確認されていません」が出たら「詳細」→「宙の辻アクセスカウンタ(安全ではないページ)に移動」)→ **「許可」**。実行そのものは「e.parameter が無い」で失敗して終わるが、それでよい(欲しいのは許可)。リンク済みアプリに「宙の辻アクセスカウンタ」が戻る。
+- [x] F2 「デプロイ」→「**デプロイを管理**」→ 既存のデプロイの鉛筆(編集)→ バージョン「**新バージョン**」→「デプロイ」。**WebアプリのURLは変わらない。**
   - 「新しいデプロイ」は押さない(URLが変わり、アプリ側の `GAS_API_URL` と合わなくなる)。
-- [ ] F3 本番(soranotsuji.net)と開発サイトを開き直して、訪問者カウンタの数字が出る(「- - -」のままなら F1b の許可と F2 の「アクセスできるユーザー=全員」を見直す)。Claude の箱からも、カウンタの URL が JSON を返すかを確かめられる。
-- [ ] F9 ついでに点検表の9: 実行するユーザー=自分・アクセスできるユーザー=全員・紐付くスプレッドシートはカウンタのシートだけ。
+- [x] F3 本番(soranotsuji.net)と開発サイトを開き直して、訪問者カウンタの数字が出る(「- - -」のままなら F1b の許可と F2 の「アクセスできるユーザー=全員」を見直す)。Claude の箱からも、カウンタの URL が JSON を返すかを確かめられる。
+- [x] F9 ついでに点検表の9: 実行するユーザー=自分・アクセスできるユーザー=全員・紐付くスプレッドシートはカウンタのシートだけ。
 
 戻し方: 「デプロイを管理」→ 鉛筆 → バージョンを前の番号に → デプロイ。
 
