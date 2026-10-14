@@ -1024,7 +1024,7 @@ GNU General Public License for more details.
                         <label class="baseopt-radio" title="目的点の山頂部の範囲を地図に描く(薄い赤の塗り。目的点を動かすと描き直す)。この山ではこの帯でよいかを目で確かめるため"><input type="checkbox" id="chk-baseopt-summit-preview">:プレビュー</label>
                     </div>
                     <div class="control-row">
-                        <label class="input-label tsujisearch-label" title="山頂部の帯の高さ(m)。初期値300=山頂の肩まで。120=火口の縁まで・500=山頂直下の斜面まで(可視マップの静的資産は300)">山頂部(帯,m):</label>
+                        <label class="input-label tsujisearch-label" title="山頂部の帯の高さ(m)。初期値300=山頂の肩まで。120=火口の縁まで・500=山頂直下の斜面まで">山頂部(帯,m):</label>
                         <input type="number" id="input-baseopt-summit-band" placeholder="0〜2000m" step="10" min="0" max="2000">
                     </div>
                     <div class="control-row left-row">
@@ -1181,7 +1181,7 @@ GNU General Public License for more details.
                         <input type="checkbox" id="chk-tsuji-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
                         <input type="checkbox" id="chk-tsuji-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
                     </div>
-                    <div class="control-row left-row" title="樹冠(木の高さ)・構造物(建物)を入れた可視判定(可視マップの樹冠・構造物の資産ができたら使えます)">
+                    <div class="control-row left-row" title="樹冠(木の高さ)・構造物(建物)を入れた可視判定(準備中)">
                         <input type="checkbox" id="chk-tsuji-vis-canopy" class="body-checkbox" disabled> <label class="km-label">:樹冠</label>
                         <input type="checkbox" id="chk-tsuji-vis-building" class="body-checkbox" disabled checked> <label class="km-label">:構造物</label>
                     </div>
@@ -1344,7 +1344,7 @@ GNU General Public License for more details.
                         <input type="checkbox" id="chk-tsujimesh-elev-ok" class="body-checkbox" disabled> <label class="tsuji-acc-label">:OK</label>
                         <input type="checkbox" id="chk-tsujimesh-elev-ng" class="body-checkbox" disabled> <label class="tsuji-acc-label">:NG</label>
                     </div>
-                    <div class="control-row left-row" title="樹冠(木の高さ)・構造物(建物)を入れた可視判定(可視マップの樹冠・構造物の資産ができたら使えます)">
+                    <div class="control-row left-row" title="樹冠(木の高さ)・構造物(建物)を入れた可視判定(準備中)">
                         <input type="checkbox" id="chk-tsujimesh-vis-canopy" class="body-checkbox" disabled> <label class="km-label">:樹冠</label>
                         <input type="checkbox" id="chk-tsujimesh-vis-building" class="body-checkbox" disabled checked> <label class="km-label">:構造物</label>
                     </div>
@@ -2274,7 +2274,7 @@ GNU General Public License for more details.
                     <div class="control-row refraction-row">
                         <input type="checkbox" id="chk-refraction" class="body-checkbox" title="大気差補正(地形の見通しの気差係数K)。オン=気象条件から算出した値で計算(既定)・オフ=K=0(気差なし)">
                         <label class="input-label meteo-label" for="chk-refraction">気差係数 K:</label>
-                        <input type="number" id="input-refraction-k" class="meteo-input elev-readonly" readonly step="0.001"  placeholder="標準値 0.132" readonly title="いま使っている気差係数K。チェックオン=下の気象条件から算出した値(既定)、オフ=0(気差なし。地球の丸みだけの見え方を確かめる時に)。気象条件を入力している間は仮の値(「設定登録」で確定)。標高グラフ・辻検索・辻メッシュ・可視マップ・辻ラインの見通しは全てこの値で計算します">
+                        <input type="number" id="input-refraction-k" class="meteo-input elev-readonly" readonly step="0.001"  placeholder="標準値 0.132" readonly title="いま使っている気差係数K。チェックオン=下の気象条件から算出した値(既定)、オフ=0(気差なし。地球の丸みだけの見え方を確かめる時に)。気象条件を入力している間は仮の値(「設定登録」で確定)。標高グラフ・辻検索・辻メッシュ・辻ライン・宙の窓の見通しは全てこの値で計算します">
                     </div>
                     
                     <div class="meteo-box">
@@ -2631,7 +2631,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>標高グラフ</h3>
                     <p>「標高グラフ」ボタンON時に、観測点〜目的点の地形断面を表示。国土地理院のDEM標高タイルから2000地点で標高を取得します。縦軸=標高・横軸=直線距離の目盛を表示します。</p>
-                    <p>取得完了後、観測点高・目的点高を加えた見通し線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。<strong>可視判定はグラフ描画用の2000点とは独立</strong>で、辻検索・辻メッシュ検索の可視フィルタと共通の統一可視判定 (経路をズーム15半画素≒約2m刻みで歩き、DEM5A/5B/5C→DEM10Bの順で参照。除外範囲=チェックで有効。目的点側/観測点側それぞれの半径○m以内のNGは無視) を使います。判定と赤線は<strong>地球の丸みと大気差を考慮</strong>します (気差係数 K は設定メニューに表示されている値。チェックオフなら測量標準の 0.132、オンなら気象条件から算出した値)。経路は観測点と目的点を結ぶ<strong>大円</strong> (視線が通る鉛直面) に沿って歩き、日本域で標高タイルの無い所 (海) は<strong>海面0m</strong>として遮ります。可視マップと同じ基準です。遠距離では丸みのぶん見通しが厳しくなり、実際の見え方に合った判定になります (赤線も丸みを反映した曲線で描画されます)。</p>
+                    <p>取得完了後、観測点高・目的点高を加えた見通し線 (赤線) に対して地形が遮らないかを判定し、可視なら「OK」、不可視なら「NG」をポップアップで通知します。<strong>可視判定はグラフ描画用の2000点とは独立</strong>で、辻検索・辻メッシュ検索の可視フィルタと共通の統一可視判定 (経路をズーム15半画素≒約2m刻みで歩き、DEM5A/5B/5C→DEM10Bの順で参照。除外範囲=チェックで有効。目的点側/観測点側それぞれの半径○m以内のNGは無視) を使います。判定と赤線は<strong>地球の丸みと大気差を考慮</strong>します (気差係数 K は設定メニューに表示されている値。チェックオンなら気象条件から算出した値、オフなら 0=気差なし)。経路は観測点と目的点を結ぶ<strong>大円</strong> (視線が通る鉛直面) に沿って歩き、日本域で標高タイルの無い所 (海) は<strong>海面0m</strong>として遮ります。遠距離では丸みのぶん見通しが厳しくなり、実際の見え方に合った判定になります (赤線も丸みを反映した曲線で描画されます)。</p>
                 </section>
 
                 <section class="help-section">
@@ -2726,7 +2726,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>設定メニュー</h3>
                     <ul class="help-list">
-                        <li><strong>気差係数 K (大気差補正)</strong>: 係数欄に表示されている値で、標高グラフ・辻検索・My辻検索・辻メッシュ検索・可視マップ・辻ライン・宙の窓の地形の見通しを計算します (全て同じ1つの値)。先頭のチェックがオンのときは下の気象条件から算出した値 (既定。標準の気象条件で K=0.132)、オフのときは 0 (気差なし=地球の丸みだけ。K=0 の見え方を確かめるためのスイッチです)。気象条件を入力している間は、係数欄にその値から算出した仮のKが出ます (「設定登録」で確定し、それ以降の計算に使われます)。係数欄は常に読み取り専用です。</li>
+                        <li><strong>気差係数 K (大気差補正)</strong>: 係数欄に表示されている値で、標高グラフ・辻検索・My辻検索・辻メッシュ検索・辻ライン・宙の窓の地形の見通しを計算します (全て同じ1つの値)。先頭のチェックがオンのときは下の気象条件から算出した値 (既定。標準の気象条件で K=0.132)、オフのときは 0 (気差なし=地球の丸みだけ。K=0 の見え方を確かめるためのスイッチです)。気象条件を入力している間は、係数欄にその値から算出した仮のKが出ます (「設定登録」で確定し、それ以降の計算に使われます)。係数欄は常に読み取り専用です。</li>
                         <li><strong>気差オプション (Astronomy Engine気差補正)</strong>: 天体の見かけ高度の大気差 (地平線近くで天体が浮き上がって見える効果。Astronomy Engineの標準大気で、設定の気圧・気温は反映されません)。辻検索・辻メッシュ検索・My辻検索・辻ライン・宙の窓の天体の見かけ高度と、天体リストの高度・恒星 (My天体) の出没時刻・日の出入り/月の出入りの高度に効きます。太陽・月・惑星の出没時刻 (Astronomy Engineが常に標準の大気差つきで求めます) と天体儀の向きは、このチェックでは変わりません。地上の気差係数Kは「目的点から目へ届く光」、こちらは「天体から目へ届く光」の曲がりなので、両方オンでも二重にはかかりません (既定は両方オン)。オフにすると幾何学的な高度になります。</li>
                         <li><strong>気象条件からの算出</strong>: 気圧 P (hPa)・気温 T (°C)・気温減率 Γ (°C/m。高さ1mあたりの気温低下量。既定は0.0125で、測量標準の K=0.132 になります。国際標準大気の0.0065では K≒0.169) を入力するとKを算出します。「登録」で保存・反映、「リセット」で初期状態に戻します。係数の意味と目安は下の「気差係数(K)について」をご覧ください。</li>
                     </ul>

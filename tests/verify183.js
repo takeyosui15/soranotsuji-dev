@@ -204,6 +204,7 @@ check('S4 可視マップの封鎖(静的): FEATURE_KASHIMAP_ENABLED(?kashimap=1
     document.getElementById('sec-backup').classList.remove('closed');   // 閉じている間は数えないので開く
     await _mtRefreshBackupRows();
     const rows = () => ({ mc: document.getElementById('backup-maptiles-count').textContent, ms: document.getElementById('backup-maptiles-size').textContent, mu: document.getElementById('backup-maptiles-updated').textContent, dc: document.getElementById('backup-demtiles-count').textContent, ds: document.getElementById('backup-demtiles-size').textContent, du: document.getElementById('backup-demtiles-updated').textContent });
+    const waitRows = async (ok) => { for (let i = 0; i < 40; i++) { if (ok()) return true; await new Promise(r => setTimeout(r, 100)); } return false; };   // 最長4秒
     const r1 = rows();
     const miss = await _demTileLoad('https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/14549/6450.png');   // 東京付近のタイル座標(日本域の外だと手前で弾かれる)
     const hit = await _demTileLoad('https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/14549/6451.png');
@@ -212,9 +213,9 @@ check('S4 可視マップの封鎖(静的): FEATURE_KASHIMAP_ENABLED(?kashimap=1
     const imgData = await _getTileImageData('https://cyberjapandata.gsi.go.jp/xyz/dem_png/14/14549/6451.png');
     const px = imgData ? [imgData.data[0], imgData.data[1], imgData.data[2]] : null;
     window.confirm = () => true;
-    document.getElementById('btn-backup-maptiles-clear').click(); await new Promise(r => setTimeout(r, 400));
+    document.getElementById('btn-backup-maptiles-clear').click(); await waitRows(() => rows().mc === '0');   // 表示の更新(IndexedDB の読み直し)を待つ。固定の400msは負荷の高い時に足りない(第171)
     const st2 = await _mtStat(); const r2 = rows();
-    document.getElementById('btn-backup-demtiles-clear').click(); await new Promise(r => setTimeout(r, 400));
+    document.getElementById('btn-backup-demtiles-clear').click(); await waitRows(() => rows().dc === '0');
     const dem2 = await _kmTilesStat(); const r3 = rows();
     const srcStd = glMap.getSource('base-std'), srcPhoto = glMap.getSource('base-photo'), srcPale = glMap.getSource('base-pale'), srcOsm = glMap.getSource('base-osm');
     return { st, phHit, phMiss, phNew, r1, miss, stale, hitInfo, px, st2, r2, dem2, r3, tiles: { std: srcStd && srcStd.tiles[0], photo: srcPhoto && srcPhoto.tiles[0], pale: srcPale && srcPale.tiles[0], osm: srcOsm && srcOsm.tiles[0] } };
