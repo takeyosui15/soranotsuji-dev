@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.98.1 - 2026-10-15: fix: 第180ラウンド — 「:自動更新」(Googleドライブ同期)のチェックがオフにできない(チェックが同期ダイアログ=👎の時にしか開かない画面の中にしか無く、自動更新が効いて👍のままだと辿り着けない。依頼者の memo→第179の備忘録で指摘・コードで確認)→ バックアップ/インポートメニューの Google ドライブ欄にも同じ「:自動更新」を置き、2か所を連動(_autoSyncSyncCheckboxes)。👍の時の案内文とヘルプに置き場所を追記。verify185
 Version 1.98.0 - 2026-10-12: security: 第159ラウンド — セキュリティ対策(依頼者: 2026年10月の国内の不正アクセス多発(JPCERT-AT-2026-0030・IPAの注意喚起)を受けた点検)。①第三者ライブラリの自前配信: MapLibre 4.7.1・three 0.160.0・astronomy-engine 2.1.19・GeographicLib 2.2.0(npm)・qrcode-generator 1.4.4・Draco を vendor/ に固定(出所・版・ライセンス・内容の指紋 sha384/sha256 を vendor/MANIFEST.json に)。CDN(jsDelivr/unpkg/sourceforge)への読み込みを全て撤去・MathJax を撤去(ヘルプの気差係数の数式(TeX 18行)はHTMLに書き直し)・ワーカーの importScripts と Draco も vendor/ へ ②読み込み元の許可リスト(CSP meta): script-src は自サイト+'wasm-unsafe-eval'(Draco の WASM)+Googleのログイン(accounts.google.com/gsi/client)+ピッカー(apis.google.com)だけ('unsafe-inline'/'unsafe-eval' 無し)・connect-src/img-src/frame-src は使うAPIとタイルの許可リスト・object-src 'none'・base-uri 'self'・worker-src 'self' blob:・Referrer-Policy。CSP違反はコンソールに記録(securitypolicyviolation) ③インラインの onclick=(32箇所: index.html 30+forecast-features.html 2)を data-click 属性+1つの委譲リスナー+許可表(_CLICK_ACTIONS)に・three の読み込みを three-global.js に・reset.html のスクリプトを reset.js に(CSPでインラインを禁じるため) ④保存データの型そろえ(_sanitizeStoredShapes。normalizeAppState の先頭で毎回): 観測点/目的点/Home・My観測点/My目的点/My天体/My辻検索/My宙検索/Myセット・表示天体の色を、数値は数値・文字は文字・色は safeCssColor・真偽は !! に確定させる(他人から受け取ったバックアップJSON/Driveの生ダンプの数値欄に入った文字列(HTML)が innerHTML に届く持続XSSの根を塞ぐ)。escapeHtml は文字列以外も落ちずに文字として扱う。HTML を組む所(地点のポップアップ・My観測点/My目的点/My天体/Myセットの行・ID入りのエラー文・宙検索の一括結果)も Number()/escapeHtml で二重に守る。可視マップの資産の取り込みは島の番号/画素数が数値でなければ拒む・島リスト/ポップアップで escapeHtml ⑤別タブで開くリンクは全て rel=noopener・Myセットのシートを開く window.open は noopener+IDの文字種検査・Sheets/Drive API のパスのシートIDは encodeURIComponent・保存データのシートIDは Google のIDの文字種だけ ⑥reset.html の「すべてのデータを消去」に地図タイルの控え(soranotsuji-maptiles)も。verify184(合格条件の自動検査)。デッサン34(セキュリティ)に脅威モデル・合格条件(自動検査/コンソール点検/運用)を記録 ⑦クライアントIDが空の時の案内文を利用者向けに(非常停止で配る文。第160) ⑧CSP違反の記録に、開発用サーバー(Live Preview)の自動再読み込みが止められた時は「無害」と添える(第161) ⑨Myセットの保存ガードの案内文を正しく(表示中/オフライン指定でないセットは端末に内容を持たないので「切り替え表示してから保存」。以前の「先に読込を」では解決しなかった。第164) ⑩CSP違反の記録は止められた先の URL の「?」より前だけ(問い合わせ部分にアクセストークンが入る事があるため。第165) ⑪リリース準備: 表示中の文言に残っていた封鎖中の「可視マップ」の名前を外す(辻検索/辻メッシュの樹冠・構造物の説明=準備中・山頂部の帯の注記・気差係数の対象の列挙・reset.html の消去の説明)。README の主な機能に可視フィルタ・宙の窓検索・端末の控えを反映(第171) ⑫公開文(依頼者承認): privacy.html 4.外部サービスの節を実際の通信先に差し替え(CDN を消す。改定日 2026-10-14)・/.well-known/security.txt(RFC 9116。Contact=GitHub のリポジトリ)。リリースノートの冒頭に「可視マップは含まない」「宙の窓検索とオフライン表示は今後改善予定」の※(第172) ⑬依頼者が GitHub の非公開の脆弱性報告(Private vulnerability reporting)を本番・開発の両リポジトリで有効化(箱から確認)→ security.txt の Contact を2行に(1行目=security/advisories/new・2行目=リポジトリ。第173)
 Version 1.97.0 - 2026-10-09: feat: 第158ラウンド — 気差を2本立てに(依頼者の方針変更): ①設定の「大気差補正」チェック=地形の見通しの気差係数K(オン=気象条件から算出・既定オン / オフ=K=0=気差なし。第157の「オフでも0.132」を取り下げ。K=0の見え方の検証ができるように)。保存データは一度だけ新既定へ(印 refractionV3) ②新しい「:気差オプション(Astronomy Engine気差補正)」=天体の見かけ高度の大気差(既定オン。地上のKとは別の光線なので二重にはかからない)。appState.astroRefraction・ワーカーへは astroRefraction で渡す・共有URL(辞書v22)・ヘルプ ③宙の窓検索(デッサン05): 位置情報メニューのボタンを「宙の窓検索」に(辻検索/辻メッシュ/宙の窓検索の段・可視マップは次の段)・宙の窓メニューに注記・コントロールに「:構図をドラッグ(二本指)で変更」「:辻オフセット点をドラッグ(二本指)で変更」(ドラッグの対象=カメラオフセット/辻オフセット。オフで戻す)と「辻検索」「辻メッシュ」ボタン ④地理院タイルのオフライン(デッサン18): 地図の地理院タイル(標準・淡色・写真・ベクトル)は端末の店(IndexedDB)を先に読み、無い時だけ地理院へ(gsicache://プロトコル)。標高タイル(標高グラフ・辻メッシュ・宙の窓)も可視マップと同じ店を先に読む。バックアップメニューに地理タイル/標高タイルの件数・容量・最終更新・全削除 ⑤リリース向けの封鎖: 可視マップは ?kashimap=1 で開錠(forecastと同じ仕組み)。verify183。差分のレビューで直した: 辻オフセット点のドラッグ(と宙の窓/ctrlの欄)を辻メッシュ側のオフセットにも写す(ctrlの「辻メッシュ」が×の位置で検索する)・ドラッグの値は4桁に丸める・宙断面(forecast)のスロットを封鎖される段の外へ・辻ライン365の鍵に気差(2つのチェックと設定登録は _refractionSettingChanged で保存→再計算→365も引き直す)・旧形式のバックアップの取り込みも一度だけ両方オンへ・気差オプションのヘルプの「効く範囲」を実装どおりに(太陽・月・惑星の出没時刻と天体儀の向きは変わらない)・店の件数と容量は索引の鍵カーソルで数える(本文を読まない。地理タイルの店v2/標高タイルの店v3)・数えるのはバックアップを開いている間だけ・「無し」の印は30日で取り直す(SORA.TILE_STORE.MISS_TTL_MS。本体・地形ワーカー・可視マップのワーカー)・標高タイルの取得の失敗は1回で諦める・封鎖中は標高タイルの注記を可視マップ抜きの文に
 Version 1.96.0 - 2026-10-07: refactor/feat: 第157ラウンド — 数の単一情報源 sora-constants.js(地球の大きさ・大気差・観測者・標高タイル・可視判定の既定値と、気差係数の式・局所半径・ハバーサイン・1画素の長さ・大円の補間。本体はscriptタグ、ワーカーはimportScripts、道具はrequireで同じ値を読む=1箇所を直すと他も直る)。気差係数は「設定に表示されている値」で全処理が計算(refractionKInUse: 大気差補正オフ=測量標準0.132、オン=気象条件から算出。標高グラフ・辻検索/My辻・辻メッシュ・可視マップ・辻ライン・宙の窓の地形/建物/花火の8箇所の『オフ=0』を1つに)。統一可視判定(標高グラフ・辻検索・辻メッシュのワーカー)も可視マップと同じ3つに=経路を大円に(区間ごとに球面補間)・海(データ無し)は海面0mで遮る(日本域)・K。山リストに「ズーム」列(z15(1画素≈4m・DEM5A/5B/5C)など。索引index.jsonにzooms・端末の索引にzoom[無ければ資産の計算条件から補う])。最大表示範囲より広い資産しか無い山は範囲に▲を付けて示し、選ぶと表示範囲を繰り上げる(「:端末保存」で列が空だった件)。島リストは4,000行ずつ描き、残りは進捗(描画中 n/N)を出しながら続ける(富士山700kmの4万行)。可視マップ節: 「可視タイル:」の上に水平線・「範囲を計算」の下に剣ヶ峯の注記(依頼者起草)。verify182。差分のレビューで直した: 基準視高度の自動算出の鍵にK(気差係数を切り替えると再計算・URL復元は気象値の後で鍵を取り直す)・宙の窓の陰影の鍵にK・古い形式のバックアップ取り込みで設定の大気差の部品を同期(syncRefractionUiFromState)・辻メッシュの帯域分割もPATH_CHUNK・端末の資産の再利用はKが同じ時だけ・道具の答え合わせ(judgeLikeApp)も大円+海面0m
@@ -167,7 +168,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.98.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.98.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -2463,11 +2464,18 @@ function setupUI() {
     document.getElementById('gdrive-sync-save').onclick = () => { closeGdriveSyncDialog(); saveAppToDrive(); };
     document.getElementById('gdrive-sync-load').onclick = () => { closeGdriveSyncDialog(); loadAppFromDrive(); };
     document.getElementById('gdrive-sync-cancel').onclick = closeGdriveSyncDialog;
-    document.getElementById('chk-gdrive-autosync').addEventListener('change', (e) => {
+    // 「:自動更新」は同期ダイアログ(👎の時だけ開く)とバックアップ/インポートメニューのGoogleドライブ欄の2か所に
+    // 同じチェックを置き、どちらで変えても連動する(第180: ダイアログの中にしか無いと、自動更新が効いて👍のままの間は
+    // 辿り着けず、オフにできなかった=memo→備忘録の指摘)
+    const onAutoSyncToggle = (e) => {
         appState.googleDrive.autoSync = e.target.checked;
+        _autoSyncSyncCheckboxes();
+        if (!e.target.checked && _autoSyncTimer) { clearTimeout(_autoSyncTimer); _autoSyncTimer = null; }   // オフにしたら予約中の自動保存も取り消す
         saveAppState();
         if (e.target.checked) _autoSyncArm();   // オンにした直後の未保存変更も拾う
-    });
+    };
+    document.getElementById('chk-gdrive-autosync').addEventListener('change', onAutoSyncToggle);
+    document.getElementById('chk-gdrive-autosync-menu').addEventListener('change', onAutoSyncToggle);
 
     // Myセット
     document.getElementById('btn-myset-toggle-all').onclick = toggleAllMySets;
@@ -14409,6 +14417,14 @@ async function resolveAppFile() {
 var _autoSyncTimer = null;
 var _autoSyncBusy = false;
 var _autoSyncDebounceMs = 30000;   // 最後の変更から30秒(検証から差し替えられるようvar)
+/** 「:自動更新」の2つのチェック(同期ダイアログ/バックアップメニュー)を appState に揃える(第180) */
+function _autoSyncSyncCheckboxes() {
+    const on = !!(appState.googleDrive && appState.googleDrive.autoSync);
+    for (const id of ['chk-gdrive-autosync', 'chk-gdrive-autosync-menu']) {
+        const el = document.getElementById(id);
+        if (el && el.checked !== on) el.checked = on;
+    }
+}
 function _autoSyncArm() {
     if (!appState.googleDrive.autoSync || _autoSyncBusy) return;
     if (_autoSyncTimer) clearTimeout(_autoSyncTimer);
@@ -14663,7 +14679,7 @@ function onGoogleLoginIconClick() {
             openGdriveSyncDialog();   // どのように更新しますか？(保存/読み込み/キャンセル)
             break;
         case 'ok':
-            alert('Googleドライブの内容とこの端末の内容の同期が取れています。');
+            alert('Googleドライブの内容とこの端末の内容の同期が取れています。\n(「:自動更新」のオン/オフは、バックアップ/インポートメニューのGoogleドライブ欄で切り替えられます)');
             break;
         default:
             checkGoogleSyncState();   // エラー時は押下で再確認
@@ -14686,6 +14702,7 @@ function updateBackupDriveUI() {
         gd.lastDriveModifiedTime ? formatGdriveDateTime(gd.lastDriveModifiedTime) : '-';
     document.getElementById('gdrive-size').textContent =
         'ローカルストレージ: ' + (gd.lastDriveSize ? `${Math.round(gd.lastDriveSize / 1024).toLocaleString('ja-JP')}KB` : '-');
+    _autoSyncSyncCheckboxes();   // 「:自動更新」のチェックをメニュー側にも映す(第180)
     _mtRefreshBackupRows();   // 地理タイル/標高タイルの件数・容量・最終更新(第158)
 }
 

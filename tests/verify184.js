@@ -20,7 +20,7 @@ const workers = ['dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker
 const workerSrc = Object.fromEntries(workers.map(w => [w, rd(w)]));
 const noComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
 
-check('V0 版数ピン 1.98.0+Version Historyに第159', /APP_VERSION = '1\.98\.0'/.test(src) && src.includes('Version 1.98.0 - ') && src.includes('第159ラウンド'));
+check('V0 版数は1.98以上+Version Historyに第159(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.9[8-9]\.\d+'/.test(src) && src.includes('Version 1.98.0 - ') && src.includes('第159ラウンド'));
 
 // ---- S1: 外部ホストからスクリプト/スタイルを読み込まない(自前配信) ----
 const scriptTags = [...idxSrc.matchAll(/<script\b[^>]*>/g)].map(m => m[0]);

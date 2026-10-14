@@ -2326,6 +2326,7 @@ GNU General Public License for more details.
                         <button id="btn-gdrive-login" class="nav-btn main-btn" title="Googleアカウントにログインします">ログイン</button>
                         <button id="btn-gdrive-logout" class="nav-btn main-btn" title="Googleアカウントからログアウトします">ログアウト</button>
                     </div>
+                    <div class="control-row left-row"><label class="mypoint-label" title="オンにすると、端末の内容に変更があった時に、少し待ってからGoogleドライブへ自動で保存します(最後の変更から約30秒後にまとめて1回。画面を閉じる/裏に回る時にも1回)。他の端末が先に保存していた時は自動では上書きせず、👎に戻して同期ダイアログに委ねます。ログインが切れている時は🈚️になります(変更は端末に残ります)。同期ダイアログ(👎の時)の「:自動更新」と同じ設定です"><input type="checkbox" id="chk-gdrive-autosync-menu" class="body-checkbox">:自動更新</label></div>
                     <div class="control-row left-row"><label class="mypoint-label">宙の辻フォルダ名:</label></div>
                     <div class="control-row">
                         <input type="text" id="gdrive-root-folder" class="mypoint-name" maxlength="150" autocomplete="off" title="マイドライブ直下に作成するフォルダ(「/」で始める)">
@@ -2735,7 +2736,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>バックアップ / インポート / Googleドライブ同期</h3>
                     <p>Home/推し山、表示天体、My天体、My観測点、My目的点、My辻検索、Myセット、設定の全データを JSON で一括バックアップ・インポート。デバイス間の移行に便利です。</p>
-                    <p><strong>Googleドライブ同期</strong>: ヘッダのアイコンからGoogleアカウントにログインすると、全データをGoogleドライブ (soranotsuji-app.json) と同期できます。アイコンの意味: 🈚️=未ログイン (押下でログイン) / 🕛=確認中 / 😢=ドライブにファイルが無い (押下で作成) / 👍=同期済み / 👎=端末とドライブに差がある (押下で保存/読み込みを選ぶダイアログ) / ❌=エラー (押下で再確認)。</p>
+                    <p><strong>Googleドライブ同期</strong>: ヘッダのアイコンからGoogleアカウントにログインすると、全データをGoogleドライブ (soranotsuji-app.json) と同期できます。アイコンの意味: 🈚️=未ログイン (押下でログイン) / 🕛=確認中 / 😢=ドライブにファイルが無い (押下で作成) / 👍=同期済み / 👎=端末とドライブに差がある (押下で保存/読み込みを選ぶダイアログ) / ❌=エラー (押下で再確認)。<strong>:自動更新</strong> (変更の約30秒後に自動でドライブへ保存) のオン/オフは、バックアップ/インポートメニューのGoogleドライブ欄と、👎の時のダイアログの、どちらからでも切り替えられます。</p>
                     <p><strong>宙の辻フォルダ</strong>: ドライブ上の保存先フォルダは、名前ではなくフォルダに付けた目印で追跡しています。このため、Googleドライブ側で宙の辻フォルダを<strong>名前変更したり、別の場所へ移動したりしても、連携はそのまま保たれます</strong>。ご自身のドライブの整理に合わせて自由に動かせます。アプリ側の「宙の辻フォルダ名」欄と「登録」ボタンは、ドライブ上のフォルダをその名前に変更 (リネーム) するためのものです。フォルダをゴミ箱に入れた場合は、次回の保存時に新しいフォルダが作られます。</p>
                 </section>
 
