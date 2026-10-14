@@ -961,3 +961,30 @@ Find a trusted reporter
 > 1. ③(`/watching` に両方が All Activity で載っている)を見て、Secret scanning のアラートを両リポジトリで Won't fix で閉じる。
 > 2. G(deploy-guide の Step 1〜6。rsync の後に `ls -a` で `.nojekyll`・`vendor/`・`.well-known/`)。
 > 3. 配ったら H。箱からも本番を確かめます。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 35deb87
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-10-14)
+Claudeさん、ありがとうございます。
+
+> #### 1. ③の `https://github.com/watching`(Watched repositories)は、自分のリポジトリも対象です
+>
+> - GitHub の通知は「リポジトリの持ち主だから届く」のではなく、「そのリポジトリの通知を受ける設定(All Activity など)になっている人に届く」仕組みです。自分のリポジトリも例外ではありません。
+> - ただ、GitHub は既定で、自分が作ったリポジトリを自動で「通知を受ける」状態にします(GitHub の説明書: "By default, you also automatically watch all repositories that you create and are owned by your personal account."=「既定で、自分のアカウントが持つ、自分で作ったリポジトリは自動で watch される」。通知設定でこの自動 watch を切っていない限り)。なので、たけちゃんの一覧には `takeyosui15/soranotsuji` と `takeyosui15/soranotsuji-dev` が最初から載っているはずです。
+> - 見るところはそこだけ: 一覧に両方があり、右の選択が「All Activity」(または Custom で Security alerts にチェック)なら③は「はい」。
+> - もし載っていなければ(過去に Unwatch した場合など): リポジトリのページ右上の **Notifications** ボタンで「All Activity」を選ぶと載ります。
+> - この箱からは、たけちゃんの通知の設定は読めません(GitHub の API がリポジトリ単位の範囲に限られているため)。なので、ここだけ画面での確認をお願いしています。
+
+と、ありますが、以下のところが、全く理解できません。
+同じ画面を見ているでしょうか。
+
+> - 見るところはそこだけ: 一覧に両方があり、右の選択が「All Activity」(または Custom で Security alerts にチェック)なら③は「はい」。
+> - もし載っていなければ(過去に Unwatch した場合など): リポジトリのページ右上の **Notifications** ボタンで「All Activity」を選ぶと載ります。
+
+もう少し、丁寧にご説明をお願いできないでしょうか。
