@@ -89,17 +89,17 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
   - 理由: このキーは公開JSに入っている(それが前提のキー)。制限が無いと、誰でも宙の辻の枠でこのキーを使える。
   - 注意: 4つを**書いてから**保存する。書き忘れたサイトでは「ピッカーで追加」だけが動かなくなる(ログイン・保存・読込は動く)。
   - `https://www.soranotsuji.net/*` が無かった場合(第169): **足してよい(足すのが望ましい)**。DNS(Squarespace の `www CNAME takeyosui15.github.io`)は GitHub Pages の正しい設定で、変える物は無い。www は GitHub Pages が常に `https://soranotsuji.net/` へ 301 で転送する(箱から確認)ので、実際にピッカーが呼ばれる時の送信元は soranotsuji.net になり、www の行が無くても今は動く。それでも足すのは、本番用 OAuth クライアントの生成元(D3)と `GOOGLE_CONFIG.prod.hosts` が www を含むのと揃えるため・転送の仕組みが将来変わっても止まらないため。
-- [ ] D1 **OAuth同意画面** — 公開ステータス=本番環境・ユーザーの種類=外部・アプリ名・サポートメール・プライバシーポリシーのURL(`https://soranotsuji.net/privacy.html`)。
-- [ ] D2 **スコープ** — `…/auth/drive.file` だけ。他(drive・drive.readonly・spreadsheets)が並んでいたら外す。アプリは drive.file しか要求しないので、外しても動作は変わらない。
-- [ ] D3 **本番用OAuthクライアント**(クライアントIDが `87463892240-cb6fqb…` の方)の「承認済みのJavaScript生成元」 — `https://soranotsuji.net` と `https://www.soranotsuji.net` だけ。「承認済みのリダイレクトURI」は空でよい。
-- [ ] D4 **開発用OAuthクライアント**(`87463892240-r77t8c…` の方)の生成元 — `https://takeyosui15.github.io` と `http://127.0.0.1:3000`(VS Code Live Preview。ポートまで一致が必要。アドレスは localhost ではなく 127.0.0.1 で開く)だけ。
-- [ ] D7 **有効なAPI** — APIとサービス > 有効なAPIとサービス。Google Drive API・Google Sheets API・Google Picker API の3つが「有効」にあることを確かめる。無効化の対象は Maps Platform / Places / Vision など「宙の辻が使わない・使った分だけ課金される」API だけ。Google Cloud 自身の基盤(Service Usage・Cloud Logging・Cloud Monitoring・BigQuery など、プロジェクト作成時から有効な物)や Apps Script が足した物は触らない。迷ったら無効化せず、一覧をそのまま送る。
-- [ ] D6 **使っていない認証情報** — 認証情報の一覧に、知らないOAuthクライアント・APIキー・サービスアカウントが無い。あれば削除(削除は即時。迷ったら先に送る)。注意(第168): Google が付ける既定の名前(「無題のプロジェクト」「Web client 1」など)は、自分の物でも見分けがつかない。消す前に、心当たりの物に名前を付けてから。
+- [x] D1 **OAuth同意画面** — 公開ステータス=本番環境・ユーザーの種類=外部・アプリ名・サポートメール・プライバシーポリシーのURL(`https://soranotsuji.net/privacy.html`)。
+- [x] D2 **スコープ** — `…/auth/drive.file` だけ。他(drive・drive.readonly・spreadsheets)が並んでいたら外す。アプリは drive.file しか要求しないので、外しても動作は変わらない。
+- [x] D3 **本番用OAuthクライアント**(クライアントIDが `87463892240-cb6fqb…` の方)の「承認済みのJavaScript生成元」 — `https://soranotsuji.net` と `https://www.soranotsuji.net` だけ。「承認済みのリダイレクトURI」は空でよい。
+- [x] D4 **開発用OAuthクライアント**(`87463892240-r77t8c…` の方)の生成元 — `https://takeyosui15.github.io` と `http://127.0.0.1:3000`(VS Code Live Preview。ポートまで一致が必要。アドレスは localhost ではなく 127.0.0.1 で開く)だけ。
+- [x] D7 **有効なAPI** — APIとサービス > 有効なAPIとサービス。Google Drive API・Google Sheets API・Google Picker API の3つが「有効」にあることを確かめる。無効化の対象は Maps Platform / Places / Vision など「宙の辻が使わない・使った分だけ課金される」API だけ。Google Cloud 自身の基盤(Service Usage・Cloud Logging・Cloud Monitoring・BigQuery など、プロジェクト作成時から有効な物)や Apps Script が足した物は触らない。迷ったら無効化せず、一覧をそのまま送る。
+- [x] D6 **使っていない認証情報** — 認証情報の一覧に、知らないOAuthクライアント・APIキー・サービスアカウントが無い。あれば削除(削除は即時。迷ったら先に送る)。注意(第168): Google が付ける既定の名前(「無題のプロジェクト」「Web client 1」など)は、自分の物でも見分けがつかない。消す前に、心当たりの物に名前を付けてから。
 
 ## E. アカウントの守り(影響: 自分のアカウント)
 
-- [ ] E8 Googleアカウント(Cloudプロジェクトの持ち主) > セキュリティ > **2段階認証プロセス** = オン。パスキーが使えるなら追加。再設定用の電話/メールが現在の物。
-- [ ] E11 GitHub > Settings > Password and authentication > **Two-factor authentication** = オン。
+- [x] E8 Googleアカウント(Cloudプロジェクトの持ち主) > セキュリティ > **2段階認証プロセス** = オン。パスキーが使えるなら追加。再設定用の電話/メールが現在の物。
+- [x] E11 GitHub > Settings > Password and authentication > **Two-factor authentication** = オン。
 - [ ] E12 GitHub > `soranotsuji`(本番)と `soranotsuji-dev` > Settings > Rules > **Rulesets** — 本番の `main` と、開発の `develop`・`main` に「Restrict deletions」「Block force pushes」の2つ。「Require a pull request」は**入れない**(回答その157では「PR必須」と書いたが、deploy-guide の Step 1・Step 4 と B1 は main/develop へ直接 push するので、PR必須にすると push が拒まれる。取り下げ。どうしても入れるなら Bypass list に自分=Repository admin を足す)。作っただけでは効かないので Enforcement status を **Active** に。Target branches は「Add target → Include by pattern」で `main`(開発は `develop` も)。
 - [ ] E13 GitHub > Settings > Pages > **配信元(Source)** — 本番: soranotsuji の `main`(Deploy from a branch / main / (root)) / 開発: soranotsuji-dev の `develop`。知らないブランチになっていない。
 - [ ] E14 GitHub > Settings > **Advanced Security**(旧 Code security)> **Secret Protection** を Enable(その中に Secret scanning と Push protection のスイッチ)。
