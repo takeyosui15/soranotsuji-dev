@@ -108,6 +108,7 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 - [x] E14 GitHub > Settings > **Advanced Security**(旧 Code security)> **Secret Protection** を Enable(その中に Secret scanning と Push protection のスイッチ)。
 - [x] E15 ドメイン(soranotsuji.net)のレジストラ — ログインの2段階認証・ドメインロック(移管ロック)・自動更新 = オン。
 - [x] E-追(点検表には無い追加) `soranotsuji-dev` に名前が「>」だけの迷子のブランチ(2026-07-06)が残っている → GitHub の Branches 画面で削除(コマンドなら `git push origin --delete '>'`)。
+- [x] E16(点検表の追加・第173) GitHub > `soranotsuji`(本番)と `soranotsuji-dev` > Settings > サイドバーの「Security and quality」> **Advanced Security** > **Private vulnerability reporting** = Enable(依頼者が 2026-10-14 に両方オン。有効だとボタンが「Disable」表示になる)。確認: 本番はログアウトした状態でも「Security and quality」のタブ(URL は `https://github.com/takeyosui15/soranotsuji/security`)に「Report a vulnerability」が出る(第173で箱から確認。朝の時点では無かった)。開発は API `private-vulnerability-reporting` が `{"enabled":true}`。報告の URL(`…/security/advisories/new`)はログインしていないとサインイン画面に転送される(=報告者は GitHub のアカウントが要る)。通知の条件(GitHub の説明どおり): 報告が来たことは、そのリポジトリを **Watch**(All Activity、または Custom で「Security alerts」にチェック)していて、そのリポジトリの通知が有効な管理者に届く(Watch していないと、Security のタブの Advisories に溜まるだけで知らせは来ない)。メールで受け取るには、さらに通知設定(Notification settings)の Subscriptions > Watching で Email にチェック。→ 確認: 両リポジトリの右上の Watch ボタンが「Unwatch」(All Activity か、Custom+Security alerts)になっていること・通知設定の Watching に Email があること。自分で報告を出して試すことはできない(自分のリポジトリには報告できない)。
 - 注: E の番号は点検表の番号。GitHub Actions は、Pages の配信(pages-build-deployment)が Actions の仕組みで動くので**無効にしない**(回答その157の「Actions は無効に」は取り下げ)。
 
 ## F. Apps Script(訪問者カウンタ)の再デプロイ(影響: カウンタだけ)
@@ -129,7 +130,7 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 
 - [ ] G0 知っておく: 本番は v1.87.0 なので、今回は **v1.88〜v1.98 の変更がまとめて載る**(宙の窓検索・地理院タイルのオフライン表示・気差の2本立て(大気差補正/気差オプション)と統一可視判定(大円・海は海面0m)・除外範囲の山頂部・可視マップとMyサイトの封鎖・セキュリティ対策。中身は script.js の Version History v1.88.0〜v1.98.0)。リリースノート(note用)は合図があれば起草する(todo)。
 - [ ] G0b `deploy-guide.md` の「プレ・デプロイ・チェックリスト」(機能のリストアップ・ヘルプ/README への反映・版数2か所)を先に。機能のリストアップ=リリースノート `docs/release-notes/v1.98.0.md`(第171で起草)。README の主な機能と、表示中の文言に残っていた封鎖中の「可視マップ」の名前は第171で整えた。版数2か所(Version History・APP_VERSION)は 1.98.0 で揃っている。
-- [x] G0c 公開文のご判断(回答その157の9.): privacy.html の「4. 外部サービスへの通信」の差し替え(CDN を消し、実際の通信先を列挙。改定日 2026-10-14)と `/.well-known/security.txt`(Contact=GitHub のリポジトリ。Expires 2027-10-01)を、第172で依頼者の判断どおりに載せた。verify184 S11 が見張る。
+- [x] G0c 公開文のご判断(回答その157の9.): privacy.html の「4. 外部サービスへの通信」の差し替え(CDN を消し、実際の通信先を列挙。改定日 2026-10-14)と `/.well-known/security.txt`(Contact は2行: 1行目=GitHub の非公開の脆弱性報告 `…/security/advisories/new`・2行目=リポジトリ(第173で並べ替え)。Expires 2027-10-01)を、第172で依頼者の判断どおりに載せた。verify184 S11 が見張る。
 - [ ] G1 `deploy-guide.md` の Step 1〜4 をそのまま(Step 1 の main への push は、E12 のルールが「削除・force push の禁止」だけなら通る)。Step 3 の rsync の後、`ls -a` で **`.nojekyll` と `vendor/` と `.well-known/` が入っている**ことを見る(`.nojekyll` と `.well-known` は名前が「.」で始まるので `ls` だけでは見えない)。
 - [ ] G2 Step 5: `https://soranotsuji.net/vendor/MANIFEST.json` が JSON で表示される。版数 1.98.0(Shift+再読み込み)。コンソールに CSP の行が無い。主要機能。
 - [ ] G3 Step 6: デプロイ記録。

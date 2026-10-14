@@ -728,3 +728,70 @@ Claudeさん、ありがとうございます。
 
 Report a vulnerabilityをオンにしたのですが、設定があっているかどうかの確認をお願いいたします。
 それが終わってから、Gの作業に移行しようと思います。
+
+> ### 回答 (2026-10-14 その171) — 第173ラウンド: 「Report a vulnerability」の設定は合っています(本番・開発とも有効なのを箱から確認)。約束どおり security.txt の Contact を2行にしました(1行目=非公開の報告の URL)。G へ進んで大丈夫です(v1.98.0のまま)
+>
+> たけちゃん、ありがとうございます。設定、合っています。
+>
+> #### 1. 箱から確かめた結果
+>
+> - **本番 `soranotsuji`**: ログアウトした状態で `https://github.com/takeyosui15/soranotsuji/security` を開くと、「**Report a vulnerability**」のリンク(行き先 `/takeyosui15/soranotsuji/security/advisories/new`)が出ています。このリンクは非公開の脆弱性報告(Private vulnerability reporting)が有効な時だけ出る物で、今朝(第172のレビューの時点)には出ていませんでした。つまり、今日オンにした設定が効いています。
+> - **開発 `soranotsuji-dev`**: API(`private-vulnerability-reporting`)が `{"enabled":true}` を返します(今朝は `false`)。開発リポジトリも公開なので、両方オンで正しいです。
+> - 併せて見えたこと: 本番は Issues が有効(security.txt の2行目の連絡先がそのまま機能する)。SECURITY.md(セキュリティポリシーの文書)はまだ無く、Security のページに「No security policy detected」と出ますが、無くても報告はできます(5. に任意の提案)。
+>
+> #### 2. たけちゃんの画面で「合っている」と確かめる方法(念のため)
+>
+> 1. リポジトリの Settings > サイドバーの「Security and quality」> **Advanced Security** > **Private vulnerability reporting** の右のボタンが「**Disable**」になっている(=今は有効。「Enable」なら無効)。
+> 2. ログアウトしたブラウザ(シークレットウィンドウ)で本番の「Security and quality」のタブ(URL は `…/soranotsuji/security`)を開くと「Report a vulnerability」が見える(これが外から見える唯一のしるしです)。
+> 3. **通知が自分に届く条件(ここだけ、たけちゃんの画面でしか確かめられません)**: GitHub の説明では、報告が来たことは「そのリポジトリを **Watch**(All Activity、または Custom で「Security alerts」にチェック)していて、そのリポジトリの通知が有効な管理者」に届きます。Watch していないと、Security のタブの Advisories に溜まるだけで知らせは来ません。メールで受け取るには、さらに通知設定(Notification settings)の Subscriptions > Watching で **Email** にチェックが要ります。
+>    確認は2つ: ①本番と開発の両方で、リポジトリの右上の Watch ボタンが「**Unwatch**」(All Activity か、Custom+Security alerts)になっている(自分で作ったリポジトリは最初から All Activity のことが多いです)。②通知設定の Watching に Email のチェックがある。
+>    自分のリポジトリに自分で報告を出して試すことはできないので、この2つを見ておけば十分です。
+>
+> #### 3. security.txt を約束どおりに(Contact を2行に)
+>
+> ```
+> Contact: https://github.com/takeyosui15/soranotsuji/security/advisories/new
+> Contact: https://github.com/takeyosui15/soranotsuji
+> Expires: 2027-10-01T00:00:00.000Z
+> Preferred-Languages: ja, en
+> Canonical: https://soranotsuji.net/.well-known/security.txt
+> ```
+> - 1行目が非公開の報告(見つけた人が GitHub にログインして書く。報告の URL はログインしていないとサインイン画面に転送されるので、報告者には GitHub のアカウントが要ります。中身は公開されず、たけちゃんと報告者だけが見られます)、2行目がリポジトリ(予備)。Contact は上が優先です(RFC 9116)。
+> - 先頭のコメント(公開文なので内容を書いておきます): 「脆弱性や安全上の問題を見つけた方は、1つ目の連絡先 (GitHub の非公開の脆弱性報告) からお知らせください。2つ目は予備です。やむを得ず使う場合は、公開の Issue に脆弱性の中身は書かず、連絡先を尋ねるだけにしてください。」と、その英訳。(レビューの指摘: 2つ目の URL の自然な使い方は Issue なので、「中身を書かない」だけでなく「何のための予備か」を書く。)
+> - verify184 S11 は、Contact が「この2行がこの順」であることを見張る形にしました(入れ替わったり1行になったりすると落ちる)。レビューの指摘で、BOM(Windows のエディタが先頭に付けることがある)と「欄名の後の空白が無い」も落とすようにしました(どちらも RFC 9116 の決まり)。
+> - deploy-guide の Step 5・手順書(E16 として記録)・デッサン34(点検表 15b)も合わせました。
+>
+> #### 4. 報告が来たときの流れ(短く)
+>
+> 「Security and quality」のタブ > Advisories に、下書き(draft)として届きます(公開はされません。見られるのは、たけちゃんと報告者だけ)。中身を見て、直す(必要なら一時的な非公開のフォークで作業できる)→ 直した版を配ってから公開(Publish)するか、該当しなければ閉じる(Close)。報告した人は、その下書きに協力者として入ります。
+>
+> #### 5. 任意: SECURITY.md(セキュリティポリシー)を置くか(公開文なので文案だけ。置くかはご判断を)
+>
+> リポジトリの直下に `SECURITY.md` があると、Security のページの「No security policy detected」が消えて、報告のフォームの上にこの文が出ます(報告する人が「どこへ・どう」を読める)。開発リポジトリに置けば rsync で本番にも写ります。文案:
+> ```
+> # Security Policy / セキュリティポリシー
+>
+> 脆弱性や安全上の問題を見つけた方は、公開の Issue ではなく、このリポジトリの「Security and quality」のタブにある「Report a vulnerability」(非公開の脆弱性報告)からお知らせください。
+> 内容を確認して対応します。公開は、修正を配った後に行います。
+>
+> If you find a security issue, please report it privately via "Report a vulnerability" on the "Security and quality" tab instead of opening a public issue.
+> We will confirm and address it, and disclose it after a fix has been released.
+> ```
+> 「置く」と一言くだされば次のラウンドで置きます(無くても今の窓口は機能します)。
+>
+> #### 6. 回帰と検証
+>
+> - コードの変更は無し(security.txt・verify184 S11・手順書・デッサン・tests/README・todo・Version History ⑬)。privacy.html の4行(第172の表)は、そのままにしています。
+> - 反証レビュー(Workflow・2視点=非公開の報告が本当に両方で有効か・2行の security.txt は RFC どおりで S11 は入れ替わりを捕まえるか): 8件(中2・低6)。全部反映しました。
+>   - 中(2件とも同じ指摘): 「報告が来ると管理者に通知が届く」は言い過ぎ。GitHub の説明では、通知そのものが「Watch(All Activity か Security alerts)していて通知が有効」な管理者にだけ届く(メールはさらに Email の設定)。→ 上の 2.-3. と手順書 E16・デッサン34 の点検表 15b を、条件つきの書き方に直し、Watch の確認を足しました。
+>   - 低: GitHub の画面の名前が変わっている(タブと Settings の区分が「Security and quality」。「Code security」は古い名前)→ 手順書・デッサン・この回答で今の名前に/「報告者には GitHub のアカウントが要る」の根拠は、説明書ではなく「報告の URL がサインイン画面に転送される」という実際の動き→ そう書いた/security.txt の2つ目の連絡先の隣に「Issue に書くな」とあるのは矛盾して読める→ コメントに「2つ目は予備。使うなら中身は書かず連絡先を尋ねるだけ」と目的を書いた/手順書 G0c が「Contact=リポジトリ」のままで2行と言っていない→ 直した/tests/README の verify184 の行に S11 が無かった(第172の抜け)→ 足した/S11 は BOM と「欄名の後の空白無し」を通してしまう→ 落とすようにした。
+>   - レビューが独立に確かめた事実: 本番の Security のページの「Report a vulnerability」(ログアウト状態)・開発の API enabled=true・開発の Security のページにも同じリンク(=ページのしるしと API が同じ答え)・報告の URL はサインイン画面へ転送(404 ではない)・security.txt は RFC 9116 の書式どおり(UTF-8・BOM 無し・LF・欄の後の空白1つ・Expires は352日先)・コメントに内輪の文脈無し・S11 は入れ替え/欠け/3行目/http/開発リポの URL のどれでも落ちる(実験で確認)。
+> - 回帰(スモーク verify96/117/123/124/125/126/127/184/173+道具3本): 全PASS(139件・落ち0)。レビューの直しの後に verify184(23件)を回し直して全PASS。
+> - キリル文字の走査: 0件。
+>
+> #### 7. 次の一歩
+>
+> 1. **G(本番へ配る)**: deploy-guide の Step 1〜6。rsync の後に `ls -a` で `.nojekyll`・`vendor/`・`.well-known/` が入っていることを見てください。
+> 2. 配ったら **H**(本番で C と同じ一巡+C9)。箱からも `tests/live-site-check.js https://soranotsuji.net/` と、security.txt(Contact 2行)・MANIFEST.json の 200 を確かめます。
+> 3. note の記事は、配った後に `docs/release-notes/v1.98.0.md` をそのまま。
+> 4. 任意: SECURITY.md(5.)のご判断。

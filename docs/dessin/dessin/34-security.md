@@ -107,6 +107,7 @@
 | 13 | GitHub > Settings > Pages | 配信元 | 本番: soranotsuji の決めたブランチ / 開発: soranotsuji-dev の develop。知らないブランチになっていない |
 | 14 | GitHub > Settings > Advanced Security(旧 Code security)> Secret Protection | Secret scanning・Push protection(・Dependabot alerts) | オン |
 | 15 | ドメイン(soranotsuji.net)のレジストラ | ログインの2段階認証・ドメインロック・自動更新 | オン・オン・オン |
+| 15b | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > 「Security and quality」> Advanced Security > Private vulnerability reporting | 非公開の脆弱性報告(第173で依頼者が両方オン) | Enable(ボタンが「Disable」表示)。確認はログアウトした状態で「Security and quality」のタブに「Report a vulnerability」が出ること(本番)/ API `private-vulnerability-reporting` が enabled=true(開発)。security.txt の Contact の1行目がこの報告の URL。通知は Watch(All Activity か Custom+Security alerts)している管理者にだけ届くので、両リポジトリの Watch と通知設定の Email も見る |
 | 16 | 実機(soranotsuji.net)で DevTools のコンソールを開いたまま | ログイン→Drive保存→Myセットの保存/読込→ピッカーで追加→開く→ログアウト | 「CSP違反」の警告が1つも出ない(出たらその行をそのまま報告) |
 
 ## 7b. 受け入れた(今は直さない)穴と、その理由
@@ -129,5 +130,5 @@
 
 - GitHub: 配信元ブランチのルールセット(develop/main は無保護だった。削除と force push の禁止。PR必須は配布手順と両立しないので入れない)・迷子のブランチ「>」の削除・Secret scanning/Push protection(層2 #12〜#14)。Actions は Pages の配信に使われているので無効にしない(第160で「無効化」を取り下げ)。
 - MapLibre を 6.4.1 以上へ(CVE-2026-85061: 属性文字列のサニタイザのバイパス。宙の辻は属性文字列が全て定数で、外部のTileJSONも読まないので今は悪用できない。4→6の大きな版上げなので、全走+実機で別ラウンド)。
-- Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(第172で設置: Contact=GitHub のリポジトリ・Expires 2027-10-01・verify184 S11 が見張る)(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
+- Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(第172で設置・第173で Contact を2行に: 1行目=GitHub の非公開の脆弱性報告(security/advisories/new)・2行目=リポジトリ・Expires 2027-10-01・verify184 S11 が順序も見張る)(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
 - Myサイト: 読み取りに docs.google.com を connect-src に足す時は、?mysite= のIDの文字種検査と一緒に。
