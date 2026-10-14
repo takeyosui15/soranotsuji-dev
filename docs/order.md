@@ -817,3 +817,42 @@ Claudeさん、ありがとうございます。
 
 こちらを確認したかったのですが、メニュー名が実際とは異なるようです。
 確認して、手順をもう一度教えていただけないでしょうか。
+
+> ### 回答 (2026-10-14 その172) — 第174ラウンド: すみません、画面の名前を直します。右上のボタンは「Watch」ではなく「**Notifications**」(ベルの印)、タブは「**Security and quality**」でした。URL で直接開く手順に書き直しました(変更は手順書とデッサンだけ・v1.98.0のまま)
+>
+> たけちゃん、ありがとうございます。お手数をおかけしました。
+> 名前の違いは、こちらの古い知識と GitHub の説明書の差でした。この箱からログアウト状態の本番リポジトリのページを読み直して、今の画面の名前を確かめました:
+> - リポジトリの上のタブ: Code / Issues / Pull requests / Actions / Projects / **Security and quality** / Insights(「Security」ではなく「Security and quality」)。
+> - リポジトリの右上のボタン: **Notifications** / Fork / Star(「Watch」という名前のボタンはもう無く、「Notifications」がその役です)。
+> - Settings の左の一覧の区分は「Security and quality」で、その中の **Advanced Security** に「Private vulnerability reporting」があります(GitHub の説明書どおり。たけちゃんが今日オンにした画面です)。
+> ログインした画面はこの箱からは見えないので、以下は「URL で直接開く」を主にし、名前は補助にしました。もし名前がまだ違っていたら、見えている名前を教えてください。手順書をその名前に直します。
+>
+> #### 確認の手順(3つ)
+>
+> **① 設定がオンになっているか(各リポジトリで)**
+> - URL で開く: 本番 `https://github.com/takeyosui15/soranotsuji/settings/security_analysis`、開発 `https://github.com/takeyosui15/soranotsuji-dev/settings/security_analysis`(この URL は Advanced Security の設定ページの昔からの住所です。もし開かなければ、リポジトリ > Settings > 左の一覧の「Advanced Security」をクリック。今日オンにした、あの画面です)。
+> - 「Private vulnerability reporting」の行の右のボタンが「**Disable**」と出ていれば、今は**有効**です(「Enable」と出ていたら無効)。
+> - 箱から見た限り、本番・開発とも有効なので、ここは「そうなっているはず」の確認です。
+>
+> **② 外から見えるしるし(本番だけでよい)**
+> - シークレットウィンドウ(ログアウト状態)で `https://github.com/takeyosui15/soranotsuji/security` を開く。
+> - 「**Report a vulnerability**」のボタン(リンク)が見えれば OK。これは有効な時だけ出ます(今日、箱からも見えました)。
+>
+> **③ 報告が来た時に、たけちゃんに知らせが届くか(これだけは箱から見えません)**
+> - 一番早い確かめ方: `https://github.com/watching` を開く(「Watched repositories」=自分が通知を受けているリポジトリの一覧)。`takeyosui15/soranotsuji` と `takeyosui15/soranotsuji-dev` の両方が一覧にあり、それぞれの右の選択が「**All Activity**」(全部)なら OK です。「Custom」なら、その中の「**Security alerts**」にチェックがあれば OK。
+> - 一覧に無い、または「Participating and @mentions」(参加した時だけ)や「Ignore」になっている場合: そのリポジトリのページの右上の **Notifications** ボタンを押し、「**All Activity**」を選ぶ(または Custom で Security alerts にチェック)。
+> - メールでも受け取りたい場合: `https://github.com/settings/notifications` を開き、「Subscriptions」の「**Watching**」で「**Email**」にチェックがあること(GitHub の通知の受け方の設定。たどる場合: 右上の自分のアイコン > Settings > Notifications)。
+> - 理由(前回の繰り返しですが短く): GitHub は、非公開の報告が来たことを「そのリポジトリの通知を受けている(All Activity か Security alerts)管理者」にだけ知らせます。設定がオンでも、通知を受けていないと Security and quality > Advisories に溜まるだけです。
+>
+> これで3つとも「はい」なら、設定は合っています。G へ進んでください。
+>
+> #### 直した物
+> - 手順書 E16 とデッサン34の点検表 15b を、上の名前と URL に直しました(「Watch」→「Notifications(旧 Watch)」、確認は `/watching` のページで)。
+> - コードの変更はありません。security.txt・verify184 は前回のままです。
+> - 回帰(スモーク verify96/117/123/124/125/126/127/184/173+道具3本): 全PASS(139件・落ち0)。
+> - キリル文字の走査: 0件。
+>
+> #### 次の一歩
+> 1. 上の③(`https://github.com/watching` と通知設定)だけ見て、よければ G(deploy-guide の Step 1〜6。rsync の後に `ls -a` で `.nojekyll`・`vendor/`・`.well-known/`)。
+> 2. 配ったら H。箱からも本番を確かめます(起動時の CSP 違反0・security.txt の Contact 2行・MANIFEST.json)。
+> 3. 任意: SECURITY.md(回答その171の 5.)。

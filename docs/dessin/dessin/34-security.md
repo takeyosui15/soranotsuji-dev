@@ -107,7 +107,7 @@
 | 13 | GitHub > Settings > Pages | 配信元 | 本番: soranotsuji の決めたブランチ / 開発: soranotsuji-dev の develop。知らないブランチになっていない |
 | 14 | GitHub > Settings > Advanced Security(旧 Code security)> Secret Protection | Secret scanning・Push protection(・Dependabot alerts) | オン |
 | 15 | ドメイン(soranotsuji.net)のレジストラ | ログインの2段階認証・ドメインロック・自動更新 | オン・オン・オン |
-| 15b | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > 「Security and quality」> Advanced Security > Private vulnerability reporting | 非公開の脆弱性報告(第173で依頼者が両方オン) | Enable(ボタンが「Disable」表示)。確認はログアウトした状態で「Security and quality」のタブに「Report a vulnerability」が出ること(本番)/ API `private-vulnerability-reporting` が enabled=true(開発)。security.txt の Contact の1行目がこの報告の URL。通知は Watch(All Activity か Custom+Security alerts)している管理者にだけ届くので、両リポジトリの Watch と通知設定の Email も見る |
+| 15b | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > 「Security and quality」> Advanced Security > Private vulnerability reporting | 非公開の脆弱性報告(第173で依頼者が両方オン) | Enable(ボタンが「Disable」表示)。確認はログアウトした状態で「Security and quality」のタブに「Report a vulnerability」が出ること(本番)/ API `private-vulnerability-reporting` が enabled=true(開発)。security.txt の Contact の1行目がこの報告の URL。通知は、そのリポジトリの通知を受けている(右上の Notifications(旧 Watch)が All Activity か Custom+Security alerts)管理者にだけ届くので、`https://github.com/watching` で両リポジトリの選択と、`https://github.com/settings/notifications` の Watching の Email も見る(第174で画面名を訂正) |
 | 16 | 実機(soranotsuji.net)で DevTools のコンソールを開いたまま | ログイン→Drive保存→Myセットの保存/読込→ピッカーで追加→開く→ログアウト | 「CSP違反」の警告が1つも出ない(出たらその行をそのまま報告) |
 
 ## 7b. 受け入れた(今は直さない)穴と、その理由
