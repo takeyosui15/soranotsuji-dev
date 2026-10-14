@@ -15,56 +15,31 @@
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-git show a211c3e
+git show cd33b16
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
 
-## 依頼 (2026-10-13)
+## 依頼 (2026-10-14)
 Claudeさん、ありがとうございます。
-引き続き、よろしくお願いいたします。
-C5で、想定したメッセージが表示されませんでした。
-潜在不具合かもしれません。
-**:保存** ラジオ → **更新** → とすると、『「新規Myセット」の内容は端末の保持されていません(同期済みのためシート側が正)。保存する前に、一度「読み込み」でシートの内容を取得してください。』と出るので、**:読込** ラジオ → **更新** → として、**:保存** ラジオ → **更新** としても、保存されませんでした。これは、オフラインチェックボックスがオフだからでしょうか。
-いや、違いました。
-そのMyセットに切り替えていなかったからでした。
-そのMyセットに切り替えたら保存できました。
-つまり、この検証は、そのMyセットに切り替え表示をしておいて、実施する手順でしたでしょうか。
+C8で、ブラウザのDevToolsにエラーが出ました。
+ご確認をお願いいたします。
+======
+宙の辻: 起動 (v1.98.0)
+client:138 Cross-Origin-Opener-Policy policy would block the window.closed call.
+_.pg.G @ client:138
+client:138 Cross-Origin-Opener-Policy policy would block the window.closed call.
+_.pg.G @ client:138
+client:138 Cross-Origin-Opener-Policy policy would block the window.closed call.
+_.pg.G @ client:138
+client:138 Cross-Origin-Opener-Policy policy would block the window.closed call.
+_.pg.G @ client:138
+picker?protocol=gadgets&origin=https%3A%2F%2Ftakeyosui15.github.io&oauth_token=ya29.(伏せた):371 [Violation] Permissions policy violation: unload is not allowed in this document.
+（匿名） @ picker?protocol=gadgets&origin=https%3A%2F%2Ftakeyosui15.github.io&oauth_token=ya29.(伏せた):371
+cb=gapi.loaded_0?le=scs,fedcm_migration_mod:99 [Violation] Permissions policy violation: unload is not allowed in this document.
+_.Ye @ cb=gapi.loaded_0?le=scs,fedcm_migration_mod:99
+======
 
-> ### 回答 (2026-10-12 その161) — 第163ラウンド: B(開発サイト)完了。箱からも独立に確かめました(v1.98.0・vendor/ の8ファイルの指紋一致・CSP・起動時の違反0)。次は C(開発サイトで Google 連携を一巡)
->
-> たけちゃん、ありがとうございます。
-> A7 も B1〜B5 も「はい」、受け取りました。
-> これで、第159の変更が **本番と同じ配信の形(GitHub Pages)で、たけちゃんのブラウザで動く** ことが確かめられました。
-> 一番心配だった「`.nojekyll` が効かず `vendor/` が配られない」は、B3 で消えました。
->
-> #### 1. 箱からも、同じことを独立に確かめました(たけちゃんの目と、私の目の両方で)
->
-> 開発サイト `https://takeyosui15.github.io/soranotsuji-dev/` に、この箱から本物のネットワークで:
->
-> - `script.js` の版数 = 1.98.0。
-> - `vendor/MANIFEST.json` が 200。台帳の8ファイル(MapLibre・three・astronomy-engine・GeographicLib・qrcode・Draco×2・MapLibre の CSS)を全部取り寄せ、**sha256 とバイト数が台帳と一致**。配信の途中で中身が変わっていないことの証明です。
-> - `index.html` に CSP の meta があり、外部の配信網(CDN)への `<script>`/`<link>` は無い(残っているのはヘルプの出典のリンクだけ)。`reset.html` にも CSP。
-> - ブラウザ(Playwright)で開いて起動まで待った結果: 版数 v1.98.0・CSP の meta あり・MapLibre/three(r160)/Astronomy/GeographicLib/qrcode の実体あり・地図のソース19・インラインの onclick 0・ワーカー(辻検索)起動・**起動中の CSP違反 0・ページエラー 0**。通信先は takeyosui15.github.io(自サイト)・cyberjapandata.gsi.go.jp(地理院タイル)・script.google.com と script.googleusercontent.com(訪問者カウンタ)だけで、CDN への通信は無し。
->   この確認は道具にして残しました(`tests/live-site-check.js`。引数に本番のURLを渡せば、G の後の確認にも使えます。常用はしません=実ネットワーク)。
->   たけちゃんの B2〜B4 の「はい」と、この箱からの記録が、同じ事を別の目で言っています。B は「確かめた」ではなく「証明した」と言って大丈夫です。
->
-> #### 2. 次の一歩: C(開発サイトで Google 連携を一巡)
->
-> 手順書の C1〜C9 のとおりです。2つだけ、先に念押しします。
->
-> - **C2: ヘッダの Google アイコンを押した後、👎 が出ても ①(端末の内容をGoogleドライブに保存)は押さず ③キャンセル。** 開発サイトと本番は同じ Drive の控えを使うので、押すと本番の控えを開発サイトの内容で上書きします。👍 なら「同期が取れています」の表示で C2 は終わり。😢(控えが無い)なら OK で作るだけ。
-> - **C4: 「追加」でピッカーの枠(docs.google.com)が開いたら、何も選ばずに × で閉じる。** 選ぶと、その Myセットの紐付け先が差し替わります。シートが無い行なら、先に行の 😢 を押して作ってから。
->
-> 順番: C1 ログイン → C2 アイコン → C3 行を決める(選択ラジオ+チェック) → C4 追加(枠を見て×) → C5 :保存→更新、:読込→更新 → C6 開く → C7 ログアウト → C8 コンソールに「CSP違反」0行(赤も黄色も) → C9 `https://myaccount.google.com/linkedapps` に「宙の辻」が無い。
-> 「〜を選択してください」「〜が紐付いていません」と出たら、それは前提が足りないだけで CSP の問題ではありません(C3 の行の選び方を見直す)。
-> 「CSP違反: …」の行が出たら、そのまま貼ってください。許可リストの足し漏れなら私が直します。
->
-> #### 3. 回帰と検証
->
-> - コードの変更はありません(道具 `tests/live-site-check.js` を足しただけ。アプリ本体は触っていません)。
-> - スモーク回帰(verify96/117/123/124/125/126/127/184+道具3本): 11本=126チェック、全PASS。
-> - キリル文字の走査: 0件。
 
 > ### 回答 (2026-10-13 その162) — 第164ラウンド: C5 の件は「仕様どおりの止め」+「案内文の不具合」でした。案内文を直し、手順書 C3 に「切り替え表示」を足しました(v1.98.0のまま)。C5 は済み。次は C6〜C9
 >
