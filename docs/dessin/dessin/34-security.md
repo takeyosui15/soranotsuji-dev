@@ -99,7 +99,7 @@
 | 7 | 同 > 有効なAPI | 有効なAPIの一覧 | Google Drive API・Google Sheets API・Google Picker API がある。Maps 等の「使った分だけ課金される」API は無効。Google Cloud の基盤系(Service Usage・Logging・Monitoring 等)は触らない |
 | 8 | Googleアカウント(プロジェクトの持ち主) > セキュリティ | 2段階認証 | オン(パスキー推奨)・再設定用の電話/メールが現在の物 |
 | 9 | Apps Script(訪問者カウンタ) > デプロイ | 実行するユーザー・アクセスできるユーザー・紐付くスプレッドシート | 自分・全員(匿名で数えるため必要)・カウンタのシートだけ。`gas_spredsheet.js` の新版(例外文を出さない)を再デプロイ(URLは変わらない) |
-| 10 | Googleアカウントの「リンク済みアプリ」(https://myaccount.google.com/linkedapps。旧 /connections。回答その157では「第三者によるアクセス」と書いた同じ画面) | 宙の辻でログアウトした後 | 一覧から「宙の辻」が消える(取り消しが届いている) |
+| 10 | Googleアカウントの「リンク済みアプリ」(https://myaccount.google.com/linkedapps。旧 /connections。回答その157では「第三者によるアクセス」と書いた同じ画面) | 宙の辻でログアウトした後(ログインから1時間以内に) | 一覧(「ドライブへのアクセス権」側。「Google でログイン」は使わないので元から出ない)から「宙の辻」が消える(取り消しが届いている)。同意の記録は利用者×クライアントIDごとなので、本番や以前のログインの分は別。残っていたら Google の画面で「アクセス権を削除」してから、ログイン→ログアウト→再確認(第167) |
 | 11 | GitHub > Settings > Password and authentication | 2段階認証 | オン(パスキー推奨) |
 | 12 | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > Branches | 配信元ブランチの保護 | 本番の配信元(main等)と開発の develop/main にルールセット(削除の禁止・force pushの禁止)。PR必須は入れない(deploy-guide の Step 1 と work→develop は直接 push なので。第160で取り下げ) |
 | 13 | GitHub > Settings > Pages | 配信元 | 本番: soranotsuji の決めたブランチ / 開発: soranotsuji-dev の develop。知らないブランチになっていない |
@@ -114,6 +114,8 @@
 - 開発用クライアントの承認済みオリジン takeyosui15.github.io は、同じアカウントの全 GitHub Pages プロジェクトと同じオリジン。開発版は一般利用者向けではないので低い。運用: このオリジンに宙の辻-dev 以外のHTMLを置かない(置く時は dev.soranotsuji.net のような別ドメインを当てる)。
 - 専用ワーカー(URLで読む物)は meta の CSP の対象外(blob: のワーカーは対象)。ワーカーの通信先はコードの定数だけ(地理院・terrarium)なので受け入れる。
 - MapLibre 4.7.1 の CVE-2026-85061: 属性文字列が定数の間は悪用できない(1067行目の注記で「利用者やシートの値を混ぜない」と縛る)。6.4.1以上への版上げは別ラウンド。
+
+- 取り消し(revoke)はトークンが生きている間しか送れない(Google の仕様: 有効なアクセストークンが要る)。ログインから1時間を超えるとトークンが切れ、ログアウトボタンも押せなくなり(🈚️)、同意の記録だけが Google に残る。害は「次のログインで同意画面が出ない」だけ(記録だけではアクセスできない。アクセスには新しいトークン=本人のポップアップが要る)。消したい時は Google アカウントの「リンク済みアプリ」で「アクセス権を削除」(第167)。
 
 ## 7c. 非常停止(いつでも止められることの確認)
 

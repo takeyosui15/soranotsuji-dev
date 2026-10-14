@@ -67,6 +67,8 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 - [x] C7 「Googleドライブ」の節の **ログアウト** ボタン(ログインの隣)。
 - [x] C8 ここまでで、コンソールに **「CSP違反」が0行**(赤も黄色も。形は「CSP違反: connect-src が https://… を止めました(script.js:行)」)。Google の部品が出す次の行は違反ではない(無害): `client:… Cross-Origin-Opener-Policy policy would block the window.closed call.`(ログインのポップアップを Google の部品が見張る時の警告)・`picker?… [Violation] Permissions policy violation: unload is not allowed`・`cb=gapi.loaded_0… [Violation] … unload …`(Google のピッカー/部品が古い unload を使っている旨の Chrome の注意)。第166で確認済み。
 - [ ] C9 `https://myaccount.google.com/linkedapps`(Googleアカウントの「リンク済みアプリ」。旧 `/connections` でも可。デッサン34と回答その157で「第三者によるアクセス」と書いた画面と同じ)に **「宙の辻」が残っていない**(ログアウトの取り消しが届いた証拠。点検表の10)。画面の見出しは版で変わるので、一覧に「宙の辻」が無いことだけ確かめる。
+  - 見る場所: 宙の辻は「Google でログイン」(Sign in with Google)を使わないので、そのフィルタには元から出ない。出るとすれば「ドライブへのアクセス権」の側(第167で確認)。
+  - 残っていた時(第167): 同意の記録は「利用者×クライアントID」ごとに Google が持つ。本番(soranotsuji.net)や以前のログインの分は、開発サイトでログアウトしても残る。また、宙の辻から取り消しを送れるのは、トークンが生きている間(ログインから1時間以内)だけ。→ その画面で「宙の辻」を開き **「アクセス権を削除」**(安全。次のログインで同意画面が出るだけ)。それから開発サイトで ログイン → すぐ ログアウト → 数十秒後に画面を再読み込みして、消えていれば「はい」。それでも残るなら報告。
 
 期待と違ったら:
 - ログインのポップアップが出ない/「エラー400: origin_mismatch」 → 開発用クライアントの生成元に `https://takeyosui15.github.io` が無い(`google-oauth-guide.md` の「困った時」)。
