@@ -88,6 +88,7 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
   - 保存。反映まで数分。
   - 理由: このキーは公開JSに入っている(それが前提のキー)。制限が無いと、誰でも宙の辻の枠でこのキーを使える。
   - 注意: 4つを**書いてから**保存する。書き忘れたサイトでは「ピッカーで追加」だけが動かなくなる(ログイン・保存・読込は動く)。
+  - `https://www.soranotsuji.net/*` が無かった場合(第169): **足してよい(足すのが望ましい)**。DNS(Squarespace の `www CNAME takeyosui15.github.io`)は GitHub Pages の正しい設定で、変える物は無い。www は GitHub Pages が常に `https://soranotsuji.net/` へ 301 で転送する(箱から確認)ので、実際にピッカーが呼ばれる時の送信元は soranotsuji.net になり、www の行が無くても今は動く。それでも足すのは、本番用 OAuth クライアントの生成元(D3)と `GOOGLE_CONFIG.prod.hosts` が www を含むのと揃えるため・転送の仕組みが将来変わっても止まらないため。
 - [ ] D1 **OAuth同意画面** — 公開ステータス=本番環境・ユーザーの種類=外部・アプリ名・サポートメール・プライバシーポリシーのURL(`https://soranotsuji.net/privacy.html`)。
 - [ ] D2 **スコープ** — `…/auth/drive.file` だけ。他(drive・drive.readonly・spreadsheets)が並んでいたら外す。アプリは drive.file しか要求しないので、外しても動作は変わらない。
 - [ ] D3 **本番用OAuthクライアント**(クライアントIDが `87463892240-cb6fqb…` の方)の「承認済みのJavaScript生成元」 — `https://soranotsuji.net` と `https://www.soranotsuji.net` だけ。「承認済みのリダイレクトURI」は空でよい。
