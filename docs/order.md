@@ -795,3 +795,25 @@ Report a vulnerabilityをオンにしたのですが、設定があっている�
 > 2. 配ったら **H**(本番で C と同じ一巡+C9)。箱からも `tests/live-site-check.js https://soranotsuji.net/` と、security.txt(Contact 2行)・MANIFEST.json の 200 を確かめます。
 > 3. note の記事は、配った後に `docs/release-notes/v1.98.0.md` をそのまま。
 > 4. 任意: SECURITY.md(5.)のご判断。
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+git show 39a6c38
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+
+## 依頼 (2026-10-14)
+Claudeさん、ありがとうございます。
+
+> #### 2. たけちゃんの画面で「合っている」と確かめる方法(念のため)
+>
+> 1. リポジトリの Settings > サイドバーの「Security and quality」> **Advanced Security** > **Private vulnerability reporting** の右のボタンが「**Disable**」になっている(=今は有効。「Enable」なら無効)。
+> 2. ログアウトしたブラウザ(シークレットウィンドウ)で本番の「Security and quality」のタブ(URL は `…/soranotsuji/security`)を開くと「Report a vulnerability」が見える(これが外から見える唯一のしるしです)。
+> 3. **通知が自分に届く条件(ここだけ、たけちゃんの画面でしか確かめられません)**: GitHub の説明では、報告が来たことは「そのリポジトリを **Watch**(All Activity、または Custom で「Security alerts」にチェック)していて、そのリポジトリの通知が有効な管理者」に届きます。Watch していないと、Security のタブの Advisories に溜まるだけで知らせは来ません。メールで受け取るには、さらに通知設定(Notification settings)の Subscriptions > Watching で **Email** にチェックが要ります。
+>    確認は2つ: ①本番と開発の両方で、リポジトリの右上の Watch ボタンが「**Unwatch**」(All Activity か、Custom+Security alerts)になっている(自分で作ったリポジトリは最初から All Activity のことが多いです)。②通知設定の Watching に Email のチェックがある。
+>    自分のリポジトリに自分で報告を出して試すことはできないので、この2つを見ておけば十分です。
+
+こちらを確認したかったのですが、メニュー名が実際とは異なるようです。
+確認して、手順をもう一度教えていただけないでしょうか。
