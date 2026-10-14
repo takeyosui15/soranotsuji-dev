@@ -129,8 +129,8 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 
 - [ ] G0 知っておく: 本番は v1.87.0 なので、今回は **v1.88〜v1.98 の変更がまとめて載る**(宙の窓検索・地理院タイルのオフライン表示・気差の2本立て(大気差補正/気差オプション)と統一可視判定(大円・海は海面0m)・除外範囲の山頂部・可視マップとMyサイトの封鎖・セキュリティ対策。中身は script.js の Version History v1.88.0〜v1.98.0)。リリースノート(note用)は合図があれば起草する(todo)。
 - [ ] G0b `deploy-guide.md` の「プレ・デプロイ・チェックリスト」(機能のリストアップ・ヘルプ/README への反映・版数2か所)を先に。機能のリストアップ=リリースノート `docs/release-notes/v1.98.0.md`(第171で起草)。README の主な機能と、表示中の文言に残っていた封鎖中の「可視マップ」の名前は第171で整えた。版数2か所(Version History・APP_VERSION)は 1.98.0 で揃っている。
-- [ ] G0c 公開文のご判断(回答その157の9.): privacy.html の「4. 外部サービスへの通信」の差し替え(CDN を消し、実際の通信先を列挙)と security.txt を置くか。配る前に決めれば今回の版に載せられる。決まらなければ今の文のままで配ってよい(約束の中身は変わらない)。
-- [ ] G1 `deploy-guide.md` の Step 1〜4 をそのまま(Step 1 の main への push は、E12 のルールが「削除・force push の禁止」だけなら通る)。Step 3 の rsync の後、`ls -a` で **`.nojekyll` と `vendor/` が入っている**ことを見る(`.nojekyll` は名前が「.」で始まるので `ls` だけでは見えない)。
+- [x] G0c 公開文のご判断(回答その157の9.): privacy.html の「4. 外部サービスへの通信」の差し替え(CDN を消し、実際の通信先を列挙。改定日 2026-10-14)と `/.well-known/security.txt`(Contact=GitHub のリポジトリ。Expires 2027-10-01)を、第172で依頼者の判断どおりに載せた。verify184 S11 が見張る。
+- [ ] G1 `deploy-guide.md` の Step 1〜4 をそのまま(Step 1 の main への push は、E12 のルールが「削除・force push の禁止」だけなら通る)。Step 3 の rsync の後、`ls -a` で **`.nojekyll` と `vendor/` と `.well-known/` が入っている**ことを見る(`.nojekyll` と `.well-known` は名前が「.」で始まるので `ls` だけでは見えない)。
 - [ ] G2 Step 5: `https://soranotsuji.net/vendor/MANIFEST.json` が JSON で表示される。版数 1.98.0(Shift+再読み込み)。コンソールに CSP の行が無い。主要機能。
 - [ ] G3 Step 6: デプロイ記録。
 

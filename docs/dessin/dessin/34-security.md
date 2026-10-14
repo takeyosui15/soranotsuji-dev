@@ -79,6 +79,8 @@
 - 情報収集: JPCERT/CC の注意喚起・IPA の重要なセキュリティ情報・MapLibre/three/astronomy-engine のリリース(GitHub Watch)。
 - 疑いが出た時(手順): ①Google Cloud でAPIキーを再発行(古い鍵を削除)・OAuthクライアントのオリジンを確認 ②GitHub のパスワード/トークンを変え、Pages の配信元ブランチの最新コミットが自分の物か確認 ③Apps Script のデプロイを作り直す(URLが変わるので script.js を更新) ④利用者へは note で知らせる(何が起きたか・何をすればよいか=ログアウト/再ログイン)。
 
+- 毎年9月: `/.well-known/security.txt` の Expires を1年先に進める(切れると verify184 S11 が落ちて教える)。
+
 ## 6. Googleドライブ連携を続けるかの判断(依頼者の問いへの答え)
 
 - 続けてよい。宙の辻は利用者のデータを預からず、トークンはメモリだけ・1時間・drive.file。事件の型(サーバーに溜めた個人情報の流出)は起き得ない。
@@ -127,5 +129,5 @@
 
 - GitHub: 配信元ブランチのルールセット(develop/main は無保護だった。削除と force push の禁止。PR必須は配布手順と両立しないので入れない)・迷子のブランチ「>」の削除・Secret scanning/Push protection(層2 #12〜#14)。Actions は Pages の配信に使われているので無効にしない(第160で「無効化」を取り下げ)。
 - MapLibre を 6.4.1 以上へ(CVE-2026-85061: 属性文字列のサニタイザのバイパス。宙の辻は属性文字列が全て定数で、外部のTileJSONも読まないので今は悪用できない。4→6の大きな版上げなので、全走+実機で別ラウンド)。
-- Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
+- Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(第172で設置: Contact=GitHub のリポジトリ・Expires 2027-10-01・verify184 S11 が見張る)(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
 - Myサイト: 読み取りに docs.google.com を connect-src に足す時は、?mysite= のIDの文字種検査と一緒に。

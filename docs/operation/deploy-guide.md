@@ -265,6 +265,7 @@ rm -f CNAME_backup
 GitHub Pagesのデプロイには1-2分かかる場合がある。
 
 - [ ] `https://soranotsuji.net` にアクセスして動作確認
+- [ ] `https://soranotsuji.net/.well-known/security.txt` が 200 で返り Contact と Expires がある(報告の窓口。`.nojekyll` が効いていれば `.well-known` も配られる)
 - [ ] `https://soranotsuji.net/vendor/MANIFEST.json` と `https://soranotsuji.net/vendor/maplibre-gl.js` が 200 で返る(第159から第三者ライブラリは `vendor/` から配信。GitHub Pages は `.nojekyll` が無いと `vendor/` を配信しないので、本番リポジトリの直下に `.nojekyll` があることも確認)
 - [ ] DevToolsのコンソールを開いたまま、ログイン→Drive保存→Myセットの保存/読込→ピッカー→ログアウトを一巡し、「CSP違反」の警告が出ない
 - [ ] 主要機能のチェック:

@@ -185,6 +185,19 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
 // ============================================================
 (async () => {
   const { chromium } = require('playwright-core');
+// ---- S11: 公開文と報告の窓口(第172): /.well-known/security.txt(RFC 9116)と privacy.html の外部サービスの節 ----
+{
+  const secTxt = fs.existsSync(path.join(ROOT, '.well-known', 'security.txt')) ? fs.readFileSync(path.join(ROOT, '.well-known', 'security.txt'), 'utf8') : '';
+  const field = (k) => (secTxt.match(new RegExp('^' + k + ':\\s*(.+)$', 'm')) || [])[1];
+  const expires = field('Expires'); const expMs = expires ? Date.parse(expires.trim()) : NaN;
+  const priv = fs.readFileSync(path.join(ROOT, 'privacy.html'), 'utf8');
+  check("S11 /.well-known/security.txt がある(Contact は https の URL・Expires は未来で1年と少し以内・Preferred-Languages・Canonical は本番の URL。.nojekyll があるので GitHub Pages が .well-known を配る)/ privacy.html の外部サービスの節に Open-Meteo・Nominatim・PLATEAU・Apps Script があり「ライブラリ配信(CDN)」が無い",
+    secTxt.length > 0 && /^https:\/\/github\.com\/takeyosui15\/soranotsuji/.test(field('Contact') || '') && Number.isFinite(expMs) && expMs > Date.now() && expMs < Date.now() + 400 * 86400000 &&
+    /ja/.test(field('Preferred-Languages') || '') && (field('Canonical') || '').trim() === 'https://soranotsuji.net/.well-known/security.txt' && fs.existsSync(path.join(ROOT, '.nojekyll')) &&
+    ['Open-Meteo', 'Nominatim', 'PLATEAU', 'Google Apps Script'].every(w => priv.includes(w)) && !priv.includes('ライブラリ配信(CDN)') && priv.includes('外部の配信網(CDN)は使いません'),
+    JSON.stringify({ contact: field('Contact'), expires, daysLeft: Number.isFinite(expMs) ? Math.round((expMs - Date.now()) / 86400000) : null }));
+}
+
   const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
   const BASE = 'http://127.0.0.1:8099';
   const ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
