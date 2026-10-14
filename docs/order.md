@@ -416,3 +416,47 @@ Dは、全て完了しました。
 E8,E11は、確認完了しました。
 E12なのですが、ルールセットが全くないようでした。
 設定方法の手順をお願いできないでしょうか。
+
+> ### 回答 (2026-10-14 その168) — 第170ラウンド: D 完了・E8/E11 完了。E12(ルールセット)の作り方を手順にしました。soranotsuji-dev にルールセットが無いことは箱からも API で確認(コード変更なし・v1.98.0のまま)
+>
+> たけちゃん、ありがとうございます。
+> D が全部終わりました。これで Google Cloud 側の守り(APIキーの制限・同意画面・スコープ・2つのクライアントの生成元・有効なAPI・使っていない認証情報)は、点検表どおりになりました。
+> E8(Google の2段階認証)と E11(GitHub の2段階認証)も済み。開発者のアカウントの守りの一番大事な2つです。
+>
+> #### 1. E12: ルールセットが無いのは、そのとおりです
+>
+> この箱から GitHub の API で `soranotsuji-dev` を見ました: ルールセットは空(`[]`)、`develop` と `main` のブランチ保護も無し。第159の監査で見たとおりで、これから作ります。
+> (本番 `soranotsuji` はこの箱からは見えないので、たけちゃんの画面でお願いします。)
+>
+> #### 2. 作り方(GitHub の画面は英語なので、ボタンの名前は英語のまま書きます)
+>
+> `soranotsuji-dev` から:
+> 1. リポジトリのページの上の **Settings**(見えなければ「…」の中)。
+> 2. 左の一覧の「Code and automation」の中の **Rules** → **Rulesets**。
+> 3. 右上の **New ruleset** → **New branch ruleset**。
+> 4. **Ruleset Name**: `protect-branches`(名前は自由です)。
+> 5. **Enforcement status**: **Active** にする(既定は Disabled=作っても効かない、なので必ず)。
+> 6. **Bypass list**: 何も足さない(自分=管理者でも、削除と force push は止まります。それでよいです)。
+> 7. **Target branches**: **Add target** → **Include by pattern** → `main` と入れて Add。もう一度 **Add target** → **Include by pattern** → `develop` → Add。
+> 8. **Rules** の一覧で、**Restrict deletions** と **Block force pushes** の2つだけにチェック。**Require a pull request before merging** は入れない(deploy-guide の直接 push が止まるため。第160で取り下げた項目)。他も触らない。
+> 9. 一番下の **Create**。
+> 10. 一覧に `protect-branches` が **Active** で出れば完了。
+>
+> 本番 `soranotsuji` でも同じ手順。違いは 7. の Target branches を `main` だけにすることです。
+>
+> 効き方: 対象のブランチの「削除」と「force push(履歴の書き換え)」が止まるだけです。普段の push・マージ・deploy-guide の Step 1〜4 はそのまま通ります。迷子のブランチ「>」の削除(E-追)も止まりません(対象が main/develop だけなので)。
+>
+> #### 3. 作ったら
+>
+> 「作りました」と一言くだされば、`soranotsuji-dev` の方はこの箱から API で確かめます(Active・ルール2つ・対象 main/develop)。本番は、たけちゃんの画面の一覧で「Active」「2 rules」が出ていれば「E12: はい」です。
+>
+> #### 4. 回帰と検証
+>
+> - コードの変更はありません(手順書 E12 に作り方を書き足し、todo を更新)。
+> - スモーク回帰(verify96/117/123/124/125/126/127/184+道具3本): 11本=126チェック、全PASS。
+> - キリル文字の走査: 0件。
+>
+> #### 5. 次の一歩
+>
+> 1. E12(上の手順)→ E13(Pages の配信元)→ E14(Secret Protection。第165で効いていたので「はい」のはず)→ E15(レジストラ)→ E-追(迷子のブランチ「>」)。
+> 2. F(Apps Script の再承認と再デプロイ)。本番のカウンタに数字が戻ったら一言を。
