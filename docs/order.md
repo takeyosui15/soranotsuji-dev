@@ -919,3 +919,45 @@ Trusted reporters
 Find a trusted reporter
 ======
 で、`Require a CWE assignment`は`Off`で良いのでしょうか。
+
+> ### 回答 (2026-10-14 その173) — 第175ラウンド: ③は自分のリポジトリも対象です(持ち主でも「通知を受ける設定」が要る)。Secret scanning の「Google API Key #1」は想定内(ピッカー用の公開キー。D5 で制限済み)→ Won't fix で閉じる。「Require a CWE assignment」は Off のままで OK(v1.98.0のまま)
+>
+> たけちゃん、ありがとうございます。①②の確認、お疲れさまでした。3つお答えします。
+>
+> #### 1. ③の `https://github.com/watching`(Watched repositories)は、自分のリポジトリも対象です
+>
+> - GitHub の通知は「リポジトリの持ち主だから届く」のではなく、「そのリポジトリの通知を受ける設定(All Activity など)になっている人に届く」仕組みです。自分のリポジトリも例外ではありません。
+> - ただ、GitHub は既定で、自分が作ったリポジトリを自動で「通知を受ける」状態にします(GitHub の説明書: "By default, you also automatically watch all repositories that you create and are owned by your personal account."=「既定で、自分のアカウントが持つ、自分で作ったリポジトリは自動で watch される」。通知設定でこの自動 watch を切っていない限り)。なので、たけちゃんの一覧には `takeyosui15/soranotsuji` と `takeyosui15/soranotsuji-dev` が最初から載っているはずです。
+> - 見るところはそこだけ: 一覧に両方があり、右の選択が「All Activity」(または Custom で Security alerts にチェック)なら③は「はい」。
+> - もし載っていなければ(過去に Unwatch した場合など): リポジトリのページ右上の **Notifications** ボタンで「All Activity」を選ぶと載ります。
+> - この箱からは、たけちゃんの通知の設定は読めません(GitHub の API がリポジトリ単位の範囲に限られているため)。なので、ここだけ画面での確認をお願いしています。
+>
+> #### 2. Secret scanning の「Google API Key #1」は想定内です(公開前提のキー)
+>
+> - はい、公開 API キーです。`script.js` の冒頭の `GOOGLE_CONFIG.apiKey`=Google ピッカー(ドライブからファイルを選ぶ画面)用の**ブラウザキー**で、ブラウザで動くアプリでは JS に書くしかない種類の鍵です。宙の辻の場合、守りは「鍵を隠す」ではなく **D5 の制限**(使えるサイトを `soranotsuji.net`・`www.soranotsuji.net`・`takeyosui15.github.io`・`127.0.0.1` の4つに限る/使える API を Google Picker API だけに限る)で、これは D で済んでいます。
+> - アラートの中身の読み方: 「GitHub detected a secret • Aug 17」= v1.85.0 を本番に配った日に、GitHub が鍵の形(`AIza…`)を見つけた。「Publicly leaked secret」= 同じ鍵が GitHub の公開の場所(他のリポジトリ・Issue など)でも見つかった(開発リポジトリの script.js にも同じ鍵があるので当然です)。「Validity: Unknown」= 鍵が生きているかの確認は、個人のリポジトリでは Google の鍵には行われない(組織のリポジトリ向けの機能)ので、常に Unknown です。どれも、公開サイトのブラウザキーなら当たり前の表示です。
+> - アラートに書いてある 1〜4(ローテーション・取り消し・ログ確認・閉じる)は、漏れてはいけない秘密鍵向けの一般的な案内で、この鍵には当てはまりません。**取り消し(Revoke)はしないでください**(ピッカーが止まります)。新しい鍵に替えても、また公開になるだけです。
+> - 扱い: アラートを開いて「**Close as**」→「**Won't fix**」を選び、コメントに「ブラウザ用の公開キー(Google Picker)。利用サイトと API を制限済み」と書いて閉じてください。開発リポジトリ(`https://github.com/takeyosui15/soranotsuji-dev/security/secret-scanning`)にも同じアラートがあるはずなので、同じように。閉じるのは「記録」で、GitHub や Google の側で何かが変わる訳ではありません。
+> - G(本番へ配る)との関係: Push protection は、この鍵では止まりません。理由は2つ: GitHub の対応表で「Google API Key」は Push protection の対象外(検出と通知だけ)であること、そもそも「既にアラートがある秘密は止めない」と説明書にあること("If a particular secret has already been detected in the repository and an alert already exists, GitHub will not block that secret.")。実際、E14 の後、開発リポジトリへ `script.js` 入りの push が何度も通っています。(万一、別の理由で止まったら、その画面の理由は「It's a false positive」→「Allow me to push this secret」。この鍵に限ります。第165の `ya29.` のようなトークンは絶対に通さない。)
+> - 補足: この鍵は公開前提なので、order.md に貼られていても問題ありません(verify184 S6 も「追跡ファイルの中の API キーはこの1つだけ」として通っています)。Google から「API キーが公開されています」というメールが来ることがありますが、制限済みの鍵については対応不要です。
+> - 残る見張り: デッサン34の層3(毎月、Google Cloud の API の呼び出し数を見る)。誰かが宙の辻の枠でこの鍵を使えば、そこに出ます。
+>
+> #### 3. 「Require a CWE assignment」は Off のままで OK です
+>
+> - CWE は「弱点の分類番号」(例: CWE-79=クロスサイトスクリプティング)です。オンにすると、報告する人が CWE を選ばないと報告を送れなくなります。専門家向けの門で、「変な挙動を見つけた」程度の報告が来なくなるので、宙の辻のような小さな個人のアプリでは **Off**(誰でも送れる)がよいです。
+> - 同じ画面の他の2つもそのままで: 「Daily advisory limit = 10」(このリポジトリが1日に受け付ける報告の上限。荒らし対策。画面の 10 のままでよい)、「Trusted reporters」(この上限を免除する人の登録欄。空のまま)。この2つと CWE の設定は、GitHub が 2026-10-01 に足したばかりの機能で(変更履歴にあります)、説明書にはまだ CWE しか載っていません。
+> - 手順書 E16 とデッサン34の点検表 15b に、この3つの期待値を書きました。
+>
+> #### 4. 直した物・回帰
+>
+> - 手順書: D5 のチェック(第170で完了のご報告をいただいていたのに付け忘れていました)・E14 に「既知の行: Google API Key #1 の扱い」・E16 に Submission requirements の期待値。デッサン34の点検表 14・15b。
+> - コードの変更はありません。
+> - 反証(GitHub の説明書と変更履歴の読み直しを別の担当に頼み、私の説明を突き合わせ): 直した点2つ=「Push protection は Google API Key を対象にしていない(対応表で ✗)」(私は「既存の鍵だから止まらない」だけを書いていた。両方の理由で止まらない)、「Validity: Unknown は個人リポジトリでは常にそう」(「確かめられない」の理由)。確認できた点=自分で作ったリポジトリは既定で自動 watch(説明書の文を上に引用)・Close as の4つの理由(Revoked/False positive/Used in tests/Won't fix)・既にアラートのある秘密は push protection が止めない・CWE の設定の意味。説明書に無かった点=Daily advisory limit の既定値(変更履歴にも数字は無い。画面の 10 をそのまま)・Trusted reporters は変更履歴の「上限の免除リスト」のみ。
+> - 回帰(スモーク verify96/117/123/124/125/126/127/184/173+道具3本): 全PASS(139件・落ち0)。
+> - キリル文字の走査: 0件。
+>
+> #### 5. 次の一歩
+>
+> 1. ③(`/watching` に両方が All Activity で載っている)を見て、Secret scanning のアラートを両リポジトリで Won't fix で閉じる。
+> 2. G(deploy-guide の Step 1〜6。rsync の後に `ls -a` で `.nojekyll`・`vendor/`・`.well-known/`)。
+> 3. 配ったら H。箱からも本番を確かめます。

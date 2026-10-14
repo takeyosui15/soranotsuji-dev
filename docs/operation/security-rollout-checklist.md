@@ -82,7 +82,7 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
 点検表はデッサン34の「7.」(番号は同じ)。**順番は 5 → 1 → 2 → 3 → 4 → 7 → 6**(効き目の大きい順)。
 それぞれ「はい/いいえ」で。「いいえ」の所は直す前に送ってくれてもよい(一緒に考える)。
 
-- [ ] D5 **APIキー(AIzaSyBQ…)の制限** — APIとサービス > 認証情報 > 該当のAPIキー。
+- [x] D5 **APIキー(AIzaSyBQ…)の制限** — APIとサービス > 認証情報 > 該当のAPIキー。(第170で依頼者が D 完了を報告。チェックの付け忘れを第175で直した)
   - アプリケーションの制限 = **ウェブサイト**。許可するサイトに次の4つ: `https://soranotsuji.net/*` `https://www.soranotsuji.net/*` `https://takeyosui15.github.io/*` `http://127.0.0.1/*`(ポートを書かない=全ポート。今登録してある `http://127.0.0.1:3000/*` のままでもよい。`:*` のようにポートの位置にワイルドカードは書けない)
   - APIの制限 = **キーを制限** → **Google Picker API** だけ。
   - 保存。反映まで数分。
@@ -106,9 +106,11 @@ E・F は B・C と独立(どの順でもよい)。D は C の後が望ましい
   - 確認: `soranotsuji-dev` は Claude が箱から API で確かめられる(第170の時点では rulesets は空だった)。本番は画面の一覧(Active・2 rules・targets)で。
 - [x] E13 GitHub > Settings > Pages > **配信元(Source)** — 本番: soranotsuji の `main`(Deploy from a branch / main / (root)) / 開発: soranotsuji-dev の `develop`。知らないブランチになっていない。
 - [x] E14 GitHub > Settings > **Advanced Security**(旧 Code security)> **Secret Protection** を Enable(その中に Secret scanning と Push protection のスイッチ)。
+  - 既知の行(第175): 両リポジトリの Security and quality > **Secret scanning alerts** に「Google API Key #1」(script.js の `GOOGLE_CONFIG.apiKey`=Google ピッカー用のブラウザキー。v1.85.0 の配布 2026-08-17 に検出・「Publicly leaked」「Validity: Unknown」)が出る。これは**想定内**: 公開サイトのブラウザキーで、守りは D5 の制限(利用サイト4つ・API はピッカーだけ)。ローテーション・取り消しはしない(新しい鍵もまた公開になるだけで、取り消すとピッカーが止まる)。扱い: アラートを開き、「Close as」→ **Won't fix** を選び、コメントに「ブラウザ用の公開キー(Google Picker)。利用サイトと API を制限済み(D5)」と書いて閉じる(両リポジトリ)。Push protection はこの鍵では止まらない(GitHub の対応表で Google API Key は Push protection の対象外=検出と通知だけ。加えて「既にアラートがある秘密は止めない」。E14 の後の開発リポへの push が通っている)。万一、別の理由で止まったら、画面の理由は「It's a false positive」→「Allow me to push this secret」(この鍵に限る。ya29. のトークンは絶対に通さない)。「Validity: Unknown」は個人リポジトリでは Google の鍵の生死確認が行われないため(常に Unknown)。
 - [x] E15 ドメイン(soranotsuji.net)のレジストラ — ログインの2段階認証・ドメインロック(移管ロック)・自動更新 = オン。
 - [x] E-追(点検表には無い追加) `soranotsuji-dev` に名前が「>」だけの迷子のブランチ(2026-07-06)が残っている → GitHub の Branches 画面で削除(コマンドなら `git push origin --delete '>'`)。
 - [x] E16(点検表の追加・第173・画面名は第174で訂正) GitHub > `soranotsuji`(本番)と `soranotsuji-dev` > Settings > 左の「Security and quality」の中の **Advanced Security**(URL で直接: `https://github.com/takeyosui15/<リポジトリ>/settings/security_analysis`。開かなければ Settings の左の一覧から)> **Private vulnerability reporting** = Enable(依頼者が 2026-10-14 に両方オン。有効だとボタンが「Disable」表示になる)。確認: 本番はログアウトした状態でも「Security and quality」のタブ(URL は `https://github.com/takeyosui15/soranotsuji/security`)に「Report a vulnerability」が出る(第173で箱から確認。朝の時点では無かった)。開発は API `private-vulnerability-reporting` が `{"enabled":true}`。報告の URL(`…/security/advisories/new`)はログインしていないとサインイン画面に転送される(=報告者は GitHub のアカウントが要る)。通知の条件(GitHub の説明どおり): 報告が来たことは、そのリポジトリを **Watch**(All Activity、または Custom で「Security alerts」にチェック)していて、そのリポジトリの通知が有効な管理者に届く(Watch していないと、Security のタブの Advisories に溜まるだけで知らせは来ない)。メールで受け取るには、さらに通知設定(Notification settings)の Subscriptions > Watching で Email にチェック。→ 確認(第174で画面名を訂正。右上のボタンの名前は「Watch」ではなく **Notifications**(ベルの印)): `https://github.com/watching`(Watched repositories)に両リポジトリがあり、選択が「All Activity」(または Custom で「Security alerts」にチェック)であること。無ければリポジトリのページ右上の Notifications ボタンから All Activity を選ぶ。メールは `https://github.com/settings/notifications` の Subscriptions > Watching で Email にチェック。自分で報告を出して試すことはできない(自分のリポジトリには報告できない)。GitHub の画面は英語で名前がよく変わるので、この行は URL を主にして書いてある(第174)。
+  - 同じ画面の「Submission requirements」(第175): **Require a CWE assignment = Off のまま**(オンにすると報告者が CWE=弱点の分類番号を選ばないと送れなくなり、専門でない人の報告が減る。小さな個人のアプリでは Off がよい)。Daily advisory limit = 10(このリポジトリが1日に受け付ける報告の上限。画面の値のまま)。Trusted reporters = 空のまま(上限を免除する人の登録欄。今は不要)。この3つは GitHub が 2026-10-01 に足した機能(変更履歴)。
 - 注: E の番号は点検表の番号。GitHub Actions は、Pages の配信(pages-build-deployment)が Actions の仕組みで動くので**無効にしない**(回答その157の「Actions は無効に」は取り下げ)。
 
 ## F. Apps Script(訪問者カウンタ)の再デプロイ(影響: カウンタだけ)
