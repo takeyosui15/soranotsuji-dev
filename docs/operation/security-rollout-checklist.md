@@ -3,6 +3,7 @@
 作成日: 2026-10-12(第160ラウンド)
 対象: 第159ラウンドの変更(v1.98.0)。詳しい中身は `docs/dessin/dessin/34-security.md`、経緯は `docs/order.md`(回答その157。後日 `docs/order-log/` へ保管される)。
 この時点の実機: 本番 `https://soranotsuji.net` = v1.87.0(2026-08-23デプロイ)、開発サイト `https://takeyosui15.github.io/soranotsuji-dev/` = v1.97.0。
+**完了(2026-10-14・第177)**: A〜H 全て済。本番 = v1.98.0(デプロイ 2026-10-14 17:44。記録 `docs/deploy-log/deploy-log-v1.98.0-2026-10-14.md`)。箱からも確認: APP_VERSION 1.98.0・CSP あり・起動時の CSP 違反 0・ページエラー 0・スクリプトの読み込み元は soranotsuji.net だけ・`vendor/MANIFEST.json` 200(リポジトリと同じ指紋)・`/.well-known/security.txt` 200(Contact 2行)・privacy.html 改定日 2026-10-14・www→apex 301。note のリリースノート公開済み。この手順書は記録として残す(次の版の配布は deploy-guide.md だけでよい)。
 
 ## 0. 先に知っておくこと
 

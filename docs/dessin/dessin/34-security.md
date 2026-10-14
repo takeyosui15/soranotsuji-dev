@@ -128,7 +128,8 @@
 
 ## 8. 次の段(todo)
 
-- GitHub: 配信元ブランチのルールセット(develop/main は無保護だった。削除と force push の禁止。PR必須は配布手順と両立しないので入れない)・迷子のブランチ「>」の削除・Secret scanning/Push protection(層2 #12〜#14)。Actions は Pages の配信に使われているので無効にしない(第160で「無効化」を取り下げ)。
+- (済 2026-10-14) v1.98.0 を本番に配布(手順書 A〜H 完了。箱からの確認は回答その175)。以後は層3の運用(毎月の点検・毎年9月の security.txt の Expires)と、下の残り。
+- (済) GitHub: 配信元ブランチのルールセット(develop/main は無保護だった。削除と force push の禁止。PR必須は配布手順と両立しないので入れない)・迷子のブランチ「>」の削除・Secret scanning/Push protection(層2 #12〜#14)。Actions は Pages の配信に使われているので無効にしない(第160で「無効化」を取り下げ)。
 - MapLibre を 6.4.1 以上へ(CVE-2026-85061: 属性文字列のサニタイザのバイパス。宙の辻は属性文字列が全て定数で、外部のTileJSONも読まないので今は悪用できない。4→6の大きな版上げなので、全走+実機で別ラウンド)。
 - Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(第172で設置・第173で Contact を2行に: 1行目=GitHub の非公開の脆弱性報告(security/advisories/new)・2行目=リポジトリ・Expires 2027-10-01・verify184 S11 が順序も見張る)(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
 - Myサイト: 読み取りに docs.google.com を connect-src に足す時は、?mysite= のIDの文字種検査と一緒に。
