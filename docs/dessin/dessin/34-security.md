@@ -98,7 +98,7 @@
 | 6 | 同 > 認証情報 | 使っていないOAuthクライアント・APIキー・サービスアカウント | 無い(あれば削除) |
 | 7 | 同 > 有効なAPI | 有効なAPIの一覧 | Google Drive API・Google Sheets API・Google Picker API がある。Maps 等の「使った分だけ課金される」API は無効。Google Cloud の基盤系(Service Usage・Logging・Monitoring 等)は触らない |
 | 8 | Googleアカウント(プロジェクトの持ち主) > セキュリティ | 2段階認証 | オン(パスキー推奨)・再設定用の電話/メールが現在の物 |
-| 9 | Apps Script(訪問者カウンタ) > デプロイ | 実行するユーザー・アクセスできるユーザー・紐付くスプレッドシート | 自分・全員(匿名で数えるため必要)・カウンタのシートだけ。`gas_spredsheet.js` の新版(例外文を出さない)を再デプロイ(URLは変わらない) |
+| 9 | Apps Script「宙の辻アクセスカウンタ」(第168で「無題のプロジェクト」から改名。Google アカウントのリンク済みアプリに同名で出る=カウンタがシートを読み書きする許可なので消さない) > デプロイ | 実行するユーザー・アクセスできるユーザー・紐付くスプレッドシート | 自分・全員(匿名で数えるため必要)・カウンタのシートだけ。`gas_spredsheet.js` の新版(例外文を出さない)を再デプロイ(URLは変わらない) |
 | 10 | Googleアカウントの「リンク済みアプリ」(https://myaccount.google.com/linkedapps。旧 /connections。回答その157では「第三者によるアクセス」と書いた同じ画面) | 宙の辻でログアウトした後(ログインから1時間以内に) | 一覧(「ドライブへのアクセス権」側。「Google でログイン」は使わないので元から出ない)から「宙の辻」が消える(取り消しが届いている)。同意の記録は利用者×クライアントIDごとなので、本番や以前のログインの分は別。残っていたら Google の画面で「アクセス権を削除」してから、ログイン→ログアウト→再確認(第167) |
 | 11 | GitHub > Settings > Password and authentication | 2段階認証 | オン(パスキー推奨) |
 | 12 | GitHub > soranotsuji(本番)と soranotsuji-dev > Settings > Branches | 配信元ブランチの保護 | 本番の配信元(main等)と開発の develop/main にルールセット(削除の禁止・force pushの禁止)。PR必須は入れない(deploy-guide の Step 1 と work→develop は直接 push なので。第160で取り下げ) |
