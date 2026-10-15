@@ -1,0 +1,77 @@
+# 35. オフライン起動と端末のデータ管理(デッサン第1版・案)
+
+- 起草: 2026-10-15(第182ラウンド・依頼者の問い「電波の届かない地域での動作をきちんとしたい。アプリ本体・控え(地理/標高タイル)・資産(可視マップ)をきちんと管理したい」)。
+- 目的: ①圏外でも宙の辻を**開ける**(今は開いたまま圏外になった時だけ動く) ②端末にある宙の辻のデータを1か所で見て・消せる ③控えを自動で片付ける(使っていない物から・上限つき・使用量が分かる)。
+- 位置づけ: 案。依頼者と案を出し合って第2版へ。実装は段取り(7.)のとおり3ラウンド程度。
+- 関連: デッサン18(バックアップ/インポート)・デッサン34(セキュリティ: SW は自オリジンだけ)・デッサン00(ドライブ同期)。
+
+## 1. 依頼者の問いへの答え(短く)
+
+| 問い | 答え |
+|---|---|
+| アプリ本体のデータ(HTML/JS/フォント)も IndexedDB に入っているか | **入っていない。** 本体はブラウザの HTTP キャッシュ(GitHub Pages の `max-age=600`=10分)だけ。IndexedDB にあるのは 地理タイル(`soranotsuji-maptiles`)・標高タイルと可視マップ資産(`soranotsuji-kashimap`)・天気(`soranotsuji-wx`)。設定は localStorage(`soranotsuji_app`)。だから「開いたまま圏外」は動くが「圏外で開く」はできない。 |
+| 本体は常に最新を読みに行き、読めなければ控えから、が良いか | **はい、それが正解(ネット優先・落ちたら控え)。** 実現する道具が Service Worker(SW)。本体の控えは版(APP_VERSION)ごとに名前を分け、新しい版が入ったら古い控えを捨てる。 |
+| アプリデータの全削除ボタンが欲しい | 置く。「端末のデータ」の一覧(3.)に、本体の控え・設定・地理タイル・標高タイル・天気・可視マップ資産のそれぞれに削除ボタン+全部。reset.html も SW の控えと登録を消すように。 |
+| 地理/標高タイルを自動で管理(最終使用から30日で削除・上限・使用率%)したい。バックグラウンドのスレッドは難しいか | **ウェブには「閉じた後も動く裏方」は無い**(Periodic Background Sync は Chrome のインストール済み PWA 限定で当てにならない)。なので「開いている間」に片付ける: 起動5秒後(1日1回)+前面に戻った時+「今すぐ整理」ボタン。実際の削除は Web Worker(ワーカー)で、画面を止めずに。上限と使用率%は店(ストア)ごとにアプリが数える(ブラウザは「オリジン全体」しか見ない)。 |
+| IndexedDB は localStorage と同じくドメインごとか | **同じ(オリジン=スキーム+ホスト+ポートごと)。** IndexedDB も Cache Storage も同じ規則。注意: 開発サイト `takeyosui15.github.io` は、そのアカウントの他のプロジェクトページとも同じオリジン(控えの名前に `sora-` を付けて区別)。ブラウザが容量不足で消す時は「オリジンの全部」をまとめて消す(店ごとではない)。 |
+
+## 2. 本体のオフライン起動 = Service Worker(SW)
+
+1. 置き場と範囲: `sw.js` をリポジトリ直下に置き、`navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })`。範囲(scope)は置いたフォルダ=本番は `/`、開発サイトは `/soranotsuji-dev/`(GitHub Pages は `Service-Worker-Allowed` を送れないので、置き場で決まる)。
+2. 方針: **自オリジンの GET だけ**を扱い、ネット優先(`fetch(req, {cache:'no-cache'})`=条件つき要求。GitHub Pages は ETag を返すので変わっていなければ 304 で軽い)→ 成功したら控えに入れて返す → 失敗(圏外・タイムアウト: ページ4秒/ファイル10秒)したら控えから返す。ページ(index.html)が無ければ控えの index.html。
+3. 扱わない物(=SW は手を出さず、ブラウザがそのまま通信): 他オリジン全部(Google のログイン/API/ピッカー・script.google.com のカウンタ・地理院/OSM のタイル・Open-Meteo・Nominatim・PLATEAU)・GET 以外・Authorization 付き。地理院タイルは今の `gsicache://` の店(IndexedDB)のままで、SW で二重に控えない。
+4. 控えの中身(先に入れておく物≈8MB): index.html・script.js・style.css・three-global.js・sora-constants.js・reset.html/.js・forecast-features.html・privacy.html・terms.html・`vendor/`(MANIFEST.json の全ファイル・draco)・ワーカー7本・`fonts/SoraSans/0-255.pbf`(辻ラインの時刻ラベル用。無いと圏外で文字が出ない)・celestial_db.json・muni.json・constellations.*.json・`data/*.json|*.bin|*.csv`・`data/pref/v1/*`・milkyway-skymap.webp・アイコン類。初回に使った時に控える物(≈20MB): milkyway-skymap_4k.webp・`*_print.webp`・ogp.png・`data/kashimap/**`。
+   - 控えの一覧は道具(`tests/build-sw-precache.js` 案)で index.html の script/link・MANIFEST.json・`new Worker()` の先から生成し、verify で「一覧と実体が一致」を見張る(verify184 の CSP と同じ型)。
+   - 先に入れる時は `new Request(url, {cache:'reload'})` で HTTP キャッシュを飛ばす(10分の古い写しを入れないため)。
+5. 版の扱い: SW は script.js を読めないので、APP_VERSION を `sora-constants.js` に移し(ワーカーも既に importScripts している「数の単一情報源」)、`sw.js` も `importScripts('sora-constants.js')` で読む。控えの名前 `sora-shell-v<版>`。新しい SW の activate で他の `sora-shell-*` を消す。
+6. 更新の流れ: ブラウザは移動のたびに `sw.js` をバイト比較で確かめる。加えて前面復帰時(1時間以上経っていれば)`registration.update()`。本体はネット優先なので「開いているページはもう最新」=SW は落ちた時の保険。だから `skipWaiting()`+`clients.claim()` で静かに入れ替えてよい(控えから出した時だけ、画面に「オフライン表示(v…)」の印)。
+7. CSP: 今の meta に `worker-src 'self' blob:` があるので登録は通る。`sw.js` は外部の importScripts を使わない(自オリジンの sora-constants.js だけ)。控えから出す index.html にも meta の CSP は入っている。
+8. 消す時: reset.html と「端末のデータ」の削除ボタンは、IndexedDB に加えて `caches.keys()→delete` と `navigator.serviceWorker.getRegistrations()→unregister()` を行う(消した後は次の読み込みで登録し直す)。
+9. 検証: 既存の verify は全部「自オリジン以外を abort」の route を使っているので、`newContext({ serviceWorkers: 'block' })` を共通の型に足す(SW が横取りすると route に見えなくなるため)。SW 専用に verify186: 登録→`caches.keys()` に `sora-shell-v<版>`→`context.setOffline(true)`→再読み込みで版のフッターが出る。
+10. iOS の注意: Safari は「7日間そのサイトを触らないと、スクリプトが書いたデータを全部消す」(ITP)。**ホーム画面に追加**した宙の辻は別の勘定になり消されない。だから iOS の利用者には「圏外で使うならホーム画面に追加」を案内(manifest.json を置いて standalone に。アイコンは apple-touch-icon.png を流用)。`navigator.storage.persist()` も一度呼んで結果を一覧に出す(Chrome は自動判定・Safari はホーム画面が目安)。
+
+## 3. 端末のデータの一覧(バックアップ/インポートメニューに「端末のデータ」の節)
+
+| 行 | 中身 | 件数/容量 | 最終使用 | 上限 | 使用率 | 削除 |
+|---|---|---|---|---|---|---|
+| 本体の控え(SW) | `sora-shell-v<版>` の Cache Storage | ファイル数/MB | 控えの日時 | − | − | 「本体の控えを削除」(SW も解除。次に開く時に作り直す) |
+| 設定(登録内容) | localStorage `soranotsuji_app` | KB | 保存日時 | 5MB(ブラウザ) | % | 既存(reset.html)へ |
+| 地理タイル | `soranotsuji-maptiles` | 件数/MB | usedAt の最大 | 1GB(現行) | % | 既存「地理タイルを全削除」 |
+| 標高タイル | `soranotsuji-kashimap` の tiles | 件数/MB | 同上 | 1GB(案) | % | 既存「標高タイルを全削除」 |
+| 可視マップ資産 | 同 DB の assets/bodies | 件数/MB | 同上 | 2GB(案) | % | 既存(可視マップの資産一覧)へ |
+| 天気の控え | `soranotsuji-wx` | 件数/MB | 同上 | 20MB(案)+2時間 TTL | % | 「天気の控えを削除」 |
+| 全体 | `navigator.storage.estimate()` | 使用/割当(ブラウザの見積もり) | − | ブラウザ | % | 「全部削除」=reset.html へ |
+
+- 使用量は店ごとにアプリが数える(今の `size` の索引で件数・合計バイトは数えられる)。`estimate()` はオリジン全体の目安(他のデータも含む・端数は丸められる)として「全体」の行だけに使う。
+- `persist()` の結果(永続: はい/いいえ)も「全体」の行に。
+- 「今すぐ整理」ボタン=4.の片付けを手で起動(進み具合を表示)。
+
+## 4. 自動の片付け(地理タイル・標高タイル・天気)
+
+- 最終使用(`usedAt`)を記録する。読み(ヒット)のたびに書くと重いので、**前回の記録から24時間以上経っていた時だけ**書き直す(1タイル1日1回まで)。索引に `usedAt` を足す(無い古い記録は索引に出ないので、1GB の書き直しは不要。古い記録は `savedAt` で代用して判定)。
+- 規則: ①30日使っていない物を消す ②店の上限の9割を超えたら、古い順(usedAt)に8割まで消す(行ったり来たりしないよう幅を持つ) ③天気は TTL(2時間)切れを消す。
+- 契機: ①起動の約5秒後(`localStorage` の「前回の片付け」が24時間より前なら) ②画面が前面に戻った時(同じ条件) ③「今すぐ整理」ボタン。実行は専用のワーカー(`sora-store-worker.js` 案。kashimap/terrain のワーカーが既に IndexedDB を開いている)で、200件ずつ区切って削除(画面を止めない)。
+- `requestIdleCallback` は Safari で無効のままなので `setTimeout` で代用。
+- 上限(案): 地理 1GB(現行)・標高 1GB・資産 2GB・天気 20MB。30日は既定(設定で変えられるようにするかは Q2)。
+
+## 5. 守りとの関係(デッサン34)
+
+- SW は自オリジンの GET だけ。他オリジン(Google の鍵が載る通信)は一切触らない(respondWith しない=ブラウザがそのまま通信)。
+- 控えに入れるのは自サイトの配信物だけ。MANIFEST.json の指紋の仕組みは今のまま(SW は配信の写しであって出所ではない)。
+- `sw.js` 自体も MANIFEST/CSP の検査(verify184)の対象に入れる(外部の読み込みが無いこと)。
+
+## 6. 未決(依頼者へ。第2版で決める)
+
+- Q1 上限の既定値: 地理 1GB(現行)・標高 1GB・可視マップ資産 2GB・天気 20MB でよいか。
+- Q2 「30日使っていなければ消す」の既定でよいか。日数を設定で変えられるようにするか(案: 変えない。シンプルに)。
+- Q3 新しい版が出た時の知らせ方: (a)静かに入れ替え、次に開いた時に新しい版(案。本体はネット優先なので、開いている時点で最新) (b)「新しい版があります。再読み込み」を出す。
+- Q4 iOS 向けに「ホーム画面に追加」を勧める(manifest.json を置く)か。見た目(standalone=ブラウザの枠無し)が変わるので、勧め方(ヘルプ/FAQ に書く程度)の確認。
+- Q5 天気の控え(宙検索・宙断面=封鎖中)は、今は TTL 2時間だけ。一覧に載せて削除ボタンを付けるが、上限は 20MB でよいか。
+- Q6 「本体の控えを削除」を押した後の動き: 次に開く時に SW を登録し直して控えを作る(圏外で押すと、次の起動は通信が要る)。この説明をボタンの注記に書く、でよいか。
+
+## 7. 段取り(案)
+
+1. 段1(1ラウンド): SW(2.)+APP_VERSION を sora-constants.js へ+控えの一覧の道具+「端末のデータ」の節の骨(本体の控えの行と削除)+reset.html の対応+verify186。
+2. 段2(1ラウンド): usedAt・上限・片付け(4.)+一覧の残りの行(件数/容量/最終使用/%)+「今すぐ整理」+verify187。
+3. 段3(小): iOS 向け manifest.json+persist()+ヘルプ/FAQ(「圏外で使う」の Q を更新)+deploy-guide(sw.js・manifest.json の配布確認)。
+4. 配布: v1.99.0(本体の控え)としてまとめて。配った後の確認に「機内モードで開き直せる」を H に足す。

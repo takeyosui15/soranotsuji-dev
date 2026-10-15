@@ -2,6 +2,7 @@
 // 従来はチェックが同期ダイアログ(👎の時だけ開く)の中にしか無く、自動更新が効いて👍のままだと辿り着けなかった。
 // 直し: バックアップ/インポートメニューのGoogleドライブ欄にも同じチェックを置き、2か所を連動(_autoSyncSyncCheckboxes)。
 // 方式: 静的な形(S)+実機(Playwright。ログイン無しで appState とチェックの連動だけを見る)。
+// 第182: ⓘ(出典)を起動時に閉じる(A5)・画像サイズの単位/CSV BOM の表記(S3)を追加。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -78,6 +79,17 @@ check('S2 script.js: 両方のチェックが同じハンドラ・_autoSyncSyncC
   const a4 = await p.evaluate(() => !!document.querySelector('#sec-backup #chk-gdrive-autosync-menu'));
   check('A4 メニュー側のチェックはバックアップ/インポート節(#sec-backup)の中にある', a4);
 
+  // A5(第182): 地図のⓘ(出典)は起動時は閉じている(compact-show 無し・open 無し)。ボタン自体は残っている
+  await p.waitForSelector('.maplibregl-ctrl-attrib.maplibregl-compact', { timeout: 10000 }).catch(() => {});
+  await p.waitForTimeout(1500);   // 出典が揃って一度開く→idle で閉じる、までの猶予
+  const a5 = await p.evaluate(() => { const at = document.querySelector('.maplibregl-ctrl-attrib'); return at ? { has: true, show: at.classList.contains('maplibregl-compact-show'), open: at.hasAttribute('open'), compact: at.classList.contains('maplibregl-compact') } : { has: false }; });
+  check('A5 地図のⓘ(出典)は起動時は閉じている(compact のまま・開いていない)', a5.has && a5.compact && !a5.show && !a5.open, JSON.stringify(a5));
+  await p.click('.maplibregl-ctrl-attrib summary');
+  await p.waitForTimeout(800);
+  const a6 = await p.evaluate(() => { const at = document.querySelector('.maplibregl-ctrl-attrib'); return { show: at.classList.contains('maplibregl-compact-show') || at.hasAttribute('open') }; });
+  check('A6 ⓘを押すと開き、その後は自動で閉じない', a6.show, JSON.stringify(a6));
+  // S3(第182): 棚卸しの小さな直し=画像サイズの単位「MB/枚」・CSV の BOM 判定に見えない文字を使わない
+  check('S3 「画像サイズ(手動:MB/枚):」の表記・script.js に生の U+FEFF が無い(\\uFEFF 表記)', html.includes('画像サイズ(手動:MB/枚):') && !src.includes('\uFEFF') && src.includes("replace(/^\\uFEFF/, '')"));
   check('E ページエラーなし', errs.length === 0, errs.slice(0, 2).join(' | '));
   await b.close();
   console.log(`\n${PASS} passed, ${FAIL} failed`);
