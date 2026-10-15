@@ -138,7 +138,7 @@ APP_VERSIONピンの規約(最新verifyのみ)はアプリのverify群だけの�
 
 - Google Drive/Sheets を使うテスト(verify96のT3等)は `window.fetch` をテスト内でモックしています(実アカウント不要)
 - 全verifyはPlaywrightのroute abortでローカル(127.0.0.1)以外への実アクセスを遮断しています(第22ラウンドから。テスト方針の仕組み化)
-- APP_VERSIONの版数ピンは**最新のverifyのみ**に置きます(第24ラウンド〜。旧verifyのピンを毎回更新する保守を廃止。ピンは常に番号最大のverifyが持つ=第183時点はverify186)
+- APP_VERSIONの版数ピンは**最新のverifyのみ**に置きます(第24ラウンド〜。旧verifyのピンを毎回更新する保守を廃止。ピンは常に番号最大のverifyが持つ=第183時点はverify186。verify187 は版を script.js から読むのでピン無し)
 - 第36ラウンドで辻メッシュ画像はcanvasソース化(同期反映)・時刻ラベルはsymbolレイヤ化(ローカルglyphs: `fonts/SoraSans/0-255.pbf`。ハーネスへfonts/の同期が必要)・地点ピンは標準maplibregl.Marker化(識別クラスは要素に残る)。verify119の一部(旧objectURL表明)とverify111/113は実挙動へ保守済み
 - 第33ラウンドの機能封鎖により、封鎖対象を検証するverify(100/101/103/104/105/106/107/108/112/116)は`?forecast=1`を付けて実行します(封鎖の検証はverify117/118)。第34ラウンドで封鎖UIはindex.htmlからforecast-features.htmlへ分離され、?forecast=1時にfetch注入で復元されます(ハーネスへ同ファイルの同期が必要)
 - 第158ラウンドの可視マップの封鎖(v1.97.0・forecastと同じ仕組み)により、可視マップを検証するverify(174〜182)は `?kashimap=1` を付けて実行します(封鎖の検証はverify183 U1/U5)。封鎖は CSS の `.feature-locked`(display:none)と入口3つ(runKashimapSearch/_kmComputeRun/toggleKashimap)のガードで、HTMLと配線はそのまま残ります。

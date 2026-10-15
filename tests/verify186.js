@@ -47,7 +47,7 @@ check('S1 時間フィルタ: TSUJI_TIME_MODES の並びが GH[終]→月の出�
   src.includes("moonrise: rs(+1, 'Moon'), moonset: rs(-1, 'Moon'),") && src.includes("Astronomy.SearchRiseSet(body, observer, dir, startOfDay, 1)") &&
   src.includes("const TSUJI_MOON_MODES = new Set(['moonrise', 'moonset']);") && src.includes("if (!d) return TSUJI_MOON_MODES.has(mode) ? NaN : null;") &&
   src.includes("if (Number.isNaN(sMin) || Number.isNaN(eMin)) return false;") &&
-  src.includes("const _QP_SEEDS_V23 = _QP_SEEDS_V22.concat(['=moonrise&', '=moonset&']);") && src.includes("_QP_SEEDS_V22, _QP_SEEDS_V23];") &&
+  src.includes("const _QP_SEEDS_V23 = _QP_SEEDS_V22.concat(['&tsujiStartMode=moonrise', '&tsujiStartMode=moonset', '&tsujiEndMode=moonrise', '&tsujiEndMode=moonset', '&tsujiMeshStartMode=moonrise', '&tsujiMeshStartMode=moonset', '&tsujiMeshEndMode=moonrise', '&tsujiMeshEndMode=moonset']);") && src.includes("_QP_SEEDS_V22, _QP_SEEDS_V23];") &&
   html.includes('日の出/日の入/月の出/月の入/各薄明/GH・BHの境目から選べ') && html.includes('月の出・月の入がその日に無い日 (月に1回ほどあります) は、その境界を使うフィルタは何も通しません'));
 
 // ---- S2: 1.5m(静的): 3つの置き方(座標/地名→applyLocationCoords・GPS・地図)で EYE_HEIGHT_M。目的点側は 0 のまま。Hom の既定は不変 ----

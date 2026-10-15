@@ -1,6 +1,7 @@
 // 第183ラウンド検証: v1.99.0 — 本体の控え=Service Worker(デッサン35 段1)。
 // 圏外でも宙の辻を「開ける」ように本体を版ごとに控える。2フェーズの入れ替え(全部そろって確かめてから切り替え。失敗なら古いまま)。
 // 方式: 静的な形(S)+実機(Playwright。serviceWorkers: 'allow'・?sw=1 で登録・オフラインは context.setOffline)。
+// 第183の反証レビュー(Workflow)で足した守り(ワーカーの版の引き継ぎ・Cache Storage の破損・版の門番・install 失敗の後始末・転送・5xx・実体のバイト数・meta の版で登録・自分の範囲だけ解除)も S1/S3 で見張る。
 // 注意: Playwright の route は SW の前に割り込むので(route を使うと SW が返した応答の x-sora-shell が消える=第183で実測)、この verify だけは route を使わず、
 // 外部ホストは Chromium の --host-rules(127.0.0.1 以外を NOTFOUND に)で遮断する(テスト方針「実ネットワークに出ない」は保つ)。
 'use strict';
@@ -28,28 +29,36 @@ check('S1 sw.js: 自オリジン(範囲内)の GET だけ・Authorization 付き
   sw.includes("keys.filter(k => k.startsWith('sora-shell-') && k !== CACHE).map(k => caches.delete(k))") && sw.includes("await self.clients.claim();") &&
   sw.includes("if (req.mode === 'navigate') { e.respondWith(handleNavigate(e, url, key)); return; }") && sw.includes("fetchWithTimeout(url.href, ST.SHELL_NAV_TIMEOUT_MS)") &&
   sw.includes("if (pv && pv !== VER) return unredirected(await fetchWithTimeout(url.href, ST.SHELL_FETCH_TIMEOUT_MS));") && sw.includes("if (!v || v === VER) putRuntime(c, key, res.clone());") &&
-  sw.includes("h.set('x-sora-shell', 'cache');") && sw.includes("if (cur + len > ST.SHELL_MAX_BYTES) return;") && !/fetch\(['"]https?:/.test(sw));
+  sw.includes("h.set('x-sora-shell', 'cache');") && sw.includes("if (cur + len > ST.SHELL_MAX_BYTES) return;") && !/fetch\(['"]https?:/.test(sw) &&
+  // 反証レビューで足した守り
+  sw.includes("if ((req.destination === 'worker' || req.destination === 'sharedworker') && e.resultingClientId && pv) clientVer.set(e.resultingClientId, pv);") &&
+  sw.includes("async function openShell() { try { return await caches.open(CACHE); } catch (_) { return null; } }") && sw.includes("if (!c) return fetch(e.request);") && sw.includes("if (!c) return fetch(req);") &&
+  sw.includes("if (pv && pv !== VER) throw new Error('version mismatch: page ' + pv + ' / sw ' + VER);") && sw.includes("const existed = await caches.has(CACHE);") && sw.includes("if (!existed) await caches.delete(CACHE).catch(() => {});") &&
+  sw.includes("if (res.redirected) return Response.redirect(res.url, 302);") && sw.includes("if (res.status >= 500) return (await fromShell(e, c, key)) || res;") &&
+  sw.includes("const buf = await res.arrayBuffer();") && sw.includes("function keyOf(url) { return url.origin + (url.pathname.endsWith('/') ? url.pathname + 'index.html' : url.pathname); }"));
 
 // ---- S2: 一覧と版の一致 ----
 let checkOut = '', checkOk = false;
 try { checkOut = execFileSync(process.execPath, [path.join(ROOT, 'tools', 'sw', 'build-precache.js'), '--check'], { encoding: 'utf8' }); checkOk = true; } catch (e) { checkOut = String(e.stdout || '') + String(e.stderr || ''); }
 const metaVer = (/<meta name="app-version" content="([^"]+)">/.exec(html) || [])[1];
-check('S2 sw-precache.js は配信面と一致(build-precache --check)・37件以上・index.html/script.js/sora-constants.js/style.css/vendor 一式/ワーカー7本/フォント/天の川が入り、4K の天の川や data/kashimap は入らない・全ファイルに実体・index.html の meta app-version が APP_VERSION と同じ',
+check('S2 sw-precache.js は配信面と一致(build-precache --check)・37件以上・index.html/script.js/sora-constants.js/style.css/vendor 一式/ワーカー7本/フォント/天の川が入り、4K の天の川や data/kashimap は入らない・全ファイルに実体・index.html の meta app-version が APP_VERSION と同じ(版の数字のピンは verify186 だけが持つ)',
   checkOk && PRECACHE.length >= 37 && ['index.html', 'script.js', 'sora-constants.js', 'style.css', 'three-global.js', 'reset.html', 'reset.js', 'vendor/maplibre-gl.js', 'vendor/three.module.min.js', 'vendor/draco/draco_decoder.wasm', 'vendor/astronomy.browser.min.js', 'fonts/SoraSans/0-255.pbf', 'milkyway-skymap.webp', 'celestial_db.json', 'muni.json',
     'dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker.js', 'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js', 'kashimap-worker.js'].every(f => PRECACHE.includes(f)) &&
   !PRECACHE.includes('milkyway-skymap_4k.webp') && !PRECACHE.some(f => f.startsWith('data/kashimap/')) && !PRECACHE.includes('sw.js') &&
-  PRECACHE.every(f => fs.existsSync(path.join(ROOT, f))) && metaVer === APP_VER && APP_VER === '1.99.0', JSON.stringify({ checkOut: checkOut.trim(), n: PRECACHE.length, metaVer, APP_VER }));
+  PRECACHE.every(f => fs.existsSync(path.join(ROOT, f))) && metaVer === APP_VER && /^\d+\.\d+\.\d+$/.test(APP_VER || ''), JSON.stringify({ checkOut: checkOut.trim(), n: PRECACHE.length, metaVer, APP_VER }));
 
 // ---- S3: 本体の配線 ----
-check('S3 本体: 登録は https か ?sw=1 の時だけ(sw.js?v=APP_VERSION・updateViaCache none・load の1.5秒後)・前面復帰で1時間ごとの update・_swStat/_swClear・バックアップメニューの「本体の控え(オフライン用)」の行(件数/容量/版/注記/削除)と確認文・reset.js が控えと登録も消す・reset.html の注記・ハーネスの同期に sw.js と sw-precache.js・ヘルプ・SORA.STORE(上限と待ち時間と30日はここ1箇所)',
+check('S3 本体: 登録は https か ?sw=1 の時だけ(sw.js?v=ページの meta の版・違えば controllerchange で読み直し・updateViaCache none・load の1.5秒後)・前面復帰で1時間ごとの update・_swStat/_swClear・バックアップメニューの「本体の控え(オフライン用)」の行(件数/容量/版/注記/削除)と確認文・reset.js が控えと登録も消す・reset.html の注記・ハーネスの同期に sw.js と sw-precache.js・ヘルプ・SORA.STORE(上限と待ち時間と30日はここ1箇所)',
   src.includes("function _swEnabled() { return ('serviceWorker' in navigator) && (location.protocol === 'https:' || /[?&]sw=1(&|$)/.test(location.search)); }") &&
-  src.includes("navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(APP_VERSION), { updateViaCache: 'none' })") && src.includes("window.addEventListener('load', () => setTimeout(_swRegister, 1500));") &&
+  src.includes("navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(pageVer), { updateViaCache: 'none' })") && src.includes("const pageVer = (meta && meta.content) || APP_VERSION;") &&
+  src.includes("if (pageVer !== APP_VERSION) navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });") && src.includes("window.addEventListener('load', () => setTimeout(_swRegister, 1500));") &&
   src.includes("document.addEventListener('visibilitychange', _swMaybeUpdate);") && src.includes("Date.now() - _swLastUpdate < 3600000") &&
-  /async function _swStat\(\)[\s\S]*?k\.startsWith\('sora-shell-'\)/.test(src) && /async function _swClear\(\)[\s\S]*?getRegistrations\(\)\) await r\.unregister\(\);/.test(src) &&
+  /async function _swStat\(\)[\s\S]*?k\.startsWith\('sora-shell-'\)/.test(src) && /async function _swClear\(\)[\s\S]*?const scope = new URL\('\.\/', location\.href\)\.href; for \(const r of await navigator\.serviceWorker\.getRegistrations\(\)\) if \(r\.scope === scope\) await r\.unregister\(\);/.test(src) &&
+  src.includes("out.n++; out.bytes += (await r.clone().blob()).size;") &&
   src.includes("put('backup-shell-count', sw.n.toLocaleString()); put('backup-shell-size', _kmMB(sw.bytes)); put('backup-shell-ver',") &&
   src.includes("if (bSw) bSw.onclick = async () => { if (!confirm('本体の控え(オフライン用)を削除しますか？\\n(次に開く時に通信して作り直します。電波の無い所では開けなくなります)')) return; await _swClear(); _mtRefreshBackupRows(); };") &&
   /id="backup-demtiles-note"[\s\S]{0,900}?<label class="baseopt-group-label km-sub"[^>]*>本体の控え\(オフライン用\):<\/label>[\s\S]{0,600}?id="backup-shell-count"[\s\S]{0,300}?id="backup-shell-size"[\s\S]{0,300}?id="backup-shell-ver"[\s\S]{0,400}?<span class="menu-note">削除すると、次に開く時に通信して作り直します\(電波の無い所では開けなくなります\)。<\/span>[\s\S]{0,300}?<button id="btn-backup-shell-clear"[^>]*>本体の控えを削除<\/button>/.test(html) &&
-  resetJs.includes("if (k.startsWith('sora-shell-')) caches.delete(k);") && resetJs.includes("navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))") &&
+  resetJs.includes("if (k.startsWith('sora-shell-')) caches.delete(k);") && resetJs.includes("const scope = new URL('./', location.href).href; navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (r.scope === scope) r.unregister(); }));") &&
   resetHtml.includes('オフライン用の本体の控え (Service Worker) も消去し、次に宙の辻を開く時に通信して作り直します。') &&
   sync.includes("'sw.js', 'sw-precache.js'") && html.includes('<li><strong>本体の控え (オフライン用)</strong>') &&
   /const STORE = Object\.freeze\(\{[\s\S]*?SHELL_MAX_BYTES: 64 \* 1024 \* 1024,[\s\S]*?SHELL_NAV_TIMEOUT_MS: 4000,[\s\S]*?SHELL_FETCH_TIMEOUT_MS: 10000,[\s\S]*?UNUSED_DAYS: 30,/.test(consts) && consts.includes('TILE_STORE, STORE, calculateKFromMeteo'));
@@ -82,9 +91,9 @@ check('S3 本体: 登録は https か ?sw=1 の時だけ(sw.js?v=APP_VERSION・u
     const nav = performance.getEntriesByType('navigation')[0] || {};
     return { stat: s, mark1: r1.headers.get('x-sora-shell'), mark2: r2.headers.get('x-sora-shell'), mark3: r3.headers.get('x-sora-shell'), mark4: r4.headers.get('x-sora-shell'), ok: r1.ok && r2.ok && r3.ok && r4.ok, ctrl: !!navigator.serviceWorker.controller, navBytes: nav.transferSize, ver: document.getElementById('app-version').textContent };
   });
-  check('A1 実機(?sw=1): 登録(sw.js?v=1.99.0)→控え sora-shell-v1.99.0 に一覧の全件→_swStat の件数が一致し容量>5MB→オンラインで開き直すとページはネットから(transferSize>0)・本体のファイルは控えから(x-sora-shell: cache)・cache:reload の要求はネットから(印なし)',
-    a1 && a1.ready && a1.regs.some(u => u.endsWith('/sw.js?v=1.99.0')) && a1.ks.length === 1 && a1.ks[0] === 'sora-shell-v1.99.0' && a1.cnt === PRECACHE.length &&
-    a1b.ctrl && a1b.ok && a1b.ver === 'v1.99.0' && a1b.navBytes > 0 && a1b.stat.n === PRECACHE.length && a1b.stat.bytes > 5 * 1024 * 1024 && a1b.stat.vers.join() === '1.99.0' && a1b.mark1 === 'cache' && a1b.mark2 === 'cache' && a1b.mark3 === 'cache' && a1b.mark4 === null,
+  check('A1 実機(?sw=1): 登録(sw.js?v=版)→控え sora-shell-v<版> に一覧の全件→_swStat の件数が一致し容量>5MB→オンラインで開き直すとページはネットから(transferSize>0)・本体のファイルは控えから(x-sora-shell: cache)・cache:reload の要求はネットから(印なし)',
+    a1 && a1.ready && a1.regs.some(u => u.endsWith('/sw.js?v=' + APP_VER)) && a1.ks.length === 1 && a1.ks[0] === 'sora-shell-v' + APP_VER && a1.cnt === PRECACHE.length &&
+    a1b.ctrl && a1b.ok && a1b.ver === 'v' + APP_VER && a1b.navBytes > 0 && a1b.stat.n === PRECACHE.length && a1b.stat.bytes > 5 * 1024 * 1024 && a1b.stat.vers.join() === APP_VER && a1b.mark1 === 'cache' && a1b.mark2 === 'cache' && a1b.mark3 === 'cache' && a1b.mark4 === null,
     JSON.stringify({ a1, a1b: { ...a1b, stat: { n: a1b.stat.n, bytes: a1b.stat.bytes, vers: a1b.stat.vers } }, want: PRECACHE.length }));
 
   // A2: オフラインで開き直す
@@ -99,7 +108,7 @@ check('S3 本体: 登録は https か ?sw=1 の時だけ(sw.js?v=APP_VERSION・u
     });
   } catch (e) { a2 = { err: String(e && e.message).slice(0, 200) }; }
   await ctx.setOffline(false);
-  check('A2 オフラインにして再読み込み: ページも本体も控えから開き(x-sora-shell: cache)、版のフッター v1.99.0 と本体の関数がそろう', !a2.err && a2.ver === 'v1.99.0' && a2.fn && a2.pageMark === 'cache' && a2.jsMark === 'cache', JSON.stringify(a2));
+  check('A2 オフラインにして再読み込み: ページも本体も控えから開き(x-sora-shell: cache)、版のフッター(APP_VERSION)と本体の関数がそろう', !a2.err && a2.ver === 'v' + APP_VER && a2.fn && a2.pageMark === 'cache' && a2.jsMark === 'cache', JSON.stringify(a2));
 
   // A3: 「本体の控えを削除」相当
   await p.waitForFunction(() => typeof _swClear === 'function', { timeout: 8000 });

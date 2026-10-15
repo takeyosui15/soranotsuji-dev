@@ -67,7 +67,7 @@ document.getElementById('clearBtn').addEventListener('click', function() {
         }
         // 本体の控え(Service Worker の Cache Storage と登録)も消す(第183・デッサン35)。次に宙の辻を開く時に通信して作り直す
         try { if (typeof caches !== 'undefined') caches.keys().then(ks => ks.forEach(k => { if (k.startsWith('sora-shell-')) caches.delete(k); })); } catch (e) { /* 無視 */ }
-        try { if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())); } catch (e) { /* 無視 */ }
+        try { if ('serviceWorker' in navigator) { const scope = new URL('./', location.href).href; navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (r.scope === scope) r.unregister(); })); } } catch (e) { /* 無視 */ }   // 自分の範囲(置いたフォルダ)の登録だけ
         
         // 画面を更新して空になったことを示す
         renderStorageData();

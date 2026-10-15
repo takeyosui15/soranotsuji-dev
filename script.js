@@ -1038,8 +1038,11 @@ let _swReg = null, _swLastUpdate = 0;
 function _swEnabled() { return ('serviceWorker' in navigator) && (location.protocol === 'https:' || /[?&]sw=1(&|$)/.test(location.search)); }
 async function _swRegister() {
     if (!_swEnabled()) return null;
+    const meta = document.querySelector('meta[name="app-version"]');
+    const pageVer = (meta && meta.content) || APP_VERSION;   // 表示中のページの版で登録する(古い script.js が控えから出た端末でも、ページの版の SW が入って揃う。第183のレビュー)
+    if (pageVer !== APP_VERSION) navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });   // 新しい SW が入ったら一度だけ読み直して版を揃える
     try {
-        _swReg = await navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(APP_VERSION), { updateViaCache: 'none' });
+        _swReg = await navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(pageVer), { updateViaCache: 'none' });
         _swLastUpdate = Date.now();
     } catch (e) { console.warn('本体の控え(Service Worker)の登録に失敗:', e && e.message); }
     return _swReg;
@@ -1060,7 +1063,7 @@ async function _swStat() {
             const c = await caches.open(k);
             for (const req of await c.keys()) {
                 const r = await c.match(req); if (!r) continue;
-                out.n++; out.bytes += Number(r.headers.get('content-length')) || (await r.clone().blob()).size;
+                out.n++; out.bytes += (await r.clone().blob()).size;   // 実体のバイト数(content-length は GitHub Pages では gzip 後の値)
             }
         }
     } catch (_) {}
@@ -1069,7 +1072,7 @@ async function _swStat() {
 /** 本体の控えを削除(控えと SW の登録。次に開く時に登録し直して作り直す=通信が要る) */
 async function _swClear() {
     try { if (typeof caches !== 'undefined') for (const k of await caches.keys()) if (k.startsWith('sora-shell-')) await caches.delete(k); } catch (_) {}
-    try { if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (_) {}
+    try { if ('serviceWorker' in navigator) { const scope = new URL('./', location.href).href; for (const r of await navigator.serviceWorker.getRegistrations()) if (r.scope === scope) await r.unregister(); } } catch (_) {}   // 自分の範囲(置いたフォルダ)の登録だけ(開発サイトはオリジンを他のプロジェクトと共有している)
     _swReg = null;
 }
 window.addEventListener('load', () => setTimeout(_swRegister, 1500));   // 起動の描画を邪魔しないよう少し後で
@@ -16093,7 +16096,7 @@ const _QP_SEEDS_V20 = _QP_SEEDS_V19.concat(['&soraPhotoTex=false', '&soraPhotoTe
 const _QP_SEEDS_V21 = _QP_SEEDS_V20.concat(['&tsujiMeshAccuracy=o1']);
 // v22(第158): 大気差補正の既定がオンに(「&refractionEnabled=true」)+気差オプション astroRefraction。v16の種は凍結のまま
 const _QP_SEEDS_V22 = _QP_SEEDS_V21.concat(['&refractionEnabled=true', '&astroRefraction=true', '&astroRefraction=false', '&astroRefraction=']);
-const _QP_SEEDS_V23 = _QP_SEEDS_V22.concat(['=moonrise&', '=moonset&']);   // 第183: 時間フィルタの「月の出」「月の入」(値は TSUJI_TIME_MODES)
+const _QP_SEEDS_V23 = _QP_SEEDS_V22.concat(['&tsujiStartMode=moonrise', '&tsujiStartMode=moonset', '&tsujiEndMode=moonrise', '&tsujiEndMode=moonset', '&tsujiMeshStartMode=moonrise', '&tsujiMeshStartMode=moonset', '&tsujiMeshEndMode=moonrise', '&tsujiMeshEndMode=moonset']);   // 第183: 時間フィルタの「月の出」「月の入」(第3規則の形「&キー名=値」。「=moonrise&」の形は LZW の貪欲一致で使われない=レビューの指摘)
 const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18, _QP_SEEDS_V19, _QP_SEEDS_V20, _QP_SEEDS_V21, _QP_SEEDS_V22, _QP_SEEDS_V23];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
