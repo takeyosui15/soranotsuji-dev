@@ -30,7 +30,7 @@
 
 | # | 行 | 項目 | 判定 | 根拠 | 提案 | 再確認 | 判断 |
 |---|---|---|---|---|---|---|---|
-| 2 | 90 | MederuU(ナレッジ引き継ぎの器)の開発 | 一部 | 器は稼働中: ClaudeMederuU/(dessin/knowledge/reviews/tools)+mederuu-repo-staging(sync.js/index-gen.js)。本体リポへ蒸留第1陣12件清書+sync50件=todo.md:227[x](第137・2026-08-29)。todo.md:346[x]始動済。継続運用の性質 | 要相談(346[x]と重複気味。SUGGESTION節は「始動済・継続中」で閉じるか) | 再確認: 同意 |  |
+| 2 | 90 | MederuU(ナレッジ引き継ぎの器)の開発 | 一部 | 器は稼働中: ClaudeMederuU/(dessin/knowledge/reviews/tools)+mederuu-repo-staging(sync.js/index-gen.js)。本体リポへ蒸留第1陣12件清書+sync50件=todo.md:227[x](第137・2026-08-29)。todo.md:346[x]始動済。継続運用の性質 | 要相談(346[x]と重複気味。SUGGESTION節は「始動済・継続中」で閉じるか) | 再確認: 同意 | 「始動済・継続中」で閉じる |
 
 ### やることリスト（TODO）
 
