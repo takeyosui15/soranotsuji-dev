@@ -25,7 +25,7 @@ new Function('exports', src.slice(begin, end) +
 // ---- M0: 版数ピン(最新のverifyに集約)----
 check('M0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
 check('M0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
-check('M0 辞書は22版(v22が最新。第158=大気差補正の既定オン+気差オプション astroRefraction / 第62=曜日・第80=月間・第88=大気差/気象/基本オプション・第91=天体色/線種・第96=花火頻度・第108=天体色既定値ペア+4キー・第116=写真テクスチャ・第128=辻メッシュ精度○の既定値ペア)', qp.VERSIONS.length === 22, `versions=${qp.VERSIONS.length}`);
+check('M0 辞書は23版(v23が最新。第183=時間フィルタの月の出/月の入 =moonrise&/=moonset& / 第158=大気差補正の既定オン+気差オプション astroRefraction / 第62=曜日・第80=月間・第88=大気差/気象/基本オプション・第91=天体色/線種・第96=花火頻度・第108=天体色既定値ペア+4キー・第116=写真テクスチャ・第128=辻メッシュ精度○の既定値ペア)', qp.VERSIONS.length === 23, `versions=${qp.VERSIONS.length}`);
 
 // ---- M1: 第3規則の形状(「&キー名=既定値」: 先頭&+キー名+1つの=+区切りなしの値) ----
 const lintKeydefShape = (keydefs) =>
@@ -57,7 +57,7 @@ const lintKeydefKeys = (keydefs, knownKeys) =>
 
 // ---- M4: ゴールデン標本(v13辞書の凍結+エンコーダの決定性) ----
 {
-  const g = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v22-golden.json'), 'utf8'));
+  const g = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v23-golden.json'), 'utf8'));   // 第183: v23(long は v22 と同じ内容)
   // v13〜v19発行URLの凍結保証(復号のみ): 旧ゴールデンが今も元文字列へ戻ること
   const g13 = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v13-golden.json'), 'utf8'));
   check('M4 v13発行の旧ゴールデンの復号が今も元文字列へ戻る(発行済みURLの保証)', qp.dec(g13.golden) === g13.long);
@@ -77,8 +77,10 @@ const lintKeydefKeys = (keydefs, knownKeys) =>
   check('M4 v20発行の旧ゴールデンの復号が今も元文字列へ戻る(発行済みURLの保証)', qp.dec(g20.golden) === g20.long);
   const g21 = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v21-golden.json'), 'utf8'));
   check('M4 v21発行の旧ゴールデンの復号が今も元文字列へ戻る(発行済みURLの保証)', qp.dec(g21.golden) === g21.long);
+  const g22 = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'qp-v22-golden.json'), 'utf8'));
+  check('M4 v22発行の旧ゴールデンの復号が今も元文字列へ戻る(発行済みURLの保証)', qp.dec(g22.golden) === g22.long);
   const e = qp.enc(g.long);
-  check('M4 エンコード出力がゴールデンとバイト一致(v22辞書の決定性)', e === g.golden,
+  check('M4 エンコード出力がゴールデンとバイト一致(v23辞書の決定性)', e === g.golden,
     `len=${e.length}(golden=${g.golden.length})`);
   check('M4 ゴールデンの復号が元文字列へ戻る', qp.dec(g.golden) === g.long);
   // 第3規則の効果の下限保証: 旧v12発行の同一内容より十分短い(効果が消えたら検知する)

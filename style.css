@@ -2699,6 +2699,10 @@ input[type="range"] {
 
 /* 宙の窓コントロールの「辻検索」「辻メッシュ」(2分割。第158) */
 #soramado-ctrl-body .sora-ctrl-search-row .nav-btn { flex: 1 1 0; min-width: 0; }
+/* 宙の窓コントロールの「:構図をドラッグ」「:辻オフセット点をドラッグ」の段(第183・デッサン05 4.1/4.2段目): ラジオ+ラベルを左、「リセット」はメニュー内側の幅の1/3で右寄せ */
+#soramado-ctrl-body .sora-ctrl-drag-row { justify-content: space-between; }
+#soramado-ctrl-body .sora-ctrl-drag-row .baseopt-radio { flex: 1 1 auto; min-width: 0; margin-right: 0; white-space: normal; }
+#soramado-ctrl-body .sora-ctrl-drag-row .sora-ctrl-reset { flex: 0 0 calc(100% / 3); width: calc(100% / 3); min-width: 0; margin-left: auto; padding: 0; box-sizing: border-box; }
 
 /* バックアップメニューの地理タイル/標高タイル(第158・デッサン18): 可視マップ節と同じ見た目 */
 #sec-backup .km-sub { font-size: 13px; }

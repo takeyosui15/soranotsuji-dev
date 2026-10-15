@@ -65,6 +65,9 @@ document.getElementById('clearBtn').addEventListener('click', function() {
         for (const name of ['soranotsuji-kashimap', 'soranotsuji-wx', 'soranotsuji-maptiles']) {   // 地図タイルの控えの店(soranotsuji-maptiles)も消す
             try { indexedDB.deleteDatabase(name); } catch (e) { /* 対応していないブラウザは無視 */ }
         }
+        // 本体の控え(Service Worker の Cache Storage と登録)も消す(第183・デッサン35)。次に宙の辻を開く時に通信して作り直す
+        try { if (typeof caches !== 'undefined') caches.keys().then(ks => ks.forEach(k => { if (k.startsWith('sora-shell-')) caches.delete(k); })); } catch (e) { /* 無視 */ }
+        try { if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())); } catch (e) { /* 無視 */ }
         
         // 画面を更新して空になったことを示す
         renderStorageData();

@@ -143,5 +143,13 @@ GNU General Public License for more details.
         return { angleRad: ang, at };
     }
 
-    return Object.freeze({ EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, TILE_STORE, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
+    /** 端末の控えの上限と片付けの既定(デッサン35・第183)。値はここだけに書く(本体・sw.js・段2のワーカーが同じ値を読む) */
+    const STORE = Object.freeze({
+        SHELL_MAX_BYTES: 64 * 1024 * 1024,   // 本体の控え(Service Worker の Cache Storage)の上限。先に控える一覧≈6.5MB+使った時に控える物(天の川4K・印刷用・可視マップの資産)で足りる「念のための制限」
+        SHELL_NAV_TIMEOUT_MS: 4000,          // ページ(index.html)のネット優先の待ち時間(ms)。過ぎたら控えから
+        SHELL_FETCH_TIMEOUT_MS: 10000,       // 本体のファイルのネット優先の待ち時間(ms)
+        UNUSED_DAYS: 30,                     // 控えの片付け: 最終使用からこの日数を過ぎた物を消す(段2で使う。依頼者Q2: 設定では変えない・変える時はここ1箇所)
+    });
+
+    return Object.freeze({ EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, TILE_STORE, STORE, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
 });

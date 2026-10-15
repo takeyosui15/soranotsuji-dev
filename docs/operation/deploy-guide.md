@@ -44,6 +44,9 @@ claude/yyy ←→ work ←→ develop ──→ main ──→ soranotsuji/main
   - [ ] 1. 
 - [ ] バージョン番号が更新されている。
   - [ ] script.js:2箇所:バージョン履歴と定数APP_VERSION
+  - [ ] index.html:1箇所:`<meta name="app-version">`(sw.js がページの版を見分ける印。verify187 が APP_VERSION との一致を見張る)
+- [ ] 本体の控え(Service Worker・第183): `node tools/sw/build-precache.js --check` が通る(配信物を足した/消した時は `--write` で sw-precache.js を作り直す。verify187 も同じ検査をする)。
+  - 配った後の確認: 本番を一度開いて少し待ち、機内モードにして開き直せる(バックアップ/インポートメニューの「本体の控え」に件数と版が出る)。
 
 ### デプロイの流れ
 

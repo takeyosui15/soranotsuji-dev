@@ -2,7 +2,7 @@
 // 従来はチェックが同期ダイアログ(👎の時だけ開く)の中にしか無く、自動更新が効いて👍のままだと辿り着けなかった。
 // 直し: バックアップ/インポートメニューのGoogleドライブ欄にも同じチェックを置き、2か所を連動(_autoSyncSyncCheckboxes)。
 // 方式: 静的な形(S)+実機(Playwright。ログイン無しで appState とチェックの連動だけを見る)。
-// 第182: ⓘ(出典)を起動時に閉じる(A5)・画像サイズの単位/CSV BOM の表記(S3)を追加。
+// 第182: ⓘ(出典)を起動時に閉じる(A5)・画像サイズの単位/CSV BOM の表記(S3)を追加。第183: 版数ピンは verify186 へ。
 const { chromium } = require('playwright-core');
 const fs = require('fs');
 const path = require('path');
@@ -17,7 +17,7 @@ const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // ---- V0: 版数ピン(最新のverifyが持つ) ----
-check('V0 版数ピン 1.98.1+Version Historyに第180', /APP_VERSION = '1\.98\.1'/.test(src) && src.includes('Version 1.98.1 - ') && src.includes('第180ラウンド'));
+check('V0 版数は1.98.1以上+Version Historyに第180(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.(9[8-9]|[1-9]\d{2,})\.\d+'/.test(src) && src.includes('Version 1.98.1 - ') && src.includes('第180ラウンド'));
 
 // ---- S1: 2か所のチェックと連動の配線 ----
 check('S1 index.html: バックアップメニューのGoogleドライブ欄に chk-gdrive-autosync-menu(:自動更新)があり、ダイアログの chk-gdrive-autosync も残っている・ヘルプに置き場所の説明',

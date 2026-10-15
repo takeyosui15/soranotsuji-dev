@@ -35,6 +35,7 @@ GNU General Public License for more details.
     <meta name="google-site-verification" content="U7ZpT_pBinlYJOZLdc1AZtTrb5IXSjZYlBcFo38w8kM" />
     <title>宙の辻 - Sora no Tsuji</title>
     
+    <meta name="app-version" content="1.99.0">   <!-- sw.js がページの版を見分ける印(script.js の APP_VERSION と同じ値。verify187 が一致を見張る) -->
     <link rel="icon" href="favicon.ico" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
@@ -525,13 +526,13 @@ GNU General Public License for more details.
         <div id="soramado-ctrl">
             <div id="soramado-ctrl-header" title="コントロールメニューを開閉"><span>コントロール</span><span id="soramado-ctrl-arrow">▼</span></div>
             <div id="soramado-ctrl-body" class="hidden">
-                <div class="control-row left-row">
-                    <input type="checkbox" id="chk-sora-ctrl-drag-frame" class="body-checkbox" checked title="オン: プレビューをドラッグ(スマホは二本指)すると、画面中心(+)はそのままで目的点(+)と検索中心(×)が動く=カメラオフセット方位角/視高度が変わる。オフ: カメラオフセット方位角/視高度を0に戻す">
-                    <label class="input-label tsujisearch-label" for="chk-sora-ctrl-drag-frame">:構図をドラッグ(二本指)で変更</label>
+                <div class="control-row left-row sora-ctrl-drag-row">
+                    <label class="baseopt-radio" for="chk-sora-ctrl-drag-frame" title="選ぶと、プレビューをドラッグ(スマホは二本指)した時に、画面中心(+)はそのままで目的点(+)と検索中心(×)が動く=カメラオフセット方位角/視高度が変わる"><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-frame" value="frame" checked>:構図をドラッグ(二本指)で変更</label>
+                    <button id="btn-sora-ctrl-reset-frame" class="nav-btn sora-ctrl-reset" title="構図のリセット: カメラオフセット方位角/視高度を0に戻します">リセット</button>
                 </div>
-                <div class="control-row left-row">
-                    <input type="checkbox" id="chk-sora-ctrl-drag-tsuji" class="body-checkbox" title="オン: プレビューをドラッグ(スマホは二本指)すると、画面中心(+)と目的点(+)はそのままで検索中心(×)だけが動く=辻オフセット方位角/視高度が変わる(辻検索メニューと連動)。オフ: 辻オフセット方位角/視高度を動かす前の値に戻す">
-                    <label class="input-label tsujisearch-label" for="chk-sora-ctrl-drag-tsuji">:辻オフセット点をドラッグ(二本指)で変更</label>
+                <div class="control-row left-row sora-ctrl-drag-row">
+                    <label class="baseopt-radio" for="chk-sora-ctrl-drag-tsuji" title="選ぶと、プレビューをドラッグ(スマホは二本指)した時に、画面中心(+)と目的点(+)はそのままで検索中心(×)だけが動く=辻オフセット方位角/視高度が変わる(辻検索メニューと連動)。「:構図」へ戻すと、辻オフセットは動かす前の値に戻る"><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-tsuji" value="tsuji">:辻オフセット点をドラッグ(二本指)で変更</label>
+                    <button id="btn-sora-ctrl-reset-tsuji" class="nav-btn sora-ctrl-reset" title="辻オフセット点のリセット: 辻オフセット方位角/視高度を0に戻します(辻検索メニュー・辻メッシュと連動)">リセット</button>
                 </div>
                 <div class="control-row main-buttons-row sora-ctrl-search-row">
                     <button id="btn-sora-ctrl-tsuji-search" class="nav-btn main-btn" title="この構図(辻オフセット点)で辻検索(位置情報メニューの「辻検索」と同じ)">辻検索</button>
@@ -941,7 +942,10 @@ GNU General Public License for more details.
                     </div>
 
                     <div class="control-row">
-                        <div class="btn-group-left"></div>
+                        <div class="btn-group-left">
+                            <button id="btn-photo-pos" class="nav-btn small" title="写位(写真の位置): 写真の位置情報(Exif)を、ラジオで選択中の観測点(°)/目的点(°)に入力します(標高は緯度経度から取得)。写真は端末内で読み取るだけで、送信・保存されません">写位</button>
+                            <input type="file" id="file-photo-pos" accept="image/*" style="display:none">
+                        </div>
                         <label class="input-label">目的点標高(m):</label>
                         <input type="number" id="input-end-api-elev" class="elev-input" value="0" step="0.1" placeholder="標高 m">
                     </div>
@@ -1502,7 +1506,7 @@ GNU General Public License for more details.
                     <span id="icon-sec-soramado">▼</span>
                 </div>
                 <div id="sec-soramado" class="section-content closed">
-                    <div class="control-row left-row"><span class="menu-note">プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更できます。</span></div>
+                    <div class="control-row left-row"><span class="menu-note">プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。</span></div>
                     <div class="control-row">
                         <label class="input-label tsujisearch-label">センサーサイズ:</label>
                         <select id="input-sora-sensor" title="カメラのセンサーサイズ"></select>
@@ -2357,6 +2361,12 @@ GNU General Public License for more details.
                     <div class="control-row left-row"><span class="km-stat">最終更新日時: <span id="backup-demtiles-updated">-</span></span></div>
                     <div class="control-row left-row"><span class="menu-note" id="backup-demtiles-note">可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。</span></div>
                     <div class="control-row"><button id="btn-backup-demtiles-clear" class="nav-btn main-btn" title="端末に貯めた標高タイルを全て削除します(可視タイル=資産は残ります)">標高タイルを全削除</button></div>
+                    <hr class="tsujisearch-separator km-hr">
+                    <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙の辻の本体(画面・プログラム・同梱データ)の端末の控え(Service Worker)。電波の無い所でも宙の辻を開けるように、版ごとに控えます。新しい版は、全部そろって確かめてから入れ替わります(途中で電波が切れたら古い版のまま動きます)">本体の控え(オフライン用):</label></div>
+                    <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-shell-count">-</span></span><span class="km-stat">合計容量: <span id="backup-shell-size">-</span></span></div>
+                    <div class="control-row left-row"><span class="km-stat">版: <span id="backup-shell-ver">-</span></span></div>
+                    <div class="control-row left-row"><span class="menu-note">削除すると、次に開く時に通信して作り直します(電波の無い所では開けなくなります)。</span></div>
+                    <div class="control-row"><button id="btn-backup-shell-clear" class="nav-btn main-btn" title="本体の控えと Service Worker の登録を削除します(次に開く時に通信して作り直します)">本体の控えを削除</button></div>
                 </div>
             </div>
 
@@ -2502,11 +2512,12 @@ GNU General Public License for more details.
                     <h3>位置情報メニュー</h3>
                     <ul class="help-list">
                         <li><strong>観測点 / 目的点</strong>: 地図ダブルクリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」・Googleプラスコード (フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区。Googleマップの地点情報からコピーできる+付きのコード。短縮形は基準地名の候補を選ぶとその近くのセルに展開・地名を省くと地図の中心が基準) を入力して設定。ラジオボタンで地図クリック対象を切替。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
-                        <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。</li>
+                        <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。観測点を地名・座標・地図・GPS・写位で置いた時の高さは 1.5m (地上に立った人の目の高さ)、目的点は 0m です。Hom は登録した高さ (初期値の東京タワーは 150m) で呼び出します。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
                         <li><strong>辻 (辻ライン365)</strong>: 直近365日分の辻ラインを実線で一括表示 (重い計算のため起動時は常にOFF)。</li>
                         <li><strong>高移 (準最高地点移動)</strong>: 選択中(ラジオ)の観測点/目的点を、近傍のより高い小ピークへ移動。DEM標高タイルで算出します。</li>
+                        <li><strong>写位 (写真の位置)</strong>: 撮った写真の位置情報 (Exif) を、選択中(ラジオ)の観測点(°)/目的点(°)に入力します。標高は緯度経度から取得し直します (観測点なら高さは 1.5m)。写真は<strong>端末内 (ブラウザ内) で読み取るだけ</strong>で、どこにも送信・保存されません。スクリーンショットやSNS経由の画像は位置情報が取り除かれていることが多く、その場合は入力できません。</li>
                         <li><strong>URL</strong>: 現在の状態を共有/復元するURLをコピー (日時固定/半固定/アクセス日時から選択)。<strong>「短いURL」チェック (初期値オン)</strong> で可逆圧縮した短いURLになります (長いURLでも同じ状態を開けます)。URLで開いた側では、URL由来の値はそのセッション限りで保存されません (普段の設定は上書きされません)。</li>
                     </ul>
                 </section>
@@ -2567,7 +2578,7 @@ GNU General Public License for more details.
                         <li><strong>許容範囲方位角/視高度: ±</strong>: 検索中心からの許容範囲 (初期値 ±15°)。</li>
                         <li><strong>検索中心方位角差・検索中心視高度差</strong>: 辻時刻の天体位置と<strong>検索中心 (オフセット適用後の点。検索中心「線」のときは線分への最近点=精度角距離と同じ参照点)</strong> との差の符号つき参考値です。検索中心より右 (時計回り) / 上が正。常に 精度角距離 ≧ |検索中心視高度差| が成り立ちます (検索中心方位角差はcos(視高度)の縮み補正がない生の方位角差のため、高高度では精度角距離より大きく表示されることがあります)。</li>
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
-                        <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/各薄明から選べ、前後オフセットも指定可。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。</li>
+                        <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/月の出/月の入/各薄明/GH・BHの境目から選べ、前後オフセットも指定可 (例: 「月の出」〜「月の出」の後1:00 で、昇ったばかりの低い月だけ)。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。月の出・月の入がその日に無い日 (月に1回ほどあります) は、その境界を使うフィルタは何も通しません。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
                         <li><strong>可視フィルタ</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
@@ -2644,7 +2655,7 @@ GNU General Public License for more details.
                         <li><strong>:写真テクスチャ</strong>: 山肌に国土地理院の「全国最新写真 (シームレス)」を貼り付けます (メインメニューの宙の窓グループ内のチェック。初期値オフ。オンにすると地形を取得し直します)。地形の頂点単位の彩色のため近景はぼかし気味になり、遠景の山並みの確認に向いています。太陽光ヒルシェードの陰影は写真の色に重なります。対象は日本国内のみで、域外と取得できなかった部分は従来の標高グレーのままです。出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院 (地理院タイル・全国最新写真 (シームレス))</a>。このタイルは電子国土基本図 (オルソ画像)・森林 (国有林・民有林) の空中写真 (林野庁)・地方公共団体等の空中写真・簡易空中写真・国土画像情報などから作成されており、一部にLandsat-8画像 (NASA/USGS)、GRUS画像 (© Axelspace) を含みます。</li>
                         <li><strong>フィッシュアイ</strong>: 歪みスライダー0〜99%は魚眼風の樽歪み (近似・画角も連動して拡大)。<strong>歪み100%+画面形状:円形のときは「等距離射影の全天表示」</strong>に切り替わります — 画面中心=基準方位角+基準視高度 (カメラの向き)、円周=中心から90°、像高は中心からの角度に比例 (実際の魚眼レンズ・星座盤と同じ投影)。<strong>基準視高度を90°にすると天頂中心の星座盤の見え方</strong>になります (そのとき円の下方向=基準方位角)。全天表示の視野は焦点距離・センサーに依らず常に直径180°です。</li>
                         <li><strong>パノラマ</strong>: 水平画角を最大360°までアスペクト比可変でシミュレーション (円筒投影。フィッシュアイとは併用不可)。</li>
-                        <li><strong>コントロールメニュー</strong>: プレビュー内下部の「コントロール」から焦点距離・日付/時刻・インターバルMov (タイムラプス再生: アニメ/動画) を操作できます。先頭の2つのチェックでプレビューのドラッグ (スマホは二本指) の対象を選べます: <strong>:構図をドラッグ(二本指)で変更</strong> (初期値オン) は画面中心(+)を据えて目的点(+)と検索中心(×)を動かします=カメラオフセット方位角/視高度が変わります (オフにするとカメラオフセットを0に戻します)。<strong>:辻オフセット点をドラッグ(二本指)で変更</strong> は画面中心(+)と目的点(+)を据えて検索中心(×)だけを動かします=辻オフセット方位角/視高度が変わり、辻検索メニューと連動します (オフにすると動かす前の値に戻します。両方オンのときは辻オフセット点が優先)。その下の<strong>「辻検索」「辻メッシュ」</strong>ボタンは、位置情報メニューの同名ボタンと同じで、構図を見ながら決めた辻オフセット点で検索を始めます。</li>
+                        <li><strong>コントロールメニュー</strong>: プレビュー内下部の「コントロール」から焦点距離・日付/時刻・インターバルMov (タイムラプス再生: アニメ/動画) を操作できます。先頭の2つのラジオでプレビューのドラッグ (スマホは二本指) の対象を選べます: <strong>:構図をドラッグ(二本指)で変更</strong> (初期値) は画面中心(+)を据えて目的点(+)と検索中心(×)を動かします=カメラオフセット方位角/視高度が変わります。<strong>:辻オフセット点をドラッグ(二本指)で変更</strong> は画面中心(+)と目的点(+)を据えて検索中心(×)だけを動かします=辻オフセット方位角/視高度が変わり、辻検索メニューと連動します (「:構図」へ戻すと、辻オフセットは動かす前の値に戻ります)。各段の右の<strong>「リセット」</strong>は、構図の段ではカメラオフセット方位角/視高度を0に、辻オフセット点の段では辻オフセット方位角/視高度を0に戻します (辻メッシュ側も連動)。その下の<strong>「辻検索」「辻メッシュ」</strong>ボタンは、位置情報メニューの同名ボタンと同じで、構図を見ながら決めた辻オフセット点で検索を始めます。</li>
                         <li><strong>書き出し</strong>: 静止画 (JPEG/PNG)・動画 (MP4/WebM) をファイル出力。出力画像サイズ (pixel・1〜8192) を指定でき、右下に日時+クレジットが入ります。全天表示・パノラマ・フィッシュアイもそのまま出力され、<strong>表示天体名・星座名称の文字は出力サイズに比例してプレビューと同じ相対サイズ</strong>になります。</li>
                         <li><strong>URL/最大化</strong>: 「URL取得」で現在の宙の窓の状態を開くURLをコピー。⛶ボタンでプレビューを最大化できます。</li>
                         <li><strong>都市モード (都市ビル)</strong>: 都市部のビル群をプレビューに表示します (宙の窓メニュー内。コントロールメニューにも同じ項目があり双方向連動)。ビルは地形と同じ実寸配置なので、ビルの稜線に沈む月やビルの谷間から上がる花火も構図どおりに写ります。
@@ -2745,6 +2756,7 @@ GNU General Public License for more details.
                     <p>地図上には3種類の線が描画されます。距離が遠いと、地球の曲率と地図の平面表現の違いで、見た目に少しズレて見えることがありますが、これは描画の都合です。</p>
                     <ul class="help-list">
                         <li><strong>地理タイル / 標高タイル (端末の控え)</strong>: 地図に使う国土地理院のタイル (標準・淡色・写真・ベクトル) と、標高グラフ・辻検索・辻メッシュ・宙の窓が使う標高タイルは、一度読んだものをブラウザの中 (IndexedDB) に控えて、次からは控えを先に読み、無いものだけ国土地理院へ取りに行きます。控えのある範囲は電波の無い所でも地図と計算が使えます。控えはこの端末の中だけにあり、どこにも送られません。件数・容量・最終更新日時をここに表示し、「全削除」でいつでも空にできます (次に表示した時にまた取りに行くだけです)。地理タイルの控えは合計1GBまでで、それを超えると新しくは貯めません。出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル</a>。</li>
+                        <li><strong>本体の控え (オフライン用)</strong>: 宙の辻の本体 (画面・プログラム・同梱データ) を版ごとに端末に控え、電波の無い所でも宙の辻を<strong>開ける</strong>ようにします (地図・標高・天気は上の控えのある範囲だけ)。開く時はいつも最新を取りに行き、取れない時だけ控えを使います。新しい版は、全部そろって確かめてから入れ替わるので、途中で電波が切れても古い版のまま動きます。「本体の控えを削除」で控えと登録を消せます (次に開く時に通信して作り直します)。iPhone では、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります (ホーム画面に追加した宙の辻は消されません)。</li>
                         <li><strong>方位線 (色付き)</strong>: 観測点から各天体方向の方位 (WGS84 楕円体)。</li>
                         <li><strong>黒い線</strong>: 観測点〜目的点の大圏航路 (実線) と等角航路 (破線)。</li>
                         <li><strong>辻ライン</strong>: 目的点の背後に天体が重なる観測位置の軌跡 (時間軸の曲線)。方位を表すものではありません。</li>

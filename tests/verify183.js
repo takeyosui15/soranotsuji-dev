@@ -1,6 +1,7 @@
 // 第158ラウンド検証: v1.97.0 気差の2本立て(大気差補正=地上K: オン=気象値/オフ=0・既定オン / 気差オプション=天体の大気差 astroRefraction・既定オン)・
 // 宙の窓検索(ボタン名と段・注記・ctrlのドラッグの対象2チェック+辻検索/辻メッシュボタン)・地理院タイルのオフライン(gsicache://の店・標高タイルの店の読み直し・バックアップメニューの行)・可視マップの封鎖(?kashimap=1)
 // ①静的: 本体/ワーカー/HTML/CSSの配線  ②ブラウザ: 既定値と係数欄・オフ=0・移行・封鎖の表示と開錠・宙の窓のドラッグの対象・ctrlボタンの連動・店の件数/容量/全削除・標高タイルの店の読み
+// 第183: ctrl の2チェックはラジオ(択一)+各段の「リセット」に変わった(デッサン05・v1.99.0)。S2/U3 をその形に更新(リセットの動作は verify186 が見る)。
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -31,7 +32,7 @@ check('S1 気差の2本立て(本体): refractionKInUse はオフ=0・既定は�
   src.includes("observerData, astroRefraction: appState.astroRefraction,") && (src.match(/C\.astroRefraction \? 'normal' : null/g) || []).length === 3 &&
   src.includes("refraction: appState.astroRefraction }") && src.includes("${appState.mwOffsetAngle}|${appState.astroRefraction}`") &&
   (src.match(/params\.set\('astroRefraction', appState\.astroRefraction \? 'true' : 'false'\);/g) || []).length === 2 && src.includes("soraBool('refractionEnabled'); soraBool('astroRefraction');") &&
-  src.includes("const _QP_SEEDS_V22 = _QP_SEEDS_V21.concat(['&refractionEnabled=true', '&astroRefraction=true', '&astroRefraction=false', '&astroRefraction=']);") && src.includes("_QP_SEEDS_V21, _QP_SEEDS_V22]") &&
+  src.includes("const _QP_SEEDS_V22 = _QP_SEEDS_V21.concat(['&refractionEnabled=true', '&astroRefraction=true', '&astroRefraction=false', '&astroRefraction=']);") && src.includes("_QP_SEEDS_V21, _QP_SEEDS_V22") &&   // 第183: 辞書は v23(月の出/月の入)まで伸びたので「v22 が並びにある」で見る
   src.includes("'&refractionEnabled=false', '&meteoP=1013.25', '&meteoT=15', '&meteoL=0.0065',"));   // v16の種は凍結のまま
 
 check('S1b 気差の2本立て(ワーカー・設定の部品・ヘルプ): 3ワーカーは astroRefraction で受けて Horizon の normal/null に・設定メニューに「:気差オプション」が登録の前・chk-astro-refraction の配線と同期(2つのチェックと設定登録は _refractionSettingChanged=保存→再計算→辻ライン365も引き直す)・ヘルプの2項目',
@@ -44,10 +45,10 @@ check('S1b 気差の2本立て(ワーカー・設定の部品・ヘルプ): 3ワ
   idxSrc.includes('<li><strong>気差オプション (Astronomy Engine気差補正)</strong>') && idxSrc.includes('両方オンでも二重にはかかりません (既定は両方オン)') &&
   idxSrc.includes('title="いま使っている気差係数K。チェックオン=下の気象条件から算出した値(既定)、オフ=0(気差なし。'));
 
-check('S2 宙の窓検索(静的): 位置情報メニューの段(辻検索/辻メッシュ/宙の窓検索・可視マップは次の段)・宙の窓メニューの注記・ctrlの先頭に2つのチェック(構図=初期オン・辻オフセット点)と「辻検索」「辻メッシュ」(2分割)・本体のドラッグの分岐と配線・ctrlボタンの連動(syncBottomPanels)・ヘルプ',
+check('S2 宙の窓検索(静的): 位置情報メニューの段(辻検索/辻メッシュ/宙の窓検索・可視マップは次の段)・宙の窓メニューの注記・ctrlの先頭に2つのラジオ(構図=初期・辻オフセット点。第183でチェックから変更)と各段の「リセット」と「辻検索」「辻メッシュ」(2分割)・本体のドラッグの分岐と配線・ctrlボタンの連動(syncBottomPanels)・ヘルプ',
   /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-soramado"[^>]*>宙の窓検索<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row" id="row-kashimap-btn">\s*<button id="btn-kashimap"/.test(idxSrc) &&
-  /<div id="sec-soramado" class="section-content closed">\s*<div class="control-row left-row"><span class="menu-note">プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更できます。<\/span><\/div>/.test(idxSrc) &&
-  /<div id="soramado-ctrl-body" class="hidden">\s*<div class="control-row left-row">\s*<input type="checkbox" id="chk-sora-ctrl-drag-frame" class="body-checkbox" checked[^>]*>\s*<label[^>]*for="chk-sora-ctrl-drag-frame">:構図をドラッグ\(二本指\)で変更<\/label>\s*<\/div>\s*<div class="control-row left-row">\s*<input type="checkbox" id="chk-sora-ctrl-drag-tsuji" class="body-checkbox"[^>]*>\s*<label[^>]*for="chk-sora-ctrl-drag-tsuji">:辻オフセット点をドラッグ\(二本指\)で変更<\/label>\s*<\/div>\s*<div class="control-row main-buttons-row sora-ctrl-search-row">\s*<button id="btn-sora-ctrl-tsuji-search" class="nav-btn main-btn"[^>]*>辻検索<\/button>\s*<button id="btn-sora-ctrl-tsujimesh" class="nav-btn main-btn"[^>]*>辻メッシュ<\/button>\s*<\/div>/.test(idxSrc) &&
+  /<div id="sec-soramado" class="section-content closed">\s*<div class="control-row left-row"><span class="menu-note">プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。<\/span><\/div>/.test(idxSrc) &&
+  /<div id="soramado-ctrl-body" class="hidden">\s*<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-frame"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-frame" value="frame" checked>:構図をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-frame"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-tsuji"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-tsuji" value="tsuji">:辻オフセット点をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-tsuji"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row sora-ctrl-search-row">\s*<button id="btn-sora-ctrl-tsuji-search" class="nav-btn main-btn"[^>]*>辻検索<\/button>\s*<button id="btn-sora-ctrl-tsujimesh" class="nav-btn main-btn"[^>]*>辻メッシュ<\/button>\s*<\/div>/.test(idxSrc) &&
   src.includes('let _smDragFrame = true, _smDragTsuji = false;') && src.includes('if (_smDragTsuji) {') && src.includes('const dAz = dx * hAov / _smFinderW;') && src.includes("if (!_smDragFrame) return;") &&
   src.includes('function _smSetupSearchCtrl() {') && src.includes('function _smSyncSearchButtons() {') && src.includes("function syncBottomPanels() {\n    _smSyncSearchButtons();") &&
   src.includes("if (b1) b1.addEventListener('click', toggleTsujiSearch);") && src.includes("if (b2) b2.addEventListener('click', toggleTsujiMesh);") &&
@@ -151,26 +152,27 @@ check('S4 可視マップの封鎖(静的): FEATURE_KASHIMAP_ENABLED(?kashimap=1
     await p.mouse.move(x0, y0); await p.mouse.down(); await p.mouse.move(x0 + dx / 2, y0 + dy / 2, { steps: 2 }); await p.mouse.move(x0 + dx, y0 + dy, { steps: 2 }); await p.mouse.up();
     await p.waitForTimeout(150);
   };
-  const st0 = await p.evaluate(() => { appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0; appState.tsujiSearchOffsetAz = 1.5; appState.tsujiSearchOffsetAlt = 0.5; updateOffsetDistances(); soraSyncUI(); drawSoramado(); return { frame: document.getElementById('chk-sora-ctrl-drag-frame').checked, tsuji: document.getElementById('chk-sora-ctrl-drag-tsuji').checked, df: _smDragFrame, dt: _smDragTsuji }; });
+  const pick = async (id) => p.evaluate((id) => { const c = document.getElementById(id); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); }, id);
+  const st0 = await p.evaluate(() => { appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0; _smCamNudgeBase = null; appState.tsujiSearchOffsetAz = 1.5; appState.tsujiSearchOffsetAlt = 0.5; updateOffsetDistances(); soraSyncUI(); drawSoramado(); return { frame: document.getElementById('chk-sora-ctrl-drag-frame').checked, tsuji: document.getElementById('chk-sora-ctrl-drag-tsuji').checked, df: _smDragFrame, dt: _smDragTsuji }; });
   await drag(40, 0);   // 構図: 右へドラッグ=視線は左へ=カメラオフセット方位角が減る。辻オフセットは動かない
   const a1 = await p.evaluate(() => ({ az: appState.soraOffsetAz, alt: appState.soraOffsetAlt, taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt }));
-  await p.evaluate(() => { const c = document.getElementById('chk-sora-ctrl-drag-tsuji'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); });
+  await pick('chk-sora-ctrl-drag-tsuji');   // ラジオ(第183): 辻オフセット点へ=構図は外れる
   await drag(40, -20);   // 辻オフセット点: 右へ=方位角が増える・上へ=視高度が増える。カメラオフセットは動かない
-  const a2 = await p.evaluate(() => ({ az: appState.soraOffsetAz, taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, menu: document.getElementById('input-tsuji-az-offset').value, ctrl: document.getElementById('input-sora-ctrl-tsuji-az-offset').value, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt, mmenu: document.getElementById('input-tsujimesh-az-offset').value, dec: (String(appState.tsujiSearchOffsetAz).split('.')[1] || '').length }));
-  await p.evaluate(() => { const c = document.getElementById('chk-sora-ctrl-drag-tsuji'); c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); });
-  const a3 = await p.evaluate(() => ({ taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt }));
-  await p.evaluate(() => { const c = document.getElementById('chk-sora-ctrl-drag-frame'); c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })); });
+  const a2 = await p.evaluate(() => ({ az: appState.soraOffsetAz, taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, menu: document.getElementById('input-tsuji-az-offset').value, ctrl: document.getElementById('input-sora-ctrl-tsuji-az-offset').value, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt, mmenu: document.getElementById('input-tsujimesh-az-offset').value, dec: (String(appState.tsujiSearchOffsetAz).split('.')[1] || '').length, frame: document.getElementById('chk-sora-ctrl-drag-frame').checked, df: _smDragFrame }));
+  await pick('chk-sora-ctrl-drag-frame');   // 構図へ戻す=辻オフセットは動かす前の値に戻る
+  const a3 = await p.evaluate(() => ({ taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt, tsuji: document.getElementById('chk-sora-ctrl-drag-tsuji').checked, df: _smDragFrame, dt: _smDragTsuji }));
+  await p.evaluate(() => { document.getElementById('btn-sora-ctrl-reset-frame').click(); });   // 構図の「リセット」(第183)=カメラオフセットを0に
   const a4 = await p.evaluate(() => ({ az: appState.soraOffsetAz, alt: appState.soraOffsetAlt, df: _smDragFrame }));
-  await drag(40, 0);   // どちらもオフ: 何も動かない
+  await drag(40, 0);   // 構図のまま: ドラッグすればまた動く(両方オフの状態は無い)
   const a5 = await p.evaluate(() => ({ az: appState.soraOffsetAz, taz: appState.tsujiSearchOffsetAz }));
-  await p.evaluate(() => { const c = document.getElementById('chk-sora-ctrl-drag-frame'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); appState.tsujiSearchOffsetAz = 0; appState.tsujiSearchOffsetAlt = 0; updateOffsetDistances(); });
-  check('U3 宙の窓検索のドラッグの対象: 構図(初期オン)=右ドラッグでカメラオフセット方位角が減り辻オフセットは不変 → 「:辻オフセット点」オンで右上へドラッグ=辻オフセット方位角が増え視高度が増え(辻検索メニューとctrlの欄・辻メッシュ側のオフセットも連動・4桁に丸める)カメラオフセットは不変 → オフで動かす前の値(1.5/0.5)に戻る → 「:構図」オフでカメラオフセットが0に戻り、両方オフならドラッグしても動かない',
+  await p.evaluate(() => { appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0; _smCamNudgeBase = null; appState.tsujiSearchOffsetAz = 0; appState.tsujiSearchOffsetAlt = 0; updateOffsetDistances(); soraSyncUI(); });
+  check('U3 宙の窓検索のドラッグの対象(第183: ラジオ): 構図(初期)=右ドラッグでカメラオフセット方位角が減り辻オフセットは不変 → 「:辻オフセット点」を選ぶと構図は外れ、右上へドラッグ=辻オフセット方位角が増え視高度が増え(辻検索メニューとctrlの欄・辻メッシュ側のオフセットも連動・4桁に丸める)カメラオフセットは不変 → 「:構図」へ戻すと動かす前の値(1.5/0.5)に戻る → 構図の「リセット」でカメラオフセットが0 → 構図のままドラッグすればまた動く',
     cvBox.ok && st0.frame && !st0.tsuji && st0.df && !st0.dt &&
     a1.az < -0.01 && Math.abs(a1.alt) < 1e-9 && a1.taz === 1.5 && a1.talt === 0.5 &&
-    a2.az === a1.az && a2.taz > 1.5 + 0.01 && a2.talt > 0.5 + 0.005 && Math.abs(parseFloat(a2.menu) - a2.taz) < 1e-6 && Math.abs(parseFloat(a2.ctrl) - a2.taz) < 1e-6 && a2.base && a2.base.az === 1.5 &&
+    a2.az === a1.az && a2.taz > 1.5 + 0.01 && a2.talt > 0.5 + 0.005 && Math.abs(parseFloat(a2.menu) - a2.taz) < 1e-6 && Math.abs(parseFloat(a2.ctrl) - a2.taz) < 1e-6 && a2.base && a2.base.az === 1.5 && !a2.frame && !a2.df &&
     a2.maz === a2.taz && a2.malt === a2.talt && Math.abs(parseFloat(a2.mmenu) - a2.taz) < 1e-6 && a2.dec <= 4 &&   // 辻メッシュ側にも写る(レビューの直し)・4桁に丸める
-    a3.taz === 1.5 && a3.talt === 0.5 && a3.base === null && a3.maz === 1.5 && a3.malt === 0.5 &&
-    a4.az === 0 && a4.alt === 0 && !a4.df && a5.az === 0 && a5.taz === 1.5, JSON.stringify({ cvBox, st0, a1, a2, a3, a4, a5 }));
+    a3.taz === 1.5 && a3.talt === 0.5 && a3.base === null && a3.maz === 1.5 && a3.malt === 0.5 && !a3.tsuji && a3.df && !a3.dt &&
+    a4.az === 0 && a4.alt === 0 && a4.df && a5.az < -0.01 && a5.taz === 1.5, JSON.stringify({ cvBox, st0, a1, a2, a3, a4, a5 }));
 
   // U3b: ctrlの「辻検索」「辻メッシュ」は位置情報メニューのボタンと同じ働きで、押下状態も揃う
   const u3b = await p.evaluate(async () => {

@@ -36,7 +36,7 @@
 | 大気差 | `REFRACTION.STD_PRESSURE_HPA` / `STD_TEMPERATURE_C` / `STD_LAPSE_RATE_K_PER_M` | 1013.25 / 15 / 0.0125 | 気象条件の既定(リセット・移行判定) |
 | 大気差 | `REFRACTION.ISA_LAPSE_RATE_K_PER_M` | 0.0065 | 旧既定(保存データの移行判定) |
 | 大気差 | `REFRACTION.K_FORMULA_FACTOR` / `K_FORMULA_GRADIENT` | 503 / 0.034 | K ≈ 503·P/T²·(0.034−Γ) |
-| 観測者 | `OBSERVER.EYE_HEIGHT_M` | 1.5 | 可視マップの観測者・観測点の高さの既定 |
+| 観測者 | `OBSERVER.EYE_HEIGHT_M` | 1.5 | 可視マップの観測者・観測点の高さの既定(第183から本体でも: 観測点を地名/座標/地図/GPS/写位で置いた時の高さ) |
 | 可視判定 | `VISIBILITY.EXCLUDE_TARGET_M` / `EXCLUDE_OBSERVER_M` | 15 / 10 | 除外範囲の既定(基本オプション・ワーカー・道具) |
 | 可視判定 | `VISIBILITY.SUMMIT_BAND_M` / `SUMMIT_SEARCH_M` / `SUMMIT_UP_M` | 300 / 3000 / 100 | 山頂部(帯・探索半径・「山頂でない」判定) |
 | 可視判定 | `VISIBILITY.PATH_CHUNK` | 64 | 統一可視判定の区間(大円を直線で近似する長さ≈128m) |

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.99.0 - 2026-10-15: feat: 第183ラウンド — ①時間フィルタに「月の出」「月の入」(辻検索・辻メッシュ・My辻検索の開始/終了の基準。依頼者指定で「GH[終]」と「GH[始]」の間。その日に月の出(入)が無い日は、その境界を使うフィルタは何も通さない。短縮URL辞書v23=moonrise/moonset。棚卸し223・verify186) ②観測点を地名/座標/地図/GPS/写位で置いた時の高さを 0 → 1.5m(SORA.OBSERVER.EYE_HEIGHT_M=人の目の高さ)に。Hom の既定(東京タワー 150m)と目的点(0)は不変(棚卸し231) ③位置情報メニューの「高移」の下に「写位」ボタン: 写真の位置情報(Exif)をラジオで選択中の観測点(°)/目的点(°)に入力(標高は緯度経度から取得。My観測点/My目的点の「写真から追加」と同じ端末内の読み取り。棚卸し412) ④宙の窓検索のコントロール(デッサン05 4.1〜4.3段目): 「:構図をドラッグ」「:辻オフセット点をドラッグ」をチェックからラジオ(択一)に・各段に「リセット」(幅はメニュー内側の1/3・右寄せ。構図=カメラオフセット方位角/視高度を0・辻オフセット点=辻オフセット方位角/視高度を0で辻メッシュ側と連動)・宙の窓メニューの注記を「…辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。」に ⑤不具合: 二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない(棚卸し460)=ドラッグ開始時にも戻り先(_smCamNudgeBase)を覚える
 Version 1.98.1 - 2026-10-15: fix: 第180ラウンド — 「:自動更新」(Googleドライブ同期)のチェックがオフにできない(チェックが同期ダイアログ=👎の時にしか開かない画面の中にしか無く、自動更新が効いて👍のままだと辿り着けない。依頼者の memo→第179の備忘録で指摘・コードで確認)→ バックアップ/インポートメニューの Google ドライブ欄にも同じ「:自動更新」を置き、2か所を連動(_autoSyncSyncCheckboxes)。👍の時の案内文とヘルプに置き場所を追記。verify185 ②ダイアログ内の「:自動更新」を①保存の上へ(デッサン00・依頼者。スマホで隠れるため・第181) ③地図のⓘ(出典)を起動時は閉じる(MapLibre の compact は最初に一度開く作りで左下のスケールに重なる・第182) ④宙の窓の「画像サイズ(手動:MB)」→「(手動:MB/枚)」(棚卸し410) ⑤CSV の BOM の判定を見えない文字から \uFEFF の表記に(棚卸し431) ⑥辻メッシュ検索の「検索エリア」のツールチップの範囲の目安を実装(z14 の標高タイル=256画素≈2km四方)に合わせて 3×3≈6km/4×4≈8km/5×5≈10km/6×6≈12km四方に(旧「約12/16/20/24km」は誤り。FAQ の執筆で判明)
 Version 1.98.0 - 2026-10-12: security: 第159ラウンド — セキュリティ対策(依頼者: 2026年10月の国内の不正アクセス多発(JPCERT-AT-2026-0030・IPAの注意喚起)を受けた点検)。①第三者ライブラリの自前配信: MapLibre 4.7.1・three 0.160.0・astronomy-engine 2.1.19・GeographicLib 2.2.0(npm)・qrcode-generator 1.4.4・Draco を vendor/ に固定(出所・版・ライセンス・内容の指紋 sha384/sha256 を vendor/MANIFEST.json に)。CDN(jsDelivr/unpkg/sourceforge)への読み込みを全て撤去・MathJax を撤去(ヘルプの気差係数の数式(TeX 18行)はHTMLに書き直し)・ワーカーの importScripts と Draco も vendor/ へ ②読み込み元の許可リスト(CSP meta): script-src は自サイト+'wasm-unsafe-eval'(Draco の WASM)+Googleのログイン(accounts.google.com/gsi/client)+ピッカー(apis.google.com)だけ('unsafe-inline'/'unsafe-eval' 無し)・connect-src/img-src/frame-src は使うAPIとタイルの許可リスト・object-src 'none'・base-uri 'self'・worker-src 'self' blob:・Referrer-Policy。CSP違反はコンソールに記録(securitypolicyviolation) ③インラインの onclick=(32箇所: index.html 30+forecast-features.html 2)を data-click 属性+1つの委譲リスナー+許可表(_CLICK_ACTIONS)に・three の読み込みを three-global.js に・reset.html のスクリプトを reset.js に(CSPでインラインを禁じるため) ④保存データの型そろえ(_sanitizeStoredShapes。normalizeAppState の先頭で毎回): 観測点/目的点/Home・My観測点/My目的点/My天体/My辻検索/My宙検索/Myセット・表示天体の色を、数値は数値・文字は文字・色は safeCssColor・真偽は !! に確定させる(他人から受け取ったバックアップJSON/Driveの生ダンプの数値欄に入った文字列(HTML)が innerHTML に届く持続XSSの根を塞ぐ)。escapeHtml は文字列以外も落ちずに文字として扱う。HTML を組む所(地点のポップアップ・My観測点/My目的点/My天体/Myセットの行・ID入りのエラー文・宙検索の一括結果)も Number()/escapeHtml で二重に守る。可視マップの資産の取り込みは島の番号/画素数が数値でなければ拒む・島リスト/ポップアップで escapeHtml ⑤別タブで開くリンクは全て rel=noopener・Myセットのシートを開く window.open は noopener+IDの文字種検査・Sheets/Drive API のパスのシートIDは encodeURIComponent・保存データのシートIDは Google のIDの文字種だけ ⑥reset.html の「すべてのデータを消去」に地図タイルの控え(soranotsuji-maptiles)も。verify184(合格条件の自動検査)。デッサン34(セキュリティ)に脅威モデル・合格条件(自動検査/コンソール点検/運用)を記録 ⑦クライアントIDが空の時の案内文を利用者向けに(非常停止で配る文。第160) ⑧CSP違反の記録に、開発用サーバー(Live Preview)の自動再読み込みが止められた時は「無害」と添える(第161) ⑨Myセットの保存ガードの案内文を正しく(表示中/オフライン指定でないセットは端末に内容を持たないので「切り替え表示してから保存」。以前の「先に読込を」では解決しなかった。第164) ⑩CSP違反の記録は止められた先の URL の「?」より前だけ(問い合わせ部分にアクセストークンが入る事があるため。第165) ⑪リリース準備: 表示中の文言に残っていた封鎖中の「可視マップ」の名前を外す(辻検索/辻メッシュの樹冠・構造物の説明=準備中・山頂部の帯の注記・気差係数の対象の列挙・reset.html の消去の説明)。README の主な機能に可視フィルタ・宙の窓検索・端末の控えを反映(第171) ⑫公開文(依頼者承認): privacy.html 4.外部サービスの節を実際の通信先に差し替え(CDN を消す。改定日 2026-10-14)・/.well-known/security.txt(RFC 9116。Contact=GitHub のリポジトリ)。リリースノートの冒頭に「可視マップは含まない」「宙の窓検索とオフライン表示は今後改善予定」の※(第172) ⑬依頼者が GitHub の非公開の脆弱性報告(Private vulnerability reporting)を本番・開発の両リポジトリで有効化(箱から確認)→ security.txt の Contact を2行に(1行目=security/advisories/new・2行目=リポジトリ。第173)
 Version 1.97.0 - 2026-10-09: feat: 第158ラウンド — 気差を2本立てに(依頼者の方針変更): ①設定の「大気差補正」チェック=地形の見通しの気差係数K(オン=気象条件から算出・既定オン / オフ=K=0=気差なし。第157の「オフでも0.132」を取り下げ。K=0の見え方の検証ができるように)。保存データは一度だけ新既定へ(印 refractionV3) ②新しい「:気差オプション(Astronomy Engine気差補正)」=天体の見かけ高度の大気差(既定オン。地上のKとは別の光線なので二重にはかからない)。appState.astroRefraction・ワーカーへは astroRefraction で渡す・共有URL(辞書v22)・ヘルプ ③宙の窓検索(デッサン05): 位置情報メニューのボタンを「宙の窓検索」に(辻検索/辻メッシュ/宙の窓検索の段・可視マップは次の段)・宙の窓メニューに注記・コントロールに「:構図をドラッグ(二本指)で変更」「:辻オフセット点をドラッグ(二本指)で変更」(ドラッグの対象=カメラオフセット/辻オフセット。オフで戻す)と「辻検索」「辻メッシュ」ボタン ④地理院タイルのオフライン(デッサン18): 地図の地理院タイル(標準・淡色・写真・ベクトル)は端末の店(IndexedDB)を先に読み、無い時だけ地理院へ(gsicache://プロトコル)。標高タイル(標高グラフ・辻メッシュ・宙の窓)も可視マップと同じ店を先に読む。バックアップメニューに地理タイル/標高タイルの件数・容量・最終更新・全削除 ⑤リリース向けの封鎖: 可視マップは ?kashimap=1 で開錠(forecastと同じ仕組み)。verify183。差分のレビューで直した: 辻オフセット点のドラッグ(と宙の窓/ctrlの欄)を辻メッシュ側のオフセットにも写す(ctrlの「辻メッシュ」が×の位置で検索する)・ドラッグの値は4桁に丸める・宙断面(forecast)のスロットを封鎖される段の外へ・辻ライン365の鍵に気差(2つのチェックと設定登録は _refractionSettingChanged で保存→再計算→365も引き直す)・旧形式のバックアップの取り込みも一度だけ両方オンへ・気差オプションのヘルプの「効く範囲」を実装どおりに(太陽・月・惑星の出没時刻と天体儀の向きは変わらない)・店の件数と容量は索引の鍵カーソルで数える(本文を読まない。地理タイルの店v2/標高タイルの店v3)・数えるのはバックアップを開いている間だけ・「無し」の印は30日で取り直す(SORA.TILE_STORE.MISS_TTL_MS。本体・地形ワーカー・可視マップのワーカー)・標高タイルの取得の失敗は1回で諦める・封鎖中は標高タイルの注記を可視マップ抜きの文に
@@ -168,7 +169,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.98.1';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = '1.99.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -1027,7 +1028,53 @@ async function _mtRefreshBackupRows() {
     _mtBytes = mt.bytes;
     put('backup-maptiles-count', mt.n.toLocaleString()); put('backup-maptiles-size', _kmMB(mt.bytes)); put('backup-maptiles-updated', when(mt.last));
     put('backup-demtiles-count', dem.n.toLocaleString()); put('backup-demtiles-size', _kmMB(dem.bytes)); put('backup-demtiles-updated', when(dem.last || 0));
+    const sw = await _swStat();   // 本体の控え(第183・デッサン35)
+    put('backup-shell-count', sw.n.toLocaleString()); put('backup-shell-size', _kmMB(sw.bytes)); put('backup-shell-ver', sw.vers.length ? sw.vers.map(v => 'v' + v).join(', ') : '-');
 }
+// ---- 本体の控え(Service Worker。デッサン35・第183) ----
+// 登録は https の本番/開発サイトだけ。ローカルの検証(http://127.0.0.1)では ?sw=1 を付けた時だけ登録する(既存の verify 群の route が SW に横取りされないため)。
+// 版は登録URLの ?v=APP_VERSION で SW へ渡す(APP_VERSION の置き場は script.js のまま=多くの verify がここの字面を見張っている。SW は本体を読めないので URL で受け取る)。
+let _swReg = null, _swLastUpdate = 0;
+function _swEnabled() { return ('serviceWorker' in navigator) && (location.protocol === 'https:' || /[?&]sw=1(&|$)/.test(location.search)); }
+async function _swRegister() {
+    if (!_swEnabled()) return null;
+    try {
+        _swReg = await navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(APP_VERSION), { updateViaCache: 'none' });
+        _swLastUpdate = Date.now();
+    } catch (e) { console.warn('本体の控え(Service Worker)の登録に失敗:', e && e.message); }
+    return _swReg;
+}
+function _swMaybeUpdate() {   // 前面に戻った時、1時間以上経っていれば新しい版を確かめる(ページ自体はネット優先なので、これは落ちた時の保険の更新)
+    if (!_swReg || document.visibilityState !== 'visible' || Date.now() - _swLastUpdate < 3600000) return;
+    _swLastUpdate = Date.now();
+    _swReg.update().catch(() => {});
+}
+/** 本体の控えの件数・容量・版(Cache Storage の sora-shell-*) */
+async function _swStat() {
+    const out = { n: 0, bytes: 0, vers: [] };
+    if (typeof caches === 'undefined') return out;
+    try {
+        for (const k of await caches.keys()) {
+            if (!k.startsWith('sora-shell-')) continue;
+            out.vers.push(k.slice('sora-shell-v'.length));   // 'sora-shell-v1.99.0' → '1.99.0'
+            const c = await caches.open(k);
+            for (const req of await c.keys()) {
+                const r = await c.match(req); if (!r) continue;
+                out.n++; out.bytes += Number(r.headers.get('content-length')) || (await r.clone().blob()).size;
+            }
+        }
+    } catch (_) {}
+    return out;
+}
+/** 本体の控えを削除(控えと SW の登録。次に開く時に登録し直して作り直す=通信が要る) */
+async function _swClear() {
+    try { if (typeof caches !== 'undefined') for (const k of await caches.keys()) if (k.startsWith('sora-shell-')) await caches.delete(k); } catch (_) {}
+    try { if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (_) {}
+    _swReg = null;
+}
+window.addEventListener('load', () => setTimeout(_swRegister, 1500));   // 起動の描画を邪魔しないよう少し後で
+document.addEventListener('visibilitychange', _swMaybeUpdate);
+
 /** 地図タイルの読み込み: gsicache://<URL> を店→無ければ地理院の順で。404は MapLibre の既定と同じく静かに「タイル無し」(status 404 の例外) */
 function _mtEnsureProtocol() {
     if (_mtProtocolAdded || typeof maplibregl === 'undefined') return;
@@ -2021,6 +2068,12 @@ function setupUI() {
     document.getElementById('btn-dp').onclick = toggleDP;
     document.getElementById('btn-dp365').onclick = toggleDP365;
     document.getElementById('btn-move-peak').onclick = moveToNearestPeak;
+    document.getElementById('btn-photo-pos').onclick = () => document.getElementById('file-photo-pos').click();   // 写位(第183・棚卸し412)
+    document.getElementById('file-photo-pos').addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        e.target.value = '';   // 同じ写真を選び直してもchangeが発火するように空へ戻す
+        setLocationFromPhoto(f);
+    });
     document.getElementById('btn-tsuji-search').onclick = toggleTsujiSearch;
     document.getElementById('btn-tsujimesh').onclick = toggleTsujiMesh;
     setupTsujiMeshPanelControls();
@@ -2581,6 +2634,8 @@ function setupUI() {
     // 端末の店の全削除(第158・デッサン18): 地理タイル(地図)と標高タイル(可視マップの店と同じ)
     const bMt = document.getElementById('btn-backup-maptiles-clear');
     if (bMt) bMt.onclick = async () => { if (!confirm('端末に貯めた地理タイル(地図)を全て削除しますか？(次に地図を表示した時にまた取りに行きます)')) return; await _mtClear(); _mtRefreshBackupRows(); };
+    const bSw = document.getElementById('btn-backup-shell-clear');   // 本体の控え(第183・デッサン35 Q6: 注記はボタンの上)
+    if (bSw) bSw.onclick = async () => { if (!confirm('本体の控え(オフライン用)を削除しますか？\n(次に開く時に通信して作り直します。電波の無い所では開けなくなります)')) return; await _swClear(); _mtRefreshBackupRows(); };
     const bDem = document.getElementById('btn-backup-demtiles-clear');
     if (bDem) bDem.onclick = async () => { if (!confirm(FEATURE_KASHIMAP_ENABLED ? '端末に貯めた標高タイルを全て削除しますか？(可視タイル=資産は残ります)' : '端末に貯めた標高タイルを全て削除しますか？(次に使う時にまた取りに行きます)')) return; await _kmTilesClear(); _mtRefreshBackupRows(); if (typeof _kmRenderStoreList === 'function') _kmRenderStoreList(); };
 
@@ -3793,9 +3848,9 @@ async function applyLocationCoords(coords, isStart) {
     const validElev = (elev !== null) ? elev : 0;
 
     if(isStart) {
-        appState.start = { ...coords, elev: validElev };
         appState.startApiElev = validElev;
-        appState.startHeight = 0;
+        appState.startHeight = SORA.OBSERVER.EYE_HEIGHT_M;   // 地上に立った人の目の高さ 1.5m(第183・棚卸し231。Hom の既定 150m は DEFAULT_START のまま)
+        appState.start = { ...coords, elev: validElev + appState.startHeight };
         appState.locMode = 'start';
         document.getElementById('radio-start').checked = true;
     } else {
@@ -4121,14 +4176,29 @@ function useGPS() {
         getElevation(appState.start.lat, appState.start.lng).then(elev => {
             if (!_locSetLatest(true, ticket)) return;   // 取得中に別の地点設定があれば書かない
             if(elev !== null) {
-                appState.start.elev = elev;
                 appState.startApiElev = elev;
-                appState.startHeight = 0;
+                appState.startHeight = SORA.OBSERVER.EYE_HEIGHT_M;   // 1.5m(第183・棚卸し231)
+                appState.start.elev = elev + appState.startHeight;
             }
             saveAppState();
             updateAll();
         });
     }, () => alert('位置情報を取得できませんでした'));
+}
+
+/** 「写位」: 写真の位置情報(Exif)を、ラジオで選択中の観測点(°)/目的点(°)に入力する(第183・棚卸し412。デッサン01 7段目)。
+ *  My観測点/My目的点の「写真から追加」と同じ読み取り(_exifGpsFromArrayBuffer=端末内のバイト走査だけ。送信・保存しない)。
+ *  標高は緯度経度から取得し直し(applyLocationCoords=座標欄に「緯度,経度」を入れたのと同じ道。観測点なら高さ 1.5m)、写真のExif標高は使わない */
+async function setLocationFromPhoto(file) {
+    if (!file) return;
+    const isStart = appState.locMode !== 'end';
+    let gps = null;
+    try { gps = _exifGpsFromArrayBuffer(await file.arrayBuffer()); } catch (e) { console.error(e); }
+    if (!gps) return alert('写真から位置情報を読み取れませんでした。\n(位置情報(Exif)付きのJPEG写真に対応しています。スクリーンショットや、SNS・メッセージアプリを経由した画像は、位置情報が取り除かれていることが多いです)');
+    const lat = parseFloat(gps.lat.toFixed(6)), lng = parseFloat(gps.lng.toFixed(6));
+    if (!confirm(`写真の位置情報(緯度${lat}、経度${lng})を${isStart ? '観測点' : '目的点'}に設定しますか？\n(標高は緯度経度から取得します)`)) return;
+    _locNamePending = null;   // 名前欄からの検索ではないので名前は保持しない(座標欄と同じ)
+    await applyLocationCoords({ lat, lng }, isStart);
 }
 
 /**
@@ -4736,9 +4806,9 @@ async function applyMapPointAction(latlng) {
     const val = (elev !== null) ? elev : 0;
 
     if (isStart) {
-        appState.start = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.startApiElev = val;
-        appState.startHeight = 0;
+        appState.startHeight = SORA.OBSERVER.EYE_HEIGHT_M;   // 1.5m(第183・棚卸し231)
+        appState.start = { lat: latlng.lat, lng: latlng.lng, elev: val + appState.startHeight };
     } else {
         appState.end = { lat: latlng.lat, lng: latlng.lng, elev: val };
         appState.endApiElev = val;
@@ -5483,19 +5553,21 @@ const TIME_CATEGORY_LABELS = [
     '天文薄明[終]<=x<0時',
 ];
 
-/** 当日の薄明・日の出/日の入時刻をDateで返す (DOM更新なし。時間帯分類用)。値はDate|null。 */
+/** 当日の薄明・日の出/日の入・月の出/月の入時刻をDateで返す (DOM更新なし。時間帯分類と時間フィルタ用)。値はDate|null。
+ *  月の出/月の入は「その日(0時〜24時)」の中だけを探す(第183)。無い日(月に1回ほど)は null。 */
 function computeDayTwilight(startOfDay, observer) {
     const alt = (dir, deg) => {
         try { const e = Astronomy.SearchAltitude('Sun', observer, dir, startOfDay, 1, deg); return e ? e.date : null; }
         catch (_) { return null; }
     };
-    const rs = (dir) => {
-        try { const e = Astronomy.SearchRiseSet('Sun', observer, dir, startOfDay, 1); return e ? e.date : null; }
+    const rs = (dir, body = 'Sun') => {
+        try { const e = Astronomy.SearchRiseSet(body, observer, dir, startOfDay, 1); return e ? e.date : null; }
         catch (_) { return null; }
     };
     return {
         astroDawn: alt(+1, -18), nautDawn: alt(+1, -12), yoake: alt(+1, -7.361111),
         civilDawn: alt(+1, -6), bhEndGhStart: alt(+1, -4), sunrise: rs(+1), ghEnd: alt(+1, 6),
+        moonrise: rs(+1, 'Moon'), moonset: rs(-1, 'Moon'),   // 時間フィルタの「月の出」「月の入」(第183・棚卸し223)
         ghStart: alt(-1, 6), sunset: rs(-1), ghEndBhStart: alt(-1, -4),
         civilDusk: alt(-1, -6), higure: alt(-1, -7.361111),
         nautDusk: alt(-1, -12), astroDusk: alt(-1, -18)
@@ -5524,6 +5596,8 @@ const TSUJI_TIME_MODES = [
     { v: 'bhEndGhStart', l: 'BH[終]/GH[始]' },
     { v: 'sunrise',      l: '日の出' },
     { v: 'ghEnd',        l: 'GH[終]' },
+    { v: 'moonrise',     l: '月の出' },   // 第183(棚卸し223): 依頼者指定で「GH[終]」と「GH[始]」の間
+    { v: 'moonset',      l: '月の入' },
     { v: 'ghStart',      l: 'GH[始]' },
     { v: 'sunset',       l: '日の入' },
     { v: 'ghEndBhStart', l: 'GH[終]/BH[始]' },
@@ -5532,6 +5606,8 @@ const TSUJI_TIME_MODES = [
     { v: 'nautDusk',     l: '航海薄明[終]' },
     { v: 'astroDusk',    l: '天文薄明[終]' },
 ];
+// 月の出/月の入は「その日に無い」日がある(月に1回ほど)。その境界は null ではなく NaN にして、フィルタは何も通さない(太陽の境界の null=「通す」とは区別。第183)
+const TSUJI_MOON_MODES = new Set(['moonrise', 'moonset']);
 
 /** 'HH:MM' を分に変換 (不正時は0) */
 function hhmmToMinutes(s) {
@@ -5543,14 +5619,14 @@ function hhmmToMinutes(s) {
 }
 
 /** 時間フィルタの境界時刻を「当日の分(0-1440)」で返す。tw=computeDayTwilightの結果。
- *  null = 境界が解決できない(その日はその境界を無効扱い)。 */
+ *  null = 境界が解決できない(その日はその境界を無効扱い=通す)。NaN = 月の出/月の入がその日に無い(通さない。第183)。 */
 function timeModeToMinutes(mode, fixedHHMM, prePost, dir, offsetHHMM, tw) {
     let base;
     if (mode === 'fixed') {
         base = hhmmToMinutes(fixedHHMM);
     } else {
         const d = tw ? tw[mode] : null;
-        if (!d) return null;
+        if (!d) return TSUJI_MOON_MODES.has(mode) ? NaN : null;
         base = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
     }
     if (prePost) {
@@ -5562,10 +5638,11 @@ function timeModeToMinutes(mode, fixedHHMM, prePost, dir, offsetHHMM, tw) {
 
 /** 辻時刻dtが時間フィルタの範囲内かを判定する。
  *  fs = {startMode,startTime,startPrePost,startPrePostDir,startOffset, end同等}。
- *  開始>終了 のときは夜間(日付境界またぎ)として扱う。境界が解決できない場合は通す。 */
+ *  開始>終了 のときは夜間(日付境界またぎ)として扱う。境界が解決できない場合は通す(月の出/月の入が無い日だけは通さない。第183)。 */
 function passesTimeFilter(dt, tw, fs) {
     const sMin = timeModeToMinutes(fs.startMode, fs.startTime, fs.startPrePost, fs.startPrePostDir, fs.startOffset, tw);
     const eMin = timeModeToMinutes(fs.endMode, fs.endTime, fs.endPrePost, fs.endPrePostDir, fs.endOffset, tw);
+    if (Number.isNaN(sMin) || Number.isNaN(eMin)) return false;   // 月の出(入)がその日に無い: その境界を使うフィルタは何も通さない
     if (sMin === null || eMin === null) return true;
     const tMin = dt.getHours() * 60 + dt.getMinutes() + dt.getSeconds() / 60;
     if (sMin <= eMin) return tMin >= sMin && tMin <= eMin;
@@ -16016,7 +16093,8 @@ const _QP_SEEDS_V20 = _QP_SEEDS_V19.concat(['&soraPhotoTex=false', '&soraPhotoTe
 const _QP_SEEDS_V21 = _QP_SEEDS_V20.concat(['&tsujiMeshAccuracy=o1']);
 // v22(第158): 大気差補正の既定がオンに(「&refractionEnabled=true」)+気差オプション astroRefraction。v16の種は凍結のまま
 const _QP_SEEDS_V22 = _QP_SEEDS_V21.concat(['&refractionEnabled=true', '&astroRefraction=true', '&astroRefraction=false', '&astroRefraction=']);
-const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18, _QP_SEEDS_V19, _QP_SEEDS_V20, _QP_SEEDS_V21, _QP_SEEDS_V22];   // 添字+1=版数。最新版でエンコードする
+const _QP_SEEDS_V23 = _QP_SEEDS_V22.concat(['=moonrise&', '=moonset&']);   // 第183: 時間フィルタの「月の出」「月の入」(値は TSUJI_TIME_MODES)
+const _QP_SEED_VERSIONS = [_QP_SEEDS, _QP_SEEDS_V2, _QP_SEEDS_V3, _QP_SEEDS_V4, _QP_SEEDS_V5, _QP_SEEDS_V6, _QP_SEEDS_V7, _QP_SEEDS_V8, _QP_SEEDS_V9, _QP_SEEDS_V10, _QP_SEEDS_V11, _QP_SEEDS_V12, _QP_SEEDS_V13, _QP_SEEDS_V14, _QP_SEEDS_V15, _QP_SEEDS_V16, _QP_SEEDS_V17, _QP_SEEDS_V18, _QP_SEEDS_V19, _QP_SEEDS_V20, _QP_SEEDS_V21, _QP_SEEDS_V22, _QP_SEEDS_V23];   // 添字+1=版数。最新版でエンコードする
 const _QP_PRIME_FROM = 12;   // この版以降は「仮想の先頭&」を足して圧縮する(先頭キーも「&キー名=」の辞書に乗せるため)
 
 function encodeQueryParam(str) {
@@ -19285,6 +19363,7 @@ function _smAttachDrag(cv) {
             return;
         }
         if (!_smDragFrame) return;   // 構図のドラッグがオフ(どちらも動かさない)
+        if (_smCamNudgeBase === null) _smCamNudgeBase = { az: Number(appState.soraOffsetAz) || 0, alt: Number(appState.soraOffsetAlt) || 0 };   // ドラッグ(二本指)の戻り先も覚える=カメラの「リセット」で戻せる(第183・棚卸し460)
         const dAz = -dx * hAov / _smFinderW;
         const dAlt = dy * o.aovV / _smFinderH;
         appState.soraOffsetAz = Math.max(-360, Math.min(360, Number(appState.soraOffsetAz) + dAz));
@@ -19302,34 +19381,35 @@ function _smAttachDrag(cv) {
     _smSetupSearchCtrl();
 }
 
-/** コントロールの「:構図をドラッグ」「:辻オフセット点をドラッグ」と「辻検索」「辻メッシュ」(デッサン05 4.1/4.2段目。第158) */
+/** コントロールの「:構図をドラッグ」「:辻オフセット点をドラッグ」(ラジオ=択一。第183でチェックから変更)と各段の「リセット」、「辻検索」「辻メッシュ」(デッサン05 4.1〜4.3段目。第158・第183) */
 function _smSetupSearchCtrl() {
     const chkFrame = document.getElementById('chk-sora-ctrl-drag-frame'), chkTsuji = document.getElementById('chk-sora-ctrl-drag-tsuji');
-    if (chkFrame) {
-        chkFrame.checked = _smDragFrame;
-        chkFrame.addEventListener('change', (e) => {
-            _smDragFrame = e.target.checked;
-            if (!_smDragFrame) {   // オフ: カメラオフセット方位角/視高度を0に戻す(デッサン)
-                appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0;
-                soraSyncUI(); saveAppState();
-                if (appState.isSoramadoActive && !_smFailed) drawSoramado();
-            }
-        });
-    }
-    if (chkTsuji) {
-        chkTsuji.checked = _smDragTsuji;
-        chkTsuji.addEventListener('change', (e) => {
-            _smDragTsuji = e.target.checked;
-            if (_smDragTsuji) {
-                _smTsujiDragBase = { az: Number(appState.tsujiSearchOffsetAz) || 0, alt: Number(appState.tsujiSearchOffsetAlt) || 0 };   // 戻り先を覚える
-            } else if (_smTsujiDragBase) {   // オフ: 動かす前の辻オフセットに戻す(デッサン)
-                appState.tsujiSearchOffsetAz = _smTsujiDragBase.az; appState.tsujiSearchOffsetAlt = _smTsujiDragBase.alt; _smTsujiDragBase = null;
-                _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側も戻す
-                updateOffsetDistances(); _dpOffsetEdited(); saveAppState();
-                if (appState.isSoramadoActive && !_smFailed) drawSoramado();
-            }
-        });
-    }
+    const redraw = () => { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); };
+    const setDragMode = (tsuji) => {   // ラジオなので「両方オン」「両方オフ」は無い
+        if (tsuji === _smDragTsuji) return;
+        _smDragTsuji = tsuji; _smDragFrame = !tsuji;
+        if (tsuji) {
+            _smTsujiDragBase = { az: Number(appState.tsujiSearchOffsetAz) || 0, alt: Number(appState.tsujiSearchOffsetAlt) || 0 };   // 戻り先を覚える
+        } else if (_smTsujiDragBase) {   // 「:構図」へ戻す=辻オフセットを動かす前の値に戻す(デッサン05 7.)
+            appState.tsujiSearchOffsetAz = _smTsujiDragBase.az; appState.tsujiSearchOffsetAlt = _smTsujiDragBase.alt; _smTsujiDragBase = null;
+            _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側も戻す
+            updateOffsetDistances(); _dpOffsetEdited(); saveAppState();
+            redraw();
+        }
+    };
+    if (chkFrame) { chkFrame.checked = !_smDragTsuji; chkFrame.addEventListener('change', (e) => { if (e.target.checked) setDragMode(false); }); }
+    if (chkTsuji) { chkTsuji.checked = _smDragTsuji; chkTsuji.addEventListener('change', (e) => { if (e.target.checked) setDragMode(true); }); }
+    const rf = document.getElementById('btn-sora-ctrl-reset-frame'), rt = document.getElementById('btn-sora-ctrl-reset-tsuji');
+    if (rf) rf.addEventListener('click', () => {   // 構図のリセット: カメラオフセット方位角/視高度を0に(デッサン05 5./6.)
+        appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0; _smCamNudgeBase = null;
+        soraSyncUI(); _smObsNudgeReadout(); saveAppState(); redraw();
+    });
+    if (rt) rt.addEventListener('click', () => {   // 辻オフセット点のリセット: 辻オフセット方位角/視高度を0に(辻検索メニュー・辻メッシュ側と連動。デッサン05 8.)
+        appState.tsujiSearchOffsetAz = 0; appState.tsujiSearchOffsetAlt = 0;
+        if (_smTsujiDragBase) _smTsujiDragBase = { az: 0, alt: 0 };   // リセットの後に「:構図」へ戻しても 0 のまま(戻り先も更新)
+        _tsujiLinkPropagate('tsuji', false);
+        updateOffsetDistances(); _dpOffsetEdited(); saveAppState(); redraw();
+    });
     const b1 = document.getElementById('btn-sora-ctrl-tsuji-search'), b2 = document.getElementById('btn-sora-ctrl-tsujimesh');
     if (b1) b1.addEventListener('click', toggleTsujiSearch);
     if (b2) b2.addEventListener('click', toggleTsujiMesh);
