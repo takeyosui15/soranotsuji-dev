@@ -57,7 +57,7 @@ check('V0 版数の形+Version Historyに第128の追補', /APP_VERSION = '\d+\.
       r.values==='o1,x1,x2,x4'&&r.defChecked&&r.def&&r.eps, JSON.stringify(r));
     check('M2 旧保存/URLのx8は最も近いx4へ読み替え(既定の○へ落とさない)', r.mig);
     check('M3 辻時刻の精度フィルタオプションselectの先頭に○(±0.25°)が入り9段', r.sel);
-    check('M4 既定URLにtsujiMeshAccuracy=o1が乗り、短縮URLはv22で往復[第158]', r.emitted&&r.ver==='~22~'&&r.round, JSON.stringify({v:r.ver}));
+    check('M4 既定URLにtsujiMeshAccuracy=o1が乗り、短縮URLはv23で往復[第158: v22→第183: v23(月の出/月の入)]', r.emitted&&r.ver==='~23~'&&r.round, JSON.stringify({v:r.ver}));
   }
 
   // ---- M5: 読み取り専用の精度フィルタ表示「:○」は常時オン(第131・オプションを切り替えても不変) ----

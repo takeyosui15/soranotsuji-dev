@@ -121,8 +121,8 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
   //  → 第79ラウンドの月間フィルタ26キー追加後: 115個 → 第85〜86ラウンドの
   //  tsujiLineIncludeOffset+Myセットフィルタ4キー追加後: 120個。
   //  いずれもbool/文字列・APP_DEFAULTSに既定あり=個別正規化は不要のため意図的な増加)
-  check('K3 正規化されない保存キーは既知の範囲(基準線: 124個以下。第158: astroRefraction)',
-    untouched.length <= 124, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
+  check('K3 正規化されない保存キーは既知の範囲(基準線: 125個以下。第158: astroRefraction・第184: storeCaps=端末の控えの上限の表。normalizeAppState の専用の節で範囲を見る)',
+    untouched.length <= 125, `未正規化=${untouched.length}個: ${untouched.slice(0, 8).join(', ')}…`);
 }
 
 // ---- リント4(第41ラウンド・リファクタリングA): APP_DEFAULTSに無い保存スカラーキーの検査 ----
@@ -143,6 +143,7 @@ check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
       'mySets', 'mySetCurrentId', 'mySetHomeData', 'mySetHome',   // Myセット構造
       'soraFolderName', 'googleDrive',                            // Drive連携(構造+固定名)
       'myTsujiSearches', 'mySoraSearches',                        // My検索リスト
+      'storeCaps',                                                // 端末の控えの上限(MB)の表(第184。既定は SORA.STORE.CAP_BYTES。normalizeAppState で店の名前と範囲を見る)
     ]);
     const missing = [...save].filter(k => !defs.has(k) && !NOT_SCALAR_OK.has(k));
     check('K8 保存されるスカラーキーはAPP_DEFAULTS(単一情報源)に載っている',

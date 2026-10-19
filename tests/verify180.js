@@ -1,7 +1,7 @@
 // 第155ラウンド検証: v1.94.0 可視マップ節の新しい画面構成(デッサン05)・700kmの表示の直し・辻ライン400km・可視フィルタ・three.jsのES Modules版
 // ①静的な形: 版数ピン・節(推し山の入力=ラベル無し/150字・表示範囲100/300/700[初期値100]・:樹冠/:構造物・検索・2つのボタン・計算範囲リスト8つ[初期値24・500あり]・:精細・
 //    可視タイル/山頂/全展望・端末に保存した資産=標高タイルの件数/容量/全削除・可視タイルの件数/容量/一括選択/⬇DL/削除/全て登録)・コントロール(範囲3つ・樹冠/構造物)・
-//    可視フィルタ(辻検索/辻メッシュ/結果コントロール/ヘルプ。CSV列名は据え置き)・樹冠/構造物のチェック(無効)・辻ライン400km・three.module.min.js・script.jsの要点
+//    可視フィルタ(辻検索/辻メッシュ/結果コントロール/ヘルプ。CSV列名は第184で可視フィルタに)・樹冠/構造物のチェック(無効)・辻ライン400km・three.module.min.js・script.jsの要点
 // ②単体: 解像度の段(精細)・表示範囲の枠・資産の種類の優先順・THREEがモジュール版で読めている(非推奨の警告なし)
 // ③資産の一覧: 2行1組・樹冠/構造物の列・件数/容量・目的点名の編集→全て登録(要約と本文に反映。空で離れると戻る)・一括選択・⬇DL(チェックした分)・削除(チェックした分)・種類の優先順で選ぶ資産
 // ④地図タイルの読み直し(_glRefreshRasterTiles)が落ちない
@@ -37,10 +37,10 @@ check('S1b コントロール: 範囲100/300/700(初期値100)・:樹冠・:構�
   />:樹冠<\/label>/.test(ctrlHtml) && />:構造物<\/label>/.test(ctrlHtml) && ctrlHtml.includes('id="chk-kashimap-building"') &&
   idxSrc.includes('24/36/48/60/100/300/700km四方') && idxSrc.includes('「:精細」をオンにすると300kmは約15m') && idxSrc.includes('「一括選択」で全部にチェック') && idxSrc.includes('「全て登録」を押すと端末の資産に反映') &&
   !/可視マップ[^<]*第1\d\dラウンド/.test(idxSrc) && !/kashimap[^\n]*第1\d\d/.test(idxSrc.replace(/<!--[\s\S]*?-->/g,'')));
-check('S2 可視フィルタ: 辻検索/辻メッシュ/結果コントロール×2のラベルとヘルプが「可視フィルタ」(「標高フィルタ」は画面に残らない)・:樹冠(オフ)/:構造物(オン)のチェックは無効で配置・My辻の行フォームにも・My辻リストCSVの列名は据え置き / 辻ライン400km(定数とヘルプ) / three.jsはモジュール版(ハーネスの書き換えも) / 地図タイルの読み直し / 可視フィルタの状況表示',
+check('S2 可視フィルタ: 辻検索/辻メッシュ/結果コントロール×2のラベルとヘルプが「可視フィルタ」(「標高フィルタ」は画面に残らない)・:樹冠(オフ)/:構造物(オン)のチェックは無効で配置・My辻の行フォームにも・My辻リストCSVの列名は第184で可視フィルタに / 辻ライン400km(定数とヘルプ) / three.jsはモジュール版(ハーネスの書き換えも) / 地図タイルの読み直し / 可視フィルタの状況表示',
   !/標高フィルタ/.test(idxSrc) && (idxSrc.match(/>可視フィルタ<\/label>/g) || []).length === 4 && (idxSrc.match(/<strong>可視フィルタ<\/strong>/g) || []).length === 2 &&
   /id="chk-tsuji-vis-canopy" class="body-checkbox" disabled>/.test(idxSrc) && /id="chk-tsuji-vis-building" class="body-checkbox" disabled checked>/.test(idxSrc) && /id="chk-tsujimesh-vis-canopy" class="body-checkbox" disabled>/.test(idxSrc) && /id="chk-tsujimesh-vis-building" class="body-checkbox" disabled checked>/.test(idxSrc) &&
-  src.includes('class="body-checkbox mytsuji-vis-canopy"') && src.includes('class="body-checkbox mytsuji-vis-building"') && src.includes('<label>可視フィルタ</label>') && src.includes(',精度-フィルタ,標高フィルタ,標高OKフィルタ,') &&
+  src.includes('class="body-checkbox mytsuji-vis-canopy"') && src.includes('class="body-checkbox mytsuji-vis-building"') && src.includes('<label>可視フィルタ</label>') && src.includes(',精度-フィルタ,可視フィルタ,可視OKフィルタ,')   /* 第184: CSV の列名も可視フィルタに(読みは列位置) */ &&
   src.includes('const DP_DIST_LIMIT = 400000;') && idxSrc.includes('<strong>目的点から400km以内</strong>') &&
   /<script type="module" src="three-global.js"><\/script>/.test(idxSrc) && fs.readFileSync(path.join(ROOT, 'three-global.js'), 'utf8').includes("import * as THREE from './vendor/three.module.min.js';") && !idxSrc.includes('build/three.min.js') && harnessSrc.includes("DIRS = ['fonts', 'data', 'vendor']") &&
   src.includes('function _glRefreshRasterTiles()') && src.includes('    _glRefreshRasterTiles();   // 計算中に取りこぼした地図タイル') && src.includes("setStatus('(可視フィルタ 判定データ準備中…)');") && !/setStatus\([^)]*標高フィルタ/.test(src));
