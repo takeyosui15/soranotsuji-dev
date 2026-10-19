@@ -12,9 +12,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数の存在検査(版数ピンは最新のverify156へ移行済み) ----
-check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに1.72.0の行がある', src.includes('Version 1.72.0 - ') || !!process.argv[2]);
 
 const NEW_KEYS=['refractionEnabled','meteoP','meteoT','meteoL','baseOptMwBase','mwOffsetAngle',

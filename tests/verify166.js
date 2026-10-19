@@ -13,10 +13,11 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const workerSrc = fs.readFileSync(path.join(path.dirname(target), 'tm-vis-worker.js'), 'utf8');
 
 // ---- V0: 版数の形(第117でピンはverify167へ移譲=最新の検証が持つ) ----
-check('V0 版数の形', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 版数の形', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに1.86.0の行がある', src.includes('Version 1.86.0 - ') || !!process.argv[2]);
 
 // ---- W1: 逐次判定とワーカー並列判定の式のパリティ(静的) ----

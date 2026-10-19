@@ -8,10 +8,11 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
 // ---- W0: 版数ピン(最新のverifyに集約。第62ラウンドでverify140へ移管) ----
-check('W0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('W0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('W0 Version Historyに1.56.0の行がある', src.includes('Version 1.56.0 - ') || !!process.argv[2]);
 
 // ---- W1: 標高オプション→標高フィルタの全改名(本体=Version History除く) ----
@@ -19,7 +20,7 @@ check('W0 Version Historyに1.56.0の行がある', src.includes('Version 1.56.0
     const body = src.replace(/^[\s\S]*?\*\//, '');
     const oldN = (html.match(/標高オプション/g) || []).length + (body.match(/標高オプション/g) || []).length;
     check('W1 旧称「標高オプション」=0(ラベル・ヘルプ・コメント・ステータス)', oldN === 0, `old=${oldN}`);
-    check('W1 My辻リストCSVヘッダの34列目=標高フィルタ', src.includes(',精度-フィルタ,標高フィルタ,標高OKフィルタ,'));
+    check('W1 My辻リストCSVヘッダの34列目=可視フィルタ(第61で標高フィルタ→第184で可視フィルタに改名。読みは列の位置)', src.includes(',精度-フィルタ,可視フィルタ,可視OKフィルタ,'));
     check('W1 URLキーは不変(tsujiElevationOption等が辞書に残る)', src.includes("'tsujiElevationOption', 'tsujiElevOK', 'tsujiElevNG'"));
 }
 

@@ -12,6 +12,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // コーデック一式をソースから抽出して実行
 const begin = src.indexOf('const _QP_B64');
@@ -23,7 +24,7 @@ new Function('exports', src.slice(begin, end) +
   'exports.enc=encodeQueryParam; exports.dec=decodeQueryParam;')(qp);
 
 // ---- M0: 版数ピン(最新のverifyに集約)----
-check('M0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('M0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) || !!process.argv[2]);
 check('M0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 check('M0 辞書は23版(v23が最新。第183=時間フィルタの月の出/月の入 =moonrise&/=moonset& / 第158=大気差補正の既定オン+気差オプション astroRefraction / 第62=曜日・第80=月間・第88=大気差/気象/基本オプション・第91=天体色/線種・第96=花火頻度・第108=天体色既定値ペア+4キー・第116=写真テクスチャ・第128=辻メッシュ精度○の既定値ペア)', qp.VERSIONS.length === 23, `versions=${qp.VERSIONS.length}`);
 

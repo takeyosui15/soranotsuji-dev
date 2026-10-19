@@ -1,0 +1,16 @@
+{
+  "name": "宙の辻 - Sora no Tsuji",
+  "short_name": "宙の辻",
+  "description": "山頂と天体が重なる瞬間の時間と場所を、地図から逆算するWebアプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1e1e",
+  "theme_color": "#1e1e1e",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "logo.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -14,10 +14,11 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
 // ---- V0: 版数の形(第122でピンはverify168へ移譲=最新の検証が持つ) ----
-check('V0 版数の形+Version Historyに第117/118の追補', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && ((src.includes('⑥第117ラウンド') && src.includes('⑦第118ラウンド')) || !!process.argv[2]));
+check('V0 版数の形+Version Historyに第117/118の追補', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && ((src.includes('⑥第117ラウンド') && src.includes('⑦第118ラウンド')) || !!process.argv[2]));
 
 // ---- S1: ポップアップ注記に版数表記なし(リリースノートが持ち場=依頼者指摘)。
 // noteの代入行そのものを検査する(Version Historyの経緯文が旧文言を引用しても引っかからない形) ----

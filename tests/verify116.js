@@ -14,9 +14,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
   // ソース検査: leaflet参照がindex.html/script.jsに残っていない+版数ピン
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
+    const _verSrc = fs.readFileSync(path.join(__dirname, '..', 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
     const html=fs.readFileSync(path.join(__dirname, '..', 'index.html'),'utf8');
     // 版数ピンは最新のverify(現在は117)のみに置く(テスト方針)。ここでは存在だけ確認する
-    check('V0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+    check('V0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
     check('V0 index.htmlにleafletのタグ参照なし', !/leaflet\.(js|css)|unpkg\.com\/leaflet/i.test(html));
     // コメント行(// / *)とVersion History(冒頭コメント)を除いた実コードにLeaflet APIが無いこと
     const codeLines=src.split('\n').filter(l=>{ const t=l.trim(); return !(t.startsWith('//')||t.startsWith('*')||t.startsWith('/*')||t.startsWith('Version ')); });

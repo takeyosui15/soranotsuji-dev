@@ -14,6 +14,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
@@ -23,7 +24,7 @@ const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const indexJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'kashimap', 'v1', 'index.json'), 'utf8'));
 const mysite = fs.readFileSync(path.join(ROOT, 'docs', 'dessin', 'dessin', '09-mysite.md'), 'utf8');
 
-check('V0 版数 1.95.0以降(ピンは最新のverifyが持つ)+Version Historyに第156', /APP_VERSION = '1\.9[5-9]\.\d+'/.test(src) && (src.includes('第156ラウンド — 可視マップ節をデッサン05の改訂版に') || !!process.argv[2]));
+check('V0 版数 1.95.0以降(ピンは最新のverifyが持つ)+Version Historyに第156', /APP_VERSION = '1\.9[5-9]\.\d+'/.test(src + _verSrc) && (src.includes('第156ラウンド — 可視マップ節をデッサン05の改訂版に') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('data-arg="sec-soramado"'));
 const order = (...ids) => { let pos = -1; return ids.every(t => { const v = kmHtml.indexOf(t, pos + 1); if (v < 0) return false; pos = v; return true; }); };   // 第157: 同じ字句(水平線)が複数回並ぶので、直前の位置より後ろで探す
 check('S1 可視マップ節(デッサン05の改訂版): 推し山→検索条件:→AND/OR→山リスト:→百/二百/三百→百高/その他/:端末保存→最大表示範囲:→100/300/700→障害物オプション:→:樹冠/:構造物→「計算済み可視マップを検索」→注記3つ→水平線→:目的点/:My目的点(1段)→計算範囲リスト(7つ・500なし・初期値24)→:精細→:最高精細→「範囲を計算」→注記(剣ヶ峯)[第157]→水平線→:可視タイル/:山頂マーカー(1段)→:全展望マーカー(別の段)→水平線→標高タイル:→件数/容量→注記→全削除(横幅いっぱい)→水平線[第157]→可視タイル:→件数/容量→一括選択(main-btn)→⬇DL/削除/全て登録(三等分)→一覧 / 旧ボタンのidが残らない',

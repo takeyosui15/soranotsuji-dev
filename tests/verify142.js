@@ -10,10 +10,11 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const html = fs.readFileSync(path.join(path.dirname(target), 'index.html'), 'utf8');
 
 // ---- V0: 版数(存在検査。版数ピンは最新のverify143に集約) ----
-check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに1.59.0の行がある', src.includes('Version 1.59.0 - '));
 
 // ---- V1: 静的な形 ----

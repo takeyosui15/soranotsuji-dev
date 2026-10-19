@@ -14,10 +14,11 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 
 const ROOT = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
+const _verSrc = fs.readFileSync(path.join(ROOT, 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // ---- V0: 版数ピン(最新のverifyが持つ) ----
-check('V0 版数は1.98.1以上+Version Historyに第180(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.(9[8-9]|[1-9]\d{2,})\.\d+'/.test(src) && src.includes('Version 1.98.1 - ') && src.includes('第180ラウンド'));
+check('V0 版数は1.98.1以上+Version Historyに第180(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.(9[8-9]|[1-9]\d{2,})\.\d+'/.test(src + _verSrc) && src.includes('Version 1.98.1 - ') && src.includes('第180ラウンド'));
 
 // ---- S1: 2か所のチェックと連動の配線 ----
 check('S1 index.html: バックアップメニューのGoogleドライブ欄に chk-gdrive-autosync-menu(:自動更新)があり、ダイアログの chk-gdrive-autosync も残っている・ヘルプに置き場所の説明',

@@ -17,9 +17,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数の存在(等値ピンは最新のverify165へ移譲=第108ラウンド) ----
-check('V0 APP_VERSIONが存在(版数ピンはverify165が持つ)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 APP_VERSIONが存在(版数ピンはverify165が持つ)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 (async()=>{

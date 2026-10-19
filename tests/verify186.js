@@ -16,6 +16,7 @@ let PASS = 0, FAIL = 0;
 const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  ' + d : ''}`); ok ? PASS++ : FAIL++; };
 const ROOT = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
+const _verSrc = fs.readFileSync(path.join(ROOT, 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 
@@ -39,11 +40,11 @@ function buildExifJpeg({ little, latRef, lngRef, lat, lng }) {
 const PHOTO = buildExifJpeg({ little: true, latRef: 'N', lngRef: 'E', lat: [35, 21, 3870], lng: [138, 43, 3850] });   // 35.36075, 138.727361
 
 // ---- V0: 版数ピン(最新のverifyが持つ) ----
-check('V0 版数ピン 1.99.0+Version Historyに第183', /APP_VERSION = '1\.99\.0'/.test(src) && src.includes('Version 1.99.0 - ') && src.includes('第183ラウンド'));
+check('V0 版数は 1.99 以上+Version Historyに第183(ピンは最新のverifyへ移した。版の置き場は sora-constants.js=第184)', /APP_VERSION = '1\.(99|[1-9]\d{2,})\.\d+'/.test(src + _verSrc) && src.includes('Version 1.99.0 - ') && src.includes('第183ラウンド'));
 
 // ---- S1: 月の出/月の入(静的) ----
-check('S1 時間フィルタ: TSUJI_TIME_MODES の並びが GH[終]→月の出→月の入→GH[始]・computeDayTwilight が Moon の出没をその日の中で探す・無い日は NaN で通さない・短縮URL辞書v23',
-  /\{ v: 'ghEnd',\s+l: 'GH\[終\]' \},\s*\{ v: 'moonrise',\s+l: '月の出' \},[^\n]*\n\s*\{ v: 'moonset',\s+l: '月の入' \},\s*\{ v: 'ghStart',\s+l: 'GH\[始\]' \},/.test(src) &&
+check('S1 時間フィルタ: TSUJI_TIME_MODES の並びが 日の出→月の出→GH[終]→GH[始]→月の入→日の入(第184・依頼者)・computeDayTwilight が Moon の出没をその日の中で探す・無い日は NaN で通さない・短縮URL辞書v23',
+  /\{ v: 'sunrise',\s+l: '日の出' \},\s*\{ v: 'moonrise',\s+l: '月の出' \},[^\n]*\n\s*\{ v: 'ghEnd',\s+l: 'GH\[終\]' \},\s*\{ v: 'ghStart',\s+l: 'GH\[始\]' \},\s*\{ v: 'moonset',\s+l: '月の入' \},\s*\{ v: 'sunset',\s+l: '日の入' \},/.test(src) &&
   src.includes("moonrise: rs(+1, 'Moon'), moonset: rs(-1, 'Moon'),") && src.includes("Astronomy.SearchRiseSet(body, observer, dir, startOfDay, 1)") &&
   src.includes("const TSUJI_MOON_MODES = new Set(['moonrise', 'moonset']);") && src.includes("if (!d) return TSUJI_MOON_MODES.has(mode) ? NaN : null;") &&
   src.includes("if (Number.isNaN(sMin) || Number.isNaN(eMin)) return false;") &&
@@ -115,16 +116,16 @@ check('S4 宙の窓検索ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が�
     const sunNone = passesTimeFilter(new Date(d0.getTime() + 3600000), Object.assign({}, tw0, { astroDawn: null }), Object.assign({}, fs, { startMode: 'astroDawn', endMode: 'fixed', endTime: '23:59', endPrePost: false }));   // 太陽の境界が無い: 従来どおり通す
     const grid = timeFilterModeGridHtml('x', 'sunset', 'c', '');
     const labels = Array.from(grid.matchAll(/value="([a-zA-Z]+)"[^>]*>([^<]+)<\/label>/g)).map(m => m[1] + '=' + m[2]);
-    const i1 = labels.indexOf('ghEnd=GH[終]'), i2 = labels.indexOf('moonrise=月の出'), i3 = labels.indexOf('moonset=月の入'), i4 = labels.indexOf('ghStart=GH[始]');
+    const i1 = labels.indexOf('sunrise=日の出'), i2 = labels.indexOf('moonrise=月の出'), i3 = labels.indexOf('ghEnd=GH[終]'), i4 = labels.indexOf('ghStart=GH[始]'), i5 = labels.indexOf('moonset=月の入'), i6 = labels.indexOf('sunset=日の入');
     const q = '&tsujiStartMode=moonrise&tsujiEndMode=moonset';
     const enc = encodeQueryParam(q.slice(1)); const dec = decodeQueryParam(enc);
     const validModes = TSUJI_TIME_MODES.map(m => m.v);
-    return { ...res, mrNull: mr === null, inside, outside, noneDay, sunNone, order: [i1, i2, i3, i4], labelsN: labels.length, enc, dec, ver: _QP_SEED_VERSIONS.length, validHas: validModes.includes('moonrise') && validModes.includes('moonset') };
+    return { ...res, mrNull: mr === null, inside, outside, noneDay, sunNone, order: [i1, i2, i3, i4, i5, i6], labelsN: labels.length, enc, dec, ver: _QP_SEED_VERSIONS.length, validHas: validModes.includes('moonrise') && validModes.includes('moonset') };
   });
-  check('A1 月の出/月の入(実機・東京タワー 2026-10-15から40日): 境界はその日の0時〜24時の中・従来の2日探索と同じ日なら一致・無い日が1回以上ある → 窓「月の出〜月の出+1:00」は+30分を通し+90分を通さない・月の出が無い日は通さない(太陽の境界が無い時は従来どおり通す)・ラジオの並びは GH[終]→月の出→月の入→GH[始](16項目)・短縮URL v23 で往復',
+  check('A1 月の出/月の入(実機・東京タワー 2026-10-15から40日): 境界はその日の0時〜24時の中・従来の2日探索と同じ日なら一致・無い日が1回以上ある → 窓「月の出〜月の出+1:00」は+30分を通し+90分を通さない・月の出が無い日は通さない(太陽の境界が無い時は従来どおり通す)・ラジオの並びは 日の出→月の出→GH[終]→GH[始]→月の入→日の入(16項目)・短縮URL v23 で往復',
     a1.days === 40 && a1.inDay === 80 - a1.none.length && a1.none.length >= 1 && a1.disagree.length === 0 && a1.agree >= 60 &&
     !a1.mrNull && a1.inside === true && a1.outside === false && a1.noneDay === false && a1.sunNone === true &&
-    a1.order[0] >= 0 && a1.order[1] === a1.order[0] + 1 && a1.order[2] === a1.order[0] + 2 && a1.order[3] === a1.order[0] + 3 && a1.labelsN === 16 &&
+    a1.order[0] >= 0 && a1.order.every((v, i) => i === 0 || v === a1.order[0] + i) && a1.labelsN === 16 &&   // 日の出→月の出→GH[終]→GH[始]→月の入→日の入(第184)
     a1.dec === 'tsujiStartMode=moonrise&tsujiEndMode=moonset' && a1.ver === 23 && a1.validHas, JSON.stringify(a1));
 
   // ---- A2: 1.5m(実機): 座標→観測点は 高さ1.5・標高+1.5。目的点は 0。地図(applyMapPointAction)も同じ。Hom のリセット(空欄)は 150m ----
@@ -205,28 +206,28 @@ check('S4 宙の窓検索ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が�
   const b4 = await st();
   await drag(40, -20);                                           // ×が右上へ=辻オフセット増。カメラは不変
   const b5 = await st();
-  await pick('chk-sora-ctrl-drag-frame');                        // 構図へ戻す=辻オフセットは動かす前(1.5/0.5)に戻る
+  await pick('chk-sora-ctrl-drag-frame');                        // 構図へ戻す=辻オフセットはそのまま(第184・依頼者)
   const b6 = await st();
   await pick('chk-sora-ctrl-drag-tsuji'); await drag(40, -20);
   await p.evaluate(() => document.getElementById('btn-sora-ctrl-reset-tsuji').click());   // 辻オフセット点の「リセット」=0(辻メッシュ側も)
   const b7 = await st();
-  await pick('chk-sora-ctrl-drag-frame');                        // リセット後に構図へ戻しても 0 のまま
+  await pick('chk-sora-ctrl-drag-frame');                        // リセット後に構図へ戻しても 0 のまま(切り替えでは何も戻さない)
   const b8 = await st();
   const widths = await p.evaluate(() => {
     const row = document.querySelector('#soramado-ctrl-body .sora-ctrl-drag-row'), btn = document.getElementById('btn-sora-ctrl-reset-frame');
     const r = row.getBoundingClientRect(), bb = btn.getBoundingClientRect();
     return { row: r.width, btn: bb.width, rightGap: r.right - bb.right, both: document.querySelectorAll('#soramado-ctrl-body .sora-ctrl-reset').length, radios: document.querySelectorAll('input[name="sora-ctrl-drag"]').length };
   });
-  check('A4 宙の窓検索ctrl(実機): 構図のドラッグで戻り先を覚えカメラの「リセット」で戻る(460)→ctrlの構図「リセット」で0→ラジオ=辻オフセット点(構図は外れる)でドラッグ=辻オフセット増・カメラ不変→構図へ戻すと動かす前(1.5/0.5)→辻オフセット点の「リセット」で0(辻メッシュ側も)→構図へ戻しても0のまま。リセットは行の幅の1/3で右端',
+  check('A4 宙の窓検索ctrl(実機): 構図のドラッグで戻り先を覚えカメラの「リセット」で戻る(460)→ctrlの構図「リセット」で0→ラジオ=辻オフセット点(構図は外れる)でドラッグ=辻オフセット増・カメラ不変→構図へ戻しても辻オフセットはそのまま(第184)→辻オフセット点の「リセット」で0(辻メッシュ側も)→構図へ戻しても0のまま。リセットは行の幅の1/3で右端',
     cvBox.ok && s0 && b0.frame && !b0.tsuji && b0.df && !b0.dt && b0.cam === null &&
     b1.az < -0.01 && b1.cam && b1.cam.az === 0 && b1.cam.alt === 0 && b1.taz === 1.5 &&
     b2.az === 0 && b2.alt === 0 && b2.cam === null &&
     b3.az === 0 && b3.alt === 0 && b3.cam === null &&
-    b4.tsuji && !b4.frame && b4.dt && !b4.df && b4.base && b4.base.az === 1.5 && b4.base.alt === 0.5 &&
+    b4.tsuji && !b4.frame && b4.dt && !b4.df &&
     b5.taz > 1.5 + 0.01 && b5.talt > 0.5 + 0.005 && b5.maz === b5.taz && b5.az === 0 && Math.abs(parseFloat(b5.menu) - b5.taz) < 1e-6 &&
-    b6.frame && !b6.tsuji && b6.taz === 1.5 && b6.talt === 0.5 && b6.base === null && b6.maz === 1.5 &&
-    b7.taz === 0 && b7.talt === 0 && b7.maz === 0 && b7.malt === 0 && b7.base && b7.base.az === 0 && parseFloat(b7.menu) === 0 &&
-    b8.frame && b8.taz === 0 && b8.talt === 0 && b8.base === null &&
+    b6.frame && !b6.tsuji && b6.taz === b5.taz && b6.talt === b5.talt && b6.maz === b5.taz &&
+    b7.taz === 0 && b7.talt === 0 && b7.maz === 0 && b7.malt === 0 && parseFloat(b7.menu) === 0 &&
+    b8.frame && b8.taz === 0 && b8.talt === 0 &&
     widths.both === 2 && widths.radios === 2 && Math.abs(widths.btn - widths.row / 3) < 2 && Math.abs(widths.rightGap) < 1,
     JSON.stringify({ cvBox, b0, b1, b2, b3, b4, b5, b6, b7, b8, widths }));
 

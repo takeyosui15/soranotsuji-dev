@@ -26,6 +26,7 @@ os.makedirs(APP, exist_ok=True)
 FILES = [
     'index.html', 'script.js', 'sora-constants.js', 'style.css', 'forecast-features.html', 'reset.html', 'reset.js', 'three-global.js',
     'privacy.html', 'terms.html', 'sw.js', 'sw-precache.js',   # 本体の控え(Service Worker。第183。登録は ?sw=1 の時だけ=verify187)
+    'manifest.json', 'sora-store-worker.js',   # ホーム画面に追加(段3)・控えの片付けワーカー(段2)。第184
     'dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker.js',
     'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js', 'kashimap-worker.js',
     'celestial_db.json', 'constellations.borders.json', 'constellations.lines.json',

@@ -16,6 +16,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const idxSrc = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const privSrc = fs.readFileSync(path.join(__dirname, '..', 'privacy.html'), 'utf8');
 const resetSrc = fs.readFileSync(path.join(__dirname, '..', 'reset.html'), 'utf8');
@@ -54,7 +55,7 @@ const PHOTO_SW = buildExifJpeg({ little: false, latRef: 'S', lngRef: 'W', lat: [
 const PHOTO_NOGPS = buildExifJpeg({ little: true, noGps: true });
 
 // ---- V0: 版数の形(等価ピンは最新のverify174へ移譲。第148) ----
-check('V0 版数の形+Version Historyに第132/133の追補4/5', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && ((src.includes('第132ラウンド(リリース前の追補4') && src.includes('第133ラウンド(リリース前の追補5')) || !!process.argv[2]));
+check('V0 版数の形+Version Historyに第132/133の追補4/5', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && ((src.includes('第132ラウンド(リリース前の追補4') && src.includes('第133ラウンド(リリース前の追補5')) || !!process.argv[2]));
 
 // ---- T1: UI文言(第133): ○ラジオのツールチップからデッサンの考え方を削除+reset.htmlのドライブ注記 ----
 check('T1 「:○」ラジオのtitleは±0.25°のみ(実用域の説明はデッサンへ)+reset.htmlにドライブは残る注記',

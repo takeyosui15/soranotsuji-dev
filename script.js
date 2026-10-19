@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.99.1 - 2026-10-19: feat/fix: 第184ラウンド — ①版の置き場を sora-constants.js の APP_VERSION の1箇所に(SSOT・依頼者: 1箇所を直せば全部に反映。script.js は SORA.APP_VERSION を読む・index.html の meta と sw.js の ?v= を廃止・sw.js は importScripts した版で控えの名前を付け、配信中の版は sora-constants.js を最新で読んで見分ける・verify 群の版の検査は src+sora-constants) ②時間フィルタの並びを 日の出→月の出→GH[終]→GH[始]→月の入→日の入 に(依頼者) ③宙の窓検索ctrl: ラジオを「:構図」へ戻しても辻オフセット点は戻さない(戻すのは「リセット」=0 だけ。依頼者) ④結果リスト/CSV の月の出/月の入の列は翌日なら 24:xx の印(日時情報メニューと同じ。A案・依頼者) ⑤My辻リストCSVのヘッダ「標高フィルタ/標高OK/標高NG」→「可視フィルタ/可視OK/可視NG」(読みは列の位置なので旧ファイルもそのまま読める) ⑥利用規約: 目的の一文(街や自然環境において宙や空を楽しむ)・禁止事項2つ・共有した内容の責任の段落・改定日(依頼者 GO)
 Version 1.99.0 - 2026-10-15: feat: 第183ラウンド — ①時間フィルタに「月の出」「月の入」(辻検索・辻メッシュ・My辻検索の開始/終了の基準。依頼者指定で「GH[終]」と「GH[始]」の間。その日に月の出(入)が無い日は、その境界を使うフィルタは何も通さない。短縮URL辞書v23=moonrise/moonset。棚卸し223・verify186) ②観測点を地名/座標/地図/GPS/写位で置いた時の高さを 0 → 1.5m(SORA.OBSERVER.EYE_HEIGHT_M=人の目の高さ)に。Hom の既定(東京タワー 150m)と目的点(0)は不変(棚卸し231) ③位置情報メニューの「高移」の下に「写位」ボタン: 写真の位置情報(Exif)をラジオで選択中の観測点(°)/目的点(°)に入力(標高は緯度経度から取得。My観測点/My目的点の「写真から追加」と同じ端末内の読み取り。棚卸し412) ④宙の窓検索のコントロール(デッサン05 4.1〜4.3段目): 「:構図をドラッグ」「:辻オフセット点をドラッグ」をチェックからラジオ(択一)に・各段に「リセット」(幅はメニュー内側の1/3・右寄せ。構図=カメラオフセット方位角/視高度を0・辻オフセット点=辻オフセット方位角/視高度を0で辻メッシュ側と連動)・宙の窓メニューの注記を「…辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。」に ⑤不具合: 二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない(棚卸し460)=ドラッグ開始時にも戻り先(_smCamNudgeBase)を覚える
 Version 1.98.1 - 2026-10-15: fix: 第180ラウンド — 「:自動更新」(Googleドライブ同期)のチェックがオフにできない(チェックが同期ダイアログ=👎の時にしか開かない画面の中にしか無く、自動更新が効いて👍のままだと辿り着けない。依頼者の memo→第179の備忘録で指摘・コードで確認)→ バックアップ/インポートメニューの Google ドライブ欄にも同じ「:自動更新」を置き、2か所を連動(_autoSyncSyncCheckboxes)。👍の時の案内文とヘルプに置き場所を追記。verify185 ②ダイアログ内の「:自動更新」を①保存の上へ(デッサン00・依頼者。スマホで隠れるため・第181) ③地図のⓘ(出典)を起動時は閉じる(MapLibre の compact は最初に一度開く作りで左下のスケールに重なる・第182) ④宙の窓の「画像サイズ(手動:MB)」→「(手動:MB/枚)」(棚卸し410) ⑤CSV の BOM の判定を見えない文字から \uFEFF の表記に(棚卸し431) ⑥辻メッシュ検索の「検索エリア」のツールチップの範囲の目安を実装(z14 の標高タイル=256画素≈2km四方)に合わせて 3×3≈6km/4×4≈8km/5×5≈10km/6×6≈12km四方に(旧「約12/16/20/24km」は誤り。FAQ の執筆で判明)
 Version 1.98.0 - 2026-10-12: security: 第159ラウンド — セキュリティ対策(依頼者: 2026年10月の国内の不正アクセス多発(JPCERT-AT-2026-0030・IPAの注意喚起)を受けた点検)。①第三者ライブラリの自前配信: MapLibre 4.7.1・three 0.160.0・astronomy-engine 2.1.19・GeographicLib 2.2.0(npm)・qrcode-generator 1.4.4・Draco を vendor/ に固定(出所・版・ライセンス・内容の指紋 sha384/sha256 を vendor/MANIFEST.json に)。CDN(jsDelivr/unpkg/sourceforge)への読み込みを全て撤去・MathJax を撤去(ヘルプの気差係数の数式(TeX 18行)はHTMLに書き直し)・ワーカーの importScripts と Draco も vendor/ へ ②読み込み元の許可リスト(CSP meta): script-src は自サイト+'wasm-unsafe-eval'(Draco の WASM)+Googleのログイン(accounts.google.com/gsi/client)+ピッカー(apis.google.com)だけ('unsafe-inline'/'unsafe-eval' 無し)・connect-src/img-src/frame-src は使うAPIとタイルの許可リスト・object-src 'none'・base-uri 'self'・worker-src 'self' blob:・Referrer-Policy。CSP違反はコンソールに記録(securitypolicyviolation) ③インラインの onclick=(32箇所: index.html 30+forecast-features.html 2)を data-click 属性+1つの委譲リスナー+許可表(_CLICK_ACTIONS)に・three の読み込みを three-global.js に・reset.html のスクリプトを reset.js に(CSPでインラインを禁じるため) ④保存データの型そろえ(_sanitizeStoredShapes。normalizeAppState の先頭で毎回): 観測点/目的点/Home・My観測点/My目的点/My天体/My辻検索/My宙検索/Myセット・表示天体の色を、数値は数値・文字は文字・色は safeCssColor・真偽は !! に確定させる(他人から受け取ったバックアップJSON/Driveの生ダンプの数値欄に入った文字列(HTML)が innerHTML に届く持続XSSの根を塞ぐ)。escapeHtml は文字列以外も落ちずに文字として扱う。HTML を組む所(地点のポップアップ・My観測点/My目的点/My天体/Myセットの行・ID入りのエラー文・宙検索の一括結果)も Number()/escapeHtml で二重に守る。可視マップの資産の取り込みは島の番号/画素数が数値でなければ拒む・島リスト/ポップアップで escapeHtml ⑤別タブで開くリンクは全て rel=noopener・Myセットのシートを開く window.open は noopener+IDの文字種検査・Sheets/Drive API のパスのシートIDは encodeURIComponent・保存データのシートIDは Google のIDの文字種だけ ⑥reset.html の「すべてのデータを消去」に地図タイルの控え(soranotsuji-maptiles)も。verify184(合格条件の自動検査)。デッサン34(セキュリティ)に脅威モデル・合格条件(自動検査/コンソール点検/運用)を記録 ⑦クライアントIDが空の時の案内文を利用者向けに(非常停止で配る文。第160) ⑧CSP違反の記録に、開発用サーバー(Live Preview)の自動再読み込みが止められた時は「無害」と添える(第161) ⑨Myセットの保存ガードの案内文を正しく(表示中/オフライン指定でないセットは端末に内容を持たないので「切り替え表示してから保存」。以前の「先に読込を」では解決しなかった。第164) ⑩CSP違反の記録は止められた先の URL の「?」より前だけ(問い合わせ部分にアクセストークンが入る事があるため。第165) ⑪リリース準備: 表示中の文言に残っていた封鎖中の「可視マップ」の名前を外す(辻検索/辻メッシュの樹冠・構造物の説明=準備中・山頂部の帯の注記・気差係数の対象の列挙・reset.html の消去の説明)。README の主な機能に可視フィルタ・宙の窓検索・端末の控えを反映(第171) ⑫公開文(依頼者承認): privacy.html 4.外部サービスの節を実際の通信先に差し替え(CDN を消す。改定日 2026-10-14)・/.well-known/security.txt(RFC 9116。Contact=GitHub のリポジトリ)。リリースノートの冒頭に「可視マップは含まない」「宙の窓検索とオフライン表示は今後改善予定」の※(第172) ⑬依頼者が GitHub の非公開の脆弱性報告(Private vulnerability reporting)を本番・開発の両リポジトリで有効化(箱から確認)→ security.txt の Contact を2行に(1行目=security/advisories/new・2行目=リポジトリ。第173)
@@ -169,7 +170,7 @@ Version 1.0.0 - 2026-01-29: Initial release
 // 1. 定数定義
 // ============================================================
 
-const APP_VERSION = '1.99.0';   // 冒頭のVersion Historyの最新版数と揃えて更新する(起動ログ・フッター表示に使用)
+const APP_VERSION = SORA.APP_VERSION;   // 版の唯一の置き場は sora-constants.js(第184・依頼者: 1箇所を直せば全部に反映)。冒頭の Version History の最新行とは verify のピンが一致を見張る(起動ログ・フッター表示に使用)
 
 /** アプリのバージョン文字列を返す (index.htmlのフッター表示などから利用) */
 function getAppVersion() {
@@ -607,6 +608,7 @@ let appState = {
         lastDriveSize: null,               // 最後に確認したドライブ側サイズ(表示用)
         autoSync: false                    // 「:自動更新」(第127ラウンド。変更をデバウンスして自動でドライブへ保存)
     },
+    storeCaps: {},   // 端末の控えの上限(MB)の端末ごとの上書き {maptiles, demtiles, bldg, assets, wx}。無ければ SORA.STORE.CAP_BYTES の既定(第184・デッサン35 §3)
 
     // My辻検索
     myTsujiSearches: [],  // { id, name, days, bodyIds, obsId, tgtId,
@@ -969,14 +971,14 @@ function _glBldg3dToggle(on) {
 // 店は自動で貯まるので、バックアップメニューに件数・容量・最終更新日時と「全削除」を置く。安全弁: 店の合計が MT_MAX_BYTES を超えたら新しく貯めない(表示はする)。
 const MT_DB = 'soranotsuji-maptiles', MT_STORE = 'tiles';
 const MT_FETCH_TIMEOUT_MS = 20000;
-const MT_MAX_BYTES = 1024 * 1024 * 1024;   // 1GB
+const MT_MAX_BYTES = 1024 * 1024 * 1024;   // 1GB(既定の値の記録。実際の上限は _storeCap('maptiles')=SORA.STORE.CAP_BYTES.maptiles か端末の上書き。第184)
 const MT_HOST = 'cyberjapandata.gsi.go.jp';
 let _mtDbP = null, _mtBytes = null, _mtBytesP = null, _mtCapWarned = false, _mtRefreshTimer = null, _mtProtocolAdded = false, _mtProtocolHandler = null;   // _mtProtocolHandler: 検査が直接呼べるように持っておく
 function _mtDb() {
     if (_mtDbP) return _mtDbP;
     _mtDbP = new Promise((ok, ng) => {
         try {
-            const req = indexedDB.open(MT_DB, 2);   // v2(第158): size/savedAt の索引(件数・容量・最終更新を本文を読まずに数える)
+            const req = indexedDB.open(MT_DB, 3);   // v2(第158): size/savedAt の索引(件数・容量・最終更新を本文を読まずに数える)。v3(第184): usedAt の索引
             req.onupgradeneeded = () => { const db = req.result, tx = req.transaction; const st = db.objectStoreNames.contains(MT_STORE) ? tx.objectStore(MT_STORE) : db.createObjectStore(MT_STORE, { keyPath: 'key' }); _idbEnsureStatIndexes(st); };
             req.onsuccess = () => ok(req.result);
             req.onerror = () => ng(req.error);
@@ -990,14 +992,19 @@ async function _mtIdb(mode, fn) {
     return new Promise((ok, ng) => { const r = fn(db.transaction(MT_STORE, mode).objectStore(MT_STORE)); r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); });
 }
 /** 店の統計用の索引(size・savedAt)。onupgradeneeded の中で呼ぶ(地理タイルの店 v2・標高タイルの店 v3) */
-function _idbEnsureStatIndexes(st) { if (!st.indexNames.contains('size')) st.createIndex('size', 'size'); if (!st.indexNames.contains('savedAt')) st.createIndex('savedAt', 'savedAt'); }
+function _idbEnsureStatIndexes(st) { if (!st.indexNames.contains('size')) st.createIndex('size', 'size'); if (!st.indexNames.contains('savedAt')) st.createIndex('savedAt', 'savedAt'); if (!st.indexNames.contains('usedAt')) st.createIndex('usedAt', 'usedAt'); }   // usedAt=最終使用(第184・片付けの鍵。無い古い記録は savedAt で代用)
 /** 店の件数・合計バイト・最終更新(ms)を、索引の鍵カーソルだけで数える(本文=タイルのバイト列を読まない。第158のレビュー: 1GBの店を値カーソルで舐めると、タイルが貯まるたびに表示が止まる)。
  *  「無し」の印(size 0)は件数に入れない。索引の無い店(開けなかった時の保険)は null */
 function _idbStatByIndex(st) {
     return new Promise((ok, ng) => {
         if (!st.indexNames.contains('size') || !st.indexNames.contains('savedAt')) { ok(null); return; }
-        let n = 0, bytes = 0, last = 0, pending = 2;
-        const done = () => { if (--pending === 0) ok({ n, bytes, last }); };
+        let n = 0, bytes = 0, last = 0, used = 0, pending = 3;
+        const done = () => { if (--pending === 0) ok({ n, bytes, last, used }); };
+        if (st.indexNames.contains('usedAt')) {   // 最終使用=usedAt 索引の末尾1件(第184)
+            const ru = st.index('usedAt').openKeyCursor(null, 'prev');
+            ru.onsuccess = () => { const c = ru.result; if (c) used = Number(c.key) || 0; done(); };
+            ru.onerror = () => done();
+        } else done();
         const rq = st.index('size').openKeyCursor();
         rq.onsuccess = () => { const c = rq.result; if (!c) { done(); return; } const sz = Number(c.key) || 0; if (sz > 0) n++; bytes += sz; c.continue(); };
         rq.onerror = () => ng(rq.error);
@@ -1006,6 +1013,10 @@ function _idbStatByIndex(st) {
         rl.onerror = () => ng(rl.error);
     });
 }
+/** 店の上限(バイト)。端末ごとの上書き appState.storeCaps(MB・10以上)があればそれ、無ければ SORA.STORE.CAP_BYTES の既定(第184・デッサン35 §3) */
+function _storeCap(name) { const mb = appState.storeCaps && Number(appState.storeCaps[name]); return (isFinite(mb) && mb >= 10) ? mb * 1048576 : SORA.STORE.CAP_BYTES[name]; }
+/** 読み(ヒット)の記録: 最終使用 usedAt を1日1回だけ書き直す(毎回書くと重い)。書き直す時は新しい記録を返す。要らない時は null(第184・デッサン35 §4) */
+function _storeTouch(rec) { if (!rec || rec.miss || !rec.buf) return null; const now = Date.now(); if (rec.usedAt && now - Number(rec.usedAt) < SORA.STORE.TOUCH_MIN_MS) return null; return { ...rec, usedAt: now }; }
 /** 「無し」(404)の印がまだ有効か(寿命は SORA.TILE_STORE.MISS_TTL_MS=30日。過ぎた印は取り直す) */
 function _storeMissFresh(rec) { return !!(rec && rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) < SORA.TILE_STORE.MISS_TTL_MS); }
 /** 地理タイルの店の件数・合計バイト・最終更新(ms) */
@@ -1024,28 +1035,48 @@ async function _mtRefreshBackupRows() {
     if (!document.getElementById('backup-maptiles-count')) return;
     const sec = document.getElementById('sec-backup');
     if (sec && sec.classList.contains('closed')) return;   // 閉じている間は数えない(開いた時に toggleSection が数え直す。第158のレビュー: タイルが貯まるたびに2つの店を数えない)
-    const [mt, dem] = await Promise.all([_mtStat(), (typeof _kmTilesStat === 'function') ? _kmTilesStat() : Promise.resolve({ n: 0, bytes: 0, last: 0 })]);
-    _mtBytes = mt.bytes;
-    put('backup-maptiles-count', mt.n.toLocaleString()); put('backup-maptiles-size', _kmMB(mt.bytes)); put('backup-maptiles-updated', when(mt.last));
-    put('backup-demtiles-count', dem.n.toLocaleString()); put('backup-demtiles-size', _kmMB(dem.bytes)); put('backup-demtiles-updated', when(dem.last || 0));
+    const [mt, dem, bg, wx, as] = await Promise.all([_mtStat(), (typeof _kmTilesStat === 'function') ? _kmTilesStat() : Promise.resolve({ n: 0, bytes: 0, last: 0 }), _bgStat(), _ssStat(), _kmAssetsStat()]);
+    _mtBytes = mt.bytes; _bgBytes = bg.bytes;
+    const pct = (bytes, name) => { const cap = _storeCap(name); return cap > 0 ? `${Math.min(999, Math.round(bytes / cap * 100))}%` : '-'; };
+    const capBox = (name) => { const el = document.getElementById('input-backup-cap-' + name); if (el && document.activeElement !== el) { const v = appState.storeCaps && appState.storeCaps[name]; el.value = v ? String(v) : ''; el.placeholder = '既定 ' + Math.round(SORA.STORE.CAP_BYTES[name] / 1048576); } };
+    put('backup-maptiles-count', mt.n.toLocaleString()); put('backup-maptiles-size', _kmMB(mt.bytes)); put('backup-maptiles-updated', when(mt.last)); put('backup-maptiles-used', when(mt.used || mt.last)); put('backup-maptiles-pct', pct(mt.bytes, 'maptiles')); capBox('maptiles');
+    put('backup-demtiles-count', dem.n.toLocaleString()); put('backup-demtiles-size', _kmMB(dem.bytes)); put('backup-demtiles-updated', when(dem.last || 0)); put('backup-demtiles-used', when(dem.used || dem.last || 0)); put('backup-demtiles-pct', pct(dem.bytes, 'demtiles')); capBox('demtiles');
+    put('backup-bldg-count', bg.n.toLocaleString()); put('backup-bldg-size', _kmMB(bg.bytes)); put('backup-bldg-used', when(bg.used || bg.last || 0)); put('backup-bldg-pct', pct(bg.bytes, 'bldg')); capBox('bldg');
+    put('backup-assets-count', as.n.toLocaleString()); put('backup-assets-size', _kmMB(as.bytes)); put('backup-assets-pct', pct(as.bytes, 'assets')); capBox('assets');
+    put('backup-wx-count', wx.n.toLocaleString()); put('backup-wx-size', _kmMB(wx.bytes)); put('backup-wx-pct', pct(wx.bytes, 'wx')); capBox('wx');
+    const sb = _settingsBytes(); put('backup-settings-size', `${Math.round(sb / 1024).toLocaleString('ja-JP')} KB`); put('backup-settings-pct', `${Math.min(999, Math.round(sb / (5 * 1048576) * 100))}%`);
+    try { let last = 0; try { last = Number(localStorage.getItem('soranotsuji_store_clean_at')) || 0; } catch (_) {} put('backup-clean-at', last ? when(last) : '-'); } catch (_) {}
+    const ab = document.getElementById('backup-assets-block'); if (ab) ab.style.display = FEATURE_KASHIMAP_ENABLED ? '' : 'none';   // 可視マップは封鎖中なら行を出さない
     const sw = await _swStat();   // 本体の控え(第183・デッサン35)
     put('backup-shell-count', sw.n.toLocaleString()); put('backup-shell-size', _kmMB(sw.bytes)); put('backup-shell-ver', sw.vers.length ? sw.vers.map(v => 'v' + v).join(', ') : '-');
+    try {   // 全体(ブラウザの見積もり=オリジン全体)と永続の状態(第184 段3)
+        if (navigator.storage && navigator.storage.estimate) { const est = await navigator.storage.estimate(); put('backup-total-usage', `${_kmMB(est.usage || 0)} / ${_kmMB(est.quota || 0)}(ブラウザの割当)`); }
+        const pers = await _storagePersisted(); put('backup-persist-state', pers === null ? '-' : (pers ? 'はい(消されない)' : 'いいえ'));
+    } catch (_) {}
 }
 // ---- 本体の控え(Service Worker。デッサン35・第183) ----
 // 登録は https の本番/開発サイトだけ。ローカルの検証(http://127.0.0.1)では ?sw=1 を付けた時だけ登録する(既存の verify 群の route が SW に横取りされないため)。
-// 版は登録URLの ?v=APP_VERSION で SW へ渡す(APP_VERSION の置き場は script.js のまま=多くの verify がここの字面を見張っている。SW は本体を読めないので URL で受け取る)。
-let _swReg = null, _swLastUpdate = 0;
+// 版は sora-constants.js の APP_VERSION の1箇所(第184・SSOT)。sw.js は importScripts('sora-constants.js') で同じ値を読み、updateViaCache:'none' なので
+// 版が変わる(=sora-constants.js のバイトが変わる)とブラウザが新しい SW として入れ直す。登録URLに ?v= は要らない。
+let _swReg = null, _swLastUpdate = 0, _swReloaded = false;
 function _swEnabled() { return ('serviceWorker' in navigator) && (location.protocol === 'https:' || /[?&]sw=1(&|$)/.test(location.search)); }
 async function _swRegister() {
     if (!_swEnabled()) return null;
-    const meta = document.querySelector('meta[name="app-version"]');
-    const pageVer = (meta && meta.content) || APP_VERSION;   // 表示中のページの版で登録する(古い script.js が控えから出た端末でも、ページの版の SW が入って揃う。第183のレビュー)
-    if (pageVer !== APP_VERSION) navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });   // 新しい SW が入ったら一度だけ読み直して版を揃える
     try {
-        _swReg = await navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(pageVer), { updateViaCache: 'none' });
+        navigator.serviceWorker.addEventListener('controllerchange', _swOnControllerChange);
+        _swReg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
         _swLastUpdate = Date.now();
     } catch (e) { console.warn('本体の控え(Service Worker)の登録に失敗:', e && e.message); }
     return _swReg;
+}
+/** 新しい SW が制御を取った時(配布直後): 配信中の版(sora-constants.js を最新で読む)が、この画面の版と違えば一度だけ読み直して揃える(古い script.js が控えから出た端末の保険。第183のレビュー・第184で版の読み方を SSOT に) */
+async function _swOnControllerChange() {
+    if (_swReloaded) return;
+    try {
+        const t = await (await fetch('sora-constants.js', { cache: 'no-cache' })).text();
+        const m = /APP_VERSION = '([^']+)'/.exec(t);
+        if (m && m[1] !== APP_VERSION) { _swReloaded = true; location.reload(); }
+    } catch (_) { /* 圏外などは何もしない(次に開いた時に揃う) */ }
 }
 function _swMaybeUpdate() {   // 前面に戻った時、1時間以上経っていれば新しい版を確かめる(ページ自体はネット優先なので、これは落ちた時の保険の更新)
     if (!_swReg || document.visibilityState !== 'visible' || Date.now() - _swLastUpdate < 3600000) return;
@@ -1078,6 +1109,94 @@ async function _swClear() {
 window.addEventListener('load', () => setTimeout(_swRegister, 1500));   // 起動の描画を邪魔しないよう少し後で
 document.addEventListener('visibilitychange', _swMaybeUpdate);
 
+// ---- 端末の控えの片付け(デッサン35 §4・第184 段2): sora-store-worker.js に任せる(画面を止めない) ----
+let _storeCleanBusy = false;
+function _storeCleanDue() { let last = 0; try { last = Number(localStorage.getItem('soranotsuji_store_clean_at')) || 0; } catch (_) {} return Date.now() - last > SORA.STORE.CLEAN_INTERVAL_MS; }
+function _storeCleanMaybe() { if (_storeCleanBusy || !_storeCleanDue()) return; _storeCleanNow('auto'); }   // 1日1回(起動の少し後・前面に戻った時)
+function _storeCleanStatus(text) { const el = document.getElementById('backup-clean-status'); if (el) el.textContent = text || ''; }
+/** 片付けを今すぐ(手動=「今すぐ整理」/自動)。終わったら {stores:{maptiles,demtiles,bldg,wx:{n,bytes,deletedOld,deletedCap,freed}}} */
+function _storeCleanNow(reason) {
+    return new Promise((resolve) => {
+        if (_storeCleanBusy) { resolve(null); return; }
+        if (typeof Worker !== 'function' || typeof indexedDB === 'undefined') { resolve(null); return; }
+        _storeCleanBusy = true;
+        let w = null, timer = null;
+        const finish = (res) => {
+            clearTimeout(timer); _storeCleanBusy = false;
+            try { w && w.terminate(); } catch (_) {}
+            try { localStorage.setItem('soranotsuji_store_clean_at', String(Date.now())); } catch (_) {}
+            _mtBytes = null; _mtCapWarned = false; _bgBytes = null; _bgCapWarned = false;   // 数え直し
+            if (typeof _mtRefreshBackupRows === 'function') _mtRefreshBackupRows();
+            resolve(res);
+        };
+        try {
+            w = new Worker('sora-store-worker.js');
+            timer = setTimeout(() => { _storeCleanStatus('整理を打ち切りました(時間切れ)'); finish({ error: 'timeout' }); }, 180000);
+            w.onmessage = (e) => {
+                const d = e.data || {};
+                if (d.type === 'progress') { _storeCleanStatus(`整理中: ${d.store} ${d.done}/${d.total}件`); return; }
+                if (d.type === 'done') {
+                    const st = d.stores || {};
+                    const del = Object.values(st).reduce((a, r) => a + (r.deletedOld || 0) + (r.deletedCap || 0), 0);
+                    const freed = Object.values(st).reduce((a, r) => a + (r.freed || 0), 0);
+                    _storeCleanStatus(d.error ? '整理に失敗しました' : (del ? `整理しました: ${del.toLocaleString()}件・${_kmMB(freed)}` : '整理しました: 消す物はありませんでした'));
+                    finish(d);
+                }
+            };
+            w.onerror = (e) => { _storeCleanStatus('整理に失敗しました'); finish({ error: String(e && e.message || e) }); };
+            _storeCleanStatus('整理中…');
+            w.postMessage({ type: 'clean', reason: reason || 'manual', now: Date.now(), unusedDays: SORA.STORE.UNUSED_DAYS,
+                caps: { maptiles: _storeCap('maptiles'), demtiles: _storeCap('demtiles'), bldg: _storeCap('bldg'), wx: _storeCap('wx') },
+                high: SORA.STORE.CLEAN_HIGH, low: SORA.STORE.CLEAN_LOW, wxTtlMs: SORA.STORE.WX_TTL_MS, batch: SORA.STORE.CLEAN_BATCH });
+        } catch (e) { _storeCleanStatus('整理に失敗しました'); finish({ error: String(e) }); }
+    });
+}
+window.addEventListener('load', () => setTimeout(_storeCleanMaybe, SORA.STORE.CLEAN_DELAY_MS));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _storeCleanMaybe(); });
+/** 設定(登録内容)=localStorage の soranotsuji_app の大きさ(バイトの目安。文字数×2) */
+function _settingsBytes() { try { const v = localStorage.getItem('soranotsuji_app'); return v ? v.length * 2 : 0; } catch (_) { return 0; } }
+/** 天気の控え(soranotsuji-wx/fc)の件数と大きさの目安 */
+async function _ssStat() {
+    const out = { n: 0, bytes: 0 };
+    try {
+        const db = await _ssDb();
+        await new Promise((ok) => {
+            const rq = db.transaction('fc', 'readonly').objectStore('fc').openCursor();
+            rq.onsuccess = () => { const c = rq.result; if (!c) { ok(); return; } out.n++; try { out.bytes += JSON.stringify(c.value).length; } catch (_) {} c.continue(); };
+            rq.onerror = () => ok();
+        });
+    } catch (_) {}
+    return out;
+}
+async function _ssClear() { try { await _ssIdb('readwrite', st => st.clear()); } catch (_) {} }
+/** 可視マップ資産(soranotsuji-kashimap/assets の要約)の件数と大きさ */
+async function _kmAssetsStat() {
+    const out = { n: 0, bytes: 0 };
+    try {
+        const db = await _kmDb();
+        await new Promise((ok) => {
+            const rq = db.transaction('assets', 'readonly').objectStore('assets').openCursor();
+            rq.onsuccess = () => { const c = rq.result; if (!c) { ok(); return; } out.n++; out.bytes += Number(c.value && c.value.size) || 0; c.continue(); };
+            rq.onerror = () => ok();
+        });
+    } catch (_) {}
+    return out;
+}
+/** 永続(ブラウザが容量不足でも消さない)の状態と要求(第184 段3) */
+async function _storagePersisted() { try { return (navigator.storage && navigator.storage.persisted) ? await navigator.storage.persisted() : null; } catch (_) { return null; } }
+async function _storagePersistRequest() { try { return (navigator.storage && navigator.storage.persist) ? await navigator.storage.persist() : null; } catch (_) { return null; } }
+/** 控えから開いた時の印(第184 段3): SW に「このページは控えから出したか」を尋ね、そうなら版の横に「(オフライン表示)」 */
+function _swShowOfflineMark(on) { const el = document.getElementById('app-offline-mark'); if (el) { el.textContent = on ? '(オフライン表示)' : ''; el.title = on ? '本体を端末の控えから開いています。地図・標高・天気は一度見た範囲だけ使えます' : ''; } }
+function _swAskServedFrom() {
+    try {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', (e) => { const d = e.data || {}; if (d.type === 'sora:served') _swShowOfflineMark(d.from === 'cache'); });
+        if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'sora:served?' });
+    } catch (_) {}
+}
+window.addEventListener('load', () => { _swAskServedFrom(); if (navigator.onLine === false) _swShowOfflineMark(true); });
+window.addEventListener('offline', () => _swShowOfflineMark(true));
+
 /** 地図タイルの読み込み: gsicache://<URL> を店→無ければ地理院の順で。404は MapLibre の既定と同じく静かに「タイル無し」(status 404 の例外) */
 function _mtEnsureProtocol() {
     if (_mtProtocolAdded || typeof maplibregl === 'undefined') return;
@@ -1089,7 +1208,7 @@ function _mtEnsureProtocol() {
         try { rec = await _mtIdb('readonly', st => st.get(url)); } catch (_) { rec = null; }
         const notFound = () => { const e = new Error('HTTP 404'); e.status = 404; throw e; };
         if (rec && rec.miss) { if (_storeMissFresh(rec)) notFound(); rec = null; }   // 古い「無し」の印(30日)は取り直す
-        if (rec && rec.buf) return { data: rec.buf };
+        if (rec && rec.buf) { const t = _storeTouch(rec); if (t) _mtIdb('readwrite', st => st.put(t)).catch(() => {}); return { data: rec.buf }; }   // 最終使用を1日1回だけ書き直す(第184)
         const ctl = new AbortController();
         const timer = setTimeout(() => ctl.abort(), MT_FETCH_TIMEOUT_MS);
         try { if (abortController && abortController.signal) abortController.signal.addEventListener('abort', () => ctl.abort(), { once: true }); } catch (_) {}
@@ -1102,11 +1221,11 @@ function _mtEnsureProtocol() {
         if (!res.ok) { const e = new Error('HTTP ' + res.status); e.status = res.status; throw e; }
         const buf = await res.arrayBuffer();
         if (_mtBytes === null) { if (!_mtBytesP) _mtBytesP = _mtStat().then(s => { _mtBytes = s.bytes; }, () => { _mtBytes = 0; }); await _mtBytesP; }   // 最初の1枚だけ数える(同時に届いた分は同じ約束を待つ)
-        if (_mtBytes + buf.byteLength <= MT_MAX_BYTES) {
+        if (_mtBytes + buf.byteLength <= _storeCap('maptiles')) {
             _mtBytes += buf.byteLength;
-            _mtIdb('readwrite', st => st.put({ key: url, size: buf.byteLength, buf, savedAt: Date.now() })).catch(() => {});
+            _mtIdb('readwrite', st => st.put({ key: url, size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() })).catch(() => {});
             _mtScheduleRefresh();
-        } else if (!_mtCapWarned) { _mtCapWarned = true; console.warn(`地理タイルの店が上限(${_kmMB(MT_MAX_BYTES)})に達したので、これ以上は貯めません(バックアップメニューの「地理タイルを全削除」で空けられます)`); }
+        } else if (!_mtCapWarned) { _mtCapWarned = true; console.warn(`地理タイルの店が上限(${_kmMB(_storeCap('maptiles'))})に達したので、これ以上は貯めません(バックアップメニューの「地理タイルを全削除」か上限(MB)で空けられます)`); }
         return { data: buf };
     };
     maplibregl.addProtocol('gsicache', _mtProtocolHandler);
@@ -2637,6 +2756,23 @@ function setupUI() {
     // 端末の店の全削除(第158・デッサン18): 地理タイル(地図)と標高タイル(可視マップの店と同じ)
     const bMt = document.getElementById('btn-backup-maptiles-clear');
     if (bMt) bMt.onclick = async () => { if (!confirm('端末に貯めた地理タイル(地図)を全て削除しますか？(次に地図を表示した時にまた取りに行きます)')) return; await _mtClear(); _mtRefreshBackupRows(); };
+    const bBg = document.getElementById('btn-backup-bldg-clear');   // 建物(PLATEAU)の店(第184)
+    if (bBg) bBg.onclick = async () => { if (!confirm('端末に貯めた建物(PLATEAU)のタイルを全て削除しますか？(都市モードで次に表示した時にまた取りに行きます)')) return; await _bgClear(); _mtRefreshBackupRows(); };
+    const bWx = document.getElementById('btn-backup-wx-clear');   // 天気の控え(第184)
+    if (bWx) bWx.onclick = async () => { if (!confirm('端末に貯めた天気の控えを全て削除しますか？(次に使う時にまた取りに行きます)')) return; await _ssClear(); _mtRefreshBackupRows(); };
+    const bClean = document.getElementById('btn-backup-clean-now');   // 今すぐ整理(第184・デッサン35 §4)
+    if (bClean) bClean.onclick = () => { _storeCleanNow('manual'); };
+    const bPersist = document.getElementById('btn-backup-persist');   // 永続化を要求(第184 段3)
+    if (bPersist) bPersist.onclick = async () => { const r = await _storagePersistRequest(); alert(r === null ? 'このブラウザは永続化の要求に対応していません' : (r ? '永続化が許可されました(容量不足でもこのサイトのデータは消されません)' : '永続化は許可されませんでした(ブラウザの判断です。ホーム画面に追加・ブックマーク・よく使うと許可されやすくなります)')); _mtRefreshBackupRows(); };
+    for (const el of document.querySelectorAll('input.store-cap')) {   // 上限(MB)の端末ごとの上書き(空欄=既定)
+        el.addEventListener('change', (e) => {
+            const name = e.target.dataset.store; const v = Number(toHalfWidth(String(e.target.value || '')).trim());
+            if (!appState.storeCaps || typeof appState.storeCaps !== 'object') appState.storeCaps = {};
+            if (isFinite(v) && v >= 10) appState.storeCaps[name] = Math.min(1000000, Math.round(v)); else delete appState.storeCaps[name];
+            _mtCapWarned = false; _bgCapWarned = false;
+            saveAppState(); _mtRefreshBackupRows();
+        });
+    }
     const bSw = document.getElementById('btn-backup-shell-clear');   // 本体の控え(第183・デッサン35 Q6: 注記はボタンの上)
     if (bSw) bSw.onclick = async () => { if (!confirm('本体の控え(オフライン用)を削除しますか？\n(次に開く時に通信して作り直します。電波の無い所では開けなくなります)')) return; await _swClear(); _mtRefreshBackupRows(); };
     const bDem = document.getElementById('btn-backup-demtiles-clear');
@@ -2738,6 +2874,7 @@ function buildStateToSave() {
         mySetHome: appState.mySetHome,
         soraFolderName: appState.soraFolderName,
         googleDrive: appState.googleDrive,
+        storeCaps: appState.storeCaps,   // 端末の控えの上限(MB)の上書き(第184)
         meteo: appState.meteo, //気象パラメータのみ保存(Kはmeteoから再計算)
         meteoDefaultsV2: true,   // 気温減率の既定値0.0125への移行済み(v1.95.0)
         refractionEnabled: appState.refractionEnabled,
@@ -2897,6 +3034,7 @@ function loadAppState() {
             if(saved.mySetHome) appState.mySetHome = { ...appState.mySetHome, ...saved.mySetHome, id: 0, name: '既定のセット' };
             if(saved.soraFolderName) appState.soraFolderName = saved.soraFolderName;
             if(saved.googleDrive) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
+            if(saved.storeCaps && typeof saved.storeCaps === 'object') appState.storeCaps = { ...saved.storeCaps };   // 端末の控えの上限(第184)
             if(saved.meteo) appState.meteo = saved.meteo;
             // 気温減率の既定値を0.0065→0.0125へ(v1.95.0)。保存値が旧既定のまま(触っていない)なら新既定へ移す(一度でも保存すれば meteoDefaultsV2 が立って二度と触らない)
             if (saved.meteo && saved.meteoDefaultsV2 !== true && +saved.meteo.p === STD_P && +saved.meteo.t === STD_T && +saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };
@@ -3074,6 +3212,13 @@ function _sanitizeStoredShapes() {
             const v = appState.googleDrive[k];
             if (v !== null && v !== undefined && !(typeof v === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(v))) appState.googleDrive[k] = null;
         }
+    }
+    // 端末の控えの上限(MB)の上書き: 知っている店の名前だけ・10〜1,000,000 の数(違えば捨てて既定へ)(第184)
+    {
+        const caps = (appState.storeCaps && typeof appState.storeCaps === 'object') ? appState.storeCaps : {};
+        const out = {};
+        for (const k of Object.keys(SORA.STORE.CAP_BYTES)) { const v = Number(caps[k]); if (isFinite(v) && v >= 10 && v <= 1000000) out[k] = Math.round(v); }
+        appState.storeCaps = out;
     }
     // Myセット(id は整数・名前/メモは文字・シートIDは Google のIDの文字種だけ、違えば未連携に戻す)
     appState.mySets = (Array.isArray(appState.mySets) ? appState.mySets : []).map((m, i) => {
@@ -5211,7 +5356,7 @@ async function _demTileLoad(tileUrl) {
         const r = await rec(key);
         if (r) {
             if (r.miss || !r.buf) { if (_storeMissFresh(r)) return null; }   // 新しい「無し」の印=404。古い印(30日)は取り直す
-            else { try { return await _demDecode(r.buf); } catch (_) {} }
+            else { const t = _storeTouch(r); if (t) put(t); try { return await _demDecode(r.buf); } catch (_) {} }   // 最終使用を1日1回だけ書き直す(第184)
         }
     }
     if (typeof fetch !== 'function') return await _loadTileImage(tileUrl);   // fetch の無い環境は従来の Image 読み
@@ -5223,7 +5368,7 @@ async function _demTileLoad(tileUrl) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const buf = await res.arrayBuffer();
         fetched = true;
-        if (db) { put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); _mtScheduleRefresh(); }
+        if (db) { put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() }); _mtScheduleRefresh(); }
         return await _demDecode(buf);
     } catch (e) {
         if (fetched) return await _loadTileImage(tileUrl);   // 取れたのに復号できない時だけ従来の Image 読みへ
@@ -5598,10 +5743,10 @@ const TSUJI_TIME_MODES = [
     { v: 'civilDawn',    l: '常用薄明/BH[始]' },
     { v: 'bhEndGhStart', l: 'BH[終]/GH[始]' },
     { v: 'sunrise',      l: '日の出' },
+    { v: 'moonrise',     l: '月の出' },   // 第183(棚卸し223)で追加。第184(依頼者): 日の出→月の出→GH[終]→GH[始]→月の入→日の入 の並びが分かりやすい
     { v: 'ghEnd',        l: 'GH[終]' },
-    { v: 'moonrise',     l: '月の出' },   // 第183(棚卸し223): 依頼者指定で「GH[終]」と「GH[始]」の間
-    { v: 'moonset',      l: '月の入' },
     { v: 'ghStart',      l: 'GH[始]' },
+    { v: 'moonset',      l: '月の入' },
     { v: 'sunset',       l: '日の入' },
     { v: 'ghEndBhStart', l: 'GH[終]/BH[始]' },
     { v: 'civilDusk',    l: '常用薄明/BH[終]' },
@@ -7532,7 +7677,7 @@ function appendMyTsujiCsv() {
 
 /** CSV文字列の生成(全58列。行の項目の並び順に対応)。入出力で同じ列構成を使う */
 function _buildMyTsujiCsv(targets) {
-    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,月間フィルタ,月間1月フィルタ,月間2月フィルタ,月間3月フィルタ,月間4月フィルタ,月間5月フィルタ,月間6月フィルタ,月間7月フィルタ,月間8月フィルタ,月間9月フィルタ,月間10月フィルタ,月間11月フィルタ,月間12月フィルタ,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,標高フィルタ,標高OKフィルタ,標高NGフィルタ,メモ\r\n';
+    let csv = '辻検索ID,辻検索名,検索期間,天体ID,観測点ID,目的点ID,基準方位角,基準視高度,辻オフセット方位角,辻オフセット視高度,許容範囲方位角,許容範囲視高度,検索中心,オフセット中心角,月齢フィルタ,基準月齢,許容範囲月齢,時間フィルタ,開始時刻モード,開始時刻,開始前後指定,開始前後,開始前後時刻,終了時刻モード,終了時刻,終了前後指定,終了前後,終了前後時刻,曜日フィルタ,曜日月フィルタ,曜日火フィルタ,曜日水フィルタ,曜日木フィルタ,曜日金フィルタ,曜日土フィルタ,曜日日フィルタ,月間フィルタ,月間1月フィルタ,月間2月フィルタ,月間3月フィルタ,月間4月フィルタ,月間5月フィルタ,月間6月フィルタ,月間7月フィルタ,月間8月フィルタ,月間9月フィルタ,月間10月フィルタ,月間11月フィルタ,月間12月フィルタ,精度フィルタ,精度◎フィルタ,精度○フィルタ,精度△フィルタ,精度-フィルタ,可視フィルタ,可視OKフィルタ,可視NGフィルタ,メモ\r\n';   // 第184: 列名を「可視フィルタ」に(v1.98.0 の改名に追従。読みは列の位置なので旧ヘッダのファイルもそのまま読める)
     targets.forEach(t => {
         csv += [
             t.id,
@@ -7857,8 +8002,8 @@ async function decorateMyTsujiResults(results) {
         try {
             sunriseStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, startOfDay, 1));
             sunsetStr  = fmtHms(Astronomy.SearchRiseSet('Sun', observer, -1, startOfDay, 1));
-            moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2));
-            moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2));
+            moonriseStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, startOfDay, 2), startOfDay);   // 翌日なら 24:xx(第184)
+            moonsetStr  = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, startOfDay, 2), startOfDay);
         } catch (_) {}
         decorated.push({ ...r, symbol, dateStr, dowStr, timeStr, moonAge, moonIcon, moonIllum, angularRadius, timeCategory,
                  elevationStatus, sunriseStr, sunsetStr, moonriseStr, moonsetStr, tw });
@@ -8103,10 +8248,12 @@ function _myTsujiRenderResults() {
 // ============================================================
 
 /** Date を HH:mm:ss 形式にフォーマット (null時は '--:--:--') */
-function fmtHms(d) {
+function fmtHms(d, baseDate) {   // baseDate(当日0時)を渡すと、翌日の時刻は 24時を足して表す(例 24:45:46。日時情報メニューの formatTime と同じ印。第184・A案)
     if (!d) return '--:--:--';
     const x = d instanceof Date ? d : (d.date || d);
-    return `${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}:${String(x.getSeconds()).padStart(2,'0')}`;
+    let h = x.getHours();
+    if (baseDate && x.getTime() - baseDate.getTime() >= 86400000) h += 24;
+    return `${String(h).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}:${String(x.getSeconds()).padStart(2,'0')}`;
 }
 
 /** decorated 結果1件分をCSV行の配列へ変換 */
@@ -8198,7 +8345,7 @@ function buildMyTsujiCsvRow(r, preAstro) {
         csvDowStr,
         fmtHms(dt),
         r.timeCategory ?? '-',
-        fmtHms(sr), fmtHms(ss), fmtHms(mr), fmtHms(ms),
+        fmtHms(sr), fmtHms(ss), fmtHms(mr, startOfDay), fmtHms(ms, startOfDay),   // 月の出/月の入は翌日なら 24:xx(第184)
         r.moonAge.toFixed(1),
         r.moonIcon,
         (r.moonIllum ?? 0).toFixed(1) + '%',
@@ -10439,8 +10586,8 @@ function _tmUpdateDetailList(pix) {
             try {
                 a.srStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, +1, d0, 1));
                 a.ssStr = fmtHms(Astronomy.SearchRiseSet('Sun', observer, -1, d0, 1));
-                a.mrStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, d0, 2));
-                a.msStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, d0, 2));
+                a.mrStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, +1, d0, 2), d0);   // 翌日なら 24:xx(第184)
+                a.msStr = fmtHms(Astronomy.SearchRiseSet('Moon', observer, -1, d0, 2), d0);
             } catch (_) { a.srStr = a.ssStr = a.mrStr = a.msStr = '--:--:--'; }
             _tmDetailAstroCache.set(d0.getTime(), a);
         }
@@ -11338,7 +11485,7 @@ function _tmBuildRows(allBodyEvents, F, visFlags, elevOn) {
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
                 elevationStatus: rowElevStatus,   // 行の表示値を出した地点=最良画素の可視判定(標高グラフと同一アルゴリズム)
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
-                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms),
+                moonriseStr: fmtHms(rs.mr, rs.startOfDay), moonsetStr: fmtHms(rs.ms, rs.startOfDay),   // 翌日なら 24:xx(第184)
                 dateStr: `${dt.getFullYear()}年${String(dt.getMonth() + 1).padStart(2, '0')}月${String(dt.getDate()).padStart(2, '0')}日`,
                 dowStr: `(${dow})`,
                 timeStr: _tmFmtTimeMs2(rowTimeMs),   // 0.01秒表示(優辻マーカーのポップアップと同じ)
@@ -11615,7 +11762,7 @@ function _kmDb() {
     _kmDbP = new Promise((ok, ng) => {
         try {
             // v2(第152): assets=要約だけ(一覧と索引はこれだけ読む) / bodies=本文(meta・islandsObj・outlineObj。使う時だけ読む) / tiles=標高タイル(段4)
-            const req = indexedDB.open('soranotsuji-kashimap', 3);   // v3(第158): tiles に size/savedAt の索引(件数・容量を本文を読まずに数える)
+            const req = indexedDB.open('soranotsuji-kashimap', 4);   // v3(第158): tiles に size/savedAt の索引(件数・容量を本文を読まずに数える)。v4(第184): usedAt の索引
             req.onupgradeneeded = (ev) => {
                 const db = req.result, tx = req.transaction;
                 if (!db.objectStoreNames.contains('assets')) db.createObjectStore('assets', { keyPath: 'key' });
@@ -13500,7 +13647,7 @@ function _tsujiRenderResults() {
                 timeCategory: classifyTimeCategory(dt, rs.tw, rs.startOfDay),
                 elevationStatus: elevStatus,
                 sunriseStr: fmtHms(rs.sr), sunsetStr: fmtHms(rs.ss),
-                moonriseStr: fmtHms(rs.mr), moonsetStr: fmtHms(rs.ms)
+                moonriseStr: fmtHms(rs.mr, rs.startOfDay), moonsetStr: fmtHms(rs.ms, rs.startOfDay)   // 翌日なら 24:xx(第184)
             });
         });
 
@@ -19388,17 +19535,9 @@ function _smAttachDrag(cv) {
 function _smSetupSearchCtrl() {
     const chkFrame = document.getElementById('chk-sora-ctrl-drag-frame'), chkTsuji = document.getElementById('chk-sora-ctrl-drag-tsuji');
     const redraw = () => { if (appState.isSoramadoActive && !_smFailed) drawSoramado(); };
-    const setDragMode = (tsuji) => {   // ラジオなので「両方オン」「両方オフ」は無い
+    const setDragMode = (tsuji) => {   // ラジオなので「両方オン」「両方オフ」は無い。切り替えでは何も戻さない(第184・依頼者: 「:構図」へ戻しても辻オフセット点はそのまま。戻すのは「リセット」=0 だけ)
         if (tsuji === _smDragTsuji) return;
         _smDragTsuji = tsuji; _smDragFrame = !tsuji;
-        if (tsuji) {
-            _smTsujiDragBase = { az: Number(appState.tsujiSearchOffsetAz) || 0, alt: Number(appState.tsujiSearchOffsetAlt) || 0 };   // 戻り先を覚える
-        } else if (_smTsujiDragBase) {   // 「:構図」へ戻す=辻オフセットを動かす前の値に戻す(デッサン05 7.)
-            appState.tsujiSearchOffsetAz = _smTsujiDragBase.az; appState.tsujiSearchOffsetAlt = _smTsujiDragBase.alt; _smTsujiDragBase = null;
-            _tsujiLinkPropagate('tsuji', false);   // 辻メッシュ側も戻す
-            updateOffsetDistances(); _dpOffsetEdited(); saveAppState();
-            redraw();
-        }
     };
     if (chkFrame) { chkFrame.checked = !_smDragTsuji; chkFrame.addEventListener('change', (e) => { if (e.target.checked) setDragMode(false); }); }
     if (chkTsuji) { chkTsuji.checked = _smDragTsuji; chkTsuji.addEventListener('change', (e) => { if (e.target.checked) setDragMode(true); }); }
@@ -19409,7 +19548,6 @@ function _smSetupSearchCtrl() {
     });
     if (rt) rt.addEventListener('click', () => {   // 辻オフセット点のリセット: 辻オフセット方位角/視高度を0に(辻検索メニュー・辻メッシュ側と連動。デッサン05 8.)
         appState.tsujiSearchOffsetAz = 0; appState.tsujiSearchOffsetAlt = 0;
-        if (_smTsujiDragBase) _smTsujiDragBase = { az: 0, alt: 0 };   // リセットの後に「:構図」へ戻しても 0 のまま(戻り先も更新)
         _tsujiLinkPropagate('tsuji', false);
         updateOffsetDistances(); _dpOffsetEdited(); saveAppState(); redraw();
     });
@@ -19442,7 +19580,7 @@ let _smObsNudge = { e: 0, n: 0, u: 0 };
 let _smCamNudgeBase = null;   // カメラ向き/回転ボタンの戻り先 {az, alt}(null=未操作。「カメラ反映」で忘れて確定)
 // プレビューのドラッグの対象(コントロールの2つのチェック。第158・デッサン05 4.1段目): 構図=カメラオフセット / 辻オフセット点=検索中心(×)。保存しない(セッション内)
 let _smDragFrame = true, _smDragTsuji = false;
-let _smTsujiDragBase = null;   // 「:辻オフセット点をドラッグ」をオンにした時の辻オフセット {az, alt}(オフで戻す)
+let _smTsujiDragBase = null;   // (第184で不使用に: ラジオの切り替えでは辻オフセットを戻さない。互換のため変数だけ残す)
 
 /** 観測点移動の合計を体の向き(=カメラの向き)基準(前/右/上)の読みで表示。全て0なら空欄 */
 function _smObsNudgeReadout() {
@@ -20226,7 +20364,7 @@ const SS_PRESETS = {
 };
 
 // --- IndexedDB キャッシュ (DB: soranotsuji-wx / store: fc / TTL 2時間。ローカル使い捨て・Drive同期対象外) ---
-const SS_TTL = 2 * 3600e3;
+const SS_TTL = SORA.STORE.WX_TTL_MS;   // 天気の控えの寿命(TTL)。置き場は sora-constants.js(第184)
 let _ssDbReady = null;
 function _ssDb() {
     if (_ssDbReady) return _ssDbReady;
@@ -22743,11 +22881,52 @@ function _smBldgDecodePrim(draco, gltf, bin, prim) {
     }
 }
 
-/** tileset.jsonの取得と葉タイル一覧化(URL・中心緯度経度・概算半径m)。Promiseをキャッシュ */
+// ---- 建物(PLATEAU)タイルの端末の店(第184・依頼者: 地理/標高と同じく別項目で上限 1GB。IndexedDB soranotsuji-bldg/tiles。鍵=URL・{size, buf, savedAt, usedAt}。tileset.json も同じ店) ----
+const BG_DB = 'soranotsuji-bldg', BG_STORE = 'tiles';
+let _bgDbP = null, _bgBytes = null, _bgBytesP = null, _bgCapWarned = false;
+function _bgDb() {
+    if (_bgDbP) return _bgDbP;
+    _bgDbP = new Promise((ok, ng) => {
+        try {
+            const req = indexedDB.open(BG_DB, 1);
+            req.onupgradeneeded = () => { const db = req.result, tx = req.transaction; const st = db.objectStoreNames.contains(BG_STORE) ? tx.objectStore(BG_STORE) : db.createObjectStore(BG_STORE, { keyPath: 'key' }); _idbEnsureStatIndexes(st); };
+            req.onsuccess = () => ok(req.result);
+            req.onerror = () => ng(req.error);
+        } catch (e) { ng(e); }
+    });
+    _bgDbP.catch(() => { _bgDbP = null; });
+    return _bgDbP;
+}
+async function _bgIdb(mode, fn) {
+    const db = await _bgDb();
+    return new Promise((ok, ng) => { const r = fn(db.transaction(BG_STORE, mode).objectStore(BG_STORE)); r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); });
+}
+async function _bgStat() { try { const db = await _bgDb(); return (await _idbStatByIndex(db.transaction(BG_STORE, 'readonly').objectStore(BG_STORE))) || { n: 0, bytes: 0, last: 0, used: 0 }; } catch (e) { return { n: 0, bytes: 0, last: 0, used: 0 }; } }
+async function _bgClear() { try { await _bgIdb('readwrite', st => st.clear()); } catch (e) {} _bgBytes = 0; _bgCapWarned = false; }
+/** 建物のタイル/tileset を店→無ければ取得して店へ(上限 _storeCap('bldg') つき)。戻り値 ArrayBuffer */
+async function _bgFetchBuf(url) {
+    let rec = null;
+    try { rec = await _bgIdb('readonly', st => st.get(url)); } catch (_) { rec = null; }
+    if (rec && rec.buf) { const t = _storeTouch(rec); if (t) _bgIdb('readwrite', st => st.put(t)).catch(() => {}); return rec.buf; }
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('tile ' + r.status);
+    const buf = await r.arrayBuffer();
+    try {
+        if (_bgBytes === null) { if (!_bgBytesP) _bgBytesP = _bgStat().then(st => { _bgBytes = st.bytes; }, () => { _bgBytes = 0; }); await _bgBytesP; }
+        if (_bgBytes + buf.byteLength <= _storeCap('bldg')) {
+            _bgBytes += buf.byteLength;
+            _bgIdb('readwrite', st => st.put({ key: url, size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() })).catch(() => {});
+            _mtScheduleRefresh();
+        } else if (!_bgCapWarned) { _bgCapWarned = true; console.warn(`建物(PLATEAU)の店が上限(${_kmMB(_storeCap('bldg'))})に達したので、これ以上は貯めません(バックアップメニューの「建物タイルを全削除」か上限(MB)で空けられます)`); }
+    } catch (_) {}
+    return buf;
+}
+
+/** tileset.jsonの取得と葉タイル一覧化(URL・中心緯度経度・概算半径m)。Promiseをキャッシュ(本文は端末の店 soranotsuji-bldg にも控える=第184) */
 function _smBldgTileset(url) {
     let p = _smBldgTilesetCache.get(url);
     if (!p) {
-        p = fetch(url).then(r => { if (!r.ok) throw new Error('tileset ' + r.status); return r.json(); }).then(ts => {
+        p = _bgFetchBuf(url).then(buf => JSON.parse(new TextDecoder().decode(buf))).then(ts => {
             const base = url.replace(/[^/]*$/, '');
             const leaves = [];
             const walk = (n) => {
@@ -22993,7 +23172,7 @@ async function _smBldgRun(gen, ctx) {
 async function _smBldgBuildTile(url, tctx, gen) {
     let bufP = _smBldgBufCache.get(url);
     if (!bufP) {
-        bufP = fetch(url).then(r => { if (!r.ok) throw new Error('tile ' + r.status); return r.arrayBuffer(); })
+        bufP = _bgFetchBuf(url)   // 端末の店(soranotsuji-bldg)→無ければ PLATEAU から取って店へ(第184)
             .catch(e => { _smBldgBufCache.delete(url); throw e; });
         _smBldgLruPut(_smBldgBufCache, url, bufP, null);
     }

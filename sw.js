@@ -15,23 +15,25 @@ GNU General Public License for more details.
 
 // 宙の辻 Service Worker(デッサン35 §2): 電波の無い所でも宙の辻を「開ける」ように、本体(画面・プログラム・同梱データ)を版ごとに控える。
 // ・扱うのは自オリジン(置いたフォルダの中)の GET だけ。他オリジン(Google のログイン/API・国土地理院/OSM のタイル・Open-Meteo など)には一切触らない(respondWith しない)。
-// ・版は登録URLの ?v=(本体の APP_VERSION)で受け取る。控えの名前は sora-shell-v<版>。
+// ・版は sora-constants.js の APP_VERSION(唯一の置き場。第184)。importScripts で読み、控えの名前は sora-shell-v<版>。updateViaCache:'none' なので版が変わればブラウザが新しい SW として入れ直す。
 // ・入れ替えは2フェーズ: install で一覧(sw-precache.js)を全部そろえて確かめてから、activate で古い控えを捨てる。
 //   途中で失敗(圏外・404)したら install が失敗し、古い SW と古い控えのまま動く(中途半端な控えは決して使われない)。
-// ・ページ(index.html)はネット優先(待ち時間を過ぎたら控え)。本体のファイルは、ページの版(meta app-version)が SW の版と同じなら控え優先(速い・圏外で動く)、
+// ・ページ(index.html)はネット優先(待ち時間を過ぎたら控え)。本体のファイルは、ページの版(ページと一緒に最新で読んだ sora-constants.js の版)が SW の版と同じなら控え優先(速い・圏外で動く)、
 //   違えば(配布直後の過渡期)ネットだけ(古い控えを新しいページに混ぜない。落ちたら読み直しで控えの古い版に揃う)。
 // ・控えから出した応答には x-sora-shell: cache の印を付ける(画面の「オフライン表示」の判定と検証用)。
 // ・第183の反証レビューで足した守り: ワーカーは起動元のページの版を引き継ぐ / Cache Storage が壊れていれば SW が無い時と同じに通す / install の版の門番(旧URLの自動更新で入ろうとした SW は捨てる) /
 //   install 失敗で途中の控えを残さない / 範囲内の転送(301)はブラウザに辿らせる / 配信元の 5xx は控えで凌ぐ / 容量は実体のバイト数で数える(content-length は gzip 後)。
 'use strict';
-const VER = new URL(self.location.href).searchParams.get('v') || '0';
-const CACHE = 'sora-shell-v' + VER;
-importScripts('sora-constants.js');   // 上限と待ち時間(SORA.STORE)。自オリジンだけ
+importScripts('sora-constants.js');   // 版(SORA.APP_VERSION)と上限・待ち時間(SORA.STORE)。自オリジンだけ
 importScripts('sw-precache.js');      // self.SORA_PRECACHE(自動生成の一覧。tools/sw/build-precache.js)
+const VER = self.SORA.APP_VERSION;   // 版の唯一の置き場(第184・SSOT)
+const CACHE = 'sora-shell-v' + VER;
 const ST = self.SORA.STORE;
 const SCOPE = self.registration.scope;   // 置いたフォルダ(本番 '/'・開発サイト '/soranotsuji-dev/')
+const CONST_URL = new URL('sora-constants.js', SCOPE).href;   // 配信中の版を読む先(10KB・条件つき要求で軽い)
 const RUNTIME_OK = /\.(js|css|html|json|bin|csv|webp|png|ico|svg|pbf|wasm|woff2?)$/i;   // 使った時に控える物の種類
-const clientVer = new Map();   // クライアントID → そのページの版(meta app-version)。ワーカーは起動元のページの版を引き継ぐ。SW が再起動すると消える(その時は控え優先=同じ版とみなす)
+const clientVer = new Map();   // クライアントID → そのページの版。ワーカーは起動元のページの版を引き継ぐ。SW が再起動すると消える(その時は控え優先=同じ版とみなす)
+const servedFromCache = new Set();   // 控えから開いたページのクライアントID(画面の「オフライン表示」の印の問い合わせに答える。第184 段3)
 let shellBytes = null;         // 控えの合計バイト(遅延で数える)
 
 self.addEventListener('install', (e) => {
@@ -40,9 +42,9 @@ self.addEventListener('install', (e) => {
         if (!Array.isArray(list) || !list.length) throw new Error('precache list missing');
         const existed = await caches.has(CACHE);   // 同じ名前の控えが生きている時(版を上げずに sw.js だけ変わった時)は、失敗しても消さない
         try {
-            // 版の門番: 配信中のページの版が自分の版と違えば、この install は捨てる(旧URL sw.js?v=旧 の自動更新で入ろうとした SW。正しい版はページの register('sw.js?v=新版') が入れる)
-            const idx = await fetchWithTimeout(new URL('index.html', SCOPE).href, ST.SHELL_FETCH_TIMEOUT_MS, { cache: 'reload' });
-            const pv = idx.ok ? versionOf(await idx.text()) : null;
+            // 版の門番: 配信中の版(sora-constants.js を最新で読む)が自分の版と違えば、この install は捨てる(更新の確認と配布が重なった時。正しい版は次の更新の確認で入る)
+            const cst = await fetchWithTimeout(CONST_URL, ST.SHELL_FETCH_TIMEOUT_MS, { cache: 'reload' });
+            const pv = cst.ok ? versionOf(await cst.text()) : null;
             if (pv && pv !== VER) throw new Error('version mismatch: page ' + pv + ' / sw ' + VER);
             const c = await caches.open(CACHE);
             await c.addAll(list.map(u => new Request(new URL(u, SCOPE).href, { cache: 'reload' })));   // HTTP キャッシュを飛ばして取る。1つでも失敗すれば install 失敗=古いまま
@@ -69,7 +71,7 @@ function fetchWithTimeout(href, ms, init) {
     const t = setTimeout(() => ctl.abort(), ms);
     return fetch(href, Object.assign({ cache: 'no-cache', credentials: 'same-origin', signal: ctl.signal }, init || {})).finally(() => clearTimeout(t));
 }
-function versionOf(html) { const m = /<meta name="app-version" content="([^"]+)"/.exec(html); return m ? m[1] : null; }
+function versionOf(constText) { const m = /APP_VERSION = '([^']+)'/.exec(constText); return m ? m[1] : null; }   // sora-constants.js の版(本体と同じ1箇所)
 function marked(res) {   // 控えから出す応答に印を付ける(Cache API の応答はヘッダが不変なので作り直す)
     const h = new Headers(res.headers); h.set('x-sora-shell', 'cache');
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
@@ -79,7 +81,7 @@ async function openShell() { try { return await caches.open(CACHE); } catch (_) 
 async function matchShell(c, key) { try { return await c.match(key); } catch (_) { return null; } }
 async function fromShell(e, c, key) {   // 控えのページ(その鍵か index.html)。出せた時はそのクライアントの版=SW の版
     const hit = (await matchShell(c, key)) || (await matchShell(c, new URL('index.html', SCOPE).href));
-    if (hit && e.resultingClientId) clientVer.set(e.resultingClientId, VER);
+    if (hit && e.resultingClientId) { clientVer.set(e.resultingClientId, VER); servedFromCache.add(e.resultingClientId); }
     return hit ? marked(hit) : null;
 }
 async function bodySize(res) { try { return (await res.clone().blob()).size; } catch (_) { return 0; } }   // 実体のバイト数(content-length は GitHub Pages では gzip 後の値)
@@ -100,6 +102,11 @@ async function putRuntime(c, key, res) {   // 使った時に控える(念のた
     } catch (_) { /* 容量不足などは黙って諦める(ネットから返した物はもう画面に届いている) */ }
 }
 
+self.addEventListener('message', (e) => {   // ページからの問い合わせ「このページは控えから出したか」(第184 段3)
+    const d = e.data || {};
+    if (d.type === 'sora:served?' && e.source && e.source.postMessage) e.source.postMessage({ type: 'sora:served', from: servedFromCache.has(e.source.id) ? 'cache' : 'network', ver: VER });
+});
+
 self.addEventListener('fetch', (e) => {
     const req = e.request;
     if (req.method !== 'GET') return;
@@ -115,11 +122,12 @@ async function handleNavigate(e, url, key) {   // ページ: ネット優先 →
     const c = await openShell();
     if (!c) return fetch(e.request);   // Cache Storage が使えない: SW が無い時と同じ
     try {
-        const res = await fetchWithTimeout(url.href, ST.SHELL_NAV_TIMEOUT_MS);
+        const [res, cst] = await Promise.all([fetchWithTimeout(url.href, ST.SHELL_NAV_TIMEOUT_MS), fetchWithTimeout(CONST_URL, ST.SHELL_NAV_TIMEOUT_MS).catch(() => null)]);   // ページと一緒に配信中の版も最新で読む
         if (res.redirected) return Response.redirect(res.url, 302);   // 範囲内の転送(例: /data→/data/)はブラウザに改めて辿らせる(navigate は転送済みの応答を返せない)
         if (res.status >= 500) return (await fromShell(e, c, key)) || res;   // 配信元の 5xx は控えで凌ぐ(無ければそのまま)
         if (res.ok) {
-            const v = versionOf(await res.clone().text());
+            let v = null;
+            try { v = (cst && cst.ok) ? versionOf(await cst.text()) : null; } catch (_) { v = null; }
             if (e.resultingClientId) clientVer.set(e.resultingClientId, v || VER);
             if (!v || v === VER) putRuntime(c, key, res.clone());   // 同じ版だけ控えに入れる(新しい版のページを古い控えに混ぜない)
         }

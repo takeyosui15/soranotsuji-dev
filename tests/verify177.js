@@ -13,12 +13,13 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const wkSrc = fs.readFileSync(path.join(ROOT, 'tm-vis-worker.js'), 'utf8');
 const mountains = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'mountains.json'), 'utf8')).mountains;
 
-check('V0 版数(ピンはverify178へ移譲)+Version Historyに第152・第153', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第152ラウンド — 除外範囲メニューに「山頂部」') && src.includes('第153ラウンド — 山頂部の基準の標高') || !!process.argv[2]));
+check('V0 版数(ピンはverify178へ移譲)+Version Historyに第152・第153', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('第152ラウンド — 除外範囲メニューに「山頂部」') && src.includes('第153ラウンド — 山頂部の基準の標高') || !!process.argv[2]));
 check('S1 index.html: 除外範囲に「:山頂部」「:プレビュー」「山頂部(帯,m)」情報行「除外範囲をリセット」・可視マップ節に範囲ラジオ(100/300/700)/「目的点で計算」(第153で有効)/4つのチェック(全展望も初期値オン)・コントロールの全展望も初期値オン・ヘルプ',
   ['chk-baseopt-summit-band','chk-baseopt-summit-preview','input-baseopt-summit-band','baseopt-summit-preview-info','btn-baseopt-excl-reset','radio-kashimap-tgt','btn-kashimap-compute','chk-kashimap-menu-tiles','chk-kashimap-menu-canopy','chk-kashimap-menu-summit','chk-kashimap-menu-zen'].every(id => idxSrc.includes(`id="${id}"`)) &&
   [100,300,700].every(v => idxSrc.includes(`name="kashimap-range-menu" value="${v}"`)) &&   // 第155で60kmを外した /<button id="btn-kashimap-tgt"[^>]*>目的点で計算<\/button>/.test(idxSrc) && !/id="btn-kashimap-tgt"[^>]*disabled/.test(idxSrc) &&

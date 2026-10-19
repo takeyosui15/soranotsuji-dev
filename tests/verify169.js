@@ -14,9 +14,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数の形(第126でピンはverify170へ移譲=最新の検証が持つ) ----
-check('V0 版数の形+Version Historyに1.86.2の行', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('Version 1.86.2 - ') || !!process.argv[2]));
+check('V0 版数の形+Version Historyに1.86.2の行', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('Version 1.86.2 - ') || !!process.argv[2]));
 
 (async()=>{
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});

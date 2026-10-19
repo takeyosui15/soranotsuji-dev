@@ -13,9 +13,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数の存在検査(版数ピンは最新のverify151へ移行済み) ----
-check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに1.67.0の行がある', src.includes('Version 1.67.0 - ') || !!process.argv[2]);
 
 // ---- V1: 静的な形(カメラの未確定移動が両方の描画経路に入っている) ----

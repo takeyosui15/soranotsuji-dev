@@ -114,7 +114,7 @@ async function fetchTile(kind, z, x, y, st) {
     if (tileOutsideJapan(z, x, y)) return null;
     const key = `${kind}/${z}/${x}/${y}`;
     const db = await openDb();
-    if (db) { const rec = await idbGet(db, key); if (rec && !(rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) >= SORA.TILE_STORE.MISS_TTL_MS)) { st.cached++; return rec.miss ? null : rec.buf; } }   // 古い「無し」の印(30日)は取り直す(第158)
+    if (db) { const rec = await idbGet(db, key); if (rec && !(rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) >= SORA.TILE_STORE.MISS_TTL_MS)) { st.cached++; if (rec.buf && !(rec.usedAt && Date.now() - Number(rec.usedAt) < SORA.STORE.TOUCH_MIN_MS)) idbPut(db, { ...rec, usedAt: Date.now() }); return rec.miss ? null : rec.buf; } }   // 最終使用を1日1回だけ書き直す(第184)   // 古い「無し」の印(30日)は取り直す(第158)
     let lastErr = null;
     for (let attempt = 1; attempt <= FETCH_RETRIES; attempt++) {
         const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
@@ -123,7 +123,7 @@ async function fetchTile(kind, z, x, y, st) {
             if (res.status === 404) { st.fetched++; if (db) await idbPut(db, { key, kind, z, x, y, size: 0, miss: true, savedAt: Date.now() }); return null; }
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const buf = await res.arrayBuffer(); st.fetched++; st.bytes += buf.byteLength; if (attempt > 1) st.retried++;
-            if (db) await idbPut(db, { key, kind, z, x, y, size: buf.byteLength, buf, savedAt: Date.now() });
+            if (db) await idbPut(db, { key, kind, z, x, y, size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() });
             return buf;
         } catch (e) {
             lastErr = e;

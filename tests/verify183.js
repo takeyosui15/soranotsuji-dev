@@ -2,6 +2,7 @@
 // 宙の窓検索(ボタン名と段・注記・ctrlのドラッグの対象2チェック+辻検索/辻メッシュボタン)・地理院タイルのオフライン(gsicache://の店・標高タイルの店の読み直し・バックアップメニューの行)・可視マップの封鎖(?kashimap=1)
 // ①静的: 本体/ワーカー/HTML/CSSの配線  ②ブラウザ: 既定値と係数欄・オフ=0・移行・封鎖の表示と開錠・宙の窓のドラッグの対象・ctrlボタンの連動・店の件数/容量/全削除・標高タイルの店の読み
 // 第183: ctrl の2チェックはラジオ(択一)+各段の「リセット」に変わった(デッサン05・v1.99.0)。S2/U3 をその形に更新(リセットの動作は verify186 が見る)。
+// 第184: 店の版(地理 v3・標高 v4=usedAt の索引)・標高タイルのヒットで最終使用を書き直す・地理タイルの注記の文・ラジオの切り替えでは戻さない、に合わせて S3/U3 の字面を更新。
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +10,7 @@ let PASS = 0, FAIL = 0;
 const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  ' + d : ''}`); ok ? PASS++ : FAIL++; };
 const ROOT = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
+const _verSrc = fs.readFileSync(path.join(ROOT, 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 const tsSrc = fs.readFileSync(path.join(ROOT, 'tsuji-search-worker.js'), 'utf8');
@@ -16,7 +18,7 @@ const tmSrc = fs.readFileSync(path.join(ROOT, 'tsujimesh-search-worker.js'), 'ut
 const dpSrc = fs.readFileSync(path.join(ROOT, 'dp-line-worker.js'), 'utf8');
 const stSrc = fs.readFileSync(path.join(ROOT, 'sora-terrain-worker.js'), 'utf8');
 
-check('V0 版数は1.97以上+Version Historyに第158(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.9[7-9]\.\d+'/.test(src) && src.includes('Version 1.97.0 - ') && src.includes('第158ラウンド — 気差を2本立てに'));
+check('V0 版数は1.97以上+Version Historyに第158(ピンは最新のverifyへ移した)', /APP_VERSION = '1\.9[7-9]\.\d+'/.test(src + _verSrc) && src.includes('Version 1.97.0 - ') && src.includes('第158ラウンド — 気差を2本立てに'));
 
 check('S1 気差の2本立て(本体): refractionKInUse はオフ=0・既定は両方オン・保存/復元/移行(refractionV3)・天体の大気差は astroRefraction だけが決める(旧式が残らない)・ワーカーへは astroRefraction・共有URL(2つのビルダー+復元)・辞書v22',
   src.includes("return appState.refractionEnabled ? calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l) : 0;") &&
@@ -63,13 +65,13 @@ check('S3 地理院タイルのオフライン(静的): gsicache:// の店(Index
   src.includes("'base-pale': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')], gsiAttr, 18),") && src.includes("tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf')],") &&
   src.includes("tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')],") && src.includes("'base-osm': rasterSrc(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],") &&
   src.includes("const img = await _demTileLoad(tileUrl);") && src.includes('async function _demTileLoad(tileUrl) {') && src.includes("const DEM_TILE_URL_RE = /\\/xyz\\/(dem5a_png|dem5b_png|dem5c_png|dem_png)\\/(\\d+)\\/(\\d+)\\/(\\d+)\\.png$/;") &&
-  src.includes("else { try { return await _demDecode(r.buf); } catch (_) {} }") &&
-  stSrc.includes("const req = indexedDB.open('soranotsuji-kashimap');") && stSrc.includes("const rec = await demGet(db, key);") && stSrc.includes("if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); }") &&
+  src.includes("else { const t = _storeTouch(r); if (t) put(t); try { return await _demDecode(r.buf); } catch (_) {} }") &&
+  stSrc.includes("const req = indexedDB.open('soranotsuji-kashimap');") && stSrc.includes("const rec = await demGet(db, key);") && stSrc.includes("if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() }); }") &&
   ['backup-maptiles-count', 'backup-maptiles-size', 'backup-maptiles-updated', 'btn-backup-maptiles-clear', 'backup-demtiles-count', 'backup-demtiles-size', 'backup-demtiles-updated', 'btn-backup-demtiles-clear'].every(id => idxSrc.includes(`id="${id}"`)) &&
-  idxSrc.includes('<span class="menu-note">自動キャッシュなので、定期的に全削除してください。</span>') && idxSrc.includes('<li><strong>地理タイル / 標高タイル (端末の控え)</strong>') &&
+  idxSrc.includes('<span class="menu-note">自動で貯まり、30日使わない物と上限超えの分は自動で片付けます。</span>')   /* 第184: 注記は自動の片付けの文に */ && idxSrc.includes('<li><strong>地理タイル / 標高タイル (端末の控え)</strong>') &&
   src.includes("_mtRefreshBackupRows();   // 地理タイル/標高タイルの件数・容量・最終更新(第158)") && src.includes("if (bDem) bDem.onclick = async () => {") &&
   src.includes("_idbStatByIndex(db.transaction('tiles', 'readonly').objectStore('tiles'))") && src.includes("_idbStatByIndex(db.transaction(MT_STORE, 'readonly').objectStore(MT_STORE))") &&   // 件数・容量は索引の鍵カーソルで(本文を読まない。レビューの直し)
-  src.includes("indexedDB.open(MT_DB, 2)") && src.includes("indexedDB.open('soranotsuji-kashimap', 3)") && src.includes("_idbEnsureStatIndexes(tx.objectStore('tiles'));") &&
+  src.includes("indexedDB.open(MT_DB, 3)") && src.includes("indexedDB.open('soranotsuji-kashimap', 4)") && src.includes("_idbEnsureStatIndexes(tx.objectStore('tiles'));") &&
   src.includes("if (rec && rec.miss) { if (_storeMissFresh(rec)) notFound(); rec = null; }") && src.includes("if (r.miss || !r.buf) { if (_storeMissFresh(r)) return null; }") &&   // 「無し」の印は30日で取り直す
   src.includes("MISS_TTL_MS: 30 * 24 * 3600 * 1000,") === false && fs.readFileSync('sora-constants.js', 'utf8').includes("MISS_TTL_MS: 30 * 24 * 3600 * 1000,") &&
   fs.readFileSync('sora-terrain-worker.js', 'utf8').includes("importScripts('sora-constants.js');") && fs.readFileSync('sora-terrain-worker.js', 'utf8').includes("SORA.TILE_STORE.MISS_TTL_MS") && fs.readFileSync('kashimap-worker.js', 'utf8').includes("SORA.TILE_STORE.MISS_TTL_MS") &&
@@ -159,20 +161,20 @@ check('S4 可視マップの封鎖(静的): FEATURE_KASHIMAP_ENABLED(?kashimap=1
   await pick('chk-sora-ctrl-drag-tsuji');   // ラジオ(第183): 辻オフセット点へ=構図は外れる
   await drag(40, -20);   // 辻オフセット点: 右へ=方位角が増える・上へ=視高度が増える。カメラオフセットは動かない
   const a2 = await p.evaluate(() => ({ az: appState.soraOffsetAz, taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, menu: document.getElementById('input-tsuji-az-offset').value, ctrl: document.getElementById('input-sora-ctrl-tsuji-az-offset').value, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt, mmenu: document.getElementById('input-tsujimesh-az-offset').value, dec: (String(appState.tsujiSearchOffsetAz).split('.')[1] || '').length, frame: document.getElementById('chk-sora-ctrl-drag-frame').checked, df: _smDragFrame }));
-  await pick('chk-sora-ctrl-drag-frame');   // 構図へ戻す=辻オフセットは動かす前の値に戻る
+  await pick('chk-sora-ctrl-drag-frame');   // 構図へ戻す=辻オフセットはそのまま(第184・依頼者: 切り替えでは戻さない。戻すのは「リセット」=0)
   const a3 = await p.evaluate(() => ({ taz: appState.tsujiSearchOffsetAz, talt: appState.tsujiSearchOffsetAlt, base: _smTsujiDragBase, maz: appState.tsujiMeshOffsetAz, malt: appState.tsujiMeshOffsetAlt, tsuji: document.getElementById('chk-sora-ctrl-drag-tsuji').checked, df: _smDragFrame, dt: _smDragTsuji }));
   await p.evaluate(() => { document.getElementById('btn-sora-ctrl-reset-frame').click(); });   // 構図の「リセット」(第183)=カメラオフセットを0に
   const a4 = await p.evaluate(() => ({ az: appState.soraOffsetAz, alt: appState.soraOffsetAlt, df: _smDragFrame }));
   await drag(40, 0);   // 構図のまま: ドラッグすればまた動く(両方オフの状態は無い)
   const a5 = await p.evaluate(() => ({ az: appState.soraOffsetAz, taz: appState.tsujiSearchOffsetAz }));
   await p.evaluate(() => { appState.soraOffsetAz = 0; appState.soraOffsetAlt = 0; _smCamNudgeBase = null; appState.tsujiSearchOffsetAz = 0; appState.tsujiSearchOffsetAlt = 0; updateOffsetDistances(); soraSyncUI(); });
-  check('U3 宙の窓検索のドラッグの対象(第183: ラジオ): 構図(初期)=右ドラッグでカメラオフセット方位角が減り辻オフセットは不変 → 「:辻オフセット点」を選ぶと構図は外れ、右上へドラッグ=辻オフセット方位角が増え視高度が増え(辻検索メニューとctrlの欄・辻メッシュ側のオフセットも連動・4桁に丸める)カメラオフセットは不変 → 「:構図」へ戻すと動かす前の値(1.5/0.5)に戻る → 構図の「リセット」でカメラオフセットが0 → 構図のままドラッグすればまた動く',
+  check('U3 宙の窓検索のドラッグの対象(第183: ラジオ・第184: 切り替えでは戻さない): 構図(初期)=右ドラッグでカメラオフセット方位角が減り辻オフセットは不変 → 「:辻オフセット点」を選ぶと構図は外れ、右上へドラッグ=辻オフセット方位角が増え視高度が増え(辻検索メニューとctrlの欄・辻メッシュ側のオフセットも連動・4桁に丸める)カメラオフセットは不変 → 「:構図」へ戻しても辻オフセットはそのまま → 構図の「リセット」でカメラオフセットが0 → 構図のままドラッグすればまた動く',
     cvBox.ok && st0.frame && !st0.tsuji && st0.df && !st0.dt &&
     a1.az < -0.01 && Math.abs(a1.alt) < 1e-9 && a1.taz === 1.5 && a1.talt === 0.5 &&
-    a2.az === a1.az && a2.taz > 1.5 + 0.01 && a2.talt > 0.5 + 0.005 && Math.abs(parseFloat(a2.menu) - a2.taz) < 1e-6 && Math.abs(parseFloat(a2.ctrl) - a2.taz) < 1e-6 && a2.base && a2.base.az === 1.5 && !a2.frame && !a2.df &&
+    a2.az === a1.az && a2.taz > 1.5 + 0.01 && a2.talt > 0.5 + 0.005 && Math.abs(parseFloat(a2.menu) - a2.taz) < 1e-6 && Math.abs(parseFloat(a2.ctrl) - a2.taz) < 1e-6 && !a2.frame && !a2.df &&
     a2.maz === a2.taz && a2.malt === a2.talt && Math.abs(parseFloat(a2.mmenu) - a2.taz) < 1e-6 && a2.dec <= 4 &&   // 辻メッシュ側にも写る(レビューの直し)・4桁に丸める
-    a3.taz === 1.5 && a3.talt === 0.5 && a3.base === null && a3.maz === 1.5 && a3.malt === 0.5 && !a3.tsuji && a3.df && !a3.dt &&
-    a4.az === 0 && a4.alt === 0 && a4.df && a5.az < -0.01 && a5.taz === 1.5, JSON.stringify({ cvBox, st0, a1, a2, a3, a4, a5 }));
+    a3.taz === a2.taz && a3.talt === a2.talt && a3.maz === a2.taz && a3.malt === a2.talt && !a3.tsuji && a3.df && !a3.dt &&   // 第184: 切り替えでは戻さない
+    a4.az === 0 && a4.alt === 0 && a4.df && a5.az < -0.01 && a5.taz === a2.taz, JSON.stringify({ cvBox, st0, a1, a2, a3, a4, a5 }));
 
   // U3b: ctrlの「辻検索」「辻メッシュ」は位置情報メニューのボタンと同じ働きで、押下状態も揃う
   const u3b = await p.evaluate(async () => {

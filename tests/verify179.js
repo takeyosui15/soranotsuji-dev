@@ -16,13 +16,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
 const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 
-check('V0 版数(ピンはverify180へ移譲)+Version Historyに第154', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第154ラウンド — その場計算の「タイルの継ぎ目の模様」の直し') || !!process.argv[2]));
+check('V0 版数(ピンはverify180へ移譲)+Version Historyに第154', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('第154ラウンド — その場計算の「タイルの継ぎ目の模様」の直し') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('data-arg="sec-soramado"'));   // 可視マップ節の全体(次の節の見出しまで)
 const opts = [...kmHtml.matchAll(/<option value="(\d+)"( selected)?>(\d+)km \(1画素≈(\d+)m\)<\/option>/g)].map(m => [m[1], !!m[2], m[4]]);
 check('S1 index.html: 計算範囲リスト=24/36/48/60/100/300/500/700(第155: 初期値24・500を追加・解像度4/4/4/4/8/30/30/60m)・段組み(ラジオ→樹冠/構造物→検索→「目的点で計算」「My目的点で計算」1段→計算範囲リスト→チェック)・km-label・「:樹冠」「:構造物」(節とコントロール)・下のボタンは1段ずつ・ヘルプ',

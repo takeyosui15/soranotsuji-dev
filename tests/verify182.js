@@ -15,6 +15,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const constSrc = fs.readFileSync(path.join(ROOT, 'sora-constants.js'), 'utf8');
@@ -25,7 +26,7 @@ const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.j
 const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-apptest.py'), 'utf8');
 const indexJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'kashimap', 'v1', 'index.json'), 'utf8'));
 
-check('V0 版数 1.96.0以降(ピンは最新のverifyが持つ)+Version Historyに第157', /APP_VERSION = '1\.9[6-9]\.\d+'/.test(src) && (src.includes('第157ラウンド — 数の単一情報源 sora-constants.js') || !!process.argv[2]));
+check('V0 版数 1.96.0以降(ピンは最新のverifyが持つ)+Version Historyに第157', /APP_VERSION = '1\.9[6-9]\.\d+'/.test(src + _verSrc) && (src.includes('第157ラウンド — 数の単一情報源 sora-constants.js') || !!process.argv[2]));
 // 本体に「地球の大きさの生の数」が(注釈以外に)残っていない
 const rawLits = ['6371000', '6378137', '6356752.3142', '40075016.686'];
 const leaks = [];

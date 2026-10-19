@@ -12,9 +12,10 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- S0: 版数ピン(最新のverifyに集約。第59ラウンドでverify137へ移管) ----
-check('S0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('S0 APP_VERSIONが存在する', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('S0 Version Historyに1.53.0の行がある', src.includes('Version 1.53.0 - ') || !!process.argv[2]);
 
 // ---- S1: 共通CSVヘッダ(辻検索/辻メッシュ/My辻検索のFile出力が共用) ----

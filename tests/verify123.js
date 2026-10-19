@@ -11,6 +11,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 // 対象ファイルは引数で差し替え可能(既定は宙の辻のscript.js。他リポジトリでの再利用を想定)
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 /** 関数名から本体のソース文字列を切り出す(波括弧の対応で終端を探す) */
 function fnBody(name) {
@@ -92,7 +93,7 @@ const LOAD_ONLY_OK = new Set([
   'appSchema',   // saved.appSchema → appState._loadedSchema として読む(キー名が変わる)
 ]);
 
-check('K0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);   // 引数指定時(他リポジトリ検査)はスキップ
+check('K0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) || !!process.argv[2]);   // 引数指定時(他リポジトリ検査)はスキップ
 check('K0 buildStateToSave/loadAppState/normalizeAppStateを発見(前提)',
   save.size > 30 && load.size > 30 && norm.size > 10,
   `save=${save.size} load=${load.size} norm=${norm.size}`);

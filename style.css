@@ -2706,6 +2706,9 @@ input[type="range"] {
 
 /* バックアップメニューの地理タイル/標高タイル(第158・デッサン18): 可視マップ節と同じ見た目 */
 #sec-backup .km-sub { font-size: 13px; }
+/* 端末のデータ(第184・デッサン35 §3): 上限(MB)の欄と、控えから開いた時の印 */
+#sec-backup input.store-cap { width: 90px; margin-left: 4px; }
+.offline-mark { color: #ffd54f; font-size: 11px; }
 #sec-backup .km-stat-row { gap: 16px; }
 #sec-backup .km-stat { font-size: 13px; color: #000; font-weight: normal; }
 #sec-backup hr.km-hr { margin: 6px 0; }

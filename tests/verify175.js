@@ -15,6 +15,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
@@ -22,7 +23,7 @@ const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.j
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 版数(ピンはverify176へ移譲)+Version Historyに第150', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第150ラウンド — 可視マップ段3') || !!process.argv[2]));
+check('V0 版数(ピンはverify176へ移譲)+Version Historyに第150', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('第150ラウンド — 可視マップ段3') || !!process.argv[2]));
 
 // ---- S1/S2: 静的な形 ----
 check('S1 index.html: 島リスト(縞島のみ・全て選択/解除)・コントロール(範囲100/300/700[第155で60kmを外した]・可視タイル・樹冠・山頂/全展望マーカー・注記・File出力)・ヘルプに島リスト/縞島/山頂部',

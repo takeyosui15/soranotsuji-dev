@@ -62,7 +62,7 @@ document.getElementById('clearBtn').addEventListener('click', function() {
         // ローカルストレージを全クリア
         localStorage.clear();
         // IndexedDB(可視マップの資産と標高タイル・天気のキャッシュ・地図タイルの控え)も消去する(宙の辻に関わる端末内のデータを全て空にする)
-        for (const name of ['soranotsuji-kashimap', 'soranotsuji-wx', 'soranotsuji-maptiles']) {   // 地図タイルの控えの店(soranotsuji-maptiles)も消す
+        for (const name of ['soranotsuji-kashimap', 'soranotsuji-wx', 'soranotsuji-maptiles', 'soranotsuji-bldg']) {   // 地図タイルの控えの店(soranotsuji-maptiles)と建物(PLATEAU)の店(soranotsuji-bldg・第184)も消す
             try { indexedDB.deleteDatabase(name); } catch (e) { /* 対応していないブラウザは無視 */ }
         }
         // 本体の控え(Service Worker の Cache Storage と登録)も消す(第183・デッサン35)。次に宙の辻を開く時に通信して作り直す

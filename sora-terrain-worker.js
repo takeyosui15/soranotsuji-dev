@@ -125,7 +125,7 @@ async function loadTileData(url) {
             const rec = await demGet(db, key);
             if (rec) {
                 if (rec.miss || !rec.buf) { if (rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) < SORA.TILE_STORE.MISS_TTL_MS) throw new Error('HTTP 404(店の印)'); }   // 古い「無し」の印(30日)は取り直す
-                else blob = new Blob([rec.buf], { type: 'image/png' });
+                else { blob = new Blob([rec.buf], { type: 'image/png' }); if (!(rec.usedAt && Date.now() - Number(rec.usedAt) < SORA.STORE.TOUCH_MIN_MS)) demPut(db, { ...rec, usedAt: Date.now() }); }   // 最終使用を1日1回だけ書き直す(第184)
             }
         }
         if (!blob) {
@@ -133,7 +133,7 @@ async function loadTileData(url) {
             if (resp.status === 404 && db) await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             blob = await resp.blob();
-            if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); }
+            if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() }); }
         }
         const bmp = await createImageBitmap(blob);
         const canvas = new OffscreenCanvas(256, 256);

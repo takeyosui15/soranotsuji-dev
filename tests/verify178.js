@@ -16,13 +16,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const wkSrc = fs.readFileSync(path.join(ROOT, 'kashimap-worker.js'), 'utf8');
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 const harnessSrc = fs.readFileSync(path.join(ROOT, 'tests', 'harness', 'sync-apptest.py'), 'utf8');
 
-check('V0 版数(ピンはverify179へ移譲)+Version Historyに第153(段4)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」') || !!process.argv[2]));
+check('V0 版数(ピンはverify179へ移譲)+Version Historyに第153(段4)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('第153ラウンド — 可視マップの段4「目的点で計算」「My目的点で計算」') || !!process.argv[2]));
 const kmHtml = idxSrc.slice(idxSrc.indexOf('id="sec-kashimap"'), idxSrc.indexOf('id="kashimap-store-total"'));
 check('S1 index.html: 範囲の選択欄(24/36/48…)・「目的点で計算」「My目的点で計算」は有効・ヘルプ「その場で計算」・「準備中」の文言なし',
   /<select id="sel-kashimap-tgt-range"[^>]*>\s*<option value="24"( selected)?>24km[^<]*<\/option>\s*<option value="36">36km[^<]*<\/option>\s*<option value="48">48km[^<]*<\/option>/.test(idxSrc) &&   // 第154で24〜700の7つ(初期値60)=verify179

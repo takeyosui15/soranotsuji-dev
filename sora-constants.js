@@ -24,6 +24,11 @@ GNU General Public License for more details.
 })(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
+    /** 版(唯一の置き場。第184・依頼者: 「1箇所を直したら全てに反映」)。
+     *  読む側: 本体(script.js の APP_VERSION=フッター・起動ログ・書き出しファイルの印)・sw.js(控えの名前 sora-shell-v<版> と入れ替えの合図)・verify 群(版のピン)。
+     *  版を上げる時はここを直す。script.js 冒頭の Version History には内容の記録を1行足す(verify のピンが「最新行の版=ここ」を見張る)。 */
+    const APP_VERSION = '1.99.1';
+
     /** 地球の大きさ(m) */
     const EARTH = Object.freeze({
         WGS84_SEMI_MAJOR_M: 6378137,            // 赤道半径 a(測地線・局所半径・メルカトルの縮尺の元)
@@ -148,8 +153,17 @@ GNU General Public License for more details.
         SHELL_MAX_BYTES: 64 * 1024 * 1024,   // 本体の控え(Service Worker の Cache Storage)の上限。先に控える一覧≈6.5MB+使った時に控える物(天の川4K・印刷用・可視マップの資産)で足りる「念のための制限」
         SHELL_NAV_TIMEOUT_MS: 4000,          // ページ(index.html)のネット優先の待ち時間(ms)。過ぎたら控えから
         SHELL_FETCH_TIMEOUT_MS: 10000,       // 本体のファイルのネット優先の待ち時間(ms)
-        UNUSED_DAYS: 30,                     // 控えの片付け: 最終使用からこの日数を過ぎた物を消す(段2で使う。依頼者Q2: 設定では変えない・変える時はここ1箇所)
+        UNUSED_DAYS: 30,                     // 控えの片付け: 最終使用からこの日数を過ぎた物を消す(依頼者Q2: 設定では変えない・変える時はここ1箇所。sora-store-worker.js が本体から受け取る)
+        CAP_BYTES: Object.freeze({           // 店ごとの上限の既定(依頼者Q1: 全部 1GB。建物は第184・依頼者)。端末ごとの上書きは appState.storeCaps(MB)。可視マップ資産は自動では消さない(使用率の表示だけ)
+            maptiles: 1024 * 1024 * 1024, demtiles: 1024 * 1024 * 1024, bldg: 1024 * 1024 * 1024, assets: 1024 * 1024 * 1024, wx: 1024 * 1024 * 1024,
+        }),
+        CLEAN_HIGH: 0.9, CLEAN_LOW: 0.8,     // 上限の9割を超えたら、古い順(最終使用)に8割まで消す(行ったり来たりしないよう幅を持つ)
+        TOUCH_MIN_MS: 24 * 3600 * 1000,      // 最終使用(usedAt)の書き直しは1件につき1日1回まで(読みのたびに書かない)
+        CLEAN_INTERVAL_MS: 24 * 3600 * 1000, // 自動の片付けは1日1回(起動の少し後・前面に戻った時)
+        CLEAN_DELAY_MS: 5000,                // 起動から片付けまでの待ち(ms)
+        CLEAN_BATCH: 200,                    // 1つの取引で消す件数
+        WX_TTL_MS: 2 * 3600 * 1000,          // 天気の控えの寿命(TTL=Time To Live・有効期限)
     });
 
-    return Object.freeze({ EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, TILE_STORE, STORE, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
+    return Object.freeze({ APP_VERSION, EARTH, REFRACTION, OBSERVER, VISIBILITY, DEM, TILE_STORE, STORE, calculateKFromMeteo, getLocalEarthRadius, inv2ReffFor, haversineDistanceM, metersPerPixel, insideJapan, greatCirclePath });
 });

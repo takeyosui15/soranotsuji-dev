@@ -15,9 +15,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数の形(第128でピンはverify172へ移譲=最新の検証が持つ) ----
-check('V0 版数の形+Version Historyに1.87.0の行', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('Version 1.87.0 - ') || !!process.argv[2]));
+check('V0 版数の形+Version Historyに1.87.0の行', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('Version 1.87.0 - ') || !!process.argv[2]));
 
 // ---- S1: 配線の静的な形 ----
 check('S1 saveAppStateから_autoSyncArm+visibilitychangeで即時flush+saveAppToDriveのquiet',

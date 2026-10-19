@@ -18,8 +18,9 @@ const SETUP=fs.readFileSync(path.join(__dirname,'verify113.js'),'utf8').match(/c
 (async()=>{
   {
     const src=fs.readFileSync(path.join(__dirname, '..', 'script.js'),'utf8');
+    const _verSrc = fs.readFileSync(path.join(__dirname, '..', 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
     // 版数ピンは最新のverify(現在は120)のみに置く(テスト方針)。ここでは存在だけ確認する
-    check('Y0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+    check('Y0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});

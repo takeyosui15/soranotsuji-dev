@@ -8,9 +8,10 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${n}${d ? '  
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- T0: 版数(存在検査。版数ピンは最新のverify141に集約) ----
-check('T0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('T0 APP_VERSIONがある', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('T0 Version Historyに1.57.0の行がある', src.includes('Version 1.57.0 - '));
 
 // ---- T1: URL v14(エンコーダ抽出でラウンドトリップ) ----

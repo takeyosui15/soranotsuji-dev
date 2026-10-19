@@ -9,6 +9,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- コーデック一式をソースから抽出して実行(辞書配列と関数の実物を得る) ----
 const begin = src.indexOf('const _QP_B64');
@@ -20,7 +21,7 @@ new Function('exports', src.slice(begin, end) +
   'exports.enc=encodeQueryParam; exports.dec=decodeQueryParam;')(qp);
 
 // ---- L0: APP_VERSIONの存在(版数ピンは最新のverifyに集約=現在はverify125) ----
-check('L0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) || !!process.argv[2]);
+check('L0 APP_VERSIONが存在(版数ピンは最新のverifyに集約)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) || !!process.argv[2]);
 check('L0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- L1: v12辞書の2種規則(①「&キー名=」の元は裸のキー名 ②「キー値」は区切りを含まない) ----

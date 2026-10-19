@@ -15,9 +15,10 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 
 // ---- V0: 版数ピン(最新の検証が持つ) ----
-check('V0 APP_VERSIONが存在(版数ピンはverify166へ移譲=第116ラウンド)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src));
+check('V0 APP_VERSIONが存在(版数ピンはverify166へ移譲=第116ラウンド)', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
 check('V0 Version Historyに版の行がある', /Version \d+\.\d+\.\d+ - /.test(src) || !!process.argv[2]);
 
 // ---- S1: 発行部の共用(静的検査: 検索条件の発行はヘルパー1箇所で、辻検索URLとfullの両方から呼ばれる) ----

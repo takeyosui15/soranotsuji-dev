@@ -14,13 +14,14 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
 
 const target = process.argv[2] || path.join(__dirname, '..', 'script.js');
 const src = fs.readFileSync(target, 'utf8');
+const _verSrc = fs.readFileSync(path.join(path.dirname(target), 'sora-constants.js'), 'utf8');   // 版の唯一の置き場(第184): APP_VERSION はここにある
 const ROOT = path.join(__dirname, '..');
 const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const resetSrc = fs.readFileSync(path.join(ROOT, 'reset.html'), 'utf8') + '\n' + fs.readFileSync(path.join(ROOT, 'reset.js'), 'utf8');   // 第159: スクリプトは reset.js に分離(CSP)
 const toolSrc = fs.readFileSync(path.join(ROOT, 'tools', 'kashimap', 'viewshed.js'), 'utf8');
 const ASSET = path.join(ROOT, 'data', 'kashimap', 'v1');
 
-check('V0 版数(ピンはverify177へ移譲)+Version Historyに第151', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src) && (src.includes('第151ラウンド — 可視マップの資産のFile出力/File読込') || !!process.argv[2]));
+check('V0 版数(ピンはverify177へ移譲)+Version Historyに第151', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc) && (src.includes('第151ラウンド — 可視マップの資産のFile出力/File読込') || !!process.argv[2]));
 check('S1 index.html: File出力(資産)/File読込/読込input・端末に保存した資産の一覧(表・合計・一括選択/⬇DL/削除[第155で全て削除から]・標高タイル全削除)・PC向けの注記(節とコントロール)・ヘルプ(静/静(端末)/動・端末に保存した資産・PC向け)',
   ['btn-kashimap-export','btn-kashimap-import','input-kashimap-import','kashimap-store','kashimap-store-empty','kashimap-store-table','kashimap-store-total','btn-kashimap-store-selall','btn-kashimap-store-dl','btn-kashimap-store-del','btn-kashimap-tiles-clear','kashimap-tiles-size'].every(id => idxSrc.includes(`id="${id}"`)) &&
   (idxSrc.match(/この機能はPC向け機能なので、スマートフォンでは動作が重たく感じる場合があります。/g) || []).length >= 2 &&
