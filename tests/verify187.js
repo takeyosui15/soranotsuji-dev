@@ -28,7 +28,7 @@ check('S1 sw.js: 自オリジン(範囲内)の GET だけ・Authorization 付き
   sw.includes("await c.addAll(list.map(u => new Request(new URL(u, SCOPE).href, { cache: 'reload' })));") && sw.includes("throw new Error('precache incomplete: ' + u);") && sw.includes("await self.skipWaiting();") &&
   sw.includes("keys.filter(k => k.startsWith('sora-shell-') && k !== CACHE).map(k => caches.delete(k))") && sw.includes("await self.clients.claim();") &&
   sw.includes("if (req.mode === 'navigate') { e.respondWith(handleNavigate(e, url, key)); return; }") && sw.includes("fetchWithTimeout(url.href, ST.SHELL_NAV_TIMEOUT_MS)") &&
-  sw.includes("if (pv && pv !== VER) return unredirected(await fetchWithTimeout(url.href, ST.SHELL_FETCH_TIMEOUT_MS));") && sw.includes("if (!v || v === VER) putRuntime(c, key, res.clone());") &&
+  sw.includes("if (pv && pv !== VER) {   // 配布直後: ページが新しい版(古い控えは使わずネットだけ)。版が読めなかった('unknown')ページはネット→落ちたら控え") && sw.includes("if (v === VER) putRuntime(c, key, res.clone());") &&
   sw.includes("h.set('x-sora-shell', 'cache');") && sw.includes("if (cur + len > ST.SHELL_MAX_BYTES) return;") && !/fetch\(['"]https?:/.test(sw) &&
   // 反証レビューで足した守り
   sw.includes("if ((req.destination === 'worker' || req.destination === 'sharedworker') && e.resultingClientId && pv) clientVer.set(e.resultingClientId, pv);") &&
@@ -40,18 +40,18 @@ check('S1 sw.js: 自オリジン(範囲内)の GET だけ・Authorization 付き
 // ---- S2: 一覧と版の一致 ----
 let checkOut = '', checkOk = false;
 try { checkOut = execFileSync(process.execPath, [path.join(ROOT, 'tools', 'sw', 'build-precache.js'), '--check'], { encoding: 'utf8' }); checkOk = true; } catch (e) { checkOut = String(e.stdout || '') + String(e.stderr || ''); }
-const metaVer = (/<meta name="app-version"/.test(html)) ? 'present' : null;   // 第184: meta は廃止
+const metaVer = (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] || null;   // 第184: meta は廃止(1.99.1 だけ移行用に残す=APP_VERSION と同じ値であること。1.99.2 で消す)
 check('S2 sw-precache.js は配信面と一致(build-precache --check)・37件以上・index.html/script.js/sora-constants.js/style.css/vendor 一式/ワーカー7本/フォント/天の川が入り、4K の天の川や data/kashimap は入らない・全ファイルに実体・index.html に版の meta は無い(版は sora-constants.js の1箇所。第184)・script.js の APP_VERSION は SORA.APP_VERSION を読む',
   checkOk && PRECACHE.length >= 37 && ['index.html', 'script.js', 'sora-constants.js', 'style.css', 'three-global.js', 'reset.html', 'reset.js', 'vendor/maplibre-gl.js', 'vendor/three.module.min.js', 'vendor/draco/draco_decoder.wasm', 'vendor/astronomy.browser.min.js', 'fonts/SoraSans/0-255.pbf', 'milkyway-skymap.webp', 'celestial_db.json', 'muni.json',
     'dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker.js', 'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js', 'kashimap-worker.js'].every(f => PRECACHE.includes(f)) &&
   !PRECACHE.includes('milkyway-skymap_4k.webp') && !PRECACHE.some(f => f.startsWith('data/kashimap/')) && !PRECACHE.includes('sw.js') &&
-  PRECACHE.every(f => fs.existsSync(path.join(ROOT, f))) && metaVer === null && /^\d+\.\d+\.\d+$/.test(APP_VER || '') && src.includes('const APP_VERSION = SORA.APP_VERSION;') && !/const APP_VERSION = '\d/.test(src), JSON.stringify({ checkOut: checkOut.trim(), n: PRECACHE.length, metaVer, APP_VER }));
+  PRECACHE.every(f => fs.existsSync(path.join(ROOT, f))) && (metaVer === null || metaVer === APP_VER) && /^\d+\.\d+\.\d+$/.test(APP_VER || '') && src.includes('const APP_VERSION = SORA.APP_VERSION;') && !/const APP_VERSION = '\d/.test(src), JSON.stringify({ checkOut: checkOut.trim(), n: PRECACHE.length, metaVer, APP_VER }));
 
 // ---- S3: 本体の配線 ----
 check('S3 本体: 登録は https か ?sw=1 の時だけ(register(sw.js)・updateViaCache none・load の1.5秒後・controllerchange で配信中の版が違えば一度だけ読み直し)・前面復帰で1時間ごとの update・_swStat/_swClear・バックアップメニューの「本体の控え(オフライン用)」の行(件数/容量/版/注記/削除)と確認文・reset.js が控えと登録も消す・reset.html の注記・ハーネスの同期に sw.js と sw-precache.js・ヘルプ・SORA.STORE(上限と待ち時間と30日はここ1箇所)',
   src.includes("function _swEnabled() { return ('serviceWorker' in navigator) && (location.protocol === 'https:' || /[?&]sw=1(&|$)/.test(location.search)); }") &&
   src.includes("navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })") && src.includes("navigator.serviceWorker.addEventListener('controllerchange', _swOnControllerChange);") &&
-  /async function _swOnControllerChange\(\)[\s\S]*?fetch\('sora-constants.js', \{ cache: 'no-cache' \}\)[\s\S]*?if \(m && m\[1\] !== APP_VERSION\) \{ _swReloaded = true; location\.reload\(\); \}/.test(src) && src.includes("window.addEventListener('load', () => setTimeout(_swRegister, 1500));") &&
+  /async function _swOnControllerChange\(\)[\s\S]*?_swServedVersion\(\)[\s\S]*?if \(_swPageStale\) \{ _swReloaded = true; location\.reload\(\); return; \}/.test(src) && src.includes("fetch('sora-constants.js', { cache: 'no-cache' })") && src.includes("window.addEventListener('load', () => setTimeout(_swRegister, 1500));") &&
   src.includes("document.addEventListener('visibilitychange', _swMaybeUpdate);") && src.includes("Date.now() - _swLastUpdate < 3600000") &&
   /async function _swStat\(\)[\s\S]*?k\.startsWith\('sora-shell-'\)/.test(src) && /async function _swClear\(\)[\s\S]*?const scope = new URL\('\.\/', location\.href\)\.href; for \(const r of await navigator\.serviceWorker\.getRegistrations\(\)\) if \(r\.scope === scope\) await r\.unregister\(\);/.test(src) &&
   src.includes("out.n++; out.bytes += (await r.clone().blob()).size;") &&

@@ -101,7 +101,7 @@ function demDb() {
     _demDbP = new Promise((ok) => {
         try {
             const req = indexedDB.open('soranotsuji-kashimap');   // 版は本体が作る(無ければ店は使わない)
-            req.onsuccess = () => { const db = req.result; ok(db.objectStoreNames.contains('tiles') ? db : null); };
+            req.onsuccess = () => { const db = req.result; db.onversionchange = () => { try { db.close(); } catch (_) {} _demDbP = null; }; ok(db.objectStoreNames.contains('tiles') ? db : null); };   // 本体が版を上げる時は閉じて譲る(次の呼び出しで開き直す。第184の反証レビュー C5/C9)
             req.onerror = () => ok(null); req.onblocked = () => ok(null);
         } catch (_) { ok(null); }
     });
@@ -109,6 +109,19 @@ function demDb() {
 }
 const demGet = (db, key) => new Promise((ok) => { try { const r = db.transaction('tiles', 'readonly').objectStore('tiles').get(key); r.onsuccess = () => ok(r.result); r.onerror = () => ok(undefined); } catch (_) { ok(undefined); } });
 const demPut = (db, rec) => new Promise((ok) => { try { const tx = db.transaction('tiles', 'readwrite'); tx.objectStore('tiles').put(rec); tx.oncomplete = () => ok(true); tx.onerror = () => ok(false); } catch (_) { ok(false); } });
+/** 最終使用の記録: 小さな店 'used'({key, usedAt})に書く(タイル本文は書き直さない)。同じ鍵は1日1回まで(このワーカーの中で覚える)、1秒分をまとめて1つの取引で書く(第184の反証レビュー C6) */
+const _touched = new Map(); let _touchQ = null;
+function demTouch(db, key) {
+    const now = Date.now(), last = _touched.get(key);
+    if (last && now - last < SORA.STORE.TOUCH_MIN_MS) return;
+    if (_touched.size > 50000) _touched.clear();
+    _touched.set(key, now);
+    if (!_touchQ) { _touchQ = new Set(); setTimeout(() => { const q = _touchQ; _touchQ = null; demTouchFlush(db, q); }, 1000); }
+    _touchQ.add(key);
+}
+function demTouchFlush(db, keys) {
+    try { if (!db.objectStoreNames.contains('used')) return; const now = Date.now(); const st = db.transaction('used', 'readwrite').objectStore('used'); for (const k of keys) st.put({ key: k, usedAt: now }); } catch (_) {}
+}
 async function loadTileData(url) {
     if (_tileCache.has(url)) return _tileCache.get(url);
     let data = null;
@@ -125,7 +138,7 @@ async function loadTileData(url) {
             const rec = await demGet(db, key);
             if (rec) {
                 if (rec.miss || !rec.buf) { if (rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) < SORA.TILE_STORE.MISS_TTL_MS) throw new Error('HTTP 404(店の印)'); }   // 古い「無し」の印(30日)は取り直す
-                else { blob = new Blob([rec.buf], { type: 'image/png' }); if (!(rec.usedAt && Date.now() - Number(rec.usedAt) < SORA.STORE.TOUCH_MIN_MS)) demPut(db, { ...rec, usedAt: Date.now() }); }   // 最終使用を1日1回だけ書き直す(第184)
+                else { blob = new Blob([rec.buf], { type: 'image/png' }); demTouch(db, key); }   // 最終使用を used 店に(1日1回・まとめ書き。第184)
             }
         }
         if (!blob) {
@@ -133,7 +146,7 @@ async function loadTileData(url) {
             if (resp.status === 404 && db) await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             blob = await resp.blob();
-            if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() }); }
+            if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); }
         }
         const bmp = await createImageBitmap(blob);
         const canvas = new OffscreenCanvas(256, 256);

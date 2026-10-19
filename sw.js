@@ -128,8 +128,8 @@ async function handleNavigate(e, url, key) {   // ページ: ネット優先 →
         if (res.ok) {
             let v = null;
             try { v = (cst && cst.ok) ? versionOf(await cst.text()) : null; } catch (_) { v = null; }
-            if (e.resultingClientId) clientVer.set(e.resultingClientId, v || VER);
-            if (!v || v === VER) putRuntime(c, key, res.clone());   // 同じ版だけ控えに入れる(新しい版のページを古い控えに混ぜない)
+            if (e.resultingClientId) clientVer.set(e.resultingClientId, v || 'unknown');   // 版が読めなかった(落ちた/待ち時間切れ)時は「分からない」=本体はネット優先(古い控えを混ぜない。第184の反証レビュー C2/C12)
+            if (v === VER) putRuntime(c, key, res.clone());   // 同じ版だけ控えに入れる(新しい版・版の分からないページを古い控えに混ぜない)
         }
         return res;
     } catch (err) {
@@ -144,7 +144,10 @@ async function handleAsset(e, req, url, key) {   // 本体のファイル: 同�
     if (!c) return fetch(req);   // Cache Storage が使えない: SW が無い時と同じ
     const pv = clientVer.get(e.clientId);
     if ((req.destination === 'worker' || req.destination === 'sharedworker') && e.resultingClientId && pv) clientVer.set(e.resultingClientId, pv);   // ワーカーに起動元のページの版を引き継ぐ(ワーカーからの importScripts は e.clientId がワーカー自身の id)
-    if (pv && pv !== VER) return unredirected(await fetchWithTimeout(url.href, ST.SHELL_FETCH_TIMEOUT_MS));   // 配布直後: ページが新しい版。古い控えは使わずネットだけ
+    if (pv && pv !== VER) {   // 配布直後: ページが新しい版(古い控えは使わずネットだけ)。版が読めなかった('unknown')ページはネット→落ちたら控え
+        try { return unredirected(await fetchWithTimeout(url.href, ST.SHELL_FETCH_TIMEOUT_MS)); }
+        catch (err) { if (pv === 'unknown') { const hit = await matchShell(c, key); if (hit) return marked(hit); } throw err; }
+    }
     const fresh = req.cache === 'reload' || req.cache === 'no-store' || req.cache === 'no-cache';   // 呼び元が最新を求めた時はネット優先
     if (!fresh) { const hit = await matchShell(c, key); if (hit) return marked(hit); }
     try {

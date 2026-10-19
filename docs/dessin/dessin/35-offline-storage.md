@@ -17,7 +17,7 @@
 
 ## 2. 本体のオフライン起動 = Service Worker(SW)。**段1・v1.99.0 で実装**
 
-1. 置き場と範囲: `sw.js` をリポジトリ直下に置き、本体が `navigator.serviceWorker.register('sw.js?v=' + APP_VERSION, { updateViaCache: 'none' })`。範囲(scope)は置いたフォルダ=本番は `/`、開発サイトは `/soranotsuji-dev/`(GitHub Pages は `Service-Worker-Allowed` を送れないので、置き場で決まる)。
+1. 置き場と範囲: `sw.js` をリポジトリ直下に置き、本体が `navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })`(第183は `?v=` 付き。第184の SSOT で廃止)。範囲(scope)は置いたフォルダ=本番は `/`、開発サイトは `/soranotsuji-dev/`(GitHub Pages は `Service-Worker-Allowed` を送れないので、置き場で決まる)。
    - 登録するのは **https の時だけ**(本番・開発サイト)。ローカルの検証(`http://127.0.0.1`)では `?sw=1` を付けた時だけ登録する=既存の verify 群(Playwright の route で外部を遮断)が SW に横取りされないため。
    - 登録は `load` の1.5秒後(起動の描画を邪魔しない)。前面に戻った時、1時間以上経っていれば `registration.update()`(ページ自体はネット優先なので、これは落ちた時の保険の更新)。
 2. 版の置き場(第184・依頼者「1箇所を直したら全てに反映」=SSOT): **`sora-constants.js` の `APP_VERSION` だけ**。script.js は `SORA.APP_VERSION` を読む(フッター・起動ログ・書き出しの印)。sw.js は `importScripts('sora-constants.js')` で同じ値を読み、控えの名前 `sora-shell-v<版>` を付ける。`updateViaCache:'none'` なので、版が変わる(=sora-constants.js のバイトが変わる)とブラウザが新しい SW として入れ直す。登録URLの `?v=` と index.html の meta は廃止。
@@ -35,11 +35,11 @@
    - フェーズ2(activate): 新しい SW が有効になった時に初めて、古い `sora-shell-*` を消して `clients.claim()`。
    - これはブラウザの SW の規則そのもの(install が失敗した SW は activate されない)なので、宙の辻側で「途中の状態」を持たない。
 6. ページとファイルの読み方(ネット優先と「古い控えを混ぜない」の両立):
-   - **ページ(index.html=navigate)**: ネット優先(`cache:'no-cache'`=条件つき要求。GitHub Pages は ETag を返すので変わっていなければ 304 で軽い。待ち時間 `SHELL_NAV_TIMEOUT_MS`=4秒)。落ちたら控えの index.html。ネットから取れたページの版(meta)を、そのクライアントIDに覚えておく。同じ版のページだけ控えに入れる。
+   - **ページ(index.html=navigate)**: ネット優先(`cache:'no-cache'`=条件つき要求。GitHub Pages は ETag を返すので変わっていなければ 304 で軽い。待ち時間 `SHELL_NAV_TIMEOUT_MS`=4秒)。落ちたら控えの index.html。ページと一緒に最新で読んだ sora-constants.js の版を、そのクライアントIDに覚えておく(読めなければ「分からない」=本体はネット優先・落ちたら控え。第184の反証レビュー C2)。同じ版のページだけ控えに入れる。
    - **本体のファイル(それ以外)**: そのクライアントのページの版が SW の版と**同じ**(普段)なら**控え優先**(速い・圏外で動く)→無ければネット(待ち時間 `SHELL_FETCH_TIMEOUT_MS`=10秒。取れたら控えに入れる)→落ちたら控え。ページの版が**違う**(配布直後: 古い SW の下で新しいページが開いた)なら**ネットだけ**=古い控えを新しいページに混ぜない。落ちたら読み直しで控えの古い版に揃う(次に開いた時には新しい SW が入っている)。呼び元が `cache:'reload'/'no-store'/'no-cache'` を指定した要求はネット優先。
    - 控えから出した応答には `x-sora-shell: cache` の印を付ける(段3の「オフライン表示」の判定と検証用)。
    - 既知の小さな窓: SW が再起動すると「クライアントIDと版」の表が消え、その時は「同じ版」とみなして控え優先になる。配布直後の数秒に SW の再起動が重なった時だけ起こり得て、次の読み込みで直る。
-   - 第183の反証レビュー(Workflow・実機で再現)で足した守り: ①ワーカーは起動元のページの版を引き継ぐ(ワーカーの importScripts は e.clientId がワーカー自身の id なので、new Worker の要求の resultingClientId に版を写す) ②Cache Storage が壊れていて open が reject する端末では SW が無い時と同じに素通し(白画面にしない) ③install の版の門番: 配信中の index.html の版が自分の版と違えば install を捨てる(sw.js や sw-precache.js だけが変わった時に、旧URL sw.js?v=旧 の自動更新が旧版名の控えへ新版を上書きしないため) ④install 失敗で途中の控えを残さない(同じ名前の控えが生きていれば消さない) ⑤範囲内の転送(/data→/data/ の 301)は Response.redirect でブラウザに辿らせる ⑥配信元の 5xx は控えで凌ぐ ⑦容量は実体のバイト数で数える(GitHub Pages の content-length は gzip 後) ⑧登録はページの meta の版で行い、meta と APP_VERSION が違う(古い script.js が控えから出た)時は新しい SW が入ったら一度だけ読み直す(resultingClientId の無い古い WebKit でも版が揃う) ⑨「本体の控えを削除」と reset.html は自分の範囲の登録だけを解除(開発サイトは他のプロジェクトとオリジンを共有)。
+   - 第183の反証レビュー(Workflow・実機で再現)で足した守り: ①ワーカーは起動元のページの版を引き継ぐ(ワーカーの importScripts は e.clientId がワーカー自身の id なので、new Worker の要求の resultingClientId に版を写す) ②Cache Storage が壊れていて open が reject する端末では SW が無い時と同じに素通し(白画面にしない) ③install の版の門番: 配信中の index.html の版が自分の版と違えば install を捨てる(sw.js や sw-precache.js だけが変わった時に、旧URL sw.js?v=旧 の自動更新が旧版名の控えへ新版を上書きしないため) ④install 失敗で途中の控えを残さない(同じ名前の控えが生きていれば消さない) ⑤範囲内の転送(/data→/data/ の 301)は Response.redirect でブラウザに辿らせる ⑥配信元の 5xx は控えで凌ぐ ⑦容量は実体のバイト数で数える(GitHub Pages の content-length は gzip 後) ⑧登録時に配信中の版(sora-constants.js)を読み、この画面の APP_VERSION と違う(古い script.js が控えから出た)時だけ、新しい SW が入ったら一度だけ読み直す(resultingClientId の無い古い WebKit でも版が揃う)。同じ版なら読み直さず、開いている間に新しい版が入った時は版の横に「(新しい版あり)」を出すだけ(作業中のタブを消さない。第184の反証レビュー C8) ⑨「本体の控えを削除」と reset.html は自分の範囲の登録だけを解除(開発サイトは他のプロジェクトとオリジンを共有)。
 7. CSP: 今の meta に `worker-src 'self' blob:` があるので登録は通る。`sw.js` の importScripts は自オリジンの2本(sora-constants.js・sw-precache.js)だけ(verify187 S1)。控えから出す index.html にも meta の CSP は入っている。
 8. 消す時: バックアップ/インポートメニューの「本体の控えを削除」と reset.html の「すべてのデータを消去する」は、IndexedDB に加えて `caches.keys()→delete`(sora-shell-*)と `navigator.serviceWorker.getRegistrations()→unregister()` を行う。**注記(Q6)**: 「削除すると、次に開く時に通信して作り直します(電波の無い所では開けなくなります)。」をボタンの上に。
 9. 検証: verify187=静的(sw.js の形・一覧の一致・版の一致・配線)+実機(`?sw=1` で登録→控えに全件→オンラインで開き直すとページはネット・本体は控え→`context.setOffline(true)` で開き直すとページも控えから開き版のフッターが出る→削除で消える)。
@@ -52,26 +52,26 @@
 |---|---|---|---|---|---|---|---|
 | 本体の控え(オフライン用) | `sora-shell-v<版>` の Cache Storage | 件数/MB・版 | − | 64MB(SHELL_MAX_BYTES) | − | 「本体の控えを削除」(SW も解除。注記つき) | **段1(済)** |
 | 設定(登録内容) | localStorage `soranotsuji_app` | KB(文字数×2) | − | 約5MB(ブラウザ) | % | 既存(reset.html)へ | **段2(済)** |
-| 地理タイル | `soranotsuji-maptiles`(店 v3: usedAt の索引) | 件数/MB | 最終使用(usedAt の最大。無ければ savedAt) | 1GB(上限(MB)の欄で端末ごとに) | % | 既存「地理タイルを全削除」 | **段2(済)** |
-| 標高タイル | `soranotsuji-kashimap` の tiles(店 v4: usedAt) | 件数/MB | 同上 | 1GB(同上) | % | 既存「標高タイルを全削除」 | **段2(済)** |
+| 地理タイル | `soranotsuji-maptiles`(店 v3: 最終使用の店 used) | 件数/MB | 最終使用(used 店の usedAt の最大。無ければ savedAt) | 1GB(上限(MB)の欄で端末ごとに) | % | 既存「地理タイルを全削除」 | **段2(済)** |
+| 標高タイル | `soranotsuji-kashimap` の tiles(店 v4: used) | 件数/MB | 同上 | 1GB(同上) | % | 既存「標高タイルを全削除」 | **段2(済)** |
 | 建物(PLATEAU) | `soranotsuji-bldg` の tiles(第184・依頼者: 地理/標高と同じ別項目。b3dm と tileset.json。鍵=URL) | 件数/MB | 同上 | 1GB(同上) | % | 「建物タイルを全削除」 | **段2(済)** |
 | 可視マップ資産 | 同 DB の assets(要約の size の合計) | 件数/MB | − | 1GB(目安。自動では消さない) | % | 既存(可視マップの資産一覧)へ。封鎖中は行を隠す | **段2(済)** |
-| 天気の控え | `soranotsuji-wx` | 件数/KB(JSON の長さ) | − | 1GB(目安)+TTL 2時間 | % | 「天気の控えを削除」 | **段2(済)** |
+| 天気の控え | `soranotsuji-wx` | 件数/MB(JSON の長さの目安) | − | 1GB(目安)+TTL 2時間 | % | 「天気の控えを削除」 | **段2(済)** |
 | 全体 | `navigator.storage.estimate()`・`persisted()` | 使用/割当(ブラウザの見積もり)・永続 はい/いいえ | 前回の整理の日時 | ブラウザ | − | 「今すぐ整理」「永続化を要求」(段3)。全部削除は reset.html | **段2/3(済)** |
 
 - 上限の既定(依頼者 Q1): **地理 1GB・標高 1GB・可視マップ資産 1GB・天気 1GB**(天気は宙統計で過去データを一時的に貯める可能性があるため)。本体の控えは 64MB(念のための制限)。
-- 上限の設定(memo④・依頼者の問い「スマホと PC で変えられるか・ユーザがテキストボックスで変えられるか」): **できる(段2で実装)。** 既定値は SORA.STORE.CAP_BYTES に1箇所、端末ごとの上書きは appState.storeCaps(MB。localStorage=端末ごと・ドライブ同期には乗るが端末の設定なので持ち主が合わせる)に持ち、一覧の各行の「上限(MB)」のテキストボックスで変える(空欄=既定。10〜1,000,000。normalizeAppState で知らない店と範囲外を捨てる)。スマホと PC の違いは「端末ごとの設定」で自然に分かれる(自動で機種を見分けて変えることはしない=分かりにくいため)。ブラウザの割当(`estimate().quota`)が上限より小さい端末では、割当の方が先に効く(その旨を「全体」の行に出す)。
+- 上限の設定(memo④・依頼者の問い「スマホと PC で変えられるか・ユーザがテキストボックスで変えられるか」): **できる(段2で実装)。** 既定値は SORA.STORE.CAP_BYTES に1箇所、端末ごとの上書きは localStorage の `sora_store_caps`(MB。`soranotsuji_` の接頭辞ではないので、バックアップ・ドライブ同期・同期の指紋に乗らない=本当にこの端末だけの設定。第184の反証レビュー C7: appState に入れると他の端末へ写って、その端末の自動片付けを引き起こせた)に持ち、一覧の各行の「上限(MB)」のテキストボックスで変える(空欄=既定。10〜1,000,000。`_storeCaps()` が知らない店と範囲外を捨てる)。スマホと PC の違いは「端末ごとの設定」で自然に分かれる(自動で機種を見分けて変えることはしない=分かりにくいため)。ブラウザの割当(`estimate().quota`)が上限より小さい端末では、割当の方が先に効く(その旨を「全体」の行に出す)。
 - 使用量は店ごとにアプリが数える(今の `size` の索引で件数・合計バイトは数えられる)。`estimate()` はオリジン全体の目安(他のデータも含む・端数は丸められる)として「全体」の行だけに使う。`persist()` の結果(永続: はい/いいえ)も「全体」の行に(段3)。
 - 「今すぐ整理」ボタン=4.の片付けを手で起動(進み具合を表示)(段2)。
 - 画面の設計はデッサン18(バックアップ/インポート)の「端末のデータ」の節に写す(第183で段1の行を追記)。
 
 ## 4. 自動の片付け(地理タイル・標高タイル・建物・天気。段2=第184・v1.99.1 で実装: sora-store-worker.js)
 
-- 最終使用(`usedAt`)を記録する。読み(ヒット)のたびに書くと重いので、**前回の記録から24時間以上経っていた時だけ**書き直す(1タイル1日1回まで)。索引に `usedAt` を足す(無い古い記録は索引に出ないので、1GB の書き直しは不要。古い記録は `savedAt` で代用して判定)。
+- 最終使用は小さな店 `used`({key, usedAt}・索引 usedAt)に記録する。タイルの本文は書き直さない(第184の反証レビュー C6: 本文ごと書き直すと、可視マップの計算で数千件の大きな書き込みが並んだ)。読み(ヒット)のたびに書くと重いので、**同じ鍵は24時間に1回まで**(画面/ワーカーの中で覚える)、1秒分をまとめて1つの取引で書く。used に無い記録は `savedAt` で代用して判定(1GB の書き直しは不要)。
 - 規則: ①`SORA.STORE.UNUSED_DAYS`(=30)日使っていない物を消す ②店の上限の9割を超えたら、古い順(usedAt)に8割まで消す(行ったり来たりしないよう幅を持つ) ③天気は TTL(2時間)切れを消す。
-- **30日は設定で変えない(依頼者 Q2)。変える時は `sora-constants.js` の `STORE.UNUSED_DAYS` の1箇所だけ**(本体・片付けのワーカー・道具が同じ値を読む。段1で定義済み。verify187 S3 が「ここにある」ことを見張り、段2で「他に 30 の字面が無い」も見張る)。
+- **30日は設定で変えない(依頼者 Q2)。変える時は `sora-constants.js` の `STORE.UNUSED_DAYS` の1箇所だけ**(本体・片付けのワーカー・道具が同じ値を読む。段1で定義済み。verify187 S3 が「ここにある」ことを、verify188 S2 が定義(`UNUSED_DAYS: 30`)と本体がワーカーへ `unusedDays: SORA.STORE.UNUSED_DAYS` を渡す字面を見張る)。
 - TTL=**Time To Live(有効期限)**: 控えに「いつまで使ってよいか」を付けておく仕組み。天気の控えは「取ってから2時間」までは再利用し、過ぎたら取り直す(宙検索・宙断面=封鎖中)。
-- 契機: ①起動の約5秒後(`localStorage` の `soranotsuji_store_clean_at` が24時間より前なら) ②画面が前面に戻った時(同じ条件) ③「今すぐ整理」ボタン(いつでも)。実行は専用のワーカー `sora-store-worker.js`: 値(タイルのバイト列)は読まず、size/savedAt/usedAt の索引の鍵カーソルで台帳を作り、200件ずつ別の取引で削除(画面を止めない)。無い店は作らない(onupgradeneeded で abort)。結果は「整理しました: N件・MB」を行に出す。定数(30日・9割/8割・1日1回・200件・TTL)は全部 SORA.STORE から本体が渡す。
+- 契機: ①起動の約5秒後(`localStorage` の `sora_store_clean_at`(`soranotsuji_` の接頭辞ではない=同期・バックアップに乗らない。反証レビュー C4)が24時間より前なら) ②画面が前面に戻った時(同じ条件) ③「今すぐ整理」ボタン(いつでも)。実行は専用のワーカー `sora-store-worker.js`: 値(タイルのバイト列)は読まず、size/savedAt/usedAt の索引の鍵カーソルで台帳を作り、200件ずつ別の取引で削除(画面を止めない)。無い店は作らない(onupgradeneeded で abort)。結果は「整理しました: N件・MB」を行に出す。定数(30日・9割/8割・1日1回・200件・TTL)は全部 SORA.STORE から本体が渡す。
 - `requestIdleCallback` は Safari で無効のままなので `setTimeout` で代用。
 
 ## 5. 守りとの関係(デッサン34)
@@ -96,8 +96,8 @@
 
 ## 7. 段取り
 
-1. **段1(第183・v1.99.0・済)**: SW(2.)+登録URLの ?v= で版+`sw-precache.js` の道具(--write/--check)+「本体の控え」の行と削除(3.)+reset.html の対応+index.html の meta app-version+SORA.STORE(上限・待ち時間・30日)+verify187+deploy-guide のプレ・デプロイ項目。
-2. **段2(第184・v1.99.1・済)**: usedAt(店 v3/v4・ヒットで1日1回)・上限(SORA.STORE.CAP_BYTES+端末ごとの上限(MB)の欄)・片付け(sora-store-worker.js)+一覧の残りの行(設定/建物/可視マップ資産/天気/全体)+「今すぐ整理」+「天気の控えを削除」+建物(PLATEAU)の店 soranotsuji-bldg(b3dm と tileset.json を控え、都市モードが圏外でも一度見た街は出る)+verify188。
+1. **段1(第183・v1.99.0・済)**: SW(2.)+登録URLの ?v= で版(第184で廃止)+`sw-precache.js` の道具(--write/--check)+「本体の控え」の行と削除(3.)+reset.html の対応+index.html の meta app-version(第184で廃止。1.99.1 だけ移行用に残し 1.99.2 で消す)+SORA.STORE(上限・待ち時間・30日)+verify187+deploy-guide のプレ・デプロイ項目。
+2. **段2(第184・v1.99.1・済)**: 最終使用の店 used(店 v3/v4・ヒットで1日1回・まとめ書き)・上限(SORA.STORE.CAP_BYTES+端末ごとの上限(MB)の欄)・片付け(sora-store-worker.js)+一覧の残りの行(設定/建物/可視マップ資産/天気/全体)+「今すぐ整理」+「天気の控えを削除」+建物(PLATEAU)の店 soranotsuji-bldg(b3dm と tileset.json を控え、都市モードが圏外でも一度見た街は出る)+verify188。
 3. **段3(第184・済)**: manifest.json(`<link rel="manifest">`・standalone・start_url ./)+「永続化を要求」ボタン(persist() は押した時だけ=Firefox は確認が出るので起動時には呼ばない)+「オフライン表示」の印(SW に `sora:served?` を尋ね、控えから出したページなら版の横に。navigator.onLine=false でも)+ヘルプの「端末のデータ」「オフラインでの利用方法」+FAQ/リリースノート/お知らせの案(docs/note)+deploy-guide。
 4. 配布: v1.99.1 として段1〜3をまとめて(依頼者の判断)。配った後の確認に「機内モードで開き直せる」「端末のデータの行に件数が出る」を H に足す(deploy-guide に記載済み)。残り: iPhone の Chrome での「ホーム画面に追加」と7日の規則の実機確認(依頼者)。
 

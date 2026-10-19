@@ -14,10 +14,10 @@ GNU General Public License for more details.
 */
 
 // 端末の控え(IndexedDB)の片付けワーカー(デッサン35 §4・第184 段2)。画面を止めずに、
-//   ①最終使用(usedAt。無ければ savedAt)から unusedDays(30日)を過ぎた物を消す
+//   ①最終使用(used 店の usedAt。無ければ savedAt)から unusedDays(30日)を過ぎた物を消す(used 店の孤児=本文の無い記録も消す)
 //   ②店の上限(caps[店])の high(9割)を超えていたら、古い順に low(8割)まで消す
 //   ③天気の控えは TTL(2時間)を過ぎた物を消す
-// 値(タイルのバイト列)は読まず、索引(size・savedAt・usedAt)の鍵カーソルだけで台帳を作る(1GB の店でも軽い)。削除は batch(200件)ずつ別の取引で。
+// 値(タイルのバイト列)は読まず、索引(tiles の size・savedAt と used 店の usedAt)の鍵カーソルだけで台帳を作る(1GB の店でも軽い)。削除は batch(200件)ずつ別の取引で(tiles と used の両方から)。
 // 本体からの message: { type:'clean', now, unusedDays, caps:{maptiles,demtiles,bldg,wx}, high, low, wxTtlMs, batch }
 'use strict';
 const STORES = [
@@ -30,7 +30,7 @@ function openDb(name) {
         try {
             const req = indexedDB.open(name);   // 版は本体が作る(無ければ店は無い=作らない)
             req.onupgradeneeded = () => { try { req.transaction.abort(); } catch (_) {} };   // 無い店を新しく作ってしまわない
-            req.onsuccess = () => ok(req.result);
+            req.onsuccess = () => { const db = req.result; db.onversionchange = () => { try { db.close(); } catch (_) {} }; ok(db); };   // 本体が版を上げる時は閉じて譲る
             req.onerror = () => ok(null);
             req.onblocked = () => ok(null);
         } catch (_) { ok(null); }
@@ -45,11 +45,11 @@ function keyCursorMap(st, indexName) {   // 索引の鍵カーソルで primaryK
         rq.onerror = () => ok(m);
     });
 }
-function deleteKeys(db, store, keys) {
+function deleteKeys(db, store, keys, alsoUsed) {   // alsoUsed: used 店(最終使用)の同じ鍵も消す
     return new Promise((ok) => {
         try {
-            const tx = db.transaction(store, 'readwrite'); const st = tx.objectStore(store);
-            for (const k of keys) st.delete(k);
+            const tx = db.transaction(alsoUsed ? [store, 'used'] : [store], 'readwrite'); const st = tx.objectStore(store); const us = alsoUsed ? tx.objectStore('used') : null;
+            for (const k of keys) { st.delete(k); if (us) us.delete(k); }
             tx.oncomplete = () => ok(true); tx.onerror = () => ok(false); tx.onabort = () => ok(false);
         } catch (_) { ok(false); }
     });
@@ -58,8 +58,10 @@ async function cleanTileStore(p, def) {
     const r = { name: def.name, n: 0, bytes: 0, deletedOld: 0, deletedCap: 0, freed: 0, skipped: false };
     const db = await openDb(def.db);
     if (!db || !db.objectStoreNames.contains(def.store)) { r.skipped = true; if (db) db.close(); return r; }
-    const st = db.transaction(def.store, 'readonly').objectStore(def.store);
-    const [sizes, saved, used] = await Promise.all([keyCursorMap(st, 'size'), keyCursorMap(st, 'savedAt'), keyCursorMap(st, 'usedAt')]);
+    const hasUsed = db.objectStoreNames.contains('used');
+    const tx = db.transaction(hasUsed ? [def.store, 'used'] : [def.store], 'readonly');
+    const st = tx.objectStore(def.store);
+    const [sizes, saved, used] = await Promise.all([keyCursorMap(st, 'size'), keyCursorMap(st, 'savedAt'), hasUsed ? keyCursorMap(tx.objectStore('used'), 'usedAt') : Promise.resolve(new Map())]);
     const rows = [];
     for (const [k, size] of sizes) { const last = used.get(k) || saved.get(k) || 0; rows.push({ k, size, last }); r.bytes += size; }
     r.n = rows.length;
@@ -77,9 +79,13 @@ async function cleanTileStore(p, def) {
     const all = oldKeys.concat(capKeys);
     let done = 0;
     for (let i = 0; i < all.length; i += p.batch) {
-        await deleteKeys(db, def.store, all.slice(i, i + p.batch));
+        await deleteKeys(db, def.store, all.slice(i, i + p.batch), hasUsed);
         done = Math.min(all.length, i + p.batch);
         postMessage({ type: 'progress', store: def.name, done, total: all.length });
+    }
+    if (hasUsed) {   // used 店の孤児(本文がもう無い鍵)も消しておく(全削除の後などに残った分)
+        const orphan = [...used.keys()].filter(k => !sizes.has(k));
+        for (let i = 0; i < orphan.length; i += p.batch) await deleteKeys(db, 'used', orphan.slice(i, i + p.batch), false);
     }
     r.deletedOld = oldKeys.length; r.deletedCap = capKeys.length;
     r.freed = old.reduce((s, x) => s + x.size, 0) + (rows.reduce((s, x) => s + x.size, 0) - old.reduce((s, x) => s + x.size, 0) - total);

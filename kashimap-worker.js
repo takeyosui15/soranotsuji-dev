@@ -88,7 +88,7 @@ function openDb() {
     _dbP = new Promise((ok) => {
         try {
             const req = indexedDB.open('soranotsuji-kashimap');   // 版はメインスレッドが管理する(ここでは今ある版をそのまま開く)
-            req.onsuccess = () => { const db = req.result; ok(db.objectStoreNames.contains('tiles') ? db : null); };
+            req.onsuccess = () => { const db = req.result; db.onversionchange = () => { try { db.close(); } catch (_) {} _dbP = null; }; ok(db.objectStoreNames.contains('tiles') ? db : null); };   // 本体が版を上げる時は閉じて譲る(次の呼び出しで開き直す。第184の反証レビュー C5/C9)
             req.onerror = () => ok(null);
             req.onblocked = () => ok(null);
         } catch (e) { ok(null); }
@@ -100,6 +100,19 @@ function idbGet(db, key) {
 }
 function idbPut(db, rec) {
     return new Promise((ok) => { try { const tx = db.transaction('tiles', 'readwrite'); tx.objectStore('tiles').put(rec); tx.oncomplete = () => ok(true); tx.onerror = () => ok(false); tx.onabort = () => ok(false); } catch (e) { ok(false); } });
+}
+/** 最終使用の記録: 小さな店 'used'({key, usedAt})に書く(タイル本文は書き直さない)。同じ鍵は1日1回まで(このワーカーの中で覚える)、1秒分をまとめて1つの取引で書く(第184の反証レビュー C6) */
+const _touched = new Map(); let _touchQ = null;
+function idbTouch(db, key) {
+    const now = Date.now(), last = _touched.get(key);
+    if (last && now - last < SORA.STORE.TOUCH_MIN_MS) return;
+    if (_touched.size > 50000) _touched.clear();
+    _touched.set(key, now);
+    if (!_touchQ) { _touchQ = new Set(); setTimeout(() => { const q = _touchQ; _touchQ = null; idbTouchFlush(db, q); }, 1000); }
+    _touchQ.add(key);
+}
+function idbTouchFlush(db, keys) {
+    try { if (!db.objectStoreNames.contains('used')) return; const now = Date.now(); const st = db.transaction('used', 'readwrite').objectStore('used'); for (const k of keys) st.put({ key: k, usedAt: now }); } catch (_) {}
 }
 function tileOutsideJapan(z, x, y) {
     const n = Math.pow(2, z);
@@ -114,7 +127,7 @@ async function fetchTile(kind, z, x, y, st) {
     if (tileOutsideJapan(z, x, y)) return null;
     const key = `${kind}/${z}/${x}/${y}`;
     const db = await openDb();
-    if (db) { const rec = await idbGet(db, key); if (rec && !(rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) >= SORA.TILE_STORE.MISS_TTL_MS)) { st.cached++; if (rec.buf && !(rec.usedAt && Date.now() - Number(rec.usedAt) < SORA.STORE.TOUCH_MIN_MS)) idbPut(db, { ...rec, usedAt: Date.now() }); return rec.miss ? null : rec.buf; } }   // 最終使用を1日1回だけ書き直す(第184)   // 古い「無し」の印(30日)は取り直す(第158)
+    if (db) { const rec = await idbGet(db, key); if (rec && !(rec.miss && (Date.now() - (Number(rec.savedAt) || 0)) >= SORA.TILE_STORE.MISS_TTL_MS)) { st.cached++; if (rec.buf) idbTouch(db, key); return rec.miss ? null : rec.buf; } }   // 最終使用を used 店に(1日1回・まとめ書き。第184)   // 古い「無し」の印(30日)は取り直す(第158)
     let lastErr = null;
     for (let attempt = 1; attempt <= FETCH_RETRIES; attempt++) {
         const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
@@ -123,7 +136,7 @@ async function fetchTile(kind, z, x, y, st) {
             if (res.status === 404) { st.fetched++; if (db) await idbPut(db, { key, kind, z, x, y, size: 0, miss: true, savedAt: Date.now() }); return null; }
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const buf = await res.arrayBuffer(); st.fetched++; st.bytes += buf.byteLength; if (attempt > 1) st.retried++;
-            if (db) await idbPut(db, { key, kind, z, x, y, size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() });
+            if (db) await idbPut(db, { key, kind, z, x, y, size: buf.byteLength, buf, savedAt: Date.now() });
             return buf;
         } catch (e) {
             lastErr = e;

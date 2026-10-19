@@ -2,7 +2,7 @@
 // 宙の窓検索(ボタン名と段・注記・ctrlのドラッグの対象2チェック+辻検索/辻メッシュボタン)・地理院タイルのオフライン(gsicache://の店・標高タイルの店の読み直し・バックアップメニューの行)・可視マップの封鎖(?kashimap=1)
 // ①静的: 本体/ワーカー/HTML/CSSの配線  ②ブラウザ: 既定値と係数欄・オフ=0・移行・封鎖の表示と開錠・宙の窓のドラッグの対象・ctrlボタンの連動・店の件数/容量/全削除・標高タイルの店の読み
 // 第183: ctrl の2チェックはラジオ(択一)+各段の「リセット」に変わった(デッサン05・v1.99.0)。S2/U3 をその形に更新(リセットの動作は verify186 が見る)。
-// 第184: 店の版(地理 v3・標高 v4=usedAt の索引)・標高タイルのヒットで最終使用を書き直す・地理タイルの注記の文・ラジオの切り替えでは戻さない、に合わせて S3/U3 の字面を更新。
+// 第184: 店の版(地理 v3・標高 v4=最終使用の店 used。統計は _idbStatOf で tiles と used を同じ取引で数える)・標高タイルのヒットで最終使用を used 店へ(反証レビュー C6 で本文の書き直しをやめた)・地理タイルの注記の文・ラジオの切り替えでは戻さない、に合わせて S3/U3 の字面を更新。
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -65,12 +65,12 @@ check('S3 地理院タイルのオフライン(静的): gsicache:// の店(Index
   src.includes("'base-pale': rasterSrc([_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')], gsiAttr, 18),") && src.includes("tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf')],") &&
   src.includes("tiles: [_mtUrl('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png')],") && src.includes("'base-osm': rasterSrc(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],") &&
   src.includes("const img = await _demTileLoad(tileUrl);") && src.includes('async function _demTileLoad(tileUrl) {') && src.includes("const DEM_TILE_URL_RE = /\\/xyz\\/(dem5a_png|dem5b_png|dem5c_png|dem_png)\\/(\\d+)\\/(\\d+)\\/(\\d+)\\.png$/;") &&
-  src.includes("else { const t = _storeTouch(r); if (t) put(t); try { return await _demDecode(r.buf); } catch (_) {} }") &&
-  stSrc.includes("const req = indexedDB.open('soranotsuji-kashimap');") && stSrc.includes("const rec = await demGet(db, key);") && stSrc.includes("if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now(), usedAt: Date.now() }); }") &&
+  src.includes("else { _storeTouch('km', key); try { return await _demDecode(r.buf); } catch (_) {} }") &&
+  stSrc.includes("const req = indexedDB.open('soranotsuji-kashimap');") && stSrc.includes("const rec = await demGet(db, key);") && stSrc.includes("if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); }") &&
   ['backup-maptiles-count', 'backup-maptiles-size', 'backup-maptiles-updated', 'btn-backup-maptiles-clear', 'backup-demtiles-count', 'backup-demtiles-size', 'backup-demtiles-updated', 'btn-backup-demtiles-clear'].every(id => idxSrc.includes(`id="${id}"`)) &&
   idxSrc.includes('<span class="menu-note">自動で貯まり、30日使わない物と上限超えの分は自動で片付けます。</span>')   /* 第184: 注記は自動の片付けの文に */ && idxSrc.includes('<li><strong>地理タイル / 標高タイル (端末の控え)</strong>') &&
   src.includes("_mtRefreshBackupRows();   // 地理タイル/標高タイルの件数・容量・最終更新(第158)") && src.includes("if (bDem) bDem.onclick = async () => {") &&
-  src.includes("_idbStatByIndex(db.transaction('tiles', 'readonly').objectStore('tiles'))") && src.includes("_idbStatByIndex(db.transaction(MT_STORE, 'readonly').objectStore(MT_STORE))") &&   // 件数・容量は索引の鍵カーソルで(本文を読まない。レビューの直し)
+  src.includes("_idbStatOf(db, 'tiles')") && src.includes("_idbStatOf(db, MT_STORE)") &&   // 件数・容量は索引の鍵カーソルで(本文を読まない。レビューの直し)
   src.includes("indexedDB.open(MT_DB, 3)") && src.includes("indexedDB.open('soranotsuji-kashimap', 4)") && src.includes("_idbEnsureStatIndexes(tx.objectStore('tiles'));") &&
   src.includes("if (rec && rec.miss) { if (_storeMissFresh(rec)) notFound(); rec = null; }") && src.includes("if (r.miss || !r.buf) { if (_storeMissFresh(r)) return null; }") &&   // 「無し」の印は30日で取り直す
   src.includes("MISS_TTL_MS: 30 * 24 * 3600 * 1000,") === false && fs.readFileSync('sora-constants.js', 'utf8').includes("MISS_TTL_MS: 30 * 24 * 3600 * 1000,") &&
