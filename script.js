@@ -3232,6 +3232,7 @@ function _sanitizeStoredShapes() {
     // My観測点/My目的点
     // 緯度経度が「未入力」(null/空)の行は正当な途中の状態(行追加して後で入れる)なので残す。入っているのに数値にならない行だけ捨てる
     const emptyOrFin = (v) => (v === null || v === undefined || v === '') ? null : fin(v);
+    const wrapLng = (lng) => (Math.abs(lng) <= 180 ? lng : ((lng + 180) % 360 + 360) % 360 - 180);   // 地図を日付変更線をまたいで動かした時の 180 超の経度は ±180 に巻き戻す(第185の反証レビュー: 捨てない)
     const ROW_MAX = 1000;   // アプリ自身の上限(第185の監査: 保存データに10万行を詰められると起動のたびに全行を描いて固まる)
     const uniqById = (list) => { const seen = new Set(); return list.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; }); };   // ID の重複は先頭の行だけ残す(第185の監査: 行削除が同 ID の全行を消していた)
     const fixMyPoints = (list, label) => uniqById((Array.isArray(list) ? list : []).slice(0, ROW_MAX).map((p, i) => {
@@ -3239,8 +3240,8 @@ function _sanitizeStoredShapes() {
         const id = intId(p.id), lat = emptyOrFin(p.lat), lng = emptyOrFin(p.lng);
         const latBad = (p.lat !== null && p.lat !== undefined && p.lat !== '' && lat === null), lngBad = (p.lng !== null && p.lng !== undefined && p.lng !== '' && lng === null);
         if (id === null || latBad || lngBad || (lat !== null) !== (lng !== null)) { dropped.push(`${label}[${i}]`); return null; }
-        if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) { dropped.push(`${label}[${i}]`); return null; }   // 第185の監査: 緯度 90 超は MapLibre の Marker の例外で以後の描画が止まる
-        return { ...p, id, lat, lng, elev: fin(p.elev), height: fin(p.height) ?? 0, name: str(p.name, 300), memo: str(p.memo, 1000), checked: !!p.checked };
+        if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 540)) { dropped.push(`${label}[${i}]`); return null; }   // 第185の監査: 緯度 90 超は MapLibre の Marker の例外で以後の描画が止まる(経度は 540 まで巻き戻す)
+        return { ...p, id, lat, lng: lng === null ? null : wrapLng(lng), elev: fin(p.elev), height: fin(p.height) ?? 0, name: str(p.name, 300), memo: str(p.memo, 1000), checked: !!p.checked };
     }).filter(Boolean));
     appState.myObservations = fixMyPoints(appState.myObservations, 'myObservations');
     appState.myTargets = fixMyPoints(appState.myTargets, 'myTargets');
@@ -3286,22 +3287,24 @@ function _sanitizeStoredShapes() {
     appState.mySoraSearches = uniqById((Array.isArray(appState.mySoraSearches) ? appState.mySoraSearches : []).slice(0, ROW_MAX).map((t, i) => {
         if (!t || typeof t !== 'object') return null;
         const id = intId(t.id); if (id === null) { dropped.push(`mySoraSearches[${i}]`); return null; }
-        return { ...t, id, name: str(t.name, 300), obsId: intId(t.obsId), tgtId: intId(t.tgtId) };
+        return { ...t, id, name: str(t.name, 150), obsId: intId(t.obsId), tgtId: intId(t.tgtId) };   // My宙の名前は CSV/シートの取り込みと同じ 150
     }).filter(Boolean));
     // 第185の監査: 型そろえの対象外だったキー
     // 既定のセット(ID:0): 名前は固定・メモは文字・シートIDは Google のIDの文字種だけ
     { const h = (appState.mySetHome && typeof appState.mySetHome === 'object') ? appState.mySetHome : {};
       const sheetId = (typeof h.sheetId === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(h.sheetId)) ? h.sheetId : null;
       appState.mySetHome = { ...h, id: 0, name: '既定のセット', memo: str(h.memo, 1000), sheetId, checked: !!h.checked, offline: !!h.offline, saveMode: h.saveMode === 'load' ? 'load' : 'save' }; }
-    // 表示中のセットの ID: 整数で、既定(0)か存在する Myセットだけ(違えば既定へ。取り違えたまま切り替えると既定のセットの退避内容が上書きされる)
-    { const cid = parseInt(appState.mySetCurrentId, 10); appState.mySetCurrentId = (Number.isFinite(cid) && (cid === 0 || appState.mySets.some(m => m.id === cid))) ? cid : 0; }
+    // 表示中のセットの ID: 整数にそろえる("1"(文字列)のままだと s.id === mySetCurrentId が全て偽になり、切り替え表示で既定のセットの退避内容(mySetHomeData)が上書きされる)。
+    // 範囲内の整数(1〜1,000,000)は mySets に無くても残す(My付きメニューのライブ内容はその行の物。黙って既定(0)へ戻すと既定の内容と取り違える=第185の反証レビュー)。整数でない/範囲外だけ既定へ
+    { const cid = parseInt(appState.mySetCurrentId, 10); appState.mySetCurrentId = (cid === 0 || intId(cid) !== null) ? cid : 0;
+      if (appState.mySetCurrentId !== 0 && !appState.mySets.some(m => m.id === appState.mySetCurrentId)) console.warn(`表示中の Myセット(ID:${appState.mySetCurrentId})が一覧にありません(保存前に内容を確認してください)`); }
     // 宙の辻フォルダ名(Drive): 文字で 1〜100 文字(違えば既定。文字列以外だと Drive の保存/シート作成が全て失敗し続けた)
     if (typeof appState.soraFolderName !== 'string' || !appState.soraFolderName.trim() || appState.soraFolderName.length > 100) appState.soraFolderName = APP_DEFAULTS.soraFolderName && 'def' in APP_DEFAULTS.soraFolderName ? APP_DEFAULTS.soraFolderName.def : '/soranotsuji-宙の辻';
     // 位置情報のラジオ(観測点/目的点)の列挙
     if (appState.locMode !== 'start' && appState.locMode !== 'end') appState.locMode = 'start';
     // 気象値(気圧 hPa・気温 ℃・気温減率 K/m)は有限で常識の範囲。違えば標準値(NaN の K が可視判定・辻検索に流れないように)。K は取り直す
     { const m = (appState.meteo && typeof appState.meteo === 'object') ? appState.meteo : {};
-      const inR = (v, lo, hi, d) => { const n = fin(v); return (n !== null && n >= lo && n <= hi) ? n : d; };
+      const inR = (v, lo, hi, d) => { const n = fin(v); return n === null ? d : Math.max(lo, Math.min(hi, n)); };   // 数でなければ標準値・範囲外は丸める(第185の反証レビュー: 設定登録は範囲外も受け付けるので黙って標準値に飛ばさない)
       appState.meteo = { p: inR(m.p, 300, 1100, STD_P), t: inR(m.t, -90, 60, STD_T), l: inR(m.l, -0.05, 0.1, STD_L) };
       appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l); }
     if (dropped.length) console.warn(`保存データの形が直せない行を外しました: ${dropped.slice(0, 10).join(', ')}${dropped.length > 10 ? ' …' : ''}`);
@@ -5440,10 +5443,12 @@ async function _demTileLoad(tileUrl) {
     let fetched = false;
     try {
         const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000);
-        let res; try { res = await fetch(tileUrl, { signal: ctl.signal, mode: 'cors' }); } finally { clearTimeout(timer); }
-        if (res.status === 404) { if (db) await put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() }); return null; }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const buf = await res.arrayBuffer();
+        let res, buf; try {
+            res = await fetch(tileUrl, { signal: ctl.signal, mode: 'cors' });
+            if (res.status === 404) { if (db) await put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() }); return null; }
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            buf = await res.arrayBuffer();   // 本文の読みも同じ 12 秒の中(ヘッダだけ返して本文が止まる応答に備える。第185の反証レビュー)
+        } finally { clearTimeout(timer); }
         fetched = true;
         if (db) { put({ key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); _mtScheduleRefresh(); }
         return await _demDecode(buf);
@@ -6324,7 +6329,7 @@ function appendMyStarsCsv() {
             const cols = lines[i].split(',');
             if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = csvUnprefix(cols[1].trim());
+            const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 第185の反証レビュー: 入口ごとに違っていた長さを型そろえと同じ 300 に
             const ra = parseFloat(toHalfWidth(cols[2].trim()));
             const dec = parseFloat(toHalfWidth(cols[3].trim()));
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
@@ -6519,6 +6524,7 @@ function importBackup() {
             return;
         }
         // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)。第185の監査: 途中で例外になったら localStorage から読み直して半端な状態を残さない
+        saveAppState();   // 巻き戻しの元を確定(保存が無い端末=初回・reset 直後でも取り込み前へ戻せるように。第185の反証レビュー)
         try {
             if (data.homeStart) appState.homeStart = data.homeStart;
             if (data.homeEnd) appState.homeEnd = data.homeEnd;
@@ -6553,7 +6559,7 @@ function importBackup() {
                 syncRefractionUiFromState();   // チェック・気象3欄・係数欄も取り込んだ値に(第157のレビュー: 画面が古いままで、計算だけ新しいKになっていた)
             }
             normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
-        } catch (e) { try { loadAppState(); normalizeAppState(); } catch (_) {} throw e; }
+        } catch (e) { try { loadAppState(); syncMyStarsToBodies(); syncRefractionUiFromState(); } catch (_) {} throw e; }   // loadAppState は normalizeAppState を含む。bodies の My天体は syncMyStarsToBodies でしか戻らない
         saveAppState();
         syncUIFromState();
         // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
@@ -7049,7 +7055,7 @@ function importMyPointsCsv(type) {
             const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
             if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
-            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }
+            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す
             usedIds.add(id);
             // 標高が空の場合は後で取得
             newPoints.push({ id, name, lat, lng, elev, height, memo });
@@ -7096,7 +7102,7 @@ function appendMyPointsCsv(type) {
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
             const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }
+            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す
             csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
         }
 
@@ -8590,7 +8596,7 @@ async function fileTsujiSearchCsv() {
     }
     const baseAz = appState.tsujiSearchBaseAz, baseAlt = appState.tsujiSearchBaseAlt;
     if (isNaN(baseAz) || isNaN(baseAlt)) return alert('方位角・視高度・許容範囲を正しく入力してください');
-    if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？')) return;
+    if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？\n(実行中にもう一度押すとキャンセルします)')) return;
     const visibleBodies = appState.bodies.filter(b => b.visible);
     if (!visibleBodies.length) return alert('表示天体がありません');
     const t = {
@@ -8628,15 +8634,18 @@ async function fileTsujiSearchCsv() {
         let doneChunks = 0;
         setTsujiProgress(0, totalChunks);
         const res = await executeSingleMyTsujiSearch(t, batchStartDate.getTime(), null, null,
-            () => { doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);
+            () => { if (gen !== _tsujiFileGen) return; doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);   // 2度押しキャンセル後に terminateAll の reject→catch が呼ぶ分は無視(進捗バーの再表示を防ぐ。第185の反証レビュー)
         if (gen !== _tsujiFileGen) return;   // 2度押しでキャンセル済み
         hideTsujiProgress();
         const allResults = [];
         if (res) _pushMyTsujiResults(allResults, t, res);   // res.obs/tgtは渡したオーバーライド(obs/tgt)がそのまま返る
         const decorated = await decorateMyTsujiResults(allResults);
+        if (gen !== _tsujiFileGen) return;   // 装飾(可視判定の await)の間に2度押しでキャンセル済み(第185の反証レビュー)
         if (!decorated.length) { statusEl.textContent = '0件'; return alert('該当する日時はありません'); }
         statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
-        await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
+        const ok = await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`,
+            undefined, () => gen !== _tsujiFileGen);   // 2000行ごとに2度押しを見る(辻メッシュの File取得と同じ形)
+        if (!ok || gen !== _tsujiFileGen) return;   // キャンセル済み: CSV は落とさず、状態の文「(File取得をキャンセルしました)」も上書きしない
         statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
     } catch (e) {
         if (gen !== _tsujiFileGen) return;   // キャンセルで止めた(ワーカーの終了)分は黙る
@@ -10996,6 +11005,7 @@ async function computeTsujiMeshVisibilityFlags(latA, lngA, elevA, kept, pixHeigh
                     try { img = await _getTileImageData(_makeTileUrl(dem, tx, ty)); } catch (_) {}
                     map.set(tx * 32768 + ty, img);
                     done++;
+                    if (generation !== tsujiMeshGeneration) return;   // await の後(キャンセル後に状態の文/進捗バーを上書きしない。第185の反証レビュー)
                     if ((done & 7) === 0 || done === coords.length) {
                         setStatus(`(可視フィルタ 標高タイル取得中(${label})… ${done}/${coords.length})`);
                         setTsujiMeshProgress(done, coords.length);
@@ -11202,6 +11212,7 @@ async function startTsujiMeshSearch() {
     tmVisPool.terminateAll();   // 実行中の可視判定(標高フィルタ)もキャンセル
     hideTsujiMeshProgress();
     clearTsujiMeshMarkers();
+    if (_tmFileBusy && !_tmFileCsvPending) _tmFileCancel(false, null);   // CSV 生成中(2段目/3段目)に別経路(検索エリアのラジオ等)から再検索が入ったら export だけ止める(大域の画素集合を差し替え後に古い索引で読まないため。第185の反証レビュー)
     _tsujiMeshRows = []; _tsujiMeshSelIdx = -1; _tsujiMeshPix = null; _tsujiMeshCalc = null; _tmCtrlDay0 = null; _tmCtrlFracMs = 0;
     _tmResetDetailList();
 
@@ -11256,13 +11267,14 @@ async function startTsujiMeshSearch() {
             }
         }
         tileData.push(img);
+        if (generation !== tsujiMeshGeneration) return;   // await の後(キャンセル後の進捗バーの再表示を防ぐ)
         setTsujiMeshProgress(i + 1, progTotal);
     }
     if (generation !== tsujiMeshGeneration) return;
 
     // 1b) 標高フィルタ: 許容範囲で絞った対象画素それぞれに、標高グラフと同一のアルゴリズムで
     //     可視(OK)/不可視(NG)を判定し、OK/NGチェックで選んだ対象だけを検索する(判定は前計算の後)。
-    //     結果行の標高グラフ列は「行の表示値を出した地点=その日の最良画素」の可視判定を表示する。
+    //     結果行の可視判定列(旧「標高グラフ」列)は「行の表示値を出した地点=その日の最良画素」の可視判定を表示する。
     const elevOptOn = appState.tsujiMeshElevationOption;
     let viewshedMode = 'all';
     if (elevOptOn && appState.tsujiMeshElevOK !== appState.tsujiMeshElevNG)
@@ -11325,6 +11337,7 @@ async function startTsujiMeshSearch() {
         setStatus('(対象画素なし)');
         hideTsujiMeshProgress();
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内の画素がありません(許容範囲方位角/視高度を広げてください)</div>';
+        if (_tmFileBusy || _tmFileCsvPending) _tmFileCancel(false, null);   // File取得の予約と点灯を落とす(CSV を出さずに終わる経路。第185の反証レビュー)
         return;
     }
 
@@ -11354,6 +11367,7 @@ async function startTsujiMeshSearch() {
                 setStatus('(対象画素なし)');
                 hideTsujiMeshProgress();
                 contentEl.innerHTML = '<div style="padding:8px;color:#999;">許容範囲内かつ可視フィルタ対象の画素がありません(OK/NGチェックや許容範囲を見直してください)</div>';
+                if (_tmFileBusy || _tmFileCsvPending) _tmFileCancel(false, null);   // File取得の予約と点灯を落とす(第185の反証レビュー)
                 return;
             }
         }
@@ -11406,6 +11420,7 @@ async function startTsujiMeshSearch() {
         hideTsujiMeshProgress();
         contentEl.innerHTML = '<div style="padding:8px;color:#999;">表示天体メニューで検索する天体をオンにしてください</div>';
         tsujiMeshPool.terminateAll();   // 検索せず終了: initデータを持ったまま常駐させない
+        if (_tmFileBusy || _tmFileCsvPending) _tmFileCancel(false, null);   // File取得の予約と点灯を落とす(第185の反証レビュー)
         return;
     }
     const days = appState.tsujiMeshDays;
@@ -11429,12 +11444,13 @@ async function startTsujiMeshSearch() {
         }
         return { id: body.id, fixed: false };
     };
-    const bumpProgress = () => { doneTasks++; setTsujiMeshProgress(doneTasks, totalTasks); };
+    const bumpProgress = () => { if (generation !== tsujiMeshGeneration) return; doneTasks++; setTsujiMeshProgress(doneTasks, totalTasks); };   // キャンセル(terminateAll の reject→catch)後の再表示を防ぐ
 
     const allBodyEvents = await Promise.all(visibleBodies.map(async body => {
         const bodyMsg = buildBodyMsg(body);
         const events = [];
         for (let c = 0; c < numChunks; c++) {
+            if (generation !== tsujiMeshGeneration) break;   // キャンセル/再検索後は次チャンクを投入しない(terminateAll の後の runTask→ensure が init 前のワーカーを作り直して握るのを防ぐ。第185の反証レビュー)
             const dayStart = c * CHUNK, dayEnd = Math.min(dayStart + CHUNK, days);
             try {
                 const res = await tsujiMeshPool.runTask({
@@ -11475,7 +11491,8 @@ async function startTsujiMeshSearch() {
     // File取得ボタン起点の検索なら、完了した結果行をCSVでダウンロードする
     if (_tmFileCsvPending) {
         _tmFileCsvPending = false;
-        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); }).finally(() => _tmFileSetBusy(false));
+        const exportGen = _tmExportGen;   // この実行の世代。キャンセル直後に始まった新しい File取得の点灯を、古い実行の finally が落とさないように(第185の反証レビュー)
+        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); }).finally(() => { if (exportGen === _tmExportGen) _tmFileSetBusy(false); });
     }
     // 検索直後は行を自動選択せず、日時も移動しない
     // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
@@ -11668,8 +11685,12 @@ let _tmFileCsvPending = false, _tmFileBusy = false, _tmExportGen = 0;
 function _tmFileSetBusy(on) { _tmFileBusy = !!on; const b = document.getElementById('btn-tsujimesh-file'); if (b) b.classList.toggle('active', !!on); }
 /** File取得の取りやめ(2度押し・パネルを閉じた・入力エラー): 予約を消し、実行中の検索と CSV 生成を止める(第185・依頼者: 何度も押せて処理が重なっていた) */
 function _tmFileCancel(cancelSearch, msg) {
+    const searching = _tmFileCsvPending;   // 検索中(CSV 生成に入る前)か。CSV 生成中なら描画済みの結果リストは消さない
     _tmFileCsvPending = false; _tmExportGen++;
-    if (cancelSearch) { tsujiMeshGeneration++; tsujiMeshPool.terminateAll(); tmVisPool.terminateAll(); hideTsujiMeshProgress(); }
+    if (cancelSearch) {
+        tsujiMeshGeneration++; tsujiMeshPool.terminateAll(); tmVisPool.terminateAll(); hideTsujiMeshProgress();
+        if (searching) { const c = document.getElementById('tsujimesh-content'); if (c) c.innerHTML = '<div style="padding:8px;color:#999;">(キャンセルしました)</div>'; }   // 「検索しています…」を残さない
+    }
     if (msg) { const st = document.getElementById('tsujimesh-status'); if (st) st.textContent = msg; }
     _tmFileSetBusy(false);
 }
@@ -14548,6 +14569,7 @@ function loadGisScript() {
 
 /** Googleログイン (ユーザー操作から呼ぶ。成功でtrue) */
 let _googleLoginResolve = null;   // 進行中のログインの約束(第185の監査)
+let _googleLoginPending = null;   // 進行中の googleLogin() の Promise(ポップアップ待ちの間の再呼び出しは同じ約束を共有し、前の resolve を捨てない。第185の反証レビュー)
 async function googleLogin() {
     const clientId = getGoogleClientId();
     if (!clientId) {
@@ -14555,7 +14577,8 @@ async function googleLogin() {
         return false;
     }
     try { await loadGisScript(); } catch (e) { alert(e.message); return false; }
-    return new Promise((resolve) => {
+    if (_googleLoginPending) return _googleLoginPending;   // 同時呼び出し(ポップアップ待ち中の再クリック)は進行中の約束を返す(requestAccessToken も二重に呼ばない)
+    _googleLoginPending = new Promise((resolve) => {
         _googleLoginResolve = resolve;   // 第185の監査: TokenClient は1回だけ作るので、callback は「今回の呼び出し」の resolve を解決する(2回目以降のログインの約束が永久に未解決だった)
         const settle = (ok) => { const r = _googleLoginResolve; _googleLoginResolve = null; if (r) r(ok); };
         try {
@@ -14592,6 +14615,8 @@ async function googleLogin() {
             settle(false);
         }
     });
+    _googleLoginPending.then(() => { _googleLoginPending = null; });   // 決着したら手放す(次のログインは新しい約束)
+    return _googleLoginPending;
 }
 
 /** 操作時にトークンを確保する (切れていたら取り直す=イベント駆動型)。取得できなければnull */
@@ -20938,7 +20963,7 @@ async function ssExecuteSearch(setBusy) {
     // フォーム値をappStateへ反映(検証ハーネス等がフォームを直接書き換えた場合もここで同期)
     const sel = document.getElementById('sel-ss-preset');
     if (sel && sel.value !== appState.ssPreset) {
-        appState.ssPreset = sel.value in SS_PRESETS || sel.value === 'custom' ? sel.value : 'milkyway';
+        appState.ssPreset = Object.prototype.hasOwnProperty.call(SS_PRESETS, sel.value) || sel.value === 'custom' ? sel.value : 'milkyway';   // 第185の反証レビュー: in だと __proto__ が通る
         if (appState.ssPreset !== 'custom') applySsPresetToState(appState.ssPreset);
         syncSoraSearchUI();
     }

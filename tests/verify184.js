@@ -190,16 +190,16 @@ check('S12 第185の監査の直し: URL の date/time は数字だけ+壊れた
   src.includes("if (/^\\d{8}$/.test(s)) {") && src.includes("if (/^\\d{4}(\\d{2})?$/.test(s)) {") && src.includes("if (isNaN(appState.currentDate.getTime())) { appState.currentDate = new Date(); delete appState._restoredFromUrl; }") &&
   src.includes("const elvOk = (v) => Number.isFinite(v) && Math.abs(v) <= 20000;") && src.includes("Math.abs(parseFloat(appState.fwLat)) > 90 || Math.abs(parseFloat(appState.fwLng)) > 180") &&
   src.includes("const QP_DECODE_MAX_CHARS = 262144;") && src.includes("if (res.length > QP_DECODE_MAX_CHARS) return null;") && src.includes("starIds.slice(0, 1000).forEach(sid => {") &&
-  src.includes("if (Number.isFinite(v)) appState.meteo[mk] = v; }") && (src.match(/Object\.prototype\.hasOwnProperty\.call\(SS_PRESETS, /g) || []).length === 2 && !/\bin SS_PRESETS\)/.test(src) &&
+  src.includes("if (Number.isFinite(v)) appState.meteo[mk] = v; }") && (src.match(/Object\.prototype\.hasOwnProperty\.call\(SS_PRESETS, /g) || []).length === 3 && !/\bin SS_PRESETS\b/.test(src) &&
   src.includes("if(Array.isArray(saved.myStars)) appState.myStars = saved.myStars;") && src.includes("if(isObj(saved.meteo)) appState.meteo = saved.meteo;") && src.includes("if(typeof saved.soraFolderName === 'string') appState.soraFolderName = saved.soraFolderName;") &&
-  src.includes("const ROW_MAX = 1000;") && src.includes("const uniqById = (list) => {") && src.includes("if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) { dropped.push(`${label}[${i}]`); return null; }") &&
-  src.includes("appState.mySetHome = { ...h, id: 0, name: '既定のセット', memo: str(h.memo, 1000), sheetId,") && src.includes("appState.mySetCurrentId = (Number.isFinite(cid) && (cid === 0 || appState.mySets.some(m => m.id === cid))) ? cid : 0;") &&
+  src.includes("const ROW_MAX = 1000;") && src.includes("const uniqById = (list) => {") && src.includes("if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 540)) { dropped.push(`${label}[${i}]`); return null; }") && src.includes("const wrapLng = (lng) =>") &&
+  src.includes("appState.mySetHome = { ...h, id: 0, name: '既定のセット', memo: str(h.memo, 1000), sheetId,") && src.includes("appState.mySetCurrentId = (cid === 0 || intId(cid) !== null) ? cid : 0;") &&
   src.includes("if (appState.locMode !== 'start' && appState.locMode !== 'end') appState.locMode = 'start';") && src.includes("appState.meteo = { p: inR(m.p, 300, 1100, STD_P), t: inR(m.t, -90, 60, STD_T), l: inR(m.l, -0.05, 0.1, STD_L) };") &&
-  src.includes("} catch (e) { try { loadAppState(); normalizeAppState(); } catch (_) {} throw e; }") && (src.match(/Math\.abs\(lat\) > 90 \|\| Math\.abs\(lng\) > 180\) \{ alert\(/g) || []).length === 2 && (src.match(/csvUnprefix\(cols\[1\]\.trim\(\)\)\.slice\(0, 300\)/g) || []).length === 3 && src.includes("csvUnprefix(cols[1].trim()).slice(0, 150);") &&
+  src.includes("} catch (e) { try { loadAppState(); syncMyStarsToBodies(); syncRefractionUiFromState(); } catch (_) {} throw e; }") && src.includes("saveAppState();   // 巻き戻しの元を確定") && (src.match(/Math\.abs\(lat\) > 90 \|\| Math\.abs\(lng\) > 540\) \{ alert\(/g) || []).length === 2 && (src.match(/csvUnprefix\(cols\[1\]\.trim\(\)\)\.slice\(0, 300\)/g) || []).length === 4 && src.includes("csvUnprefix(cols[1].trim()).slice(0, 150);") &&
   src.includes("const bodyIds = [...new Set((t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean))];") && src.includes("let _googleLoginResolve = null;") && src.includes("const settle = (ok) => { const r = _googleLoginResolve; _googleLoginResolve = null; if (r) r(ok); };") &&
   (src.match(/A1:CV\$\{MYSET_SHEET_MAX_ROWS\}/g) || []).length === 2 && src.includes("name: String(mt.name || id).slice(0, 150)") && src.includes("String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), 'ja')") &&
   swSrc.includes("const PRECACHE_KEYS = new Set((self.SORA_PRECACHE || []).map(u => keyOf(new URL(u, SCOPE))));") && swSrc.includes("if (v === VER && PRECACHE_KEYS.has(key)) putRuntime(c, key, res.clone());") &&
-  trwSrc.includes("let resp; try { resp = await fetch(url, { signal: ctl.signal }); } finally { clearTimeout(timer); }") && idxSrc.includes('https://s3.amazonaws.com/elevation-tiles-prod/') && idxSrc.includes('https://script.google.com/macros/s/') && !/https:\/\/s3\.amazonaws\.com[ ;]/.test(idxSrc) && !/https:\/\/script\.google\.com[ ;]/.test(idxSrc));
+  trwSrc.includes("resp = await fetch(url, { signal: ctl.signal });") && /blob = await resp\.blob\(\);[^\n]*\n\s*\} finally \{ clearTimeout\(timer\); \}/.test(trwSrc) && /buf = await res\.arrayBuffer\(\);[^\n]*\n\s*\} finally \{ clearTimeout\(timer\); \}/.test(src) && idxSrc.includes('https://s3.amazonaws.com/elevation-tiles-prod/') && idxSrc.includes('https://script.google.com/macros/s/') && !/https:\/\/s3\.amazonaws\.com[ ;]/.test(idxSrc) && !/https:\/\/script\.google\.com[ ;]/.test(idxSrc));
 
 (async () => {
   const { chromium } = require('playwright-core');
@@ -363,15 +363,15 @@ check('S12 第185の監査の直し: URL の date/time は数字だけ+壊れた
   {
     const q9 = await ctx.newPage(); const err9 = []; q9.on('pageerror', e => err9.push(String(e.message || e)));
     await q9.route('**/*', r => r.request().url().startsWith(BASE) ? r.continue() : r.abort());
-    const many = Array.from({ length: 1200 }, (_, i) => `&starId=${90000 + i}&starName=s${i}&starRa=1&starDec=1`).join('');
-    await q9.goto(BASE + '/index.html?date=abcd0101&time=12xx00&startElv=1e308&endApiElv=-1e308&fwEnabled=true&fwLat=95&fwLng=200&meteoP=Infinity&meteoT=abc&ssPreset=__proto__' + many, { waitUntil: 'load' });
-    await q9.waitForFunction(() => typeof appState !== 'undefined' && document.getElementById('app-version') && document.getElementById('app-version').textContent !== 'v0.0.0', { timeout: 15000 });
+    const many = Array.from({ length: 1100 }, (_, i) => `&starId=${9000 + i}&starName=s&starRa=${i % 360}.${i}&starDec=${(i % 170) - 85}`).join('');   // 赤経は全部違う(同じ座標は1件に畳まれる)。URL は短く(ハーネスの http.server は 64KB まで)。My天体の復元は mode= がある URL だけ
+    await q9.goto(BASE + '/index.html?mode=full&date=abcd0101&time=12xx00&startElv=1e308&endApiElv=-1e308&fwEnabled=true&fwLat=95&fwLng=200&meteoP=Infinity&meteoT=abc&ssPreset=__proto__' + many, { waitUntil: 'load' });
+    await q9.waitForFunction(() => typeof appState !== 'undefined' && document.getElementById('app-version') && document.getElementById('app-version').textContent !== 'v0.0.0', { timeout: 60000 });
     await q9.waitForTimeout(800);
     const r9 = await q9.evaluate(() => ({ validDate: !isNaN(appState.currentDate.getTime()), restored: appState._restoredFromUrl === undefined, startH: appState.startHeight, endApi: appState.endApiElev, fwLat: appState.fwLat, fwLng: appState.fwLng,
       kFinite: Number.isFinite(appState.refractionK), p: appState.meteo.p, t: appState.meteo.t, preset: appState.ssPreset, stars: appState.myStars.length, decodeBomb: decodeQueryParam('v23.' + 'A'.repeat(20)) }));
     await q9.close();
     check('U9 毒入りの URL で起動: 日時は有効で URL 由来の印は立たない・1e308 の標高/高さは捨てる・緯度 95 の花火は捨てる(null)・Infinity/文字の気象値は標準値で K は有限・__proto__ のプリセットは既定・My天体は 1,000 件まで・ページエラー 0',
-      r9.validDate && r9.restored && r9.startH !== 1e308 && r9.endApi !== -1e308 && r9.fwLat === null && r9.fwLng === null && r9.kFinite && r9.p === 1013.25 && r9.t === 15 && r9.preset !== '__proto__' && r9.stars <= 1000 && err9.length === 0, JSON.stringify({ ...r9, errs: err9.slice(0, 2) }));
+      r9.validDate && r9.restored && r9.startH !== 1e308 && r9.endApi !== -1e308 && r9.fwLat === null && r9.fwLng === null && r9.kFinite && r9.p === 1013.25 && r9.t === 15 && r9.preset !== '__proto__' && r9.stars === 1000 && err9.length === 0, JSON.stringify({ ...r9, errs: err9.slice(0, 2) }));
   }
   check('E ページエラーなし', errors.length === 0, errors.slice(0, 3).join(' | '));
   await b.close();

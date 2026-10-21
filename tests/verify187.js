@@ -40,7 +40,7 @@ check('S1 sw.js: 自オリジン(範囲内)の GET だけ・Authorization 付き
 // ---- S2: 一覧と版の一致 ----
 let checkOut = '', checkOk = false;
 try { checkOut = execFileSync(process.execPath, [path.join(ROOT, 'tools', 'sw', 'build-precache.js'), '--check'], { encoding: 'utf8' }); checkOk = true; } catch (e) { checkOut = String(e.stdout || '') + String(e.stderr || ''); }
-const metaVer = (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] || null;   // 第184: meta は廃止(1.99.1 だけ移行用に残す=APP_VERSION と同じ値であること。1.99.2 で消す)
+const metaVer = (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] || null;   // 第184: meta は廃止(v1.99.0 の次に配る版=1.99.2 まで移行用に残す=APP_VERSION と同じ値であること。1.99.3 で消す。第185)
 check('S2 sw-precache.js は配信面と一致(build-precache --check)・37件以上・index.html/script.js/sora-constants.js/style.css/vendor 一式/ワーカー7本/フォント/天の川が入り、4K の天の川や data/kashimap は入らない・全ファイルに実体・index.html に版の meta は無い(版は sora-constants.js の1箇所。第184)・script.js の APP_VERSION は SORA.APP_VERSION を読む',
   checkOk && PRECACHE.length >= 37 && ['index.html', 'script.js', 'sora-constants.js', 'style.css', 'three-global.js', 'reset.html', 'reset.js', 'vendor/maplibre-gl.js', 'vendor/three.module.min.js', 'vendor/draco/draco_decoder.wasm', 'vendor/astronomy.browser.min.js', 'fonts/SoraSans/0-255.pbf', 'milkyway-skymap.webp', 'celestial_db.json', 'muni.json',
     'dp-line-worker.js', 'sora-mov-worker.js', 'sora-terrain-worker.js', 'tm-vis-worker.js', 'tsuji-search-worker.js', 'tsujimesh-search-worker.js', 'kashimap-worker.js'].every(f => PRECACHE.includes(f)) &&

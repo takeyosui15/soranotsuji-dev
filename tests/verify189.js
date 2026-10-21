@@ -27,9 +27,9 @@ check('S1 不具合(静的): File取得 CSV と結果リスト(thead 4つ・並�
   (src.match(/\{ label: '可視判定', compare:/g) || []).length === 4 && !src.includes("label: '標高グラフ'") &&
   src.includes("downloadTextFile(filename, parts);") && !src.includes("const csv = parts.join('');") && src.includes("const blob = new Blob(Array.isArray(text) ? text : [text], { type: mime });") && src.includes("if (isCanceled && isCanceled()) return false;") &&
   src.includes("let _tmFileCsvPending = false, _tmFileBusy = false, _tmExportGen = 0;") && src.includes("function _tmFileCancel(cancelSearch, msg) {") && src.includes("if (_tmFileBusy) { _tmFileCancel(true, '(File取得をキャンセルしました)'); return; }") &&
-  src.includes(".finally(() => _tmFileSetBusy(false));") && src.includes("if (_tmFileBusy) _tmFileCancel(false, null);   // File取得の予約も取り消す(第185)") && src.includes("if (typeof _tmFileCancel === 'function' && (_tmFileBusy || _tmFileCsvPending)) _tmFileCancel(false, null);") &&
+  src.includes(".finally(() => { if (exportGen === _tmExportGen) _tmFileSetBusy(false); });") && src.includes("if (_tmFileBusy) _tmFileCancel(false, null);") && src.includes("if (_tmFileBusy && !_tmFileCsvPending) _tmFileCancel(false, null);") && (src.match(/if \(_tmFileBusy \|\| _tmFileCsvPending\) _tmFileCancel\(false, null\);/g) || []).length === 3 && src.includes("if (typeof _tmFileCancel === 'function' && (_tmFileBusy || _tmFileCsvPending)) _tmFileCancel(false, null);") &&
   src.includes("const canceled = () => gen !== _tmExportGen;") && (src.match(/if \(canceled\(\)\) return;/g) || []).length >= 3 && src.includes("if (!ok || canceled()) return;") &&
-  src.includes("let _tsujiFileRunning = false, _tsujiFileGen = 0;") && src.includes("if (gen !== _tsujiFileGen) return;   // 2度押しでキャンセル済み") && src.includes("if (gen === _tsujiFileGen) { _tsujiFileRunning = false; hideTsujiProgress(); if (btn) btn.classList.remove('active'); }") &&
+  src.includes("let _tsujiFileRunning = false, _tsujiFileGen = 0;") && (src.match(/if \(gen !== _tsujiFileGen\) return;/g) || []).length === 4 && src.includes("undefined, () => gen !== _tsujiFileGen);") && src.includes("if (!ok || gen !== _tsujiFileGen) return;") && src.includes("if (gen === _tsujiFileGen) { _tsujiFileRunning = false; hideTsujiProgress(); if (btn) btn.classList.remove('active'); }") &&
   /#btn-now,\n#btn-gps,\n#btn-photo-pos,\n#btn-reg-start,/.test(css));
 
 // ---- S2: 端末のデータ・ワーカー・ヘルプ(静的) ----
@@ -81,7 +81,7 @@ check('S3 アイコン(icon-192.png/icon-512.png が PNG でその大きさ・ma
     return r;
   });
   check('A1 実機: _poolSize()=max(2, min(CPU−1, 31)) で辻ライン/地形/辻検索のプールが同じ値(タッチでない)・downloadTextFile は配列を1つの Blob に(BOM 付き・text/csv)・写位ボタンの幅が GPS と同じ 46px・ヘルプの新しい節が「地図上の線について」の直前で4項目',
-    a1.pool === a1.expect && a1.dp === a1.pool && a1.terrain === a1.pool && a1.tsuji === a1.pool && a1.ver === '1.99.2' && a1.blobSize === new Blob(['﻿a,b\r\n1,2\r\n']).size && /text\/csv/.test(a1.blobType) && a1.text === 'a,b\r\n1,2\r\n' &&   // Blob.text() は BOM を落とす(大きさ 13 で BOM の3バイトを確かめる)
+    a1.pool === a1.expect && a1.dp === a1.pool && a1.terrain === a1.pool && a1.tsuji === a1.pool && a1.ver === APP_VER && a1.blobSize === new Blob(['﻿a,b\r\n1,2\r\n']).size && /text\/csv/.test(a1.blobType) && a1.text === 'a,b\r\n1,2\r\n' &&   // Blob.text() は BOM を落とす(大きさ 13 で BOM の3バイトを確かめる)
     a1.photoW === a1.gpsW && a1.photoW === '46px' && a1.helpOrder && a1.helpLis === 4, JSON.stringify(a1));
 
   // A2: File取得の2度押し=キャンセル(辻メッシュ・辻検索)。実行中の印を立てて押すと、予約が消え・印が消え・状態の文が出る
@@ -105,12 +105,19 @@ check('S3 アイコン(icon-192.png/icon-512.png が PNG でその大きさ・ma
   // A3: 端末のデータの行(建物・本体の最終更新日時の欄が埋まる)
   const a3 = await p.evaluate(async () => {
     const sec = document.getElementById('sec-backup'); sec.classList.remove('closed');
+    await _bgClear();
     await _mtRefreshBackupRows();
     const g = (id) => document.getElementById(id).textContent;
-    return { bldg: g('backup-bldg-updated'), shell: g('backup-shell-updated'), swLast: (await _swStat()).last };
+    const empty = { bldg: g('backup-bldg-updated'), shell: g('backup-shell-updated') };
+    await _bgIdb('readwrite', st => st.put({ key: 'x/seed', size: 10, buf: new ArrayBuffer(10), savedAt: new Date(2026, 9, 21, 12, 34, 0).getTime() }));   // 建物の店に1件
+    await _mtRefreshBackupRows();
+    const seeded = g('backup-bldg-updated');
+    await _bgClear();
+    const rowAlone = !!document.getElementById('backup-bldg-updated').closest('.control-row') && document.getElementById('backup-bldg-updated').closest('.control-row').querySelectorAll('.km-stat').length === 1;   // 最終更新日時は地理/標高と同じ単独の行
+    return { ...empty, seeded, swLast: (await _swStat()).last, rowAlone };
   });
-  check('A3 端末のデータの行: 建物の最終更新日時と本体の控えの最終更新日時の欄が埋まる(店が空・SW 無しなら「-」。_swStat は last を返す)',
-    a3.bldg === '-' && a3.shell === '-' && a3.swLast === 0, JSON.stringify(a3));
+  check('A3 端末のデータの行: 建物/本体の控えの最終更新日時の欄は店が空・SW 無しなら「-」、建物の店に1件入れて描き直すと保存の日時(2026/10/21 12:34)が出る(=行の更新が走っている)・最終更新日時は単独の行(地理/標高と同じ)・_swStat は last を返す',
+    a3.bldg === '-' && a3.shell === '-' && /2026/.test(a3.seeded) && /12:34/.test(a3.seeded) && a3.rowAlone && a3.swLast === 0, JSON.stringify(a3));
 
   check('E ページエラーなし', errs.length === 0, errs.join(' | ').slice(0, 300));
   await b.close();

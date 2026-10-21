@@ -143,10 +143,12 @@ async function loadTileData(url) {
         }
         if (!blob) {
             const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000);   // 第185の監査: 応答の止まった取得がワーカーを占有し続けない(標高タイルの読みと同じ 12 秒)
-            let resp; try { resp = await fetch(url, { signal: ctl.signal }); } finally { clearTimeout(timer); }
-            if (resp.status === 404 && db) await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() });
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-            blob = await resp.blob();
+            let resp; try {
+                resp = await fetch(url, { signal: ctl.signal });
+                if (resp.status === 404 && db) await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: 0, miss: true, savedAt: Date.now() });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                blob = await resp.blob();   // 本文の読みも同じ 12 秒の中(ヘッダだけ返して本文が止まる応答に備える。第185の反証レビュー)
+            } finally { clearTimeout(timer); }
             if (db) { const buf = await blob.arrayBuffer(); await demPut(db, { key, kind: m[1], z: +m[2], x: +m[3], y: +m[4], size: buf.byteLength, buf, savedAt: Date.now() }); }
         }
         const bmp = await createImageBitmap(blob);

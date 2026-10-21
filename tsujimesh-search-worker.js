@@ -79,7 +79,8 @@ self.onmessage = (e) => {
         self.postMessage({ type: 'inited' });
         return;
     }
-    if (d.type !== 'search' || !P) return;
+    if (d.type !== 'search') return;
+    if (!P) { self.postMessage({ error: 'not inited' }); return; }   // init 前の search は黙殺せず必ず返信する(プール側の約束を決着させ、ワーカーを idle へ戻す。第185の反証レビュー)
 
     const {
         reqId, body, observerData, astroRefraction,
