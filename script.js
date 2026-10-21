@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.99.2 - 2026-10-21: fix/feat: 第185ラウンド — ①File取得/結果リストの列名「標高グラフ」→「可視判定」(辻検索・辻メッシュ・My辻。依頼者) ②辻メッシュ/辻検索の File取得は実行中の2度押しで1回目をキャンセル・CSV は parts の Blob(join しない=Invalid string length を避ける)・2段目の進み具合の文 ③端末のデータ: 建物と本体の控えに最終更新日時・上限(MB)の空欄=既定の案内 ④ワーカープールを CPU−1(SORA.WORKERS: 片付けのワーカーの隙間) ⑤ヘルプに「オフライン時のデータについて」の節 ⑥写位ボタンの幅を他と揃える ⑦manifest に 192/512 のアイコン(logo.svg から) ⑧移行用 meta は 1.99.2 にも残す(1.99.3 で消す) ⑨セキュリティ監査(claude-security 相当の Workflow)の直し
 Version 1.99.1 - 2026-10-19: feat/fix: 第184ラウンド — ①版の置き場を sora-constants.js の APP_VERSION の1箇所に(SSOT・依頼者: 1箇所を直せば全部に反映。script.js は SORA.APP_VERSION を読む・index.html の meta と sw.js の ?v= を廃止・sw.js は importScripts した版で控えの名前を付け、配信中の版は sora-constants.js を最新で読んで見分ける・verify 群の版の検査は src+sora-constants) ②時間フィルタの並びを 日の出→月の出→GH[終]→GH[始]→月の入→日の入 に(依頼者) ③宙の窓検索ctrl: ラジオを「:構図」へ戻しても辻オフセット点は戻さない(戻すのは「リセット」=0 だけ。依頼者) ④結果リスト/CSV の月の出/月の入の列は翌日なら 24:xx の印(日時情報メニューと同じ。A案・依頼者) ⑤My辻リストCSVのヘッダ「標高フィルタ/標高OK/標高NG」→「可視フィルタ/可視OK/可視NG」(読みは列の位置なので旧ファイルもそのまま読める) ⑥利用規約: 目的の一文(街や自然環境において宙や空を楽しむ)・禁止事項2つ・共有した内容の責任の段落・改定日(依頼者 GO) 反証レビュー24件の直し(移行用 meta・開いているタブは読み直さず「(新しい版あり)」・上限(MB)と整理の時刻は端末だけの鍵・最終使用は used 店・onversionchange・暦日の翌日)。
 Version 1.99.0 - 2026-10-15: feat: 第183ラウンド — ①時間フィルタに「月の出」「月の入」(辻検索・辻メッシュ・My辻検索の開始/終了の基準。依頼者指定で「GH[終]」と「GH[始]」の間。その日に月の出(入)が無い日は、その境界を使うフィルタは何も通さない。短縮URL辞書v23=moonrise/moonset。棚卸し223・verify186) ②観測点を地名/座標/地図/GPS/写位で置いた時の高さを 0 → 1.5m(SORA.OBSERVER.EYE_HEIGHT_M=人の目の高さ)に。Hom の既定(東京タワー 150m)と目的点(0)は不変(棚卸し231) ③位置情報メニューの「高移」の下に「写位」ボタン: 写真の位置情報(Exif)をラジオで選択中の観測点(°)/目的点(°)に入力(標高は緯度経度から取得。My観測点/My目的点の「写真から追加」と同じ端末内の読み取り。棚卸し412) ④宙の窓検索のコントロール(デッサン05 4.1〜4.3段目): 「:構図をドラッグ」「:辻オフセット点をドラッグ」をチェックからラジオ(択一)に・各段に「リセット」(幅はメニュー内側の1/3・右寄せ。構図=カメラオフセット方位角/視高度を0・辻オフセット点=辻オフセット方位角/視高度を0で辻メッシュ側と連動)・宙の窓メニューの注記を「…辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。」に ⑤不具合: 二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない(棚卸し460)=ドラッグ開始時にも戻り先(_smCamNudgeBase)を覚える
 Version 1.98.1 - 2026-10-15: fix: 第180ラウンド — 「:自動更新」(Googleドライブ同期)のチェックがオフにできない(チェックが同期ダイアログ=👎の時にしか開かない画面の中にしか無く、自動更新が効いて👍のままだと辿り着けない。依頼者の memo→第179の備忘録で指摘・コードで確認)→ バックアップ/インポートメニューの Google ドライブ欄にも同じ「:自動更新」を置き、2か所を連動(_autoSyncSyncCheckboxes)。👍の時の案内文とヘルプに置き場所を追記。verify185 ②ダイアログ内の「:自動更新」を①保存の上へ(デッサン00・依頼者。スマホで隠れるため・第181) ③地図のⓘ(出典)を起動時は閉じる(MapLibre の compact は最初に一度開く作りで左下のスケールに重なる・第182) ④宙の窓の「画像サイズ(手動:MB)」→「(手動:MB/枚)」(棚卸し410) ⑤CSV の BOM の判定を見えない文字から \uFEFF の表記に(棚卸し431) ⑥辻メッシュ検索の「検索エリア」のツールチップの範囲の目安を実装(z14 の標高タイル=256画素≈2km四方)に合わせて 3×3≈6km/4×4≈8km/5×5≈10km/6×6≈12km四方に(旧「約12/16/20/24km」は誤り。FAQ の執筆で判明)
@@ -1084,14 +1085,14 @@ async function _mtRefreshBackupRows() {
     const capBox = (name) => { const el = document.getElementById('input-backup-cap-' + name); if (el && document.activeElement !== el) { const v = _storeCaps()[name]; el.value = v ? String(v) : ''; el.placeholder = '既定 ' + Math.round(SORA.STORE.CAP_BYTES[name] / 1048576); } };
     put('backup-maptiles-count', mt.n.toLocaleString()); put('backup-maptiles-size', _kmMB(mt.bytes)); put('backup-maptiles-updated', when(mt.last)); put('backup-maptiles-used', when(mt.used || mt.last)); put('backup-maptiles-pct', pct(mt.bytes, 'maptiles')); capBox('maptiles');
     put('backup-demtiles-count', dem.n.toLocaleString()); put('backup-demtiles-size', _kmMB(dem.bytes)); put('backup-demtiles-updated', when(dem.last || 0)); put('backup-demtiles-used', when(dem.used || dem.last || 0)); put('backup-demtiles-pct', pct(dem.bytes, 'demtiles')); capBox('demtiles');
-    put('backup-bldg-count', bg.n.toLocaleString()); put('backup-bldg-size', _kmMB(bg.bytes)); put('backup-bldg-used', when(bg.used || bg.last || 0)); put('backup-bldg-pct', pct(bg.bytes, 'bldg')); capBox('bldg');
+    put('backup-bldg-count', bg.n.toLocaleString()); put('backup-bldg-size', _kmMB(bg.bytes)); put('backup-bldg-updated', when(bg.last || 0)); put('backup-bldg-used', when(bg.used || bg.last || 0)); put('backup-bldg-pct', pct(bg.bytes, 'bldg')); capBox('bldg');
     put('backup-assets-count', as.n.toLocaleString()); put('backup-assets-size', _kmMB(as.bytes)); put('backup-assets-pct', pct(as.bytes, 'assets')); capBox('assets');
     put('backup-wx-count', wx.n.toLocaleString()); put('backup-wx-size', _kmMB(wx.bytes)); put('backup-wx-pct', pct(wx.bytes, 'wx')); capBox('wx');
     const sb = _settingsBytes(); put('backup-settings-size', `${Math.round(sb / 1024).toLocaleString('ja-JP')} KB`); put('backup-settings-pct', `${Math.min(999, Math.round(sb / (5 * 1048576) * 100))}%`);
     try { let last = 0; try { last = Number(localStorage.getItem('sora_store_clean_at')) || 0; } catch (_) {} put('backup-clean-at', last ? when(last) : '-'); } catch (_) {}
     const ab = document.getElementById('backup-assets-block'); if (ab) ab.style.display = FEATURE_KASHIMAP_ENABLED ? '' : 'none';   // 可視マップは封鎖中なら行を出さない
     const sw = await _swStat();   // 本体の控え(第183・デッサン35)
-    put('backup-shell-count', sw.n.toLocaleString()); put('backup-shell-size', _kmMB(sw.bytes)); put('backup-shell-ver', sw.vers.length ? sw.vers.map(v => 'v' + v).join(', ') : '-');
+    put('backup-shell-count', sw.n.toLocaleString()); put('backup-shell-size', _kmMB(sw.bytes)); put('backup-shell-ver', sw.vers.length ? sw.vers.map(v => 'v' + v).join(', ') : '-'); put('backup-shell-updated', when(sw.last || 0));
     try {   // 全体(ブラウザの見積もり=オリジン全体)と永続の状態(第184 段3)
         if (navigator.storage && navigator.storage.estimate) { const est = await navigator.storage.estimate(); put('backup-total-usage', `${_kmMB(est.usage || 0)} / ${_kmMB(est.quota || 0)}(ブラウザの割当)`); }
         const pers = await _storagePersisted(); put('backup-persist-state', pers === null ? '-' : (pers ? 'はい(消されない)' : 'いいえ'));
@@ -1132,7 +1133,7 @@ function _swMaybeUpdate() {   // 前面に戻った時、1時間以上経って�
 }
 /** 本体の控えの件数・容量・版(Cache Storage の sora-shell-*) */
 async function _swStat() {
-    const out = { n: 0, bytes: 0, vers: [] };
+    const out = { n: 0, bytes: 0, vers: [], last: 0 };   // last=最終更新(控えに入れた応答の date ヘッダの最大=入れ直した時刻。第185・依頼者)
     if (typeof caches === 'undefined') return out;
     try {
         for (const k of await caches.keys()) {
@@ -1142,6 +1143,7 @@ async function _swStat() {
             for (const req of await c.keys()) {
                 const r = await c.match(req); if (!r) continue;
                 out.n++; out.bytes += (await r.clone().blob()).size;   // 実体のバイト数(content-length は GitHub Pages では gzip 後の値)
+                const d = Date.parse(r.headers.get('date') || ''); if (d > out.last) out.last = d;
             }
         }
     } catch (_) {}
@@ -4519,7 +4521,13 @@ function drawDirectionLine(lat, lng, azimuth, altitude, body) {
 // ============================================================
 // DP線計算用 Web Worker プール (初期化コストを1度だけにするための再利用設計)
 // ============================================================
-const DP_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+/** ワーカープールの大きさ(第185・依頼者): CPU数 − SORA.WORKERS.RESERVE(=1。画面のスレッドと、裏で動く片付けのワーカー/可視マップ/Service Worker の隙間を空ける)。下限 MIN(2)・上限 MAX(31)。touchMax を渡すとタッチ端末はその上限 */
+function _poolSize(touchMax) {
+    const cpu = navigator.hardwareConcurrency || 6;
+    const touch = (typeof window !== 'undefined' && window.matchMedia) ? window.matchMedia('(hover: none), (pointer: coarse)').matches : false;
+    return Math.max(SORA.WORKERS.MIN, Math.min(cpu - SORA.WORKERS.RESERVE, (touch && touchMax) ? touchMax : SORA.WORKERS.MAX));
+}
+const DP_POOL_SIZE = _poolSize();   // 辻ライン(dp-line-worker)。第185: CPU+1 → CPU−1
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
@@ -6233,8 +6241,8 @@ function splitCsvLines(text) {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
 }
 /** テキストをファイルとしてダウンロードさせる */
-function downloadTextFile(filename, text, mime = 'text/csv;charset=utf-8') {
-    const blob = new Blob([text], { type: mime });
+function downloadTextFile(filename, text, mime = 'text/csv;charset=utf-8') {   // text: 文字列か、文字列の配列(大きな CSV は繋がずに渡す。第185)
+    const blob = new Blob(Array.isArray(text) ? text : [text], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -8197,7 +8205,7 @@ function _myTsujiRenderResults() {
         <th>日の出時刻</th><th>日の入時刻</th>
         <th>月の出時刻</th><th>月の入時刻</th>
         <th>月齢</th><th>月齢アイコン</th><th>月輝面比</th>
-        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th>
+        <th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>可視判定</th>
     </tr></thead><tbody></tbody>`;
     const tbody = table.querySelector('tbody');
 
@@ -8286,7 +8294,7 @@ function _myTsujiRenderResults() {
         { label: '検索中心方位角差', compare: (a, b) => azDiffDeg(a.azimuth, myTsujiCtr(a).az) - azDiffDeg(b.azimuth, myTsujiCtr(b).az) },
         { label: '検索中心視高度差', compare: (a, b) => (a.altitude - myTsujiCtr(a).alt) - (b.altitude - myTsujiCtr(b).alt) },
         { label: 'オフセット中心角', compare: (a, b) => (Number(a.tsuji.mwOffsetAngle) || 0) - (Number(b.tsuji.mwOffsetAngle) || 0) },
-        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
+        { label: '可視判定', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderMyTsujiResultRow);
 }
 
@@ -8507,7 +8515,7 @@ async function fileBatchMyTsujiSearch() {
 /** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通)。
  *  行毎の事前計算(r._preAstro)があれば利用。大量行でもUIが固まらないよう2000行毎にyieldし、
  *  onProgress(done, total) で進捗を通知する(省略可) */
-async function downloadTsujiResultCsv(decorated, filename, onProgress) {
+async function downloadTsujiResultCsv(decorated, filename, onProgress, isCanceled) {   // isCanceled(): 途中でやめる(辻メッシュ File取得の2度押し。第185)
     const header = [
         '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
@@ -8523,7 +8531,7 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress) {
         '方位角','視高度','視半径','検索中心','検索中心方位角差','検索中心視高度差',
         '相手距離','相手方位','相手高度',
         '辻オフセット方位角','辻オフセット視高度','辻オフセット方位距離','辻オフセット視高距離',
-        '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','標高グラフ',
+        '辻オフセット回転角','辻オフセット回転仰角','オフセット中心角','可視判定',
         'プレビューURL'
     ];
     const esc = v => {
@@ -8539,18 +8547,24 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress) {
         if ((i + 1) % 2000 === 0) {
             if (onProgress) onProgress(i + 1, decorated.length);
             await new Promise(res => setTimeout(res, 0));
+            if (isCanceled && isCanceled()) return false;
         }
     }
-    const csv = parts.join('');
-
-    downloadTextFile(filename, csv);
+    downloadTextFile(filename, parts);   // 1本の文字列に繋がない(数十万行で JS の文字列長の上限=RangeError: Invalid string length。Blob は配列のまま受け取れる。第185・依頼者の報告)
+    return true;
 }
 
 /** 辻検索メニューのFile取得: 現在の辻検索条件で検索を実行し、結果をCSVでダウンロードする。
  *  列構成はMy辻検索のFile取得と共通(デッサン03)。辻検索ID/名/メモ・観測点/目的点IDは空白 */
-let _tsujiFileRunning = false;
+let _tsujiFileRunning = false, _tsujiFileGen = 0;
 async function fileTsujiSearchCsv() {
-    if (_tsujiFileRunning) return;
+    if (_tsujiFileRunning) {   // 実行中の2度押し=1回目をキャンセル(第185・依頼者。辻メッシュの File取得と同じ)
+        _tsujiFileGen++; _tsujiFileRunning = false;
+        tsujiPool.terminateAll(); hideTsujiProgress();
+        const st = document.getElementById('tsujisearch-status'); if (st) st.textContent = '(File取得をキャンセルしました)';
+        const b = document.getElementById('btn-tsuji-file'); if (b) b.classList.remove('active');
+        return;
+    }
     const baseAz = appState.tsujiSearchBaseAz, baseAlt = appState.tsujiSearchBaseAlt;
     if (isNaN(baseAz) || isNaN(baseAlt)) return alert('方位角・視高度・許容範囲を正しく入力してください');
     if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？')) return;
@@ -8577,6 +8591,7 @@ async function fileTsujiSearchCsv() {
     const obs = { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' };
     const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
     _tsujiFileRunning = true;
+    const gen = ++_tsujiFileGen;
     const btn = document.getElementById('btn-tsuji-file');
     if (btn) btn.classList.add('active');
     try {
@@ -8591,6 +8606,7 @@ async function fileTsujiSearchCsv() {
         setTsujiProgress(0, totalChunks);
         const res = await executeSingleMyTsujiSearch(t, batchStartDate.getTime(), null, null,
             () => { doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);
+        if (gen !== _tsujiFileGen) return;   // 2度押しでキャンセル済み
         hideTsujiProgress();
         const allResults = [];
         if (res) _pushMyTsujiResults(allResults, t, res);   // res.obs/tgtは渡したオーバーライド(obs/tgt)がそのまま返る
@@ -8600,12 +8616,11 @@ async function fileTsujiSearchCsv() {
         await downloadTsujiResultCsv(decorated, `soranotsuji-辻検索結果-${formatFileDateTime()}.csv`);
         statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
     } catch (e) {
+        if (gen !== _tsujiFileGen) return;   // キャンセルで止めた(ワーカーの終了)分は黙る
         console.error('fileTsujiSearchCsv:', e);
         alert('File取得に失敗しました: ' + (e && e.message ? e.message : e));
     } finally {
-        _tsujiFileRunning = false;
-        hideTsujiProgress();
-        if (btn) btn.classList.remove('active');
+        if (gen === _tsujiFileGen) { _tsujiFileRunning = false; hideTsujiProgress(); if (btn) btn.classList.remove('active'); }
     }
 }
 
@@ -9932,7 +9947,7 @@ const tsujiMeshPool = (() => {
 // (実行中のワーカーはループ中でメッセージを受信できないため、terminateが確実)。
 // キャンセルされたタスクの結果は null で解決する(呼び出し側は世代チェックで破棄)。
 const tmVisPool = (() => {
-    const POOL = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+    const POOL = _poolSize();   // 可視判定(tm-vis-worker)。第185: CPU−1
     let idle = [];
     const busy = new Map();   // worker -> task
     const queue = [];
@@ -10695,7 +10710,7 @@ function _tmUpdateDetailList(pix) {
     table.innerHTML = '<thead><tr><th>マーク</th><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th>' +
         '<th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th>' +
         '<th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th>' +
-        '<th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr></thead>';
+        '<th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>可視判定</th></tr></thead>';
     const tbody = document.createElement('tbody');
     rows.forEach(r => tbody.appendChild(renderRow(r)));
     table.appendChild(tbody);
@@ -10727,7 +10742,7 @@ function _tmUpdateDetailList(pix) {
         { label: '検索中心方位角差', compare: (a, b) => (a.azD ?? 0) - (b.azD ?? 0) },
         { label: '検索中心視高度差', compare: (a, b) => (a.altD ?? 0) - (b.altD ?? 0) },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOff - b.mwOff },
-        { label: '標高グラフ', compare: (a, b) => String(a.elevStatus).localeCompare(String(b.elevStatus)) },
+        { label: '可視判定', compare: (a, b) => String(a.elevStatus).localeCompare(String(b.elevStatus)) },
     ], renderRow, [], {
         initialColIdx: _tmDetailSort.col, initialAsc: _tmDetailSort.asc,
         onSort: (col, asc) => { _tmDetailSort = { col, asc }; },
@@ -11182,6 +11197,7 @@ async function startTsujiMeshSearch() {
     if (isNaN(menuBaseAz) || isNaN(menuBaseAlt) || isNaN(tolAz) || isNaN(tolAlt)) {
         setStatus('(入力値エラー)');
         contentEl.innerHTML = '<div style="padding:8px;color:#f99;">基準方位角・基準視高度・許容範囲を正しく入力してください</div>';
+        if (_tmFileBusy) _tmFileCancel(false, null);   // File取得の予約も取り消す(第185)
         return;
     }
 
@@ -11436,7 +11452,7 @@ async function startTsujiMeshSearch() {
     // File取得ボタン起点の検索なら、完了した結果行をCSVでダウンロードする
     if (_tmFileCsvPending) {
         _tmFileCsvPending = false;
-        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); });
+        _tmExportMeshRowsCsv(rows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); }).finally(() => _tmFileSetBusy(false));
     }
     // 検索直後は行を自動選択せず、日時も移動しない
     // (検索開始時の日時のままURL取得できるようにするため。行クリックで選択・移動する)
@@ -11575,7 +11591,7 @@ function renderTsujiMeshResults() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>可視判定</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     _tsujiMeshRows.forEach(r => tbody.appendChild(renderRow(r)));
@@ -11608,7 +11624,7 @@ function renderTsujiMeshResults() {
         { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
         { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
-        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
+        { label: '可視判定', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, []);
 }
 
@@ -11625,10 +11641,19 @@ function hideTsujiMeshProgress() {
 
 /** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に全ヒット画素をCSVでダウンロードする。
  *  詳細結果リストの内容の全画素出力。観測点ID=画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
-let _tmFileCsvPending = false;
+let _tmFileCsvPending = false, _tmFileBusy = false, _tmExportGen = 0;
+function _tmFileSetBusy(on) { _tmFileBusy = !!on; const b = document.getElementById('btn-tsujimesh-file'); if (b) b.classList.toggle('active', !!on); }
+/** File取得の取りやめ(2度押し・パネルを閉じた・入力エラー): 予約を消し、実行中の検索と CSV 生成を止める(第185・依頼者: 何度も押せて処理が重なっていた) */
+function _tmFileCancel(cancelSearch, msg) {
+    _tmFileCsvPending = false; _tmExportGen++;
+    if (cancelSearch) { tsujiMeshGeneration++; tsujiMeshPool.terminateAll(); tmVisPool.terminateAll(); hideTsujiMeshProgress(); }
+    if (msg) { const st = document.getElementById('tsujimesh-status'); if (st) st.textContent = msg; }
+    _tmFileSetBusy(false);
+}
 function fileTsujiMeshCsv() {
-    if (!confirm('辻メッシュ検索を実行し、結果(全ヒット画素)をCSVでFile取得しますか？')) return;
-    _tmFileCsvPending = true;
+    if (_tmFileBusy) { _tmFileCancel(true, '(File取得をキャンセルしました)'); return; }   // 実行中(検索中か CSV 生成中)の2度押し=1回目をキャンセル
+    if (!confirm('辻メッシュ検索を実行し、結果(全ヒット画素)をCSVでFile取得しますか？\n(実行中にもう一度押すとキャンセルします)')) return;
+    _tmFileCsvPending = true; _tmFileSetBusy(true);
     if (!appState.isTsujiMeshActive) toggleTsujiMesh();   // OFFなら開始(完了時にCSV出力)
     else startTsujiMeshSearch();                          // ONなら現在の条件で再検索
 }
@@ -11649,6 +11674,9 @@ async function _tmExportMeshRowsCsv(rows) {
     const statusEl = document.getElementById('tsujimesh-status');
     const prevStatus = statusEl ? statusEl.textContent : '';
     const setBusy = (txt) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(txt)}`; };
+    const gen = _tmExportGen;                      // 2度押しのキャンセル(第185): 進み具合の節目で見て、変わっていたら黙ってやめる
+    const canceled = () => gen !== _tmExportGen;
+    setBusy(`検索は完了。File出力の2段目: 全ヒット画素 ${totalPixRows.toLocaleString()}行の精細化中…`);
     const obsCommon = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     // 日毎の出没・薄明・GH/BH(共通観測点)。buildMyTsujiCsvRowへ _preAstro として渡して行毎の再計算を省く
     const dayCache = new Map();   // dayMs -> { day, tw, pre }
@@ -11718,8 +11746,9 @@ async function _tmExportMeshRowsCsv(rows) {
                         dist: ref ? ref.dist : r.pixDist[i],
                         az: ref ? ref.az : r.azimuth, alt: ref ? ref.alt : r.altitude });
             if (++done % 500 === 0) {
-                setBusy(`File出力処理中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
+                setBusy(`File出力の2段目: 全ヒット画素の精細化中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
                 await new Promise(res => setTimeout(res, 0));
+                if (canceled()) return;
             }
         }
         ents.sort((a, b) => a.timeMs - b.timeMs);
@@ -11746,13 +11775,15 @@ async function _tmExportMeshRowsCsv(rows) {
                 _preAstro: a.pre,
             });
             // 行整形は軽い処理だが、巨大な行でもUIが固まらないよう定期的にyieldする
-            if (++built % 2000 === 0) await new Promise(res => setTimeout(res, 0));
+            if (++built % 2000 === 0) { await new Promise(res => setTimeout(res, 0)); if (canceled()) return; }
         }
     }
+    if (canceled()) return;
     if (!list.length) { alert('該当する日時はありません'); return; }
-    setBusy(`CSV生成中… 0/${list.length.toLocaleString()}行`);
-    await downloadTsujiResultCsv(list, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`,
-        (i, total) => setBusy(`CSV生成中… ${i.toLocaleString()}/${total.toLocaleString()}行`));
+    setBusy(`File出力の3段目: CSV生成中… 0/${list.length.toLocaleString()}行`);
+    const ok = await downloadTsujiResultCsv(list, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`,
+        (i, total) => setBusy(`File出力の3段目: CSV生成中… ${i.toLocaleString()}/${total.toLocaleString()}行`), canceled);
+    if (!ok || canceled()) return;
     if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${list.length.toLocaleString()}行)`;
 }
 
@@ -13107,6 +13138,7 @@ function closeTsujiMesh(alreadyFlagged = false) {
     appState.isTsujiMeshActive = false;
     document.getElementById('btn-tsujimesh').classList.remove('active');
     document.getElementById('tsujimesh-panel').classList.add('hidden');
+    if (typeof _tmFileCancel === 'function' && (_tmFileBusy || _tmFileCsvPending)) _tmFileCancel(false, null);   // File取得の予約も取り消す(第185)
     tsujiMeshGeneration++;                       // 実行中の検索をキャンセル
     if (typeof tsujiMeshPool !== 'undefined') tsujiMeshPool.terminateAll();
     if (typeof tmVisPool !== 'undefined') tmVisPool.terminateAll();
@@ -13427,7 +13459,7 @@ const TSUJI_CHUNK_DAYS = 365;
 // ため、台数がそのままメモリピークに効く(タッチ環境判定はホバー無し/粗ポインタ)
 const _IS_TOUCH_ENV = (typeof window !== 'undefined' && window.matchMedia)
     ? window.matchMedia('(hover: none), (pointer: coarse)').matches : false;
-const TSUJI_NUM_WORKERS = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, _IS_TOUCH_ENV ? 6 : 31));
+const TSUJI_NUM_WORKERS = _poolSize(SORA.WORKERS.TOUCH_MAX);   // 辻検索/My辻/辻メッシュ。第185: CPU−1(タッチ端末は 6 まで)
 let tsujiActiveWorkers = []; // 互換用 (旧コードからの参照を残す)
 
 const tsujiPool = (() => {
@@ -13734,7 +13766,7 @@ function _tsujiRenderResults() {
     const table = document.createElement('table');
     table.className = 'td-table';
     const thead = document.createElement('thead');
-    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>標高グラフ</th></tr>';
+    thead.innerHTML = '<tr><th>天体ID</th><th>天体名</th><th>精度記号</th><th>精度角距離</th><th>日付</th><th>曜日</th><th>辻時刻</th><th>時間帯</th><th>日の出時刻</th><th>日の入時刻</th><th>月の出時刻</th><th>月の入時刻</th><th>月齢</th><th>月齢アイコン</th><th>月輝面比</th><th>方位角</th><th>視高度</th><th>視半径</th><th>検索中心</th><th>検索中心方位角差</th><th>検索中心視高度差</th><th>オフセット中心角</th><th>可視判定</th></tr>';
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
     rowData.forEach(r => tbody.appendChild(renderRow(r)));
@@ -13769,7 +13801,7 @@ function _tsujiRenderResults() {
         { label: '検索中心方位角差', compare: (a, b) => a.azDiff - b.azDiff },
         { label: '検索中心視高度差', compare: (a, b) => a.altDiff - b.altDiff },
         { label: 'オフセット中心角', compare: (a, b) => a.mwOffAngle - b.mwOffAngle },
-        { label: '標高グラフ', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
+        { label: '可視判定', compare: (a, b) => String(a.elevationStatus).localeCompare(String(b.elevationStatus)) },
     ], renderRow, extraRows);
 }
 
@@ -18378,7 +18410,7 @@ let _movQueue = [], _movFilled = 0, _movPlayIdx = 0, _movGen = 0, _movPlaying = 
 let _smMovPool = null;
 function _smMovPoolEnsure() {
     if (_smMovPool) return _smMovPool;
-    const n = Math.max(1, Math.min(4, navigator.hardwareConcurrency || 4));
+    const n = Math.min(SORA.WORKERS.MOV_MAX, _poolSize());   // 動画の書き出し。第185: 上限4のまま CPU−1 に収める
     const workers = [];
     for (let i = 0; i < n; i++) workers.push(new Worker('sora-mov-worker.js'));
     _smMovPool = { workers, idle: [...workers], queue: [] };
@@ -22433,7 +22465,7 @@ function _smUpdateTerrain() {
 }
 
 // --- F3: DEM地形タイル取得 ワーカープール (fetch/PNGデコード/標高化を並列オフロード) ---
-const SORA_TERRAIN_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 6) + 1, 31));
+const SORA_TERRAIN_POOL_SIZE = _poolSize();   // 宙の窓の地形(sora-terrain-worker)。第185: CPU−1
 let _smTerrainPool = null;
 function _smEnsureTerrainPool() {
     if (_smTerrainPool) return _smTerrainPool;

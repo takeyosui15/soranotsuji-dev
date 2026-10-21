@@ -32,7 +32,7 @@ FILES = [
     'celestial_db.json', 'constellations.borders.json', 'constellations.lines.json',
     'constellation_bounds_skymap_4k_print.webp', 'constellation_figures_skymap_4k_print.webp',
     'milkyway-skymap.webp', 'milkyway-skymap_4k.webp', 'milkyway-skymap_print.webp',
-    'muni.js', 'muni.json', 'logo.png', 'favicon.ico', 'apple-touch-icon.png',
+    'muni.js', 'muni.json', 'logo.png', 'icon-192.png', 'icon-512.png', 'favicon.ico', 'apple-touch-icon.png',
 ]
 DIRS = ['fonts', 'data', 'vendor']   # vendor/ は第159からリポジトリ同梱(第三者ライブラリの自前配信)。指紋は MANIFEST.json と照合(下)。CDN→vendor の書き換えは不要になったので無い
 

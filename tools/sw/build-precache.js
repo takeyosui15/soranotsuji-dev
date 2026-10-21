@@ -19,7 +19,7 @@ const OUT = path.join(ROOT, 'sw-precache.js');
 const FIXED = [
   'index.html', 'script.js', 'sora-constants.js', 'style.css', 'three-global.js',
   'reset.html', 'reset.js', 'forecast-features.html', 'privacy.html', 'terms.html',
-  'favicon.ico', 'apple-touch-icon.png', 'logo.png', 'manifest.json',
+  'favicon.ico', 'apple-touch-icon.png', 'logo.png', 'icon-192.png', 'icon-512.png', 'manifest.json',
 ];
 const DATA = [
   'celestial_db.json', 'muni.json', 'constellations.borders.json', 'constellations.lines.json',

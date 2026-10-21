@@ -44,7 +44,8 @@ claude/yyy ←→ work ←→ develop ──→ main ──→ soranotsuji/main
   - [ ] 1. 
 - [ ] バージョン番号が更新されている(第184から版の置き場は1箇所)。
   - [ ] sora-constants.js:定数 APP_VERSION(唯一の置き場。本体のフッター・sw.js の控えの名前・verify のピンが全部ここを読む)
-    - 1.99.1 だけの例外: index.html の `<meta name="app-version" content="1.99.1">` は v1.99.0 の Service Worker が残る端末のための移行用(同じ値にしておく。verify188 が見張る)。1.99.2 で消す(todo)。
+    - 1.99.2 だけの例外(v1.99.0 の次に配る版): index.html の `<meta name="app-version" content="1.99.2">` は v1.99.0 の Service Worker が残る端末のための移行用(同じ値にしておく。verify188/189 が見張る)。1.99.3 で消す(todo)。
+    - manifest.json のアイコン(icon-192.png・icon-512.png)の元は logo.svg。差し替える時は sw-precache.js(--write)も作り直す。
   - [ ] script.js:冒頭の Version History に内容の行を足す(記録。版の数字は最新行=APP_VERSION を verify のピンが見張る)
 - [ ] 本体の控え(Service Worker・第183): `node tools/sw/build-precache.js --check` が通る(配信物を足した/消した時は `--write` で sw-precache.js を作り直す。verify187 も同じ検査をする。manifest.json と sora-store-worker.js も一覧に入る=第184)。
   - 配った後の確認: 本番を一度開いて少し待ち、機内モードにして開き直せる(バックアップ/インポートメニューの「本体の控え」に件数と版が出る・版の横に「(オフライン表示)」が出る)。「端末のデータ」の行に件数・使用率が出て、「今すぐ整理」が「整理しました」で終わる。

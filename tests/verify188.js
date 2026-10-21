@@ -16,8 +16,9 @@ const src = rd('script.js'), html = rd('index.html'), consts = rd('sora-constant
 const APP_VER = (/APP_VERSION = '([^']+)'/.exec(consts) || [])[1];
 
 // ---- V0: 版のピン(最新の verify が持つ)。置き場は sora-constants.js の1箇所 ----
-check('V0 版のピン 1.99.1(sora-constants.js の APP_VERSION)+script.js は SORA.APP_VERSION を読む+index.html の移行用 meta(1.99.2 で消す)は同じ値+Version History の最新行が同じ版で第184',
-  APP_VER === '1.99.1' && src.includes('const APP_VERSION = SORA.APP_VERSION;') && !/const APP_VERSION = '\d/.test(src) && (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] === APP_VER && html.includes('移行用(1.99.2 で消す)') &&
+const _semver = (v) => String(v || '').split('.').map(Number); const _atLeast = (v, w) => { const a = _semver(v), b = _semver(w); for (let i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
+check('V0 版は 1.99.1 以上(ピンは最新の verify=verify189 へ移した)+script.js は SORA.APP_VERSION を読む+index.html の移行用 meta は同じ値+Version History の最新行が APP_VERSION で第184の行がある',
+  _atLeast(APP_VER, '1.99.1') && src.includes('const APP_VERSION = SORA.APP_VERSION;') && !/const APP_VERSION = '\d/.test(src) && (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] === APP_VER && /移行用\(/.test(html) &&
   /Version 1\.99\.1 - 2026-10-19: [^\n]*第184ラウンド/.test(src) && (src.match(/^Version (\d+\.\d+\.\d+) - /m) || [])[1] === APP_VER);
 
 // ---- S1: 依頼者の修正(静的) ----
@@ -105,7 +106,7 @@ check('S4 反証レビューの直し: sw.js=版が読めないページは unkn
     return r;
   });
   check('A1 実機: APP_VERSION は SORA.APP_VERSION と同じでフッターに出る・移行用 meta も同じ値・fmtHms(翌日0:45:46, 当日0時)=24:45:46(baseDate 無しは 00:45:46・当日5時は 05:00:00・null は --:--:--・2日後1時は 49:00:00・formatTime も 24:45:46)・上限(MB)の欄 500 → _storeCap=500MB・localStorage の sora_store_caps に保存(soranotsuji_app/appState/バックアップの収集には乗らない)・空欄で既定 1024MB(キーも消える)・読む時に 10未満/文字/知らない店を捨てる・壊れた JSON は空',
-    a1.ver === '1.99.1' && a1.sora === a1.ver && a1.footer === 'v' + a1.ver && a1.meta === a1.ver && a1.f1 === '24:45:46' && a1.f2 === '00:45:46' && a1.f3 === '05:00:00' && a1.f4 === '--:--:--' && a1.f5 === '49:00:00' && a1.f6 === '24:45:46' &&
+    a1.ver === APP_VER && a1.sora === a1.ver && a1.footer === 'v' + a1.ver && a1.meta === a1.ver && a1.f1 === '24:45:46' && a1.f2 === '00:45:46' && a1.f3 === '05:00:00' && a1.f4 === '--:--:--' && a1.f5 === '49:00:00' && a1.f6 === '24:45:46' &&
     a1.cap500 === 500 * 1048576 && a1.saved === 500 && a1.notInApp && a1.capDefault === 1024 * 1048576 && a1.removed && a1.norm === '{"bldg":2048}' && a1.broken === '{}', JSON.stringify(a1));
 
   // A2: 片付け(本物のワーカー): 種を撒く→30日超えが消え、上限超えは古い順に8割まで、天気の期限切れが消える

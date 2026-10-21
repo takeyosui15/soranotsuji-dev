@@ -13,6 +13,8 @@ self.SORA_PRECACHE = [
   'favicon.ico',
   'fonts/SoraSans/0-255.pbf',
   'forecast-features.html',
+  'icon-192.png',
+  'icon-512.png',
   'index.html',
   'kashimap-worker.js',
   'logo.png',

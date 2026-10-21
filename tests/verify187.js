@@ -61,7 +61,7 @@ check('S3 本体: 登録は https か ?sw=1 の時だけ(register(sw.js)・updat
   resetJs.includes("if (k.startsWith('sora-shell-')) caches.delete(k);") && resetJs.includes("const scope = new URL('./', location.href).href; navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (r.scope === scope) r.unregister(); }));") &&
   resetHtml.includes('オフライン用の本体の控え (Service Worker) も消去し、次に宙の辻を開く時に通信して作り直します。') &&
   sync.includes("'sw.js', 'sw-precache.js'") && html.includes('<li><strong>本体の控え (オフライン用)</strong>') &&
-  /const STORE = Object\.freeze\(\{[\s\S]*?SHELL_MAX_BYTES: 64 \* 1024 \* 1024,[\s\S]*?SHELL_NAV_TIMEOUT_MS: 4000,[\s\S]*?SHELL_FETCH_TIMEOUT_MS: 10000,[\s\S]*?UNUSED_DAYS: 30,/.test(consts) && consts.includes('TILE_STORE, STORE, calculateKFromMeteo'));
+  /const STORE = Object\.freeze\(\{[\s\S]*?SHELL_MAX_BYTES: 64 \* 1024 \* 1024,[\s\S]*?SHELL_NAV_TIMEOUT_MS: 4000,[\s\S]*?SHELL_FETCH_TIMEOUT_MS: 10000,[\s\S]*?UNUSED_DAYS: 30,/.test(consts) && consts.includes('TILE_STORE, STORE, WORKERS, calculateKFromMeteo'));
 
 (async () => {
   const b = await chromium.launch({ executablePath: EXE, headless: true, args: ARGS });

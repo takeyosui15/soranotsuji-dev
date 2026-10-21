@@ -36,7 +36,7 @@ GNU General Public License for more details.
     <title>宙の辻 - Sora no Tsuji</title>
     
     <link rel="icon" href="favicon.ico" type="image/png">
-    <meta name="app-version" content="1.99.1">   <!-- 移行用(1.99.2 で消す): v1.99.0 の Service Worker はこの meta で版を見分けるので、これが無いと v1.99.0 の控えを持つ端末で最初の1回だけ古い本体が混ざる(第184の反証レビュー C1)。版の置き場は sora-constants.js の APP_VERSION(verify188 が同じ値であることを見張る) -->
+    <meta name="app-version" content="1.99.2">   <!-- 移行用(v1.99.0 の次に配る版=1.99.2 まで。1.99.3 で消す): v1.99.0 の Service Worker はこの meta で版を見分けるので、これが無いと v1.99.0 の控えを持つ端末で最初の1回だけ古い本体が混ざる(第184の反証レビュー C1)。版の置き場は sora-constants.js の APP_VERSION(verify188 が同じ値であることを見張る) -->
     <link rel="manifest" href="manifest.json">   <!-- ホーム画面に追加(iOS/Android)。オフラインでの利用のため(デッサン35 段3) -->
     <meta name="theme-color" content="#1e1e1e">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -2366,7 +2366,7 @@ GNU General Public License for more details.
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-maptiles-count">-</span></span><span class="km-stat">合計容量: <span id="backup-maptiles-size">-</span></span></div>
                     <div class="control-row left-row"><span class="km-stat">最終更新日時: <span id="backup-maptiles-updated">-</span></span></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">最終使用: <span id="backup-maptiles-used">-</span></span><span class="km-stat">使用率: <span id="backup-maptiles-pct">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-maptiles">上限(MB):</label><input type="number" id="input-backup-cap-maptiles" class="store-cap" data-store="maptiles" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での地理タイルの控えの上限(MB)。空欄=既定。超えた分は古い順に片付け、上限に達すると新しくは貯めません"></div>
+                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-maptiles">上限(MB):</label><input type="number" id="input-backup-cap-maptiles" class="store-cap" data-store="maptiles" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での地理タイルの控えの上限(MB)。空欄にすると既定(1024MB)に戻ります。超えた分は古い順に片付け、上限に達すると新しくは貯めません"></div>
                     <div class="control-row left-row"><span class="menu-note">自動で貯まり、30日使わない物と上限超えの分は自動で片付けます。</span></div>
                     <div class="control-row"><button id="btn-backup-maptiles-clear" class="nav-btn main-btn" title="端末に貯めた地理タイル(地図)を全て削除します(地図は次に表示した時にまた取りに行きます)">地理タイルを全削除</button></div>
                     <hr class="tsujisearch-separator km-hr">
@@ -2374,30 +2374,30 @@ GNU General Public License for more details.
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-demtiles-count">-</span></span><span class="km-stat">合計容量: <span id="backup-demtiles-size">-</span></span></div>
                     <div class="control-row left-row"><span class="km-stat">最終更新日時: <span id="backup-demtiles-updated">-</span></span></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">最終使用: <span id="backup-demtiles-used">-</span></span><span class="km-stat">使用率: <span id="backup-demtiles-pct">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-demtiles">上限(MB):</label><input type="number" id="input-backup-cap-demtiles" class="store-cap" data-store="demtiles" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での標高タイルの控えの上限(MB)。空欄=既定。超えた分は古い順に片付けます"></div>
+                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-demtiles">上限(MB):</label><input type="number" id="input-backup-cap-demtiles" class="store-cap" data-store="demtiles" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での標高タイルの控えの上限(MB)。空欄にすると既定(1024MB)に戻ります。超えた分は古い順に片付けます"></div>
                     <div class="control-row left-row"><span class="menu-note" id="backup-demtiles-note">可視タイル作成後は、標高タイルは不要です。いつでも、全削除可能です。</span></div>
                     <div class="control-row"><button id="btn-backup-demtiles-clear" class="nav-btn main-btn" title="端末に貯めた標高タイルを全て削除します(可視タイル=資産は残ります)">標高タイルを全削除</button></div>
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙の窓の都市モードで使う PLATEAU(国土交通省)の建物のタイルの端末の控え(tileset.json も)。一度表示した街は控えから読みます">建物(PLATEAU):</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-bldg-count">-</span></span><span class="km-stat">合計容量: <span id="backup-bldg-size">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><span class="km-stat">最終使用: <span id="backup-bldg-used">-</span></span><span class="km-stat">使用率: <span id="backup-bldg-pct">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-bldg">上限(MB):</label><input type="number" id="input-backup-cap-bldg" class="store-cap" data-store="bldg" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での建物(PLATEAU)の控えの上限(MB)。空欄=既定。超えた分は古い順に片付け、上限に達すると新しくは貯めません"></div>
+                    <div class="control-row left-row km-stat-row"><span class="km-stat">最終更新日時: <span id="backup-bldg-updated">-</span></span><span class="km-stat">最終使用: <span id="backup-bldg-used">-</span></span><span class="km-stat">使用率: <span id="backup-bldg-pct">-</span></span></div>
+                    <div class="control-row left-row km-stat-row"><label class="km-stat" for="input-backup-cap-bldg">上限(MB):</label><input type="number" id="input-backup-cap-bldg" class="store-cap" data-store="bldg" min="10" max="1000000" step="10" placeholder="既定 1024" title="この端末での建物(PLATEAU)の控えの上限(MB)。空欄にすると既定(1024MB)に戻ります。超えた分は古い順に片付け、上限に達すると新しくは貯めません"></div>
                     <div class="control-row"><button id="btn-backup-bldg-clear" class="nav-btn main-btn" title="端末に貯めた建物(PLATEAU)のタイルを全て削除します(都市モードで次に表示した時にまた取りに行きます)">建物タイルを全削除</button></div>
                     <div id="backup-assets-block">
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="可視マップの資産(可視タイル)。自動では消しません(可視マップ節の資産一覧で削除)。上限は使用率の目安">可視マップ資産:</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-assets-count">-</span></span><span class="km-stat">合計容量: <span id="backup-assets-size">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-assets-pct">-</span></span><label class="km-stat" for="input-backup-cap-assets">上限(MB):</label><input type="number" id="input-backup-cap-assets" class="store-cap" data-store="assets" min="10" max="1000000" step="10" placeholder="既定 1024" title="可視マップ資産の上限(MB)の目安。空欄=既定"></div>
+                    <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-assets-pct">-</span></span><label class="km-stat" for="input-backup-cap-assets">上限(MB):</label><input type="number" id="input-backup-cap-assets" class="store-cap" data-store="assets" min="10" max="1000000" step="10" placeholder="既定 1024" title="可視マップ資産の上限(MB)の目安。空欄にすると既定(1024MB)に戻ります"></div>
                     </div>
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙検索・宙断面が使う天気(Open-Meteo)の控え。取ってから2時間(TTL=有効期限)まで再利用し、過ぎた物は自動で片付けます">天気の控え:</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-wx-count">-</span></span><span class="km-stat">合計容量: <span id="backup-wx-size">-</span></span></div>
-                    <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-wx-pct">-</span></span><label class="km-stat" for="input-backup-cap-wx">上限(MB):</label><input type="number" id="input-backup-cap-wx" class="store-cap" data-store="wx" min="10" max="1000000" step="10" placeholder="既定 1024" title="天気の控えの上限(MB)。空欄=既定"></div>
+                    <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-wx-pct">-</span></span><label class="km-stat" for="input-backup-cap-wx">上限(MB):</label><input type="number" id="input-backup-cap-wx" class="store-cap" data-store="wx" min="10" max="1000000" step="10" placeholder="既定 1024" title="天気の控えの上限(MB)。空欄にすると既定(1024MB)に戻ります"></div>
                     <div class="control-row"><button id="btn-backup-wx-clear" class="nav-btn main-btn" title="端末に貯めた天気の控えを全て削除します(次に使う時にまた取りに行きます)">天気の控えを削除</button></div>
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙の辻の本体(画面・プログラム・同梱データ)の端末の控え(Service Worker)。電波の無い所でも宙の辻を開けるように、版ごとに控えます。新しい版は、全部そろって確かめてから入れ替わります(途中で電波が切れたら古い版のまま動きます)">本体の控え(オフライン用):</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-shell-count">-</span></span><span class="km-stat">合計容量: <span id="backup-shell-size">-</span></span></div>
-                    <div class="control-row left-row"><span class="km-stat">版: <span id="backup-shell-ver">-</span></span></div>
+                    <div class="control-row left-row km-stat-row"><span class="km-stat">版: <span id="backup-shell-ver">-</span></span><span class="km-stat">最終更新日時: <span id="backup-shell-updated">-</span></span></div>
                     <div class="control-row left-row"><span class="menu-note">削除すると、次に開く時に通信して作り直します(電波の無い所では開けなくなります)。</span></div>
                     <div class="control-row"><button id="btn-backup-shell-clear" class="nav-btn main-btn" title="本体の控えと Service Worker の登録を削除します(次に開く時に通信して作り直します)">本体の控えを削除</button></div>
                 </div>
@@ -2613,10 +2613,11 @@ GNU General Public License for more details.
                         <li><strong>月齢フィルタ</strong>: 月齢で結果を絞り込み (満月 ≈ 14.8、新月 = 0)。</li>
                         <li><strong>時間フィルタ</strong>: 辻時刻を「開始時刻〜終了時刻」で絞り込み。各時刻は固定時刻 or 日の出/日の入/月の出/月の入/各薄明/GH・BHの境目から選べ、前後オフセットも指定可 (例: 「月の出」〜「月の出」の後1:00 で、昇ったばかりの低い月だけ)。開始 &gt; 終了 は夜間 (日付をまたぐ範囲) として扱います。月の出・月の入がその日に無い日 (月に1回ほどあります) は、その境界を使うフィルタは何も通しません。</li>
                         <li><strong>精度フィルタ ◎/○/△/-</strong>: 精度記号で結果を絞り込み。</li>
-                        <li><strong>可視フィルタ</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストの「標高グラフ」列に表示。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
+                        <li><strong>可視フィルタ</strong>: ONで観測点→目的点の地形可視判定 (OK/NG) を結果リストと File取得の CSV の「可視判定」列に表示 (v1.99.2 で「標高グラフ」から改名)。OK/NGで絞り込み可。判定は標高グラフ・辻メッシュ検索と共通の統一可視判定 (ズーム15半画素≒約2m刻み・DEM5A/5B/5C→DEM10B) です。</li>
                         <li><strong>URL取得</strong>: 現在の検索条件で開くURLをコピー。</li>
                         <li><strong>最大化ボタン (⛶)</strong>: 結果リストのタイトルのボタンで、検索結果表示領域を画面の2/3に最大化できます (もう一度押すと通常の1/3に戻ります。辻メッシュ検索結果と同じ)。My辻検索の結果リストは同じパネルを共有するため、同じボタンで最大化できます。</li>
-                    </ul>
+                        <li><strong>File取得</strong>: 今の条件で辻検索を実行し、結果を CSV で保存します (列は My辻検索の File取得と同じ)。実行中にもう一度押すと、その取得をキャンセルします。</li>
+                        </ul>
                     <p>精度記号:</p>
                     <ul class="help-list">
                         <li><strong>◎</strong>: 天体の中心が目的点に重なる (誤差 ±0.125°、視半径以内)</li>
@@ -2646,7 +2647,8 @@ GNU General Public License for more details.
                                 <li><strong>クリックで確定 (PC)</strong>: 画素をクリックすると件数ポップアップと詳細リストがその画素に固定されます (観測点は移動しません。ポップアップを閉じると解除)。観測点マーカーのホバー/ポップアップ表示中も同様に観測点の画素に固定されます。</li>
                                 <li><strong>詳細リストの行クリック</strong>: その天体×日付の行が結果リストで選択され、<strong>観測点がその画素に移動</strong>します。辻時刻コントロール・日時情報メニュー・辻ラインもその行の辻日時に移動し、優辻マーカーが立ちます。地図上のどの帯でも「そこに立った時の辻」へ飛べます。</li>
                                 <li><strong>検索直後の初期画面</strong>: 最大ズーム-3で観測点が中央に表示されます (行の自動選択・日時の移動はしません)。</li>
-                            </ul>
+                                <li><strong>File取得</strong>: 辻メッシュ検索を実行し、完了後に全ヒット画素を CSV で保存します (1段目=検索、2段目=全画素の精細化、3段目=CSV生成。進み具合は結果パネルに出ます)。実行中にもう一度押すと、その取得をキャンセルします。</li>
+                        </ul>
                         </li>
                         <li><strong>辻マーカー (天体色領域)</strong>: メッシュマーカーのうち、コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせる (PC) かタップ (スマホ) するとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>をポップアップ表示します。PCではクリックで位置を確定してポップアップを表示します (観測点は移動しません)。<strong>ポップアップの内容はホバーでハイライトされ、クリック (スマホはタップ) すると観測点がその画素に移動</strong>し、該当行 (選択中の行) が結果リストに表示されます。</li>
                         <li><strong>優辻マーカー (金色のピン)</strong>: 指定した辻時刻での最良精度の画素に、観測点マーカーと同じ大きさの金色のピンを立てます。カーソルで辻日付・辻時刻・精度角距離をポップアップ表示し、クリック (スマホはタップ) で位置を確定してポップアップを表示します (観測点は移動しません)。<strong>ポップアップの内容をクリック (スマホはタップ) すると観測点がその画素に移動</strong>し、該当行が結果リストに表示されます。表示天体メニューで選択行の天体をオフにすると、辻マーカーとピンは非表示になります。</li>
@@ -2785,13 +2787,20 @@ GNU General Public License for more details.
                 </section>
 
                 <section class="help-section">
-                    <h3>地図上の線について</h3>
-                    <p>地図上には3種類の線が描画されます。距離が遠いと、地球の曲率と地図の平面表現の違いで、見た目に少しズレて見えることがありますが、これは描画の都合です。</p>
+                    <h3>オフライン時のデータについて</h3>
+                    <p>宙の辻は、一度読んだ地図・標高・建物のデータと本体そのものを端末の中 (ブラウザ) に控え、電波の無い所でも使えるようにしています。控えはこの端末の中だけにあり、どこにも送られません。それぞれの中身と片付け方、オフラインでの使い方は次のとおりです。</p>
                     <ul class="help-list">
                         <li><strong>地理タイル / 標高タイル (端末の控え)</strong>: 地図に使う国土地理院のタイル (標準・淡色・写真・ベクトル) と、標高グラフ・辻検索・辻メッシュ・宙の窓が使う標高タイルは、一度読んだものをブラウザの中 (IndexedDB) に控えて、次からは控えを先に読み、無いものだけ国土地理院へ取りに行きます。控えのある範囲は電波の無い所でも地図と計算が使えます。控えはこの端末の中だけにあり、どこにも送られません。件数・容量・最終更新日時をここに表示し、「全削除」でいつでも空にできます (次に表示した時にまた取りに行くだけです)。地理タイル・標高タイル・建物の控えにはそれぞれ上限があり (既定 1024MB。「端末のデータ」の上限 (MB) で変えられます)、30日使っていない物と上限の9割を超えた分は自動で片付けます (次の「端末のデータ」の項)。出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル</a>。</li>
                         <li><strong>本体の控え (オフライン用)</strong>: 宙の辻の本体 (画面・プログラム・同梱データ) を版ごとに端末に控え、電波の無い所でも宙の辻を<strong>開ける</strong>ようにします (地図・標高・天気は上の控えのある範囲だけ)。開く時はいつも最新を取りに行き、取れない時だけ控えを使います。新しい版は、全部そろって確かめてから入れ替わるので、途中で電波が切れても古い版のまま動きます。「本体の控えを削除」で控えと登録を消せます (次に開く時に通信して作り直します)。iPhone では、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります (ホーム画面に追加した宙の辻は消されません)。</li>
-                        <li><strong>端末のデータ</strong>: 「端末のデータ」の欄に、全体 (ブラウザの見積もり)・永続・前回の整理・設定 (登録内容)・地理タイル・標高タイル・建物 (PLATEAU)・天気の控え・本体の控えの件数と容量、最終使用、使用率 (%) が並びます。地理/標高/建物の控えは、<strong>30日使っていない物</strong>と<strong>上限の9割を超えた分 (古い順に8割まで)</strong> を自動で片付けます (起動の少し後と、画面に戻った時に1日1回。「今すぐ整理」でいつでも)。天気の控えは2時間 (TTL=有効期限) を過ぎた物を片付けます。各行の<strong>上限 (MB)</strong> はこの端末だけの設定で、空欄なら既定 (1024MB) です。可視マップの資産は自動では消しません。「永続化を要求」は、ブラウザに「容量不足でもこのサイトのデータを消さない」を頼みます (許可するかはブラウザの判断です)。</li>
-                        <li><strong>オフラインでの利用方法</strong>: ①電波のある所で宙の辻を一度開いて少し待ちます (「本体の控え」に件数と版が出れば完了)。②使う予定の範囲の地図を一度表示し、標高グラフや辻検索を一度動かしておきます (地図・標高の控えができます)。③電波が無くなっても宙の辻を開き直せます (版の横に「(オフライン表示)」が出ます)。<strong>iPhone/iPad</strong>: Safari も Chrome も同じ仕組み (WebKit) で、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります。<strong>ホーム画面に追加</strong> (共有ボタン →「ホーム画面に追加」) した宙の辻は消されません。ただしホーム画面の宙の辻とブラウザのタブの宙の辻はデータの入れ物が別なので、My観測点などはバックアップ/インポートか Google ドライブ同期で移してください。<strong>Android</strong>: Chrome のメニューから「ホーム画面に追加」すると、容量不足でも消されにくくなります (「永続化を要求」も)。<strong>できないこと</strong>: 地図・標高・建物・天気は「一度見た範囲」だけです。Google ドライブ同期・地名検索・天気の取得・写真テクスチャの新しい範囲には通信が要ります (Plus Code のフルコードは通信なしで変換できます)。</li>
+                        <li><strong>端末のデータ</strong>: 「端末のデータ」の欄に、全体 (ブラウザの見積もり)・永続・前回の整理・設定 (登録内容)・地理タイル・標高タイル・建物 (PLATEAU)・天気の控え・本体の控えの件数と容量、最終使用、使用率 (%) が並びます。地理/標高/建物の控えは、<strong>30日使っていない物</strong>と<strong>上限の9割を超えた分 (古い順に8割まで)</strong> を自動で片付けます (起動の少し後と、画面に戻った時に1日1回。「今すぐ整理」でいつでも)。天気の控えは2時間 (TTL=有効期限) を過ぎた物を片付けます。各行の<strong>上限 (MB)</strong> はこの端末だけの設定で (バックアップや Google ドライブ同期には乗りません)、空欄にすると既定 (1024MB) に戻ります。可視マップの資産は自動では消しません。「永続化を要求」は、ブラウザに「容量不足でもこのサイトのデータを消さない」を頼みます (許可するかはブラウザの判断です)。</li>
+                        <li><strong>オフラインでの利用方法</strong>: ①電波のある所で宙の辻を一度開いて少し待ちます (「本体の控え」に件数・版・最終更新日時が出れば完了)。②使う予定の範囲の地図を一度表示し、標高グラフや辻検索を一度動かしておきます (地図・標高の控えができます)。③電波が無くなっても宙の辻を開き直せます (版の横に「(オフライン表示)」が出ます)。<strong>iPhone/iPad</strong>: Safari も Chrome も同じ仕組み (WebKit) で、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります。<strong>ホーム画面に追加</strong> (共有ボタン →「ホーム画面に追加」) した宙の辻は消されません。ただしホーム画面の宙の辻とブラウザのタブの宙の辻はデータの入れ物が別なので、My観測点などはバックアップ/インポートか Google ドライブ同期で移してください。<strong>Android</strong>: Chrome のメニューから「ホーム画面に追加」すると、容量不足でも消されにくくなります (「永続化を要求」も)。<strong>できないこと</strong>: 地図・標高・建物・天気は「一度見た範囲」だけです。Google ドライブ同期・地名検索・天気の取得・写真テクスチャの新しい範囲には通信が要ります (Plus Code のフルコードは通信なしで変換できます)。</li>
+                    </ul>
+                </section>
+
+                <section class="help-section">
+                    <h3>地図上の線について</h3>
+                    <p>地図上には3種類の線が描画されます。距離が遠いと、地球の曲率と地図の平面表現の違いで、見た目に少しズレて見えることがありますが、これは描画の都合です。</p>
+                    <ul class="help-list">
                         <li><strong>方位線 (色付き)</strong>: 観測点から各天体方向の方位 (WGS84 楕円体)。</li>
                         <li><strong>黒い線</strong>: 観測点〜目的点の大圏航路 (実線) と等角航路 (破線)。</li>
                         <li><strong>辻ライン</strong>: 目的点の背後に天体が重なる観測位置の軌跡 (時間軸の曲線)。方位を表すものではありません。</li>

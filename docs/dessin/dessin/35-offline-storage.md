@@ -50,11 +50,11 @@
 
 | 行 | 中身 | 件数/容量 | 最終使用 | 上限 | 使用率 | 削除 | 段 |
 |---|---|---|---|---|---|---|---|
-| 本体の控え(オフライン用) | `sora-shell-v<版>` の Cache Storage | 件数/MB・版 | − | 64MB(SHELL_MAX_BYTES) | − | 「本体の控えを削除」(SW も解除。注記つき) | **段1(済)** |
+| 本体の控え(オフライン用) | `sora-shell-v<版>` の Cache Storage | 件数/MB・版・最終更新(控えの応答の date ヘッダの最大=入れ直した時刻。第185・依頼者: 同じ版でも削除後にいつ作り直したか分かる) | − | 64MB(SHELL_MAX_BYTES) | − | 「本体の控えを削除」(SW も解除。注記つき) | **段1(済)** |
 | 設定(登録内容) | localStorage `soranotsuji_app` | KB(文字数×2) | − | 約5MB(ブラウザ) | % | 既存(reset.html)へ | **段2(済)** |
 | 地理タイル | `soranotsuji-maptiles`(店 v3: 最終使用の店 used) | 件数/MB | 最終使用(used 店の usedAt の最大。無ければ savedAt) | 1GB(上限(MB)の欄で端末ごとに) | % | 既存「地理タイルを全削除」 | **段2(済)** |
 | 標高タイル | `soranotsuji-kashimap` の tiles(店 v4: used) | 件数/MB | 同上 | 1GB(同上) | % | 既存「標高タイルを全削除」 | **段2(済)** |
-| 建物(PLATEAU) | `soranotsuji-bldg` の tiles(第184・依頼者: 地理/標高と同じ別項目。b3dm と tileset.json。鍵=URL) | 件数/MB | 同上 | 1GB(同上) | % | 「建物タイルを全削除」 | **段2(済)** |
+| 建物(PLATEAU) | `soranotsuji-bldg` の tiles(第184・依頼者: 地理/標高と同じ別項目。b3dm と tileset.json。鍵=URL) | 件数/MB・最終更新(第185) | 同上 | 1GB(同上) | % | 「建物タイルを全削除」 | **段2(済)** |
 | 可視マップ資産 | 同 DB の assets(要約の size の合計) | 件数/MB | − | 1GB(目安。自動では消さない) | % | 既存(可視マップの資産一覧)へ。封鎖中は行を隠す | **段2(済)** |
 | 天気の控え | `soranotsuji-wx` | 件数/MB(JSON の長さの目安) | − | 1GB(目安)+TTL 2時間 | % | 「天気の控えを削除」 | **段2(済)** |
 | 全体 | `navigator.storage.estimate()`・`persisted()` | 使用/割当(ブラウザの見積もり)・永続 はい/いいえ | 前回の整理の日時 | ブラウザ | − | 「今すぐ整理」「永続化を要求」(段3)。全部削除は reset.html | **段2/3(済)** |
@@ -73,6 +73,7 @@
 - TTL=**Time To Live(有効期限)**: 控えに「いつまで使ってよいか」を付けておく仕組み。天気の控えは「取ってから2時間」までは再利用し、過ぎたら取り直す(宙検索・宙断面=封鎖中)。
 - 契機: ①起動の約5秒後(`localStorage` の `sora_store_clean_at`(`soranotsuji_` の接頭辞ではない=同期・バックアップに乗らない。反証レビュー C4)が24時間より前なら) ②画面が前面に戻った時(同じ条件) ③「今すぐ整理」ボタン(いつでも)。実行は専用のワーカー `sora-store-worker.js`: 値(タイルのバイト列)は読まず、size/savedAt/usedAt の索引の鍵カーソルで台帳を作り、200件ずつ別の取引で削除(画面を止めない)。無い店は作らない(onupgradeneeded で abort)。結果は「整理しました: N件・MB」を行に出す。定数(30日・9割/8割・1日1回・200件・TTL)は全部 SORA.STORE から本体が渡す。
 - `requestIdleCallback` は Safari で無効のままなので `setTimeout` で代用。
+- ワーカーの隙間(第185・依頼者: 辻検索/辻メッシュの実行中はプールが CPU数+1 本で、片付けのワーカーが入り込む隙間が無い): 裏方の棚卸し=片付け sora-store-worker(1本・1日1回/手動)・可視マップ kashimap-worker(1本・封鎖中)・Service Worker(1本・通信の時だけ)。これらは同時に重く動かないので、**プール(辻検索/My辻/辻メッシュ・可視判定 tm-vis・辻ライン dp-line・宙の窓の地形 terrain・動画 mov)は CPU数 − 1(SORA.WORKERS.RESERVE)を上限**にし、画面のスレッドと裏方に1コア分を残す(下限 2・上限 31・タッチ端末の辻検索は 6・動画は 4)。置き場は sora-constants.js の WORKERS と本体の `_poolSize()`。
 
 ## 5. 守りとの関係(デッサン34)
 
@@ -98,11 +99,11 @@
 
 1. **段1(第183・v1.99.0・済)**: SW(2.)+登録URLの ?v= で版(第184で廃止)+`sw-precache.js` の道具(--write/--check)+「本体の控え」の行と削除(3.)+reset.html の対応+index.html の meta app-version(第184で廃止。1.99.1 だけ移行用に残し 1.99.2 で消す)+SORA.STORE(上限・待ち時間・30日)+verify187+deploy-guide のプレ・デプロイ項目。
 2. **段2(第184・v1.99.1・済)**: 最終使用の店 used(店 v3/v4・ヒットで1日1回・まとめ書き)・上限(SORA.STORE.CAP_BYTES+端末ごとの上限(MB)の欄)・片付け(sora-store-worker.js)+一覧の残りの行(設定/建物/可視マップ資産/天気/全体)+「今すぐ整理」+「天気の控えを削除」+建物(PLATEAU)の店 soranotsuji-bldg(b3dm と tileset.json を控え、都市モードが圏外でも一度見た街は出る)+verify188。
-3. **段3(第184・済)**: manifest.json(`<link rel="manifest">`・standalone・start_url ./)+「永続化を要求」ボタン(persist() は押した時だけ=Firefox は確認が出るので起動時には呼ばない)+「オフライン表示」の印(SW に `sora:served?` を尋ね、控えから出したページなら版の横に。navigator.onLine=false でも)+ヘルプの「端末のデータ」「オフラインでの利用方法」+FAQ/リリースノート/お知らせの案(docs/note)+deploy-guide。
+3. **段3(第184・済)**: manifest.json(`<link rel="manifest">`・standalone・start_url ./)+「永続化を要求」ボタン(persist() は押した時だけ=Firefox は確認が出るので起動時には呼ばない)+「オフライン表示」の印(SW に `sora:served?` を尋ね、控えから出したページなら版の横に。navigator.onLine=false でも)+ヘルプの「端末のデータ」「オフラインでの利用方法」+FAQ/お知らせの案(docs/note)とリリースノート(docs/release-notes/v1.99.2.md)+deploy-guide。
 4. 配布: v1.99.1 として段1〜3をまとめて(依頼者の判断)。配った後の確認に「機内モードで開き直せる」「端末のデータの行に件数が出る」を H に足す(deploy-guide に記載済み)。残り: iPhone の Chrome での「ホーム画面に追加」と7日の規則の実機確認(依頼者)。
 
 ## 8. 未決(第3版で残っている物)
 
-- manifest.json の見た目(standalone=ブラウザの枠無し・theme_color #1e1e1e)と名前・アイコン(apple-touch-icon.png と logo.png の流用)=実機で見て依頼者の判断。
+- manifest.json の見た目(standalone=ブラウザの枠無し・theme_color #1e1e1e)と名前・アイコン(apple-touch-icon.png 180・logo.png 100 に加え、第185で logo.svg から書き出した icon-192.png・icon-512.png=Android の Chrome の「インストール」の条件)=実機で見て依頼者の判断。
 - 可視マップ資産の上限は使用率の表示だけ(自動では消さない)。資産の作成時に上限で止めるかは可視マップの再開時に。
 - 6. の公開文(FAQ・リリースノート・お知らせ)=docs/note に案。依頼者の承認後に note へ。
