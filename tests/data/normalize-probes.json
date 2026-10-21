@@ -1,5 +1,5 @@
 {
- "note": "normalizeAppStateの挙動の凍結標本(第41ラウンド)。各スカラーキーに8種の崩れた値(neg/pos/frac/str/empty/nul/bfalse/btrue)を入れた時の正規化結果。正規化規則を意図的に変える時だけ更新する 第159: startApiElev/endApiElev は数値以外→null、startHeight/endHeight は数値以外→0 に(保存データの型そろえ=_sanitizeStoredShapes)。 homeStart/homeEnd は地点の物(lat/lng)でなければ null。",
+ "note": "normalizeAppStateの挙動の凍結標本(第41ラウンド)。各スカラーキーに8種の崩れた値(neg/pos/frac/str/empty/nul/bfalse/btrue)を入れた時の正規化結果。正規化規則を意図的に変える時だけ更新する 第159: startApiElev/endApiElev は数値以外→null、startHeight/endHeight は数値以外→0 に(保存データの型そろえ=_sanitizeStoredShapes)。 homeStart/homeEnd は地点の物(lat/lng)でなければ null。 / 第185: mySetCurrentId は型そろえ(整数で既定(0)か存在する Myセットだけ)に合わせて更新 / 第185: soraFolderName・refractionK・locMode は型そろえの追加(第185の監査)に合わせて更新",
  "scenarios": {
   "neg": -1000000000,
   "pos": 1000000000,
@@ -72,14 +72,14 @@
    "btrue": null
   },
   "mySetCurrentId": {
-   "neg": -1000000000,
-   "pos": 1000000000,
-   "frac": 3.7,
-   "str": "garbage",
-   "empty": "",
-   "nul": null,
-   "bfalse": false,
-   "btrue": true
+   "neg": 0,
+   "pos": 0,
+   "frac": 0,
+   "str": 0,
+   "empty": 0,
+   "nul": 0,
+   "bfalse": 0,
+   "btrue": 0
   },
   "mySetHomeData": {
    "neg": -1000000000,
@@ -92,14 +92,14 @@
    "btrue": true
   },
   "soraFolderName": {
-   "neg": -1000000000,
-   "pos": 1000000000,
-   "frac": 3.7,
+   "neg": "/soranotsuji-宙の辻",
+   "pos": "/soranotsuji-宙の辻",
+   "frac": "/soranotsuji-宙の辻",
    "str": "garbage",
-   "empty": "",
-   "nul": null,
-   "bfalse": false,
-   "btrue": true
+   "empty": "/soranotsuji-宙の辻",
+   "nul": "/soranotsuji-宙の辻",
+   "bfalse": "/soranotsuji-宙の辻",
+   "btrue": "/soranotsuji-宙の辻"
   },
   "refractionEnabled": {
    "neg": -1000000000,
@@ -122,14 +122,14 @@
    "btrue": true
   },
   "refractionK": {
-   "neg": -1000000000,
-   "pos": 1000000000,
-   "frac": 3.7,
-   "str": "garbage",
-   "empty": "",
-   "nul": null,
-   "bfalse": false,
-   "btrue": true
+   "neg": 0.1319732189126221,
+   "pos": 0.1319732189126221,
+   "frac": 0.1319732189126221,
+   "str": 0.1319732189126221,
+   "empty": 0.1319732189126221,
+   "nul": 0.1319732189126221,
+   "bfalse": 0.1319732189126221,
+   "btrue": 0.1319732189126221
   },
   "lastVisitDate": {
    "neg": -1000000000,
@@ -182,14 +182,14 @@
    "btrue": true
   },
   "locMode": {
-   "neg": -1000000000,
-   "pos": 1000000000,
-   "frac": 3.7,
-   "str": "garbage",
-   "empty": "",
-   "nul": null,
-   "bfalse": false,
-   "btrue": true
+   "neg": "start",
+   "pos": "start",
+   "frac": "start",
+   "str": "start",
+   "empty": "start",
+   "nul": "start",
+   "bfalse": "start",
+   "btrue": "start"
   },
   "isElevationActive": {
    "neg": -1000000000,

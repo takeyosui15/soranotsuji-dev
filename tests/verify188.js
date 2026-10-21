@@ -66,7 +66,7 @@ check('S3 一覧(index.html): 端末のデータ(全体/永続/前回の整理/�
 
 // ---- S4: 反証レビュー(第184・24件)の直し(静的) ----
 check('S4 反証レビューの直し: sw.js=版が読めないページは unknown(控えに入れない・本体はネット→落ちたら控え)・controllerchange の読み直しは画面が元から古い時だけ(普段は「(新しい版あり)」の印)・印は cache/offline/update の3種・翌日は暦日で数える(_dayDiff)・店の open に onversionchange/onblocked(本体4つ+ワーカー2本)・ヘルプの地理タイルの文(合計1GB→上限と片付け)・お知らせの列番号 55〜57・FAQ の天気は TTL だけ',
-  sw.includes("clientVer.set(e.resultingClientId, v || 'unknown');") && sw.includes("if (v === VER) putRuntime(c, key, res.clone());") && sw.includes("if (pv === 'unknown') { const hit = await matchShell(c, key); if (hit) return marked(hit); }") &&
+  sw.includes("clientVer.set(e.resultingClientId, v || 'unknown');") && sw.includes("if (v === VER && PRECACHE_KEYS.has(key)) putRuntime(c, key, res.clone());") && sw.includes("if (pv === 'unknown') { const hit = await matchShell(c, key); if (hit) return marked(hit); }") &&
   src.includes("async function _swServedVersion() {") && src.includes("_swPageStale = !!served && served !== APP_VERSION;") && src.includes("if (_swPageStale) { _swReloaded = true; location.reload(); return; }") && src.includes("_swMarkSet('update', true);") &&
   src.includes("const _swMark = { cache: false, offline: false, update: false };") && src.includes("parts.push('(通信なし)')") && src.includes("parts.push('(新しい版あり)')") &&
   (src.match(/db\.onversionchange = \(\) => \{ try \{ db\.close\(\); \} catch \(_\) \{\} _(mtDbP|kmDbP|bgDbP|ssDbReady) = null; \}/g) || []).length === 4 && (src.match(/req\.onblocked = \(\) => setTimeout\(/g) || []).length === 4 &&
