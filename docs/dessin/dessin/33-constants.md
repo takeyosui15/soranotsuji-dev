@@ -45,6 +45,7 @@
 | 標高タイル | `DEM.GRID_NODATA` / `GRID_OFFSET_M` / `GRID_SCALE` | 65535 / 100 / 10 | ワーカー・道具のUint16格子 |
 | 標高タイル | `DEM.FINE_ZOOM` / `COARSE_ZOOM` | 15 / 14 | DEM5A/5B/5C と DEM10B のズーム |
 | 標高タイル | `DEM.JAPAN_BBOX` | 20〜46N・122〜156E | 地理院のタイルがある範囲(海=海面0mの判定もこの中だけ) |
+| ワーカー | `WORKERS.RESERVE` / `MIN` / `MAX` / `TOUCH_MAX` / `MOV_MAX` | 1 / 2 / 31 / 6 / 4 | プールの大きさ=CPU数−RESERVE(画面と裏方=片付け・可視マップ・SW の隙間)。本体の `_poolSize()` が5つのプール+動画に使う(第185・依頼者) |
 
 関数: `calculateKFromMeteo(P,T,Γ)` `getLocalEarthRadius(lat)` `inv2ReffFor(latA,latB,k)` `haversineDistanceM(...)` `metersPerPixel(lat,zoom)` `insideJapan(lat,lng)` `greatCirclePath(lat1,lng1,lat2,lng2).at(f)`。
 
