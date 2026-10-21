@@ -28,7 +28,7 @@ check('S1 sw.js: 自オリジン(範囲内)の GET だけ・Authorization 付き
   sw.includes("await c.addAll(list.map(u => new Request(new URL(u, SCOPE).href, { cache: 'reload' })));") && sw.includes("throw new Error('precache incomplete: ' + u);") && sw.includes("await self.skipWaiting();") &&
   sw.includes("keys.filter(k => k.startsWith('sora-shell-') && k !== CACHE).map(k => caches.delete(k))") && sw.includes("await self.clients.claim();") &&
   sw.includes("if (req.mode === 'navigate') { e.respondWith(handleNavigate(e, url, key)); return; }") && sw.includes("fetchWithTimeout(url.href, ST.SHELL_NAV_TIMEOUT_MS)") &&
-  sw.includes("if (pv && pv !== VER) {   // 配布直後: ページが新しい版(古い控えは使わずネットだけ)。版が読めなかった('unknown')ページはネット→落ちたら控え") && sw.includes("if (v === VER) putRuntime(c, key, res.clone());") &&
+  sw.includes("if (pv && pv !== VER) {   // 配布直後: ページが新しい版(古い控えは使わずネットだけ)。版が読めなかった('unknown')ページはネット→落ちたら控え") && sw.includes("if (v === VER && PRECACHE_KEYS.has(key)) putRuntime(c, key, res.clone());") &&
   sw.includes("h.set('x-sora-shell', 'cache');") && sw.includes("if (cur + len > ST.SHELL_MAX_BYTES) return;") && !/fetch\(['"]https?:/.test(sw) &&
   // 反証レビューで足した守り
   sw.includes("if ((req.destination === 'worker' || req.destination === 'sharedworker') && e.resultingClientId && pv) clientVer.set(e.resultingClientId, pv);") &&

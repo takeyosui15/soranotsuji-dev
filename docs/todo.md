@@ -186,6 +186,9 @@
 - [ ] 山リストの読み「2おばこだけ」「[みなみいおうとう]」の扱い(2や[]を削ってよいか) 【小さな直し】
 
 #### 運用
+- [ ] (第185・セキュリティ監査 F-29/F-30・依頼者の承認待ち=公開文) privacy.html に2文を足す: 写位(写真の位置情報は端末の中で読み取り・写真は送信/保存しない・緯度経度は他の方法で置いた点と同じ扱い=標高の取得で地理院/Open-Meteo へ送る・端末に保存)と GPS(ボタンを押した時だけブラウザの位置情報を読む)。案文は docs/operation/security-audit-2026-10-21.md の A-3。
+- [ ] (第185・F-28) 毎月の点検に「vendor/ の4ライブラリ(MapLibre・three・Astronomy Engine・GeographicLib・qrcode)の版と advisory(GitHub の security advisories・npm audit の結果)を見る」を足す(Dependabot は vendor/ を見ない)。
+- [ ] (第185・F-01 の次の段) SW の控えの指紋照合: sw-precache.js に sha256 を持たせ、install と配信時に照合する(開発オリジンの控え汚染への備え。本番は専用オリジンなので急がない)。
 - [ ] リセットURL(【済】reset.html)/古いドメインでのリセットURLも作る(未) 【依頼者(第182): 旧 URL=https://soranotsuji.design10100.net/。2027/03/07 に「一年後に閉める」案内の予定だが、もう転送しているので案内してもよい。リポジトリ soranotsuji-old を検証する】
 
 #### 次の棚卸し

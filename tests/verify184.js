@@ -77,9 +77,9 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
     JSON.stringify(d['object-src']) === JSON.stringify(["'none'"]) && JSON.stringify(d['base-uri']) === JSON.stringify(["'self'"]) && JSON.stringify(d['form-action']) === JSON.stringify(["'self'"]) &&
     JSON.stringify(d['worker-src']) === JSON.stringify(["'self'", 'blob:']) && JSON.stringify(d['frame-src']) === JSON.stringify(['https://accounts.google.com/gsi/', 'https://docs.google.com']) &&
     JSON.stringify(d['style-src']) === JSON.stringify(["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style']) &&
-    ['https://cyberjapandata.gsi.go.jp', 'https://tile.openstreetmap.org', 'https://s3.amazonaws.com', 'https://msearch.gsi.go.jp', 'https://nominatim.openstreetmap.org', 'https://api.open-meteo.com', 'https://archive-api.open-meteo.com', 'https://air-quality-api.open-meteo.com',
-     'https://www.googleapis.com', 'https://sheets.googleapis.com', 'https://oauth2.googleapis.com', 'https://accounts.google.com/gsi/', 'https://script.google.com', 'https://script.googleusercontent.com', 'https://assets.cms.plateau.reearth.io'].every(h => has('connect-src', h)) && d['connect-src'].length === 16 && has('connect-src', "'self'") &&
-    JSON.stringify(d['img-src']) === JSON.stringify(["'self'", 'data:', 'blob:', 'https://cyberjapandata.gsi.go.jp', 'https://tile.openstreetmap.org', 'https://s3.amazonaws.com']) &&
+    ['https://cyberjapandata.gsi.go.jp', 'https://tile.openstreetmap.org', 'https://s3.amazonaws.com/elevation-tiles-prod/', 'https://msearch.gsi.go.jp', 'https://nominatim.openstreetmap.org', 'https://api.open-meteo.com', 'https://archive-api.open-meteo.com', 'https://air-quality-api.open-meteo.com',
+     'https://www.googleapis.com', 'https://sheets.googleapis.com', 'https://oauth2.googleapis.com', 'https://accounts.google.com/gsi/', 'https://script.google.com/macros/s/', 'https://script.googleusercontent.com', 'https://assets.cms.plateau.reearth.io'].every(h => has('connect-src', h)) && d['connect-src'].length === 16 && has('connect-src', "'self'") &&
+    JSON.stringify(d['img-src']) === JSON.stringify(["'self'", 'data:', 'blob:', 'https://cyberjapandata.gsi.go.jp', 'https://tile.openstreetmap.org', 'https://s3.amazonaws.com/elevation-tiles-prod/']) &&
     JSON.stringify(d['media-src']) === JSON.stringify(["'self'", 'blob:']) && JSON.stringify(d['font-src']) === JSON.stringify(["'self'"]) && noWild && cspNoDup(c) &&
     idxSrc.includes('<meta name="referrer" content="strict-origin-when-cross-origin">'), c ? c.slice(0, 200) : 'no CSP');
   const r = cspOf(resetSrc); const rd2 = r ? parseCsp(r) : {};
@@ -167,7 +167,7 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
     src.includes("if (attempt < 3) setTimeout(() => fetchVisitorData(action, todayStr, attempt + 1), 2700 * attempt);") &&
     src.includes('const PICK_FILE_MAX_BYTES = 8 * 1024 * 1024;') && src.includes('if (file.size > PICK_FILE_MAX_BYTES)') &&
     src.includes('const STORE_WRITE_MAX_CHARS = 4 * 1024 * 1024;') && src.includes('if (total > STORE_WRITE_MAX_CHARS) throw new Error(') &&
-    src.includes('const MYSET_SHEET_MAX_ROWS = 1100;') && (src.match(/`'\$\{n\}'!1:\$\{MYSET_SHEET_MAX_ROWS\}`/g) || []).length === 2 && src.includes('if (n > STORE_WRITE_MAX_CHARS) { alert(`Myセット「${s.name}」の内容が大きすぎるため') && src.includes("if (!mySetSetData(s, data)) throw new Error('内容が大きすぎるため読み込みませんでした');"));
+    src.includes('const MYSET_SHEET_MAX_ROWS = 1100;') && (src.match(/`'\$\{n\}'!A1:CV\$\{MYSET_SHEET_MAX_ROWS\}`/g) || []).length === 2 && src.includes('if (n > STORE_WRITE_MAX_CHARS) { alert(`Myセット「${s.name}」の内容が大きすぎるため') && src.includes("if (!mySetSetData(s, data)) throw new Error('内容が大きすぎるため読み込みませんでした');"));
 }
 
 // ---- S10: CSVの式の注入対策(csvText/csvUnprefix の配線)・取り込みの鍵の許可リスト ----
@@ -184,6 +184,23 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
 // ============================================================
 // ブラウザ検査
 // ============================================================
+const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'); const trwSrc = fs.readFileSync(path.join(ROOT, 'sora-terrain-worker.js'), 'utf8');
+// ---- S12: 第185のセキュリティ監査(claude-security 相当の Workflow)で確認された指摘の直し(静的) ----
+check('S12 第185の監査の直し: URL の date/time は数字だけ+壊れた日時の最終防衛・標高/高さは ±20,000m・花火の緯度経度の範囲・短縮URLの展開に上限(QP_DECODE_MAX_CHARS)・URL の My天体は 1,000 件まで・気象値は有限(URL)と範囲(型そろえ)・プリセットの列挙は hasOwnProperty・loadAppState は Array.isArray/isObj で見てから触る・型そろえに行数の上限/ID 重複/緯度経度の範囲/既定のセット/mySetCurrentId/soraFolderName/locMode/meteo・旧形式バックアップは例外で読み直す・CSV の名前/メモの長さと緯度経度の範囲・My宙の名前 150・bodyIds の重複排除・ログインの約束は毎回解決・シートの列は CV まで・可視マップ資産の山名は文字・SW は一覧のページだけ控える・地形ワーカーの取得に 12 秒・CSP の s3/script.google.com は経路まで',
+  src.includes("if (/^\\d{8}$/.test(s)) {") && src.includes("if (/^\\d{4}(\\d{2})?$/.test(s)) {") && src.includes("if (isNaN(appState.currentDate.getTime())) { appState.currentDate = new Date(); delete appState._restoredFromUrl; }") &&
+  src.includes("const elvOk = (v) => Number.isFinite(v) && Math.abs(v) <= 20000;") && src.includes("Math.abs(parseFloat(appState.fwLat)) > 90 || Math.abs(parseFloat(appState.fwLng)) > 180") &&
+  src.includes("const QP_DECODE_MAX_CHARS = 262144;") && src.includes("if (res.length > QP_DECODE_MAX_CHARS) return null;") && src.includes("starIds.slice(0, 1000).forEach(sid => {") &&
+  src.includes("if (Number.isFinite(v)) appState.meteo[mk] = v; }") && (src.match(/Object\.prototype\.hasOwnProperty\.call\(SS_PRESETS, /g) || []).length === 2 && !/\bin SS_PRESETS\)/.test(src) &&
+  src.includes("if(Array.isArray(saved.myStars)) appState.myStars = saved.myStars;") && src.includes("if(isObj(saved.meteo)) appState.meteo = saved.meteo;") && src.includes("if(typeof saved.soraFolderName === 'string') appState.soraFolderName = saved.soraFolderName;") &&
+  src.includes("const ROW_MAX = 1000;") && src.includes("const uniqById = (list) => {") && src.includes("if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) { dropped.push(`${label}[${i}]`); return null; }") &&
+  src.includes("appState.mySetHome = { ...h, id: 0, name: '既定のセット', memo: str(h.memo, 1000), sheetId,") && src.includes("appState.mySetCurrentId = (Number.isFinite(cid) && (cid === 0 || appState.mySets.some(m => m.id === cid))) ? cid : 0;") &&
+  src.includes("if (appState.locMode !== 'start' && appState.locMode !== 'end') appState.locMode = 'start';") && src.includes("appState.meteo = { p: inR(m.p, 300, 1100, STD_P), t: inR(m.t, -90, 60, STD_T), l: inR(m.l, -0.05, 0.1, STD_L) };") &&
+  src.includes("} catch (e) { try { loadAppState(); normalizeAppState(); } catch (_) {} throw e; }") && (src.match(/Math\.abs\(lat\) > 90 \|\| Math\.abs\(lng\) > 180\) \{ alert\(/g) || []).length === 2 && (src.match(/csvUnprefix\(cols\[1\]\.trim\(\)\)\.slice\(0, 300\)/g) || []).length === 3 && src.includes("csvUnprefix(cols[1].trim()).slice(0, 150);") &&
+  src.includes("const bodyIds = [...new Set((t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean))];") && src.includes("let _googleLoginResolve = null;") && src.includes("const settle = (ok) => { const r = _googleLoginResolve; _googleLoginResolve = null; if (r) r(ok); };") &&
+  (src.match(/A1:CV\$\{MYSET_SHEET_MAX_ROWS\}/g) || []).length === 2 && src.includes("name: String(mt.name || id).slice(0, 150)") && src.includes("String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), 'ja')") &&
+  swSrc.includes("const PRECACHE_KEYS = new Set((self.SORA_PRECACHE || []).map(u => keyOf(new URL(u, SCOPE))));") && swSrc.includes("if (v === VER && PRECACHE_KEYS.has(key)) putRuntime(c, key, res.clone());") &&
+  trwSrc.includes("let resp; try { resp = await fetch(url, { signal: ctl.signal }); } finally { clearTimeout(timer); }") && idxSrc.includes('https://s3.amazonaws.com/elevation-tiles-prod/') && idxSrc.includes('https://script.google.com/macros/s/') && !/https:\/\/s3\.amazonaws\.com[ ;]/.test(idxSrc) && !/https:\/\/script\.google\.com[ ;]/.test(idxSrc));
+
 (async () => {
   const { chromium } = require('playwright-core');
 // ---- S11: 公開文と報告の窓口(第172・第173): /.well-known/security.txt(RFC 9116。Contact は非公開の脆弱性報告→リポジトリの順)と privacy.html の外部サービスの節 ----
@@ -341,6 +358,21 @@ const cspNoDup = (s) => { const ks = cspPairs(s).map(([k]) => k); return new Set
     u8.f1.startsWith("'=") && u8.f2 === "'@SUM(A1)" && u8.f3 === "'+1+1" && u8.f4 === "'-cmd" && u8.f5 === '-12.3' && u8.f6 === '富士山' && u8.f7 === '' &&
     u8.r1 === '=1+1' && u8.r2 === '-cmd' && u8.r3 === "'富士山" && u8.r4 === '-12.3' && u8.keys.n === 1 && u8.keys.planted === null, JSON.stringify(u8));
 
+
+  // U9(第185の監査): 壊れた date/time・1e308 の標高・緯度 95 の花火・Infinity の気圧・巨大な starId の列を URL で渡しても、起動が止まらず値は既定/範囲内に戻る
+  {
+    const q9 = await ctx.newPage(); const err9 = []; q9.on('pageerror', e => err9.push(String(e.message || e)));
+    await q9.route('**/*', r => r.request().url().startsWith(BASE) ? r.continue() : r.abort());
+    const many = Array.from({ length: 1200 }, (_, i) => `&starId=${90000 + i}&starName=s${i}&starRa=1&starDec=1`).join('');
+    await q9.goto(BASE + '/index.html?date=abcd0101&time=12xx00&startElv=1e308&endApiElv=-1e308&fwEnabled=true&fwLat=95&fwLng=200&meteoP=Infinity&meteoT=abc&ssPreset=__proto__' + many, { waitUntil: 'load' });
+    await q9.waitForFunction(() => typeof appState !== 'undefined' && document.getElementById('app-version') && document.getElementById('app-version').textContent !== 'v0.0.0', { timeout: 15000 });
+    await q9.waitForTimeout(800);
+    const r9 = await q9.evaluate(() => ({ validDate: !isNaN(appState.currentDate.getTime()), restored: appState._restoredFromUrl === undefined, startH: appState.startHeight, endApi: appState.endApiElev, fwLat: appState.fwLat, fwLng: appState.fwLng,
+      kFinite: Number.isFinite(appState.refractionK), p: appState.meteo.p, t: appState.meteo.t, preset: appState.ssPreset, stars: appState.myStars.length, decodeBomb: decodeQueryParam('v23.' + 'A'.repeat(20)) }));
+    await q9.close();
+    check('U9 毒入りの URL で起動: 日時は有効で URL 由来の印は立たない・1e308 の標高/高さは捨てる・緯度 95 の花火は捨てる(null)・Infinity/文字の気象値は標準値で K は有限・__proto__ のプリセットは既定・My天体は 1,000 件まで・ページエラー 0',
+      r9.validDate && r9.restored && r9.startH !== 1e308 && r9.endApi !== -1e308 && r9.fwLat === null && r9.fwLng === null && r9.kFinite && r9.p === 1013.25 && r9.t === 15 && r9.preset !== '__proto__' && r9.stars <= 1000 && err9.length === 0, JSON.stringify({ ...r9, errs: err9.slice(0, 2) }));
+  }
   check('E ページエラーなし', errors.length === 0, errors.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${PASS} passed, ${FAIL} failed`);

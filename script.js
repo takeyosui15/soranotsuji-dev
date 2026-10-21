@@ -3080,22 +3080,24 @@ function loadAppState() {
             if(saved.end) appState.end = saved.end;
             if(saved.homeStart) appState.homeStart = saved.homeStart;
             if(saved.homeEnd) appState.homeEnd = saved.homeEnd;
-            if(saved.myStars) appState.myStars = saved.myStars;
-            if(saved.myObservations) appState.myObservations = saved.myObservations;
-            if(saved.myTargets) appState.myTargets = saved.myTargets;
-            if(saved.myTsujiSearches) appState.myTsujiSearches = saved.myTsujiSearches;
+            // 第185の監査: 配列/オブジェクトの形を見てから触る(壊れた1キーの例外で、残りのキーの復元が丸ごと飛び、次の保存で既定値に上書きされていた)。中身の型は _sanitizeStoredShapes
+            const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+            if(Array.isArray(saved.myStars)) appState.myStars = saved.myStars;
+            if(Array.isArray(saved.myObservations)) appState.myObservations = saved.myObservations;
+            if(Array.isArray(saved.myTargets)) appState.myTargets = saved.myTargets;
+            if(Array.isArray(saved.myTsujiSearches)) appState.myTsujiSearches = saved.myTsujiSearches;
             // 旧保存データ(オフセット中心角が行独立になる前)は基本オプションの値で補完
-            appState.myTsujiSearches.forEach(t => { if (t.mwOffsetAngle === undefined) t.mwOffsetAngle = Number(saved.mwOffsetAngle ?? appState.mwOffsetAngle) || 0; });
-            if(saved.mySets) appState.mySets = saved.mySets;
+            appState.myTsujiSearches.forEach(t => { if (t && typeof t === 'object' && t.mwOffsetAngle === undefined) t.mwOffsetAngle = Number(saved.mwOffsetAngle ?? appState.mwOffsetAngle) || 0; });
+            if(Array.isArray(saved.mySets)) appState.mySets = saved.mySets;
             if(saved.mySetCurrentId !== undefined) appState.mySetCurrentId = saved.mySetCurrentId;
             if(saved.mySetHomeData !== undefined) appState.mySetHomeData = saved.mySetHomeData;
-            if(saved.mySetHome) appState.mySetHome = { ...appState.mySetHome, ...saved.mySetHome, id: 0, name: '既定のセット' };
-            if(saved.soraFolderName) appState.soraFolderName = saved.soraFolderName;
-            if(saved.googleDrive) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
-            if(saved.meteo) appState.meteo = saved.meteo;
+            if(isObj(saved.mySetHome)) appState.mySetHome = { ...appState.mySetHome, ...saved.mySetHome, id: 0, name: '既定のセット' };
+            if(typeof saved.soraFolderName === 'string') appState.soraFolderName = saved.soraFolderName;
+            if(isObj(saved.googleDrive)) appState.googleDrive = { ...appState.googleDrive, ...saved.googleDrive };
+            if(isObj(saved.meteo)) appState.meteo = saved.meteo;
             // 気温減率の既定値を0.0065→0.0125へ(v1.95.0)。保存値が旧既定のまま(触っていない)なら新既定へ移す(一度でも保存すれば meteoDefaultsV2 が立って二度と触らない)
-            if (saved.meteo && saved.meteoDefaultsV2 !== true && +saved.meteo.p === STD_P && +saved.meteo.t === STD_T && +saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };
-            // meteoからKを再計算 (refractionKは保存しない)
+            if (isObj(saved.meteo) && saved.meteoDefaultsV2 !== true && +saved.meteo.p === STD_P && +saved.meteo.t === STD_T && +saved.meteo.l === STD_L_OLD) appState.meteo = { p: STD_P, t: STD_T, l: STD_L };
+            // meteoからKを再計算 (refractionKは保存しない。値の範囲は normalizeAppState の型そろえがもう一度見て K を取り直す)
             appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l);
             if(saved.refractionEnabled !== undefined) appState.refractionEnabled = saved.refractionEnabled;
             if(saved.astroRefraction !== undefined) appState.astroRefraction = saved.astroRefraction;
@@ -3230,27 +3232,30 @@ function _sanitizeStoredShapes() {
     // My観測点/My目的点
     // 緯度経度が「未入力」(null/空)の行は正当な途中の状態(行追加して後で入れる)なので残す。入っているのに数値にならない行だけ捨てる
     const emptyOrFin = (v) => (v === null || v === undefined || v === '') ? null : fin(v);
-    const fixMyPoints = (list, label) => (Array.isArray(list) ? list : []).map((p, i) => {
+    const ROW_MAX = 1000;   // アプリ自身の上限(第185の監査: 保存データに10万行を詰められると起動のたびに全行を描いて固まる)
+    const uniqById = (list) => { const seen = new Set(); return list.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; }); };   // ID の重複は先頭の行だけ残す(第185の監査: 行削除が同 ID の全行を消していた)
+    const fixMyPoints = (list, label) => uniqById((Array.isArray(list) ? list : []).slice(0, ROW_MAX).map((p, i) => {
         if (!p || typeof p !== 'object') { dropped.push(`${label}[${i}]`); return null; }
         const id = intId(p.id), lat = emptyOrFin(p.lat), lng = emptyOrFin(p.lng);
         const latBad = (p.lat !== null && p.lat !== undefined && p.lat !== '' && lat === null), lngBad = (p.lng !== null && p.lng !== undefined && p.lng !== '' && lng === null);
         if (id === null || latBad || lngBad || (lat !== null) !== (lng !== null)) { dropped.push(`${label}[${i}]`); return null; }
+        if (lat !== null && (Math.abs(lat) > 90 || Math.abs(lng) > 180)) { dropped.push(`${label}[${i}]`); return null; }   // 第185の監査: 緯度 90 超は MapLibre の Marker の例外で以後の描画が止まる
         return { ...p, id, lat, lng, elev: fin(p.elev), height: fin(p.height) ?? 0, name: str(p.name, 300), memo: str(p.memo, 1000), checked: !!p.checked };
-    }).filter(Boolean);
+    }).filter(Boolean));
     appState.myObservations = fixMyPoints(appState.myObservations, 'myObservations');
     appState.myTargets = fixMyPoints(appState.myTargets, 'myTargets');
     // My天体
-    appState.myStars = (Array.isArray(appState.myStars) ? appState.myStars : []).map((st, i) => {
+    appState.myStars = uniqById((Array.isArray(appState.myStars) ? appState.myStars : []).slice(0, ROW_MAX).map((st, i) => {
         if (!st || typeof st !== 'object') { dropped.push(`myStars[${i}]`); return null; }
         const id = intId(st.id), ra = fin(st.ra), dec = fin(st.dec);
         if (id === null || ra === null || dec === null) { dropped.push(`myStars[${i}]`); return null; }
         return { ...st, id, ra, dec, name: str(st.name, 300), color: safeCssColor(st.color, '#DDA0DD'), visible: !!st.visible, isDashed: !!st.isDashed };
-    }).filter(Boolean);
+    }).filter(Boolean));
     // 表示天体の色・線種
     if (Array.isArray(appState.bodies)) appState.bodies.forEach(b => { if (!b || typeof b !== 'object') return; const d = DEFAULT_BODIES.find(x => x.id === b.id); b.color = safeCssColor(b.color, d ? d.color : '#DDA0DD'); b.isDashed = !!b.isDashed; b.visible = !!b.visible; });
     // My辻検索(parseMyTsujiCsvLine と同じ型に。モード/時刻/方向の列挙は normalizeAppState の既存の検査が続けて見る)
     const numOr = (v, def, min, max) => { const n = fin(v); return n === null ? def : Math.max(min, Math.min(max, n)); };
-    appState.myTsujiSearches = (Array.isArray(appState.myTsujiSearches) ? appState.myTsujiSearches : []).map((t, i) => {
+    appState.myTsujiSearches = uniqById((Array.isArray(appState.myTsujiSearches) ? appState.myTsujiSearches : []).slice(0, ROW_MAX).map((t, i) => {
         if (!t || typeof t !== 'object') { dropped.push(`myTsujiSearches[${i}]`); return null; }
         const id = intId(t.id); if (id === null) { dropped.push(`myTsujiSearches[${i}]`); return null; }
         const q = { ...t, id, name: str(t.name, 300), memo: str(t.memo, 1000), bodyIds: str(t.bodyIds, 1000),
@@ -3262,7 +3267,7 @@ function _sanitizeStoredShapes() {
         for (const k of ['startTime', 'startOffset', 'endTime', 'endOffset']) { if (k in q && !/^\d{1,2}:\d{2}$/.test(String(q[k]))) q[k] = '00:00'; }
         for (const k of ['startMode', 'endMode', 'startPrePostDir', 'endPrePostDir', 'centerMode']) { if (k in q) q[k] = str(q[k], 20); }
         return q;
-    }).filter(Boolean);
+    }).filter(Boolean));
     // Googleドライブの控え(フォルダ/ファイルのID)は Google のIDの文字種だけ。違えば null(次の同期で印から探し直す)
     if (appState.googleDrive && typeof appState.googleDrive === 'object') {
         for (const k of ['rootFolderId', 'settingsFolderId', 'mySetsFolderId', 'appFileId']) {
@@ -3271,18 +3276,34 @@ function _sanitizeStoredShapes() {
         }
     }
     // Myセット(id は整数・名前/メモは文字・シートIDは Google のIDの文字種だけ、違えば未連携に戻す)
-    appState.mySets = (Array.isArray(appState.mySets) ? appState.mySets : []).map((m, i) => {
+    appState.mySets = uniqById((Array.isArray(appState.mySets) ? appState.mySets : []).slice(0, ROW_MAX).map((m, i) => {
         if (!m || typeof m !== 'object') { dropped.push(`mySets[${i}]`); return null; }
         const id = intId(m.id); if (id === null) { dropped.push(`mySets[${i}]`); return null; }
         const sheetId = (typeof m.sheetId === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(m.sheetId)) ? m.sheetId : null;
         return { ...m, id, name: str(m.name, 300), memo: str(m.memo, 1000), sheetId, checked: !!m.checked, offline: !!m.offline, saveMode: m.saveMode === 'load' ? 'load' : 'save' };
-    }).filter(Boolean);
+    }).filter(Boolean));
     // My宙検索の id/観測点ID/目的点ID(他の欄は normalizeAppState の既存の検査)
-    appState.mySoraSearches = (Array.isArray(appState.mySoraSearches) ? appState.mySoraSearches : []).map((t, i) => {
+    appState.mySoraSearches = uniqById((Array.isArray(appState.mySoraSearches) ? appState.mySoraSearches : []).slice(0, ROW_MAX).map((t, i) => {
         if (!t || typeof t !== 'object') return null;
         const id = intId(t.id); if (id === null) { dropped.push(`mySoraSearches[${i}]`); return null; }
-        return { ...t, id, obsId: intId(t.obsId), tgtId: intId(t.tgtId) };
-    }).filter(Boolean);
+        return { ...t, id, name: str(t.name, 300), obsId: intId(t.obsId), tgtId: intId(t.tgtId) };
+    }).filter(Boolean));
+    // 第185の監査: 型そろえの対象外だったキー
+    // 既定のセット(ID:0): 名前は固定・メモは文字・シートIDは Google のIDの文字種だけ
+    { const h = (appState.mySetHome && typeof appState.mySetHome === 'object') ? appState.mySetHome : {};
+      const sheetId = (typeof h.sheetId === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(h.sheetId)) ? h.sheetId : null;
+      appState.mySetHome = { ...h, id: 0, name: '既定のセット', memo: str(h.memo, 1000), sheetId, checked: !!h.checked, offline: !!h.offline, saveMode: h.saveMode === 'load' ? 'load' : 'save' }; }
+    // 表示中のセットの ID: 整数で、既定(0)か存在する Myセットだけ(違えば既定へ。取り違えたまま切り替えると既定のセットの退避内容が上書きされる)
+    { const cid = parseInt(appState.mySetCurrentId, 10); appState.mySetCurrentId = (Number.isFinite(cid) && (cid === 0 || appState.mySets.some(m => m.id === cid))) ? cid : 0; }
+    // 宙の辻フォルダ名(Drive): 文字で 1〜100 文字(違えば既定。文字列以外だと Drive の保存/シート作成が全て失敗し続けた)
+    if (typeof appState.soraFolderName !== 'string' || !appState.soraFolderName.trim() || appState.soraFolderName.length > 100) appState.soraFolderName = APP_DEFAULTS.soraFolderName && 'def' in APP_DEFAULTS.soraFolderName ? APP_DEFAULTS.soraFolderName.def : '/soranotsuji-宙の辻';
+    // 位置情報のラジオ(観測点/目的点)の列挙
+    if (appState.locMode !== 'start' && appState.locMode !== 'end') appState.locMode = 'start';
+    // 気象値(気圧 hPa・気温 ℃・気温減率 K/m)は有限で常識の範囲。違えば標準値(NaN の K が可視判定・辻検索に流れないように)。K は取り直す
+    { const m = (appState.meteo && typeof appState.meteo === 'object') ? appState.meteo : {};
+      const inR = (v, lo, hi, d) => { const n = fin(v); return (n !== null && n >= lo && n <= hi) ? n : d; };
+      appState.meteo = { p: inR(m.p, 300, 1100, STD_P), t: inR(m.t, -90, 60, STD_T), l: inR(m.l, -0.05, 0.1, STD_L) };
+      appState.refractionK = calculateKFromMeteo(appState.meteo.p, appState.meteo.t, appState.meteo.l); }
     if (dropped.length) console.warn(`保存データの形が直せない行を外しました: ${dropped.slice(0, 10).join(', ')}${dropped.length > 10 ? ' …' : ''}`);
 }
 
@@ -3346,10 +3367,10 @@ function normalizeAppState() {
     if (SORA_SENSOR_ALIASES[appState.soraSensorKey]) appState.soraSensorKey = SORA_SENSOR_ALIASES[appState.soraSensorKey];
     if (!SORA_SENSORS.some(se => se.key === appState.soraSensorKey)) appState.soraSensorKey = APP_DEFAULTS.soraSensorKey.def;
     // 花火モード: 緯度経度は対で検査・号数はFW_SHELLSの実行時一覧+String化
-    if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng))) { appState.fwLat = null; appState.fwLng = null; }
+    if (!isFinite(parseFloat(appState.fwLat)) || !isFinite(parseFloat(appState.fwLng)) || Math.abs(parseFloat(appState.fwLat)) > 90 || Math.abs(parseFloat(appState.fwLng)) > 180) { appState.fwLat = null; appState.fwLng = null; }   // 第185の監査: 緯度 90 超は MapLibre の LngLat の例外で起動が止まる
     if (!FW_SHELLS.some(sh => sh.key === String(appState.fwSize))) appState.fwSize = APP_DEFAULTS.fwSize.def; else appState.fwSize = String(appState.fwSize);
     // 宙検索: プリセット一覧は実行時参照・間隔は1or3・範囲はnull=自動追従
-    if (!(appState.ssPreset in SS_PRESETS) && appState.ssPreset !== 'custom') appState.ssPreset = APP_DEFAULTS.ssPreset.def;
+    if (!Object.prototype.hasOwnProperty.call(SS_PRESETS, appState.ssPreset) && appState.ssPreset !== 'custom') appState.ssPreset = APP_DEFAULTS.ssPreset.def;   // 第185の監査: in だと __proto__/constructor が通る
     appState.ssInterval = appState.ssInterval === 3 || appState.ssInterval === '3' ? 3 : 1;
     appState.ssRange = isFinite(parseFloat(appState.ssRange)) && parseFloat(appState.ssRange) > 0
         ? Math.min(APP_DEFAULTS.ssRange.max, Math.max(APP_DEFAULTS.ssRange.min, parseFloat(appState.ssRange))) : null;
@@ -3357,7 +3378,7 @@ function normalizeAppState() {
     if (!Array.isArray(appState.mySoraSearches)) appState.mySoraSearches = [];
     appState.mySoraSearches = appState.mySoraSearches.filter(t => t && typeof t === 'object');
     appState.mySoraSearches.forEach(t => {
-        if (!(t.preset in SS_PRESETS) && t.preset !== 'custom') t.preset = APP_DEFAULTS.ssPreset.def;
+        if (!Object.prototype.hasOwnProperty.call(SS_PRESETS, t.preset) && t.preset !== 'custom') t.preset = APP_DEFAULTS.ssPreset.def;
         if (t.preset !== 'custom') t.weights = null;
         else if (!t.weights || typeof t.weights !== 'object') { t.preset = APP_DEFAULTS.ssPreset.def; t.weights = null; }
         t.days = Math.round(num(t.days, APP_DEFAULTS.ssDays.def, APP_DEFAULTS.ssDays.min, APP_DEFAULTS.ssDays.max));
@@ -6266,7 +6287,7 @@ function importMyStarsCsv() {
             const cols = lines[i].split(',');
             if (cols.length < 4) { alert(`${i + 1}行目: 列数が不足しています`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = csvUnprefix(cols[1].trim());
+            const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 第185の監査: 長さは型そろえと同じ
             const ra = parseFloat(toHalfWidth(cols[2].trim()));
             const dec = parseFloat(toHalfWidth(cols[3].trim()));
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
@@ -6497,40 +6518,42 @@ function importBackup() {
             appReload();
             return;
         }
-        // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)
-        if (data.homeStart) appState.homeStart = data.homeStart;
-        if (data.homeEnd) appState.homeEnd = data.homeEnd;
-        if (data.bodies && Array.isArray(data.bodies)) {
-            data.bodies.forEach(b => {
-                const existing = appState.bodies.find(x => x.id === b.id && !x.isCustom);
-                if (existing) {
-                    if (b.visible !== undefined) existing.visible = b.visible;
-                    if (b.color !== undefined) existing.color = b.color;
-                    if (b.isDashed !== undefined) existing.isDashed = b.isDashed;
-                }
-            });
-        }
-        if (data.myStars && Array.isArray(data.myStars)) {
-            appState.myStars = data.myStars;
-            syncMyStarsToBodies();
-        }
-        if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
-        if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
-        if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
-        if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
-        if (data.settings) {
-            if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
-            if (data.settings.astroRefraction !== undefined) appState.astroRefraction = data.settings.astroRefraction;
-            // 気差の2本立て(v1.97.0)より前のバックアップ(astroRefraction が無い)は、1つのチェックが両方を兼ねていた旧い意味なので、loadAppState の移行と同じく両方オン(新既定)にする
-            if (data.settings.astroRefraction === undefined && data.settings.refractionEnabled !== undefined) { appState.refractionEnabled = true; appState.astroRefraction = true; }
-            if (data.settings.meteo) {
-                if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
-                if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
-                if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
+        // 旧形式(選択的バックアップ)は従来どおり取り込む(後方互換)。第185の監査: 途中で例外になったら localStorage から読み直して半端な状態を残さない
+        try {
+            if (data.homeStart) appState.homeStart = data.homeStart;
+            if (data.homeEnd) appState.homeEnd = data.homeEnd;
+            if (data.bodies && Array.isArray(data.bodies)) {
+                data.bodies.forEach(b => {
+                    const existing = appState.bodies.find(x => x.id === b.id && !x.isCustom);
+                    if (existing) {
+                        if (b.visible !== undefined) existing.visible = b.visible;
+                        if (b.color !== undefined) existing.color = b.color;
+                        if (b.isDashed !== undefined) existing.isDashed = b.isDashed;
+                    }
+                });
             }
-            syncRefractionUiFromState();   // チェック・気象3欄・係数欄も取り込んだ値に(第157のレビュー: 画面が古いままで、計算だけ新しいKになっていた)
-        }
-        normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
+            if (data.myStars && Array.isArray(data.myStars)) {
+                appState.myStars = data.myStars;
+                syncMyStarsToBodies();
+            }
+            if (data.myObservations && Array.isArray(data.myObservations)) appState.myObservations = data.myObservations;
+            if (data.myTargets && Array.isArray(data.myTargets)) appState.myTargets = data.myTargets;
+            if (data.myTsujiSearches && Array.isArray(data.myTsujiSearches)) appState.myTsujiSearches = data.myTsujiSearches;
+            if (data.mySoraSearches && Array.isArray(data.mySoraSearches)) appState.mySoraSearches = data.mySoraSearches;
+            if (data.settings) {
+                if (data.settings.refractionEnabled !== undefined) appState.refractionEnabled = data.settings.refractionEnabled;
+                if (data.settings.astroRefraction !== undefined) appState.astroRefraction = data.settings.astroRefraction;
+                // 気差の2本立て(v1.97.0)より前のバックアップ(astroRefraction が無い)は、1つのチェックが両方を兼ねていた旧い意味なので、loadAppState の移行と同じく両方オン(新既定)にする
+                if (data.settings.astroRefraction === undefined && data.settings.refractionEnabled !== undefined) { appState.refractionEnabled = true; appState.astroRefraction = true; }
+                if (data.settings.meteo) {
+                    if (data.settings.meteo.p !== undefined) appState.meteo.p = data.settings.meteo.p;
+                    if (data.settings.meteo.t !== undefined) appState.meteo.t = data.settings.meteo.t;
+                    if (data.settings.meteo.l !== undefined) appState.meteo.l = data.settings.meteo.l;
+                }
+                syncRefractionUiFromState();   // チェック・気象3欄・係数欄も取り込んだ値に(第157のレビュー: 画面が古いままで、計算だけ新しいKになっていた)
+            }
+            normalizeAppState();   // インポートしたMy宙検索等を既定の範囲・選択肢に丸める
+        } catch (e) { try { loadAppState(); normalizeAppState(); } catch (_) {} throw e; }
         saveAppState();
         syncUIFromState();
         // Homeボタン/推し山ボタンの押下状態を homeStart/homeEnd の有無で更新
@@ -7018,15 +7041,15 @@ function importMyPointsCsv(type) {
             const cols = lines[i].split(',');
             if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = csvUnprefix(cols[1].trim());
+            const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 長さは保存時の型そろえ(_sanitizeStoredShapes)と同じ(第185の監査)
             const lat = parseFloat(toHalfWidth(cols[2].trim()));
             const lng = parseFloat(toHalfWidth(cols[3].trim()));
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim());
+            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
             if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
-            if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }
             usedIds.add(id);
             // 標高が空の場合は後で取得
             newPoints.push({ id, name, lat, lng, elev, height, memo });
@@ -7065,15 +7088,15 @@ function appendMyPointsCsv(type) {
             const cols = lines[i].split(',');
             if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
-            const name = csvUnprefix(cols[1].trim());
+            const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 長さは保存時の型そろえと同じ(第185の監査)
             const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
             const lat = parseFloat(latText);
             const lng = parseFloat(lngText);
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
-            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim());
+            const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-            if (isNaN(lat) || isNaN(lng)) { alert(`${i + 1}行目: 緯度/経度が無効です`); return; }
+            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }
             csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
         }
 
@@ -7934,7 +7957,7 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
     const toleranceAz = t.toleranceAz || 15;
     const toleranceAlt = t.toleranceAlt || 15;
 
-    const bodyIds = (t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean);
+    const bodyIds = [...new Set((t.bodyIds || '').split(':').map(s => s.trim()).filter(Boolean))];   // 第185の監査: 同じ天体を N 回検索しない
     const bodies = bodyIds.map(bid => appState.bodies.find(b => b.id === bid)).filter(Boolean);
     if (bodies.length === 0) return { tsuji: t, obs, tgt, bodyResults: [] };
 
@@ -11943,7 +11966,7 @@ const _kmStoreDirty = new Map();     // 目的点名の未登録の変更 key ->
 function _kmRenderStoreList() {
     const table = document.getElementById('kashimap-store-table'), empty = document.getElementById('kashimap-store-empty'), total = document.getElementById('kashimap-store-total');
     if (!table || !empty || !total) return;
-    const recs = Array.from(_kmDeviceIndex.values()).sort((a, b) => a.name.localeCompare(b.name, 'ja') || a.range - b.range);
+    const recs = Array.from(_kmDeviceIndex.values()).sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), 'ja') || (+a.range || 0) - (+b.range || 0));   // 第185の監査: 名前が文字列でない資産が1件あっても一覧が描ける
     for (const k of Array.from(_kmStoreChecked)) if (!_kmDeviceIndex.has(k)) _kmStoreChecked.delete(k);
     for (const k of Array.from(_kmStoreDirty.keys())) if (!_kmDeviceIndex.has(k)) _kmStoreDirty.delete(k);
     const tbody = table.querySelector('tbody'); tbody.innerHTML = '';
@@ -12018,12 +12041,12 @@ async function _kmStoreSave(meta, isl, ol, origin, bytes) {
     const key = `${id}/${kind}/${range}`;
     const size = bytes || new Blob([JSON.stringify(meta), JSON.stringify(isl), JSON.stringify(ol)]).size;   // 大きさ(バイト)。分かっていればJSON化し直さない
     const mt = meta.mountain;
-    await _kmStorePut({ key, id, name: mt.name || id, kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, k: _kmNum(meta.k), zoom: _kmNum(meta.zoom),
+    await _kmStorePut({ key, id, name: String(mt.name || id).slice(0, 150), kind, range, islands: isl.islands.length, size, savedAt: new Date().toISOString(), dropM: meta.summit_area ? meta.summit_area.drop_m : null, origin, k: _kmNum(meta.k), zoom: _kmNum(meta.zoom),
         lat: _kmNum(mt.lat), lon: _kmNum(mt.lon), elev: _kmNum(mt.elev_list), height: _kmNum(mt.height_m),   // 目的点の計算(id=tgt:…)を山リストの行にする元(無い値はundefined。+null=0にしない)
         meta, islandsObj: isl, outlineObj: ol });
     await _kmLoadDeviceIndex();
     if (_kmActive) _kmRefreshListCells();
-    return { key, name: meta.mountain.name || id, range, kind, islands: isl.islands.length, size };
+    return { key, name: String(meta.mountain.name || id).slice(0, 150), range, kind, islands: isl.islands.length, size };
 }
 /** 山リストの資産の7欄(島の数・静的/動的・範囲・樹冠・構造物・ズーム・サイズ)だけを描き直す(資産の保存/削除で変わる。行の並びとチェックは保つ) */
 const KM_INFO_COL0 = 11;   // 資産の欄が始まる列(選択・連番・索引番号・山名・読み・所属・都道府県・緯度・経度・標高・種別の次)
@@ -14524,6 +14547,7 @@ function loadGisScript() {
 }
 
 /** Googleログイン (ユーザー操作から呼ぶ。成功でtrue) */
+let _googleLoginResolve = null;   // 進行中のログインの約束(第185の監査)
 async function googleLogin() {
     const clientId = getGoogleClientId();
     if (!clientId) {
@@ -14532,6 +14556,8 @@ async function googleLogin() {
     }
     try { await loadGisScript(); } catch (e) { alert(e.message); return false; }
     return new Promise((resolve) => {
+        _googleLoginResolve = resolve;   // 第185の監査: TokenClient は1回だけ作るので、callback は「今回の呼び出し」の resolve を解決する(2回目以降のログインの約束が永久に未解決だった)
+        const settle = (ok) => { const r = _googleLoginResolve; _googleLoginResolve = null; if (r) r(ok); };
         try {
             if (!googleTokenClient) {
                 googleTokenClient = google.accounts.oauth2.initTokenClient({
@@ -14546,9 +14572,9 @@ async function googleLogin() {
                             updateGoogleLoginIcon();
                             checkGoogleSyncState();     // ログイン直後にファイル状態を確認
                             checkAllMySetSheets();      // Myセットのシート状態も確認
-                            resolve(true);
+                            settle(true);
                         } else {
-                            resolve(false);
+                            settle(false);
                         }
                     },
                     error_callback: (err) => {
@@ -14556,14 +14582,14 @@ async function googleLogin() {
                             alert('Googleログインに失敗しました: ' + (err.message || err.type || '不明なエラー'));
                         }
                         updateGoogleLoginIcon();
-                        resolve(false);
+                        settle(false);
                     }
                 });
             }
             googleTokenClient.requestAccessToken();
         } catch (e) {
             alert('Googleログインの初期化に失敗しました: ' + e.message);
-            resolve(false);
+            settle(false);
         }
     });
 }
@@ -15232,7 +15258,7 @@ async function _mySetEnsureSheets(s, writeInitial) {
 async function _mySetFetchCommentRows(s) {
     const commentsBySheet = {};
     try {
-        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!1:${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(他人の巨大なシートを丸ごと取らない。第159)
+        const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!A1:CV${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(他人の巨大なシートを丸ごと取らない。第159)。列も CV(100列)まで(第185の監査)
         const res = await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
         (res.valueRanges || []).forEach((vr, i) => {
             const block = [];
@@ -15356,7 +15382,7 @@ function _mySetParseMySora(rows) {
 
 /** シートから5メニュー分の内容を取得して解析する (適用はしない) */
 async function _mySetFetchSheetData(s) {
-    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!1:${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(第159)
+    const ranges = MYSET_SHEET_NAMES.map(n => 'ranges=' + encodeURIComponent(`'${n}'!A1:CV${MYSET_SHEET_MAX_ROWS}`)).join('&');   // 行数に上限(第159)。列も CV(100列)まで(第185の監査: 他人の共有シートの巨大な列数でタブがメモリ切れにならないように。使う列は最大 58)
     const res = await sheetsApiFetch(`spreadsheets/${encodeURIComponent(s.sheetId)}/values:batchGet?majorDimension=ROWS&${ranges}`, 'GET');
     const vr = res.valueRanges || [];
     const byIdx = i => (vr[i] && vr[i].values) || [];
@@ -16370,6 +16396,7 @@ function encodeQueryParam(str) {
     return (version >= 2 ? `~${version}~` : '') + s;   // v2以降は辞書版数プレフィックス(v1=無印)
 }
 
+const QP_DECODE_MAX_CHARS = 262144;   // 短縮URL(?query=)の展開後の上限(文字)。第185の監査
 function decodeQueryParam(s) {
     try {
         if (!s) return '';
@@ -16426,6 +16453,7 @@ function decodeQueryParam(s) {
             else if (code === nextCode) entry = w + w[0];   // KwKwK ケース
             else return null;
             res += entry;
+            if (res.length > QP_DECODE_MAX_CHARS) return null;   // 第185の監査: 展開爆弾(数十 KB の URL で数億文字)を止める。正当な共有URLは数 KB
             dict.push(w + entry[0]); nextCode++;
             w = entry;
         }
@@ -16862,18 +16890,20 @@ function restoreFromUrl() {
     // 位置情報
     if (params.has('startLat')) { const v = parseFloat(params.get('startLat')); if (!isNaN(v)) appState.start.lat = v; }
     if (params.has('startLng')) { const v = parseFloat(params.get('startLng')); if (!isNaN(v)) appState.start.lng = v; }
-    if (params.has('startApiElv')) { const v = parseFloat(params.get('startApiElv')); if (!isNaN(v)) appState.startApiElev = v; }
-    if (params.has('startElv')) { const v = parseFloat(params.get('startElv')); if (!isNaN(v)) appState.startHeight = v; }
+    const elvOk = (v) => Number.isFinite(v) && Math.abs(v) <= 20000;   // 第185の監査: 1e308 のような値は Astronomy.Equator の例外で起動が止まる。標高/高さは ±20,000m まで
+    if (params.has('startApiElv')) { const v = parseFloat(params.get('startApiElv')); if (elvOk(v)) appState.startApiElev = v; }
+    if (params.has('startElv')) { const v = parseFloat(params.get('startElv')); if (elvOk(v)) appState.startHeight = v; }
     if (params.has('endLat')) { const v = parseFloat(params.get('endLat')); if (!isNaN(v)) appState.end.lat = v; }
     if (params.has('endLng')) { const v = parseFloat(params.get('endLng')); if (!isNaN(v)) appState.end.lng = v; }
-    if (params.has('endApiElv')) { const v = parseFloat(params.get('endApiElv')); if (!isNaN(v)) appState.endApiElev = v; }
-    if (params.has('endElv')) { const v = parseFloat(params.get('endElv')); if (!isNaN(v)) appState.endHeight = v; }
+    if (params.has('endApiElv')) { const v = parseFloat(params.get('endApiElv')); if (elvOk(v)) appState.endApiElev = v; }
+    if (params.has('endElv')) { const v = parseFloat(params.get('endElv')); if (elvOk(v)) appState.endHeight = v; }
 
     // 日時 (YYYYMMDD, hhmmss) — date/timeが存在する場合のみ日時を復元しsetNow()をスキップ
+    // 第185の監査: date は8桁・time は4桁か6桁の数字だけを受け付ける(parseInt の NaN が setFullYear/setHours に入ると Invalid Date になり、起動が Astronomy の例外で止まっていた)。形が違えば「無かった」扱い
     if (params.has('date')) {
-        appState._restoredFromUrl = true;
         const s = params.get('date');
-        if (s.length === 8) {
+        if (/^\d{8}$/.test(s)) {
+            appState._restoredFromUrl = true;
             let y = parseInt(s.substring(0, 4));
             const m = parseInt(s.substring(4, 6)) - 1, d = parseInt(s.substring(6, 8));
             if (y === 0) y = new Date().getFullYear(); // 日時半固定: アクセス年に置換
@@ -16881,14 +16911,15 @@ function restoreFromUrl() {
         }
     }
     if (params.has('time')) {
-        appState._restoredFromUrl = true;
         const s = params.get('time');
-        if (s.length >= 4) {
+        if (/^\d{4}(\d{2})?$/.test(s)) {
+            appState._restoredFromUrl = true;
             const h = parseInt(s.substring(0, 2)), m = parseInt(s.substring(2, 4));
             const sec = s.length >= 6 ? parseInt(s.substring(4, 6)) : 0;
             appState.currentDate.setHours(h, m, sec, 0);
         }
     }
+    if (isNaN(appState.currentDate.getTime())) { appState.currentDate = new Date(); delete appState._restoredFromUrl; }   // 最終防衛: 壊れた日時では起動しない
 
     // タイムゾーン補正: URL作成者と閲覧者のオフセット差を補正
     if (params.has('date') || params.has('time')) {
@@ -16909,9 +16940,9 @@ function restoreFromUrl() {
     const starColors = params.getAll('starColor');
     const starIsDasheds = params.getAll('starIsDashed');
     if (starIds.length > 0) {
-        // URLに含まれるMy天体を復元
+        // URLに含まれるMy天体を復元(件数は My天体の上限 1,000 まで。第185の監査: 数万件で O(n²) の固まり)
         let customIdx = 0;
-        starIds.forEach(sid => {
+        starIds.slice(0, 1000).forEach(sid => {
             // 既定天体かどうかチェック
             const existing = appState.bodies.find(b => b.id === sid && !b.isCustom);
             if (existing) {
@@ -17068,7 +17099,7 @@ function restoreFromUrl() {
     soraBool('refractionEnabled'); soraBool('astroRefraction');
     ['p', 't', 'l'].forEach(mk => {
         const key = 'meteo' + mk.toUpperCase();
-        if (params.has(key)) { const v = parseFloat(params.get(key)); if (!isNaN(v)) appState.meteo[mk] = v; }
+        if (params.has(key)) { const v = parseFloat(params.get(key)); if (Number.isFinite(v)) appState.meteo[mk] = v; }   // 第185の監査: Infinity は通さない(範囲は normalizeAppState の型そろえ)
     });
     // 位置の鍵には気差係数も入る(第157)ので、気象値を復元した後に鍵を取り直す(URLの基準方位角/視高度を自動再計算で上書きしない保護を保つ)
     if (params.has('tsujiAz') || params.has('tsujiAlt')) appState._lastTsujiPosKey = _basePosKey();
@@ -22079,7 +22110,7 @@ function parseMySoraCsvLine(cols, lineNum) {
     if (cols.length < 22) { alert(`${lineNum}行目: 列が不足しています(22列必要)`); return null; }
     const id = parseInt(toHalfWidth(cols[0].trim()));
     if (isNaN(id) || id < 1 || id > 1000) { alert(`${lineNum}行目: 宙検索IDが無効です(1〜1000)`); return null; }
-    const name = csvUnprefix(cols[1].trim());
+    const name = csvUnprefix(cols[1].trim()).slice(0, 150);   // 第185の監査: 他の My リストの取り込みと同じ 150 文字
     const obsId = cols[2].trim() === '' ? null : parseInt(toHalfWidth(cols[2].trim()));
     const tgtId = cols[3].trim() === '' ? null : parseInt(toHalfWidth(cols[3].trim()));
     if (obsId !== null && (isNaN(obsId) || obsId < 1 || obsId > 1000)) { alert(`${lineNum}行目: 観測点IDが無効です(1〜1000)`); return null; }

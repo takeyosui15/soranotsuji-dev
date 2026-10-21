@@ -135,3 +135,13 @@
 - MapLibre を 6.4.1 以上へ(CVE-2026-85061: 属性文字列のサニタイザのバイパス。宙の辻は属性文字列が全て定数で、外部のTileJSONも読まないので今は悪用できない。4→6の大きな版上げなので、全走+実機で別ラウンド)。
 - Apps Script のカウンタに CacheService(集計の控え)・/.well-known/security.txt(第172で設置・第173で Contact を2行に: 1行目=GitHub の非公開の脆弱性報告(security/advisories/new)・2行目=リポジトリ・Expires 2027-10-01・verify184 S11 が順序も見張る)(報告の窓口。公開文なので事前提示)・Service Worker(本体のオフライン起動)。
 - Myサイト: 読み取りに docs.google.com を connect-src に足す時は、?mysite= のIDの文字種検査と一緒に。
+
+## 9. 2回目の監査(第185・2026-10-21・claude-security 相当の Workflow)
+
+- 依頼者(第184): 「箱の中でやって、記録に残す」「リリースはセキュリティ対策が済んでから」。公式プラグイン claude-security はクラウドのセッションでは使えないので、同じ形(脅威モデル→多視点の走査→独立の反証→パッチ案→報告書)を Workflow で組んで回した。
+- 規模: エージェント 115・約2.9時間。生の指摘 50 件→確認 43 件(重複を統合して 30 件)・反証 7 件・確認して問題なしの記録 189 件。
+- 結果の要約: 第159の監査で塞いだ「外部からの注入が HTML/スクリプトとして動く」筋は再発していない(dom-xss・messages・csp・supply-chain の4視点は全て「問題なし」の記録)。今回の確認は、**入口の型そろえの穴**(URL の date/time・標高・気象値・プリセットの `in`・loadAppState の形・旧形式バックアップの順序・CSV の長さ/範囲・可視マップ資産の山名)と**資源の使い切り**(短縮URLの展開爆弾・starId の件数・シートの列数・地形ワーカーの待ち時間・navigate の控え)に集中していた。全部 low〜medium(反証では全て low)。
+- 直した物(26 件)・受け入れた物(3 件: 開発オリジンの控え汚染=F-01・共有 URL の自動実行の量=F-22・vendor の advisory の監視=F-28)・依頼者へ提案した公開文(2 件: privacy.html の写位と GPS の記述=F-29/F-30)は **docs/operation/security-audit-2026-10-21.md** の A に。報告書の原文は同じファイルの B。
+- 自動で見張る層(§5 層1)への追加: verify184 S12(直しの字面)と U9(毒入りの URL=壊れた日時・1e308 の標高・緯度 95 の花火・Infinity の気圧・__proto__ のプリセット・1,200 件の starId で起動が止まらない)。
+- 次の段(todo): ①privacy.html の2文(依頼者の承認後) ②毎月の点検に vendor/ の4ライブラリ(MapLibre・three・Astronomy Engine・GeographicLib・qrcode)の版と advisory を見る項目 ③本番を専用オリジンに保つ(開発オリジンの控え汚染 F-01 の前提) ④将来: SW の控えの指紋照合(sw-precache に sha256 を持たせ install/配信時に照合)。
+

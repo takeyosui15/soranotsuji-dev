@@ -18,7 +18,7 @@ const check=(n,ok,d)=>{ console.log(`${ok?'PASS':'FAIL'} ${n}${d?'  '+d:''}`); o
     // 版数ピンは最新のverify(現在は121)のみに置く(テスト方針)。ここでは存在だけ確認する
     check('Z0 APP_VERSIONが定義されている', /APP_VERSION = '\d+\.\d+\.\d+'/.test(src + _verSrc));
     check('Z0 ローカルglyphs同梱(fonts/SoraSans/0-255.pbf)', fs.existsSync(path.join(__dirname,'..','fonts','SoraSans','0-255.pbf')));
-    check('Z0 モバイルはワーカー台数上限6(ソース検査)', /_IS_TOUCH_ENV \? 6 : 31/.test(src));
+    check('Z0 モバイルはワーカー台数上限6(ソース検査。第185: _poolSize(SORA.WORKERS.TOUCH_MAX)=タッチ端末は TOUCH_MAX・CPU−1)', /_poolSize\(SORA\.WORKERS\.TOUCH_MAX\)/.test(src) && /TOUCH_MAX: 6,/.test(_verSrc));
   }
   const b=await chromium.launch({executablePath:EXE,headless:true,args:ARGS});
   const ctx=await b.newContext({viewport:{width:1000,height:900},timezoneId:'Asia/Tokyo'});

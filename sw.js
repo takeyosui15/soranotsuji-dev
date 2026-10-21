@@ -33,6 +33,7 @@ const SCOPE = self.registration.scope;   // 置いたフォルダ(本番 '/'・�
 const CONST_URL = new URL('sora-constants.js', SCOPE).href;   // 配信中の版を読む先(10KB・条件つき要求で軽い)
 const RUNTIME_OK = /\.(js|css|html|json|bin|csv|webp|png|ico|svg|pbf|wasm|woff2?)$/i;   // 使った時に控える物の種類
 const clientVer = new Map();   // クライアントID → そのページの版。ワーカーは起動元のページの版を引き継ぐ。SW が再起動すると消える(その時は控え優先=同じ版とみなす)
+const PRECACHE_KEYS = new Set((self.SORA_PRECACHE || []).map(u => keyOf(new URL(u, SCOPE))));   // 控えに入れてよいページ(navigate)の鍵(第185の監査: 範囲内の任意の 200 応答で控えを膨らませない)
 const servedFromCache = new Set();   // 控えから開いたページのクライアントID(画面の「オフライン表示」の印の問い合わせに答える。第184 段3)
 let shellBytes = null;         // 控えの合計バイト(遅延で数える)
 
@@ -129,7 +130,7 @@ async function handleNavigate(e, url, key) {   // ページ: ネット優先 →
             let v = null;
             try { v = (cst && cst.ok) ? versionOf(await cst.text()) : null; } catch (_) { v = null; }
             if (e.resultingClientId) clientVer.set(e.resultingClientId, v || 'unknown');   // 版が読めなかった(落ちた/待ち時間切れ)時は「分からない」=本体はネット優先(古い控えを混ぜない。第184の反証レビュー C2/C12)
-            if (v === VER) putRuntime(c, key, res.clone());   // 同じ版だけ控えに入れる(新しい版・版の分からないページを古い控えに混ぜない)
+            if (v === VER && PRECACHE_KEYS.has(key)) putRuntime(c, key, res.clone());   // 同じ版で、一覧にあるページだけ控えに入れる(新しい版・版の分からないページを古い控えに混ぜない。第185の監査: 範囲内の任意の 200 応答は入れない)
         }
         return res;
     } catch (err) {
