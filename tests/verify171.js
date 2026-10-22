@@ -22,7 +22,7 @@ check('V0 版数の形+Version Historyに1.87.0の行', /APP_VERSION = '\d+\.\d+
 
 // ---- S1: 配線の静的な形 ----
 check('S1 saveAppStateから_autoSyncArm+visibilitychangeで即時flush+saveAppToDriveのquiet',
-  /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(stateToSave\)\);\s*\n\s*_autoSyncArm\(\);/.test(src) &&
+  /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(stateToSave\)\);\s*\n(\s*saveAppState\._warned = false;[^\n]*\n)?\s*_autoSyncArm\(\);/.test(src) &&   // 第186: 保存が通ったら警告の予約を戻す1行が間に入る
   src.includes("document.visibilityState === 'hidden' && appState.googleDrive.autoSync && _autoSyncTimer") &&
   src.includes('async function saveAppToDrive(opts)') && src.includes('const quiet = !!(opts && opts.quiet);'));
 
