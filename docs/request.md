@@ -82,3 +82,44 @@ noteの開発の様子は、もう書き換えました。
 https://note.com/takeyosui/n/n5a32d5151157
 
 では、リリース作業に行ってきます☺️
+
+
+> ### 回答 (2026-10-23 その190) — 第192ラウンド: 修正 2 点の確認・script.js のコメントを備忘録に・保管名は request-YYYY-MM-DD.md・note の「開発の様子」の確認
+>
+> リリース作業、いってらっしゃい。
+> 今回もプログラムの変更はなく、文書の小さな整えだけです。
+>
+> #### 1. 修正 2 点の確認
+>
+> - docs/order-to-me.md のテンプレート 2 行と理由の 1 行、確認しました(request.md に替わっています)。
+>   - 1 つだけ: テンプレートの `/docs/order-log/request-YYYY-MM-DD.md` は、実際のファイルが `/docs/order-log/2026/request-2026-10-22.md` のように年のフォルダの下にあるので、`/docs/order-log/YYYY/request-YYYY-MM-DD.md` が正確です。
+>   - そのままでも私は年のフォルダの下を見るので、急ぎません(CLAUDE.md の補足にそう書きました)。
+> - request.md の先頭の運用ルール「request.md が 500 行を超えたら」も確認しました。
+> - 保管された docs/order-log/2026/request-2026-10-22.md(第191の往復=依頼とその189)も、読めています。
+>
+> #### 2. script.js のコメントは備忘録へ
+>
+> - todo の備忘録「運用・定期作業」に、「script.js 186 行目のコメントを docs/order-log/2026/order-2026-07-15.md に直す。本体を触る次のラウンドで sw-precache.js の再生成と一緒に。直したら [x]」を入れました。
+>
+> #### 3. 保管名は request-YYYY-MM-DD.md
+>
+> - CLAUDE.md・AGENTS.md の表と、セッション開始のテンプレート(CLAUDE.md・mac-migration-guide.md)を `docs/order-log/YYYY/request-YYYY-MM-DD.md` にしました(第190以前の保管は order-YYYY-MM-DD.md のまま、と注記)。
+> - todo の DECISION にも「保管のファイル名は request-YYYY-MM-DD.md(年のフォルダの下)」を足しました。
+> - 保管先を指すリンクは 18 箇所で、全部が実在のファイルに通る事を機械で確認しました(切れ 0)。
+>
+> #### 4. note の「開発の様子」
+>
+> - 記事(2026-09-20 の記事を書き換え)を読みました。
+>   - リンク 4 つ(やることリスト=todo.md・アイデア帳=memo.md・最近のやり取り=request.md・過去分=order-log/)は、どれも work ブランチの実在のパスで、今の構成と合っています(work は今の作業ブランチと同じコミットでした)。
+>   - 本文に内輪の言葉(ラウンド・デッサン・verify など)はありません。
+> - 1 つだけ、気づきとして。
+>   - 「過去分」のリンクは order-log/ 全体を指すので、第187〜190の気象×AI の往復(予報をやめるまでの設計の話)も、たどれば誰でも読めます。
+>   - 「あまりオープンにしない」はアプリや記事の本文で詳しく書かない、という意味だと理解しているので、このままで問題ないと思いますが、もし読まれたくない回があれば、その回だけ別の置き場にする手はあります。
+>
+> #### 5. 回帰とファイル
+>
+> - 回帰: プログラムの変更が無いラウンドなので、スモーク(定番の 10 本=verify96/117/123/124/125/126/127/189/190/191)+道具 3 本です。
+>   - **157 PASS / 0 FAIL**(ハーネスのエラーも 0)。意図更新したピンはありません。
+>
+> - 変更したファイル: docs/request.md(この回答)・docs/todo.md(備忘録 1 件・DECISION の注記)・CLAUDE.md・AGENTS.md・docs/operation/mac-migration-guide.md(テンプレートと表の request-YYYY-MM-DD.md)・ClaudeMederuU/reviews/2026-10-23-round191-review.md(保管先の表記 1 箇所)・ClaudeMederuU/reviews/2026-10-23-round192-review.md(新規)。
+> - プログラムと版(1.99.4)は変えていません。

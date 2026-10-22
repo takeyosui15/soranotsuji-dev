@@ -72,7 +72,7 @@
 | `docs/dessin/` | 機能設計・実装の詳細を確認したいとき |
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |
-| `docs/order-log/YYYY/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
+| `docs/order-log/YYYY/request-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する(第190以前の保管は order-YYYY-MM-DD.md)。 |
 | `docs/order-log/2026/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 
 ## バージョン管理

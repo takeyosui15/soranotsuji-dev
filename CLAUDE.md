@@ -32,7 +32,7 @@ docs/request.md(第190以前は docs/order.md。docs/order-log/2026/ に保管)�
 | `ClaudeMederuU/tools/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
 | `ClaudeMederuU/dessin/00-dessin.md` | MederuU(ナレッジ引き継ぎの器)のデッサン。MederuU関連の作業・お茶の時間の前に読む |
 | `.claude/skills/kaiki/SKILL.md` | 回帰テストの回し方(ハーネス構築→回帰実行)。テストを回す前に読む |
-| `docs/order-log/YYYY/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
+| `docs/order-log/YYYY/request-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する(第190以前の保管は order-YYYY-MM-DD.md)。 |
 | `docs/order-log/2026/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 | `docs/order-log/2026/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |
 | `docs/order-log/2026/order-2026-07-20(-22).md` | Claudeさんとのお茶の時間のお約束について |
@@ -41,12 +41,12 @@ docs/request.md(第190以前は docs/order.md。docs/order-log/2026/ に保管)�
 
 ### セッション開始の会話文（必ずこれで始める）
 ```
-/docs/request.md、/docs/todo.md、/docs/order-log/YYYY/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
+/docs/request.md、/docs/todo.md、/docs/order-log/YYYY/request-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
 未解決の質問や気になる点があれば、教えてください。
 そして、今までのように、リモートの作業ブランチの変更を取り入れて、/docs/request.md にご回答をお願いいたします。
 ```
 理由: 新規セッション毎に別の `/claude/yyy` ブランチが作成されてしまうことからの作業の引き継ぎのため。
-補足: テンプレート中の `order-YYYY-MM-DD.md` は直近の日付のファイルに読み替える(依頼者はテンプレートをそのまま貼る)。
+補足: テンプレート中の `request-YYYY-MM-DD.md` は直近の日付のファイルに読み替える(依頼者はテンプレートをそのまま貼る。`YYYY/` が抜けていても年のフォルダの下を見る)。
 
 ### ラウンドの締め(毎回)
 1. 回帰テストを回して全PASSを確認する(回し方とスモーク構成は `.claude/skills/kaiki/SKILL.md`)。
