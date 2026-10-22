@@ -1,7 +1,7 @@
 # tests/ — ヘッドレスブラウザ検証スイート(ナレッジ)
 
 Claude(AI)が各開発ラウンドで実行している検証スクリプトの保管場所です。
-`docs/order.md` の「検証結果」に対応する実体で、ラウンド毎に `verifyNN.js` を追加します。
+`docs/request.md`(第190以前は docs/order.md)の「検証結果」に対応する実体で、ラウンド毎に `verifyNN.js` を追加します。
 (旧来のPlaywright E2E一式は `test-initial/` に移動しました)
 
 ## テスト方針(2026-07-19 決定)

@@ -67,5 +67,5 @@ Googleドライブ連携(設定の端末間共有・Myセットのスプレッ�
 
 ## 記録
 
-- 方式決定(`drive.file` 採用・審査不要の設計): `docs/order-log/order-2026-07-04.md`
-- 初期構築手順(プロジェクト作成〜クライアントID2つ・APIキー・privacy/terms・同意画面のリンク設定): `docs/order-log/order-2026-07-15.md`
+- 方式決定(`drive.file` 採用・審査不要の設計): `docs/order-log/2026/order-2026-07-04.md`
+- 初期構築手順(プロジェクト作成〜クライアントID2つ・APIキー・privacy/terms・同意画面のリンク設定): `docs/order-log/2026/order-2026-07-15.md`

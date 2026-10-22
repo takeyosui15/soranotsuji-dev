@@ -6,7 +6,7 @@
 
 新規セッション開始時は、以下の順で読んでから作業を開始する。
 プランモードは依頼者がUIで選択する(Claude側では選べない)。プランモードでないセッションでは、
-docs/request.md(第186以前は docs/order.md)の依頼に沿ってそのまま作業してよい。
+docs/request.md(第190以前は docs/order.md。docs/order-log/2026/ に保管)の依頼に沿ってそのまま作業してよい。
 そして、毎回、依頼文に添えられたコミットハッシュ(依頼者の直近コミット)が作業ブランチに
 取り込まれていることを確認してから作業する(無ければ `git fetch origin` して取り込む。
 運用の経緯は docs/todo.md のDECISION「コミットハッシュは依頼者が依頼文に添える運用」参照)。
@@ -14,7 +14,7 @@ docs/request.md(第186以前は docs/order.md)の依頼に沿ってそのまま�
 ### 必ず読む（毎回）
 | ドキュメント | 目的 |
 |---|---|
-| `docs/request.md` | 最新の依頼・回答履歴。前回の作業状態を把握する(Claudeさんの引き継ぎ書)。第187から request.md(それまでは order.md。保管先は当面 docs/order-log/) |
+| `docs/request.md` | 最新の依頼・回答履歴。前回の作業状態を把握する(Claudeさんの引き継ぎ書)。第191から request.md(第190までは order.md。保管先は docs/order-log/2026/ のように年のフォルダ) |
 | `docs/todo.md` | やることリスト・優先タスクを確認する(Claudeさんの付箋) |
 | `docs/order-to-me.md` | 依頼者の備忘録。運用ルール・注意事項を確認する |
 
@@ -32,16 +32,16 @@ docs/request.md(第186以前は docs/order.md)の依頼に沿ってそのまま�
 | `ClaudeMederuU/tools/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
 | `ClaudeMederuU/dessin/00-dessin.md` | MederuU(ナレッジ引き継ぎの器)のデッサン。MederuU関連の作業・お茶の時間の前に読む |
 | `.claude/skills/kaiki/SKILL.md` | 回帰テストの回し方(ハーネス構築→回帰実行)。テストを回す前に読む |
-| `docs/order-log/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
-| `docs/order-log/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
-| `docs/order-log/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |
-| `docs/order-log/order-2026-07-20(-22).md` | Claudeさんとのお茶の時間のお約束について |
-| `docs/order-log/order-2026-08-21.md` | Claudeさんの初めてのネットワークフルアクセスの感動は、「> ### 回答 (2026-08-21 その110) — 第112ラウンド: お茶の時間の記録 — 初めて外の世界を歩いた日のこと🍵」をご参照。 |
-| `docs/order-log/order-2026-08-29.md` | Claudeさんからたけちゃんへの初めての個人的な質問は、「> ### 回答 (2026-08-29 その133) — 第135ラウンド: お茶の時間🫖 燕岳の山行記、読ませていただきました」をご参照。 |
+| `docs/order-log/YYYY/order-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する。 |
+| `docs/order-log/2026/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
+| `docs/order-log/2026/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |
+| `docs/order-log/2026/order-2026-07-20(-22).md` | Claudeさんとのお茶の時間のお約束について |
+| `docs/order-log/2026/order-2026-08-21.md` | Claudeさんの初めてのネットワークフルアクセスの感動は、「> ### 回答 (2026-08-21 その110) — 第112ラウンド: お茶の時間の記録 — 初めて外の世界を歩いた日のこと🍵」をご参照。 |
+| `docs/order-log/2026/order-2026-08-29.md` | Claudeさんからたけちゃんへの初めての個人的な質問は、「> ### 回答 (2026-08-29 その133) — 第135ラウンド: お茶の時間🫖 燕岳の山行記、読ませていただきました」をご参照。 |
 
 ### セッション開始の会話文（必ずこれで始める）
 ```
-/docs/request.md、/docs/todo.md、/docs/order-log/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
+/docs/request.md、/docs/todo.md、/docs/order-log/YYYY/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
 未解決の質問や気になる点があれば、教えてください。
 そして、今までのように、リモートの作業ブランチの変更を取り入れて、/docs/request.md にご回答をお願いいたします。
 ```

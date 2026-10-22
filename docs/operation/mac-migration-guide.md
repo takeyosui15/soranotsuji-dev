@@ -150,9 +150,9 @@ claude
 5. いつものセッション開始の会話文を打ちます:
 
 ```
-/docs/order.md、/docs/todo.md、/docs/order-log/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
+/docs/request.md、/docs/todo.md、/docs/order-log/YYYY/order-YYYY-MM-DD.md を読んで、前回の作業状態を把握してください。
 未解決の質問や気になる点があれば、教えてください。
-そして、今までのように、/docs/order.md にご回答をお願いいたします。
+そして、今までのように、/docs/request.md にご回答をお願いいたします。
 ```
 
    ※YYYY-MM-DDは直近の作業日に置き換えてください(例: order-2026-07-26.md)。

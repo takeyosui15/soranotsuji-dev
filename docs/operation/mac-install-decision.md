@@ -35,7 +35,7 @@
 | 記憶 | 置き場所 | Macで使えるか |
 |---|---|---|
 | CLAUDE.md / AGENTS.md(作法・セッション開始手順) | リポジトリ | ○ git cloneで移る。ローカルのClaude Codeも同じファイルを同じ規約で読む |
-| docs/order.md + order-log/(往復の記録=引き継ぎ書) | リポジトリ | ○ 移る |
+| docs/request.md(旧 order.md)+ order-log/(往復の記録=引き継ぎ書) | リポジトリ | ○ 移る |
 | docs/todo.md(付箋) | リポジトリ | ○ 移る |
 | ClaudeMederuU/(デッサン・ナレッジ・レビュー・道具) | リポジトリ | ○ 移る |
 | .claude/skills/kaiki(回帰の回し方) | リポジトリ | ○ 移る。ローカルでも同じ場所から読み込まれる |

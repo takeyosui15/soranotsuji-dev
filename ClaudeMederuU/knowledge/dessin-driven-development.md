@@ -40,7 +40,7 @@
 
 - docs/todo.md
   * やることリスト・気になること・AI提案(P)
-- docs/order.md
+- docs/request.md(第190以前は docs/order.md。保管は docs/order-log/2026/)
   * 依頼・回答ログ(P→D→Cの往復。ラウンド毎の回答が実質のC/A記録)
 - docs/research.md
   * ① 観察する
