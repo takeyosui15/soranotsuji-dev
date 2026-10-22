@@ -1550,7 +1550,7 @@ input[type="radio"] {
 label:has(> input[type="radio"]),
 label:has(> input[type="checkbox"]) { display: inline-flex; align-items: center; gap: 3px; }
 label > input[type="radio"],
-label > input[type="checkbox"] { margin-top: 0; margin-bottom: 0; }
+label > input[type="checkbox"] { margin-top: 0; margin-bottom: 0; flex: 0 0 auto; }   /* 文が折り返す段(宙の窓 ctrl の構図/辻オフセット点)でラジオが縮まない(Mac で小さく見えた。第186) */
 .baseopt-hr {
     border: none;
     border-top: 1px solid #ccc;

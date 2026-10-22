@@ -48,14 +48,14 @@ check('S1b 気差の2本立て(ワーカー・設定の部品・ヘルプ): 3ワ
   idxSrc.includes('title="いま使っている気差係数K。チェックオン=下の気象条件から算出した値(既定)、オフ=0(気差なし。'));
 
 check('S2 宙の窓検索(静的): 位置情報メニューの段(辻検索/辻メッシュ/宙の窓検索・可視マップは次の段)・宙の窓メニューの注記・ctrlの先頭に2つのラジオ(構図=初期・辻オフセット点。第183でチェックから変更)と各段の「リセット」と「辻検索」「辻メッシュ」(2分割)・本体のドラッグの分岐と配線・ctrlボタンの連動(syncBottomPanels)・ヘルプ',
-  /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-soramado"[^>]*>宙の窓検索<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row" id="row-kashimap-btn">\s*<button id="btn-kashimap"/.test(idxSrc) &&
+  /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-soramado"[^>]*>宙の窓<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row" id="row-kashimap-btn">\s*<button id="btn-kashimap"/.test(idxSrc) &&
   /<div id="sec-soramado" class="section-content closed">\s*<div class="control-row left-row"><span class="menu-note">プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。<\/span><\/div>/.test(idxSrc) &&
   /<div id="soramado-ctrl-body" class="hidden">\s*<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-frame"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-frame" value="frame" checked>:構図をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-frame"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-tsuji"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-tsuji" value="tsuji">:辻オフセット点をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-tsuji"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row sora-ctrl-search-row">\s*<button id="btn-sora-ctrl-tsuji-search" class="nav-btn main-btn"[^>]*>辻検索<\/button>\s*<button id="btn-sora-ctrl-tsujimesh" class="nav-btn main-btn"[^>]*>辻メッシュ<\/button>\s*<\/div>/.test(idxSrc) &&
   src.includes('let _smDragFrame = true, _smDragTsuji = false;') && src.includes('if (_smDragTsuji) {') && src.includes('const dAz = dx * hAov / _smFinderW;') && src.includes("if (!_smDragFrame) return;") &&
   src.includes('function _smSetupSearchCtrl() {') && src.includes('function _smSyncSearchButtons() {') && src.includes("function syncBottomPanels() {\n    _smSyncSearchButtons();") &&
   src.includes("if (b1) b1.addEventListener('click', toggleTsujiSearch);") && src.includes("if (b2) b2.addEventListener('click', toggleTsujiMesh);") &&
   cssSrc.includes('#soramado-ctrl-body .sora-ctrl-search-row .nav-btn { flex: 1 1 0; min-width: 0; }') && cssSrc.includes('.kashimap-note, .menu-note { font-size: 11px; color: #aaa; }') &&
-  idxSrc.includes('<h3>宙の窓検索</h3>') && idxSrc.includes('<strong>:辻オフセット点をドラッグ(二本指)で変更</strong> は画面中心(+)と目的点(+)を据えて検索中心(×)だけを動かします'));
+  idxSrc.includes('<h3>宙の窓</h3>') && idxSrc.includes('<strong>:辻オフセット点をドラッグ(二本指)で変更</strong> は画面中心(+)と目的点(+)を据えて検索中心(×)だけを動かします'));
 
 check('S3 地理院タイルのオフライン(静的): gsicache:// の店(IndexedDB soranotsuji-maptiles・上限1GB・404は status 404 の例外=MapLibreの既定と同じ)・地図の地理院ソース4つ+宙断面の淡色は店経由(OSMはそのまま)・標高タイルは _demTileLoad が店(可視マップと同じ tiles)を先に読む・宙の窓の地形ワーカーも同じ店・バックアップメニューの行と全削除・ヘルプ・CSS',
   src.includes("const MT_DB = 'soranotsuji-maptiles', MT_STORE = 'tiles';") && src.includes('const MT_MAX_BYTES = 1024 * 1024 * 1024;') && src.includes("maplibregl.addProtocol('gsicache', _mtProtocolHandler);") &&
@@ -109,7 +109,7 @@ check('S4 可視マップの封鎖(静的): FEATURE_KASHIMAP_ENABLED(?kashimap=1
     toggleKashimap();
     return { enabled: FEATURE_KASHIMAP_ENABLED, row: disp('row-kashimap-btn'), sec: disp('section-kashimap'), help: disp('help-kashimap'), panel: disp('kashimap-panel'), active: _kmActive, soraRow: disp('btn-soramado'), demNote: document.getElementById('backup-demtiles-note').textContent, btnText: document.getElementById('btn-soramado').textContent };
   });
-  check('U1 封鎖(既定): ?kashimap=1 が無いと可視マップのボタンの段・メニューの節・ヘルプ・結果パネルは display:none で、toggleKashimap は何もしない。宙の窓検索のボタンは見える。標高タイルの注記は可視マップ抜きの文', !u1.enabled && u1.row === 'none' && u1.sec === 'none' && u1.help === 'none' && u1.panel === 'none' && u1.active === false && u1.soraRow !== 'none' && u1.btnText === '宙の窓検索' && u1.demNote.startsWith('標高グラフ・辻検索・辻メッシュ・宙の窓の計算に使う控えです') && !u1.demNote.includes('可視タイル'), JSON.stringify(u1));   // 封鎖中は標高タイルの注記が可視マップ抜きの文(レビューの直し)
+  check('U1 封鎖(既定): ?kashimap=1 が無いと可視マップのボタンの段・メニューの節・ヘルプ・結果パネルは display:none で、toggleKashimap は何もしない。宙の窓検索のボタンは見える。標高タイルの注記は可視マップ抜きの文', !u1.enabled && u1.row === 'none' && u1.sec === 'none' && u1.help === 'none' && u1.panel === 'none' && u1.active === false && u1.soraRow !== 'none' && u1.btnText === '宙の窓' && u1.demNote.startsWith('標高グラフ・辻検索・辻メッシュ・宙の窓の計算に使う控えです') && !u1.demNote.includes('可視タイル'), JSON.stringify(u1));   // 封鎖中は標高タイルの注記が可視マップ抜きの文(レビューの直し)
 
   // U2: 気差の2本立て: 既定は両方オン・係数欄は0.1320・オフ=0.0000で refractionKInUse()===0・実効半径は丸みだけ・気差オプションのチェック
   const u2 = await p.evaluate(() => {

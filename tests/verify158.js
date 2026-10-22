@@ -68,7 +68,7 @@ check('V1 CSV取込行の:天の川オプションもオフ', src.includes('mwOf
       return { ok, ph };
     });
     check('S6 My観測点の緯度経度欄でプラスコード→復号セル中心が行に入る(標高も取得)', r2.ok, JSON.stringify(r2));
-    check('S6 My点のプレースホルダーは「地名、Plus Code、緯度,経度」', r2.ph==='地名、Plus Code、緯度,経度', r2.ph);
+    check('S6 My点のプレースホルダーは「地名、Plus Code、緯度,経度、地図URL」(第186で地図URLを追加)', r2.ph==='地名、Plus Code、緯度,経度、地図URL', r2.ph);
 
     // S5: プレースホルダー(位置情報・花火)
     const r3=await p.evaluate(()=>({
@@ -76,9 +76,9 @@ check('V1 CSV取込行の:天の川オプションもオフ', src.includes('mwOf
       end: document.getElementById('input-end-latlng').placeholder,
       fw: document.getElementById('input-fw-latlng').placeholder,
       fwCtrl: document.getElementById('input-fw-ctrl-latlng').placeholder }));
-    check('S5 プレースホルダー(観測点/目的点=「Plus Code、緯度,経度」・花火=「地名、Plus Code、緯度,経度」)',
-      r3.start==='Plus Code、緯度,経度'&&r3.end==='Plus Code、緯度,経度'&&
-      r3.fw==='地名、Plus Code、緯度,経度'&&r3.fwCtrl==='地名、Plus Code、緯度,経度', JSON.stringify(r3));
+    check('S5 プレースホルダー(観測点/目的点=「Plus Code、緯度,経度、地図URL」・花火=「地名、Plus Code、緯度,経度、地図URL」。第186で地図URLを追加)',
+      r3.start==='Plus Code、緯度,経度、地図URL'&&r3.end==='Plus Code、緯度,経度、地図URL'&&
+      r3.fw==='地名、Plus Code、緯度,経度、地図URL'&&r3.fwCtrl==='地名、Plus Code、緯度,経度、地図URL', JSON.stringify(r3));
 
     // S8: 移動ボタンの段構成(2段目=読みのみの行・3段目=リセット/位置反映の行)
     const r4=await p.evaluate(()=>{

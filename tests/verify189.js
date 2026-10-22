@@ -17,8 +17,9 @@ const APP_VER = (/APP_VERSION = '([^']+)'/.exec(consts) || [])[1];
 const pngSize = (f) => { const b = fs.readFileSync(path.join(ROOT, f)); return b.length > 24 && b.toString('latin1', 1, 4) === 'PNG' ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null; };
 
 // ---- V0: 版のピン(最新の verify が持つ) ----
-check('V0 版のピン 1.99.2(sora-constants.js の APP_VERSION)+index.html の移行用 meta(1.99.3 で消す)は同じ値+Version History の最新行が同じ版で第185',
-  APP_VER === '1.99.2' && (html.match(/<meta name="app-version" content="([^"]+)"/) || [])[1] === APP_VER && html.includes('1.99.3 で消す') &&
+const _atLeast = (v, w) => { const a = String(v).split('.').map(Number), b = w.split('.').map(Number); for (let i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
+check('V0 版は 1.99.2 以上(第186で 1.99.3 へ。版のピンは最新の verify190 が持つ)+移行用 meta は無い(第186で削除)+Version History に 1.99.2 の行が第185で残る',
+  _atLeast(APP_VER, '1.99.2') && !/<meta name="app-version"/.test(html) &&
   /Version 1\.99\.2 - 2026-10-21: [^\n]*第185ラウンド/.test(src) && (src.match(/^Version (\d+\.\d+\.\d+) - /m) || [])[1] === APP_VER);
 
 // ---- S1: 不具合4件(静的) ----
@@ -51,9 +52,9 @@ check('S3 アイコン(icon-192.png/icon-512.png が PNG でその大きさ・ma
   JSON.stringify(pngSize('icon-192.png')) === '[192,192]' && JSON.stringify(pngSize('icon-512.png')) === '[512,512]' &&
   (() => { const m = JSON.parse(rd('manifest.json')); return m.icons.some(i => i.src === 'icon-192.png' && i.sizes === '192x192') && m.icons.some(i => i.src === 'icon-512.png' && i.sizes === '512x512'); })() &&
   pre.includes("'icon-192.png',") && pre.includes("'icon-512.png',") && tool.includes("'icon-192.png', 'icon-512.png',") && sync.includes("'icon-192.png', 'icon-512.png',") &&
-  fs.existsSync(path.join(ROOT, 'docs/release-notes/v1.99.2.md')) && rd('docs/release-notes/v1.99.2.md').startsWith('# 宙の辻 v1.99.2 リリースのお知らせ') && !fs.existsSync(path.join(ROOT, 'docs/note/note-release-v1.99.md')) &&
-  rd('docs/note/note-notice-page.md').includes('「標高グラフ」(可視判定の結果 OK/NG/-)が「可視判定」になります') && rd('docs/note/note-notice-page.md').includes('## ■2026/08/17 【重要】旧バックアップとの互換性について') && rd('docs/note/note-notice-page.md').includes('## ■2026/03/04 サイト移転') &&
-  rd('docs/note/note-top-page.md').includes('- こちら (重要なお知らせの記事 https://note.com/takeyosui/n/nb5ae33946df8)') && !rd('docs/note/note-top-page.md').includes('## **■2026/08/17') && rd('docs/note/note-faq-page.md').includes('件数・版・最終更新日時が出れば完了'));
+  fs.existsSync(path.join(ROOT, 'docs/release-notes/v1.99.3.md')) && rd('docs/release-notes/v1.99.3.md').startsWith('# 宙の辻 v1.99.3 リリースのお知らせ')   /* 第186: 配る版に合わせて改名 */ && !fs.existsSync(path.join(ROOT, 'docs/note/note-release-v1.99.md')) &&
+  rd('docs/note/note-important-notice-page.md').includes('「標高グラフ」(可視判定の結果 OK/NG/-)が「可視判定」になります') && rd('docs/note/note-important-notice-page.md').includes('## ■2026/08/17 【重要】旧バックアップとの互換性について') && rd('docs/note/note-important-notice-page.md').includes('## ■2026/03/04 サイト移転') &&
+  rd('docs/note/note-top-page.md').includes('- こちら (重要なお知らせの記事。') && !rd('docs/note/note-top-page.md').includes('## **■2026/08/17') && rd('docs/note/note-faq-page.md').includes('件数・版・最終更新日時が出れば完了'));
 
 (async () => {
   const b = await chromium.launch({ executablePath: EXE, headless: true, args: ARGS });

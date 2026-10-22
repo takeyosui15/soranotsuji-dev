@@ -27,7 +27,7 @@ GNU General Public License for more details.
     /** 版(唯一の置き場。第184・依頼者: 「1箇所を直したら全てに反映」)。
      *  読む側: 本体(script.js の APP_VERSION=フッター・起動ログ・書き出しファイルの印)・sw.js(控えの名前 sora-shell-v<版> と入れ替えの合図)・verify 群(版のピン)。
      *  版を上げる時はここを直す。script.js 冒頭の Version History には内容の記録を1行足す(verify のピンが「最新行の版=ここ」を見張る)。 */
-    const APP_VERSION = '1.99.2';
+    const APP_VERSION = '1.99.3';
 
     /** 地球の大きさ(m) */
     const EARTH = Object.freeze({

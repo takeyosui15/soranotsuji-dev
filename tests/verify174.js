@@ -39,7 +39,7 @@ check('S0 可視マップ節に山リストの出典と「それ以外の山はM
 }
 // ---- S1: 静的な形(メニュー・節・パネル・ヘルプ・CSS) ----
 check('S1 index.html: 可視マップボタンは辻検索/辻メッシュ/宙の窓検索の次の段(第158)・節(推し山/AND/OR/5チェック/検索/My目的点で計算[第153で有効])・結果パネル・ヘルプ「可視マップ」',
-  /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-soramado"[^>]*>宙の窓検索<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row" id="row-kashimap-btn">\s*<button id="btn-kashimap"/.test(idxSrc) &&   // 第158: 宙の窓検索が辻検索/辻メッシュの段・可視マップは次の段(封鎖の対象の段)
+  /btn-tsujimesh"[^>]*>辻メッシュ<\/button>\s*<button id="btn-soramado"[^>]*>宙の窓<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row" id="row-kashimap-btn">\s*<button id="btn-kashimap"/.test(idxSrc) &&   // 第158: 宙の窓検索が辻検索/辻メッシュの段・可視マップは次の段(封鎖の対象の段)
   ['input-kashimap-query','radio-kashimap-and','radio-kashimap-or','chk-kashimap-100','chk-kashimap-200','chk-kashimap-300','chk-kashimap-high','chk-kashimap-other','btn-kashimap-search','kashimap-panel','btn-kashimap-max','btn-kashimap-close','btn-kashimap-select-all','btn-kashimap-select-none','kashimap-status'].every(id => idxSrc.includes(`id="${id}"`)) &&
   /<input type="radio" name="kashimap-compute-target" id="radio-kashimap-mytgt" value="mytgt">:My目的点<\/label>/.test(idxSrc) && /<button id="btn-kashimap-compute"[^>]*>範囲を計算<\/button>/.test(idxSrc) &&   // 第156: 「:My目的点」ラジオ+「範囲を計算」
   idxSrc.includes('<h3>可視マップ</h3>') && idxSrc.includes('日本の主な山岳標高一覧 (1003山)') &&   // (第158のレビュー: 上の行末コメントがこの2条件を飲み込んでいたのを戻した)

@@ -13,6 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
+Version 1.99.3 - 2026-10-22: feat/fix: 第186ラウンド — ①Google マップ/Apple マップの URL・geo: URI・度分秒(35°39'30.9"N 139°44'43.6"E)から観測点/目的点/花火打ち上げ点を設定できるように(parseInput の入口で Plus Code の次に判定。地点のピン !3d緯度!4d経度 → 区切りの「緯度,経度」/度分秒(/place/・/search/・/dir/ の終点) → 問い合わせ q=/query=/ll=/coordinate= 等 → @画面中心、の順。通信なし。短縮URL maps.app.goo.gl は転送先を読めない(CORS)ので地名検索へ回さず案内文 _MAP_URL_HINT を出す。依頼者: 地理院の地名検索より Google マップの URL からの変換を先に) ②端末のデータの「天気の控え」の行(backup-wx-block)を宙検索/宙断面の封鎖(FEATURE_FORECAST_ENABLED)に連動して隠す(依頼者: ずっと先の機能で利用者が気を揉まないように。ヘルプ/FAQ/リリースノートの天気の記述も外す。片付けワーカーの TTL の処理はそのまま) ③宙の窓 ctrl の構図/辻オフセット点のラジオが Mac で他より小さく見える: 文が折り返す段の flex の中でラジオ(flex-shrink 1)が縮んでいた → label の中のラジオ/チェックボックスは flex 0 0 auto(全メニュー共通の規則に1語) ④「宙の窓検索」の名前を「宙の窓」へ戻す(位置情報メニューのボタン・ヘルプの節・README・docs/note の案・リリースノート。依頼者: 検索の単機能ではなくプレビューを主にして天気と絡める構想) ⑤ロゴを図形の SVG に描き直し(logo.svg: 円=日と三角=山・どちらも下 #ff0000 → 上 #ee7800 の縦グラデーション。三角の底辺は正方形の下辺の左端から中点まで・頂点は右上の角・円は中点からの垂線と上辺と三角の長辺に接する半径 (S/2)/(2+√2)。元の埋め込み PNG と形の一致 99.6%)。logo.png(100)・apple-touch-icon.png(180)・favicon.ico(16/32/48/64)・icon-192/512.png を SVG から再生成 ⑥移行用の meta app-version を index.html から削除(v1.99.0 の Service Worker は開発サイトを開いた依頼者の端末だけの話で、1.99.2 を一度開けば入れ替わっているので橋は不要。verify187/188/189 の検査は「meta 無し」へ)
 Version 1.99.2 - 2026-10-21: fix/feat: 第185ラウンド — ①File取得/結果リストの列名「標高グラフ」→「可視判定」(辻検索・辻メッシュ・My辻。依頼者) ②辻メッシュ/辻検索の File取得は実行中の2度押しで1回目をキャンセル・CSV は parts の Blob(join しない=Invalid string length を避ける)・2段目の進み具合の文 ③端末のデータ: 建物と本体の控えに最終更新日時・上限(MB)の空欄=既定の案内 ④ワーカープールを CPU−1(SORA.WORKERS: 片付けのワーカーの隙間) ⑤ヘルプに「オフライン時のデータについて」の節 ⑥写位ボタンの幅を他と揃える ⑦manifest に 192/512 のアイコン(logo.svg から) ⑧移行用 meta は 1.99.2 にも残す(1.99.3 で消す) ⑨セキュリティ監査(claude-security 相当の Workflow)の直し
 Version 1.99.1 - 2026-10-19: feat/fix: 第184ラウンド — ①版の置き場を sora-constants.js の APP_VERSION の1箇所に(SSOT・依頼者: 1箇所を直せば全部に反映。script.js は SORA.APP_VERSION を読む・index.html の meta と sw.js の ?v= を廃止・sw.js は importScripts した版で控えの名前を付け、配信中の版は sora-constants.js を最新で読んで見分ける・verify 群の版の検査は src+sora-constants) ②時間フィルタの並びを 日の出→月の出→GH[終]→GH[始]→月の入→日の入 に(依頼者) ③宙の窓検索ctrl: ラジオを「:構図」へ戻しても辻オフセット点は戻さない(戻すのは「リセット」=0 だけ。依頼者) ④結果リスト/CSV の月の出/月の入の列は翌日なら 24:xx の印(日時情報メニューと同じ。A案・依頼者) ⑤My辻リストCSVのヘッダ「標高フィルタ/標高OK/標高NG」→「可視フィルタ/可視OK/可視NG」(読みは列の位置なので旧ファイルもそのまま読める) ⑥利用規約: 目的の一文(街や自然環境において宙や空を楽しむ)・禁止事項2つ・共有した内容の責任の段落・改定日(依頼者 GO) 反証レビュー24件の直し(移行用 meta・開いているタブは読み直さず「(新しい版あり)」・上限(MB)と整理の時刻は端末だけの鍵・最終使用は used 店・onversionchange・暦日の翌日)。
 Version 1.99.0 - 2026-10-15: feat: 第183ラウンド — ①時間フィルタに「月の出」「月の入」(辻検索・辻メッシュ・My辻検索の開始/終了の基準。依頼者指定で「GH[終]」と「GH[始]」の間。その日に月の出(入)が無い日は、その境界を使うフィルタは何も通さない。短縮URL辞書v23=moonrise/moonset。棚卸し223・verify186) ②観測点を地名/座標/地図/GPS/写位で置いた時の高さを 0 → 1.5m(SORA.OBSERVER.EYE_HEIGHT_M=人の目の高さ)に。Hom の既定(東京タワー 150m)と目的点(0)は不変(棚卸し231) ③位置情報メニューの「高移」の下に「写位」ボタン: 写真の位置情報(Exif)をラジオで選択中の観測点(°)/目的点(°)に入力(標高は緯度経度から取得。My観測点/My目的点の「写真から追加」と同じ端末内の読み取り。棚卸し412) ④宙の窓検索のコントロール(デッサン05 4.1〜4.3段目): 「:構図をドラッグ」「:辻オフセット点をドラッグ」をチェックからラジオ(択一)に・各段に「リセット」(幅はメニュー内側の1/3・右寄せ。構図=カメラオフセット方位角/視高度を0・辻オフセット点=辻オフセット方位角/視高度を0で辻メッシュ側と連動)・宙の窓メニューの注記を「…辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。」に ⑤不具合: 二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない(棚卸し460)=ドラッグ開始時にも戻り先(_smCamNudgeBase)を覚える
@@ -324,12 +325,13 @@ const FEATURE_FORECAST_ENABLED = (() => {
 })();
 
 // ==== リリース方針(2026-10-09 たけちゃんさん判断・第158): 可視マップの一時封鎖 ====
-// 宙の窓検索とオフライン表示を先にリリースし、可視マップ(とMyサイト)はじっくり作り込む。forecastと同じく、開発時はURLに ?kashimap=1 を付けると表示できる。
+// 宙の窓(第158当時の名前は宙の窓検索。第186で戻した)とオフライン表示を先にリリースし、可視マップ(とMyサイト)はじっくり作り込む。forecastと同じく、開発時はURLに ?kashimap=1 を付けると表示できる。
 // 封鎖中もHTMLとコードはそのまま(配線は走る)で、ボタンの段・メニューの節・ヘルプの節を .feature-locked で隠し、検索/計算の入口で止める。
 const FEATURE_KASHIMAP_ENABLED = (() => {
     try { return new URLSearchParams(window.location.search).get('kashimap') === '1'; } catch (e) { return false; }
 })();
 function applyFeatureLocks() {
+    if (!FEATURE_FORECAST_ENABLED) { const wb = document.getElementById('backup-wx-block'); if (wb) wb.classList.add('feature-locked'); }   // 天気の控えの行(端末のデータ)は宙検索/宙断面(封鎖中)が使う控えなので一緒に隠す(第186・依頼者)
     if (FEATURE_KASHIMAP_ENABLED) return;
     for (const id of ['row-kashimap-btn', 'section-kashimap', 'help-kashimap', 'kashimap-panel']) { const el = document.getElementById(id); if (el) el.classList.add('feature-locked'); }
     // 封鎖中は「可視タイル」が画面に無いので、バックアップメニューの標高タイルの注記とボタンの説明は可視マップ抜きの文に(開錠時はデッサン18の文のまま)
@@ -4026,6 +4028,7 @@ async function handleLocationInput(val, isStart, fromName) {
         await applyLocationCoords(coords, isStart);
         return;
     }
+    if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
 
     // プラスコードの短縮形(第90ラウンド。例: 「MQPJ+2V 港区」)。基準地名を解決して近傍のセルへ展開する
     const sc = _plusCodeShortParse(val);
@@ -5050,6 +5053,10 @@ async function applyMapPointAction(latlng) {
 function parseInput(val) {
     const pc = _plusCodeDecode(val);   // Google Plusコード(フルコード)の直入力(第87ラウンド・怒号の項目15)
     if (pc) return pc;
+    const mu = _mapUrlParse(val);      // Google マップ/Apple マップの URL・geo: URI(地点のピン→区切り→問い合わせ→画面中心の順。通信なし。第186)
+    if (mu) return mu;
+    const dms = _dmsParse(val);        // 度分秒(Google マップの座標表示の形。第186)
+    if (dms) return dms;
     if (val.indexOf(',') === -1) return null;
     const clean = val.replace(/[\(\)\s]/g, '');
     const parts = clean.split(',');
@@ -5095,6 +5102,85 @@ function _plusCodeDecode(raw) {
     if (res.lat < -90 || res.lat > 90 || res.lng < -180 || res.lng > 180) return null;
     return res;
 }
+
+// --- Google マップ/Apple マップの URL・geo: URI・度分秒の読み取り(第186。通信なしの文字列解析。地名検索より先に判定する) ---
+function _llOk(lat, lng) {
+    lat = Number(lat); lng = Number(lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { lat, lng };
+}
+/** 「緯度,経度」(loc: 付き・空白・全角カンマ可)の1組だけを受ける(URL の区切りや問い合わせの値用) */
+function _llPair(t) {
+    const m = /^\s*(?:loc:)?\s*([+-]?\d{1,3}(?:\.\d+)?)\s*[,，]\s*([+-]?\d{1,3}(?:\.\d+)?)\s*$/.exec(String(t || ''));
+    return m ? _llOk(m[1], m[2]) : null;
+}
+/** 度分秒(例: 35°39'30.9"N 139°44'43.6"E=Google マップの座標表示からコピーした形)。度分だけ・′″の記号・度分秒の漢字・北緯/東経・N/S/E/W の前置き/後置きのどちらも可。
+ *  2組だけを受け、経度が先に書いてあれば入れ替える。度分秒以外の文字が混ざる物(「25°C」等)は null */
+function _dmsParse(raw) {
+    const s = String(raw || '').trim().replace(/北緯/g, 'N').replace(/南緯/g, 'S').replace(/東経/g, 'E').replace(/西経/g, 'W');
+    if (!s || !/[°º度]/.test(s)) return null;
+    const re = /([+-]?\d{1,3}(?:\.\d+)?)\s*[°º度]\s*(?:(\d{1,2}(?:\.\d+)?)\s*(?:['′’分]|(?![\d.])))?\s*(?:(\d{1,2}(?:\.\d+)?)\s*(?:["″”秒]|''))?/g;
+    const g = []; let m;
+    while ((m = re.exec(s))) {
+        if (!m[0].trim()) { re.lastIndex++; continue; }
+        g.push({ start: m.index, end: m.index + m[0].length, deg: m[1], min: Number(m[2] || 0), sec: Number(m[3] || 0) });
+        if (g.length > 2) return null;
+    }
+    if (g.length !== 2) return null;
+    const gap = t => { const k = /^[\s,，、]*(?:([NSEWnsew北南東西])[\s,，、]*)?$/.exec(t); return k ? (k[1] || '').toUpperCase() : null; };   // 区切りは空白とカンマだけ。他の文字が混ざれば null
+    const gaps = [gap(s.slice(0, g[0].start)), gap(s.slice(g[0].end, g[1].start)), gap(s.slice(g[1].end))];
+    if (gaps.some(x => x === null)) return null;
+    const trailing = !!gaps[2];                        // 「30.9"N 139°…E」=後置き / 「N 35°… E 139°…」=前置き
+    const hemi = [trailing ? gaps[1] : gaps[0], trailing ? gaps[2] : gaps[1]];
+    const parts = g.map((x, i) => {
+        if (x.min >= 60 || x.sec >= 60) return null;
+        const neg = /^-/.test(x.deg) || /[SW南西]/.test(hemi[i]);
+        return { v: (Math.abs(Number(x.deg)) + x.min / 60 + x.sec / 3600) * (neg ? -1 : 1), h: hemi[i] };
+    });
+    if (parts.some(p => !p)) return null;
+    let [a, b] = parts;
+    const isLng = h => /[EW東西]/.test(h), isLat = h => /[NS北南]/.test(h);
+    if ((isLng(a.h) && !isLng(b.h)) || (isLat(b.h) && !isLat(a.h))) [a, b] = [b, a];   // 経度が先に書いてあれば入れ替える
+    return _llOk(a.v, b.v);
+}
+/** Google マップ/Apple マップの URL・geo: URI から地点の緯度経度を取り出す(通信なし)。
+ *  優先順: 地点のピン(!3d緯度!4d経度) → 区切りの「緯度,経度」や度分秒(/place/・/search/・/dir/ の終点) → 問い合わせの値(q/query/ll/center/coordinate…)
+ *  → 画面の中心(@緯度,経度)。読めなければ null。短縮URL(maps.app.goo.gl 等)は転送先の読み取りが要るので読めない(_mapUrlLooksLike で案内を出す) */
+function _mapUrlParse(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return null;
+    let m = /^geo:([+-]?\d{1,3}(?:\.\d+)?),([+-]?\d{1,3}(?:\.\d+)?)/i.exec(s);   // geo: URI(Android の共有)
+    if (m) return _llOk(m[1], m[2]);
+    if (!/^https?:\/\//i.test(s)) return null;
+    let u; try { u = new URL(s); } catch (_) { return null; }
+    const host = u.hostname.toLowerCase();
+    const isGoogle = /(^|\.)google\.(com|co|[a-z]{2})(\.[a-z]{2})?$/.test(host);   // google.com / google.co.jp / maps.google.com …
+    const isApple = host === 'maps.apple.com';
+    if (!isGoogle && !isApple) return null;
+    let ds; try { ds = decodeURIComponent(s); } catch (_) { ds = s; }
+    m = /!3d(-?\d{1,3}(?:\.\d+)?)!4d(-?\d{1,3}(?:\.\d+)?)/.exec(ds);   // 地点のピンの座標(data=…!8m2!3d緯度!4d経度)。@の画面中心より確か
+    if (m) { const r = _llOk(m[1], m[2]); if (r) return r; }
+    let path; try { path = decodeURIComponent(u.pathname); } catch (_) { path = u.pathname; }
+    const segs = path.split('/').filter(Boolean);
+    for (let i = segs.length - 1; i >= 0; i--) {   // /place/35.6,139.7 ・ /search/35.6,139.7 ・ /dir/出発/35.6,139.7(終点) ・ /place/35°39'30.9"N+139°44'43.6"E
+        const t = segs[i].replace(/\+/g, ' ');
+        if (t.startsWith('@')) continue;
+        const r = _llPair(t) || _dmsParse(t);
+        if (r) return r;
+    }
+    for (const k of ['q', 'query', 'destination', 'origin', 'daddr', 'saddr', 'll', 'sll', 'center', 'coordinate', 'cp']) {   // ?q=35.6,139.7 ・ Apple の ll=/coordinate=
+        const v = u.searchParams.get(k);
+        if (!v) continue;
+        const r = _llPair(v) || _dmsParse(v);
+        if (r) return r;
+    }
+    m = /@(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/.exec(path);   // 画面の中心(ピンの無い URL)
+    if (m) return _llOk(m[1], m[2]);
+    return null;
+}
+/** URL(短縮URL 含む)や geo: の形をしているか=読めなかった時に、地名検索へ回さず案内を出すための判定 */
+function _mapUrlLooksLike(raw) { return /^(https?:\/\/|geo:)/i.test(String(raw || '').trim()); }
+const _MAP_URL_HINT = 'この URL からは位置を読み取れませんでした。\n短縮URL(maps.app.goo.gl など)は宙の辻では展開できません。Google マップでその URL を開き、アドレスバーの URL(google.com/maps/place/… の形)を貼ってください。\n地点の「緯度, 経度」や Plus Code、度分秒(35°39\'30.9"N 139°44\'43.6"E)を貼っても設定できます。';
 
 /** プラスコードの10桁エンコード(短縮形の復元で基準コードを作る用。'XXXXXXXX+XX'を返す。第90ラウンド) */
 function _plusCodeEncode10(lat, lng) {
@@ -6689,7 +6775,7 @@ function renderMyPointsList(type) {
                 <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? Number(pt.lat) + ', ' + Number(pt.lng) : ''}" placeholder="地名、Plus Code、緯度,経度" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? Number(pt.lat) + ', ' + Number(pt.lng) : ''}" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
@@ -6732,6 +6818,7 @@ function renderMyPointsList(type) {
                 await applyPt(coords.lat, coords.lng);
                 return;
             }
+            if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
             // プラスコードの短縮形(例: 「MQPJ+2V 港区」。基準地名を解決して近傍のセルへ展開)
             const sc = _plusCodeShortParse(val);
             if (sc) {
@@ -20462,6 +20549,7 @@ async function handleFwLocationInput(val) {
     if (!val) return;
     const coords = parseInput(val);
     if (coords) { await applyFwCoords(coords); return; }
+    if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
     const sc = _plusCodeShortParse(val);   // プラスコードの短縮形(第90ラウンド。観測点/目的点と同じ流れ)
     if (sc) { await _plusCodeResolveShort(sc, async c => { await applyFwCoords(c); }); return; }
     const results = await searchLocation(toFullWidth(val.trim()));

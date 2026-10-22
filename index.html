@@ -36,7 +36,6 @@ GNU General Public License for more details.
     <title>宙の辻 - Sora no Tsuji</title>
     
     <link rel="icon" href="favicon.ico" type="image/png">
-    <meta name="app-version" content="1.99.2">   <!-- 移行用(v1.99.0 の次に配る版=1.99.2 まで。1.99.3 で消す): v1.99.0 の Service Worker はこの meta で版を見分けるので、これが無いと v1.99.0 の控えを持つ端末で最初の1回だけ古い本体が混ざる(第184の反証レビュー C1)。版の置き場は sora-constants.js の APP_VERSION(verify188 が同じ値であることを見張る) -->
     <link rel="manifest" href="manifest.json">   <!-- ホーム画面に追加(iOS/Android)。オフラインでの利用のため(デッサン35 段3) -->
     <meta name="theme-color" content="#1e1e1e">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -803,7 +802,7 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点(°):</label>
-                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名、Plus Code、緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(宙の窓メニューと連動)">
+                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(宙の窓メニューと連動)">
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点標高(m):</label>
@@ -907,7 +906,7 @@ GNU General Public License for more details.
                             <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点(°):</label>
-                        <input type="text" id="input-start-latlng" placeholder="Plus Code、緯度,経度" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・地名・およその住所で観測点を設定">
+                        <input type="text" id="input-start-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で観測点を設定">
                     </div>
 
                     <div class="control-row">
@@ -940,7 +939,7 @@ GNU General Public License for more details.
                             <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点(°):</label>
-                        <input type="text" id="input-end-latlng" placeholder="Plus Code、緯度,経度" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・地名・およその住所で目的点を設定">
+                        <input type="text" id="input-end-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で目的点を設定">
                     </div>
 
                     <div class="control-row">
@@ -966,7 +965,7 @@ GNU General Public License for more details.
                     <div class="control-row main-buttons-row">
                         <button id="btn-tsuji-search" class="nav-btn main-btn">辻検索</button>
                         <button id="btn-tsujimesh" class="nav-btn main-btn" title="観測点付近のDEM標高タイルの全画素で辻検索(辻メッシュ検索)">辻メッシュ</button>
-                        <button id="btn-soramado" class="nav-btn main-btn" title="観測点から目的点を見た構図(ファインダー)を描き、構図を見ながら辻オフセット点を決めて辻検索・辻メッシュ検索へ(宙の窓検索)">宙の窓検索</button>
+                        <button id="btn-soramado" class="nav-btn main-btn" title="観測点から目的点を見た構図(ファインダー)を描き、構図を見ながら辻オフセット点を決めて辻検索・辻メッシュ検索へ">宙の窓</button>
                     </div>
                     <div class="control-row main-buttons-row" id="row-kashimap-btn">
                         <button id="btn-kashimap" class="nav-btn main-btn" title="推し山がどこから見えるかを地図に塗る可視マップ(計算済みの山は島の輪郭と塗り・島リスト。資産のFile出力/File読込。山リストに無い山や構造物は「目的点で計算」「My目的点で計算」でその場で計算)">可視マップ</button>
@@ -1718,7 +1717,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点(°):</label>
-                        <input type="text" id="input-fw-latlng" placeholder="地名、Plus Code、緯度,経度" maxlength="150" title="地名・およその住所・緯度,経度で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
+                        <input type="text" id="input-fw-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点標高(m):</label>
@@ -2357,7 +2356,7 @@ GNU General Public License for more details.
                     <div class="control-row left-row km-stat-row"><span class="km-stat">永続: <span id="backup-persist-state">-</span></span><span class="km-stat">前回の整理: <span id="backup-clean-at">-</span></span></div>
                     <div class="control-row left-row"><span class="km-stat" id="backup-clean-status"></span></div>
                     <div class="control-row main-buttons-row">
-                        <button id="btn-backup-clean-now" class="nav-btn main-btn" title="地理/標高/建物の控えの30日使っていない物と上限超えの分、天気の期限切れを今すぐ片付けます(画面は止まりません)">今すぐ整理</button>
+                        <button id="btn-backup-clean-now" class="nav-btn main-btn" title="地理/標高/建物の控えの30日使っていない物と上限超えの分を今すぐ片付けます(画面は止まりません)">今すぐ整理</button>
                         <button id="btn-backup-persist" class="nav-btn main-btn" title="ブラウザに「容量不足でもこのサイトのデータを消さない」(永続化)を要求します。許可するかはブラウザの判断です(ホーム画面に追加・ブックマーク・よく使うと許可されやすい)">永続化を要求</button>
                     </div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">設定(登録内容): <span id="backup-settings-size">-</span></span><span class="km-stat">使用率: <span id="backup-settings-pct">-</span>(上限はブラウザの約5MB)</span></div>
@@ -2390,11 +2389,13 @@ GNU General Public License for more details.
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-assets-count">-</span></span><span class="km-stat">合計容量: <span id="backup-assets-size">-</span></span></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-assets-pct">-</span></span><label class="km-stat" for="input-backup-cap-assets">上限(MB):</label><input type="number" id="input-backup-cap-assets" class="store-cap" data-store="assets" min="10" max="1000000" step="10" placeholder="既定 1024" title="可視マップ資産の上限(MB)の目安。空欄にすると既定(1024MB)に戻ります"></div>
                     </div>
+                    <div id="backup-wx-block">   <!-- 天気の控えの行は宙検索/宙断面(封鎖中)の控えなので、封鎖に連動して隠す(applyFeatureLocks。第186) -->
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙検索・宙断面が使う天気(Open-Meteo)の控え。取ってから2時間(TTL=有効期限)まで再利用し、過ぎた物は自動で片付けます">天気の控え:</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-wx-count">-</span></span><span class="km-stat">合計容量: <span id="backup-wx-size">-</span></span></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">使用率: <span id="backup-wx-pct">-</span></span><label class="km-stat" for="input-backup-cap-wx">上限(MB):</label><input type="number" id="input-backup-cap-wx" class="store-cap" data-store="wx" min="10" max="1000000" step="10" placeholder="既定 1024" title="天気の控えの上限(MB)。空欄にすると既定(1024MB)に戻ります"></div>
                     <div class="control-row"><button id="btn-backup-wx-clear" class="nav-btn main-btn" title="端末に貯めた天気の控えを全て削除します(次に使う時にまた取りに行きます)">天気の控えを削除</button></div>
+                    </div>
                     <hr class="tsujisearch-separator km-hr">
                     <div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙の辻の本体(画面・プログラム・同梱データ)の端末の控え(Service Worker)。電波の無い所でも宙の辻を開けるように、版ごとに控えます。新しい版は、全部そろって確かめてから入れ替わります(途中で電波が切れたら古い版のまま動きます)">本体の控え(オフライン用):</label></div>
                     <div class="control-row left-row km-stat-row"><span class="km-stat">合計件数: <span id="backup-shell-count">-</span></span><span class="km-stat">合計容量: <span id="backup-shell-size">-</span></span></div>
@@ -2545,7 +2546,7 @@ GNU General Public License for more details.
                 <section class="help-section">
                     <h3>位置情報メニュー</h3>
                     <ul class="help-list">
-                        <li><strong>観測点 / 目的点</strong>: 地図ダブルクリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」・Googleプラスコード (フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区。Googleマップの地点情報からコピーできる+付きのコード。短縮形は基準地名の候補を選ぶとその近くのセルに展開・地名を省くと地図の中心が基準) を入力して設定。ラジオボタンで地図クリック対象を切替。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
+                        <li><strong>観測点 / 目的点</strong>: 地図ダブルクリックまたは「東京タワー」「富士山」などの地名・住所・「緯度,経度」・Googleプラスコード (フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区。Googleマップの地点情報からコピーできる+付きのコード。短縮形は基準地名の候補を選ぶとその近くのセルに展開・地名を省くと地図の中心が基準)・<strong>Google マップ/Apple マップの URL</strong> (地点のピンの URL。Google マップの「共有」で出る短縮URL (maps.app.goo.gl/…) は宙の辻では展開できないので、ブラウザでその URL を開き、アドレスバーの URL (google.com/maps/place/… の形) を貼ってください。Android の「geo:」の共有も可)・<strong>度分秒</strong> (例: 35°39'30.9"N 139°44'43.6"E。Google マップで地点を長押しした時の座標表示からコピーした形) を入力して設定。座標・Plus Code・URL は通信なしで変換します (地名・住所と、Plus Code の短縮形の基準地名だけ、地名検索の通信が要ります)。ラジオボタンで地図クリック対象を切替。メッシュ/辻/優辻マーカーはクリック (スマホはタップ) →ポップアップ→ポップアップの行/内容をクリック (タップ) で観測点に設定です (マーカーのクリック自体では観測点は移動しません)。雫型のマーカー自体のクリックは従来どおりシングルです。</li>
                         <li><strong>標高 / 高さ</strong>: 標高は自動取得。高さ (高層階・三脚等) を加算可能。観測点を地名・座標・地図・GPS・写位で置いた時の高さは 1.5m (地上に立った人の目の高さ)、目的点は 0m です。Hom は登録した高さ (初期値の東京タワーは 150m) で呼び出します。</li>
                         <li><strong>GPS</strong>: 現在地を観測点に設定。</li>
                         <li><strong>Hom(e) / 推(し)山</strong>: 観測点・目的点を1組登録/呼出。空欄で押すとリセット。</li>
@@ -2683,8 +2684,8 @@ GNU General Public License for more details.
                 </section>
 
                 <section class="help-section">
-                    <h3>宙の窓検索</h3>
-                    <p>「宙の窓検索」ボタンON時に、観測点から目的点方向を撮影するカメラのファインダーをシミュレーションします。センサー(機種名リストから選択可)・焦点距離・F値・アスペクト比から画角(水平/垂直/対角)を計算し、実際の星景写真の構図をプレビューできます。</p>
+                    <h3>宙の窓</h3>
+                    <p>「宙の窓」ボタンON時に、観測点から目的点方向を撮影するカメラのファインダーをシミュレーションします。センサー(機種名リストから選択可)・焦点距離・F値・アスペクト比から画角(水平/垂直/対角)を計算し、実際の星景写真の構図をプレビューできます。</p>
                     <ul class="help-list">
                         <li><strong>カメラの向き</strong>: 基準方位角・基準視高度 (初期値=観測点→目的点の方向)。<strong>カメラオフセット方位角/視高度</strong>で向きをずらせます (プレビューのドラッグパンと連動)。<strong>辻オフセット6項目</strong>は辻検索メニューと双方向連動します。</li>
                         <li><strong>プレビューの内容</strong>: 天の川の写真 (明るさスライダー)・表示天体のマーカーと中心十字・軌跡 (前日/当日/翌日)・DEM標高タイルの3D地形 (ヒルシェード適用度スライダー)・目的点の赤十字・検索中心の×。基本オプションのチェックで<strong>表示天体名・星座線・星座領域・星座名称</strong>もプレビューに表示されます (宙の窓メニューにも同じチェックがあり双方向連動。星座名称・表示天体名の文字の向き: 通常・四角=水平、円形フィッシュアイ=画面中心から同心円状。<strong>文字サイズスライダー</strong> (0〜1000%・プレビュー基準100%) で大きさを調整できます)。</li>
@@ -2792,9 +2793,9 @@ GNU General Public License for more details.
                     <p>宙の辻は、一度読んだ地図・標高・建物のデータと本体そのものを端末の中 (ブラウザ) に控え、電波の無い所でも使えるようにしています。控えはこの端末の中だけにあり、どこにも送られません。それぞれの中身と片付け方、オフラインでの使い方は次のとおりです。</p>
                     <ul class="help-list">
                         <li><strong>地理タイル / 標高タイル (端末の控え)</strong>: 地図に使う国土地理院のタイル (標準・淡色・写真・ベクトル) と、標高グラフ・辻検索・辻メッシュ・宙の窓が使う標高タイルは、一度読んだものをブラウザの中 (IndexedDB) に控えて、次からは控えを先に読み、無いものだけ国土地理院へ取りに行きます。控えのある範囲は電波の無い所でも地図と計算が使えます。控えはこの端末の中だけにあり、どこにも送られません。件数・容量・最終更新日時をここに表示し、「全削除」でいつでも空にできます (次に表示した時にまた取りに行くだけです)。地理タイル・標高タイル・建物の控えにはそれぞれ上限があり (既定 1024MB。「端末のデータ」の上限 (MB) で変えられます)、30日使っていない物と上限の9割を超えた分は自動で片付けます (次の「端末のデータ」の項)。出典: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル</a>。</li>
-                        <li><strong>本体の控え (オフライン用)</strong>: 宙の辻の本体 (画面・プログラム・同梱データ) を版ごとに端末に控え、電波の無い所でも宙の辻を<strong>開ける</strong>ようにします (地図・標高・天気は上の控えのある範囲だけ)。開く時はいつも最新を取りに行き、取れない時だけ控えを使います。新しい版は、全部そろって確かめてから入れ替わるので、途中で電波が切れても古い版のまま動きます。「本体の控えを削除」で控えと登録を消せます (次に開く時に通信して作り直します)。iPhone では、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります (ホーム画面に追加した宙の辻は消されません)。</li>
-                        <li><strong>端末のデータ</strong>: 「端末のデータ」の欄に、全体 (ブラウザの見積もり)・永続・前回の整理・設定 (登録内容)・地理タイル・標高タイル・建物 (PLATEAU)・天気の控え・本体の控えの件数と容量、最終使用、使用率 (%) が並びます。地理/標高/建物の控えは、<strong>30日使っていない物</strong>と<strong>上限の9割を超えた分 (古い順に8割まで)</strong> を自動で片付けます (起動の少し後と、画面に戻った時に1日1回。「今すぐ整理」でいつでも)。天気の控えは2時間 (TTL=有効期限) を過ぎた物を片付けます。各行の<strong>上限 (MB)</strong> はこの端末だけの設定で (バックアップや Google ドライブ同期には乗りません)、空欄にすると既定 (1024MB) に戻ります。可視マップの資産は自動では消しません。「永続化を要求」は、ブラウザに「容量不足でもこのサイトのデータを消さない」を頼みます (許可するかはブラウザの判断です)。</li>
-                        <li><strong>オフラインでの利用方法</strong>: ①電波のある所で宙の辻を一度開いて少し待ちます (「本体の控え」に件数・版・最終更新日時が出れば完了)。②使う予定の範囲の地図を一度表示し、標高グラフや辻検索を一度動かしておきます (地図・標高の控えができます)。③電波が無くなっても宙の辻を開き直せます (版の横に「(オフライン表示)」が出ます)。<strong>iPhone/iPad</strong>: Safari も Chrome も同じ仕組み (WebKit) で、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります。<strong>ホーム画面に追加</strong> (共有ボタン →「ホーム画面に追加」) した宙の辻は消されません。ただしホーム画面の宙の辻とブラウザのタブの宙の辻はデータの入れ物が別なので、My観測点などはバックアップ/インポートか Google ドライブ同期で移してください。<strong>Android</strong>: Chrome のメニューから「ホーム画面に追加」すると、容量不足でも消されにくくなります (「永続化を要求」も)。<strong>できないこと</strong>: 地図・標高・建物・天気は「一度見た範囲」だけです。Google ドライブ同期・地名検索・天気の取得・写真テクスチャの新しい範囲には通信が要ります (Plus Code のフルコードは通信なしで変換できます)。</li>
+                        <li><strong>本体の控え (オフライン用)</strong>: 宙の辻の本体 (画面・プログラム・同梱データ) を版ごとに端末に控え、電波の無い所でも宙の辻を<strong>開ける</strong>ようにします (地図・標高・建物は上の控えのある範囲だけ)。開く時はいつも最新を取りに行き、取れない時だけ控えを使います。新しい版は、全部そろって確かめてから入れ替わるので、途中で電波が切れても古い版のまま動きます。「本体の控えを削除」で控えと登録を消せます (次に開く時に通信して作り直します)。iPhone では、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります (ホーム画面に追加した宙の辻は消されません)。</li>
+                        <li><strong>端末のデータ</strong>: 「端末のデータ」の欄に、全体 (ブラウザの見積もり)・永続・前回の整理・設定 (登録内容)・地理タイル・標高タイル・建物 (PLATEAU)・本体の控えの件数と容量、最終使用、使用率 (%) が並びます。地理/標高/建物の控えは、<strong>30日使っていない物</strong>と<strong>上限の9割を超えた分 (古い順に8割まで)</strong> を自動で片付けます (起動の少し後と、画面に戻った時に1日1回。「今すぐ整理」でいつでも)。各行の<strong>上限 (MB)</strong> はこの端末だけの設定で (バックアップや Google ドライブ同期には乗りません)、空欄にすると既定 (1024MB) に戻ります。可視マップの資産は自動では消しません。「永続化を要求」は、ブラウザに「容量不足でもこのサイトのデータを消さない」を頼みます (許可するかはブラウザの判断です)。</li>
+                        <li><strong>オフラインでの利用方法</strong>: ①電波のある所で宙の辻を一度開いて少し待ちます (「本体の控え」に件数・版・最終更新日時が出れば完了)。②使う予定の範囲の地図を一度表示し、標高グラフや辻検索を一度動かしておきます (地図・標高の控えができます)。③電波が無くなっても宙の辻を開き直せます (版の横に「(オフライン表示)」が出ます)。<strong>iPhone/iPad</strong>: Safari も Chrome も同じ仕組み (WebKit) で、7日ほど宙の辻を開かないとブラウザが控えを消すことがあります。<strong>ホーム画面に追加</strong> (共有ボタン →「ホーム画面に追加」) した宙の辻は消されません。ただしホーム画面の宙の辻とブラウザのタブの宙の辻はデータの入れ物が別なので、My観測点などはバックアップ/インポートか Google ドライブ同期で移してください。<strong>Android</strong>: Chrome のメニューから「ホーム画面に追加」すると、容量不足でも消されにくくなります (「永続化を要求」も)。<strong>できないこと</strong>: 地図・標高・建物は「一度見た範囲」だけです。Google ドライブ同期・地名検索・写真テクスチャの新しい範囲には通信が要ります (Plus Code のフルコード・Google マップの URL・「緯度,経度」は通信なしで変換できます)。</li>
                     </ul>
                 </section>
 

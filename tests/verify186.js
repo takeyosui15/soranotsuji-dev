@@ -2,7 +2,7 @@
 // ①時間フィルタに「月の出」「月の入」(辻検索/辻メッシュ/My辻検索の開始・終了の基準。「GH[終]」と「GH[始]」の間。無い日は通さない。短縮URL辞書v23)
 // ②観測点を地名/座標/地図/GPS/写位で置いた時の高さ 1.5m(SORA.OBSERVER.EYE_HEIGHT_M。Hom の既定 150m と目的点 0 は不変)
 // ③位置情報メニューの「写位」(写真のExif位置情報→ラジオで選択中の観測点(°)/目的点(°))
-// ④宙の窓検索のコントロール: 2つのラジオ(択一)+各段の「リセット」(幅1/3・右寄せ)+注記の文(デッサン05 4.1〜4.3段目)
+// ④宙の窓のコントロール: 2つのラジオ(択一)+各段の「リセット」(幅1/3・右寄せ)+注記の文(デッサン05 4.1〜4.3段目)
 // ⑤二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない不具合(棚卸し460)
 // 方式: 静的な形(S)+実機(Playwright。外部は route abort・標高取得はスタブ)。
 'use strict';
@@ -68,8 +68,8 @@ check('S3 写位: 位置情報メニューの「高移」の次の段(目的点�
   /async function setLocationFromPhoto\(file\) \{[\s\S]*?_exifGpsFromArrayBuffer\(await file\.arrayBuffer\(\)\)[\s\S]*?await applyLocationCoords\(\{ lat, lng \}, isStart\);\n\}/.test(src) &&
   html.includes('<li><strong>写位 (写真の位置)</strong>'));
 
-// ---- S4: 宙の窓検索のコントロール(静的) ----
-check('S4 宙の窓検索ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が初期)+各段の「リセット」(sora-ctrl-reset=幅1/3・右寄せ)+「辻検索」「辻メッシュ」+注記の文+ヘルプ+CSS',
+// ---- S4: 宙の窓のコントロール(静的) ----
+check('S4 宙の窓ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が初期)+各段の「リセット」(sora-ctrl-reset=幅1/3・右寄せ)+「辻検索」「辻メッシュ」+注記の文+ヘルプ+CSS',
   /<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-frame"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-frame" value="frame" checked>:構図をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-frame" class="nav-btn sora-ctrl-reset"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row left-row sora-ctrl-drag-row">\s*<label class="baseopt-radio" for="chk-sora-ctrl-drag-tsuji"[^>]*><input type="radio" name="sora-ctrl-drag" id="chk-sora-ctrl-drag-tsuji" value="tsuji">:辻オフセット点をドラッグ\(二本指\)で変更<\/label>\s*<button id="btn-sora-ctrl-reset-tsuji" class="nav-btn sora-ctrl-reset"[^>]*>リセット<\/button>\s*<\/div>\s*<div class="control-row main-buttons-row sora-ctrl-search-row">/.test(html) &&
   html.includes('プレビュー下のコントロールメニューから構図を見ながら辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。</span>') &&
   html.includes('各段の右の<strong>「リセット」</strong>は、構図の段ではカメラオフセット方位角/視高度を0に、辻オフセット点の段では辻オフセット方位角/視高度を0に戻します') &&
@@ -178,7 +178,7 @@ check('S4 宙の窓検索ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が�
     near(a3.s.lat, 35.36075) && near(a3.s.lng, 138.727361) && a3.s.api === 100 && a3.s.h === 1.5 && a3.s.elev === 101.5 && a3.s.box.includes('138.727361') &&
     a3.confirms === 2 && a3.alerts === 1 && a3.unchanged, JSON.stringify(a3));
 
-  // ---- A4: 宙の窓検索ctrl(実機): ラジオの択一・各段のリセット・二本指(ドラッグ)後にカメラの「リセット」が効く(棚卸し460)・リセットの幅 ----
+  // ---- A4: 宙の窓ctrl(実機): ラジオの択一・各段のリセット・二本指(ドラッグ)後にカメラの「リセット」が効く(棚卸し460)・リセットの幅 ----
   await p.evaluate(() => { document.getElementById('btn-soramado').click(); });
   await p.waitForFunction(() => appState.isSoramadoActive && typeof _smInited !== 'undefined' && _smInited, { timeout: 15000 }).catch(() => {});
   await p.evaluate(() => { const h = document.getElementById('soramado-ctrl-header'); if (h && document.getElementById('soramado-ctrl-body').classList.contains('hidden')) h.click(); });
@@ -218,7 +218,7 @@ check('S4 宙の窓検索ctrl: 2つのラジオ(name=sora-ctrl-drag・構図が�
     const r = row.getBoundingClientRect(), bb = btn.getBoundingClientRect();
     return { row: r.width, btn: bb.width, rightGap: r.right - bb.right, both: document.querySelectorAll('#soramado-ctrl-body .sora-ctrl-reset').length, radios: document.querySelectorAll('input[name="sora-ctrl-drag"]').length };
   });
-  check('A4 宙の窓検索ctrl(実機): 構図のドラッグで戻り先を覚えカメラの「リセット」で戻る(460)→ctrlの構図「リセット」で0→ラジオ=辻オフセット点(構図は外れる)でドラッグ=辻オフセット増・カメラ不変→構図へ戻しても辻オフセットはそのまま(第184)→辻オフセット点の「リセット」で0(辻メッシュ側も)→構図へ戻しても0のまま。リセットは行の幅の1/3で右端',
+  check('A4 宙の窓ctrl(実機): 構図のドラッグで戻り先を覚えカメラの「リセット」で戻る(460)→ctrlの構図「リセット」で0→ラジオ=辻オフセット点(構図は外れる)でドラッグ=辻オフセット増・カメラ不変→構図へ戻しても辻オフセットはそのまま(第184)→辻オフセット点の「リセット」で0(辻メッシュ側も)→構図へ戻しても0のまま。リセットは行の幅の1/3で右端',
     cvBox.ok && s0 && b0.frame && !b0.tsuji && b0.df && !b0.dt && b0.cam === null &&
     b1.az < -0.01 && b1.cam && b1.cam.az === 0 && b1.cam.alt === 0 && b1.taz === 1.5 &&
     b2.az === 0 && b2.alt === 0 && b2.cam === null &&
