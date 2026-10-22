@@ -157,6 +157,62 @@ check('S6 文書: 重要なお知らせの下書きは note-important-notice-pag
   check('U4 宙の窓 ctrl のラジオ: 字を 17px にしても 20px のまま(他のメニューのラジオと同じ・flex-shrink 0。直す前は 13〜15px に縮んでいた)',
     u4.w0.every(w => Math.abs(w - 20) < 0.01) && u4.w1.every(w => Math.abs(w - 20) < 0.01) && u4.ref === '20px' && u4.shrink === '0', JSON.stringify(u4));
 
+  // ---- A1: 探索テストの直し(第186): 共有プール tsujiPool の4つの流れの排他(_tsujiFlowsCancelAll)・パネルを閉じると File取得も止まる・止められたチャンクは canceled の印 ----
+  const a1 = await p.evaluate(async () => {
+    const out = {};
+    _tsujiFileRunning = true; myTsujiBatchRunning = true; myTsujiFileRunning = true;
+    const g = [appState.tsujiSearchGeneration, _tsujiFileGen, myTsujiBatchGen, myTsujiFileGen];
+    for (const id of ['btn-tsuji-file', 'btn-mytsuji-batch', 'btn-mytsuji-file']) document.getElementById(id).classList.add('active');
+    _tsujiFlowsCancelAll('(テスト)');
+    out.flags = [_tsujiFileRunning, myTsujiBatchRunning, myTsujiFileRunning];
+    out.gens = [appState.tsujiSearchGeneration - g[0], _tsujiFileGen - g[1], myTsujiBatchGen - g[2], myTsujiFileGen - g[3]];
+    out.btns = ['btn-tsuji-file', 'btn-mytsuji-batch', 'btn-mytsuji-file'].map(id => document.getElementById(id).classList.contains('active'));
+    out.status = document.getElementById('tsujisearch-status').textContent;
+    appState.isTsujiSearchActive = true; _tsujiFileRunning = true; const f0 = _tsujiFileGen; document.getElementById('btn-tsuji-file').classList.add('active');
+    toggleTsujiSearch();   // 閉じる側
+    out.close = { running: _tsujiFileRunning, gen: _tsujiFileGen - f0, btn: document.getElementById('btn-tsuji-file').classList.contains('active'), active: appState.isTsujiSearchActive };
+    const pr = runTsujiChunks({ bodyMsg: { id: 'Sun', fixed: false }, observerData: { lat: 35, lng: 139, elev: 0 }, astroRefraction: true, targetAz: 90, targetAlt: 10, toleranceAz: 5, toleranceAlt: 5, centerMode: 'point', centerAz0: 90, centerAlt0: 10, searchStartMs: Date.now(), days: 400, maxResults: 100, onChunkDone: null });
+    await new Promise(r => setTimeout(r, 30)); tsujiPool.terminateAll();
+    const chunks = await pr; out.chunks = chunks.map(c => !!c.canceled);
+    return out;
+  });
+  check('A1 探索テストの直し: _tsujiFlowsCancelAll で辻検索 File取得/My辻 一括計算/My辻 File取得の旗が全部降り、4つの世代が進み、3つのボタンが消灯し、状態の文が書かれる・パネルを閉じる(toggleTsujiSearch)と File取得が取り消される・terminateAll で止めたチャンクは canceled の印(欠けた CSV を出さない)',
+    a1.flags.join() === 'false,false,false' && a1.gens.join() === '1,1,1,1' && a1.btns.join() === 'false,false,false' && a1.status === '(テスト)' &&
+    a1.close.running === false && a1.close.gen === 1 && a1.close.btn === false && a1.close.active === false && a1.chunks.length === 2 && a1.chunks.every(Boolean), JSON.stringify(a1));
+
+  // ---- A2: 「緯度,経度」の範囲外は受けず案内・地名検索の正規化を3経路で同じに・My観測点の行は blur(change)でも Plus Code を確定して標高を取り直す ----
+  const a2 = await p.evaluate(async () => {
+    const out = { range: [parseInput('95, 139.7'), parseInput('35.6, 190'), parseInput('139.7, 35.6'), parseInput('Infinity, 139'), parseInput('35.6, 139.7')],
+      oor: [_coordOutOfRange('139.7, 35.6'), _coordOutOfRange('東京'), _coordOutOfRange('35.6,139.7'), _coordOutOfRange('(95, 139)')],
+      norm: [_normLocQuery('港区1-2-3'), _normLocQuery('Matterhorn'), _normLocQuery('  Ayers Rock ')] };
+    const s0 = appState.start.lat; await handleLocationInput('95, 139.7', true, false); out.startSame = appState.start.lat === s0;
+    const ge = window.getElevation; window.getElevation = async () => 42;
+    try {
+      appState.myObservations = [{ id: Date.now(), name: 't', lat: null, lng: null, elev: 0, height: 0, memo: '', checked: false }]; renderMyPointsList('obs');
+      const inp = document.querySelector('.mypoint-latlng'); inp.value = '8Q7XMQPJ+2V'; inp.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 200));
+      const pt = appState.myObservations[0]; out.blur = { lat: pt.lat, lng: pt.lng, elev: pt.elev, box: inp.value, maxlength: inp.getAttribute('maxlength') };
+    } finally { window.getElevation = ge; appState.myObservations = []; renderMyPointsList('obs'); }
+    out.maxlen = ['input-start-latlng', 'input-end-latlng', 'input-fw-latlng', 'input-fw-ctrl-latlng'].map(id => document.getElementById(id).getAttribute('maxlength'));
+    return out;
+  });
+  check('A2 範囲外の「緯度,経度」(95,139.7 / 35.6,190 / 139.7,35.6 / Infinity)は null で観測点は動かず案内のダイアログ・_coordOutOfRange は数値の組だけ true・正規化は日本語を含む時だけ全角(英字は無変換)・My観測点の行は blur で Plus Code が座標になり標高も取得・座標欄の maxlength は 2048(URL が切れない)',
+    a2.range.slice(0, 4).every(r => r === null) && a2.range[4] && a2.range[4].lat === 35.6 && a2.oor.join() === 'true,false,false,true' && a2.norm.join('|') === '港区１－２－３|Matterhorn|Ayers Rock' &&
+    a2.startSame && dialogs.some(d => d.startsWith('緯度は -90〜90、経度は -180〜180')) &&
+    Math.abs(a2.blur.lat - 35.6850625) < 1e-6 && Math.abs(a2.blur.lng - 139.7821875) < 1e-6 && a2.blur.elev === 42 && a2.blur.maxlength === '2048' && a2.maxlen.every(m => m === '2048'), JSON.stringify(a2));
+
+  // ---- A3: 結果CSVの書き手(createTsujiCsvWriter): 行を Blob の部品へ流し、downloadTextFile は Blob の配列を1つの Blob に(列見出しは第185のまま) ----
+  const a3 = await p.evaluate(async () => {
+    let got = null; const oc = URL.createObjectURL, ok = HTMLAnchorElement.prototype.click; URL.createObjectURL = (bl) => { got = bl; return 'blob:x'; }; HTMLAnchorElement.prototype.click = () => {};
+    try {
+      const w = createTsujiCsvWriter(); const c0 = w.count; w.finish('t.csv');
+      const text = got ? await got.text() : null;
+      return { c0, size: got && got.size, head: text && text.slice(0, 30), cols: text ? text.trim().split(',').length : 0, rows: TSUJI_CSV_BLOB_ROWS };
+    } finally { URL.createObjectURL = oc; HTMLAnchorElement.prototype.click = ok; }
+  });
+  check('A3 結果CSVの書き手: 見出しだけの finish で Blob が1つ(66列・BOM 付き・先頭は「辻検索ID」)・TSUJI_CSV_BLOB_ROWS=5000',
+    a3.c0 === 0 && a3.size > 1000 && a3.head.startsWith('辻検索ID,辻検索名') && a3.cols === 66 && a3.rows === 5000, JSON.stringify(a3));
+
   check('E ページエラーなし', errs.length === 0, errs.join(' | ').slice(0, 300));
   await b.close();
   console.log(`\n結果: ${PASS} PASS / ${FAIL} FAIL`);

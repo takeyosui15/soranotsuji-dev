@@ -802,7 +802,7 @@ GNU General Public License for more details.
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点(°):</label>
-                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(宙の窓メニューと連動)">
+                    <input type="text" id="input-fw-ctrl-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="2048" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(宙の窓メニューと連動)">   <!-- maxlength 2048(第186。観測点欄と同じ) -->
                 </div>
                 <div class="control-row">
                     <label class="input-label tsujisearch-label">打ち上げ点標高(m):</label>
@@ -906,7 +906,7 @@ GNU General Public License for more details.
                             <button id="btn-reg-start" class="nav-btn small" title="現在の観測点を初期値として登録">Hom</button>
                         </div>
                         <label class="input-label">観測点(°):</label>
-                        <input type="text" id="input-start-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で観測点を設定">
+                        <input type="text" id="input-start-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="2048" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で観測点を設定">   <!-- maxlength 2048: 地図URLはピン(data=…!3d!4d)まで150字を超え、貼り付けも切り詰められて画面中心の座標や短縮URLの案内になる(第186) -->
                     </div>
 
                     <div class="control-row">
@@ -939,7 +939,7 @@ GNU General Public License for more details.
                             <button id="btn-move-peak" class="nav-btn small" title="準最高地点移動: 選択中の点を近傍のより高い小ピークへ移動">高移</button>
                         </div>
                         <label class="input-label">目的点(°):</label>
-                        <input type="text" id="input-end-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="150" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で目的点を設定">
+                        <input type="text" id="input-end-latlng" placeholder="Plus Code、緯度,経度、地図URL" maxlength="2048" title="Plus Code(フルコード例: 8Q7XMQPJ+2V / 短縮形例: MQPJ+2V 港区)・「緯度,経度」・Google マップ/Apple マップの URL(地点のピンの URL。短縮URLは不可)・度分秒・地名・およその住所で目的点を設定">   <!-- maxlength 2048(第186。観測点欄と同じ) -->
                     </div>
 
                     <div class="control-row">
@@ -1486,7 +1486,7 @@ GNU General Public License for more details.
                         <button id="btn-kashimap-store-selall" class="nav-btn main-btn" title="一覧のチェックを全て付ける(全部付いていれば全て外す)">一括選択</button>
                     </div>
                     <div class="control-row km-store-actions">
-                        <button id="btn-kashimap-store-dl" class="nav-btn main-btn" title="チェックした可視タイルを1つのJSONファイルにFile出力します(別の端末でFile読込できます)" disabled>⬇DL</button>
+                        <button id="btn-kashimap-store-dl" class="nav-btn main-btn" title="チェックした可視タイルを1つのJSONファイルにFile出力します(別の端末でFile読込できます。実行中にもう一度押すとキャンセルします)" disabled>⬇DL</button>
                         <button id="btn-kashimap-store-del" class="nav-btn main-btn" title="チェックした可視タイルを端末から削除します(サーバーの資産は消えません)" disabled>削除</button>
                         <button id="btn-kashimap-store-apply" class="nav-btn main-btn" title="目的点名の変更を端末の資産に反映します(変更があると赤い太字になります)">全て登録</button>
                     </div>
@@ -1717,7 +1717,7 @@ GNU General Public License for more details.
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点(°):</label>
-                        <input type="text" id="input-fw-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">
+                        <input type="text" id="input-fw-latlng" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="2048" title="地名・およその住所・「緯度,経度」・Plus Code・Google マップ/Apple マップの URL(短縮URLは不可)・度分秒で打ち上げ点を設定(初期値は目的点と同じ。明示設定まで目的点に追従)">   <!-- maxlength 2048(第186。観測点欄と同じ) -->
                     </div>
                     <div class="control-row">
                         <label class="input-label">打ち上げ点標高(m):</label>
@@ -2628,7 +2628,7 @@ GNU General Public License for more details.
                         <li><strong>-</strong>: 上記以外で許容範囲内</li>
                     </ul>
                     <p>検索は1分間隔の粗スキャン → ベスト時刻の前後60秒を1秒単位リファインで実行。各天体最大36500件 (100年分)。太陽・月の視半径は ≈ 0.26°。</p>
-                    <p>結果リストの<strong>時間帯</strong>列は、辻時刻がその日の薄明・日の出/日の入で区切った12区分のどこに入るか (例 <code>日の出&lt;=x&lt;12時</code>) を示します。</p>
+                    <p>結果リストの<strong>時間帯</strong>列は、辻時刻がその日の薄明・日の出/日の入・BH/GH (ブルーアワー/ゴールデンアワー) の境目で区切った16区分のどこに入るか (例 <code>日の出&lt;=x&lt;GH[終]</code>) を示します。</p><!-- (第186) TIME_CATEGORY_LABELS は16要素。旧「12区分/日の出<=x<12時」は BH/GH 追加前の表記 -->
                 </section>
 
                 <section class="help-section">
@@ -2645,11 +2645,11 @@ GNU General Public License for more details.
                             <ul>
                                 <li><strong>タイルの色</strong>: ヒット件数のグラデーション。1件=メッシュマーカー色 (スライダーで調整・既定は白)、件数が多いほど金色に近づき、最大件数のタイル (2件以上) は<strong>金と赤の斜め縞模様</strong>で最多ヒットの場所が一目で分かります (0件の画素は無色)。</li>
                                 <li><strong>ホバー / タップ</strong>: 「メッシュマーカー(XX件)」の件数ポップアップを表示し、その画素の全ヒットを<strong>詳細リスト</strong> (結果リストとコントロールの間) に全件表示します。</li>
-                                <li><strong>詳細リスト</strong>: 列=マーク★・天体・精度記号・精度角距離・日付・曜日・辻時刻 (0.01秒)。見出しクリックで列毎にソートでき (昇順▲/降順▼)、ソート順は別の画素にホバーしても保持されます。ホバーが外れても最後の内容を保持します。</li>
+                                <li><strong>詳細リスト</strong>: 列はマーク★を先頭に、結果リストと同じ24列 (天体ID・天体名・精度記号・精度角距離・日付・曜日・辻時刻 (0.01秒)・時間帯・日の出時刻・日の入時刻・月の出時刻・月の入時刻・月齢・月齢アイコン・月輝面比・方位角・視高度・視半径・検索中心・検索中心方位角差・検索中心視高度差・オフセット中心角・可視判定)。見出しクリックで列毎にソートでき (昇順▲/降順▼)、ソート順は別の画素にホバーしても保持されます。ホバーが外れても最後の内容を保持します。</li><!-- (第186) 詳細リストの列をthead(_tmUpdateDetailList)の24列と揃えた -->
                                 <li><strong>クリックで確定 (PC)</strong>: 画素をクリックすると件数ポップアップと詳細リストがその画素に固定されます (観測点は移動しません。ポップアップを閉じると解除)。観測点マーカーのホバー/ポップアップ表示中も同様に観測点の画素に固定されます。</li>
                                 <li><strong>詳細リストの行クリック</strong>: その天体×日付の行が結果リストで選択され、<strong>観測点がその画素に移動</strong>します。辻時刻コントロール・日時情報メニュー・辻ラインもその行の辻日時に移動し、優辻マーカーが立ちます。地図上のどの帯でも「そこに立った時の辻」へ飛べます。</li>
                                 <li><strong>検索直後の初期画面</strong>: 最大ズーム-3で観測点が中央に表示されます (行の自動選択・日時の移動はしません)。</li>
-                                <li><strong>File取得</strong>: 辻メッシュ検索を実行し、完了後に全ヒット画素を CSV で保存します (1段目=検索、2段目=全画素の精細化、3段目=CSV生成。進み具合は結果パネルに出ます)。実行中にもう一度押すと、その取得をキャンセルします。</li>
+                                <li><strong>File取得</strong>: 辻メッシュ検索を実行し、完了後に全ヒット画素を CSV で保存します (1段目=検索、2段目=全画素の精細化と CSV 生成、3段目=ファイルの保存。進み具合は結果パネルに出ます。行数が多いと確認の画面に CSV の大きさの目安が出ます)。実行中にもう一度押すと、その取得をキャンセルします。</li>
                             </ul>
                         </li>
                         <li><strong>辻マーカー (天体色領域)</strong>: メッシュマーカーのうち、コントロールで指定した<strong>辻時刻(±幅s)に精度フィルタ以内で辻が成立する画素</strong>を、その場で再計算し、<strong>選択行の天体色</strong>で表示します (上限 = 検索エリアの全画素 = 全て表示)。カーソルを合わせる (PC) かタップ (スマホ) するとその画素の<strong>辻日付・辻時刻 (0.01秒精度)・精度角距離</strong>をポップアップ表示します。PCではクリックで位置を確定してポップアップを表示します (観測点は移動しません)。<strong>ポップアップの内容はホバーでハイライトされ、クリック (スマホはタップ) すると観測点がその画素に移動</strong>し、該当行 (選択中の行) が結果リストに表示されます。</li>

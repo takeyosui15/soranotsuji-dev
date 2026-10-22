@@ -13,7 +13,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Version History:
-Version 1.99.3 - 2026-10-22: feat/fix: 第186ラウンド — ①Google マップ/Apple マップの URL・geo: URI・度分秒(35°39'30.9"N 139°44'43.6"E)から観測点/目的点/花火打ち上げ点を設定できるように(parseInput の入口で Plus Code の次に判定。地点のピン !3d緯度!4d経度 → 区切りの「緯度,経度」/度分秒(/place/・/search/・/dir/ の終点) → 問い合わせ q=/query=/ll=/coordinate= 等 → @画面中心、の順。通信なし。短縮URL maps.app.goo.gl は転送先を読めない(CORS)ので地名検索へ回さず案内文 _MAP_URL_HINT を出す。依頼者: 地理院の地名検索より Google マップの URL からの変換を先に) ②端末のデータの「天気の控え」の行(backup-wx-block)を宙検索/宙断面の封鎖(FEATURE_FORECAST_ENABLED)に連動して隠す(依頼者: ずっと先の機能で利用者が気を揉まないように。ヘルプ/FAQ/リリースノートの天気の記述も外す。片付けワーカーの TTL の処理はそのまま) ③宙の窓 ctrl の構図/辻オフセット点のラジオが Mac で他より小さく見える: 文が折り返す段の flex の中でラジオ(flex-shrink 1)が縮んでいた → label の中のラジオ/チェックボックスは flex 0 0 auto(全メニュー共通の規則に1語) ④「宙の窓検索」の名前を「宙の窓」へ戻す(位置情報メニューのボタン・ヘルプの節・README・docs/note の案・リリースノート。依頼者: 検索の単機能ではなくプレビューを主にして天気と絡める構想) ⑤ロゴを図形の SVG に描き直し(logo.svg: 円=日と三角=山・どちらも下 #ff0000 → 上 #ee7800 の縦グラデーション。三角の底辺は正方形の下辺の左端から中点まで・頂点は右上の角・円は中点からの垂線と上辺と三角の長辺に接する半径 (S/2)/(2+√2)。元の埋め込み PNG と形の一致 99.6%)。logo.png(100)・apple-touch-icon.png(180)・favicon.ico(16/32/48/64)・icon-192/512.png を SVG から再生成 ⑥移行用の meta app-version を index.html から削除(v1.99.0 の Service Worker は開発サイトを開いた依頼者の端末だけの話で、1.99.2 を一度開けば入れ替わっているので橋は不要。verify187/188/189 の検査は「meta 無し」へ)
+Version 1.99.3 - 2026-10-22: feat/fix: 第186ラウンド — ①Google マップ/Apple マップの URL・geo: URI・度分秒(35°39'30.9"N 139°44'43.6"E)から観測点/目的点/花火打ち上げ点を設定できるように(parseInput の入口で Plus Code の次に判定。地点のピン !3d緯度!4d経度 → 区切りの「緯度,経度」/度分秒(/place/・/search/・/dir/ の終点) → 問い合わせ q=/query=/ll=/coordinate= 等 → @画面中心、の順。通信なし。短縮URL maps.app.goo.gl は転送先を読めない(CORS)ので地名検索へ回さず案内文 _MAP_URL_HINT を出す。依頼者: 地理院の地名検索より Google マップの URL からの変換を先に) ②端末のデータの「天気の控え」の行(backup-wx-block)を宙検索/宙断面の封鎖(FEATURE_FORECAST_ENABLED)に連動して隠す(依頼者: ずっと先の機能で利用者が気を揉まないように。ヘルプ/FAQ/リリースノートの天気の記述も外す。片付けワーカーの TTL の処理はそのまま) ③宙の窓 ctrl の構図/辻オフセット点のラジオが Mac で他より小さく見える: 文が折り返す段の flex の中でラジオ(flex-shrink 1)が縮んでいた → label の中のラジオ/チェックボックスは flex 0 0 auto(全メニュー共通の規則に1語) ④「宙の窓検索」の名前を「宙の窓」へ戻す(位置情報メニューのボタン・ヘルプの節・README・docs/note の案・リリースノート。依頼者: 検索の単機能ではなくプレビューを主にして天気と絡める構想) ⑤ロゴを図形の SVG に描き直し(logo.svg: 円=日と三角=山・どちらも下 #ff0000 → 上 #ee7800 の縦グラデーション。三角の底辺は正方形の下辺の左端から中点まで・頂点は右上の角・円は中点からの垂線と上辺と三角の長辺に接する半径 (S/2)/(2+√2)。元の埋め込み PNG と形の一致 99.6%)。logo.png(100)・apple-touch-icon.png(180)・favicon.ico(16/32/48/64)・icon-192/512.png を SVG から再生成 ⑥移行用の meta app-version を index.html から削除(v1.99.0 の Service Worker は開発サイトを開いた依頼者の端末だけの話で、1.99.2 を一度開けば入れ替わっているので橋は不要。verify187/188/189 の検査は「meta 無し」へ) ⑦探索テスト(依頼者: File取得の不具合と同類・同件・異種同系の発掘)=Workflow(8視点の探索→反証(低1/中高2レンズ)→直し案。131 エージェント)で 57→47(重複統合)→確認 44・反証 3。直した物: (a)共有プール tsujiPool の4つの流れ(パネルの辻検索・辻検索 File取得・My辻 一括計算・My辻 File取得)の排他を _tsujiFlowsCancelAll に一本化(閉じる=全部止める・後から始めた方が勝つ・2度押しは即キャンセル・装飾/CSV 生成の間も実行中のまま・進捗の更新は世代で守る・ワーカーの終了は canceled の印で欠けた CSV を出さない。以前はパネルを閉じると辻検索/My辻の File取得が欠けた CSV を「出力完了」として落とし、片方の terminateAll が他方の結果を黙って欠けさせ、My辻のキャンセルは行の切れ目でしか効かなかった) (b)辻メッシュ 結果コントロールの「File出力」を busy/世代の守りの中に(2度押し=キャンセル・両ボタン点灯・出力は検索時の画素集合のスナップショット) (c)結果CSVの書き手 createTsujiCsvWriter(5,000行ごとに文字列を Blob の部品へ=数百万行の辻メッシュ File取得で JS ヒープが溢れない。確認文に概算MBと分けて取得の案内) (d)短縮URLの上限を発行側にも(展開側は 4,194,304 文字へ。My天体 1,000 件の正当な URL が壊れている扱いにならない) (e)可視マップ資産の ⬇DL/File出力は資産ごとの JSON を parts で (f)設定の保存の容量超過の警告は失敗の連続につき1回(成功で戻す) (g)Myセットの複製/一括更新の2度押しは無視 (h)地名検索の連打・Enter のリピート・候補の後着を世代で(_locSearchGen・_enterKeyFresh) (i)My観測点/My目的点の行: blur でも Enter と同じ入口(Plus Code/URL/度分秒)で確定して標高を取り直す(applyPt を行のスコープへ・ptSeq)・地名検索の正規化を3経路で同じに(_normLocQuery)・CSV出力の座標未設定は空欄で取り込みも通す・名前/メモの半角カンマは全角「，」(csvCell) (j)「緯度,経度」の範囲外(±90/±180 超・Infinity)は受けずに案内(_llOk・_coordOutOfRange。観測点に 95 が入ると以後の updateAll が例外で止まっていた) (k)座標欄の maxlength 150→2048(Google マップの URL が切れてピンが落ちていた) (l)花火点の標高の追い越し防止(_fwSetSeq) (m)辻ライン365 のラベルが NN% のまま・標高グラフ/可視マップの中断後の進捗の書き戻し・宙断面のモード切替の追い越し (n)ワーカープール(辻ライン dpPool・宙の窓の地形/動画)のエラー処理(落ちた台を作り直し約束を空で決着)と動画プールのキュー破棄 (o)ヘルプ/デッサンの食い違い(時間帯 16区分・辻メッシュ詳細リスト 24列・File取得 CSV の赤緯°/赤経h・旧名「標高フィルタ」「CPU数+1」)。verify190 に A1〜A3
 Version 1.99.2 - 2026-10-21: fix/feat: 第185ラウンド — ①File取得/結果リストの列名「標高グラフ」→「可視判定」(辻検索・辻メッシュ・My辻。依頼者) ②辻メッシュ/辻検索の File取得は実行中の2度押しで1回目をキャンセル・CSV は parts の Blob(join しない=Invalid string length を避ける)・2段目の進み具合の文 ③端末のデータ: 建物と本体の控えに最終更新日時・上限(MB)の空欄=既定の案内 ④ワーカープールを CPU−1(SORA.WORKERS: 片付けのワーカーの隙間) ⑤ヘルプに「オフライン時のデータについて」の節 ⑥写位ボタンの幅を他と揃える ⑦manifest に 192/512 のアイコン(logo.svg から) ⑧移行用 meta は 1.99.2 にも残す(1.99.3 で消す) ⑨セキュリティ監査(claude-security 相当の Workflow)の直し
 Version 1.99.1 - 2026-10-19: feat/fix: 第184ラウンド — ①版の置き場を sora-constants.js の APP_VERSION の1箇所に(SSOT・依頼者: 1箇所を直せば全部に反映。script.js は SORA.APP_VERSION を読む・index.html の meta と sw.js の ?v= を廃止・sw.js は importScripts した版で控えの名前を付け、配信中の版は sora-constants.js を最新で読んで見分ける・verify 群の版の検査は src+sora-constants) ②時間フィルタの並びを 日の出→月の出→GH[終]→GH[始]→月の入→日の入 に(依頼者) ③宙の窓検索ctrl: ラジオを「:構図」へ戻しても辻オフセット点は戻さない(戻すのは「リセット」=0 だけ。依頼者) ④結果リスト/CSV の月の出/月の入の列は翌日なら 24:xx の印(日時情報メニューと同じ。A案・依頼者) ⑤My辻リストCSVのヘッダ「標高フィルタ/標高OK/標高NG」→「可視フィルタ/可視OK/可視NG」(読みは列の位置なので旧ファイルもそのまま読める) ⑥利用規約: 目的の一文(街や自然環境において宙や空を楽しむ)・禁止事項2つ・共有した内容の責任の段落・改定日(依頼者 GO) 反証レビュー24件の直し(移行用 meta・開いているタブは読み直さず「(新しい版あり)」・上限(MB)と整理の時刻は端末だけの鍵・最終使用は used 店・onversionchange・暦日の翌日)。
 Version 1.99.0 - 2026-10-15: feat: 第183ラウンド — ①時間フィルタに「月の出」「月の入」(辻検索・辻メッシュ・My辻検索の開始/終了の基準。依頼者指定で「GH[終]」と「GH[始]」の間。その日に月の出(入)が無い日は、その境界を使うフィルタは何も通さない。短縮URL辞書v23=moonrise/moonset。棚卸し223・verify186) ②観測点を地名/座標/地図/GPS/写位で置いた時の高さを 0 → 1.5m(SORA.OBSERVER.EYE_HEIGHT_M=人の目の高さ)に。Hom の既定(東京タワー 150m)と目的点(0)は不変(棚卸し231) ③位置情報メニューの「高移」の下に「写位」ボタン: 写真の位置情報(Exif)をラジオで選択中の観測点(°)/目的点(°)に入力(標高は緯度経度から取得。My観測点/My目的点の「写真から追加」と同じ端末内の読み取り。棚卸し412) ④宙の窓検索のコントロール(デッサン05 4.1〜4.3段目): 「:構図をドラッグ」「:辻オフセット点をドラッグ」をチェックからラジオ(択一)に・各段に「リセット」(幅はメニュー内側の1/3・右寄せ。構図=カメラオフセット方位角/視高度を0・辻オフセット点=辻オフセット方位角/視高度を0で辻メッシュ側と連動)・宙の窓メニューの注記を「…辻オフセット点を変更して、辻検索・辻メッシュ検索ができます。」に ⑤不具合: 二本指(ドラッグ)で動かした構図がカメラの「リセット」で戻らない(棚卸し460)=ドラッグ開始時にも戻り先(_smCamNudgeBase)を覚える
@@ -2616,8 +2616,8 @@ function setupUI() {
         if (!v) return;
         handleLocationInput(v, isStart, true);
     };
-    iStartName.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameSearch(iStartName, true); });
-    iEndName.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameSearch(iEndName, false); });
+    iStartName.addEventListener('keydown', (e) => { if (_enterKeyFresh(e)) nameSearch(iStartName, true); });   // 長押し(リピート)・IME 確定の Enter は無視(第186)
+    iEndName.addEventListener('keydown', (e) => { if (_enterKeyFresh(e)) nameSearch(iEndName, false); });
 
     // 標高入力（ユーザーが手動で上書き可能。地図クリック等でAPI取得値に上書きされる）
     document.getElementById('input-start-api-elev').addEventListener('change', (e) => {
@@ -2797,13 +2797,11 @@ function setupUI() {
     // batch (Phase C-2/C-3) — 結果は辻検索パネルを再利用
     // 一括計算とFile取得は排他: 一方を押下すると他方がキャンセル
     document.getElementById('btn-mytsuji-batch').onclick = async () => {
-        if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; return; }
-        if (myTsujiFileRunning) await forceCancelMyTsujiFile();
-        runBatchMyTsujiSearch();
+        if (myTsujiBatchRunning) { await forceCancelMyTsujiBatch(); return; }   // 実行中の2度押し=即キャンセル(第186: 以前は印を立てるだけで行の切れ目でしか効かず、最後の行では何も起きなかった)
+        runBatchMyTsujiSearch();   // 他の流れ(File取得・パネルの辻検索)は中で止める(_tsujiFlowsCancelAll)
     };
     document.getElementById('btn-mytsuji-file').onclick = async () => {
-        if (myTsujiFileRunning) { myTsujiFileCanceled = true; return; }
-        if (myTsujiBatchRunning) await forceCancelMyTsujiBatch();
+        if (myTsujiFileRunning) { await forceCancelMyTsujiFile(); return; }   // 同上
         fileBatchMyTsujiSearch();
     };
 
@@ -3059,13 +3057,15 @@ function saveAppState() {
     }
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        saveAppState._warned = false;   // 保存が通ったら警告の予約を戻す(第186: 戻さないと容量を減らした後に再び超えても無音になる)
         _autoSyncArm();   // 「:自動更新」(第127): 変更のたびにデバウンスタイマーを引き直す(オフ時・自動保存中は中で無視)
     } catch (e) {
         // 容量超過(QuotaExceeded)等。呼び出し元(全UIハンドラ約200箇所)を例外で
         // 巻き込まない+無音で保存されない状態を作らない(第36ラウンドの整合性調査)
+        // 警告は「失敗の連続につき1回」(第186: 成功で _warned を戻す。再び超えたらまた1回出る)
         if (!saveAppState._warned) {
             saveAppState._warned = true;
-            alert('設定の保存に失敗しました(ブラウザの保存容量不足の可能性)。\nMyセットのオフライン保持を減らすか、reset.htmlで使用量をご確認ください。');
+            alert('設定の保存に失敗しました(ブラウザの保存容量不足の可能性)。\nMyセットのオフライン保持を減らすか、reset.htmlで使用量をご確認ください。\n(保存が通るまで、以後の変更は端末に残りません。この警告は保存が通るまで一度だけ出ます)');   // 第186: 以後の失敗が無音になる旨を明記
         }
         console.error('saveAppState failed:', e);
     }
@@ -3596,6 +3596,10 @@ function updateAll() {
 // 名前検索で確定した座標の間だけ名前を保持し、座標が他の手段(地図クリック・GPS・Hom・位置反映等)で
 // 変わったら空白へ戻す。入力途中(フォーカス中)は消さない(アニメ中のupdateAll毎秒対策)。
 let _locNamePending = null;                              // 検索ダイアログの確定待ちの側('start'/'end')
+// 地名検索(searchLocation → 候補ダイアログ/alert)の世代(第186): Enter の連打・長押しで検索が重なった時は後の検索が前を捨てる
+// (await 後に自分が最新かを見る。File取得の _tsujiFileGen と同じ作法)。候補を選ぶ/×で閉じた時も進めて、遅れて返った検索が開き直さないように
+let _locSearchGen = 0;
+function _enterKeyFresh(e) { return e.key === 'Enter' && !e.repeat && !e.isComposing && e.keyCode !== 229; }   // キーリピート・IME 確定の Enter では検索しない(第186)
 const _locNameKeep = { start: null, end: null };         // 名前が指す座標(一致する間は名前を保持)
 const _locNameCoordMemo = { start: null, end: null };    // 前回見た座標(変化検出用)
 function _locNameSyncOnCoordChange() {
@@ -3963,9 +3967,10 @@ async function updateDP365Lines() {
 
     // 未計算の天体だけを計算対象に
     const newBodies = visibleBodies.filter(b => !dp365CalculatedBodies.has(b.id));
+    const btn = document.getElementById('btn-dp365');
+    btn.textContent = '辻'; // (第186) 新世代がラベルを引き取る。旧世代の finally は世代不一致で戻さないので、未計算なしの早期 return で「NN%」が残らないように
     if (newBodies.length === 0) return;
 
-    const btn = document.getElementById('btn-dp365');
     const totalDays = 365;
     const totalWork = totalDays * newBodies.length;
     let doneWork = 0;
@@ -4029,6 +4034,7 @@ async function handleLocationInput(val, isStart, fromName) {
         return;
     }
     if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
+    if (_coordOutOfRange(val)) { alert(_COORD_RANGE_HINT); return; }   // 範囲外の「緯度,経度」は地名検索へ回さず案内(第186)
 
     // プラスコードの短縮形(第90ラウンド。例: 「MQPJ+2V 港区」)。基準地名を解決して近傍のセルへ展開する
     const sc = _plusCodeShortParse(val);
@@ -4049,7 +4055,9 @@ async function handleLocationInput(val, isStart, fromName) {
     const inputId = isStart ? 'input-start-latlng' : 'input-end-latlng';
     document.getElementById(inputId).value = fullVal;
 
+    const gen = ++_locSearchGen;   // 連打で重なった検索は後が勝つ(第186)
     const results = await searchLocation(fullVal);
+    if (gen !== _locSearchGen) return;   // 待つ間に次の検索が始まった/候補を選んで閉じた: 古い結果の alert・候補の描き直しをしない(第186)
     if (!results || results.length === 0) {
         alert('該当する地名が見つかりませんでした');
         return;
@@ -4128,6 +4136,7 @@ function showLocationPicker(results, isStartOrCallback) {
 }
 
 function closeLocationPicker() {
+    _locSearchGen++;   // 候補を選んだ/×で閉じた後に、遅れて返った検索がダイアログを開き直さない(第186)
     document.getElementById('location-picker').classList.add('hidden');
 }
 
@@ -4174,6 +4183,8 @@ function csvText(v) {
 }
 /** csvText の逆: 式の先頭文字の前に付けたアポストロフィを外す(取り込み時) */
 function csvUnprefix(t) { return String(t ?? '').replace(/^'(?=[=@+\-\t\r])/, ''); }
+/** csvText + 半角カンマを全角「，」へ(第186): My観測点/目的点/天体/辻検索の CSV は引用符なしの素朴な split(',') で読み戻すので、「全て登録」前の名前・メモに残る半角カンマ(登録時の置換はまだ)で列がずれないよう、書き出しでも登録時と同じ置換を掛ける。File取得の esc(引用符で囲む側)は csvText のまま */
+function csvCell(v) { return csvText(String(v ?? '').replace(/,/g, '，')); }
 /** CSSの色として安全な文字列だけ通す(#RGB/#RRGGBB/#RRGGBBAA か英字の色名)。style="color: …" に差し込む値はこれを通す(第159: 色欄に「;background:url(…)」等を混ぜたバックアップ対策) */
 function safeCssColor(c, def) {
     return (typeof c === 'string' && /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}|[a-zA-Z]{3,20})$/.test(c)) ? c : def;
@@ -4555,33 +4566,71 @@ function _poolSize(touchMax) {
     return Math.max(SORA.WORKERS.MIN, Math.min(cpu - SORA.WORKERS.RESERVE, (touch && touchMax) ? touchMax : SORA.WORKERS.MAX));
 }
 const DP_POOL_SIZE = _poolSize();   // 辻ライン(dp-line-worker)。第185: CPU+1 → CPU−1
+/** (第186) 宙の窓のワーカープール(地形/動画)の起動失敗・例外の後始末。script 取得失敗(SW 未登録の初回・配布直後の圏外)や importScripts 失敗は Worker の error だけが来て、以後の postMessage は黙って捨てられる。
+ *  → 全ワーカーを止め、実行中(busy)と待ち行列(queue)の約束を emptyOf(task) で解決する(永久待ち→進捗バー残り/「再生準備中…」止まり の防止)。呼ぶ側は先にプール変数を null にして、次回 ensure で作り直す。 */
+function _smPoolFail(pool, emptyOf) {
+    for (const w of pool.workers) { try { w.terminate(); } catch (_) {} }
+    for (const [, t] of pool.busy) t.resolve(emptyOf(t));
+    for (const t of pool.queue) t.resolve(emptyOf(t));
+    pool.busy.clear(); pool.queue = []; pool.idle = [];
+}
 let dpWorkerPool = null;       // { workers, idle, queue }
 let dpTaskIdCounter = 0;       // 各タスクのユニークID (世代管理に使用)
 let dpCurrentGeneration = 0;   // 現在の有効世代
 
+/** (第186) 辻ラインのワーカーを1台作る。落ちた台(読み込み失敗・内部例外)には印を付け、次に使う時 _dpReplaceWorker で作り直す(idle の間に落ちた台へ投げると message は二度と来ない) */
+function _dpNewWorker() {
+    const w = new Worker('dp-line-worker.js');
+    w.addEventListener('error', () => { w._dpDead = true; });
+    return w;
+}
+/** (第186) 落ちた台を止めて新しい台に差し替える(workers の同じ席へ) */
+function _dpReplaceWorker(worker) {
+    try { worker.terminate(); } catch (_) {}
+    const fresh = _dpNewWorker();
+    if (dpWorkerPool) { const i = dpWorkerPool.workers.indexOf(worker); if (i >= 0) dpWorkerPool.workers[i] = fresh; }
+    return fresh;
+}
 function ensureDPWorkerPool() {
     if (dpWorkerPool) return dpWorkerPool;
     const workers = [];
     for (let i = 0; i < DP_POOL_SIZE; i++) {
-        workers.push(new Worker('dp-line-worker.js'));
+        workers.push(_dpNewWorker());   // (第186) 落ちた台に印が付く
     }
     dpWorkerPool = { workers, idle: [...workers], queue: [] };
     return dpWorkerPool;
 }
 
 function _dpRunOnWorker(worker, task) {
-    const handler = (e) => {
-        worker.removeEventListener('message', handler);
-        task.resolve(e.data || { points: [], hourStart: task.message.hourStart });
+    if (worker._dpDead) worker = _dpReplaceWorker(worker);   // (第186) idle の間に落ちた台へ投げると約束が永久に未決になる
+    let done = false;
+    const finish = (result, next) => {   // (第186) message/error のどちらで終わっても1回だけ: 約束を解決し、キューの次を引くか idle へ戻す(出口を1つに)
+        if (done) return;
+        done = true;
+        worker.removeEventListener('message', onMessage);
+        worker.removeEventListener('error', onError);
+        worker.removeEventListener('messageerror', onError);
+        task.resolve(result);
+        const w = next || worker;
         // 完了後、キューに次のタスクがあればそれを実行、なければ idle に戻す
         if (dpWorkerPool && dpWorkerPool.queue.length > 0) {
-            const next = dpWorkerPool.queue.shift();
-            _dpRunOnWorker(worker, next);
+            _dpRunOnWorker(w, dpWorkerPool.queue.shift());
         } else if (dpWorkerPool) {
-            dpWorkerPool.idle.push(worker);
+            dpWorkerPool.idle.push(w);
         }
     };
-    worker.addEventListener('message', handler);
+    const onMessage = (e) => {
+        if (e.data && e.data.error) console.warn('辻ラインのワーカーの応答がエラー:', e.data.error);   // (第186) {error} 応答を黙って捨てない
+        finish(e.data || { points: [], hourStart: task.message.hourStart });
+    };
+    const onError = (err) => {   // (第186) 読み込み失敗(importScripts)・ワーカー内の例外: 空の結果で解決し、落ちた台は作り直す(永久待ち・idle 枯れ=辻ラインが二度と出ない/365 が XX% で止まる、を防ぐ。_makeWorkerPool/tmVisPool と同じ形)
+        const msg = (err && err.message) || 'dp-line-worker error';
+        console.warn('辻ラインのワーカーが落ちました(作り直します):', msg);
+        finish({ error: msg, points: [], hourStart: task.message.hourStart }, _dpReplaceWorker(worker));
+    };
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    worker.addEventListener('messageerror', onError);
     worker.postMessage(task.message);
 }
 
@@ -5063,10 +5112,19 @@ function parseInput(val) {
     if (parts.length === 2) {
         const lat = parseFloat(parts[0]);
         const lng = parseFloat(parts[1]);
-        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+        if (!isNaN(lat) && !isNaN(lng)) return _llOk(lat, lng);   // 範囲外(緯度 ±90・経度 ±180 超・Infinity)は null(第186の探索テスト: 手入力だけ無検査で、観測点に 95 が入ると以後の updateAll が例外で止まり、My点は再読込で行ごと消えていた)
     }
     return null;
 }
+/** 「緯度,経度」の形だが範囲外か(parseInput が null を返した理由を利用者に伝える用。第186) */
+function _coordOutOfRange(val) {
+    const parts = String(val || '').replace(/[\(\)\s]/g, '').split(/[,，]/);
+    if (parts.length !== 2 || parts[0] === '' || parts[1] === '') return false;
+    const lat = Number(parts[0]), lng = Number(parts[1]);
+    if (isNaN(lat) || isNaN(lng)) return false;
+    return !_llOk(lat, lng);
+}
+const _COORD_RANGE_HINT = '緯度は -90〜90、経度は -180〜180 の範囲で、「緯度, 経度」の順に入力してください。';
 
 // --- Google Plusコード(Open Location Code)のフルコード復号(第87ラウンド・怒号の項目15) ---
 // 仕様: https://github.com/google/open-location-code (Apache-2.0の公開仕様。復号は通信不要の純関数)
@@ -5248,7 +5306,9 @@ async function _plusCodeResolveShort(sc, applyCb) {
     }
     const hasJapanese = /[぀-ヿ㐀-鿿豈-﫿ｦ-ﾟ]/.test(sc.locality);
     const q = hasJapanese ? toFullWidth(sc.locality) : sc.locality;
+    const gen = ++_locSearchGen;   // 連打で重なった検索は後が勝つ(第186。観測点/目的点と同じ)
     const results = await searchLocation(q);
+    if (gen !== _locSearchGen) return;   // 待つ間に次の検索/候補の確定があった: 古い結果は捨てる(第186)
     if (!results || results.length === 0) {
         alert('プラスコードの基準地名が見つかりませんでした: ' + sc.locality);
         return;
@@ -5259,6 +5319,10 @@ async function _plusCodeResolveShort(sc, applyCb) {
         else alert('プラスコードの短縮形を復元できませんでした');
     });
 }
+
+/** 地名検索に渡す文字列の正規化(第38の規則を1箇所に。第186の探索テスト: 花火点は常に全角化・My観測点/My目的点の行は無変換と三者三様だった):
+ *  日本語(かな/カナ/漢字/半角カナ)を含む時だけ半角英数記号を全角へ(住所の「1-2-3」の揺れ対策)。英字だけの海外地名は無変換(全角化すると OSM で引けない) */
+function _normLocQuery(v) { const t = String(v || '').trim(); return /[぀-ヿ㐀-鿿豈-﫿ｦ-ﾟ]/.test(t) ? toFullWidth(t) : t; }
 
 // --- 半角→全角変換 ---
 function toFullWidth(str) {
@@ -5634,6 +5698,7 @@ async function fetchAllElevations(points, onProgress, generation) {
                 }
             }
 
+            if (generation !== _elevFetchGeneration) return;   // await 後の照合(第186): 中断直後に届いたタイルで新しい実行の進捗バーを書き戻さない
             const fetchedCount = points.filter(p => p.fetched).length;
             if (onProgress) onProgress(fetchedCount, points.length);
         }
@@ -5663,11 +5728,13 @@ async function fetchAllElevations(points, onProgress, generation) {
                     }
                 }
             } catch (e) { /* ignore */ }
+            if (generation !== _elevFetchGeneration) return;   // await 後の照合(第186): Open-Meteo の応答待ちの間に中断された実行は進捗を書かない
             const fetchedCount = points.filter(p => p.fetched).length;
             if (onProgress) onProgress(fetchedCount, points.length);
         }
     }
     // 最終フォールバック: それでも取得できなかったポイントは0
+    if (generation !== _elevFetchGeneration) return;   // 出口の照合(第186): 最後の await の後に中断されていたら 100% を書かない
     for (const pt of points) {
         if (!pt.fetched) { pt.elev = 0; pt.fetched = true; }
     }
@@ -6353,7 +6420,7 @@ function splitCsvLines(text) {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() && !isCsvCommentLine(l));
 }
 /** テキストをファイルとしてダウンロードさせる */
-function downloadTextFile(filename, text, mime = 'text/csv;charset=utf-8') {   // text: 文字列か、文字列の配列(大きな CSV は繋がずに渡す。第185)
+function downloadTextFile(filename, text, mime = 'text/csv;charset=utf-8') {   // text: 文字列か、文字列/Blob の配列(大きな CSV は繋がずに渡す。第185。部品が Blob なら JS ヒープに残らない。第186)
     const blob = new Blob(Array.isArray(text) ? text : [text], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -6470,7 +6537,7 @@ function exportMyStarsCsv() {
     const bom = '\uFEFF';
     let csv = bom + '天体ID,天体名,赤経,赤緯\r\n';
     targets.forEach(s => {
-        csv += `${s.id},${csvText(s.name)},${s.ra},${s.dec}\r\n`;
+        csv += `${s.id},${csvCell(s.name)},${s.ra},${s.dec}\r\n`;   // 第186: 半角カンマは全角へ(素朴な split で読む CSV)
     });
     downloadTextFile(`soranotsuji-My天体-${formatFileDateTime()}.csv`, csv);
 }
@@ -6775,7 +6842,7 @@ function renderMyPointsList(type) {
                 <input type="text" class="mypoint-name" value="${escapeHtml(pt.name)}" placeholder="${cfg.label}名" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
-                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? Number(pt.lat) + ', ' + Number(pt.lng) : ''}" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="150" data-id="${Number(pt.id)}" autocomplete="off">
+                <input type="text" class="mypoint-latlng" value="${pt.lat !== null && pt.lat !== undefined ? Number(pt.lat) + ', ' + Number(pt.lng) : ''}" placeholder="地名、Plus Code、緯度,経度、地図URL" maxlength="2048" data-id="${Number(pt.id)}" autocomplete="off">
             </div>
             <div class="control-row">
                 <label class="mypoint-label">標高:</label>
@@ -6796,22 +6863,28 @@ function renderMyPointsList(type) {
         });
         // イベント: 緯度経度変更 (Enter で地名検索 or 数値入力)
         const latlngInput = row.querySelector('.mypoint-latlng');
+        // 行へ座標を書き込む共通処理(標高の自動取得つき。第93ラウンドでプラスコード対応と共に共通化。第186: Enter と blur(change)の両方から呼ぶので行のスコープへ。
+        // 世代 ptSeq で、先に出した標高の取得が後から戻って新しい地点の標高を上書きしないようにする=観測点/目的点の _locSetSeq と同じ流儀)
+        let ptSeq = 0;
+        const applyPt = async (lat, lng) => {
+            const g = ++ptSeq;
+            pt.lat = lat;
+            pt.lng = lng;
+            latlngInput.value = `${pt.lat}, ${pt.lng}`;
+            saveAppState();   // 座標は標高の取得を待たずに保存(第186)
+            setMyPointDirty(type, true);
+            const elev = await getElevation(pt.lat, pt.lng);
+            if (g !== ptSeq) return;   // より新しい地点の設定に追い越された: 古い標高は書かない(第186)
+            pt.elev = elev !== null ? elev : 0;
+            row.querySelector('.mypoint-elev').value = pt.elev;
+            saveAppState();
+            setMyPointDirty(type, true);
+        };
         latlngInput.addEventListener('keydown', async (e) => {
-            if (e.key !== 'Enter') return;
+            if (!_enterKeyFresh(e)) return;   // 長押し(リピート)・IME 確定の Enter は無視(第186。観測点名/目的点名と同じ)
             e.preventDefault();
             const val = latlngInput.value.trim();
             if (!val) return;
-            // 行へ座標を書き込む共通処理(標高の自動取得つき。第93ラウンドでプラスコード対応と共に共通化)
-            const applyPt = async (lat, lng) => {
-                pt.lat = lat;
-                pt.lng = lng;
-                latlngInput.value = `${pt.lat}, ${pt.lng}`;
-                const elev = await getElevation(pt.lat, pt.lng);
-                pt.elev = elev !== null ? elev : 0;
-                row.querySelector('.mypoint-elev').value = pt.elev;
-                saveAppState();
-                setMyPointDirty(type, true);
-            };
             // 「緯度,経度」+プラスコードのフルコード(parseInputが両方を受ける)
             const coords = parseInput(val);
             if (coords) {
@@ -6819,6 +6892,7 @@ function renderMyPointsList(type) {
                 return;
             }
             if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
+            if (_coordOutOfRange(val)) { alert(_COORD_RANGE_HINT); return; }   // 範囲外の「緯度,経度」は地名検索へ回さず案内(第186)
             // プラスコードの短縮形(例: 「MQPJ+2V 港区」。基準地名を解決して近傍のセルへ展開)
             const sc = _plusCodeShortParse(val);
             if (sc) {
@@ -6827,7 +6901,9 @@ function renderMyPointsList(type) {
             }
             {
                 // 地名検索
-                const results = await searchLocation(val);
+                const gen = ++_locSearchGen;   // 連打で重なった検索は後が勝つ(第186)
+                const results = await searchLocation(_normLocQuery(val));   // 観測点/目的点と同じ正規化(第186: 無変換だった)
+                if (gen !== _locSearchGen) return;   // 待つ間に次の検索/候補の確定があった: 古い結果は捨てる(第186)
                 if (results && results.length > 0) {
                     showLocationPicker(results, async (selected) => {
                         await applyPt(selected.lat, selected.lon);
@@ -6838,8 +6914,8 @@ function renderMyPointsList(type) {
             }
         });
         latlngInput.addEventListener('input', () => setMyPointDirty(type, true));
-        // blur時に直接編集された数値を反映 (Enter押下を経由しない編集対応)
-        latlngInput.addEventListener('change', () => {
+        // blur時に直接編集された値を反映 (Enter押下を経由しない編集対応)
+        latlngInput.addEventListener('change', async () => {
             const val = latlngInput.value.trim();
             if (!val) {
                 pt.lat = null;
@@ -6848,14 +6924,13 @@ function renderMyPointsList(type) {
                 setMyPointDirty(type, true);
                 return;
             }
-            const parts = val.split(',').map(s => s.trim());
-            if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
-                pt.lat = parseFloat(parts[0]);
-                pt.lng = parseFloat(parts[1]);
-                saveAppState();
-                setMyPointDirty(type, true);
+            // Enter と同じ入口(Plus Code フル/地図URL/度分秒/括弧つき「緯度,経度」)で読み、標高も取り直す(第186。Tab で欄を移ると座標だけ保存され標高が旧地点のままだった/Plus Code 等は保存されず表示だけ残った)
+            const coords = parseInput(val);
+            if (coords) {
+                if (coords.lat === pt.lat && coords.lng === pt.lng) return;   // Enter 直後の blur(applyPt が書き戻した同じ値)では標高を二度取得しない(第186)
+                await applyPt(coords.lat, coords.lng);
             }
-            // 非数値(地名)の場合はpt.lat/lngを更新しない(Enterで地名検索してもらう)
+            // 読めない入力(地名・短縮 Plus Code・短縮URL)は pt.lat/lng を更新しない(Enter で検索してもらう。通信の要る変換と案内の alert は blur では出さない)
         });
         // イベント: 標高/高さ変更
         row.querySelector('.mypoint-elev').addEventListener('change', (e) => {
@@ -7135,21 +7210,23 @@ function importMyPointsCsv(type) {
             if (cols.length < 6) { alert(`${i + 1}行目: 列数が不足しています(6列必要)`); return; }
             const id = parseInt(toHalfWidth(cols[0].trim()));
             const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 長さは保存時の型そろえ(_sanitizeStoredShapes)と同じ(第185の監査)
-            const lat = parseFloat(toHalfWidth(cols[2].trim()));
-            const lng = parseFloat(toHalfWidth(cols[3].trim()));
+            const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
+            const noCoord = latText === '' && lngText === '';   // 座標未設定の行(CSV出力の空欄をそのまま戻す=行追加の lat/lng null と同じ形。第186)
+            const lat = noCoord ? null : parseFloat(latText);
+            const lng = noCoord ? null : parseFloat(lngText);
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
             const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
             if (usedIds.has(id)) { alert(`${i + 1}行目: ID ${id} が重複しています`); return; }
-            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す
+            if (!noCoord && (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540)) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 座標未設定の行(両方空)は通す(第186)   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す
             usedIds.add(id);
             // 標高が空の場合は後で取得
             newPoints.push({ id, name, lat, lng, elev, height, memo });
         }
         // 標高が未設定の場合は取得
         for (const pt of newPoints) {
-            if (pt.elev === null || isNaN(pt.elev)) {
+            if (pt.lat !== null && (pt.elev === null || isNaN(pt.elev))) {   // 座標未設定の行は標高を取りに行かない(第186)
                 const el = await getElevation(pt.lat, pt.lng);
                 pt.elev = el !== null ? el : 0;
             }
@@ -7183,13 +7260,14 @@ function appendMyPointsCsv(type) {
             const id = parseInt(toHalfWidth(cols[0].trim()));
             const name = csvUnprefix(cols[1].trim()).slice(0, 300);   // 長さは保存時の型そろえと同じ(第185の監査)
             const latText = toHalfWidth(cols[2].trim()), lngText = toHalfWidth(cols[3].trim());
-            const lat = parseFloat(latText);
-            const lng = parseFloat(lngText);
+            const noCoord = latText === '' && lngText === '';   // 座標未設定の行(CSV出力の空欄をそのまま戻す。第186)
+            const lat = noCoord ? null : parseFloat(latText);
+            const lng = noCoord ? null : parseFloat(lngText);
             let elev = cols[4].trim() === '' ? null : parseFloat(toHalfWidth(cols[4].trim()));
             const height = parseFloat(toHalfWidth(cols[5].trim())) || 0;
             const memo = csvUnprefix((cols[6] !== undefined ? cols[6] : '').trim()).slice(0, 1000);
             if (isNaN(id) || id < 1 || id > 1000) { alert(`${i + 1}行目: IDが無効です(1〜1000)`); return; }
-            if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す
+            if (!noCoord && (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 540)) { alert(`${i + 1}行目: 緯度/経度が無効です(緯度は±90・経度は±180)`); return; }   // 経度の 180 超(〜540)は保存時に ±180 へ巻き戻す。両方空は座標未設定の行(第186)
             csvEntries.push({ id, name, lat, lng, elev, height, memo, latText, lngText });
         }
 
@@ -7206,7 +7284,7 @@ function appendMyPointsCsv(type) {
             if (existingList.length >= 1000) { alert(`${cfg.labelFull}の登録上限(1000件)に達しています`); return; }
 
             // 標高が未設定の場合は取得
-            if (entry.elev === null || isNaN(entry.elev)) {
+            if (entry.lat !== null && (entry.elev === null || isNaN(entry.elev))) {   // 座標未設定の行は標高を取りに行かない(第186)
                 const el = await getElevation(entry.lat, entry.lng);
                 entry.elev = el !== null ? el : 0;
             }
@@ -7255,7 +7333,7 @@ function exportMyPointsCsv(type) {
     const bom = '\uFEFF';
     let csv = bom + `${cfg.label}ID,${cfg.label}名,緯度,経度,標高,高さ,メモ\r\n`;
     targets.forEach(pt => {
-        csv += `${pt.id},${csvText(pt.name)},${pt.lat},${pt.lng},${pt.elev !== null ? pt.elev : ''},${pt.height},${csvText(pt.memo || '')}\r\n`;
+        csv += `${pt.id},${csvCell(pt.name)},${pt.lat !== null && pt.lat !== undefined ? pt.lat : ''},${pt.lng !== null && pt.lng !== undefined ? pt.lng : ''},${pt.elev !== null ? pt.elev : ''},${pt.height},${csvCell(pt.memo || '')}\r\n`;   // 第186: 登録前の名前・メモの半角カンマで列がずれないよう全角へ
     });
     downloadTextFile(`soranotsuji-${cfg.labelFull}-${formatFileDateTime()}.csv`, csv);
 }
@@ -7854,9 +7932,9 @@ function _buildMyTsujiCsv(targets) {
     targets.forEach(t => {
         csv += [
             t.id,
-            csvText(t.name ?? ''),
+            csvCell(t.name ?? ''),   // 第186: 登録前の半角カンマは全角へ(読みは split(','))
             t.days ?? '',
-            csvText(t.bodyIds ?? ''),
+            csvCell(t.bodyIds ?? ''),   // 第186: 同上(読み側は toHalfWidth で戻るので往復は保たれる)
             t.obsId ?? '',
             t.tgtId ?? '',
             t.baseAz ?? '',
@@ -7899,7 +7977,7 @@ function _buildMyTsujiCsv(targets) {
             t.elevationOption ? 'ON' : 'OFF',
             t.elevOK ? 'ON' : 'OFF',
             t.elevNG ? 'ON' : 'OFF',
-            csvText(t.memo ?? '')
+            csvCell(t.memo ?? '')   // 第186: 登録前のメモの半角カンマで59列にならないよう全角へ
         ].join(',') + '\r\n';
     });
     return csv;
@@ -8099,7 +8177,7 @@ async function executeSingleMyTsujiSearch(t, searchStartMsOverride, snapshotObs,
         return { body, results: flatResults, limitReached };
     });
 
-    return { tsuji: t, obs, tgt, bodyResults };
+    return { tsuji: t, obs, tgt, bodyResults, canceled: bodyChunkResults.some(chs => chs.some(ch => ch.canceled)) };   // canceled: どこかのチャンクが止められた(第186)
 }
 
 /** 結果オブジェクトの配列に装飾情報(symbol/moonAge/moonIcon/dateStr/timeStr)を付加。
@@ -8210,31 +8288,30 @@ function hideTsujiProgress() {
 /** 一括計算/File取得を強制キャンセル (相手側の起動前に呼ぶ)
  *  プール内のワーカーを terminate することで、ペンディング中の Promise が
  *  reject され、orphan async が await から抜けて正常終了できる。 */
-async function forceCancelMyTsujiBatch() {
-    myTsujiBatchCanceled = true;
-    myTsujiBatchGen++;
+/** 共有プール tsujiPool を使う4つの流れ(パネルの辻検索・辻検索 File取得・My辻 一括計算・My辻 File取得)を全部止める(第186の探索テスト:
+ *  片方の terminateAll がもう片方の結果を黙って欠けさせ、パネルを閉じても File取得の世代が進まず、欠けた CSV が「出力完了」として落ちていた)。
+ *  世代を先に進めてからワーカーを止めるので、reject→catch で戻る古い実行は世代の照合で黙る。msg があれば状態の文に書く。
+ *  呼び所: 各流れの開始(後から始めた方が勝つ)・2度押し(自分を止める)・パネルを閉じた時(辻メッシュの closeTsujiMesh と同じ作法) */
+function _tsujiFlowsCancelAll(msg) {
+    appState.tsujiSearchGeneration++;
+    if (_tsujiFileRunning) { _tsujiFileGen++; _tsujiFileRunning = false; const b = document.getElementById('btn-tsuji-file'); if (b) b.classList.remove('active'); }
+    if (myTsujiBatchRunning) { myTsujiBatchCanceled = true; myTsujiBatchGen++; myTsujiBatchRunning = false; const b = document.getElementById('btn-mytsuji-batch'); if (b) b.classList.remove('active'); }
+    if (myTsujiFileRunning) { myTsujiFileCanceled = true; myTsujiFileGen++; myTsujiFileRunning = false; const b = document.getElementById('btn-mytsuji-file'); if (b) b.classList.remove('active'); }
     tsujiPool.terminateAll();
-    myTsujiBatchRunning = false;
-    document.getElementById('btn-mytsuji-batch').classList.remove('active');
     hideTsujiProgress();
-    await new Promise(r => setTimeout(r, 0));
+    if (msg) { const st = document.getElementById('tsujisearch-status'); if (st) st.textContent = msg; }
 }
-async function forceCancelMyTsujiFile() {
-    myTsujiFileCanceled = true;
-    myTsujiFileGen++;
-    tsujiPool.terminateAll();
-    myTsujiFileRunning = false;
-    document.getElementById('btn-mytsuji-file').classList.remove('active');
-    hideTsujiProgress();
-    await new Promise(r => setTimeout(r, 0));
-}
+/** 一括計算/File取得を強制キャンセル(2度押し・相手側の起動前)。第186から _tsujiFlowsCancelAll の薄い包み(共有プールの4つの流れを全部止める) */
+async function forceCancelMyTsujiBatch() { _tsujiFlowsCancelAll('(一括計算をキャンセルしました)'); await new Promise(r => setTimeout(r, 0)); }
+async function forceCancelMyTsujiFile() { _tsujiFlowsCancelAll('(File取得をキャンセルしました)'); await new Promise(r => setTimeout(r, 0)); }
 
 /** 一括計算 — チェック済みMy辻検索を全て実行し、結果を専用パネルに表示 */
 async function runBatchMyTsujiSearch() {
     const checked = appState.myTsujiSearches.filter(t => t.checked);
     if (checked.length === 0) return alert('一括計算するMy辻検索をチェックしてください');
-    if (!confirm('チェックされた辻検索を実行しますか？')) return;
+    if (!confirm('チェックされた辻検索を実行しますか？\n(実行中にもう一度押すとキャンセルします)')) return;
 
+    _tsujiFlowsCancelAll(null);   // 共有プールの他の流れ(パネルの辻検索・辻検索 File取得・My辻 File取得)を止めてから始める(第186)
     const myGen = ++myTsujiBatchGen;
     myTsujiBatchRunning = true;
     myTsujiBatchCanceled = false;
@@ -8261,37 +8338,38 @@ async function runBatchMyTsujiSearch() {
     let doneChunks = 0;
     setTsujiProgress(0, totalChunks);
     const chunkDoneCb = () => {
+        if (myGen !== myTsujiBatchGen) return;   // キャンセル後に terminateAll の reject→catch が呼ぶ分は無視(進捗バーの再表示を防ぐ。第186)
         doneChunks++;
         setTsujiProgress(doneChunks, totalChunks);
     };
 
     const allResults = [];
-    for (let i = 0; i < checked.length; i++) {
-        if (myGen !== myTsujiBatchGen) return; // 強制キャンセル済 (新規起動済)
-        if (myTsujiBatchCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
-        const t = checked[i];
-        statusEl.innerHTML = `<span class="clock-anim">🕛</span> 実行中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
-        if (myGen !== myTsujiBatchGen) return;
-        if (!res) continue;
-        _pushMyTsujiResults(allResults, t, res);
+    try {
+        for (let i = 0; i < checked.length; i++) {
+            if (myGen !== myTsujiBatchGen) return;   // キャンセル済(2度押し・他の流れの開始・パネルを閉じた=_tsujiFlowsCancelAll。第186)
+            const t = checked[i];
+            statusEl.innerHTML = `<span class="clock-anim">🕛</span> 実行中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
+            const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
+            if (myGen !== myTsujiBatchGen) return;
+            if (!res) continue;
+            if (res.canceled) return;   // 世代は同じままワーカーが止められた(想定外の経路)。欠けた結果は積まない(第186)
+            _pushMyTsujiResults(allResults, t, res);
+        }
+
+        const decorated = await decorateMyTsujiResults(allResults);
+        if (myGen !== myTsujiBatchGen) return;   // 装飾(可視判定)の間のキャンセル(第186: 以前は装飾の前に実行中の印を落としていたので、この間の押し直しが2本目の実行になり、古い実行が後から結果を重ねていた)
+        statusEl.textContent = `${decorated.length}件`;
+        if (decorated.length === 0) {
+            content.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません</div>';
+            return;
+        }
+
+        _tsujiResRaw = { kind: 'mytsuji', decorated };
+        _resCtlSet('tsujires', _resCtlAllOff(), decorated.some(r => r.elevationStatus === 'OK' || r.elevationStatus === 'NG'));
+        _myTsujiRenderResults();
+    } finally {
+        if (myGen === myTsujiBatchGen) { myTsujiBatchRunning = false; document.getElementById('btn-mytsuji-batch').classList.remove('active'); hideTsujiProgress(); }   // 自分の世代のまま終わった時だけ片付ける(キャンセルされた時は _tsujiFlowsCancelAll が片付け済み。第186)
     }
-
-    if (myGen !== myTsujiBatchGen) return;
-    myTsujiBatchRunning = false;
-    document.getElementById('btn-mytsuji-batch').classList.remove('active');
-
-    const decorated = await decorateMyTsujiResults(allResults);
-    if (!myTsujiBatchCanceled) statusEl.textContent = `${decorated.length}件`;
-    hideTsujiProgress();
-    if (decorated.length === 0) {
-        content.innerHTML = '<div style="padding:8px;color:#999;">該当する日時はありません</div>';
-        return;
-    }
-
-    _tsujiResRaw = { kind: 'mytsuji', decorated };
-    _resCtlSet('tsujires', _resCtlAllOff(), decorated.some(r => r.elevationStatus === 'OK' || r.elevationStatus === 'NG'));
-    _myTsujiRenderResults();
 }
 
 /** My辻検索結果の表示(第62ラウンド: 結果コントロールの追加フィルタで再導出できるよう切り出し)。
@@ -8567,8 +8645,9 @@ function buildMyTsujiCsvRow(r, preAstro) {
 async function fileBatchMyTsujiSearch() {
     const checked = appState.myTsujiSearches.filter(t => t.checked);
     if (checked.length === 0) return alert('File取得するMy辻検索をチェックしてください');
-    if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？')) return;
+    if (!confirm('チェックされた辻検索を実行し、結果をCSVでFile取得しますか？\n(実行中にもう一度押すとキャンセルします)')) return;
 
+    _tsujiFlowsCancelAll(null);   // 共有プールの他の流れ(パネルの辻検索・辻検索 File取得・My辻 一括計算)を止めてから始める(第186)
     const myGen = ++myTsujiFileGen;
     myTsujiFileRunning = true;
     myTsujiFileCanceled = false;
@@ -8594,44 +8673,52 @@ async function fileBatchMyTsujiSearch() {
     let doneChunks = 0;
     setTsujiProgress(0, totalChunks);
     const chunkDoneCb = () => {
+        if (myGen !== myTsujiFileGen) return;   // キャンセル後に terminateAll の reject→catch が呼ぶ分は無視(進捗バーの再表示を防ぐ。第186)
         doneChunks++;
         setTsujiProgress(doneChunks, totalChunks);
     };
 
     const allResults = [];
-    for (let i = 0; i < checked.length; i++) {
-        if (myGen !== myTsujiFileGen) return;
-        if (myTsujiFileCanceled) { statusEl.textContent = `(キャンセルされました)`; break; }
-        const t = checked[i];
-        statusEl.innerHTML = `<span class="clock-anim">🕛</span> File出力処理中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
-        const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
-        if (myGen !== myTsujiFileGen) return;
-        if (!res) continue;
-        _pushMyTsujiResults(allResults, t, res);
+    try {
+        for (let i = 0; i < checked.length; i++) {
+            if (myGen !== myTsujiFileGen) return;   // キャンセル済(2度押し・他の流れの開始・パネルを閉じた=_tsujiFlowsCancelAll。第186)
+            const t = checked[i];
+            statusEl.innerHTML = `<span class="clock-anim">🕛</span> File出力処理中... ${i+1}/${checked.length} (ID:${escapeHtml(String(t.id))} ${escapeHtml(t.name || '')})`;
+            const res = await executeSingleMyTsujiSearch(t, batchStartMs, snapshotObs, snapshotTgt, chunkDoneCb);
+            if (myGen !== myTsujiFileGen) return;
+            if (!res) continue;
+            if (res.canceled) return;   // 世代は同じままワーカーが止められた(想定外の経路)。欠けた CSV は出さない(第186)
+            _pushMyTsujiResults(allResults, t, res);
+        }
+        hideTsujiProgress();
+
+        const decorated = await decorateMyTsujiResults(allResults);
+        if (myGen !== myTsujiFileGen) return;   // 装飾(可視判定)の間のキャンセル(第186)
+        if (decorated.length === 0) {
+            statusEl.textContent = '0件';
+            return alert('該当する日時はありません');
+        }
+
+        statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
+        const ok = await downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`,
+            undefined, () => myGen !== myTsujiFileGen);   // 2000行ごとにキャンセルを見る(辻検索 File取得と同じ形。第186)
+        if (!ok || myGen !== myTsujiFileGen) return;
+        statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
+    } catch (e) {
+        if (myGen !== myTsujiFileGen) return;   // キャンセルで止めた分は黙る
+        console.error('fileBatchMyTsujiSearch:', e);
+        alert('File取得に失敗しました: ' + (e && e.message ? e.message : e));
+    } finally {
+        if (myGen === myTsujiFileGen) { myTsujiFileRunning = false; document.getElementById('btn-mytsuji-file').classList.remove('active'); hideTsujiProgress(); }   // 自分の世代のまま終わった時だけ片付ける(第186)
     }
-
-    if (myGen !== myTsujiFileGen) return;
-    myTsujiFileRunning = false;
-    document.getElementById('btn-mytsuji-file').classList.remove('active');
-    hideTsujiProgress();
-
-    if (myTsujiFileCanceled) return;
-
-    const decorated = await decorateMyTsujiResults(allResults);
-    if (decorated.length === 0) {
-        statusEl.textContent = '0件';
-        return alert('該当する日時はありません');
-    }
-
-    statusEl.textContent = `${decorated.length}件 (CSV生成中…)`;
-    await downloadTsujiResultCsv(decorated, `soranotsuji-My辻検索結果-${formatFileDateTime()}.csv`);
-    statusEl.textContent = `${decorated.length}件 (CSV出力完了)`;
 }
 
-/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通)。
- *  行毎の事前計算(r._preAstro)があれば利用。大量行でもUIが固まらないよう2000行毎にyieldし、
- *  onProgress(done, total) で進捗を通知する(省略可) */
-async function downloadTsujiResultCsv(decorated, filename, onProgress, isCanceled) {   // isCanceled(): 途中でやめる(辻メッシュ File取得の2度押し。第185)
+/** 結果CSVの書き手(第186): 行を受け取るたびに文字列にし、TSUJI_CSV_BLOB_ROWS 行ごとに Blob の部品へ逃がす
+ *  (JS ヒープに全行の文字列を溜めない。第185の「配列のまま Blob へ」は1本の文字列長だけの対策で、数百万行の辻メッシュ File取得は
+ *  行オブジェクト+行文字列の総量でタブが落ちた)。downloadTsujiResultCsv(配列)と _tmExportMeshRowsCsv(行を作りながら流す)で共用。
+ *  push(r): 1行追加(r._preAstro があれば利用)・count: 追加した行数・finish(filename): 残りを Blob にしてダウンロード */
+const TSUJI_CSV_BLOB_ROWS = 5000;   // この行数(≈数MB)ごとに文字列を Blob へ(第186)
+function createTsujiCsvWriter() {
     const header = [
         '辻検索ID','辻検索名','辻検索メモ','日付','曜日','辻時刻','時間帯',
         '日の出時刻','日の入時刻','月の出時刻','月の入時刻',
@@ -8656,17 +8743,31 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress, isCancele
         return s;
     };
     const bom = '\uFEFF';
-    const parts = [bom + header.map(esc).join(',') + '\r\n'];
+    const blobs = [];                                   // Blob の部品(第186: 文字列は TSUJI_CSV_BLOB_ROWS 行ごとにここへ逃がす)
+    let parts = [bom + header.map(esc).join(',') + '\r\n'];
+    let count = 0;
+    const flush = () => { if (parts.length) { blobs.push(new Blob(parts)); parts = []; } };
+    return {
+        push(r) { parts.push(buildMyTsujiCsvRow(r, r._preAstro).map(esc).join(',') + '\r\n'); if (++count % TSUJI_CSV_BLOB_ROWS === 0) flush(); return count; },
+        get count() { return count; },
+        finish(filename) { flush(); downloadTextFile(filename, blobs); },   // 1本の文字列に繋がない(第185)。Blob の部品は Blob でよく、ブラウザが大きな Blob をディスクへ逃がす(第186)
+    };
+}
+
+/** 辻検索/辻メッシュ/My辻検索 共通の結果CSVダウンロード(列構成はデッサン03/04/10共通)。
+ *  行毎の事前計算(r._preAstro)があれば利用。大量行でもUIが固まらないよう2000行毎にyieldし、
+ *  onProgress(done, total) で進捗を通知する(省略可) */
+async function downloadTsujiResultCsv(decorated, filename, onProgress, isCanceled) {   // isCanceled(): 途中でやめる(辻メッシュ File取得の2度押し。第185)
+    const w = createTsujiCsvWriter();   // 行文字列は Blob の部品へ流す(第186)
     for (let i = 0; i < decorated.length; i++) {
-        const r = decorated[i];
-        parts.push(buildMyTsujiCsvRow(r, r._preAstro).map(esc).join(',') + '\r\n');
+        w.push(decorated[i]);
         if ((i + 1) % 2000 === 0) {
             if (onProgress) onProgress(i + 1, decorated.length);
             await new Promise(res => setTimeout(res, 0));
             if (isCanceled && isCanceled()) return false;
         }
     }
-    downloadTextFile(filename, parts);   // 1本の文字列に繋がない(数十万行で JS の文字列長の上限=RangeError: Invalid string length。Blob は配列のまま受け取れる。第185・依頼者の報告)
+    w.finish(filename);
     return true;
 }
 
@@ -8674,13 +8775,7 @@ async function downloadTsujiResultCsv(decorated, filename, onProgress, isCancele
  *  列構成はMy辻検索のFile取得と共通(デッサン03)。辻検索ID/名/メモ・観測点/目的点IDは空白 */
 let _tsujiFileRunning = false, _tsujiFileGen = 0;
 async function fileTsujiSearchCsv() {
-    if (_tsujiFileRunning) {   // 実行中の2度押し=1回目をキャンセル(第185・依頼者。辻メッシュの File取得と同じ)
-        _tsujiFileGen++; _tsujiFileRunning = false;
-        tsujiPool.terminateAll(); hideTsujiProgress();
-        const st = document.getElementById('tsujisearch-status'); if (st) st.textContent = '(File取得をキャンセルしました)';
-        const b = document.getElementById('btn-tsuji-file'); if (b) b.classList.remove('active');
-        return;
-    }
+    if (_tsujiFileRunning) { _tsujiFlowsCancelAll('(File取得をキャンセルしました)'); return; }   // 実行中の2度押し=1回目をキャンセル(第185・依頼者。辻メッシュの File取得と同じ。第186から共有プールの4つの流れを全部止める)
     const baseAz = appState.tsujiSearchBaseAz, baseAlt = appState.tsujiSearchBaseAlt;
     if (isNaN(baseAz) || isNaN(baseAlt)) return alert('方位角・視高度・許容範囲を正しく入力してください');
     if (!confirm('辻検索を実行し、結果をCSVでFile取得しますか？\n(実行中にもう一度押すとキャンセルします)')) return;
@@ -8706,6 +8801,7 @@ async function fileTsujiSearchCsv() {
     };
     const obs = { id: '', name: '', lat: appState.start.lat, lng: appState.start.lng, elev: appState.startApiElev || 0, height: appState.startHeight || 0, memo: '' };
     const tgt = { id: '', name: '', lat: appState.end.lat, lng: appState.end.lng, elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
+    _tsujiFlowsCancelAll(null);   // 共有プールの他の流れ(パネルの辻検索・My辻 一括計算/File取得)を止めてから始める(第186)
     _tsujiFileRunning = true;
     const gen = ++_tsujiFileGen;
     const btn = document.getElementById('btn-tsuji-file');
@@ -8723,6 +8819,7 @@ async function fileTsujiSearchCsv() {
         const res = await executeSingleMyTsujiSearch(t, batchStartDate.getTime(), null, null,
             () => { if (gen !== _tsujiFileGen) return; doneChunks++; setTsujiProgress(doneChunks, totalChunks); }, obs, tgt);   // 2度押しキャンセル後に terminateAll の reject→catch が呼ぶ分は無視(進捗バーの再表示を防ぐ。第185の反証レビュー)
         if (gen !== _tsujiFileGen) return;   // 2度押しでキャンセル済み
+        if (res && res.canceled) { statusEl.textContent = '(File取得をキャンセルしました)'; return; }   // 世代は同じままワーカーが止められた(想定外の経路)。欠けた CSV は出さない(第186)
         hideTsujiProgress();
         const allResults = [];
         if (res) _pushMyTsujiResults(allResults, t, res);   // res.obs/tgtは渡したオーバーライド(obs/tgt)がそのまま返る
@@ -9627,8 +9724,11 @@ function _resCtlInit() {
     if (fbtn) fbtn.addEventListener('click', () => { _tsujiResFileCsv().catch(e => { console.error(e); alert('File出力に失敗しました: ' + (e && e.message ? e.message : e)); }); });
     const mbtn = document.getElementById('btn-tsujimeshres-file');
     if (mbtn) mbtn.addEventListener('click', () => {
+        if (_tmFileBusy) { _tmFileCancel(true, '(File出力をキャンセルしました)'); return; }   // 実行中(メニューの File取得の検索中か CSV 生成中)の2度押し=1回目をキャンセル(第186: メニューの File取得と同じ形)
         if (!_tsujiMeshRows.length) return alert('該当する日時はありません');
-        _tmExportMeshRowsCsv(_tsujiMeshRows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); });
+        _tmFileSetBusy(true);   // busy を立てて startTsujiMeshSearch/closeTsujiMesh/fileTsujiMeshCsv の _tmFileCancel を効かせる(第186: 結果コントロール側だけ守りの外で、出力中の再検索で大域の画素集合が差し替わっていた)
+        const exportGen = _tmExportGen;   // この実行の世代(第186: キャンセル直後に始まった新しい出力の点灯を、古い実行の finally が落とさない)
+        _tmExportMeshRowsCsv(_tsujiMeshRows).catch(e => { console.error(e); alert('CSVの生成に失敗しました: ' + (e && e.message ? e.message : e)); }).finally(() => { if (exportGen === _tmExportGen) _tmFileSetBusy(false); });
     });
 }
 
@@ -9914,11 +10014,8 @@ function toggleTsujiSearch() {
     } else {
         btn.classList.remove('active');
         pnl.classList.add('hidden');
-        appState.tsujiSearchGeneration++;
-        // キャンセル: 実行中ワーカーを terminate し、キューの全タスクを破棄(走り続け防止)。
-        // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止)。
-        if (!myTsujiBatchRunning) tsujiPool.terminateAll();
-        hideTsujiProgress();
+        // 閉じる=共有プールの4つの流れを全部止める(第186: 以前は一括計算は止めず、File取得は止めたのに世代を進めなかったので、欠けた CSV が「出力完了」として落ちていた。辻メッシュの closeTsujiMesh と同じ作法)
+        _tsujiFlowsCancelAll(null);
     }
     syncBottomPanels();
 }
@@ -10580,8 +10677,8 @@ function _tmShowPinPopup(big) {
 
 /** 画素×天体の角距離評価関数(ms→°)を作る。判定は検索本体と同一(回転補正+点/線の検索中心)。
  *  検索条件は検索時のスナップショット(_tsujiMeshCalc)に凍結。条件不足ならnull。 */
-function _tmPixDistFn(pix, body) {
-    const C = _tsujiMeshCalc;
+function _tmPixDistFn(pix, body, calc) {
+    const C = calc || _tsujiMeshCalc;   // 省略時は大域。CSV 出力は検索時のスナップショットを渡す(第186: 出力中の再検索で差し替わった大域を古い画素番号で引かない)
     if (!C || !body) return null;
     const D2R = Math.PI / 180;
     const wrap180 = (deg) => ((deg + 540) % 360) - 180;
@@ -10625,8 +10722,8 @@ function _tmPixDistFn(pix, body) {
 /** 画素の辻時刻の軽量精細化: 秒精度の最小時刻(ワーカーの1秒格子)の前後1秒の3点放物線補間で0.01秒化。
  *  ポップアップの行毎の表示・結果行の値用(±120秒スキャンの_tmRefinePixelTimeより約80倍軽い)。
  *  戻り値の az/alt は精細化時刻での観測点中心の天体位置(結果行の方位角/視高度と同義)。 */
-function _tmRefinePixelTimeFast(pix, centerMs, body) {
-    const distAt = _tmPixDistFn(pix, body);
+function _tmRefinePixelTimeFast(pix, centerMs, body, calc) {
+    const distAt = _tmPixDistFn(pix, body, calc);   // calc 省略時は大域(第186)
     if (!distAt) return null;
     const a = distAt(centerMs - 1000) ** 2, b = distAt(centerMs) ** 2, c = distAt(centerMs + 1000) ** 2;
     let frac = 0;
@@ -11769,7 +11866,8 @@ function hideTsujiMeshProgress() {
 /** 辻メッシュ検索メニューのFile取得: 辻メッシュ検索を実行し、完了時に全ヒット画素をCSVでダウンロードする。
  *  詳細結果リストの内容の全画素出力。観測点ID=画素ID、観測点緯度経度=画素中央の位置(デッサン04) */
 let _tmFileCsvPending = false, _tmFileBusy = false, _tmExportGen = 0;
-function _tmFileSetBusy(on) { _tmFileBusy = !!on; const b = document.getElementById('btn-tsujimesh-file'); if (b) b.classList.toggle('active', !!on); }
+const TM_CSV_BYTES_PER_ROW = 800, TM_CSV_WARN_ROWS = 1000000;   // CSV 1行の目安(71列+プレビューURL)・この行数から「分けて取得」を勧める(第186)
+function _tmFileSetBusy(on) { _tmFileBusy = !!on; for (const id of ['btn-tsujimesh-file', 'btn-tsujimeshres-file']) { const b = document.getElementById(id); if (b) b.classList.toggle('active', !!on); } }   // 結果コントロールの File出力も同じ busy で点灯・消灯(第186)
 /** File取得の取りやめ(2度押し・パネルを閉じた・入力エラー): 予約を消し、実行中の検索と CSV 生成を止める(第185・依頼者: 何度も押せて処理が重なっていた) */
 function _tmFileCancel(cancelSearch, msg) {
     const searching = _tmFileCsvPending;   // 検索中(CSV 生成に入る前)か。CSV 生成中なら描画済みの結果リストは消さない
@@ -11796,18 +11894,21 @@ function fileTsujiMeshCsv() {
  *  大量行でも現実的な時間で出力する(画素間の位置差による出没時刻差は高々数十秒なので無視できる) */
 async function _tmExportMeshRowsCsv(rows) {
     if (!rows.length) { alert('該当する日時はありません'); return; }
-    const C = _tsujiMeshCalc;
-    if (!C || !_tsujiMeshPix) { alert('検索結果がありません'); return; }
+    const C = _tsujiMeshCalc, P = _tsujiMeshPix;   // 検索時のスナップショットをローカルに捕まえ、以降のループは大域を読まない(第186: 出力中の再検索で _tsujiMeshPix が null/別の画素集合に差し替わり、TypeError か別画素の緯度経度で CSV が書かれていた)
+    if (!C || !P) { alert('検索結果がありません'); return; }
     const height = Number(appState.startHeight) || 0;
     const totalPixRows = rows.reduce((s, r) => s + (r.pixIdx ? r.pixIdx.length : 0), 0);
+    const estMB = Math.max(1, Math.round(totalPixRows * TM_CSV_BYTES_PER_ROW / 1048576));   // 大きさの目安(第186: 時間だけでなく大きさも示す)
     if (totalPixRows > 50000 &&
-        !confirm(`全ヒット画素 ${totalPixRows.toLocaleString()}行をCSVに出力します(生成に時間がかかる場合があります)。続行しますか？`)) return;
+        !confirm(`全ヒット画素 ${totalPixRows.toLocaleString()}行をCSVに出力します(約${estMB.toLocaleString()}MB。生成に時間がかかる場合があります)。` +
+                 (totalPixRows > TM_CSV_WARN_ROWS ? `\n${TM_CSV_WARN_ROWS.toLocaleString()}行を超えています。端末のメモリ/空き容量によっては保存に失敗します。検索期間か検索エリアを狭めて分けて取得することをお勧めします。` : '') +   // (第186)
+                 '\n続行しますか？')) return;
     const statusEl = document.getElementById('tsujimesh-status');
     const prevStatus = statusEl ? statusEl.textContent : '';
     const setBusy = (txt) => { if (statusEl) statusEl.innerHTML = `<span class="clock-anim">🕛</span> ${escapeHtml(txt)}`; };
     const gen = _tmExportGen;                      // 2度押しのキャンセル(第185): 進み具合の節目で見て、変わっていたら黙ってやめる
     const canceled = () => gen !== _tmExportGen;
-    setBusy(`検索は完了。File出力の2段目: 全ヒット画素 ${totalPixRows.toLocaleString()}行の精細化中…`);
+    setBusy(`検索は完了。File出力の2段目: 全ヒット画素 ${totalPixRows.toLocaleString()}行の精細化と CSV 生成中…`);   // (第186: 行を溜めずに CSV へ流す)
     const obsCommon = new Astronomy.Observer(C.observerData.lat, C.observerData.lng, C.observerData.elev);
     // 日毎の出没・薄明・GH/BH(共通観測点)。buildMyTsujiCsvRowへ _preAstro として渡して行毎の再計算を省く
     const dayCache = new Map();   // dayMs -> { day, tw, pre }
@@ -11862,7 +11963,7 @@ async function _tmExportMeshRowsCsv(rows) {
                   elev: appState.endApiElev || 0, height: appState.endHeight || 0, memo: '' };
     const mwOff = Number(appState.mwOffsetAngle) || 0;
     const offAz = Number(C.offsetAz) || 0, offAlt = Number(C.offsetAlt) || 0;
-    const list = [];
+    const w = createTsujiCsvWriter();   // 行を溜めずに流す(第186: 全行のオブジェクト list+行文字列 parts を Blob まで二重に抱えてタブが落ちた)
     let done = 0;
     for (const r of rows) {
         const n = r.pixIdx ? r.pixIdx.length : 0;
@@ -11871,13 +11972,13 @@ async function _tmExportMeshRowsCsv(rows) {
         const ents = [];
         for (let i = 0; i < n; i++) {
             const pix = r.pixIdx[i];
-            const ref = _tmRefinePixelTimeFast(pix, r.pixTime[i], r.body);
+            const ref = _tmRefinePixelTimeFast(pix, r.pixTime[i], r.body, C);   // 捕まえた C で精細化(第186: 大域 _tsujiMeshCalc を読まない)
             ents.push({ pix,
                         timeMs: ref ? ref.timeMs : r.pixTime[i],
                         dist: ref ? ref.dist : r.pixDist[i],
                         az: ref ? ref.az : r.azimuth, alt: ref ? ref.alt : r.altitude });
             if (++done % 500 === 0) {
-                setBusy(`File出力の2段目: 全ヒット画素の精細化中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);
+                setBusy(`File出力の2段目: 精細化と CSV 生成中… ${done.toLocaleString()}/${totalPixRows.toLocaleString()}画素`);   // (第186)
                 await new Promise(res => setTimeout(res, 0));
                 if (canceled()) return;
             }
@@ -11889,13 +11990,13 @@ async function _tmExportMeshRowsCsv(rows) {
             const dt = new Date(e.timeMs);
             const a = astroOf(dt);
             const m = moonOf(e.timeMs);
-            list.push({
+            w.push({   // その場で CSV 行の文字列にして Blob の部品へ(第186)
                 tsuji: { id: '', name: '', memo: '',
                          baseAz: C.baseAz[pix], baseAlt: C.baseAlt[pix],
                          offsetAz: offAz, offsetAlt: offAlt,
                          centerMode: C.centerMode, mwOffsetAngle: mwOff },
-                obs: { id: pix, name: '', lat: _tsujiMeshPix.lat[pix], lng: _tsujiMeshPix.lng[pix],
-                       elev: _tsujiMeshPix.elev[pix], height, memo: '' },
+                obs: { id: pix, name: '', lat: P.lat[pix], lng: P.lng[pix],
+                       elev: P.elev[pix], height, memo: '' },   // 捕まえた P(第186: 大域 _tsujiMeshPix を読まない)
                 tgt,
                 body: r.body, time: dt,
                 azimuth: e.az, altitude: e.alt, dist: e.dist,
@@ -11910,12 +12011,10 @@ async function _tmExportMeshRowsCsv(rows) {
         }
     }
     if (canceled()) return;
-    if (!list.length) { alert('該当する日時はありません'); return; }
-    setBusy(`File出力の3段目: CSV生成中… 0/${list.length.toLocaleString()}行`);
-    const ok = await downloadTsujiResultCsv(list, `soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`,
-        (i, total) => setBusy(`File出力の3段目: CSV生成中… ${i.toLocaleString()}/${total.toLocaleString()}行`), canceled);
-    if (!ok || canceled()) return;
-    if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${list.length.toLocaleString()}行)`;
+    if (!w.count) { alert('該当する日時はありません'); return; }
+    setBusy(`File出力の3段目: CSVファイルの保存中… ${w.count.toLocaleString()}行`);
+    w.finish(`soranotsuji-辻メッシュ検索結果-${formatFileDateTime()}.csv`);   // 2段目で流した Blob の部品を1つのファイルに(第186: list→downloadTsujiResultCsv の二重保持をやめた)
+    if (statusEl) statusEl.textContent = `${prevStatus} CSV出力完了(${w.count.toLocaleString()}行)`;
 }
 
 
@@ -12125,14 +12224,32 @@ async function _kmStoreRename(key, name) {
     _kmAssets.delete(key);   // 読み込み済みの資産は名前を持つので作り直す
     return true;
 }
-/** チェックした資産を1つのJSONにFile出力 */
+/** 資産のJSON(soranotsuji-kashimap-assets)の頭。資産は1本ずつ JSON.stringify して parts に積み、downloadTextFile へ配列で渡す(1本の文字列に繋がない=Invalid string length を避ける。第186: 第185の辻メッシュCSVと同じ形) */
+function _kmAssetsJsonHead() { return `{"format":"soranotsuji-kashimap-assets","v":1,"exported":${JSON.stringify(new Date().toISOString())},"app":${JSON.stringify(APP_VERSION)},"assets":[`; }
+const KM_EXPORT_CONFIRM_BYTES = 300 * 1048576;   // 一括DLの合計がこれを超えたら確認を出す(端末のメモリ次第で失敗するので分けて出力するのを勧める。第186)
+let _kmStoreDlGen = 0, _kmStoreDlBusy = false;   // ⬇DL の世代と busy(辻メッシュの File取得と同じ形。2度押し=1回目をキャンセル。第186)
+function _kmStoreDlSetBusy(on) { _kmStoreDlBusy = !!on; const b = document.getElementById('btn-kashimap-store-dl'); if (b) b.classList.toggle('active', !!on); }
+/** チェックした資産を1つのJSONにFile出力(第186: 1本ずつ読んで文字列にし本文は次の周で捨てる・parts の Blob・合計が大きい時は確認・2度押しはキャンセル) */
 async function _kmStoreExportChecked() {
+    if (_kmStoreDlBusy) { _kmStoreDlGen++; _kmStoreDlSetBusy(false); return; }   // 実行中の2度押し=1回目をキャンセル(第186)
     const keys = Array.from(_kmStoreChecked); if (!keys.length) { alert('可視タイルの一覧でチェックしてから「⬇DL」を押してください'); return; }
-    const assets = [], names = [];
-    for (const k of keys) { const rec = await _kmStoreGet(k); if (!rec) continue; assets.push({ meta: rec.meta, islands: rec.islandsObj, outline: rec.outlineObj }); names.push(`${rec.name}${rec.range}km`); }
-    if (!assets.length) return;
-    const out = { format: 'soranotsuji-kashimap-assets', v: 1, exported: new Date().toISOString(), app: APP_VERSION, assets };
-    downloadTextFile(`soranotsuji-可視マップ資産-${names.join('+').slice(0, 60)}-${formatFileDateTime()}.json`, JSON.stringify(out), 'application/json;charset=utf-8');
+    const total = keys.reduce((s, k) => { const d = _kmDeviceIndex.get(k); return s + ((d && d.size) || 0); }, 0);   // 要約の size の和(本文は読まない)
+    if (total > KM_EXPORT_CONFIRM_BYTES && !confirm(`チェックした可視タイル(${keys.length}件・合計${_kmMB(total)})を1つのJSONファイルに出力します。\n大きなファイルは端末のメモリが足りず失敗することがあります(何回かに分けて出力するのがおすすめです)。続けますか？`)) return;   // 第186
+    const gen = ++_kmStoreDlGen; _kmStoreDlSetBusy(true);
+    try {
+        const parts = [_kmAssetsJsonHead()], names = [];
+        for (const k of keys) {
+            const rec = await _kmStoreGet(k);
+            if (gen !== _kmStoreDlGen) return;   // キャンセルされた(第186: 資産の節目で見る)
+            if (!rec) continue;
+            if (names.length) parts.push(',');
+            parts.push(JSON.stringify({ meta: rec.meta, islands: rec.islandsObj, outline: rec.outlineObj }));   // 1本ずつ文字列に(本文の参照は次の周で捨てる)
+            names.push(`${rec.name}${rec.range}km`);
+        }
+        if (!names.length) return;   // 早期 return でも finally で点灯を落とす(第186)
+        parts.push(']}');
+        downloadTextFile(`soranotsuji-可視マップ資産-${names.join('+').slice(0, 60)}-${formatFileDateTime()}.json`, parts, 'application/json;charset=utf-8');   // 第186: parts のまま Blob へ
+    } finally { if (gen === _kmStoreDlGen) _kmStoreDlSetBusy(false); }   // キャンセル直後に始まった新しい実行の点灯を古い実行が落とさない
 }
 /** チェックした資産を端末から削除 */
 async function _kmStoreDeleteChecked() {
@@ -12198,9 +12315,12 @@ async function _kmImportText(text) {
 function _kmExportAssets() {
     const shown = Array.from(_kmShown.values()).filter(l => l.asset && l.asset.files);
     if (!shown.length) { alert('資産のある山を選んでから出力してください(山リストで「静」か「動」の山にチェック)'); return; }
-    const out = { format: 'soranotsuji-kashimap-assets', v: 1, exported: new Date().toISOString(), app: APP_VERSION, assets: shown.map(l => l.asset.files) };
+    const parts = [_kmAssetsJsonHead()];   // 第186: 対になる File出力も parts の Blob に(1本の文字列に繋がない)
+    shown.forEach((l, i) => { if (i) parts.push(','); parts.push(JSON.stringify(l.asset.files)); });
+    parts.push(']}');
     const names = shown.map(l => { const m = _kmById.get(l.id); return (m ? m.name : l.id) + l.range + 'km'; }).join('+').slice(0, 60);
-    downloadTextFile(`soranotsuji-可視マップ資産-${names}-${formatFileDateTime()}.json`, JSON.stringify(out), 'application/json;charset=utf-8');
+    try { downloadTextFile(`soranotsuji-可視マップ資産-${names}-${formatFileDateTime()}.json`, parts, 'application/json;charset=utf-8'); }
+    catch (e) { console.warn(e); alert('File出力に失敗しました: ' + (e && e.message ? e.message : e)); }   // 第186: 無言にしない
 }
 /** 静的資産の索引(1回だけ。無い/取れない時は空の索引=全て未計算扱い) */
 function _kmLoadIndex() {
@@ -12715,9 +12835,9 @@ async function _kmRefresh() {
     await Promise.all(wanted.map(async w => {
         try { const asset = await _kmLoadAsset(w.id, w.kind, w.range); loaded.push({ ...w, asset, src: asset.src }); }
         catch (e) { console.warn('可視マップ: 資産の読込に失敗', w, e); }
-        done++; fill.style.width = `${Math.round(done / wanted.length * 100)}%`;
+        done++; if (seq === _kmRefreshSeq) fill.style.width = `${Math.round(done / wanted.length * 100)}%`;   // (第186)古い実行は進捗バーに触らない(連続切替で新しい実行の進捗を上書きしない)
     }));
-    prog.classList.add('hidden');
+    if (seq === _kmRefreshSeq) prog.classList.add('hidden');   // (第186)古い実行が新しい実行の進捗バーを消さない(再表示する経路が無いため)
     if (seq !== _kmRefreshSeq || !_kmActive) return;
     loaded.sort((a, b) => a.seat - b.seat);
     _kmShown.clear(); loaded.forEach(l => _kmShown.set(l.id, l));
@@ -13220,7 +13340,7 @@ function setupKashimapControls() {
         document.querySelectorAll('#kashimap-store-table .kashimap-store-check').forEach(c => { c.checked = _kmStoreChecked.has(c.closest('tr').dataset.key); });
         _kmStoreUpdateButtons();
     });
-    document.getElementById('btn-kashimap-store-dl').addEventListener('click', () => _kmStoreExportChecked().catch(e => console.warn(e)));
+    document.getElementById('btn-kashimap-store-dl').addEventListener('click', () => _kmStoreExportChecked().catch(e => { console.warn(e); _kmStoreDlSetBusy(false); alert('⬇DL に失敗しました: ' + (e && e.message ? e.message : e) + '\n(チェックする可視タイルを減らして、何回かに分けて出力してみてください)'); }));   // 第186: RangeError/IDB の失敗を無言にしない
     document.getElementById('btn-kashimap-store-del').addEventListener('click', () => _kmStoreDeleteChecked().catch(e => console.warn(e)));
     document.getElementById('btn-kashimap-store-apply').addEventListener('click', async () => {
         if (!_kmStoreDirty.size) { alert('目的点名の変更はありません'); return; }
@@ -13627,7 +13747,7 @@ async function runTsujiChunks({
             return data;
         }).catch(_ => {
             if (onChunkDone) onChunkDone();
-            return { results: [], dayStart, dayEnd };
+            return { results: [], dayStart, dayEnd, canceled: true };   // ワーカーの終了(キャンセル)や失敗は空のチャンク+印(第186: 欠けを呼び元に伝える)
         });
         promises.push(p);
     }
@@ -13638,11 +13758,10 @@ async function runTsujiChunks({
 
 // --- 辻検索 コア検索ロジック ---
 async function startTsujiSearch() {
+    // 前回検索の残タスク(実行中＋キュー)と、共有プールの他の流れ(辻検索 File取得・My辻 一括計算/File取得)を全て止めてから始める
+    // (第186: 以前は一括計算を止めずに並走させ、後に終わった方が同じパネルを上書きしていた)。ワーカーは runTask 時の ensure() で再生成される。
+    _tsujiFlowsCancelAll(null);
     const generation = ++appState.tsujiSearchGeneration;
-    // 前回検索の残タスク(実行中＋キュー)を全て破棄してから開始する。
-    // ワーカーは terminate されるが、runTask 時の ensure() で再生成される。
-    // My辻検索の一括計算が実行中の場合は破棄しない(結果の破損防止。プール共有・排他前提)。
-    if (!myTsujiBatchRunning) tsujiPool.terminateAll();
     const contentEl = document.getElementById('tsujisearch-content');
     const statusEl = document.getElementById('tsujisearch-status');
     contentEl.innerHTML = '';
@@ -13684,6 +13803,7 @@ async function startTsujiSearch() {
     let doneChunks = 0;
     setTsujiProgress(0, totalChunks);
     const chunkDoneCb = () => {
+        if (generation !== appState.tsujiSearchGeneration) return;   // キャンセル後に terminateAll の reject→catch が呼ぶ分は無視(第186)
         doneChunks++;
         setTsujiProgress(doneChunks, totalChunks);
     };
@@ -15710,12 +15830,15 @@ function mySetStatusIcon() {
 
 /** 0段目ヘッダの一括状態アイコン押下: 未ログインならログイン、ログイン済みは一括更新 */
 function mySetStatusClick() {
+    if (_mySetBulkBusy) return;   // (第186) 一括更新の実行中はヘッダ👎も無視(更新ボタンと対)
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
     bulkUpdateMySets();
 }
 
 /** 更新ボタン: チェックされたMyセット(既定のセット含む)を保存/読込ラジオに従って一括更新 */
+var _mySetBulkBusy = false;   // 一括更新の実行中フラグ(第186: 更新ボタン/ヘッダ👎の再押下で2本目のループを走らせない)
 async function bulkUpdateMySets() {
+    if (_mySetBulkBusy) return;   // 実行中の再押下は無視(第186: 同じシートへ batchClear/batchUpdate(読込)が2本から送られ、完了 alert が2回出ていた)
     if (!isGoogleLoggedIn()) { googleLogin(); return; }
     const checked = allMySetRows().filter(s => s.checked);
     if (!checked.length) return alert('更新するMyセットをチェックボックスで選択してください');
@@ -15727,13 +15850,19 @@ async function bulkUpdateMySets() {
     if (!confirm(`チェックされたMyセットをラジオボタン保存/読込にしたがって更新しますか？${skipped ? `\n(シート未作成の${skipped}件は対象外です)` : ''}`)) return;
     const btn = document.getElementById('btn-myset-update');
     let done = 0, ng = 0;
-    for (const s of targets) {
-        if (btn) btn.innerHTML = `<span class="clock-anim">🕛</span>更新中(${Math.round(done / targets.length * 100)}%)`;
-        const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true, noCreate: true });
-        if (!ok) ng++;
-        done++;
+    _mySetBulkBusy = true;   // (第186) confirm の後から完了まで。finally で必ず戻す
+    if (btn) btn.disabled = true;   // (第186) 実行中はボタンを押せない(ヘッダ👎は冒頭の busy で止める)
+    try {
+        for (const s of targets) {
+            if (btn) btn.innerHTML = `<span class="clock-anim">🕛</span>更新中(${Math.round(done / targets.length * 100)}%)`;
+            const ok = s.saveMode === 'load' ? await mySetLoadFromSheet(s, { quiet: true }) : await mySetSaveToSheet(s, { quiet: true, noCreate: true });
+            if (!ok) ng++;
+            done++;
+        }
+    } finally {
+        _mySetBulkBusy = false;
+        if (btn) { btn.disabled = false; btn.textContent = '更新'; }   // (第186) 例外で抜けても「🕛更新中」と disabled を残さない
     }
-    if (btn) btn.textContent = '更新';
     alert(`Myセットの一括更新が完了しました(成功: ${done - ng}件${ng ? `、失敗: ${ng}件` : ''}${skipped ? `、シート未作成のためスキップ: ${skipped}件` : ''})`);
 }
 
@@ -16148,8 +16277,10 @@ function deleteMySetRow() {
     renderMySetList();
 }
 
+let _mySetCopyBusy = false;   // 複製の実行中(第186: Drive 複製の await 中に二度押しすると同じ newId で2行できる)
 /** コピー(複製): 行と内容を複製し、スプレッドシートが紐付いていればDrive上でも複製する (既定のセットも可) */
 async function copyMySet() {
+    if (_mySetCopyBusy) return;   // (第186) 複製中はもう一度押しても無視(Drive の複製は取り消せないのでキャンセル型にしない)
     const id = getSelectedMySetId();
     if (id === null) return alert('複製するMyセットを選択してください');
     const src = id === 0 ? mySetHomeObj() : appState.mySets.find(x => x.id === id);
@@ -16160,31 +16291,44 @@ async function copyMySet() {
     const rawData = mySetDataOf(src);
     const data = (rawData && Object.keys(rawData).length) ? JSON.parse(JSON.stringify(rawData)) : null;
     const newSet = { id: newId, name: `${src.name}の複製`, saveMode: 'save', offline: false, checked: false, updatedAt: null, memo: src.memo || '', data, sheetId: null, lastSyncSheetTime: null, localEdit: !!src.localEdit };   // 元に未保存変更があれば複製ペア(端末コピー⇄シートコピー)にも同じ差がある(第68ラウンド)
-    if (src.sheetId && isGoogleLoggedIn()) {
-        try {
-            await ensureSoraFolders();
-            const res = await driveApiJson(`files/${encodeURIComponent(src.sheetId)}/copy?fields=id,modifiedTime`, 'POST', {
-                name: newSet.name,
-                parents: [appState.googleDrive.mySetsFolderId],
-                appProperties: { soranotsuji: 'myset' }
-            });
-            newSet.sheetId = res.id;
-            newSet.lastSyncSheetTime = res.modifiedTime || null;
-            newSet.updatedAt = res.modifiedTime ? new Date(res.modifiedTime).getTime() : null;
-            mySetSheetStates[newId] = 'ok';
-        } catch (e) {
-            console.error(e);
-            alert('スプレッドシートの複製に失敗したため、行のみ複製しました: ' + e.message);
+    const btn = document.getElementById('btn-myset-copy');
+    _mySetCopyBusy = true;
+    if (btn) btn.innerHTML = '<span class="clock-anim">🕛</span>複製中';   // (第186) 実行中の点灯(一括更新と同じ形)。出口は finally の1本
+    try {
+        if (src.sheetId && isGoogleLoggedIn()) {
+            try {
+                await ensureSoraFolders();
+                const res = await driveApiJson(`files/${encodeURIComponent(src.sheetId)}/copy?fields=id,modifiedTime`, 'POST', {
+                    name: newSet.name,
+                    parents: [appState.googleDrive.mySetsFolderId],
+                    appProperties: { soranotsuji: 'myset' }
+                });
+                newSet.sheetId = res.id;
+                newSet.lastSyncSheetTime = res.modifiedTime || null;
+                newSet.updatedAt = res.modifiedTime ? new Date(res.modifiedTime).getTime() : null;
+            } catch (e) {
+                console.error(e);
+                alert('スプレッドシートの複製に失敗したため、行のみ複製しました: ' + e.message);
+            }
+        } else if (src.sheetId) {
+            alert('未ログインのため、行のみ複製しました。\n(スプレッドシートの複製はログイン後に、状態アイコンから保存で作成できます)');
         }
-    } else if (src.sheetId) {
-        alert('未ログインのため、行のみ複製しました。\n(スプレッドシートの複製はログイン後に、状態アイコンから保存で作成できます)');
+        if (appState.mySets.some(x => x.id === newSet.id)) {   // (第186) await 中に行追加などで newId が使われていたら push 直前に採番し直す
+            const alt = getNextMySetId();
+            if (alt === null) return alert(`Myセットの登録上限(1000件)に達したため、行を追加できませんでした。${newSet.sheetId ? '\n(複製したスプレッドシートはGoogleドライブに残っています)' : ''}`);
+            newSet.id = alt;
+        }
+        if (newSet.sheetId) mySetSheetStates[newSet.id] = 'ok';   // (第186) 状態は確定した ID に付ける
+        appState.mySets.push(newSet);
+        saveAppState();
+        setMySetDirty(true);
+        renderMySetList();
+        const radio = document.querySelector(`input[name="myset-select"][value="${newSet.id}"]`);
+        if (radio) radio.checked = true;
+    } finally {
+        _mySetCopyBusy = false;
+        if (btn) btn.textContent = '複製';   // (第186) 消灯。例外/早期 return でも必ず戻す
     }
-    appState.mySets.push(newSet);
-    saveAppState();
-    setMySetDirty(true);
-    renderMySetList();
-    const radio = document.querySelector(`input[name="myset-select"][value="${newId}"]`);
-    if (radio) radio.checked = true;
 }
 
 /** 上下移動 (既定のセットは先頭固定) */
@@ -16508,7 +16652,7 @@ function encodeQueryParam(str) {
     return (version >= 2 ? `~${version}~` : '') + s;   // v2以降は辞書版数プレフィックス(v1=無印)
 }
 
-const QP_DECODE_MAX_CHARS = 262144;   // 短縮URL(?query=)の展開後の上限(文字)。第185の監査
+const QP_DECODE_MAX_CHARS = 4194304;   // 短縮URL(?query=)の展開後の上限(文字)。第185の監査 → (第186) 262,144 では正当な最大(表示中のMy天体1,000件×名前300字(全角=9文字)≒2.8M文字)に届かず、自分で取った短縮URLが復元できなかった。発行側 buildShareUrl も同じ上限を見る
 function decodeQueryParam(s) {
     try {
         if (!s) return '';
@@ -16565,7 +16709,7 @@ function decodeQueryParam(s) {
             else if (code === nextCode) entry = w + w[0];   // KwKwK ケース
             else return null;
             res += entry;
-            if (res.length > QP_DECODE_MAX_CHARS) return null;   // 第185の監査: 展開爆弾(数十 KB の URL で数億文字)を止める。正当な共有URLは数 KB
+            if (res.length > QP_DECODE_MAX_CHARS) return null;   // 第185の監査: 展開爆弾(数十 KB の URL で数億文字)を止める。(第186) 正当な共有URLはMy天体を全部表示すると数百万文字になり得るので上限はそれを覆う値
             dict.push(w + entry[0]); nextCode++;
             w = entry;
         }
@@ -16812,20 +16956,26 @@ function closeUrlPicker() {
 /** URL取得共通: 「短いURL」チェックボックス(初期値オン)に従い、
  *  オン=可逆圧縮したqueryキー1つの短いURL / オフ=キー名やキー値がそのままの長いURL を作る。
  *  どちらのURLでも同じ状態を復元できる(restoreFromUrlが両形式を読む)。 */
+let _shareUrlLongNote = '';   // (第186) 短縮を諦めて長いURLにした時の案内。deliverShareUrl が読んで消す
 function buildShareUrl(params) {
     const chk = document.getElementById('url-picker-short');
-    const useShort = !chk || chk.checked;
-    return buildBaseUrl() + (useShort ? '?query=' + encodeQueryParam(params.toString()) : '?' + params.toString());
+    const wantShort = !chk || chk.checked;
+    const str = params.toString();
+    const tooLong = str.length + 1 > QP_DECODE_MAX_CHARS;   // (第186) 展開側 decodeQueryParam と同じ上限(+1=仮想の先頭「&」)。発行側に上限が無く、展開できないURLを配っていた
+    const useShort = wantShort && !tooLong;
+    _shareUrlLongNote = (wantShort && tooLong) ? '\n(表示天体が多くURLが長すぎるため、短縮せずに長いURLにしました)' : '';   // (第186)
+    return buildBaseUrl() + (useShort ? '?query=' + encodeQueryParam(str) : '?' + str);
 }
 
 /** URL取得共通の出口(第95ラウンド): 「:QRコード」チェック(初期値オフ)がオンなら、URL文字列の
  *  代わりにそのURLのQRコード画像をクリップボードへコピーする(スマホのカメラで読む使い方)。 */
 function deliverShareUrl(url, subject) {
+    const note = _shareUrlLongNote; _shareUrlLongNote = '';   // (第186) 読んだら消す(次の発行へ持ち越さない)
     const qrChk = document.getElementById('url-picker-qr');
     if (qrChk && qrChk.checked) { copyShareQr(url, subject); return; }
     navigator.clipboard.writeText(url).then(() => {
-        alert(`${subject}URLをクリップボードにコピーしました。`);
-    }).catch(() => { prompt('URLをコピーしてください:', url); });
+        alert(`${subject}URLをクリップボードにコピーしました。${note}`);
+    }).catch(() => { prompt('URLをコピーしてください:' + note, url); });
 }
 
 /** URLのQRコード画像(PNG)を生成してクリップボードへコピーする。
@@ -16990,7 +17140,7 @@ function restoreFromUrl() {
     if (params.has('query')) {
         const decoded = decodeQueryParam(params.get('query'));
         if (decoded) params = new URLSearchParams(decoded);
-        else alert('短縮URLの復元に失敗しました。URLが途中で欠けているか、壊れている可能性があります。既定の状態で開きます。');
+        else alert('短縮URLの復元に失敗しました。URLが途中で欠けているか、壊れているか、展開後の長さが上限を超えた可能性があります。既定の状態で開きます。');   // (第186) 上限超えも案内
     }
     if (!params.has('mode')) return;
 
@@ -18556,18 +18706,28 @@ function _smMovPoolEnsure() {
     const n = Math.min(SORA.WORKERS.MOV_MAX, _poolSize());   // 動画の書き出し。第185: 上限4のまま CPU−1 に収める
     const workers = [];
     for (let i = 0; i < n; i++) workers.push(new Worker('sora-mov-worker.js'));
-    _smMovPool = { workers, idle: [...workers], queue: [] };
+    _smMovPool = { workers, idle: [...workers], queue: [], busy: new Map() };   // (第186) busy=実行中の約束(失敗時に空で解決)
+    for (const w of workers) w.addEventListener('error', _smMovPoolFail);   // (第186) 起動失敗/例外はプールごと捨てる(地形プールと同じ形)
     return _smMovPool;
 }
 function _smMovRunOnWorker(worker, task) {
     const handler = (e) => {
         worker.removeEventListener('message', handler);
+        if (_smMovPool) _smMovPool.busy.delete(worker);   // (第186)
         task.resolve(e.data || { frames: [] });
-        if (_smMovPool.queue.length > 0) _smMovRunOnWorker(worker, _smMovPool.queue.shift());
-        else _smMovPool.idle.push(worker);
+        if (_smMovPool && _smMovPool.queue.length > 0) _smMovRunOnWorker(worker, _smMovPool.queue.shift());
+        else if (_smMovPool) _smMovPool.idle.push(worker);   // (第186) プールを捨てた後の null 保護(地形と同じ形)
     };
     worker.addEventListener('message', handler);
+    if (_smMovPool) _smMovPool.busy.set(worker, task);   // (第186) 実行中の約束を控える(失敗時に _smMovPoolFail が空で解決)
     worker.postMessage(task.message);
+}
+/** (第186) 動画ワーカーの起動失敗/例外: プールを捨てて(次回 ensure で作り直す)、実行中と待ち行列の約束を failed 付きの空で解決 → 再生側が停止して案内する(「再生準備中…」で止めない)。 */
+function _smMovPoolFail() {
+    const pool = _smMovPool;
+    if (!pool) return;
+    _smMovPool = null;
+    _smPoolFail(pool, t => ({ reqId: t.message.reqId, off: t.message.off, frames: [], failed: true }));
 }
 function _smMovPoolRun(message) {
     const pool = _smMovPoolEnsure();
@@ -18576,6 +18736,13 @@ function _smMovPoolRun(message) {
         if (pool.idle.length > 0) _smMovRunOnWorker(pool.idle.pop(), task);
         else pool.queue.push(task);
     });
+}
+/** キュー上の未実行チャンクを全て破棄(再生の世代切替時に呼ぶ。第186: 停止→再生の繰り返しで旧世代の残チャンクが新世代の前に並び「再生準備中…」が延びる/停止中も CPU を使う)。
+ *  結果は空で解決され、旧世代側の gen チェック(soraMovTogglePlay)で捨てられる。実行中の分は従来どおり gen チェックで結果破棄。 */
+function _smMovPoolCancelQueued() {
+    if (!_smMovPool) return;
+    for (const task of _smMovPool.queue) task.resolve({ reqId: task.message.reqId, off: task.message.off, frames: [] });
+    _smMovPool.queue = [];
 }
 
 /** キューのフレームデータから表示天体スプライト群を再構築(メインスレッドでの天文計算なし) */
@@ -18659,6 +18826,7 @@ function soraMovTogglePlay() {
     const startMs = appState.currentDate.getTime();
     _movEndMs = startMs + iv * shots * 1000;
     const gen = ++_movGen;
+    _smMovPoolCancelQueued();   // 旧世代のキュー済みチャンクを破棄してから新世代を投入(第186: 新世代が旧世代の後ろに並ばないように。_smFetchTerrain と同じ形)
     // 表示天体のメタ情報(固定天体はRA/Dec、惑星等は半径kmを渡してワーカー側で視半径まで計算)
     const metas = appState.bodies.filter(b => b.visible).map(b => {
         const m = { id: b.id, color: b.color || '#DDA0DD' };
@@ -18680,6 +18848,7 @@ function soraMovTogglePlay() {
         _smMovPoolRun({ reqId: `${gen}_${off}`, off, frames, bodies: wBodies, observer: obs, refraction: appState.astroRefraction })
             .then(res => {
                 if (gen !== _movGen) return;   // 停止済みの世代は破棄
+                if (res.failed) { soraMovStop(); alert('再生の準備(計算ワーカー)に失敗しました。通信を確認して、もう一度「再生」を押してください。'); return; }   // (第186) ワーカー起動失敗: 停止して案内(soraMovStop の _movGen++ で他チャンクの failed は捨てられ、案内は1回)
                 (res.frames || []).forEach((fr, i) => { _movQueue[res.off + i] = fr; });
                 _movFilled += (res.frames || []).length;
             });
@@ -18718,6 +18887,7 @@ function soraMovStop() {
         _movVideo = null;
     }
     _movGen++;            // 事前計算の未着チャンクを破棄
+    _smMovPoolCancelQueued();   // キュー済みの未実行チャンクも全て破棄(第186: 走り続け防止。実行中の分は gen チェックで結果破棄)
     _movPlaying = false;
     _movQueue = [];
     _smMovRingTeardown();
@@ -19577,6 +19747,7 @@ function setupSoramadoControls() {
             const v = parseFloat(el.value);
             if (!isNaN(v)) {
                 if (appState.fwLat === null || appState.fwLng === null) { appState.fwLat = appState.end.lat; appState.fwLng = appState.end.lng; }
+                _fwSetSeq++;   // (第186) 取得中の古い標高が手動編集を後から上書きしない(同期設定もチケットを進める流儀)
                 appState.fwElev = Math.max(-500, Math.min(9000, v));
             }
             _fwShells = [];
@@ -20550,15 +20721,20 @@ async function handleFwLocationInput(val) {
     const coords = parseInput(val);
     if (coords) { await applyFwCoords(coords); return; }
     if (_mapUrlLooksLike(val)) { alert(_MAP_URL_HINT); return; }   // 読めなかった URL(短縮URL 等)は地名検索へ回さず案内(第186)
+    if (_coordOutOfRange(val)) { alert(_COORD_RANGE_HINT); return; }   // 範囲外の「緯度,経度」は地名検索へ回さず案内(第186)
     const sc = _plusCodeShortParse(val);   // プラスコードの短縮形(第90ラウンド。観測点/目的点と同じ流れ)
     if (sc) { await _plusCodeResolveShort(sc, async c => { await applyFwCoords(c); }); return; }
-    const results = await searchLocation(toFullWidth(val.trim()));
+    const gen = ++_locSearchGen;   // 重なった検索は後が勝つ(第186。観測点/目的点と同じ)
+    const results = await searchLocation(_normLocQuery(val));   // 観測点/目的点と同じ正規化(第186: 常に全角化していたので英字の地名が引けなかった)
+    if (gen !== _locSearchGen) return;   // 待つ間に次の検索/候補の確定があった: 古い結果は捨てる(第186)
     if (!results || results.length === 0) { alert('該当する地名が見つかりませんでした'); return; }
     showLocationPicker(results, async r => { await applyFwCoords({ lat: r.lat, lng: r.lon }); });
 }
 
+let _fwSetSeq = 0;   // 打ち上げ点の非同期設定の追い越し防止(第186。観測点/目的点の _locSetSeq と同じ流儀)
 async function applyFwCoords(coords) {
     // 座標は即時反映し、標高は取得でき次第あとから埋める(取得待ちで設定が遅れない/失敗時は0)
+    const g = ++_fwSetSeq;   // (第186) await 後に自分がまだ最新かを確かめる
     appState.fwLat = coords.lat;
     appState.fwLng = coords.lng;
     appState.fwHeight = 0;
@@ -20568,6 +20744,7 @@ async function applyFwCoords(coords) {
     if (appState.isSoramadoActive && !_smFailed) { _fwUpdateScene(performance.now()); drawSoramado(); }
     let elev = 0;
     try { elev = await getElevation(coords.lat, coords.lng); } catch (_) { elev = 0; }
+    if (g !== _fwSetSeq) return;   // (第186) より新しい打ち上げ点の設定/標高の手動編集に追い越された: 古い地点の標高を書かない
     appState.fwElev = (elev !== null && isFinite(elev)) ? elev : 0;
     _fwShells = [];
     fwSyncUI(); saveAppState();
@@ -21498,6 +21675,7 @@ let _sdMap = null;            // MapLibre Mapインスタンス(開いている�
 let _sdGen = 0;               // 閉じるたびに進める世代(取得中の非同期更新の書き込みを止める)
 let _sdProtocolAdded = false; // gsidemプロトコルの登録済みフラグ
 let _sdLastDrawKey = '';      // 描画済みの状態キー(基準時刻|オフセット分|モード。変更検出用)
+let _sdDrawSeq = 0;           // _sdUpdateClouds の呼び出し番号(取得中にモード/時刻が変わったら古い方は描かない。_kmRefreshSeq と同形。第186)
 let _sdClouds = null;         // 取得済みの3層雲量格子 { points, clouds } (開いている間のみ)
 let _sdSlices = null;         // 取得済みの気圧面格子(輪切りモード。初回切替時に取得)
 let _sdMode = 'layers';       // 表示モード: 'layers'=3層スラブ / 'slices'=気圧面の輪切り
@@ -21746,6 +21924,7 @@ async function _sdFetchSlices(points, days) {
 async function _sdUpdateClouds(force) {
     if (!_sdMap || !appState.isSoradanmenActive) return;
     const gen = _sdGen;
+    const seq = ++_sdDrawSeq;   // この呼び出しの番号(await 後に最新でなければ描かない。第186)
     const statusEl = document.getElementById('soradanmen-status');
     const { effMs } = _sdEffectiveTime();
     const eff = new Date(effMs);
@@ -21764,6 +21943,7 @@ async function _sdUpdateClouds(force) {
                 const clouds = await ssFetchClouds(points, 3);   // IndexedDBキャッシュを宙検索と共有(TTL2時間)
                 if (gen !== _sdGen || !_sdMap) return;   // 取得中に閉じられた(閉→開後の古い雲の書き戻し防止)
                 _sdClouds = { points, clouds };
+                if (seq !== _sdDrawSeq) return;   // 取得中にモード/時刻が変わり新しい呼び出しが走った(取得結果は控えに残し、描くのは最新だけ。第186)
             }
             const feats = [];
             const h = SD_GRID_STEP / 2;
@@ -21794,6 +21974,7 @@ async function _sdUpdateClouds(force) {
                 const slices = await _sdFetchSlices(points, 3);
                 if (gen !== _sdGen || !_sdMap) return;   // 取得中に閉じられた
                 _sdSlices = { points, slices };
+                if (seq !== _sdDrawSeq) return;   // 取得中にモード/時刻が変わり新しい呼び出しが走った(取得結果は控えに残し、描くのは最新だけ。第186)
             }
             const feats = [];
             const h = SD_SLICE_STEP / 2;
@@ -21821,6 +22002,7 @@ async function _sdUpdateClouds(force) {
         }
     } catch (err) {
         console.error('宙断面 雲量:', err);
+        if (seq !== _sdDrawSeq || gen !== _sdGen) return;   // 古い呼び出し/閉じた後の失敗は状態文に書かない(最新の呼び出しの文を消さない。第186)
         if (statusEl) statusEl.textContent = '雲量を取得できませんでした(地形のみ表示。Open-Meteoへの接続をご確認ください)';
     }
 }
@@ -22615,18 +22797,28 @@ function _smEnsureTerrainPool() {
     if (_smTerrainPool) return _smTerrainPool;
     const workers = [];
     for (let i = 0; i < SORA_TERRAIN_POOL_SIZE; i++) workers.push(new Worker('sora-terrain-worker.js'));
-    _smTerrainPool = { workers, idle: [...workers], queue: [], seq: 0 };
+    _smTerrainPool = { workers, idle: [...workers], queue: [], busy: new Map(), seq: 0 };   // (第186) busy=実行中の約束(失敗時に空で解決)
+    for (const w of workers) w.addEventListener('error', _smTerrainPoolFail);   // (第186) 起動失敗/例外はプールごと捨てる(idle で死んだワーカーも拾う)
     return _smTerrainPool;
 }
 function _smTerrainRunOnWorker(worker, task) {
     const handler = (e) => {
         worker.removeEventListener('message', handler);
+        if (_smTerrainPool) _smTerrainPool.busy.delete(worker);   // (第186)
         task.resolve(e.data || { elevs: [] });
         if (_smTerrainPool && _smTerrainPool.queue.length > 0) _smTerrainRunOnWorker(worker, _smTerrainPool.queue.shift());
         else if (_smTerrainPool) _smTerrainPool.idle.push(worker);
     };
     worker.addEventListener('message', handler);
+    if (_smTerrainPool) _smTerrainPool.busy.set(worker, task);   // (第186) 実行中の約束を控える(失敗時に _smPoolFail が空で解決)
     worker.postMessage(task.message);
+}
+/** (第186) 地形ワーカーの起動失敗/例外: プールを捨てて(次回 ensure で作り直す)、実行中と待ち行列の約束を空で解決 → _smFetchTerrain が tileDone→_smSetTerrainProgress(-1) に到達し進捗バーが消える。 */
+function _smTerrainPoolFail() {
+    const pool = _smTerrainPool;
+    if (!pool) return;   // 2台目以降の error(同じ失敗)は無視
+    _smTerrainPool = null;   // 先に捨てる(handler の再入防止)
+    _smPoolFail(pool, t => ({ reqId: t.message.reqId, elevs: [] }));
 }
 function _smTerrainPoolRun(message) {
     const pool = _smEnsureTerrainPool();

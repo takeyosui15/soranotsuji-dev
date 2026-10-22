@@ -28,7 +28,7 @@
 | F-17 | URL の date/time は数字だけ(8桁・4/6桁)。壊れた日時は現在時刻に戻す最終防衛 | `restoreFromUrl` |
 | F-18 | URL の標高/高さは有限で ±20,000m | `restoreFromUrl` `elvOk` |
 | F-19 | 花火の緯度経度は範囲外なら捨てる(null) | `normalizeAppState` |
-| F-20 | 短縮URL(?query=)の LZW 展開に上限 262,144 文字(展開爆弾) | `decodeQueryParam` `QP_DECODE_MAX_CHARS` |
+| F-20 | 短縮URL(?query=)の LZW 展開に上限 4,194,304 文字(展開爆弾。第186: 262,144 では正当な最大=My天体1,000件×300字≒2.8M文字に届かず引き上げ。発行側 `buildShareUrl` も同じ上限で長いURLへ落とす) | `decodeQueryParam` `QP_DECODE_MAX_CHARS` |
 | F-21 | URL の My天体は 1,000 件まで | `restoreFromUrl` |
 | F-23 | My辻検索の天体 ID は重複排除 | `executeSingleMyTsujiSearch` |
 | F-24 | googleLogin の約束は毎回の呼び出しの物を解決する(2回目以降が永久に未解決だった) | `googleLogin` `_googleLoginResolve` |

@@ -196,3 +196,10 @@
 - CSV処理
   - CSV入力時、名称以外の項目の値で、全角英数字記号は半角英数字記号に変換する。
   - ファイルの文字コードと改行コードは、MS Excel,Google SpredSheet,Windows,Mac,Android,iPhoneで互換性のあるものとする。
+
+## 第186: 行の座標欄の Enter と blur、CSV の座標未設定
+
+- 行の緯度経度欄は Enter と blur(change)で同じ入口(parseInput: 「緯度,経度」・Plus Code・Google/Apple マップの URL・度分秒)を通り、共通の applyPt(行のスコープ)で座標→保存→標高の取得→保存。世代 ptSeq で古い標高の取得が新しい地点を上書きしない。同じ座標の blur(Enter 直後)は何もしない。地名検索は Enter だけ(blur では通信も案内も出さない)。
+- 地名検索の正規化は観測点/目的点と同じ _normLocQuery(日本語を含む時だけ全角化)。Enter のリピート(長押し)は _enterKeyFresh で無視。
+- CSV出力: 座標未設定の行(lat/lng null)は空欄で書き、CSV入力/追加CSV入力は「両方空」を座標未設定の行として通す(標高も取りに行かない)。名前・メモの半角カンマは全角「，」。
+- 欄の maxlength は 2048(URL が貼り付けで切れない)。範囲外の「緯度,経度」(±90/±180 超・Infinity)は parseInput が null を返し、Enter 経路では案内(_COORD_RANGE_HINT)。

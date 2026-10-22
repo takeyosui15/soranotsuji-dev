@@ -128,7 +128,7 @@ check('S3 script.js: KM_RANGES=[100,300,700]・_kmRange初期値100・_kmBuildin
     const noneChecked = Array.from(document.querySelectorAll('.kashimap-store-check')).every(c => !c.checked);
     // ⬇DL: 1つだけチェック
     const c1 = document.querySelector('#kashimap-store-table tr.km-store-row[data-key="tgt:1/canopy/24"] .kashimap-store-check'); c1.checked = true; c1.dispatchEvent(new Event('change', { bubbles: true }));
-    let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t) => { got = { n, obj: JSON.parse(t) }; };
+    let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t) => { got = { n, obj: JSON.parse(Array.isArray(t) ? t.join('') : t) }; };
     document.getElementById('btn-kashimap-store-dl').click(); for (let i = 0; i < 50 && !got; i++) await new Promise(r => setTimeout(r, 50)); window.downloadTextFile = orig;
     // 削除: さらに1つチェックして2つ削除
     const c2 = document.querySelector('#kashimap-store-table tr.km-store-row[data-key="tgt:1/terrain/24"] .kashimap-store-check'); c2.checked = true; c2.dispatchEvent(new Event('change', { bubbles: true }));

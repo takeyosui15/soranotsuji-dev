@@ -89,7 +89,7 @@ check('S3 道具: 間引きの既定0(--tol 0)・CSV出力の関数は撤去', /
   // K4: File出力=描画中の山の資産を1つのJSONに(愛鷹山+富士山)
   await selectMountain('368', true);
   await p.waitForFunction(() => _kmShown.has('368') && _kmShown.has('369'), {timeout: 120000});
-  const k4 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t, m) => { got = { n, m, obj: JSON.parse(t) }; }; try { _kmExportAssets(); } finally { window.downloadTextFile = orig; }
+  const k4 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t, m) => { got = { n, m, obj: JSON.parse(Array.isArray(t) ? t.join('') : t) }; }; try { _kmExportAssets(); } finally { window.downloadTextFile = orig; }
     return got && { n: got.n, m: got.m, format: got.obj.format, ids: got.obj.assets.map(a => a.meta.mountain.id).sort(), ok: got.obj.assets.every(a => a.meta && a.islands && a.outline && a.outline.islands.length === a.islands.islands.length) }; });
   check('K4 File出力: soranotsuji-可視マップ資産-*.json(application/json)・format・選んだ2山の資産(meta/islands/outlineが揃い島の数が一致)', k4 && /^soranotsuji-可視マップ資産-.+\.json$/.test(k4.n) && /json/.test(k4.m) && k4.format === 'soranotsuji-kashimap-assets' && k4.ids.join() === '368,369' && k4.ok, JSON.stringify(k4));
 

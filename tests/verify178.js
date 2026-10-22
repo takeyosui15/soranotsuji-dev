@@ -134,7 +134,7 @@ check('S3 script.js: new Worker(kashimap-worker.js)・_kmComputeOne/_kmComputeTa
     const row = Array.from(document.querySelectorAll('#kashimap-store-table tbody tr')).find(t => t.dataset.key === 'tgt:35.362799,138.730781/terrain/8');
     const c = row.querySelector('.kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-dl').click();
     for (let i = 0; i < 50 && !window._dl; i++) await new Promise(r => setTimeout(r, 100));
-    const o = window._dl ? JSON.parse(window._dl.t) : null;
+    const o = window._dl ? JSON.parse(Array.isArray(window._dl.t) ? window._dl.t.join('') : window._dl.t) : null;
     return { n: window._dl && window._dl.n, format: o && o.format, id: o && o.assets[0].meta.mountain.id, name: o && o.assets[0].meta.mountain.name, outlineN: o && o.assets[0].outline.islands.length, islandsN: o && o.assets[0].islands.count, v: o && o.assets[0].outline.v };
   });
   check('D3 チェック+「⬇DL」でその場計算の資産をFile出力(format/資産のid=tgt:…/山名/輪郭と索引の数が揃う/outline v2)', d3.n && /テスト富士8km/.test(d3.n) && d3.format === 'soranotsuji-kashimap-assets' && d3.id === 'tgt:35.362799,138.730781' && d3.name === 'テスト富士' && d3.outlineN === d3.islandsN && d3.v === 2, JSON.stringify(d3));

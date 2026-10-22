@@ -168,7 +168,7 @@ let fujiIslands = null, fujiMeta = null, fujiN = 0, kenashiN = 0;
   check('K7 島リストの行クリックで地図がその島の代表点へ', Math.abs(c7.lng - +r7.c[7]) < 0.002 && c7.lat <= +r7.c[6] + 0.001, JSON.stringify({ row: r7.c.slice(1, 8), c7 }));
 
   // K8: File出力(第151で資産のJSONへ: 描画中の2山の資産=meta/islands/outline)
-  const k8 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t, m) => { got = { n, m, obj: JSON.parse(t) }; }; try { _kmExportAssets(); } finally { window.downloadTextFile = orig; }
+  const k8 = await p.evaluate(() => { let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t, m) => { got = { n, m, obj: JSON.parse(Array.isArray(t) ? t.join('') : t) }; }; try { _kmExportAssets(); } finally { window.downloadTextFile = orig; }
     return got && { name: got.n, mime: got.m, format: got.obj.format, ids: got.obj.assets.map(a => a.meta.mountain.id).sort(), ok: got.obj.assets.every(a => a.meta && a.islands && a.outline && a.outline.islands.length === a.islands.islands.length) }; });
   check('K8 File出力: soranotsuji-可視マップ資産-*.json・描画中の2山(富士山・毛無山)の資産(meta/islands/outline)', k8 && /^soranotsuji-可視マップ資産-.+\.json$/.test(k8.name) && /json/.test(k8.mime) && k8.format === 'soranotsuji-kashimap-assets' && k8.ids.join() === '368,370' && k8.ok, JSON.stringify(k8));
 

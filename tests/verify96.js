@@ -23,7 +23,7 @@ const check=(name,ok,detail)=>{ console.log(`${ok?'PASS':'FAIL'} ${name}${detail
       focal: appState.soraFocal,
       btnT: !!document.getElementById('btn-tsuji-file'),
       btnM: !!document.getElementById('btn-tsujimesh-file'),
-      csvHeader: downloadTsujiResultCsv.toString().includes("'月輝面比'"),
+      csvHeader: createTsujiCsvWriter.toString().includes("'月輝面比'"),   // 第186: 列見出しは書き手(createTsujiCsvWriter)へ移った
       detailHeader: _tmUpdateDetailList.toString().includes('月輝面比') && _tmUpdateDetailList.toString().includes('検索中心方位角差'),
       markSpec: _tmUpdateDetailList.toString().includes("'⭐︎'"),
     }));

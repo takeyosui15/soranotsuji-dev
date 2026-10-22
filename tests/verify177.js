@@ -192,7 +192,7 @@ check('S3 既定値表: elevSummitBandEnabled=true・elevSummitBandM=300(0〜200
     const info = _kmIndexInfo('370'); const cell = Array.from(document.querySelector('#kashimap-content tr[data-id="370"]').children).slice(11).map(td => td.textContent);
     const row = document.querySelector('#kashimap-store-table tr[data-key="370/terrain/20"]'); const rowText = row ? (row.querySelector('.kashimap-store-name').value + row.nextElementSibling.textContent) : null;
     _kmAssets.delete('370/terrain/20'); const a = await _kmLoadAsset('370', 'terrain', 20);
-    let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t) => { got = { n, obj: JSON.parse(t) }; };
+    let got = null; const orig = window.downloadTextFile; window.downloadTextFile = (n, t) => { got = { n, obj: JSON.parse(Array.isArray(t) ? t.join('') : t) }; };
     const c = row.querySelector('.kashimap-store-check'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('btn-kashimap-store-dl').click(); await new Promise(r => setTimeout(r, 600)); window.downloadTextFile = orig; c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true }));
     return { label: info && info.label, origin: info && info.origin, cell, rowText, reloadSrc: a.src, dl: got && { n: got.n, n_assets: got.obj.assets.length, id: got.obj.assets[0].meta.mountain.id } };
   });
