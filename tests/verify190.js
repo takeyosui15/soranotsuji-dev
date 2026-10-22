@@ -18,8 +18,9 @@ const APP_VER = (/APP_VERSION = '([^']+)'/.exec(consts) || [])[1];
 const pngSize = (f) => { const b = fs.readFileSync(path.join(ROOT, f)); return b.length > 24 && b.toString('latin1', 1, 4) === 'PNG' ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null; };
 
 // ---- V0: 版のピン(最新の verify が持つ) ----
-check('V0 版のピン 1.99.3(sora-constants.js の APP_VERSION)+移行用 meta は無い(第186で削除)+Version History の最新行が 1.99.3 で第186',
-  APP_VER === '1.99.3' && !/<meta name="app-version"/.test(html) && /Version History:\nVersion 1\.99\.3 - 2026-10-22: [^\n]*第186ラウンド/.test(src), APP_VER);
+const _atLeast = (v, w) => { const a = String(v).split('.').map(Number), b = w.split('.').map(Number); for (let i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
+check('V0 版は 1.99.3 以上(第187で 1.99.4 へ。版のピンは最新の verify191 が持つ)+移行用 meta は無い(第186で削除)+Version History に 1.99.3 の行が第186で残る',
+  _atLeast(APP_VER, '1.99.3') && !/<meta name="app-version"/.test(html) && /Version 1\.99\.3 - 2026-10-22: [^\n]*第186ラウンド/.test(src), APP_VER);
 
 // ---- S1: 地図 URL・度分秒(静的) ----
 const hintCalls = (src.match(/if \(_mapUrlLooksLike\(val\)\) \{ alert\(_MAP_URL_HINT\); return; \}/g) || []).length;
@@ -37,7 +38,7 @@ check('S2 天気の控えの行の封鎖: index.html は backup-wx-block で見�
   /<div id="backup-wx-block">[^\n]*\n\s*<hr class="tsujisearch-separator km-hr">\n\s*<div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙検索・宙断面が使う天気[\s\S]*?天気の控えを削除<\/button><\/div>\n\s*<\/div>\n\s*<hr class="tsujisearch-separator km-hr">\n\s*<div class="control-row left-row"><label class="baseopt-group-label km-sub" title="宙の辻の本体/.test(html) &&
   /function applyFeatureLocks\(\) \{\n\s*if \(!FEATURE_FORECAST_ENABLED\) \{ const wb = document\.getElementById\('backup-wx-block'\); if \(wb\) wb\.classList\.add\('feature-locked'\); \}[^\n]*\n\s*if \(FEATURE_KASHIMAP_ENABLED\) return;/.test(src) &&
   !html.includes('天気の控え・本体の控えの件数') && !html.includes('天気の控えは2時間') && !html.includes('天気の期限切れを今すぐ') && html.includes('(地図・標高・建物は上の控えのある範囲だけ)') &&
-  rd('sora-store-worker.js').includes('wxTtlMs') && !rd('docs/note/note-faq-page.md').includes('天気の控えは取ってから') && !rd('docs/release-notes/v1.99.3.md').includes('天気の控え'));
+  rd('sora-store-worker.js').includes('wxTtlMs') && !rd('docs/note/note-faq-page.md').includes('天気の控えは取ってから') && !rd('docs/release-notes/v1.99.4.md').includes('天気の控え'));
 
 // ---- S3: ラジオ/チェックの flex ----
 check('S3 CSS: label の中のラジオ/チェックボックスは flex: 0 0 auto(文が折り返す段で縮まない。第186)',
@@ -47,7 +48,7 @@ check('S3 CSS: label の中のラジオ/チェックボックスは flex: 0 0 au
 const topBody = rd('docs/note/note-top-page.md').split('\n---\n').slice(1).join('\n');
 check('S4 「宙の窓検索」→「宙の窓」: 位置情報メニューのボタン・ヘルプの節・index.html/README/docs/note(本文)/リリースノート v1.99.3 に「宙の窓検索」が残らない・verify174/183 のピンも新しい名前',
   /<button id="btn-soramado" class="nav-btn main-btn" title="[^"]*辻検索・辻メッシュ検索へ">宙の窓<\/button>/.test(html) && html.includes('<h3>宙の窓</h3>') && html.includes('<p>「宙の窓」ボタンON時に、') &&
-  !html.includes('宙の窓検索') && !rd('README.md').includes('宙の窓検索') && !topBody.includes('宙の窓検索') && !rd('docs/note/note-faq-page.md').includes('宙の窓検索') && !rd('docs/release-notes/v1.99.3.md').includes('宙の窓検索') &&
+  !html.includes('宙の窓検索') && !rd('README.md').includes('宙の窓検索') && !topBody.includes('宙の窓検索') && !rd('docs/note/note-faq-page.md').includes('宙の窓検索') && !rd('docs/release-notes/v1.99.4.md').includes('宙の窓検索') &&
   rd('tests/verify183.js').includes('>宙の窓<\\/button>') && rd('tests/verify174.js').includes('>宙の窓<\\/button>'));
 
 // ---- S5: ロゴとアイコン ----
@@ -59,10 +60,10 @@ check('S5 ロゴ: logo.svg は図形(<image> 無し・linearGradient 2つ・三�
   ex('tools/icons/render-icons.js') && rd('docs/operation/deploy-guide.md').includes('tools/icons/render-icons.js'));
 
 // ---- S6: 文書 ----
-const rn = rd('docs/release-notes/v1.99.3.md');
+const rn = rd('docs/release-notes/v1.99.4.md');
 check('S6 文書: 重要なお知らせの下書きは note-important-notice-page.md(旧名は無い・「お知らせ」の記事とは別)・リリースノートは v1.99.3.md(旧名は無い・§4 に URL・§7 は2行)・FAQ に「Google マップで見つけた場所を」の Q・todo の備忘録にコンパス/固定タブ/次の監査・デッサン01 に URL の読む順',
   ex('docs/note/note-important-notice-page.md') && !ex('docs/note/note-notice-page.md') && rd('docs/note/note-important-notice-page.md').includes('とは別の記事') &&
-  ex('docs/release-notes/v1.99.3.md') && !ex('docs/release-notes/v1.99.2.md') && rn.startsWith('# 宙の辻 v1.99.3 リリースのお知らせ') && rn.includes('- **Google マップ/Apple マップの URL から**') && /## 7\. その他の修正\n\n- Google ドライブ同期[^\n]*\n- 細かな表示の調整[^\n]*\n\n/.test(rn) &&
+  ex('docs/release-notes/v1.99.4.md') && !ex('docs/release-notes/v1.99.3.md') && rn.startsWith('# 宙の辻 v1.99.4 リリースのお知らせ') && rn.includes('- **Google マップ/Apple マップの URL から**') && /## 7\. その他の修正\n\n- Google ドライブ同期[^\n]*\n- 細かな表示の調整[^\n]*\n\n/.test(rn) &&
   rd('docs/note/note-faq-page.md').includes('# Q. Google マップで見つけた場所を、宙の辻の観測点/目的点にしたい。') &&
   rd('docs/todo.md').includes('コンパスアイコンのボタンを作り') && rd('docs/todo.md').includes('上の方に固定されたタブ') && rd('docs/todo.md').includes('「### 次の監査でやる事」') &&
   rd('docs/dessin/dessin/01-location.md').includes('読む順(_mapUrlParse)'));

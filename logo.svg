@@ -4,10 +4,10 @@
      ・三角: 底辺は正方形の下辺の左端から中点まで(0,S)-(S/2,S)、頂点は右上の角 (S,0)。
      ・円: 正方形の中点からの垂線 x=S/2 に接し、上辺 y=0 と三角の長辺(対角線 x+y=S)にも接する。
        半径 r = (S/2)/(2+√2) ≈ 146.447、中心 (S/2+r, r)。
-     ・色: どちらも下が赤 #ff0000、上が橙 #ee7800 の縦のグラデーション(図形ごと)。 -->
+     ・色: 赤 #ff0000 → 橙 #ee7800。円(天体)は下から上へ縦に。三角(山の斜面・稜線・奥へ続く「道」)は底辺の真ん中 (S/4, S) から頂点 (S, 0) へ向かう斜めの「道」に沿って(第187・依頼者)。 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
   <defs>
-    <linearGradient id="sora-tri" x1="0" y1="1" x2="0" y2="0">
+    <linearGradient id="sora-tri" gradientUnits="userSpaceOnUse" x1="250" y1="1000" x2="1000" y2="0">
       <stop offset="0" stop-color="#ff0000"/>
       <stop offset="1" stop-color="#ee7800"/>
     </linearGradient>
