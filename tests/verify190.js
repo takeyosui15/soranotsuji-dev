@@ -61,9 +61,9 @@ check('S5 ロゴ: logo.svg は図形(<image> 無し・linearGradient 2つ・三�
 
 // ---- S6: 文書 ----
 const rn = rd('docs/release-notes/v1.99.4.md');
-check('S6 文書: 重要なお知らせの下書きは note-important-notice-page.md(旧名は無い・「お知らせ」の記事とは別)・リリースノートは v1.99.3.md(旧名は無い・§4 に URL・§7 は2行)・FAQ に「Google マップで見つけた場所を」の Q・todo の備忘録にコンパス/固定タブ/次の監査・デッサン01 に URL の読む順',
+check('S6 文書: 重要なお知らせの下書きは note-important-notice-page.md(旧名は無い・「お知らせ」の記事とは別)・リリースノートは v1.99.4.md(旧名は無い・§4 に URL・§7 は1行=第187)・FAQ に「Google マップで見つけた場所を」の Q・todo の備忘録にコンパス/固定タブ/次の監査・デッサン01 に URL の読む順',
   ex('docs/note/note-important-notice-page.md') && !ex('docs/note/note-notice-page.md') && rd('docs/note/note-important-notice-page.md').includes('とは別の記事') &&
-  ex('docs/release-notes/v1.99.4.md') && !ex('docs/release-notes/v1.99.3.md') && rn.startsWith('# 宙の辻 v1.99.4 リリースのお知らせ') && rn.includes('- **Google マップ/Apple マップの URL から**') && /## 7\. その他の修正\n\n- Google ドライブ同期[^\n]*\n- 細かな表示の調整[^\n]*\n\n/.test(rn) &&
+  ex('docs/release-notes/v1.99.4.md') && !ex('docs/release-notes/v1.99.3.md') && rn.startsWith('# 宙の辻 v1.99.4 リリースのお知らせ') && rn.includes('- **Google マップ/Apple マップの URL から**') && /## 7\. その他の修正\n\n- Google ドライブ同期[^\n]*\n\n/.test(rn) /* 第187: §7 は利用者に要る1行だけ */ &&
   rd('docs/note/note-faq-page.md').includes('# Q. Google マップで見つけた場所を、宙の辻の観測点/目的点にしたい。') &&
   rd('docs/todo.md').includes('コンパスアイコンのボタンを作り') && rd('docs/todo.md').includes('上の方に固定されたタブ') && rd('docs/todo.md').includes('「### 次の監査でやる事」') &&
   rd('docs/dessin/dessin/01-location.md').includes('読む順(_mapUrlParse)'));
