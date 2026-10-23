@@ -37,7 +37,7 @@ claude/yyy ←→ work ←→ develop ──→ main ──→ soranotsuji/main
 ### プレ・デプロイ・チェックリスト
 
 - [ ] 今回のデプロイで機能追加されたところをリストアップする。
-  - 1. /doc/release-management/v1.99.4.mdを参照のこと
+  - 1. /docs/release-management/v1.99.4.md を参照のこと(配る版の数字に読み替える)
 - [ ] 上記の機能は、組み込みの**ヘルプ**に内容が反映されているかを確認する。
   - [ ] 1. 済み
 - [ ] 上記の機能は、組み込みの**README.md**に内容が反映されているかを確認する。

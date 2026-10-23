@@ -57,7 +57,7 @@ check('S5 ロゴ: logo.svg は図形(<image> 無し・linearGradient 2つ・三�
   !svg.includes('<image') && (svg.match(/<linearGradient /g) || []).length === 2 && svg.includes('<polygon points="0,1000 500,1000 1000,0"') && svg.includes('<circle cx="646.447" cy="146.447" r="146.447"') && svg.includes('stop-color="#ff0000"') && svg.includes('stop-color="#ee7800"') &&
   JSON.stringify(pngSize('logo.png')) === '[100,100]' && JSON.stringify(pngSize('apple-touch-icon.png')) === '[180,180]' && JSON.stringify(pngSize('icon-192.png')) === '[192,192]' && JSON.stringify(pngSize('icon-512.png')) === '[512,512]' &&
   ico.readUInt16LE(0) === 0 && ico.readUInt16LE(2) === 1 && ico.readUInt16LE(4) === 4 && ico.toString('latin1', ico.readUInt32LE(18) + 1, ico.readUInt32LE(18) + 4) === 'PNG' &&
-  ex('tools/icons/render-icons.js') && rd('docs/operation/deploy-guide.md').includes('tools/icons/render-icons.js'));
+  ex('tools/icons/render-icons.js') && rd('ClaudeMederuU/tools/README.md').includes('tools/icons/render-icons.js') /* 第193: 依頼者が deploy-guide のチェックリストを UI の確認に絞ったので、手順の所在は道具の台帳で見る */);
 
 // ---- S6: 文書 ----
 const rn = rd('docs/release-notes/v1.99.4.md');

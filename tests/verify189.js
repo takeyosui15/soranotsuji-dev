@@ -53,8 +53,8 @@ check('S3 アイコン(icon-192.png/icon-512.png が PNG でその大きさ・ma
   (() => { const m = JSON.parse(rd('manifest.json')); return m.icons.some(i => i.src === 'icon-192.png' && i.sizes === '192x192') && m.icons.some(i => i.src === 'icon-512.png' && i.sizes === '512x512'); })() &&
   pre.includes("'icon-192.png',") && pre.includes("'icon-512.png',") && tool.includes("'icon-192.png', 'icon-512.png',") && sync.includes("'icon-192.png', 'icon-512.png',") &&
   fs.existsSync(path.join(ROOT, 'docs/release-notes/v1.99.4.md')) && rd('docs/release-notes/v1.99.4.md').startsWith('# 宙の辻 v1.99.4 リリースのお知らせ')   /* 第186: 配る版に合わせて改名 */ && !fs.existsSync(path.join(ROOT, 'docs/note/note-release-v1.99.md')) &&
-  rd('docs/note/note-important-notice-page.md').includes('「標高グラフ」(可視判定の結果 OK/NG/-)が「可視判定」になります') && rd('docs/note/note-important-notice-page.md').includes('## ■2026/08/17 【重要】旧バックアップとの互換性について') && rd('docs/note/note-important-notice-page.md').includes('## ■2026/03/04 サイト移転') &&
-  rd('docs/note/note-top-page.md').includes('- こちら (重要なお知らせの記事。') && !rd('docs/note/note-top-page.md').includes('## **■2026/08/17') && rd('docs/note/note-faq-page.md').includes('件数・版・最終更新日時が出れば完了'));
+  rd('docs/note/note-important-notice-page.md').includes('「標高グラフ」(可視判定の結果 OK/NG/-)が「可視判定」になります') && rd('docs/note/note-important-notice-page.md').includes('# ■2026/08/17 【重要】旧バックアップとの互換性について') && rd('docs/note/note-important-notice-page.md').includes('# ■2026/03/04 サイト移転') /* 第193: 依頼者が note の体裁(見出しは #)に合わせた */ &&
+  rd('docs/note/note-top-page.md').includes('- 詳細は、こちらから。 (重要なお知らせの記事。') && rd('docs/note/note-top-page.md').includes('https://note.com/takeyosui/n/nb3806ee55665') /* 第193: 投稿済みの URL */ && !rd('docs/note/note-top-page.md').includes('## **■2026/08/17') && rd('docs/note/note-faq-page.md').includes('件数・版・最終更新日時が出れば完了'));
 
 (async () => {
   const b = await chromium.launch({ executablePath: EXE, headless: true, args: ARGS });
