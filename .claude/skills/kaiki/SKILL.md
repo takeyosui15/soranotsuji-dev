@@ -27,6 +27,15 @@ mkdir -p $SP/harness && cd $SP/harness && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm
 ブラウザは環境にプリインストール済み: `/opt/pw-browsers/chromium-*/chrome-linux/chrome`
 (`playwright install`はしない。パスのバージョン番号は `ls /opt/pw-browsers/` で確認)。
 
+第196(2026-10-24)の箱では `chromium-1243/chrome-linux64/chrome`(フォルダ名が chrome-linux64)になっていた。verify 群は
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome` を直書きしているので、テストを触らずに通すには symlink を張る:
+
+```bash
+mkdir -p /opt/pw-browsers/chromium-1194 && ln -s /opt/pw-browsers/chromium-1243/chrome-linux64 /opt/pw-browsers/chromium-1194/chrome-linux
+```
+
+Chromium が新しくなると V8 の数学関数の丸めが末尾の桁で変わる事がある(第196: 基準方位角/視高度が 1e-14 ずれて verify126 N2 の凍結標本が落ちた→数値は相対 1e-9 の許容で比べる形に直した)。
+
 ## 2. サーバ起動(コンテナ再起動のたびに必要)
 
 ```bash

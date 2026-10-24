@@ -1,0 +1,72 @@
+<!doctype html><html><head><meta charset="utf-8"><title>辻エリア GPU 試作</title><style>body{margin:0;background:#111}canvas{display:block}</style></head><body>
+<canvas id="gl"></canvas><canvas id="ov"></canvas>
+<script src="astronomy.browser.min.js"></script>
+<script>
+// 辻エリア(実験): 画面の全画素について「その地点に立った時、目的点の方位・高度角が太陽の方位・高度とどれだけ近いか」を GPU(WebGL2)で毎フレーム計算し、精度 ◎○△- で塗る。
+// 観測点ごとの太陽の方位・高度はシェーダーの中で計算(赤経・赤緯・グリニッジ恒星時は CPU から uniform で渡す)。標高タイル(国土地理院 dem_png)で観測点の標高と、任意で地形の遮り(視線の歩き)も見る。
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const META = await (await fetch('area_meta.json')).json(); const Z = META.z, X0 = META.x0, Y0 = META.y0, N = META.n, TS = 256, W = N*TS; const TGT = META.target;
+  const OCCL = q.get('occl') === '1'; const STEPS = +(q.get('steps') || 48); const TOL = +(q.get('tol') || 3);
+  const gl = document.getElementById('gl'); gl.width = W; gl.height = W; const ov = document.getElementById('ov'); ov.width = W; ov.height = W; ov.style.position = 'absolute'; ov.style.left = 0; ov.style.top = 0;
+  const g = gl.getContext('webgl2', { preserveDrawingBuffer: true, antialias: false }); if (!g) throw new Error('no webgl2');
+  const loadComposite = async (dir, kind) => { const c = document.createElement('canvas'); c.width = W; c.height = W; const cg = c.getContext('2d'); cg.fillStyle = kind === 'dem' ? 'rgb(128,0,0)' : '#223'; cg.fillRect(0,0,W,W);
+    await Promise.all([...Array(N*N).keys()].map(i => new Promise(res => { const tx = X0 + (i % N), ty = Y0 + Math.floor(i/N); const im = new Image(); im.onload = () => { cg.drawImage(im, (i%N)*TS, Math.floor(i/N)*TS); res(); }; im.onerror = () => res(); im.src = `${dir}/${kind}_${Z}_${tx}_${ty}.png`; }))); return c; };
+  const demC = await loadComposite('dem', 'dem'), stdC = await loadComposite('std', 'std');
+  const tex = (c, unit) => { const t = g.createTexture(); g.activeTexture(g.TEXTURE0 + unit); g.bindTexture(g.TEXTURE_2D, t); g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, c); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.NEAREST); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.NEAREST); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE); return t; };
+  tex(demC, 0); tex(stdC, 1);
+  const vs = `#version 300 es\nin vec2 p; out vec2 uv; void main(){ uv = p*0.5+0.5; uv.y = 1.0-uv.y; gl_Position = vec4(p,0.,1.); }`;
+  const fs = `#version 300 es
+precision highp float; precision highp int;
+in vec2 uv; out vec4 o;
+uniform sampler2D u_dem, u_std; uniform float u_x0, u_y0, u_n, u_z; uniform vec3 u_tgt; /* lat(rad), lon(rad), h */
+uniform float u_ra, u_dec, u_gast; /* 太陽: 赤経(rad)・赤緯(rad)・グリニッジ視恒星時(rad) */
+uniform float u_tol; uniform int u_occl; uniform int u_steps; uniform vec3 u_bodyColor;
+const float PI = 3.141592653589793, RE = 6371000.0, K = 0.13;
+float demAt(vec2 t){ vec4 c = texture(u_dem, t); float v = floor(c.r*255.0+0.5)*65536.0 + floor(c.g*255.0+0.5)*256.0 + floor(c.b*255.0+0.5); if (v == 8388608.0) return 0.0; if (v > 8388608.0) v -= 16777216.0; return v*0.01; }
+vec2 lonlat(vec2 t){ float n = pow(2.0, u_z)*256.0; float px = (u_x0*256.0 + t.x*u_n*256.0), py = (u_y0*256.0 + t.y*u_n*256.0); float lon = px/n*2.0*PI - PI; float lat = atan(sinh(PI*(1.0 - 2.0*py/n))); return vec2(lon, lat); }
+vec2 texOf(vec2 ll){ float n = pow(2.0, u_z)*256.0; float px = (ll.x+PI)/(2.0*PI)*n - u_x0*256.0; float py = (1.0 - log(tan(ll.y) + 1.0/cos(ll.y))/PI)/2.0*n - u_y0*256.0; return vec2(px, py)/(u_n*256.0); }
+void main(){
+  vec2 ll = lonlat(uv); float lon = ll.x, lat = ll.y; float h0 = demAt(uv) + 1.5;
+  float dlon = u_tgt.y - lon; float a = sin((u_tgt.x-lat)*0.5); float b = sin(dlon*0.5); float hav = a*a + cos(lat)*cos(u_tgt.x)*b*b; float d = 2.0*RE*asin(sqrt(hav));
+  float brg = atan(sin(dlon)*cos(u_tgt.x), cos(lat)*sin(u_tgt.x) - sin(lat)*cos(u_tgt.x)*cos(dlon)); if (brg < 0.0) brg += 2.0*PI;
+  float elev = atan(u_tgt.z - h0, d) - d*(1.0-K)/(2.0*RE);
+  /* 太陽の方位・高度(この観測点で) */
+  float H = u_gast + lon - u_ra; float sa = sin(lat)*sin(u_dec) + cos(lat)*cos(u_dec)*cos(H); float alt = asin(clamp(sa,-1.0,1.0));
+  float az = atan(sin(H), cos(H)*sin(lat) - tan(u_dec)*cos(lat)) + PI; if (az >= 2.0*PI) az -= 2.0*PI;
+  /* 角距離(球面) */
+  float cs = sin(alt)*sin(elev) + cos(alt)*cos(elev)*cos(az - brg); float sep = degrees(acos(clamp(cs,-1.0,1.0)));
+  vec4 base = texture(u_std, uv); vec3 col = base.rgb; float m = 0.0; vec3 band = vec3(0.0);
+  if (sep <= u_tol && d > 500.0 && alt > -0.02) {
+    bool vis = true;
+    if (u_occl == 1) { for (int i = 1; i < 256; i++) { if (i >= u_steps) break; float f = float(i)/float(u_steps); float dd = d*f; vec2 sll = vec2(lon + dlon*f, lat + (u_tgt.x-lat)*f); float ht = demAt(texOf(sll)); float los = h0 + (u_tgt.z - h0)*f - dd*(d-dd)*(1.0-K)/(2.0*RE); if (ht > los) { vis = false; break; } } }
+    if (vis) { if (sep <= 0.125) { if (sep > 0.125*0.6) { band = vec3(1.0,0.1,0.1); m = 0.9; } }
+      else if (sep <= 0.25) { band = u_bodyColor; m = 0.85; } else if (sep <= 1.0) { band = vec3(0.72,0.53,0.04); m = 0.7; } else { band = vec3(0.90,0.78,0.47); m = 0.5; } }
+  }
+  o = vec4(mix(col, band, m), 1.0);
+}`;
+  const sh = (t, src) => { const s = g.createShader(t); g.shaderSource(s, src); g.compileShader(s); if (!g.getShaderParameter(s, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(s)); return s; };
+  const prog = g.createProgram(); g.attachShader(prog, sh(g.VERTEX_SHADER, vs)); g.attachShader(prog, sh(g.FRAGMENT_SHADER, fs)); g.linkProgram(prog); if (!g.getProgramParameter(prog, g.LINK_STATUS)) throw new Error(g.getProgramInfoLog(prog)); g.useProgram(prog);
+  const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), g.STATIC_DRAW); const loc = g.getAttribLocation(prog, 'p'); g.enableVertexAttribArray(loc); g.vertexAttribPointer(loc, 2, g.FLOAT, false, 0, 0);
+  const U = (n) => g.getUniformLocation(prog, n); const d2r = Math.PI/180;
+  g.uniform1i(U('u_dem'), 0); g.uniform1i(U('u_std'), 1); g.uniform1f(U('u_x0'), X0); g.uniform1f(U('u_y0'), Y0); g.uniform1f(U('u_n'), N); g.uniform1f(U('u_z'), Z);
+  g.uniform3f(U('u_tgt'), TGT.lat*d2r, TGT.lon*d2r, TGT.h); g.uniform1f(U('u_tol'), TOL); g.uniform1i(U('u_occl'), OCCL ? 1 : 0); g.uniform1i(U('u_steps'), STEPS); g.uniform3f(U('u_bodyColor'), 1.0, 0.8, 0.25);
+  g.viewport(0, 0, W, W);
+  const A = window.Astronomy; const obs = new A.Observer(TGT.lat, TGT.lon, TGT.h);
+  const setTime = (date) => { const eq = A.Equator(A.Body.Sun, date, obs, true, true); const gast = A.SiderealTime(date); g.uniform1f(U('u_ra'), eq.ra*15*d2r); g.uniform1f(U('u_dec'), eq.dec*d2r); g.uniform1f(U('u_gast'), gast*15*d2r); return { ra: eq.ra, dec: eq.dec, gast }; };
+  const frame = (date) => { const info = setTime(date); const t0 = performance.now(); g.drawArrays(g.TRIANGLE_STRIP, 0, 4); g.finish(); const px = new Uint8Array(4); g.readPixels(0, 0, 1, 1, g.RGBA, g.UNSIGNED_BYTE, px); return { ms: performance.now() - t0, ...info }; };
+  const drawOverlay = (date, info) => { const oc = ov.getContext('2d'); oc.clearRect(0,0,W,W); const n = Math.pow(2, Z)*TS; const px = (TGT.lon+180)/360*n - X0*TS, py = (1 - Math.log(Math.tan(TGT.lat*d2r) + 1/Math.cos(TGT.lat*d2r))/Math.PI)/2*n - Y0*TS;
+    oc.strokeStyle = '#ff3333'; oc.lineWidth = 3; oc.beginPath(); oc.arc(px, py, 10, 0, 2*Math.PI); oc.stroke(); oc.fillStyle = '#fff'; oc.font = 'bold 26px sans-serif'; oc.fillText(TGT.name, px + 14, py + 8);
+    const jst = new Date(date.getTime() + 9*3600*1000); const hor = A.Horizon(date, obs, info.ra, info.dec, 'normal');
+    oc.font = '26px sans-serif'; oc.fillStyle = 'rgba(0,0,0,0.55)'; oc.fillRect(0, 0, W, 80); oc.fillStyle = '#fff';
+    oc.fillText(`辻エリア(実験・GPU) 目的点=${TGT.name} / ${jst.toISOString().slice(0,16).replace('T',' ')} JST / 富士山での太陽 方位${hor.azimuth.toFixed(1)}° 高度${hor.altitude.toFixed(1)}° / 赤枠=◎(±0.125°) 金=○(±0.25°) 濃い金=△(±1°) 薄い金=−(±${TOL}°) / 地形の遮り: ${OCCL ? `あり(${STEPS}歩)` : 'なし'}`, 10, 32);
+    oc.fillText(`出典: 国土地理院 標準地図・標高タイル を加工 / 天体: Astronomy Engine / 標高タイル zoom ${Z}(約 125m/画素)`, 10, 66); };
+  // 時刻掃引: 2026-10-24 16:00〜17:00 JST を 1 分刻み
+  const base = Date.UTC(2026, 9, 24, 7, 0, 0); const times = []; for (let m = 0; m <= 60; m++) times.push(new Date(base + m*60000));
+  const ms = []; let last; for (const t of times) { last = frame(t); ms.push(last.ms); }
+  ms.sort((a,b)=>a-b); const stats = { frames: ms.length, min: ms[0], median: ms[Math.floor(ms.length/2)], max: ms[ms.length-1], occl: OCCL, steps: STEPS, w: W };
+  const saveAt = [20, 40, 60]; const pngs = {};
+  for (const m of saveAt) { const t = new Date(base + m*60000); const info = frame(t); drawOverlay(t, info); const c = document.createElement('canvas'); c.width = W; c.height = W; const cg = c.getContext('2d'); cg.drawImage(gl, 0, 0); cg.drawImage(ov, 0, 0); pngs[`t${m}`] = c.toDataURL('image/png'); }
+  window.__result = { stats, renderer: (() => { const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); })() }; window.__pngs = pngs; window.__done = true;
+})().catch(e => { window.__err = String(e && e.stack || e); window.__done = true; });
+</script></body></html>

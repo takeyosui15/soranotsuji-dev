@@ -101,8 +101,10 @@ check('N0 Version Historyに最新版の行がある', /Version \d+\.\d+\.\d+ - 
 
   // N2: 初期値一致
   {
-    const diffs = Object.keys(goldenScalars).filter(k => JSON.stringify(goldenScalars[k]) !== JSON.stringify(r.scalars[k]));
-    check('N2 初期状態のappStateスカラーが凍結標本と一致(161キー)', diffs.length === 0,
+    // 第196: 数値は相対 1e-9 の許容で比べる(Chromium 153 で基準方位角/視高度の末尾の桁が 1e-14 だけ動いた=V8 の数学関数の丸めの差。意味は同じ)
+    const same = (a, b) => (typeof a === 'number' && typeof b === 'number' && Number.isFinite(a) && Number.isFinite(b)) ? Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a)) : JSON.stringify(a) === JSON.stringify(b);
+    const diffs = Object.keys(goldenScalars).filter(k => !same(goldenScalars[k], r.scalars[k]));
+    check('N2 初期状態のappStateスカラーが凍結標本と一致(161キー・数値は相対1e-9)', diffs.length === 0,
       diffs.length ? '差分: ' + diffs.slice(0, 6).join(', ') : `keys=${Object.keys(goldenScalars).length}`);
   }
   // N3: normalize挙動一致
