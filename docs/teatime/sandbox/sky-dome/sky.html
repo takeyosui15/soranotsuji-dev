@@ -14,6 +14,9 @@
   const OBS = CFG.obs;
   const TGT = CFG.tgt;
   const Z = CFG.zoom || 6, X0 = CFG.x0, Y0 = CFG.y0, N = 3, TS = 256, RE = 6371000; const TILEDIR = CFG.tiledir;
+  const RIDGE = CFG.ridge ? await (await fetch(CFG.ridge)).json() : null;  // 稜線(ridge.html が作る 方位→見かけの高度角)
+  const ridgeAt = (az) => { if (!RIDGE) return null; const n = RIDGE.az.length, st = RIDGE.stepAz; const f = ((az % 360) + 360) % 360 / st; const i0 = Math.floor(f) % n, i1 = (i0 + 1) % n, t = f - Math.floor(f); return { el: RIDGE.el[i0]*(1-t) + RIDGE.el[i1]*t, dist: RIDGE.dist[i0]*(1-t) + RIDGE.dist[i1]*t }; };
+  const groundColor = (dist) => { const t = Math.min(1, dist/100000); return [Math.round(38+72*t), Math.round(48+72*t), Math.round(38+97*t)]; };  // 近い山は暗く、遠い山は空気で青白く
   const d2r = Math.PI/180, r2d = 180/Math.PI;
   // ---- tiles → composite
   const map = document.getElementById('map'), mg = map.getContext('2d');
@@ -56,6 +59,7 @@
     const dx = px - C, dy = py - C, r = Math.hypot(dx, dy); const k = (py*W+px)*4;
     if (r > R) { D[k]=17; D[k+1]=17; D[k+2]=17; D[k+3]=255; continue; }
     const az = (Math.atan2(dx, -dy)*r2d + 360) % 360; const e = 90 - 90*r/R;
+    const rg = ridgeAt(az); if (rg && e < rg.el) { const gc = groundColor(rg.dist); D[k]=gc[0]; D[k+1]=gc[1]; D[k+2]=gc[2]; D[k+3]=255; continue; }
     const d = distForElev(e); const [la, lo] = dest(OBS.lat, OBS.lon, az, d); const c = paint(sample(la, lo), e);
     D[k]=c[0]; D[k+1]=c[1]; D[k+2]=c[2]; D[k+3]=255;
   }
@@ -71,13 +75,14 @@
   dg.textAlign = 'left'; dg.font = '15px sans-serif'; dg.fillStyle = '#fff';
   dg.fillText(`今の空(実験) ${OBS.name} ${jst.getUTCFullYear()}-${String(jst.getUTCMonth()+1).padStart(2,'0')}-${String(jst.getUTCDate()).padStart(2,'0')} ${String(jst.getUTCHours()).padStart(2,'0')}:${String(jst.getUTCMinutes()).padStart(2,'0')} JST の衛星画像`, 10, 22);
   dg.font = '12px sans-serif'; dg.fillText(`雲は高さ ${H/1000}km の 1 層と仮定して空のドーム(方位×高度角)に投影(衛星の白い画素=雲、それ以外=青空) / 太陽 方位${sun.az.toFixed(1)}° 高度${sun.alt.toFixed(1)}° / 月 方位${moon.az.toFixed(1)}° 高度${moon.alt.toFixed(1)}°`, 10, 42);
-  dg.fillText('出典: 気象庁ホームページ(ひまわり 日本域 トゥルーカラー再現画像)を加工 / 天体: Astronomy Engine', 10, W-10);
+  dg.fillText((RIDGE ? '出典: 気象庁ホームページ(ひまわり トゥルーカラー再現画像)・国土地理院 標高タイル を加工' : '出典: 気象庁ホームページ(ひまわり トゥルーカラー再現画像)を加工') + ' / 天体: Astronomy Engine', 10, W-10);
   // ---- window (宙の窓風: 槍ヶ岳の方位を中心に 水平60°×高度 -10〜40°)
   const win = document.getElementById('win'), wg = win.getContext('2d'); const WW = win.width, WH = win.height; const fov = 60, eMin = -10, eMax = 40;
   const wimg = wg.createImageData(WW, WH); const WD = wimg.data;
   for (let py=0; py<WH; py++) for (let px=0; px<WW; px++) {
     const az = (tgtAz - fov/2 + fov*px/WW + 360) % 360; const e = eMax - (eMax-eMin)*py/WH; const k = (py*WW+px)*4;
-    if (e < -dip) { WD[k]=35; WD[k+1]=45; WD[k+2]=35; WD[k+3]=255; continue; }
+    const rg = ridgeAt(az); const gnd = rg ? rg.el : -dip;
+    if (e < gnd) { const gc = rg ? groundColor(rg.dist) : [35,45,35]; WD[k]=gc[0]; WD[k+1]=gc[1]; WD[k+2]=gc[2]; WD[k+3]=255; continue; }
     const d = distForElev(Math.max(e, 0)); const [la, lo] = dest(OBS.lat, OBS.lon, az, d); const c = paint(sample(la, lo), Math.max(e, 0));
     WD[k]=c[0]; WD[k+1]=c[1]; WD[k+2]=c[2]; WD[k+3]=255;
   }
@@ -85,11 +90,12 @@
   const wxy = (az, alt) => { let da = ((az - tgtAz + 540) % 360) - 180; return [WW*(da + fov/2)/fov, WH*(eMax - alt)/(eMax-eMin)]; };
   { const [tx, ty] = wxy(tgtAz, tgtElev); wg.fillStyle = '#ff6666'; wg.beginPath(); wg.moveTo(tx, ty-12); wg.lineTo(tx-9, ty+5); wg.lineTo(tx+9, ty+5); wg.closePath(); wg.fill(); wg.fillStyle='#fff'; wg.font='14px sans-serif'; wg.textAlign='center'; wg.fillText(`${TGT.name} 方位${tgtAz.toFixed(1)}° 高度${tgtElev.toFixed(1)}°`, tx, ty+24); }
   if (sun.alt > 0) { const [sx, sy] = wxy(sun.az, sun.alt); if (sx>=0 && sx<=WW && sy>=0 && sy<=WH) { wg.fillStyle = '#ffe680'; wg.beginPath(); wg.arc(sx, sy, 12, 0, 2*Math.PI); wg.fill(); } }
-  wg.strokeStyle = 'rgba(255,255,255,0.5)'; wg.beginPath(); const hy0 = wxy(tgtAz, -dip)[1]; wg.moveTo(0, hy0); wg.lineTo(WW, hy0); wg.stroke();
+  if (RIDGE) { wg.strokeStyle = 'rgba(255,255,255,0.6)'; wg.lineWidth = 1; wg.beginPath(); for (let px=0; px<=WW; px++) { const az = (tgtAz - fov/2 + fov*px/WW + 360) % 360; const y = wxy(az, ridgeAt(az).el)[1]; px ? wg.lineTo(px, y) : wg.moveTo(px, y); } wg.stroke(); }
+  else { wg.strokeStyle = 'rgba(255,255,255,0.5)'; wg.beginPath(); const hy0 = wxy(tgtAz, -dip)[1]; wg.moveTo(0, hy0); wg.lineTo(WW, hy0); wg.stroke(); }
   wg.fillStyle = '#fff'; wg.font = '14px sans-serif'; wg.textAlign = 'left';
-  wg.fillText(`宙の窓風(実験) ${OBS.name} → ${TGT.name} の方位を中心に 水平60°×高度-10〜40° / 白線=眼高の伏角込みの地平線(-${dip.toFixed(1)}°) / 稜線は未実装`, 10, 20);
-  wg.fillText('出典: 気象庁ホームページ(ひまわり画像)を加工', 10, WH-10);
-  window.__info = { cfg: CFGN, vt, jst: jst.toISOString(), sun, moon, moonIllum, tgtAz, tgtD, tgtElev, dip, horizonKm, H };
+  wg.fillText(`宙の窓風(実験) ${OBS.name} → ${TGT.name} の方位を中心に 水平60°×高度-10〜40° / ${RIDGE ? `白線=稜線(国土地理院 標高タイル zoom ${RIDGE.tiles.z}・気差 k=${RIDGE.k})` : `白線=眼高の伏角込みの地平線(-${dip.toFixed(1)}°) / 稜線は未実装`}`, 10, 20);
+  wg.fillText(RIDGE ? '出典: 気象庁ホームページ(ひまわり画像)・国土地理院 標高タイル を加工' : '出典: 気象庁ホームページ(ひまわり画像)を加工', 10, WH-10);
+  window.__info = { cfg: CFGN, vt, jst: jst.toISOString(), sun, moon, moonIllum, tgtAz, tgtD, tgtElev, dip, horizonKm, H, ridgeAtTgt: RIDGE ? ridgeAt(tgtAz) : null };
   window.__pngs = { map: map.toDataURL('image/png'), dome: dome.toDataURL('image/png'), win: win.toDataURL('image/png') };
   window.__done = true;
 })().catch(e => { window.__err = String(e && e.stack || e); window.__done = true; });

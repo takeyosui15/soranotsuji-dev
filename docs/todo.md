@@ -147,7 +147,7 @@
   - (統合・元の行 413: 312 にまとめる) ヘルプの見直し(簡潔に・もれなく・分かりやすく=要点を伝える)【優先に有り】/使い方ページを別ページで
 
 #### MapLibre の版上げ
-- [ ] MapLibre GL JSのv5/v6系への進級(第139調査: v5.0でglobe投影対応=宙の食の帯[実測で 【424① と統合(globe 対応+CVE の2理由。内容は削らず両方残す)】【第195: 公表済みの CVE-2026-85061(GHSA-jrc7-96c5-q579・Critical・attribution の DOM.sanitize のバイパス・影響 <=6.4.0・修正 6.4.1、2026-08-19)。宙の辻の attribution/customAttribution/Popup.setHTML は定数だけ(script.js 1301 の注記・第185の監査)なので今は到達不能。版上げの行き先は 6.4.1 以上(v6 は ESM のみ・WebGL2 必須=読み込みを type=module に・vendor/ の配り方と CSP はそのまま)。順番は依頼者の 1 票どおり「別の族の探索→画面周り→版上げ」(回答その193)】
+- [ ] MapLibre GL JSのv5/v6系への進級(第139調査: v5.0でglobe投影対応=宙の食の帯[実測で 【424① と統合(globe 対応+CVE の2理由。内容は削らず両方残す)】【第195: 公表済みの CVE-2026-85061(GHSA-jrc7-96c5-q579・Critical・attribution の DOM.sanitize のバイパス・影響 <=6.4.0・修正 6.4.1、2026-08-19)。宙の辻の attribution/customAttribution/Popup.setHTML は定数だけ(script.js 1301 の注記・第185の監査)なので今は到達不能。版上げの行き先は最新(2026-10-18 の 6.15.0。少なくとも 6.11.1=attribution の無害化が許可リスト式になった版)。v6 は UMD を配らず dist/maplibre-gl.mjs だけ(ESM)なので、グローバル maplibregl を作る 1 行のモジュール(か script.js のモジュール化)が要り、vendor/ のファイル名・MANIFEST.json・verify184 の指紋・sw-precache も変わる。WebGL2 必須は v5.0.0 から。CSP はそのまま。順番は依頼者の 1 票どおり「別の族の探索→画面周り→版上げ」(回答その193)】
   北緯85°超の座標が多数]の前提。破壊的変更=on()の戻り値・WebGL2既定化・非minified廃止等は
   CHANGELOG確認済み。Leaflet→MapLibre移行と同じ段階計画で。回帰12本+グリフ資産の追随込み)
 
