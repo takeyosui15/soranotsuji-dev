@@ -1,4 +1,4 @@
-// node area.js [occl=0|1] [steps]  — area.html を http://127.0.0.1:8102/ で配っている前提。out/area_<occl>_t{20,40,60}.png と計測を出す。
+// node area.js [occl=0|1] [steps]  — area.html を http://127.0.0.1:8102/ で配っている前提。out/area_occl<occl>_t{20,40,60}.png と計測を出す。
 const { chromium } = require('playwright-core'); const fs = require('fs');
 (async () => {
   const occl = process.argv[2] || '0', steps = process.argv[3] || '48';

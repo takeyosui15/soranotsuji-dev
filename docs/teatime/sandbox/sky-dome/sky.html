@@ -44,7 +44,7 @@
     for (let k = 0, i = 0; k < comp.data.length; k += 4, i++) { const l = irData[k]; if (l >= 254 || comp.data[k+3] === 0) continue; const c = [comp.data[k], comp.data[k+1], comp.data[k+2]]; if (Math.max(...c) < 10) continue; if (cloudiness(c) < 0.1) clear.push(l); }
     clear.sort((a,b)=>a-b); const medLum = clear.length ? clear[Math.floor(clear.length/2)] : 60; if (!TSFC) TSFC = lumToT(medLum);
     let n = 0, sum = 0, mx = 0;
-    for (let k = 0, i = 0; k < comp.data.length; k += 4, i++) { const l = irData[k]; if (l >= 254) { HMAP[i] = -1; continue; } const T = lumToT(l); const h = Math.max(0, Math.min(16000, (TSFC - T) / LAPSE * 1000)); HMAP[i] = h; const c = [comp.data[k], comp.data[k+1], comp.data[k+2]]; if (cloudiness(c) >= 0.5) { n++; sum += h; if (h > mx) mx = h; } }
+    for (let k = 0, i = 0; k < comp.data.length; k += 4, i++) { const l = irData[k]; if (l >= 254) { HMAP[i] = -1; continue; } const T = lumToT(l); const h = Math.max(0, Math.min(CFG.hmax || 20000, (TSFC - T) / LAPSE * 1000)); HMAP[i] = h; const c = [comp.data[k], comp.data[k+1], comp.data[k+2]]; if (cloudiness(c) >= 0.5) { n++; sum += h; if (h > mx) mx = h; } }
     irStats = { tsfcK: TSFC, clearMedianLum: medLum, cloudMeanH: n ? sum/n : null, cloudMaxH: mx, cloudPixels: n };
   }
   const hmapAt = (lat, lon) => { if (!IR) return null; const [x, y] = toPix(lat, lon); if (x<0||y<0||x>=map.width||y>=map.height) return null; const h = HMAP[Math.floor(y)*map.width + Math.floor(x)]; return h < 0 ? null : h; };
@@ -69,7 +69,7 @@
   const horizonKm = distForElev(0)/1000; const [hx, hy] = toPix(...dest(OBS.lat, OBS.lon, 90, horizonKm*1000));
   mg.strokeStyle = 'rgba(255,204,0,0.8)'; mg.setLineDash([6,4]); mg.beginPath(); mg.arc(ox, oy, Math.hypot(hx-ox, hy-oy), 0, 2*Math.PI); mg.stroke(); mg.setLineDash([]);
   const sunLen = 120; mg.strokeStyle = '#ff9900'; mg.beginPath(); mg.moveTo(ox, oy); mg.lineTo(ox + sunLen*Math.sin(sun.az*d2r), oy - sunLen*Math.cos(sun.az*d2r)); mg.stroke();
-  mg.fillStyle = '#fff'; mg.font = '14px sans-serif'; mg.fillText(`${OBS.name}  ひまわり 日本域 ${vt.slice(0,4)}-${vt.slice(4,6)}-${vt.slice(6,8)} ${vt.slice(8,10)}:${vt.slice(10,12)} UTC`, 10, 20);
+  mg.fillStyle = '#fff'; mg.font = '14px sans-serif'; mg.fillText(`${OBS.name}  ひまわり ${Z >= 6 ? '日本域' : '全球域'} ${vt.slice(0,4)}-${vt.slice(4,6)}-${vt.slice(6,8)} ${vt.slice(8,10)}:${vt.slice(10,12)} UTC`, 10, 20);
   mg.fillText(`点線の円 = 高さ ${H/1000}km の雲が地平線に見える距離 約${horizonKm.toFixed(0)}km / 橙の線 = 太陽の方位 ${sun.az.toFixed(1)}°`, 10, 40);
   mg.fillText('出典: 気象庁ホームページ(ひまわり画像)を加工', 10, map.height-10);
   // ---- dome (fisheye, equidistant)
@@ -124,11 +124,11 @@
   for (const [winId] of fovs) pngs[winId] = document.getElementById(winId).toDataURL('image/png');
   if (IR) {  // 雲頂高度の地図(色=高さ)
     const cc = document.createElement('canvas'); cc.width = map.width; cc.height = map.height; const cg = cc.getContext('2d'); const cimg = cg.createImageData(cc.width, cc.height); const CD = cimg.data;
-    const ramp = (h) => { const t = Math.max(0, Math.min(1, h/14000)); const stops = [[60,60,60],[40,90,200],[40,200,200],[80,210,80],[240,220,60],[240,120,40],[255,255,255]]; const f = t*(stops.length-1), i = Math.min(stops.length-2, Math.floor(f)), u = f - i; return [0,1,2].map(j => Math.round(stops[i][j]*(1-u)+stops[i+1][j]*u)); };
+    const ramp = (h) => { const t = Math.max(0, Math.min(1, h/18000)); const stops = [[60,60,60],[40,90,200],[40,200,200],[80,210,80],[240,220,60],[240,120,40],[255,255,255]]; const f = t*(stops.length-1), i = Math.min(stops.length-2, Math.floor(f)), u = f - i; return [0,1,2].map(j => Math.round(stops[i][j]*(1-u)+stops[i+1][j]*u)); };
     for (let k = 0, i = 0; k < comp.data.length; k += 4, i++) { const h = HMAP[i]; const c = [comp.data[k], comp.data[k+1], comp.data[k+2]]; let col; if (h < 0 || Math.max(...c) < 10) col = [0,0,0]; else if (cloudiness(c) < 0.3) col = [Math.round(c[0]*0.35), Math.round(c[1]*0.35), Math.round(c[2]*0.35)]; else col = ramp(h); CD[k]=col[0]; CD[k+1]=col[1]; CD[k+2]=col[2]; CD[k+3]=255; }
     cg.putImageData(cimg, 0, 0);
     cg.fillStyle = '#fff'; cg.font = '14px sans-serif'; cg.fillText(`雲頂高度の目安(赤外 B13 の輝度温度→標準の減率 ${LAPSE}K/km。地表 ${(TSFC-273.15).toFixed(0)}℃=晴れの画素の中央値)`, 10, 20);
-    for (let i = 0; i <= 14; i += 2) { const col = ramp(i*1000); cg.fillStyle = `rgb(${col.join(',')})`; cg.fillRect(10 + i*30, 30, 30, 14); cg.fillStyle = '#fff'; cg.fillText(`${i}km`, 10 + i*30, 58); }
+    for (let i = 0; i <= 18; i += 2) { const col = ramp(i*1000); cg.fillStyle = `rgb(${col.join(',')})`; cg.fillRect(10 + i*30, 30, 30, 14); cg.fillStyle = '#fff'; cg.fillText(`${i}km`, 10 + i*30, 58); }
     const [ox2, oy2] = toPix(OBS.lat, OBS.lon); cg.strokeStyle = '#ffcc00'; cg.lineWidth = 2; cg.beginPath(); cg.arc(ox2, oy2, 6, 0, 2*Math.PI); cg.stroke();
     cg.fillText('出典: 気象庁ホームページ(ひまわり 赤外画像・トゥルーカラー再現画像)を加工。階調→温度は仮置き(黒 ' + IRCAL.black + 'K・白 ' + IRCAL.white + 'K の線形)', 10, cc.height-10);
     pngs.cth = cc.toDataURL('image/png');

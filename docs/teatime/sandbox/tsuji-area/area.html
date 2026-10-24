@@ -59,7 +59,7 @@ void main(){
     oc.strokeStyle = '#ff3333'; oc.lineWidth = 3; oc.beginPath(); oc.arc(px, py, 10, 0, 2*Math.PI); oc.stroke(); oc.fillStyle = '#fff'; oc.font = 'bold 26px sans-serif'; oc.fillText(TGT.name, px + 14, py + 8);
     const jst = new Date(date.getTime() + 9*3600*1000); const hor = A.Horizon(date, obs, info.ra, info.dec, 'normal');
     oc.font = '26px sans-serif'; oc.fillStyle = 'rgba(0,0,0,0.55)'; oc.fillRect(0, 0, W, 80); oc.fillStyle = '#fff';
-    oc.fillText(`辻エリア(実験・GPU) 目的点=${TGT.name} / ${jst.toISOString().slice(0,16).replace('T',' ')} JST / 富士山での太陽 方位${hor.azimuth.toFixed(1)}° 高度${hor.altitude.toFixed(1)}° / 赤枠=◎(±0.125°) 金=○(±0.25°) 濃い金=△(±1°) 薄い金=−(±${TOL}°) / 地形の遮り: ${OCCL ? `あり(${STEPS}歩)` : 'なし'}`, 10, 32);
+    oc.fillText(`辻エリア(実験・GPU) 目的点=${TGT.name} / ${jst.toISOString().slice(0,16).replace('T',' ')} JST / ${TGT.name}での太陽 方位${hor.azimuth.toFixed(1)}° 高度${hor.altitude.toFixed(1)}° / 赤枠=◎(±0.125°) 金=○(±0.25°) 濃い金=△(±1°) 薄い金=−(±${TOL}°) / 地形の遮り: ${OCCL ? `あり(${STEPS}歩)` : 'なし'}`, 10, 32);
     oc.fillText(`出典: 国土地理院 標準地図・標高タイル を加工 / 天体: Astronomy Engine / 標高タイル zoom ${Z}(約 125m/画素)`, 10, 66); };
   // 時刻掃引: 2026-10-24 16:00〜17:00 JST を 1 分刻み
   const base = Date.UTC(2026, 9, 24, 7, 0, 0); const times = []; for (let m = 0; m <= 60; m++) times.push(new Date(base + m*60000));

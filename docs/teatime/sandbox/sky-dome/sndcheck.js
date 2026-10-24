@@ -1,7 +1,7 @@
 // 雲頂強調(SND)で青〜赤に塗られた画素の、仮置きの階調→温度(黒320K・白180K)での輝度温度の分布。凡例は 240K(青)→200K(赤)。
 const { chromium } = require('playwright-core');
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }); const p = await b.newPage();
+  const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }); const p = await b.newPage();
   await p.goto('http://127.0.0.1:8100/sky.html?cfg=none').catch(()=>{});
   for (const [dir, z, x0, y0] of [['tiles_tsub',6,55,24],['tiles_ty_fd',5,25,12]]) {
     const r = await p.evaluate(async ([dir, z, x0, y0]) => {

@@ -52,7 +52,7 @@ docs/request.md(第190以前は docs/order.md。docs/order-log/2026/ に保管)�
 ### ラウンドの締め(毎回)
 1. 回帰テストを回して全PASSを確認する(回し方とスモーク構成は `.claude/skills/kaiki/SKILL.md`)。
 2. `docs/request.md`(旧 order.md) へ回答を追記・`docs/todo.md` の進捗を更新・`ClaudeMederuU/reviews/` へ実験ノートを1枚残す。
-   実験ノートの「学び」は `ClaudeMederuU/knowledge/claude-habits.md` の癖に照らし、当たる節へラウンド番号を足す(当たらなければ行を足す)。
+   実験ノートの「学び」は `ClaudeMederuU/knowledge/claude-habits.md` の癖に照らし、当たる節へラウンド番号を足す。
 3. 作業ブランチへコミット+push(メッセージは「第Nラウンド — 概要」。ラウンド番号は直近のreviews/のファイル名+1)。
 
 ### 報告の書き分け(第59ラウンドで合意)

@@ -1,7 +1,7 @@
 // REP(トゥルーカラー)の雲らしさ・海らしさで画素を分け、B13 の明るさの分布を見る(階調→温度の仮置きの検算)
 const { chromium } = require('playwright-core');
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }); const p = await b.newPage();
+  const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }); const p = await b.newPage();
   await p.goto('http://127.0.0.1:8100/sky.html?cfg=none').catch(()=>{});
   for (const [dir, z, x0, y0] of [['tiles_tsub',6,55,24],['tiles_ty_fd',5,25,12],['tiles_tsub_now',6,55,24]]) {
     const r = await p.evaluate(async ([dir, z, x0, y0]) => {
