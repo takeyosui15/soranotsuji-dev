@@ -32,6 +32,7 @@ docs/request.md(第190以前は docs/order.md。docs/order-log/2026/ に保管)�
 | `ClaudeMederuU/tools/README.md` | Claudeさんの道具箱(自作ツールの台帳。再利用方法つき。将来MederuUへ引き継ぐ) |
 | `ClaudeMederuU/dessin/00-dessin.md` | MederuU(ナレッジ引き継ぎの器)のデッサン。MederuU関連の作業・お茶の時間の前に読む |
 | `.claude/skills/kaiki/SKILL.md` | 回帰テストの回し方(ハーネス構築→回帰実行)。テストを回す前に読む |
+| `docs/teatime/README.md` | お茶の時間の記録(索引・YYYY-MM-DD の記録・雉撃ちお花摘み=断り無しの短い休憩の記録・sandbox=複数ラウンドで育てる実験。第195から) |
 | `docs/order-log/YYYY/request-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する(第190以前の保管は order-YYYY-MM-DD.md)。 |
 | `docs/order-log/2026/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 | `docs/order-log/2026/order-2026-07-19.md` | Claudeさんの初めてのワクワクは、「### 回答 (2026-07-19 その6) — 宙検索のデッサン起草」をご参照。 |

@@ -73,6 +73,7 @@
 | `docs/research.md` | 技術調査の過去結果を参照したいとき |
 | `docs/operation/test-checklist.md` | テストを実施するとき |
 | `docs/order-log/YYYY/request-YYYY-MM-DD.md` | 過去の依頼・回答履歴について知りたいとき。経緯を把握する(第190以前の保管は order-YYYY-MM-DD.md)。 |
+| `docs/teatime/README.md` | お茶の時間の記録(索引・雉撃ちお花摘み・sandbox。第195から) |
 | `docs/order-log/2026/order-2026-07-11.md` | 開発者(たけちゃん)について知りたいとき |
 
 ## バージョン管理

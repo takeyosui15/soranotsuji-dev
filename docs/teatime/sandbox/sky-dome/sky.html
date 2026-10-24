@@ -1,0 +1,96 @@
+<!doctype html><html><head><meta charset="utf-8"><title>sky experiment</title>
+<script src="astronomy.browser.min.js"></script>
+<style>body{background:#111;color:#ddd;font-family:sans-serif} canvas{display:block;margin:8px}</style></head>
+<body>
+<canvas id="map" width="768" height="768"></canvas>
+<canvas id="dome" width="900" height="900"></canvas>
+<canvas id="win" width="1200" height="600"></canvas>
+<script>
+(async () => {
+  const CFGN = new URLSearchParams(location.search).get('cfg') || 'cfg_tsubakuro.json'; const CFG = await (await fetch(CFGN)).json(); const T = await (await fetch(CFG.time)).json();
+  const vt = T.validtime; // UTC yyyymmddHHMMSS
+  const date = new Date(Date.UTC(+vt.slice(0,4), +vt.slice(4,6)-1, +vt.slice(6,8), +vt.slice(8,10), +vt.slice(10,12), +vt.slice(12,14)));
+  const jst = new Date(date.getTime() + 9*3600e3);
+  const OBS = CFG.obs;
+  const TGT = CFG.tgt;
+  const Z = CFG.zoom || 6, X0 = CFG.x0, Y0 = CFG.y0, N = 3, TS = 256, RE = 6371000; const TILEDIR = CFG.tiledir;
+  const d2r = Math.PI/180, r2d = 180/Math.PI;
+  // ---- tiles → composite
+  const map = document.getElementById('map'), mg = map.getContext('2d');
+  const loads = [];
+  for (let i=0;i<N;i++) for (let j=0;j<N;j++) loads.push(new Promise(res => { const im = new Image(); im.onload = () => { mg.drawImage(im, i*TS, j*TS); res(); }; im.onerror = () => res(); im.src = `${TILEDIR}/rep_${Z}_${X0+i}_${Y0+j}.jpg`; }));
+  await Promise.all(loads);
+  const comp = mg.getImageData(0,0,map.width,map.height);
+  const n = 2**Z;
+  const toPix = (lat, lon) => { const x = (lon+180)/360*n*TS - X0*TS; const phi = lat*d2r; const y = (1 - Math.log(Math.tan(phi) + 1/Math.cos(phi))/Math.PI)/2*n*TS - Y0*TS; return [x,y]; };
+  const sample = (lat, lon) => { const [x,y] = toPix(lat, lon); if (x<0||y<0||x>=map.width-1||y>=map.height-1) return null; const x0=Math.floor(x), y0=Math.floor(y), fx=x-x0, fy=y-y0; const px=(xx,yy)=>{ const k=(yy*map.width+xx)*4; return [comp.data[k],comp.data[k+1],comp.data[k+2]]; }; const a=px(x0,y0), b=px(x0+1,y0), c=px(x0,y0+1), d=px(x0+1,y0+1); return [0,1,2].map(i => a[i]*(1-fx)*(1-fy)+b[i]*fx*(1-fy)+c[i]*(1-fx)*fy+d[i]*fx*fy); };
+  // 雲らしさ: 明るくて色味が無い画素ほど雲(トゥルーカラーの地面は暗く色味があり、海は暗い)。0=晴れ 1=雲
+  const cloudiness = (c) => { const mx = Math.max(c[0],c[1],c[2]), mn = Math.min(c[0],c[1],c[2]); const sat = mx>0 ? (mx-mn)/mx : 0; const lum = (0.299*c[0]+0.587*c[1]+0.114*c[2])/255; let v = (lum-0.45)/0.35; v = Math.max(0, Math.min(1, v)); v *= (1 - Math.max(0, Math.min(1, (sat-0.15)/0.35))); return v; };
+  const skyColor = (e) => { const t = Math.max(0, Math.min(1, e/90)); return [Math.round(150-90*t), Math.round(200-80*t), Math.round(245-35*t)]; };   // 地平線は淡く、天頂は濃い青
+  const paint = (c, e) => { if (!c) return skyColor(e); const w = cloudiness(c); const sk = skyColor(e); const cl = [235+20*w, 235+20*w, 240+15*w]; return [0,1,2].map(i => Math.round(sk[i]*(1-w)+cl[i]*w)); };
+  const dest = (lat, lon, brg, dist) => { const φ1 = lat*d2r, λ1 = lon*d2r, δ = dist/RE, θ = brg*d2r; const φ2 = Math.asin(Math.sin(φ1)*Math.cos(δ)+Math.cos(φ1)*Math.sin(δ)*Math.cos(θ)); const λ2 = λ1 + Math.atan2(Math.sin(θ)*Math.sin(δ)*Math.cos(φ1), Math.cos(δ)-Math.sin(φ1)*Math.sin(φ2)); return [φ2*r2d, λ2*r2d]; };
+  const bearingDist = (a, b) => { const φ1=a.lat*d2r, φ2=b.lat*d2r, dλ=(b.lon-a.lon)*d2r; const y=Math.sin(dλ)*Math.cos(φ2), x=Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(dλ); const brg=(Math.atan2(y,x)*r2d+360)%360; const h=Math.sin((φ2-φ1)/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2; const d=2*RE*Math.asin(Math.sqrt(h)); return [brg,d]; };
+  // ---- sun & moon
+  const A = window.Astronomy; const observer = new A.Observer(OBS.lat, OBS.lon, OBS.h);
+  const hor = (body) => { const eq = A.Equator(body, date, observer, true, true); const h = A.Horizon(date, observer, eq.ra, eq.dec, 'normal'); return { az: h.azimuth, alt: h.altitude }; };
+  const sun = hor(A.Body.Sun), moon = hor(A.Body.Moon);
+  const moonIllum = A.Illumination(A.Body.Moon, date).phase_fraction;
+  const [tgtAz, tgtD] = bearingDist(OBS, TGT);
+  const dip = 1.776/60 * Math.sqrt(OBS.h); // 眼高の伏角(分)→度(眼高=山頂標高の目安)
+  const tgtElev = Math.atan2(TGT.h - OBS.h, tgtD)*r2d - (tgtD/(2*RE))*r2d;
+  const H = CFG.cloudH || 6000; const dh = H - OBS.h;  // 雲の層の高さ(実験の仮置き)
+  const distForElev = (e) => { const t = Math.tan(e*d2r); return (-t + Math.sqrt(t*t + 2*dh/RE)) * RE; };
+  // ---- map overlay
+  const [ox, oy] = toPix(OBS.lat, OBS.lon);
+  mg.strokeStyle = '#ffcc00'; mg.lineWidth = 2; mg.beginPath(); mg.arc(ox, oy, 6, 0, 2*Math.PI); mg.stroke();
+  const horizonKm = distForElev(0)/1000; const [hx, hy] = toPix(...dest(OBS.lat, OBS.lon, 90, horizonKm*1000));
+  mg.strokeStyle = 'rgba(255,204,0,0.8)'; mg.setLineDash([6,4]); mg.beginPath(); mg.arc(ox, oy, Math.hypot(hx-ox, hy-oy), 0, 2*Math.PI); mg.stroke(); mg.setLineDash([]);
+  const sunLen = 120; mg.strokeStyle = '#ff9900'; mg.beginPath(); mg.moveTo(ox, oy); mg.lineTo(ox + sunLen*Math.sin(sun.az*d2r), oy - sunLen*Math.cos(sun.az*d2r)); mg.stroke();
+  mg.fillStyle = '#fff'; mg.font = '14px sans-serif'; mg.fillText(`${OBS.name}  ひまわり 日本域 ${vt.slice(0,4)}-${vt.slice(4,6)}-${vt.slice(6,8)} ${vt.slice(8,10)}:${vt.slice(10,12)} UTC`, 10, 20);
+  mg.fillText(`点線の円 = 高さ ${H/1000}km の雲が地平線に見える距離 約${horizonKm.toFixed(0)}km / 橙の線 = 太陽の方位 ${sun.az.toFixed(1)}°`, 10, 40);
+  mg.fillText('出典: 気象庁ホームページ(ひまわり画像)を加工', 10, map.height-10);
+  // ---- dome (fisheye, equidistant)
+  const dome = document.getElementById('dome'), dg = dome.getContext('2d'); const W = dome.width, C = W/2, R = C - 20;
+  const img = dg.createImageData(W, W); const D = img.data;
+  for (let py=0; py<W; py++) for (let px=0; px<W; px++) {
+    const dx = px - C, dy = py - C, r = Math.hypot(dx, dy); const k = (py*W+px)*4;
+    if (r > R) { D[k]=17; D[k+1]=17; D[k+2]=17; D[k+3]=255; continue; }
+    const az = (Math.atan2(dx, -dy)*r2d + 360) % 360; const e = 90 - 90*r/R;
+    const d = distForElev(e); const [la, lo] = dest(OBS.lat, OBS.lon, az, d); const c = paint(sample(la, lo), e);
+    D[k]=c[0]; D[k+1]=c[1]; D[k+2]=c[2]; D[k+3]=255;
+  }
+  dg.putImageData(img, 0, 0);
+  const toXY = (az, alt) => { const r = R*(90-Math.max(alt,0))/90; return [C + r*Math.sin(az*d2r), C - r*Math.cos(az*d2r)]; };
+  dg.strokeStyle = 'rgba(255,255,255,0.6)'; dg.lineWidth = 1.5; dg.beginPath(); dg.arc(C, C, R, 0, 2*Math.PI); dg.stroke();
+  for (const e of [30, 60]) { dg.setLineDash([4,6]); dg.beginPath(); dg.arc(C, C, R*(90-e)/90, 0, 2*Math.PI); dg.stroke(); dg.setLineDash([]); }
+  dg.fillStyle = '#fff'; dg.font = 'bold 18px sans-serif'; dg.textAlign = 'center';
+  for (const [t, az] of [['北',0],['東',90],['南',180],['西',270]]) { const [x,y] = toXY(az, -4); dg.fillText(t, x, y+6); }
+  if (sun.alt > 0) { const [sx, sy] = toXY(sun.az, sun.alt); const g = dg.createRadialGradient(sx, sy, 2, sx, sy, 40); g.addColorStop(0,'rgba(255,240,180,1)'); g.addColorStop(1,'rgba(255,200,80,0)'); dg.fillStyle = g; dg.beginPath(); dg.arc(sx, sy, 40, 0, 2*Math.PI); dg.fill(); dg.fillStyle = '#ffe680'; dg.beginPath(); dg.arc(sx, sy, 9, 0, 2*Math.PI); dg.fill(); }
+  if (moon.alt > 0) { const [mx, my] = toXY(moon.az, moon.alt); dg.fillStyle = 'rgba(255,255,255,0.95)'; dg.beginPath(); dg.arc(mx, my, 6, 0, 2*Math.PI); dg.fill(); dg.font = '12px sans-serif'; dg.fillText(`月 ${(moonIllum*100).toFixed(0)}%`, mx, my-10); }
+  { const [tx, ty] = toXY(tgtAz, Math.max(tgtElev, 0)); dg.fillStyle = '#ff6666'; dg.beginPath(); dg.moveTo(tx, ty-10); dg.lineTo(tx-7, ty+4); dg.lineTo(tx+7, ty+4); dg.closePath(); dg.fill(); dg.font = '13px sans-serif'; dg.fillText(TGT.name, tx, ty+20); }
+  dg.textAlign = 'left'; dg.font = '15px sans-serif'; dg.fillStyle = '#fff';
+  dg.fillText(`今の空(実験) ${OBS.name} ${jst.getUTCFullYear()}-${String(jst.getUTCMonth()+1).padStart(2,'0')}-${String(jst.getUTCDate()).padStart(2,'0')} ${String(jst.getUTCHours()).padStart(2,'0')}:${String(jst.getUTCMinutes()).padStart(2,'0')} JST の衛星画像`, 10, 22);
+  dg.font = '12px sans-serif'; dg.fillText(`雲は高さ ${H/1000}km の 1 層と仮定して空のドーム(方位×高度角)に投影(衛星の白い画素=雲、それ以外=青空) / 太陽 方位${sun.az.toFixed(1)}° 高度${sun.alt.toFixed(1)}° / 月 方位${moon.az.toFixed(1)}° 高度${moon.alt.toFixed(1)}°`, 10, 42);
+  dg.fillText('出典: 気象庁ホームページ(ひまわり 日本域 トゥルーカラー再現画像)を加工 / 天体: Astronomy Engine', 10, W-10);
+  // ---- window (宙の窓風: 槍ヶ岳の方位を中心に 水平60°×高度 -10〜40°)
+  const win = document.getElementById('win'), wg = win.getContext('2d'); const WW = win.width, WH = win.height; const fov = 60, eMin = -10, eMax = 40;
+  const wimg = wg.createImageData(WW, WH); const WD = wimg.data;
+  for (let py=0; py<WH; py++) for (let px=0; px<WW; px++) {
+    const az = (tgtAz - fov/2 + fov*px/WW + 360) % 360; const e = eMax - (eMax-eMin)*py/WH; const k = (py*WW+px)*4;
+    if (e < -dip) { WD[k]=35; WD[k+1]=45; WD[k+2]=35; WD[k+3]=255; continue; }
+    const d = distForElev(Math.max(e, 0)); const [la, lo] = dest(OBS.lat, OBS.lon, az, d); const c = paint(sample(la, lo), Math.max(e, 0));
+    WD[k]=c[0]; WD[k+1]=c[1]; WD[k+2]=c[2]; WD[k+3]=255;
+  }
+  wg.putImageData(wimg, 0, 0);
+  const wxy = (az, alt) => { let da = ((az - tgtAz + 540) % 360) - 180; return [WW*(da + fov/2)/fov, WH*(eMax - alt)/(eMax-eMin)]; };
+  { const [tx, ty] = wxy(tgtAz, tgtElev); wg.fillStyle = '#ff6666'; wg.beginPath(); wg.moveTo(tx, ty-12); wg.lineTo(tx-9, ty+5); wg.lineTo(tx+9, ty+5); wg.closePath(); wg.fill(); wg.fillStyle='#fff'; wg.font='14px sans-serif'; wg.textAlign='center'; wg.fillText(`${TGT.name} 方位${tgtAz.toFixed(1)}° 高度${tgtElev.toFixed(1)}°`, tx, ty+24); }
+  if (sun.alt > 0) { const [sx, sy] = wxy(sun.az, sun.alt); if (sx>=0 && sx<=WW && sy>=0 && sy<=WH) { wg.fillStyle = '#ffe680'; wg.beginPath(); wg.arc(sx, sy, 12, 0, 2*Math.PI); wg.fill(); } }
+  wg.strokeStyle = 'rgba(255,255,255,0.5)'; wg.beginPath(); const hy0 = wxy(tgtAz, -dip)[1]; wg.moveTo(0, hy0); wg.lineTo(WW, hy0); wg.stroke();
+  wg.fillStyle = '#fff'; wg.font = '14px sans-serif'; wg.textAlign = 'left';
+  wg.fillText(`宙の窓風(実験) ${OBS.name} → ${TGT.name} の方位を中心に 水平60°×高度-10〜40° / 白線=眼高の伏角込みの地平線(-${dip.toFixed(1)}°) / 稜線は未実装`, 10, 20);
+  wg.fillText('出典: 気象庁ホームページ(ひまわり画像)を加工', 10, WH-10);
+  window.__info = { cfg: CFGN, vt, jst: jst.toISOString(), sun, moon, moonIllum, tgtAz, tgtD, tgtElev, dip, horizonKm, H };
+  window.__pngs = { map: map.toDataURL('image/png'), dome: dome.toDataURL('image/png'), win: win.toDataURL('image/png') };
+  window.__done = true;
+})().catch(e => { window.__err = String(e && e.stack || e); window.__done = true; });
+</script></body></html>
